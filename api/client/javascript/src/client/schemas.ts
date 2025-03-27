@@ -3320,10 +3320,18 @@ export interface components {
        */
       subjectKeys: string[]
     }
+<<<<<<< HEAD
     /** @description A discount on a price. */
     Discount:
       | components['schemas']['DiscountPercentage']
       | components['schemas']['DiscountUsage']
+=======
+    /** @description A discount on a price.
+     *     One of: percentage, amount, or usage. */
+    Discount:
+      | components['schemas']['DiscountPercentage']
+      | components['schemas']['UsageDiscount']
+>>>>>>> af7288aa (feat: rate card discounts)
     /** @description Percentage discount. */
     DiscountPercentage: {
       /**
@@ -3336,6 +3344,7 @@ export interface components {
        * @description The percentage of the discount.
        */
       percentage: components['schemas']['Percentage']
+<<<<<<< HEAD
     }
     /** @description Usage discount.
      *
@@ -3385,6 +3394,8 @@ export interface components {
        * @description The customer is limited to spend at most the amount.
        */
       maximumAmount?: components['schemas']['Numeric']
+=======
+>>>>>>> af7288aa (feat: rate card discounts)
     }
     /** @description Add a new item to a phase. */
     EditSubscriptionAddItem: {
@@ -8280,6 +8291,26 @@ export interface components {
        */
       maximumAmount?: components['schemas']['Numeric']
     }
+    /** @description Usage discount.
+     *
+     *     Usage discount means that the first N items are free. From billing perspective
+     *     this means that any usage on a specific feature is considered 0 until this discount
+     *     is exhausted. */
+    UsageDiscount: {
+      /**
+       * Type
+       * @description The type of the discount.
+       * @enum {string}
+       */
+      type: 'usage'
+      /**
+       * Usage
+       * @description The quantity of the usage discount.
+       *
+       *     Must be positive.
+       */
+      quantity: components['schemas']['Numeric']
+    }
     /** @description ValidationIssue captures any validation issues related to the invoice.
      *
      *     Issues with severity "critical" will prevent the invoice from being issued. */
@@ -9075,6 +9106,7 @@ export type UnexpectedProblemResponse =
 export type UnitPrice = components['schemas']['UnitPrice']
 export type UnitPriceWithCommitments =
   components['schemas']['UnitPriceWithCommitments']
+export type UsageDiscount = components['schemas']['UsageDiscount']
 export type ValidationIssue = components['schemas']['ValidationIssue']
 export type ValidationIssueSeverity =
   components['schemas']['ValidationIssueSeverity']
