@@ -108,7 +108,7 @@ enum EntitlementType {
  * Entitlement templates are used to define the entitlements of a plan.
  * Features are omitted from the entitlement template, as they are defined in the rate card.
  */
-@discriminator("type")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 @friendlyName("Entitlement")
 union Entitlement {
   metered: EntitlementMetered,
@@ -229,7 +229,7 @@ model EntitlementBooleanCreateInputs {
 /**
  * Create inputs for entitlement
  */
-@discriminator("type")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 @friendlyName("EntitlementCreateInputs")
 union EntitlementCreateInputs {
   metered: EntitlementMeteredCreateInputs,
@@ -384,7 +384,7 @@ model EntitlementStatic {
  * Start of measurement options
  */
 @friendlyName("MeasureUsageFromPreset")
-@extension("x-enum-varnames", ["CurrentPeriodStart", "Now"])
+@extension("x-enum-varnames", #["CurrentPeriodStart", "Now"])
 enum MeasureUsageFromPreset {
   #suppress "@openmeter/api-spec/casing" "Use existing values"
   CURRENT_PERIOD_START: "CURRENT_PERIOD_START",

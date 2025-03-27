@@ -335,9 +335,8 @@ enum BillingCollectionAlignment {
  * a subscription period starts (for in advance items) or ends (for in arrears items).
  */
 @friendlyName("BillingWorkflowCollectionAlignment")
-@discriminator("type")
 union BillingWorkflowCollectionAlignment {
-  subscription: BillingWorkflowCollectionAlignmentSubscription,
+  BillingWorkflowCollectionAlignmentSubscription,
 }
 
 /**

@@ -303,7 +303,7 @@ enum VoidInvoiceLineActionType {
  * VoidInvoiceLineAction describes how to handle a specific line item in the invoice when voiding.
  */
 @friendlyName("VoidInvoiceLineAction")
-@discriminator("type")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union VoidInvoiceLineAction {
   discard: VoidInvoiceLineDiscardAction,
   pending: VoidInvoiceLinePendingAction,
@@ -491,10 +491,10 @@ model InvoiceSimulationInput {
  * InvoiceSimulationInput represents a line item that can be input to the simulation endpoint.
  */
 @friendlyName("InvoiceSimulationLine")
-@discriminator("type")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union InvoiceSimulationLine {
-  usageBased: InvoiceSimulationUsageBasedLine,
-  flatFee: InvoiceSimulationFlatFeeLine,
+  usage_based: InvoiceSimulationUsageBasedLine,
+  flat_fee: InvoiceSimulationFlatFeeLine,
 }
 
 /**

@@ -24,20 +24,16 @@ import "./productcatalog";
 import "./info";
 
 using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
-using TypeSpec.Versioning;
 
 /**
  * OpenMeter is a cloud native usage metering service.
  * The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
  */
-@service({
-  title: "OpenMeter API",
-})
-@info({
+@service(#{ title: "OpenMeter API" })
+@info(#{
   version: "1.0.0",
-  license: {
+  license: #{
     name: "Apache 2.0",
     url: "http://www.apache.org/licenses/LICENSE-2.0.html",
   },

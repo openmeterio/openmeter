@@ -3,7 +3,6 @@ import "@typespec/rest";
 import "@typespec/openapi3";
 
 using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Notification;
@@ -94,7 +93,7 @@ model NotificationRuleBalanceThresholdValue {
  */
 @summary("Notification balance threshold type")
 @friendlyName("NotificationRuleBalanceThresholdValueType")
-@extension("x-enum-varnames", ["Percent", "Number"])
+@extension("x-enum-varnames", #["Percent", "Number"])
 enum NotificationRuleBalanceThresholdValueType {
   PERCENT,
   NUMBER,
@@ -127,6 +126,7 @@ model FeatureMeta {
  * Notification rule with entitlements.balance.threshold type.
  */
 @friendlyName("NotificationRuleBalanceThreshold")
+@discriminator("type")
 model NotificationRuleBalanceThreshold {
   ...NotificationRuleCommon<NotificationEventType.entitlementsBalanceThreshold>;
 
@@ -152,20 +152,16 @@ model NotificationRuleBalanceThreshold {
  * Notification Rule.
  */
 @friendlyName("NotificationRule")
-@discriminator("type")
-@oneOf
 union NotificationRule {
-  entitlementsBalanceThreshold: NotificationRuleBalanceThreshold,
+  NotificationRuleBalanceThreshold,
 }
 
 /**
  * Union type for requests creating new notification rule with certain type.
  */
 @friendlyName("NotificationRuleCreateRequest")
-@discriminator("type")
-@oneOf
 union NotificationRuleCreateRequest {
-  entitlementsBalanceThreshold: NotificationRuleBalanceThresholdCreateRequest,
+  NotificationRuleBalanceThresholdCreateRequest,
 }
 
 /**
@@ -173,6 +169,7 @@ union NotificationRuleCreateRequest {
  */
 @friendlyName("NotificationRuleBalanceThresholdCreateRequest")
 @withVisibility(Lifecycle.Create, Lifecycle.Update)
+@discriminator("type")
 model NotificationRuleBalanceThresholdCreateRequest {
   ...OmitProperties<NotificationRuleBalanceThreshold, "channels" | "features">;
 

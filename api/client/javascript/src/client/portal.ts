@@ -8,7 +8,7 @@ import type { Client } from 'openapi-fetch'
  * Manage portal tokens.
  */
 export class Portal {
-  constructor(private client: Client<paths, `${string}/${string}`>) { }
+  constructor(private client: Client<paths, `${string}/${string}`>) {}
 
   /**
    * Create a consumer portal token

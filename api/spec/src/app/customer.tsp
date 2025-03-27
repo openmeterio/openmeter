@@ -14,7 +14,7 @@ namespace OpenMeter.App;
  * One of: stripe, sandbox
  */
 @friendlyName("CustomerAppData")
-@discriminator("type")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union CustomerAppData {
   @summary("Stripe")
   stripe: StripeCustomerAppData,

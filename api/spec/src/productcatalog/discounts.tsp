@@ -12,18 +12,11 @@ enum DiscountType {
 
 /**
  * A discount on a price.
- * One of: percentage, amount, or usage.
  */
-@discriminator("type")
 @friendlyName("Discount")
 union Discount {
-  @summary("Percentage discount")
   percentage: DiscountPercentage,
-
-  // @summary("Amount discount")
   // amount: DiscountAmount,
-
-  // @summary("Usage discount")
   // usage: DiscountUsage,
 }
 

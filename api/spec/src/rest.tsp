@@ -7,5 +7,5 @@ namespace TypeSpec.Rest.Resource {
    */
   @friendlyName("{name}ReplaceUpdate", Resource)
   model ResourceReplaceModel<Resource extends {}>
-    is UpdateableProperties<DefaultKeyVisibility<Resource, "read">>;
+    is UpdateableProperties<DefaultKeyVisibility<Resource, Lifecycle.Read>>;
 }

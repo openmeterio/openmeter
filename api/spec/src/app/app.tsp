@@ -8,6 +8,7 @@ import "./capability.tsp";
 import "../errors.tsp";
 import "./stripe.tsp";
 import "../types.tsp";
+import "../query.tsp";
 
 using OpenMeter.App;
 
@@ -85,7 +86,7 @@ enum Type {
  * One of: stripe
  */
 @friendlyName("App")
-@discriminator("type")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union App {
   stripe: StripeApp,
   sandbox: SandboxApp,

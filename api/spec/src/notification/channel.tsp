@@ -3,7 +3,6 @@ import "@typespec/rest";
 import "@typespec/openapi3";
 
 using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Notification;
@@ -12,7 +11,7 @@ namespace OpenMeter.Notification;
  * Type of the notification channel.
  */
 @friendlyName("NotificationChannelType")
-@extension("x-enum-varnames", ["Webhook"])
+@extension("x-enum-varnames", #["Webhook"])
 enum NotificationChannelType {
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   webhook: "WEBHOOK",
@@ -34,7 +33,7 @@ model NotificationChannelMeta {
   /**
    * Notification channel type.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Channel Type")
   type: NotificationChannelType;
 }
@@ -109,28 +108,24 @@ model NotificationChannelWebhook {
  * Notification channel.
  */
 @friendlyName("NotificationChannel")
-@discriminator("type")
-@oneOf
 union NotificationChannel {
-  webhook: NotificationChannelWebhook,
+  NotificationChannelWebhook,
 }
 
 /**
  * Union type for requests creating new notification channel with certain type.
  */
 @friendlyName("NotificationChannelCreateRequest")
-@discriminator("type")
-@oneOf
 union NotificationChannelCreateRequest {
-  webhook: NotificationChannelWebhookCreateRequest,
+  NotificationChannelWebhookCreateRequest,
 }
 
 /**
  * Request with input parameters for creating new notification channel with webhook type.
  */
-@withVisibility("create", "update")
 @friendlyName("NotificationChannelWebhookCreateRequest")
-model NotificationChannelWebhookCreateRequest is NotificationChannelWebhook;
+model NotificationChannelWebhookCreateRequest
+  is Rest.Resource.ResourceCreateModel<NotificationChannelWebhook>;
 
 /**
  * Order by options for notification channels.

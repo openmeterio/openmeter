@@ -459,16 +459,15 @@ enum SubscriptionTimingEnum {
 /**
  * The operation to be performed on the subscription.
  */
-@oneOf
-@discriminator("op")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "op" })
 @friendlyName("SubscriptionEditOperation")
 union SubscriptionEditOperation {
-  EditSubscriptionAddItem,
-  EditSubscriptionRemoveItem,
-  EditSubscriptionAddPhase,
-  EditSubscriptionRemovePhase,
-  EditSubscriptionStretchPhase,
-  EditSubscriptionUnscheduleEdit,
+  add_item: EditSubscriptionAddItem,
+  remove_item: EditSubscriptionRemoveItem,
+  add_phase: EditSubscriptionAddPhase,
+  remove_phase: EditSubscriptionRemovePhase,
+  stretch_phase: EditSubscriptionStretchPhase,
+  unschedule_edit: EditSubscriptionUnscheduleEdit,
 }
 
 /**

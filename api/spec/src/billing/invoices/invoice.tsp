@@ -443,20 +443,20 @@ model InvoiceDiscount {
  * BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
  */
 @friendlyName("InvoiceLine")
-@discriminator("type")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union InvoiceLine {
-  usageBased: InvoiceUsageBasedLine,
-  flatFee: InvoiceFlatFeeLine,
+  usage_based: InvoiceUsageBasedLine,
+  flat_fee: InvoiceFlatFeeLine,
 }
 
 /**
  * InvoiceLineReplaceUpdate represents the update model for an invoice line.
  */
 @friendlyName("InvoiceLineReplaceUpdate")
-@discriminator("type")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union InvoiceLineReplaceUpdate {
-  usageBased: InvoiceUsageBasedLineReplaceUpdate,
-  flatFee: InvoiceFlatFeeLineReplaceUpdate,
+  usage_based: InvoiceUsageBasedLineReplaceUpdate,
+  flat_fee: InvoiceFlatFeeLineReplaceUpdate,
 }
 
 /**
@@ -501,10 +501,10 @@ model InvoiceFlatFeeLineReplaceUpdate {
  * InvoiceLineCreate represents the create model for an invoice line.
  */
 @friendlyName("InvoicePendingLineCreate")
-@discriminator("type")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union InvoicePendingLineCreate {
-  usageBased: InvoiceUsageBasedPendingLineCreate,
-  flatFee: InvoiceFlatFeePendingLineCreate,
+  usage_based: InvoiceUsageBasedPendingLineCreate,
+  flat_fee: InvoiceFlatFeePendingLineCreate,
 }
 
 /**
@@ -610,7 +610,6 @@ enum InvoiceLineManagedBy {
  *
  * This is a base class for all line types, and should not be used directly.
  * */
-@discriminator("type")
 @friendlyName("InvoiceLine")
 model InvoiceLineBase {
   // Note: ID has updated visibility as we support batch line creations and upserts
