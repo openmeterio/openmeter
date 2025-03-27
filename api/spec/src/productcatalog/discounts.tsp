@@ -6,8 +6,8 @@ namespace OpenMeter.ProductCatalog;
 @friendlyName("DiscountType")
 enum DiscountType {
   percentage: "percentage",
+  usage: "usage",
   // amount: "amount",
-  // usage: "usage",
 }
 
 /**
@@ -23,8 +23,8 @@ union Discount {
   // @summary("Amount discount")
   // amount: DiscountAmount,
 
-  // @summary("Usage discount")
-  // usage: DiscountUsage,
+  @summary("Usage discount")
+  usage: DiscountUsage,
 }
 
 /**
@@ -47,14 +47,6 @@ model DiscountPercentage {
   @minValue(0)
   @maxValue(100)
   percentage: Percentage;
-
-  /**
-   * The rate cards that the discount applies to.
-   * When not specified, the discount applies to all rate cards.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Discounted RateCards")
-  rateCards?: Key[];
 }
 
 // NOTE(chrisgacsal): amount discount is going to be implemented in future releases
@@ -76,21 +68,26 @@ model DiscountPercentage {
 //   amount: Money;
 // }
 
-// NOTE(chrisgacsal): usage discount is going to be implemented in future releases
-// /**
-//  * Usage discount.
-//  */
-// @friendlyName("UsageDiscount")
-// model DiscountUsage {
-//   /**
-//    * The type of the discount.
-//    */
-//   @summary("Type")
-//   type: DiscountType.usage;
+/**
+ * Usage discount.
+ *
+ * Usage discount means that the first N items are free. From billing perspective
+ * this means that any usage on a specific feature is considered 0 until this discount
+ * is exhausted.
+ */
+@friendlyName("DiscountUsage")
+model DiscountUsage {
+  /**
+   * The type of the discount.
+   */
+  @summary("Type")
+  type: DiscountType.usage;
 
-//   /**
-//    * The usage discount.
-//    */
-//   @summary("Usage")
-//   usage: float64;
-// }
+  /**
+   * The quantity of the usage discount.
+   *
+   * Must be positive.
+   */
+  @summary("Usage")
+  quantity: Numeric;
+}
