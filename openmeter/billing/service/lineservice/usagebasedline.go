@@ -450,11 +450,6 @@ func (l usageBasedLine) calculateDynamicPriceDetailedLines(usage *featureUsageRe
 }
 
 func (l usageBasedLine) getNumberOfPackages(qty alpacadecimal.Decimal, packageSize alpacadecimal.Decimal) alpacadecimal.Decimal {
-	if qty.IsZero() {
-		// Corner case: we always bill at least one package even if the quantity is zero
-		return DecimalOne
-	}
-
 	requiredPackages := qty.Div(packageSize).Floor()
 
 	if qty.Mod(packageSize).IsZero() {

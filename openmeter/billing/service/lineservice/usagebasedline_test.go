@@ -611,15 +611,7 @@ func TestPackagePriceCalculation(t *testing.T) {
 			usage: featureUsageResponse{
 				LinePeriodQty: alpacadecimal.NewFromFloat(0),
 			},
-			expect: newDetailedLinesInput{
-				{
-					Name:                   "feature: usage in period",
-					PerUnitAmount:          alpacadecimal.NewFromFloat(15),
-					Quantity:               alpacadecimal.NewFromFloat(1),
-					ChildUniqueReferenceID: UsageChildUniqueReferenceID,
-					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-				},
-			},
+			expect: newDetailedLinesInput{},
 		})
 	})
 
@@ -639,15 +631,8 @@ func TestPackagePriceCalculation(t *testing.T) {
 			},
 			expect: newDetailedLinesInput{
 				{
-					Name:                   "feature: usage in period",
-					PerUnitAmount:          alpacadecimal.NewFromFloat(15),
-					Quantity:               alpacadecimal.NewFromFloat(1),
-					ChildUniqueReferenceID: UsageChildUniqueReferenceID,
-					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-				},
-				{
 					Name:                   "feature: minimum spend",
-					PerUnitAmount:          alpacadecimal.NewFromFloat(85),
+					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: MinSpendChildUniqueReferenceID,
 					Period:                 &ubpTestFullPeriod,
@@ -693,7 +678,7 @@ func TestPackagePriceCalculation(t *testing.T) {
 			expect: newDetailedLinesInput{
 				{
 					Name:                   "feature: minimum spend",
-					PerUnitAmount:          alpacadecimal.NewFromFloat(85),
+					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: MinSpendChildUniqueReferenceID,
 					Period:                 &ubpTestFullPeriod,
@@ -737,12 +722,19 @@ func TestPackagePriceCalculation(t *testing.T) {
 			usage: featureUsageResponse{
 				LinePeriodQty: alpacadecimal.NewFromFloat(10),
 			},
-			// The first in period line has already billed for usage [0..10]
-			expect: newDetailedLinesInput{},
+			expect: newDetailedLinesInput{
+				{
+					Name:                   "feature: usage in period",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(15),
+					Quantity:               alpacadecimal.NewFromFloat(1),
+					ChildUniqueReferenceID: UsageChildUniqueReferenceID,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				},
+			},
 		})
 	})
 
-	t.Run("usage present, mid line, extra over first package", func(t *testing.T) {
+	t.Run("usage present, mid line, usage starts in a mid period split line", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.PackagePrice{
 				QuantityPerPackage: alpacadecimal.NewFromFloat(10),
@@ -752,8 +744,15 @@ func TestPackagePriceCalculation(t *testing.T) {
 			usage: featureUsageResponse{
 				LinePeriodQty: alpacadecimal.NewFromFloat(5),
 			},
-			// The first in period line has already billed for usage [0..10]
-			expect: newDetailedLinesInput{},
+			expect: newDetailedLinesInput{
+				{
+					Name:                   "feature: usage in period",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(15),
+					Quantity:               alpacadecimal.NewFromFloat(1),
+					ChildUniqueReferenceID: UsageChildUniqueReferenceID,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				},
+			},
 		})
 	})
 
@@ -795,7 +794,15 @@ func TestPackagePriceCalculation(t *testing.T) {
 			usage: featureUsageResponse{
 				LinePeriodQty: alpacadecimal.NewFromFloat(10),
 			},
-			expect: newDetailedLinesInput{},
+			expect: newDetailedLinesInput{
+				{
+					Name:                   "feature: usage in period",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(15),
+					Quantity:               alpacadecimal.NewFromFloat(1),
+					ChildUniqueReferenceID: UsageChildUniqueReferenceID,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				},
+			},
 		})
 	})
 

@@ -16453,24 +16453,14 @@ components:
         The item is sold in packages. Each package contains quantityPerPackage items, the price of the
         package is set in amount.
 
-        For example, if the amount $10, and the quantity per package is 20, then the price of 98 items will
-        be 5*$10.
+        The total price of the usage will be enough packages that can accomodate all the usage.
 
-        As with tiered prices if there's no usage for a specific period, the user is still expected to buy the
-        first package.
-
-        Example:
-        If the item is billed monthy, with quantity per pacakge being 20, amount being 10, even if there's no
-        usage for a given month $10 will be billed.
-
-        Later new pacakge is only billed when the usage is greater than the allowed quantity indicated by the
-        quantityPerPackage.
-
-        Example:
-        If the item is billed monthy, with quantity per pacakge being 20, amount being 10, and the usage is 20,
-        then $10 will be billed.
-
-        If the usage increases to 20.1, then $20 will be billed (2 packages).
+        Examples (given a package size of 20, and an amount of $10):
+        - if the quantity is 98, the price will be 5*$10=$50.
+        - if the quantity is zero, the price will be 0*$10=$0, as even the first package is not purchased.
+        - if the quantity is 20, the price will be 1*$10=$10, as the usage fits into the first package.
+        - if the quantity is 20.1, the price will be 2*$10=$20, as the additional 0.1 usage (compared to the
+        previous example) requires a new package.
     PackagePriceWithCommitments:
       type: object
       required:
