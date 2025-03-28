@@ -16259,8 +16259,6 @@ components:
           minItems: 1
           description: Optional field containing list of features the rule applies to.
           title: Features
-      discriminator:
-        propertyName: type
       description: Notification rule with entitlements.balance.threshold type.
     NotificationRuleBalanceThresholdCreateRequest:
       type: object
@@ -16320,8 +16318,6 @@ components:
           minItems: 1
           description: Optional field for defining the scope of notification by feature. It may contain features by id or key.
           title: Features
-      discriminator:
-        propertyName: type
       description: Request with input parameters for creating new notification rule with entitlements.balance.threashold type.
     NotificationRuleBalanceThresholdValue:
       type: object
