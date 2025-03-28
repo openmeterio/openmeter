@@ -123,5 +123,7 @@ func (a *Router) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Requ
 // Get customer access
 // (GET /api/v1/customers/{customerId}/access)
 func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
-	unimplemented.GetCustomerAccess(w, r, customerIdOrKey)
+	a.customerHandler.GetCustomerAccess().With(customerdriver.GetCustomerAccessParams{
+		CustomerIDOrKey: customerIdOrKey,
+	}).ServeHTTP(w, r)
 }

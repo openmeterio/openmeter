@@ -271,8 +271,8 @@ func (c *entitlementConnector) GetAccess(ctx context.Context, namespace string, 
 
 			// Store the result
 			result.Store(entitlement.FeatureKey, EntitlementValueWithId{
-				EntitlementValue: entValue,
-				ID:               entitlement.ID,
+				Value: entValue,
+				ID:    entitlement.ID,
 			})
 
 			return nil
