@@ -6,6 +6,6 @@ type Access struct {
 }
 
 type EntitlementValueWithId struct {
-	EntitlementValue
-	ID string
+	Value EntitlementValue
+	ID    string
 }

@@ -1018,6 +1018,10 @@ func (n NoopCustomerService) GetEntitlementValue(ctx context.Context, input cust
 	return nil, nil
 }
 
+func (n NoopCustomerService) GetCustomerAccess(ctx context.Context, input customer.GetCustomerInput) (entitlement.Access, error) {
+	return entitlement.Access{}, nil
+}
+
 func (n NoopCustomerService) FindCustomer(ctx context.Context, namespace string, customerRef ref.IDOrKey) (*customer.Customer, error) {
 	return nil, nil
 }

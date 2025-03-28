@@ -68,7 +68,7 @@ func TestGetAccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, access.Entitlements, 1)
 		require.NotNil(t, access.Entitlements[featureKey])
-		require.Equal(t, access.Entitlements[featureKey].HasAccess(), true)
+		require.Equal(t, access.Entitlements[featureKey].Value.HasAccess(), true)
 		require.Equal(t, access.Entitlements[featureKey].ID, ent.ID)
 	})
 
@@ -117,7 +117,7 @@ func TestGetAccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, access.Entitlements, count)
 		for _, ent := range access.Entitlements {
-			require.Equal(t, ent.HasAccess(), true)
+			require.Equal(t, ent.Value.HasAccess(), true)
 			require.Contains(t, entIds, ent.ID)
 		}
 	})
@@ -214,9 +214,9 @@ func TestGetAccess(t *testing.T) {
 		require.NotNil(t, access.Entitlements["test-static"])
 		require.NotNil(t, access.Entitlements["test-metered"])
 
-		require.Equal(t, access.Entitlements["test-bool"].HasAccess(), true)
-		require.Equal(t, access.Entitlements["test-static"].HasAccess(), true)
-		require.Equal(t, access.Entitlements["test-metered"].HasAccess(), true)
+		require.Equal(t, access.Entitlements["test-bool"].Value.HasAccess(), true)
+		require.Equal(t, access.Entitlements["test-static"].Value.HasAccess(), true)
+		require.Equal(t, access.Entitlements["test-metered"].Value.HasAccess(), true)
 	})
 
 	t.Run("Should return access for multiple entitlements (> than max concurrency)", func(t *testing.T) {
@@ -264,7 +264,7 @@ func TestGetAccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, access.Entitlements, count)
 		for _, ent := range access.Entitlements {
-			require.Equal(t, ent.HasAccess(), true)
+			require.Equal(t, ent.Value.HasAccess(), true)
 			require.Contains(t, entIds, ent.ID)
 		}
 	})
