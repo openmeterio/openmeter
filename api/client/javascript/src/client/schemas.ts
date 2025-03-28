@@ -7,14 +7,14 @@ export interface paths {
       cookie?: never
     }
     /**
-     * List addons
-     * @description List all addons.
+     * List add-ons
+     * @description List all add-ons.
      */
     get: operations['listAddons']
     put?: never
     /**
-     * Create an addon
-     * @description Create a new addon.
+     * Create an add-on
+     * @description Create a new add-on.
      */
     post: operations['createAddon']
     delete?: never
@@ -31,8 +31,8 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Get addon
-     * @description Get addon by id or key. The latest published version is returned if latter is used.
+     * Get add-on
+     * @description Get add-on by id or key. The latest published version is returned if latter is used.
      */
     get: operations['getAddon']
     put?: never
@@ -52,16 +52,16 @@ export interface paths {
     }
     get?: never
     /**
-     * Update addon
-     * @description Update addon by id.
+     * Update add-on
+     * @description Update add-on by id.
      */
     put: operations['updateAddon']
     post?: never
     /**
-     * Delete addon
-     * @description Soft delete addon by id.
+     * Delete add-on
+     * @description Soft delete add-on by id.
      *
-     *     Once a addon is deleted it cannot be undeleted.
+     *     Once a add-on is deleted it cannot be undeleted.
      */
     delete: operations['deleteAddon']
     options?: never
@@ -79,8 +79,8 @@ export interface paths {
     get?: never
     put?: never
     /**
-     * Archive addon version
-     * @description Archive a addon version.
+     * Archive add-on version
+     * @description Archive a add-on version.
      */
     post: operations['archiveAddon']
     delete?: never
@@ -99,8 +99,8 @@ export interface paths {
     get?: never
     put?: never
     /**
-     * Publish addon
-     * @description Publish a addon version.
+     * Publish add-on
+     * @description Publish a add-on version.
      */
     post: operations['publishAddon']
     delete?: never
@@ -1898,7 +1898,7 @@ export interface paths {
 export type webhooks = Record<string, never>
 export interface components {
   schemas: {
-    /** @description Addon allows extending subscriptions with compatible plans with additional ratecards. */
+    /** @description Add-on allows extending subscriptions with compatible plans with additional ratecards. */
     Addon: {
       /**
        * ID
@@ -1954,38 +1954,38 @@ export interface components {
       readonly annotations?: components['schemas']['Annotations']
       /**
        * Version
-       * @description Version of the addon. Incremented when the addon is updated.
+       * @description Version of the add-on. Incremented when the add-on is updated.
        * @default 1
        */
       readonly version: number
       /**
        * InstanceType
-       * @description The instanceType of the addons. Can be "single" or "multiple".
+       * @description The instanceType of the add-ons. Can be "single" or "multiple".
        */
       instanceType: components['schemas']['AddonInstanceType']
       /**
        * Currency
-       * @description The currency code of the addon.
+       * @description The currency code of the add-on.
        * @default USD
        */
       currency: components['schemas']['CurrencyCode']
       /**
        * Effective start date
        * Format: date-time
-       * @description The date and time when the addon becomes effective. When not specified, the addon is a draft.
+       * @description The date and time when the add-on becomes effective. When not specified, the add-on is a draft.
        * @example 2023-01-01T01:01:01.001Z
        */
       readonly effectiveFrom?: Date
       /**
        * Effective end date
        * Format: date-time
-       * @description The date and time when the addon is no longer effective. When not specified, the addon is effective indefinitely.
+       * @description The date and time when the add-on is no longer effective. When not specified, the add-on is effective indefinitely.
        * @example 2023-01-01T01:01:01.001Z
        */
       readonly effectiveTo?: Date
       /**
        * Status
-       * @description The status of the addon.
+       * @description The status of the add-on.
        *     Computed based on the effective start and end dates:
        *     - draft = no effectiveFrom
        *     - active = effectiveFrom <= now < effectiveTo
@@ -1994,7 +1994,7 @@ export interface components {
       readonly status: components['schemas']['AddonStatus']
       /**
        * Rate cards
-       * @description The rate cards of the addon.
+       * @description The rate cards of the add-on.
        */
       rateCards: components['schemas']['AddonRateCard'][]
     }
@@ -2022,29 +2022,29 @@ export interface components {
       key: string
       /**
        * InstanceType
-       * @description The instanceType of the addons. Can be "single" or "multiple".
+       * @description The instanceType of the add-ons. Can be "single" or "multiple".
        */
       instanceType: components['schemas']['AddonInstanceType']
       /**
        * Currency
-       * @description The currency code of the addon.
+       * @description The currency code of the add-on.
        * @default USD
        */
       currency: components['schemas']['CurrencyCode']
       /**
        * Rate cards
-       * @description The rate cards of the addon.
+       * @description The rate cards of the add-on.
        */
       rateCards: components['schemas']['AddonRateCard'][]
     }
     /**
-     * @description The instanceType of the addon.
-     *     Single instance addons can be added to subscription only once while addons with multiple type can be added more then once.
+     * @description The instanceType of the add-on.
+     *     Single instance add-ons can be added to subscription only once while add-ons with multiple type can be added more then once.
      * @enum {string}
      */
     AddonInstanceType: 'single' | 'multiple'
     /**
-     * @description Order by options for addons.
+     * @description Order by options for add-ons.
      * @enum {string}
      */
     AddonOrderBy: 'id' | 'key' | 'version' | 'created_at' | 'updated_at'
@@ -2074,8 +2074,8 @@ export interface components {
       mode: components['schemas']['AddonRateCardMode']
     }
     /**
-     * @description The addon mode defines how the ratecards included in the addon are applied in a subscription.
-     *     Override mode means that the ratecards in addon take precedence over the ones which are defined in a plan with for the same feature.
+     * @description The add-on mode defines how the ratecards included in the add-on are applied in a subscription.
+     *     Override mode means that the ratecards in add-on take precedence over the ones which are defined in a plan with for the same feature.
      *     While the extend mode extends the ratecards from plan for the same feature.
      * @enum {string}
      */
@@ -2099,17 +2099,17 @@ export interface components {
       metadata?: components['schemas']['Metadata'] | null
       /**
        * InstanceType
-       * @description The instanceType of the addons. Can be "single" or "multiple".
+       * @description The instanceType of the add-ons. Can be "single" or "multiple".
        */
       instanceType: components['schemas']['AddonInstanceType']
       /**
        * Rate cards
-       * @description The rate cards of the addon.
+       * @description The rate cards of the add-on.
        */
       rateCards: components['schemas']['AddonRateCard'][]
     }
     /**
-     * @description The status of the addon defined by the effectiveFrom and effectiveTo properties.
+     * @description The status of the add-on defined by the effectiveFrom and effectiveTo properties.
      * @enum {string}
      */
     AddonStatus: 'draft' | 'active' | 'archived'
@@ -9226,7 +9226,7 @@ export interface operations {
   listAddons: {
     parameters: {
       query?: {
-        /** @description Include deleted addons in response.
+        /** @description Include deleted add-ons in response.
          *
          *     Usage: `?includeDeleted=true` */
         includeDeleted?: boolean
@@ -9238,12 +9238,12 @@ export interface operations {
         keyVersion?: {
           [key: string]: number[]
         }
-        /** @description Only return addons with the given status.
+        /** @description Only return add-ons with the given status.
          *
          *     Usage:
-         *     - `?status=active`: return only the currently active addon
-         *     - `?status=draft`: return only the draft addon
-         *     - `?status=archived`: return only the archived addons */
+         *     - `?status=active`: return only the currently active add-ons
+         *     - `?status=draft`: return only the draft add-ons
+         *     - `?status=archived`: return only the archived add-ons */
         status?: components['schemas']['AddonStatus'][]
         /** @description Filter by addon.currency attribute */
         currency?: components['schemas']['CurrencyCode'][]
@@ -9430,7 +9430,7 @@ export interface operations {
   getAddon: {
     parameters: {
       query?: {
-        /** @description Include latest version of the addon instead of the version in active state.
+        /** @description Include latest version of the add-on instead of the version in active state.
          *
          *     Usage: `?includeLatest=true` */
         includeLatest?: boolean
