@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// EntityMutationType is the type of mutation that occurred on an entity
 type EntityMutationType string
 
 const (
@@ -14,13 +15,15 @@ const (
 	EntityMutationTypeDelete EntityMutationType = "delete"
 )
 
+// EventEntityMutationPayload is a payload for an entity mutation event
 type EventEntityMutationPayload[T any] struct {
-	Entity       string             // entity type "customer"
-	MutationType EntityMutationType // mutation type "create"
-	New          *T                 // only applicable for create and update
-	Previous     *T                 // only applicable for update and delete
+	Entity       string             `json:"entity"`       // entity type "customer"
+	MutationType EntityMutationType `json:"mutationType"` // mutation type "create"
+	New          *T                 `json:"new"`          // only applicable for create and update
+	Previous     *T                 `json:"previous"`     // only applicable for update and delete
 }
 
+// Validate validates the event entity mutation payload
 func (e EventEntityMutationPayload[T]) Validate() error {
 	var errs []error
 
@@ -61,6 +64,7 @@ func (e EventEntityMutationPayload[T]) Validate() error {
 	return errors.Join(errs...)
 }
 
+// GetMutationEventID returns a unique identifier for a mutation event
 func GetMutationEventID(mutationType EntityMutationType, id string, t time.Time) string {
 	return fmt.Sprintf("%s-%s-%s", id, mutationType, t.Format(time.RFC3339))
 }
