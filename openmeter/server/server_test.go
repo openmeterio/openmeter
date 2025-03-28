@@ -722,6 +722,10 @@ func (n NoopEntitlementConnector) GetEntitlementOfSubjectAt(ctx context.Context,
 	return &entitlement.Entitlement{}, nil
 }
 
+func (n NoopEntitlementConnector) GetAccess(ctx context.Context, namespace string, subjectKey string) (entitlement.Access, error) {
+	return entitlement.Access{}, nil
+}
+
 // NoopEntitlementBalanceConnector
 
 var _ meteredentitlement.Connector = (*NoopEntitlementBalanceConnector)(nil)
