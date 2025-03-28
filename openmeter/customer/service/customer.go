@@ -35,7 +35,7 @@ func (s *Service) CreateCustomer(ctx context.Context, input customer.CreateCusto
 	}
 
 	// Publish the customer created event
-	customerCreatedEvent := customer.NewCustomerCreateEvent(createdCustomer)
+	customerCreatedEvent := customer.NewCustomerCreateEvent(ctx, createdCustomer)
 	if err := s.publisher.Publish(ctx, customerCreatedEvent); err != nil {
 		return nil, fmt.Errorf("failed to publish customer created event: %w", err)
 	}
@@ -68,7 +68,7 @@ func (s *Service) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 	}
 
 	// Publish the customer deleted event
-	customerDeletedEvent := customer.NewCustomerDeleteEvent(deletedCustomer)
+	customerDeletedEvent := customer.NewCustomerDeleteEvent(ctx, deletedCustomer)
 	if err := s.publisher.Publish(ctx, customerDeletedEvent); err != nil {
 		return fmt.Errorf("failed to publish customer deleted event: %w", err)
 	}
@@ -95,7 +95,7 @@ func (s *Service) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 	}
 
 	// Publish the customer updated event
-	customerUpdatedEvent := customer.NewCustomerUpdateEvent(updatedCustomer)
+	customerUpdatedEvent := customer.NewCustomerUpdateEvent(ctx, updatedCustomer)
 	if err := s.publisher.Publish(ctx, customerUpdatedEvent); err != nil {
 		return nil, fmt.Errorf("failed to publish customer updated event: %w", err)
 	}

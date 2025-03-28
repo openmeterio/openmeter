@@ -1,10 +1,12 @@
 package customer
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
+	"github.com/openmeterio/openmeter/openmeter/session"
 )
 
 const (
@@ -15,15 +17,17 @@ const (
 )
 
 // NewCustomerCreateEvent creates a new customer create event
-func NewCustomerCreateEvent(customer *Customer) CustomerCreateEvent {
+func NewCustomerCreateEvent(ctx context.Context, customer *Customer) CustomerCreateEvent {
 	return CustomerCreateEvent{
 		Customer: customer,
+		UserID:   session.GetSessionUserID(ctx),
 	}
 }
 
 // CustomerCreateEvent is an event that is emitted when a customer is created
 type CustomerCreateEvent struct {
 	Customer *Customer `json:"customer"`
+	UserID   *string   `json:"userId,omitempty"`
 }
 
 func (e CustomerCreateEvent) EventName() string {
@@ -60,15 +64,17 @@ func (e CustomerCreateEvent) Validate() error {
 }
 
 // NewCustomerUpdateEvent creates a new customer update event
-func NewCustomerUpdateEvent(customer *Customer) CustomerUpdateEvent {
+func NewCustomerUpdateEvent(ctx context.Context, customer *Customer) CustomerUpdateEvent {
 	return CustomerUpdateEvent{
 		Customer: customer,
+		UserID:   session.GetSessionUserID(ctx),
 	}
 }
 
 // CustomerUpdateEvent is an event that is emitted when a customer is updated
 type CustomerUpdateEvent struct {
 	Customer *Customer `json:"customer"`
+	UserID   *string   `json:"userId,omitempty"`
 }
 
 func (e CustomerUpdateEvent) EventName() string {
@@ -105,15 +111,17 @@ func (e CustomerUpdateEvent) Validate() error {
 }
 
 // NewCustomerDeleteEvent creates a new customer delete event
-func NewCustomerDeleteEvent(customer *Customer) CustomerDeleteEvent {
+func NewCustomerDeleteEvent(ctx context.Context, customer *Customer) CustomerDeleteEvent {
 	return CustomerDeleteEvent{
 		Customer: customer,
+		UserID:   session.GetSessionUserID(ctx),
 	}
 }
 
 // CustomerDeleteEvent is an event that is emitted when a customer is deleted
 type CustomerDeleteEvent struct {
 	Customer *Customer `json:"customer"`
+	UserID   *string   `json:"userId,omitempty"`
 }
 
 func (e CustomerDeleteEvent) EventName() string {
