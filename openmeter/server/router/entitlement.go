@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
+	customerdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 )
 
@@ -105,5 +106,24 @@ func (a *Router) OverrideEntitlement(w http.ResponseWriter, r *http.Request, sub
 	a.entitlementHandler.OverrideEntitlement().With(entitlementdriver.OverrideEntitlementHandlerParams{
 		SubjectIdOrKey:            subjectIdOrKey,
 		EntitlementIdOrFeatureKey: entitlementIdOrFeatureKey,
+	}).ServeHTTP(w, r)
+}
+
+// Customer APIs
+
+// Get entitlement value
+// (GET /api/v1/customers/{customerId}/entitlements/{featureKey}/value)
+func (a *Router) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.GetCustomerEntitlementValueParams) {
+	a.customerHandler.GetCustomerEntitlementValue().With(customerdriver.GetCustomerEntitlementValueParams{
+		CustomerIDOrKey: customerIdOrKey,
+		FeatureKey:      featureKey,
+	}).ServeHTTP(w, r)
+}
+
+// Get customer access
+// (GET /api/v1/customers/{customerId}/access)
+func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
+	a.customerHandler.GetCustomerAccess().With(customerdriver.GetCustomerAccessParams{
+		CustomerIDOrKey: customerIdOrKey,
 	}).ServeHTTP(w, r)
 }

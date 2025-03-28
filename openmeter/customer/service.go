@@ -22,6 +22,8 @@ type CustomerService interface {
 	DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error
 	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)
 	UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error)
-	GetEntitlementValue(ctx context.Context, input GetEntitlementValueInput) (entitlement.EntitlementValue, error)
 	CustomerExists(ctx context.Context, customer CustomerID) error
+
+	GetEntitlementValue(ctx context.Context, input GetEntitlementValueInput) (entitlement.EntitlementValue, error)
+	GetCustomerAccess(ctx context.Context, input GetCustomerInput) (entitlement.Access, error)
 }

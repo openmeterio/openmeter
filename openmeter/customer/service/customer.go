@@ -59,13 +59,10 @@ func (s *Service) GetEntitlementValue(ctx context.Context, input customer.GetEnt
 		return nil, err
 	}
 
-	if len(cust.UsageAttribution.SubjectKeys) != 1 {
-		return nil, models.NewGenericConflictError(
-			fmt.Errorf("customer %s has multiple subject keys", input.CustomerID.ID),
-		)
+	subjectKey, err := cust.UsageAttribution.GetSubjectKey()
+	if err != nil {
+		return nil, models.NewGenericConflictError(fmt.Errorf("failed to get subject key: %w", err))
 	}
-
-	subjectKey := cust.UsageAttribution.SubjectKeys[0]
 
 	val, err := s.entitlementConnector.GetEntitlementValue(ctx, input.CustomerID.Namespace, subjectKey, input.FeatureKey, clock.Now())
 	if err != nil {
@@ -77,6 +74,20 @@ func (s *Service) GetEntitlementValue(ctx context.Context, input customer.GetEnt
 	}
 
 	return val, nil
+}
+
+func (s *Service) GetCustomerAccess(ctx context.Context, input customer.GetCustomerInput) (entitlement.Access, error) {
+	cust, err := s.GetCustomer(ctx, input)
+	if err != nil {
+		return entitlement.Access{}, err
+	}
+
+	subjectKey, err := cust.UsageAttribution.GetSubjectKey()
+	if err != nil {
+		return entitlement.Access{}, models.NewGenericConflictError(fmt.Errorf("failed to get subject key: %w", err))
+	}
+
+	return s.entitlementConnector.GetAccess(ctx, cust.Namespace, subjectKey)
 }
 
 func (s *Service) CustomerExists(ctx context.Context, customer customer.CustomerID) error {

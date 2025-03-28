@@ -354,3 +354,49 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 		)...,
 	)
 }
+
+type (
+	GetCustomerAccessRequest  = customer.GetCustomerInput
+	GetCustomerAccessResponse = api.CustomerAccess
+	GetCustomerAccessParams   = struct {
+		CustomerIDOrKey string
+	}
+	GetCustomerAccessHandler httptransport.HandlerWithArgs[GetCustomerAccessRequest, GetCustomerAccessResponse, GetCustomerAccessParams]
+)
+
+// GetCustomerAccess returns a handler for getting a customer access.
+func (h *handler) GetCustomerAccess() GetCustomerAccessHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params GetCustomerAccessParams) (GetCustomerAccessRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return GetCustomerAccessRequest{}, err
+			}
+
+			return GetCustomerAccessRequest{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					Namespace: ns,
+					IDOrKey:   params.CustomerIDOrKey,
+				},
+			}, nil
+		},
+		func(ctx context.Context, request GetCustomerAccessRequest) (GetCustomerAccessResponse, error) {
+			access, err := h.service.GetCustomerAccess(ctx, request)
+			if err != nil {
+				return GetCustomerAccessResponse{}, err
+			}
+
+			apiAccess, err := MapAccessToAPI(access)
+			if err != nil {
+				return GetCustomerAccessResponse{}, err
+			}
+
+			return apiAccess, nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[GetCustomerAccessResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("getCustomerAccess"),
+		)...,
+	)
+}

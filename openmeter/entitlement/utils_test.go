@@ -59,10 +59,11 @@ func (m *mockTypeConnector) AfterCreate(ctx context.Context, entitlement *entitl
 }
 
 type dependencies struct {
-	dbClient    *db.Client
-	pgDriver    *pgdriver.Driver
-	entDriver   *entdriver.EntPostgresDriver
-	featureRepo feature.FeatureRepo
+	dbClient           *db.Client
+	pgDriver           *pgdriver.Driver
+	entDriver          *entdriver.EntPostgresDriver
+	featureRepo        feature.FeatureRepo
+	streamingConnector *streamingtestutils.MockStreamingConnector
 }
 
 // Teardown cleans up the dependencies
@@ -91,7 +92,7 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 			Name: "Meter 1",
 		},
 		Key:           "meter1",
-		Aggregation:   meter.MeterAggregationMax,
+		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "test",
 		ValueProperty: lo.ToPtr("$.value"),
 	}})
@@ -113,9 +114,11 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 		t.Fatalf("failed to create schema: %v", err)
 	}
 
+	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
+
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbClient,
-		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
+		StreamingConnector: streamingConnector,
 		Logger:             testLogger,
 		Tracer:             noop.NewTracerProvider().Tracer("test"),
 		MeterService:       meterAdapter,
@@ -126,10 +129,11 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 	})
 
 	deps := &dependencies{
-		dbClient:    dbClient,
-		pgDriver:    pgDriver,
-		entDriver:   entDriver,
-		featureRepo: entitlementRegistry.FeatureRepo,
+		dbClient:           dbClient,
+		pgDriver:           pgDriver,
+		entDriver:          entDriver,
+		featureRepo:        entitlementRegistry.FeatureRepo,
+		streamingConnector: streamingConnector,
 	}
 
 	return entitlementRegistry.Entitlement, deps
