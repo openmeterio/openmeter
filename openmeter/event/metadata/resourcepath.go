@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Entitlements
+// Entity types
 const (
 	EntityEntitlement  = "entitlement"
 	EntitySubscription = "subscription"
@@ -14,6 +14,7 @@ const (
 	EntitySubjectKey   = "subjectKey"
 	EntityGrant        = "grant"
 	EntityApp          = "app"
+	EntityMeter        = "meter"
 )
 
 // Ingestion/Events

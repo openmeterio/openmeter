@@ -12,7 +12,7 @@ import (
 )
 
 // ListMeters returns a list of meters.
-func (a *adapter) ListMeters(ctx context.Context, params meter.ListMetersParams) (pagination.PagedResponse[meter.Meter], error) {
+func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams) (pagination.PagedResponse[meter.Meter], error) {
 	if err := params.Validate(); err != nil {
 		return pagination.PagedResponse[meter.Meter]{}, models.NewGenericValidationError(err)
 	}
@@ -43,7 +43,7 @@ func (a *adapter) ListMeters(ctx context.Context, params meter.ListMetersParams)
 }
 
 // GetMeterByIDOrSlug returns a meter from the meter store by ID or slug.
-func (a *adapter) GetMeterByIDOrSlug(ctx context.Context, input meter.GetMeterInput) (meter.Meter, error) {
+func (a *Adapter) GetMeterByIDOrSlug(ctx context.Context, input meter.GetMeterInput) (meter.Meter, error) {
 	if err := input.Validate(); err != nil {
 		return meter.Meter{}, models.NewGenericValidationError(err)
 	}

@@ -128,7 +128,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	meterService, err := common.NewMeterService(logger, client)
+	adapter, err := common.NewMeterAdapter(logger, client)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -137,6 +137,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	meterService := common.NewMeterService(adapter)
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
@@ -208,7 +209,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	adapter, err := common.BillingAdapter(logger, client)
+	billingAdapter, err := common.BillingAdapter(logger, client)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -242,7 +243,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingService, err := common.BillingService(logger, service, adapter, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy, subscriptionServiceWithWorkflow)
+	billingService, err := common.BillingService(logger, service, billingAdapter, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy, subscriptionServiceWithWorkflow)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -346,17 +347,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v4 := conf.Meters
-	manageService, err := common.NewMeterManageService(ctx, client, logger, entitlement, manager, connector)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
+	manageService := common.NewMeterManageService(ctx, adapter, entitlement, manager, connector, eventbusPublisher)
 	v5 := common.NewMeterConfigInitializer(logger, v4, manageService, manager)
 	metereventService := common.NewMeterEventService(connector, meterService)
 	notificationConfiguration := conf.Notification

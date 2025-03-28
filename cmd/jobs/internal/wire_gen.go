@@ -124,7 +124,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	meterService, err := common.NewMeterService(logger, client)
+	adapter, err := common.NewMeterAdapter(logger, client)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -133,6 +133,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	meterService := common.NewMeterService(adapter)
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
@@ -204,7 +205,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	adapter, err := common.BillingAdapter(logger, client)
+	billingAdapter, err := common.BillingAdapter(logger, client)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -238,7 +239,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingService, err := common.BillingService(logger, service, adapter, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy, subscriptionServiceWithWorkflow)
+	billingService, err := common.BillingService(logger, service, billingAdapter, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy, subscriptionServiceWithWorkflow)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -320,7 +321,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	handler, err := common.NewBillingSubscriptionHandler(logger, subscriptionServiceWithWorkflow, billingService, adapter)
+	handler, err := common.NewBillingSubscriptionHandler(logger, subscriptionServiceWithWorkflow, billingService, billingAdapter)
 	if err != nil {
 		cleanup6()
 		cleanup5()
