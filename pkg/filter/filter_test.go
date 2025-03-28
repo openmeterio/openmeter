@@ -1507,3 +1507,392 @@ func TestFilterTime_ValidateWithComplexity(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterString_IsEmpty(t *testing.T) {
+	tests := []struct {
+		name   string
+		filter filter.FilterString
+		want   bool
+	}{
+		{
+			name:   "empty filter",
+			filter: filter.FilterString{},
+			want:   true,
+		},
+		{
+			name: "eq filter",
+			filter: filter.FilterString{
+				Eq: lo.ToPtr("test"),
+			},
+			want: false,
+		},
+		{
+			name: "ne filter",
+			filter: filter.FilterString{
+				Ne: lo.ToPtr("test"),
+			},
+			want: false,
+		},
+		{
+			name: "in filter",
+			filter: filter.FilterString{
+				In: &[]string{"test1", "test2"},
+			},
+			want: false,
+		},
+		{
+			name: "nin filter",
+			filter: filter.FilterString{
+				Nin: &[]string{"test1", "test2"},
+			},
+			want: false,
+		},
+		{
+			name: "like filter",
+			filter: filter.FilterString{
+				Like: lo.ToPtr("%test%"),
+			},
+			want: false,
+		},
+		{
+			name: "nlike filter",
+			filter: filter.FilterString{
+				Nlike: lo.ToPtr("%test%"),
+			},
+			want: false,
+		},
+		{
+			name: "ilike filter",
+			filter: filter.FilterString{
+				Ilike: lo.ToPtr("%test%"),
+			},
+			want: false,
+		},
+		{
+			name: "nilike filter",
+			filter: filter.FilterString{
+				Nilike: lo.ToPtr("%test%"),
+			},
+			want: false,
+		},
+		{
+			name: "gt filter",
+			filter: filter.FilterString{
+				Gt: lo.ToPtr("test"),
+			},
+			want: false,
+		},
+		{
+			name: "gte filter",
+			filter: filter.FilterString{
+				Gte: lo.ToPtr("test"),
+			},
+			want: false,
+		},
+		{
+			name: "lt filter",
+			filter: filter.FilterString{
+				Lt: lo.ToPtr("test"),
+			},
+			want: false,
+		},
+		{
+			name: "lte filter",
+			filter: filter.FilterString{
+				Lte: lo.ToPtr("test"),
+			},
+			want: false,
+		},
+		{
+			name: "and filter",
+			filter: filter.FilterString{
+				And: &[]filter.FilterString{
+					{Eq: lo.ToPtr("test")},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "or filter",
+			filter: filter.FilterString{
+				Or: &[]filter.FilterString{
+					{Eq: lo.ToPtr("test")},
+				},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.filter.IsEmpty()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFilterInteger_IsEmpty(t *testing.T) {
+	tests := []struct {
+		name   string
+		filter filter.FilterInteger
+		want   bool
+	}{
+		{
+			name:   "empty filter",
+			filter: filter.FilterInteger{},
+			want:   true,
+		},
+		{
+			name: "eq filter",
+			filter: filter.FilterInteger{
+				Eq: lo.ToPtr(42),
+			},
+			want: false,
+		},
+		{
+			name: "ne filter",
+			filter: filter.FilterInteger{
+				Ne: lo.ToPtr(42),
+			},
+			want: false,
+		},
+		{
+			name: "gt filter",
+			filter: filter.FilterInteger{
+				Gt: lo.ToPtr(42),
+			},
+			want: false,
+		},
+		{
+			name: "gte filter",
+			filter: filter.FilterInteger{
+				Gte: lo.ToPtr(42),
+			},
+			want: false,
+		},
+		{
+			name: "lt filter",
+			filter: filter.FilterInteger{
+				Lt: lo.ToPtr(42),
+			},
+			want: false,
+		},
+		{
+			name: "lte filter",
+			filter: filter.FilterInteger{
+				Lte: lo.ToPtr(42),
+			},
+			want: false,
+		},
+		{
+			name: "and filter",
+			filter: filter.FilterInteger{
+				And: &[]filter.FilterInteger{
+					{Eq: lo.ToPtr(42)},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "or filter",
+			filter: filter.FilterInteger{
+				Or: &[]filter.FilterInteger{
+					{Eq: lo.ToPtr(42)},
+				},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.filter.IsEmpty()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFilterFloat_IsEmpty(t *testing.T) {
+	tests := []struct {
+		name   string
+		filter filter.FilterFloat
+		want   bool
+	}{
+		{
+			name:   "empty filter",
+			filter: filter.FilterFloat{},
+			want:   true,
+		},
+		{
+			name: "eq filter",
+			filter: filter.FilterFloat{
+				Eq: lo.ToPtr(42.5),
+			},
+			want: false,
+		},
+		{
+			name: "ne filter",
+			filter: filter.FilterFloat{
+				Ne: lo.ToPtr(42.5),
+			},
+			want: false,
+		},
+		{
+			name: "gt filter",
+			filter: filter.FilterFloat{
+				Gt: lo.ToPtr(42.5),
+			},
+			want: false,
+		},
+		{
+			name: "gte filter",
+			filter: filter.FilterFloat{
+				Gte: lo.ToPtr(42.5),
+			},
+			want: false,
+		},
+		{
+			name: "lt filter",
+			filter: filter.FilterFloat{
+				Lt: lo.ToPtr(42.5),
+			},
+			want: false,
+		},
+		{
+			name: "lte filter",
+			filter: filter.FilterFloat{
+				Lte: lo.ToPtr(42.5),
+			},
+			want: false,
+		},
+		{
+			name: "and filter",
+			filter: filter.FilterFloat{
+				And: &[]filter.FilterFloat{
+					{Eq: lo.ToPtr(42.5)},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "or filter",
+			filter: filter.FilterFloat{
+				Or: &[]filter.FilterFloat{
+					{Eq: lo.ToPtr(42.5)},
+				},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.filter.IsEmpty()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFilterBoolean_IsEmpty(t *testing.T) {
+	tests := []struct {
+		name   string
+		filter filter.FilterBoolean
+		want   bool
+	}{
+		{
+			name:   "empty filter",
+			filter: filter.FilterBoolean{},
+			want:   true,
+		},
+		{
+			name: "eq filter true",
+			filter: filter.FilterBoolean{
+				Eq: lo.ToPtr(true),
+			},
+			want: false,
+		},
+		{
+			name: "eq filter false",
+			filter: filter.FilterBoolean{
+				Eq: lo.ToPtr(false),
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.filter.IsEmpty()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFilterTime_IsEmpty(t *testing.T) {
+	now := time.Now()
+
+	tests := []struct {
+		name   string
+		filter filter.FilterTime
+		want   bool
+	}{
+		{
+			name:   "empty filter",
+			filter: filter.FilterTime{},
+			want:   true,
+		},
+		{
+			name: "gt filter",
+			filter: filter.FilterTime{
+				Gt: lo.ToPtr(now),
+			},
+			want: false,
+		},
+		{
+			name: "gte filter",
+			filter: filter.FilterTime{
+				Gte: lo.ToPtr(now),
+			},
+			want: false,
+		},
+		{
+			name: "lt filter",
+			filter: filter.FilterTime{
+				Lt: lo.ToPtr(now),
+			},
+			want: false,
+		},
+		{
+			name: "lte filter",
+			filter: filter.FilterTime{
+				Lte: lo.ToPtr(now),
+			},
+			want: false,
+		},
+		{
+			name: "and filter",
+			filter: filter.FilterTime{
+				And: &[]filter.FilterTime{
+					{Gt: lo.ToPtr(now)},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "or filter",
+			filter: filter.FilterTime{
+				Or: &[]filter.FilterTime{
+					{Gt: lo.ToPtr(now)},
+				},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.filter.IsEmpty()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
