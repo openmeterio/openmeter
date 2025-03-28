@@ -154,62 +154,30 @@ interface EventsV2 {
     clientId?: string,
 
     /**
-     * The event ID filter.
-     * Example: `?id[$eq]=my-event-id`
+     * The filter for the events encoded as JSON string.
      */
-    @query(#{ explode: true, style: "deepObject" })
-    @example(#{ $eq: "my-event-id" })
-    id?: OpenMeter.FilterString,
-
-    /**
-     * The event source filter.
-     * Example: `?source[$eq]=my-event-source`
-     */
-    @query(#{ explode: true, style: "deepObject" })
-    @example(#{ $eq: "my-event-source" })
-    source?: OpenMeter.FilterString,
-
-    /**
-     * The event subject filter.
-     * Example: `?subject[$eq]=my-event-subject`
-     */
-    @query(#{ explode: true, style: "deepObject" })
-    @example(#{ $eq: "my-event-subject" })
-    subject?: OpenMeter.FilterString,
-
-    /**
-     * The event type filter.
-     * Example: `?type[$eq]=my-event-type`
-     */
-    @query(#{ explode: true, style: "deepObject" })
-    @example(#{ $eq: "my-event-type" })
-    type?: OpenMeter.FilterString,
-
-    /**
-     * The event time filter.
-     * Example: `?time[$and][0][$gte]=2025-01-01T00:00:00Z&time[$and][1][$lte]=2025-01-02T00:00:00Z`
-     */
-    @query(#{ explode: true, style: "deepObject" })
     @example(#{
-      $and: #[
-        #{ $gte: DateTime.fromISO("2025-01-01T00:00:00Z") },
-        #{ $lte: DateTime.fromISO("2025-01-02T00:00:00Z") }
-      ],
+      id: #{ $eq: "my-event-id" },
+      source: #{ $eq: "my-event-source" },
+      subject: #{ $eq: "my-event-subject" },
+      type: #{ $eq: "my-event-type" },
+      time: #{
+        $and: #[
+          #{ $gte: DateTime.fromISO("2025-01-01T00:00:00Z") },
+          #{ $lte: DateTime.fromISO("2025-01-02T00:00:00Z") }
+        ],
+      },
     })
-    time?: OpenMeter.FilterTime,
-
-    /**
-     * The ingested at filter.
-     * Example: `?ingestedAt[$and][0][$gte]=2025-01-01T00:00:00Z&ingestedAt[$and][1][$lte]=2025-01-02T00:00:00Z`
-     */
-    @query(#{ explode: true, style: "deepObject" })
-    @example(#{
-      $and: #[
-        #{ $gte: DateTime.fromISO("2025-01-01T00:00:00Z") },
-        #{ $lte: DateTime.fromISO("2025-01-02T00:00:00Z") }
-      ],
-    })
-    ingestedAt?: OpenMeter.FilterTime,
+    @query
+    @encode("application/json")
+    filter?: {
+      id?: OpenMeter.FilterString;
+      source?: OpenMeter.FilterString;
+      subject?: OpenMeter.FilterString;
+      type?: OpenMeter.FilterString;
+      time?: OpenMeter.FilterTime;
+      ingestedAt?: OpenMeter.FilterTime;
+    },
   ): CursorPaginatedResponse<IngestedEvent> | OpenMeter.CommonErrors;
 }
 

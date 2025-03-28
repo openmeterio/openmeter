@@ -16,6 +16,8 @@ type Filter interface {
 	ValidateWithComplexity(maxDepth int) error
 	// SelectWhereExpr converts the filter to a SQL WHERE expression.
 	SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string
+	// IsEmpty returns true if the filter is empty.
+	IsEmpty() bool
 }
 
 var (
@@ -108,6 +110,11 @@ func (f FilterString) ValidateWithComplexity(maxDepth int) error {
 	}
 
 	return nil
+}
+
+// IsEmpty returns true if the filter is empty.
+func (f FilterString) IsEmpty() bool {
+	return f.Eq == nil && f.Ne == nil && f.In == nil && f.Nin == nil && f.Like == nil && f.Nlike == nil && f.Ilike == nil && f.Nilike == nil && f.Gt == nil && f.Gte == nil && f.Lt == nil && f.Lte == nil && f.And == nil && f.Or == nil
 }
 
 // SelectWhereExpr converts the filter to a SQL WHERE expression.
@@ -226,6 +233,11 @@ func (f FilterInteger) ValidateWithComplexity(maxDepth int) error {
 	return nil
 }
 
+// IsEmpty returns true if the filter is empty.
+func (f FilterInteger) IsEmpty() bool {
+	return f.Eq == nil && f.Ne == nil && f.Gt == nil && f.Gte == nil && f.Lt == nil && f.Lte == nil && f.And == nil && f.Or == nil
+}
+
 // SelectWhereExpr converts the filter to a SQL WHERE expression.
 func (f FilterInteger) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
 	switch {
@@ -327,6 +339,11 @@ func (f FilterFloat) ValidateWithComplexity(maxDepth int) error {
 	}
 
 	return nil
+}
+
+// IsEmpty returns true if the filter is empty.
+func (f FilterFloat) IsEmpty() bool {
+	return f.Eq == nil && f.Ne == nil && f.Gt == nil && f.Gte == nil && f.Lt == nil && f.Lte == nil && f.And == nil && f.Or == nil
 }
 
 // SelectWhereExpr converts the filter to a SQL WHERE expression.
@@ -431,6 +448,11 @@ func (f FilterTime) ValidateWithComplexity(maxDepth int) error {
 	return nil
 }
 
+// IsEmpty returns true if the filter is empty.
+func (f FilterTime) IsEmpty() bool {
+	return f.Gt == nil && f.Gte == nil && f.Lt == nil && f.Lte == nil && f.And == nil && f.Or == nil
+}
+
 // SelectWhereExpr converts the filter to a SQL WHERE expression.
 func (f FilterTime) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
 	switch {
@@ -469,6 +491,11 @@ func (f FilterBoolean) Validate() error {
 func (f FilterBoolean) ValidateWithComplexity(maxDepth int) error {
 	// Boolean filter has no nested filters, so just validate normally
 	return f.Validate()
+}
+
+// IsEmpty returns true if the filter is empty.
+func (f FilterBoolean) IsEmpty() bool {
+	return f.Eq == nil
 }
 
 // SelectWhereExpr converts the filter to a SQL WHERE expression.

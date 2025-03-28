@@ -8774,60 +8774,27 @@ paths:
             maxLength: 36
           explode: false
           style: form
-        - name: id
+        - name: filter
           in: query
           required: false
-          description: |-
-            The event ID filter.
-            Example: `?id[$eq]=my-event-id`
-          schema:
-            $ref: '#/components/schemas/FilterString'
-          style: deepObject
-        - name: source
-          in: query
-          required: false
-          description: |-
-            The event source filter.
-            Example: `?source[$eq]=my-event-source`
-          schema:
-            $ref: '#/components/schemas/FilterString'
-          style: deepObject
-        - name: subject
-          in: query
-          required: false
-          description: |-
-            The event subject filter.
-            Example: `?subject[$eq]=my-event-subject`
-          schema:
-            $ref: '#/components/schemas/FilterString'
-          style: deepObject
-        - name: type
-          in: query
-          required: false
-          description: |-
-            The event type filter.
-            Example: `?type[$eq]=my-event-type`
-          schema:
-            $ref: '#/components/schemas/FilterString'
-          style: deepObject
-        - name: time
-          in: query
-          required: false
-          description: |-
-            The event time filter.
-            Example: `?time[$and][0][$gte]=2025-01-01T00:00:00Z&time[$and][1][$lte]=2025-01-02T00:00:00Z`
-          schema:
-            $ref: '#/components/schemas/FilterTime'
-          style: deepObject
-        - name: ingestedAt
-          in: query
-          required: false
-          description: |-
-            The ingested at filter.
-            Example: `?ingestedAt[$and][0][$gte]=2025-01-01T00:00:00Z&ingestedAt[$and][1][$lte]=2025-01-02T00:00:00Z`
-          schema:
-            $ref: '#/components/schemas/FilterTime'
-          style: deepObject
+          description: The filter for the events encoded as JSON string.
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    $ref: '#/components/schemas/FilterString'
+                  source:
+                    $ref: '#/components/schemas/FilterString'
+                  subject:
+                    $ref: '#/components/schemas/FilterString'
+                  type:
+                    $ref: '#/components/schemas/FilterString'
+                  time:
+                    $ref: '#/components/schemas/FilterTime'
+                  ingestedAt:
+                    $ref: '#/components/schemas/FilterTime'
+                format: application/json
       responses:
         '200':
           description: The request has succeeded.
