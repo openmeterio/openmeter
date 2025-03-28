@@ -234,12 +234,6 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 					return cus, fmt.Errorf("invalid query result: nil customer received")
 				}
 
-				// Publish the customer created event
-				customerCreatedEvent := customer.NewCustomerCreateEvent(*cus)
-				if err := repo.publisher.Publish(ctx, customerCreatedEvent); err != nil {
-					return nil, fmt.Errorf("failed to publish customer created event: %w", err)
-				}
-
 				return cus, nil
 			},
 		)
@@ -257,17 +251,6 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 					return nil, models.NewGenericValidationError(
 						fmt.Errorf("error deleting customer: %w", err),
 					)
-				}
-
-				// Get the previous customer
-				previousCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput{
-					CustomerID: &customer.CustomerID{
-						Namespace: input.Namespace,
-						ID:        input.ID,
-					},
-				})
-				if err != nil {
-					return nil, fmt.Errorf("failed to get customer: %w", err)
 				}
 
 				deletedAt := clock.Now().UTC()
@@ -299,12 +282,6 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 					Exec(ctx)
 				if err != nil {
 					return nil, fmt.Errorf("failed to delete customer subjects: %w", err)
-				}
-
-				// Publish the customer deleted event
-				customerDeletedEvent := customer.NewCustomerDeleteEvent(*previousCustomer, deletedAt)
-				if err := repo.publisher.Publish(ctx, customerDeletedEvent); err != nil {
-					return nil, fmt.Errorf("failed to publish customer deleted event: %w", err)
 				}
 
 				return nil, nil
@@ -601,12 +578,6 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 
 				if cus == nil {
 					return cus, fmt.Errorf("invalid query result: nil customer received")
-				}
-
-				// Publish the customer updated event
-				customerUpdatedEvent := customer.NewCustomerUpdateEvent(*cus, *previousCustomer)
-				if err := repo.publisher.Publish(ctx, customerUpdatedEvent); err != nil {
-					return nil, fmt.Errorf("failed to publish customer updated event: %w", err)
 				}
 
 				return cus, nil

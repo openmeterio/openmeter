@@ -3,7 +3,6 @@ package customer
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 )
@@ -16,19 +15,15 @@ const (
 )
 
 // NewCustomerCreateEvent creates a new customer create event
-func NewCustomerCreateEvent(customer Customer) CustomerCreateEvent {
+func NewCustomerCreateEvent(customer *Customer) CustomerCreateEvent {
 	return CustomerCreateEvent{
-		EventEntityMutationPayload: metadata.EventEntityMutationPayload[Customer]{
-			Entity:       metadata.EntityCustomer,
-			MutationType: metadata.EntityMutationTypeCreate,
-			New:          &customer,
-		},
+		Customer: customer,
 	}
 }
 
 // CustomerCreateEvent is an event that is emitted when a customer is created
 type CustomerCreateEvent struct {
-	metadata.EventEntityMutationPayload[Customer] `json:",inline"`
+	Customer *Customer `json:"customer"`
 }
 
 func (e CustomerCreateEvent) EventName() string {
@@ -40,38 +35,40 @@ func (e CustomerCreateEvent) EventName() string {
 }
 
 func (e CustomerCreateEvent) EventMetadata() metadata.EventMetadata {
+	resourcePath := metadata.ComposeResourcePath(e.Customer.Namespace, metadata.EntityCustomer, e.Customer.ID)
+
 	return metadata.EventMetadata{
-		ID:     e.New.ID,
-		Source: metadata.ComposeResourcePath(e.New.Namespace, metadata.EntityCustomer, e.New.ID),
-		Time:   e.New.CreatedAt,
+		ID:      e.Customer.ID,
+		Source:  resourcePath,
+		Subject: resourcePath,
+		Time:    e.Customer.CreatedAt,
 	}
 }
 
 func (e CustomerCreateEvent) Validate() error {
 	var errs []error
 
-	if err := e.EventEntityMutationPayload.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("customer create event: %w", err))
+	if e.Customer == nil {
+		return fmt.Errorf("customer is required")
+	}
+
+	if err := e.Customer.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
 
 	return errors.Join(errs...)
 }
 
 // NewCustomerUpdateEvent creates a new customer update event
-func NewCustomerUpdateEvent(new Customer, previous Customer) CustomerUpdateEvent {
+func NewCustomerUpdateEvent(customer *Customer) CustomerUpdateEvent {
 	return CustomerUpdateEvent{
-		EventEntityMutationPayload: metadata.EventEntityMutationPayload[Customer]{
-			Entity:       metadata.EntityCustomer,
-			MutationType: metadata.EntityMutationTypeUpdate,
-			New:          &new,
-			Previous:     &previous,
-		},
+		Customer: customer,
 	}
 }
 
 // CustomerUpdateEvent is an event that is emitted when a customer is updated
 type CustomerUpdateEvent struct {
-	metadata.EventEntityMutationPayload[Customer] `json:",inline"`
+	Customer *Customer `json:"customer"`
 }
 
 func (e CustomerUpdateEvent) EventName() string {
@@ -83,39 +80,40 @@ func (e CustomerUpdateEvent) EventName() string {
 }
 
 func (e CustomerUpdateEvent) EventMetadata() metadata.EventMetadata {
+	resourcePath := metadata.ComposeResourcePath(e.Customer.Namespace, metadata.EntityCustomer, e.Customer.ID)
+
 	return metadata.EventMetadata{
-		ID:     metadata.GetMutationEventID(metadata.EntityMutationTypeUpdate, e.Previous.ID, e.New.UpdatedAt),
-		Source: metadata.ComposeResourcePath(e.New.Namespace, metadata.EntityCustomer, e.New.ID),
-		Time:   e.New.UpdatedAt,
+		ID:      e.Customer.ID,
+		Source:  resourcePath,
+		Subject: resourcePath,
+		Time:    e.Customer.UpdatedAt,
 	}
 }
 
 func (e CustomerUpdateEvent) Validate() error {
 	var errs []error
 
-	if err := e.EventEntityMutationPayload.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("customer update event: %w", err))
+	if e.Customer == nil {
+		return fmt.Errorf("customer is required")
+	}
+
+	if err := e.Customer.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
 
 	return errors.Join(errs...)
 }
 
 // NewCustomerDeleteEvent creates a new customer delete event
-func NewCustomerDeleteEvent(previous Customer, deletedAt time.Time) CustomerDeleteEvent {
+func NewCustomerDeleteEvent(customer *Customer) CustomerDeleteEvent {
 	return CustomerDeleteEvent{
-		EventEntityMutationPayload: metadata.EventEntityMutationPayload[Customer]{
-			Entity:       metadata.EntityCustomer,
-			MutationType: metadata.EntityMutationTypeDelete,
-			Previous:     &previous,
-		},
-		deletedAt: deletedAt,
+		Customer: customer,
 	}
 }
 
 // CustomerDeleteEvent is an event that is emitted when a customer is deleted
 type CustomerDeleteEvent struct {
-	metadata.EventEntityMutationPayload[Customer] `json:",inline"`
-	deletedAt                                     time.Time
+	Customer *Customer `json:"customer"`
 }
 
 func (e CustomerDeleteEvent) EventName() string {
@@ -127,18 +125,29 @@ func (e CustomerDeleteEvent) EventName() string {
 }
 
 func (e CustomerDeleteEvent) EventMetadata() metadata.EventMetadata {
+	resourcePath := metadata.ComposeResourcePath(e.Customer.Namespace, metadata.EntityCustomer, e.Customer.ID)
+
 	return metadata.EventMetadata{
-		ID:     metadata.GetMutationEventID(metadata.EntityMutationTypeDelete, e.Previous.ID, e.deletedAt),
-		Source: metadata.ComposeResourcePath(e.Previous.Namespace, metadata.EntityCustomer, e.Previous.ID),
-		Time:   e.deletedAt,
+		ID:      e.Customer.ID,
+		Source:  resourcePath,
+		Subject: resourcePath,
+		Time:    *e.Customer.DeletedAt,
 	}
 }
 
 func (e CustomerDeleteEvent) Validate() error {
 	var errs []error
 
-	if err := e.EventEntityMutationPayload.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("customer delete event: %w", err))
+	if e.Customer == nil {
+		return fmt.Errorf("customer is required")
+	}
+
+	if e.Customer.DeletedAt == nil {
+		return fmt.Errorf("customer deleted at is required")
+	}
+
+	if err := e.Customer.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
 
 	return errors.Join(errs...)

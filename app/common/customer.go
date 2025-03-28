@@ -26,9 +26,8 @@ func NewCustomerService(
 	eventPublisher eventbus.Publisher,
 ) (customer.Service, error) {
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
-		Client:    db,
-		Logger:    logger.WithGroup("customer.postgres"),
-		Publisher: eventPublisher,
+		Client: db,
+		Logger: logger.WithGroup("customer.postgres"),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer adapter: %w", err)
@@ -37,6 +36,7 @@ func NewCustomerService(
 	service, err := customerservice.New(customerservice.Config{
 		Adapter:              customerAdapter,
 		EntitlementConnector: entRegistry.Entitlement,
+		Publisher:            eventPublisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer service: %w", err)

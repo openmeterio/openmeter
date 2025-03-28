@@ -29,9 +29,8 @@ func NewCustomerAdapter(t *testing.T, dbDeps *DBDeps) *testCustomerRepo {
 	logger := testutils.NewLogger(t)
 
 	repo, err := customeradapter.New(customeradapter.Config{
-		Client:    dbDeps.DBClient,
-		Logger:    logger,
-		Publisher: eventbus.NewMock(t),
+		Client: dbDeps.DBClient,
+		Logger: logger,
 	})
 	if err != nil {
 		t.Fatalf("failed to create customer repo: %v", err)
@@ -82,6 +81,7 @@ func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:              customerAdapter,
 		EntitlementConnector: entitlementRegistry.Entitlement,
+		Publisher:            eventbus.NewMock(t),
 	})
 	if err != nil {
 		t.Fatalf("failed to create customer service: %v", err)

@@ -104,23 +104,16 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		t.Fatalf("failed to create schema: %v", err)
 	}
 
-	// Customer
-	customerAdapter, err := customeradapter.New(customeradapter.Config{
-		Client:    entClient,
-		Logger:    logger.WithGroup("postgres"),
-		Publisher: eventbus.NewMock(t),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create customer repo: %w", err)
-	}
-
+	// Streaming
 	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
 
+	// Meter
 	meterAdapter, err := meteradapter.New([]meter.Meter{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create meter adapter: %w", err)
 	}
 
+	// Entitlement
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     entClient,
 		StreamingConnector: streamingConnector,
@@ -132,9 +125,19 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		},
 	})
 
+	// Customer
+	customerAdapter, err := customeradapter.New(customeradapter.Config{
+		Client: entClient,
+		Logger: logger.WithGroup("postgres"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create customer adapter: %w", err)
+	}
+
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:              customerAdapter,
 		EntitlementConnector: entitlementRegistry.Entitlement,
+		Publisher:            eventbus.NewMock(t),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer service: %w", err)

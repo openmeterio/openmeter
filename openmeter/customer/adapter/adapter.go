@@ -10,15 +10,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 type Config struct {
-	Client    *entdb.Client
-	Logger    *slog.Logger
-	Publisher eventbus.Publisher
+	Client *entdb.Client
+	Logger *slog.Logger
 }
 
 func (c Config) Validate() error {
@@ -30,10 +28,6 @@ func (c Config) Validate() error {
 		return errors.New("logger must not be nil")
 	}
 
-	if c.Publisher == nil {
-		return errors.New("publisher must not be nil")
-	}
-
 	return nil
 }
 
@@ -43,18 +37,16 @@ func New(config Config) (customer.Adapter, error) {
 	}
 
 	return &adapter{
-		db:        config.Client,
-		logger:    config.Logger,
-		publisher: config.Publisher,
+		db:     config.Client,
+		logger: config.Logger,
 	}, nil
 }
 
 var _ customer.Adapter = (*adapter)(nil)
 
 type adapter struct {
-	db        *entdb.Client
-	logger    *slog.Logger
-	publisher eventbus.Publisher
+	db     *entdb.Client
+	logger *slog.Logger
 }
 
 // Tx implements entutils.TxCreator interface
@@ -71,9 +63,8 @@ func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, 
 func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return &adapter{
-		db:        txClient.Client(),
-		logger:    a.logger,
-		publisher: a.publisher,
+		db:     txClient.Client(),
+		logger: a.logger,
 	}
 }
 
