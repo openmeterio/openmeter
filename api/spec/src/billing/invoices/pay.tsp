@@ -66,7 +66,6 @@ enum PaymentTermType {
 
 @summary("Terms defines when we expect the customer to pay, or have paid, for the contents of the document.")
 @friendlyName("GenericPaymentTerms")
-@discriminator("type")
 model GenericPaymentTerms<T extends PaymentTermType> {
   /**
    * Type of terms to be applied.

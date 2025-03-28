@@ -6397,9 +6397,7 @@ export interface components {
      */
     NotificationEventType: 'entitlements.balance.threshold'
     /** @description Notification Rule. */
-    NotificationRule: {
-      type: 'NotificationRule'
-    } & components['schemas']['NotificationRuleBalanceThreshold']
+    NotificationRule: components['schemas']['NotificationRuleBalanceThreshold']
     /** @description Notification rule with entitlements.balance.threshold type. */
     NotificationRuleBalanceThreshold: {
       /**
@@ -6523,9 +6521,7 @@ export interface components {
      */
     NotificationRuleBalanceThresholdValueType: 'PERCENT' | 'NUMBER'
     /** @description Union type for requests creating new notification rule with certain type. */
-    NotificationRuleCreateRequest: {
-      type: 'NotificationRuleCreateRequest'
-    } & components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
+    NotificationRuleCreateRequest: components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
     /**
      * @description Order by options for notification channels.
      * @enum {string}

@@ -126,7 +126,6 @@ model FeatureMeta {
  * Notification rule with entitlements.balance.threshold type.
  */
 @friendlyName("NotificationRuleBalanceThreshold")
-@discriminator("type")
 model NotificationRuleBalanceThreshold {
   ...NotificationRuleCommon<NotificationEventType.entitlementsBalanceThreshold>;
 
@@ -169,7 +168,6 @@ union NotificationRuleCreateRequest {
  */
 @friendlyName("NotificationRuleBalanceThresholdCreateRequest")
 @withVisibility(Lifecycle.Create, Lifecycle.Update)
-@discriminator("type")
 model NotificationRuleBalanceThresholdCreateRequest {
   ...OmitProperties<NotificationRuleBalanceThreshold, "channels" | "features">;
 
