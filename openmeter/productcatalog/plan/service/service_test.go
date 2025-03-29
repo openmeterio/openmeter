@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -905,7 +906,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	require.NotNilf(t, meterAdapter, "Meter adapter must not be nil")
 
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)
-	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter)
+	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, eventbus.NewMock(t))
 
 	planAdapter, err := adapter.New(adapter.Config{
 		Client: client,

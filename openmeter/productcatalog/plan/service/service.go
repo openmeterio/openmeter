@@ -6,41 +6,46 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 type Config struct {
-	Feature feature.FeatureConnector
-
-	Adapter plan.Repository
-	Logger  *slog.Logger
+	Adapter   plan.Repository
+	Feature   feature.FeatureConnector
+	Logger    *slog.Logger
+	Publisher eventbus.Publisher
 }
 
 func New(config Config) (plan.Service, error) {
-	if config.Feature == nil {
-		return nil, errors.New("feature connector is required")
-	}
-
 	if config.Adapter == nil {
 		return nil, errors.New("plan adapter is required")
+	}
+
+	if config.Feature == nil {
+		return nil, errors.New("feature connector is required")
 	}
 
 	if config.Logger == nil {
 		return nil, errors.New("logger is required")
 	}
 
+	if config.Publisher == nil {
+		return nil, errors.New("publisher is required")
+	}
+
 	return &service{
-		feature: config.Feature,
-		adapter: config.Adapter,
-		logger:  config.Logger,
+		adapter:   config.Adapter,
+		feature:   config.Feature,
+		logger:    config.Logger,
+		publisher: config.Publisher,
 	}, nil
 }
 
 var _ plan.Service = (*service)(nil)
 
 type service struct {
-	feature feature.FeatureConnector
-
-	adapter plan.Repository
-
-	logger *slog.Logger
+	adapter   plan.Repository
+	feature   feature.FeatureConnector
+	logger    *slog.Logger
+	publisher eventbus.Publisher
 }

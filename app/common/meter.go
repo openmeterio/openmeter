@@ -12,15 +12,18 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter/adapter"
+	"github.com/openmeterio/openmeter/openmeter/meter/service"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 type MeterConfigInitializer = func(ctx context.Context) error
 
 var Meter = wire.NewSet(
 	NewMeterService,
+	NewMeterAdapter,
 )
 
 var MeterManage = wire.NewSet(
@@ -37,43 +40,37 @@ var MeterManageWithConfigMeters = wire.NewSet(
 )
 
 func NewMeterService(
-	logger *slog.Logger,
-	db *entdb.Client,
-) (meter.Service, error) {
-	service, err := adapter.New(adapter.Config{
-		Client: db,
-		Logger: logger,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return service, nil
+	meterAdapter *adapter.Adapter,
+) meter.Service {
+	return service.New(meterAdapter)
 }
 
 func NewMeterManageService(
 	ctx context.Context,
-	db *entdb.Client,
-	logger *slog.Logger,
+	meterAdapter *adapter.Adapter,
 	entitlementRegistry *registry.Entitlement,
 	namespaceManager *namespace.Manager,
 	streamingConnector streaming.Connector,
-) (meter.ManageService, error) {
-	meterManageService, err := adapter.NewManage(adapter.ManageConfig{
-		Config: adapter.Config{
-			Client: db,
-			Logger: logger,
-		},
-		EntitlementRepository: entitlementRegistry.EntitlementRepo,
-		FeatureRepository:     entitlementRegistry.FeatureRepo,
-		NamespaceManager:      namespaceManager,
-		StreamingConnector:    streamingConnector,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create meter manage service: %w", err)
-	}
+	publisher eventbus.Publisher,
+) meter.ManageService {
+	return service.NewManage(
+		meterAdapter,
+		publisher,
+		entitlementRegistry.EntitlementRepo,
+		entitlementRegistry.FeatureRepo,
+		namespaceManager,
+		streamingConnector,
+	)
+}
 
-	return meterManageService, nil
+func NewMeterAdapter(
+	logger *slog.Logger,
+	db *entdb.Client,
+) (*adapter.Adapter, error) {
+	return adapter.New(adapter.Config{
+		Client: db,
+		Logger: logger,
+	})
 }
 
 func NewMeterConfigInitializer(

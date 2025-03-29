@@ -12,13 +12,19 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	entitlementvalidator "github.com/openmeterio/openmeter/openmeter/entitlement/validators/customer"
 	"github.com/openmeterio/openmeter/openmeter/registry"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 var Customer = wire.NewSet(
 	NewCustomerService,
 )
 
-func NewCustomerService(logger *slog.Logger, db *entdb.Client, entRegistry *registry.Entitlement) (customer.Service, error) {
+func NewCustomerService(
+	logger *slog.Logger,
+	db *entdb.Client,
+	entRegistry *registry.Entitlement,
+	eventPublisher eventbus.Publisher,
+) (customer.Service, error) {
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
 		Client: db,
 		Logger: logger.WithGroup("customer.postgres"),
@@ -30,6 +36,7 @@ func NewCustomerService(logger *slog.Logger, db *entdb.Client, entRegistry *regi
 	service, err := customerservice.New(customerservice.Config{
 		Adapter:              customerAdapter,
 		EntitlementConnector: entRegistry.Entitlement,
+		Publisher:            eventPublisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer service: %w", err)

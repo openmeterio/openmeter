@@ -44,7 +44,7 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 	balanceSnashotDBAdapter := creditpgadapter.NewPostgresBalanceSnapshotRepo(opts.DatabaseClient)
 
 	// Initialize connectors
-	featureConnector := feature.NewFeatureConnector(featureDBAdapter, opts.MeterService)
+	featureConnector := feature.NewFeatureConnector(featureDBAdapter, opts.MeterService, opts.Publisher)
 	entitlementOwnerConnector := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 		featureDBAdapter,
 		entitlementDBAdapter,

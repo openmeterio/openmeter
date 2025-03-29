@@ -167,7 +167,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	meterService, err := common.NewMeterService(logger, client)
+	adapter, err := common.NewMeterAdapter(logger, client)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -177,6 +177,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	meterService := common.NewMeterService(adapter)
 	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher)
 	balanceWorkerEntitlementRepo := common.NewBalanceWorkerEntitlementRepo(client)
 	subjectResolver := common.BalanceWorkerSubjectResolver()

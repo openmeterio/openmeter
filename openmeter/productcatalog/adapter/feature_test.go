@@ -72,6 +72,7 @@ func TestCreateFeature(t *testing.T) {
 				feature.UpdatedAt = feature.UpdatedAt.Truncate(time.Millisecond)
 
 				assert.Equal(t, createFeatureOut, *feature)
+				assert.NotEmpty(t, feature.Namespace)
 				assert.NotEmpty(t, feature.ID)
 				assert.NotEmpty(t, feature.CreatedAt)
 				assert.NotEmpty(t, feature.UpdatedAt)

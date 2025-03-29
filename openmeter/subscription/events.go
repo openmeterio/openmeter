@@ -1,7 +1,10 @@
 package subscription
 
 import (
+	"context"
+
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
+	"github.com/openmeterio/openmeter/openmeter/session"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
@@ -11,6 +14,7 @@ const (
 
 type viewEvent struct {
 	SubscriptionView `json:",inline"`
+	UserID           *string `json:"userId,omitempty"`
 }
 
 func (s viewEvent) EventMetadata() metadata.EventMetadata {
@@ -22,6 +26,14 @@ func (s viewEvent) EventMetadata() metadata.EventMetadata {
 
 func (s viewEvent) Validate() error {
 	return s.SubscriptionView.Validate(true)
+}
+
+// NewCreatedEvent creates a new created event
+func NewCreatedEvent(ctx context.Context, view SubscriptionView) CreatedEvent {
+	return CreatedEvent{
+		SubscriptionView: view,
+		UserID:           session.GetSessionUserID(ctx),
+	}
 }
 
 type CreatedEvent viewEvent
@@ -48,6 +60,14 @@ func (s CreatedEvent) Validate() error {
 	return viewEvent(s).Validate()
 }
 
+// NewDeletedEvent creates a new deleted event
+func NewDeletedEvent(ctx context.Context, view SubscriptionView) DeletedEvent {
+	return DeletedEvent{
+		SubscriptionView: view,
+		UserID:           session.GetSessionUserID(ctx),
+	}
+}
+
 type DeletedEvent viewEvent
 
 var (
@@ -70,6 +90,14 @@ func (s DeletedEvent) EventMetadata() metadata.EventMetadata {
 
 func (s DeletedEvent) Validate() error {
 	return viewEvent(s).Validate()
+}
+
+// NewCancelledEvent creates a new deleted event
+func NewCancelledEvent(ctx context.Context, view SubscriptionView) CancelledEvent {
+	return CancelledEvent{
+		SubscriptionView: view,
+		UserID:           session.GetSessionUserID(ctx),
+	}
 }
 
 type CancelledEvent viewEvent
@@ -96,6 +124,14 @@ func (s CancelledEvent) Validate() error {
 	return viewEvent(s).Validate()
 }
 
+// NewContinuedEvent creates a new continued event
+func NewContinuedEvent(ctx context.Context, view SubscriptionView) ContinuedEvent {
+	return ContinuedEvent{
+		SubscriptionView: view,
+		UserID:           session.GetSessionUserID(ctx),
+	}
+}
+
 type ContinuedEvent viewEvent
 
 var (
@@ -120,9 +156,18 @@ func (s ContinuedEvent) Validate() error {
 	return viewEvent(s).Validate()
 }
 
+// NewUpdatedEvent creates a new updated event
+func NewUpdatedEvent(ctx context.Context, view SubscriptionView) UpdatedEvent {
+	return UpdatedEvent{
+		UpdatedView: view,
+		UserID:      session.GetSessionUserID(ctx),
+	}
+}
+
 type UpdatedEvent struct {
 	// We can consider adding the old version or diff here if needed
 	UpdatedView SubscriptionView `json:"updatedView"`
+	UserID      *string          `json:"userId,omitempty"`
 }
 
 var (

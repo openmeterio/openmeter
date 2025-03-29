@@ -134,6 +134,7 @@ func (s *BaseSuite) SetupSuite() {
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:              customerAdapter,
 		EntitlementConnector: entitlementRegistry.Entitlement,
+		Publisher:            eventbus.NewMock(t),
 	})
 	require.NoError(t, err)
 	s.CustomerService = customerService

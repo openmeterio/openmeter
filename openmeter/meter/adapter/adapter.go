@@ -8,11 +8,7 @@ import (
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/namespace"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -34,92 +30,26 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func New(config Config) (meter.Service, error) {
+func New(config Config) (*Adapter, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 
-	return &adapter{
+	return &Adapter{
 		db:     config.Client,
 		logger: config.Logger,
 	}, nil
 }
 
-var _ meter.Service = (*adapter)(nil)
+var _ meter.Service = (*Adapter)(nil)
 
-type adapter struct {
+type Adapter struct {
 	db     *db.Client
 	logger *slog.Logger
 }
 
-type ManageConfig struct {
-	Config
-
-	EntitlementRepository entitlement.EntitlementRepo
-	FeatureRepository     feature.FeatureRepo
-	NamespaceManager      *namespace.Manager
-	StreamingConnector    streaming.Connector
-}
-
-func (c ManageConfig) Validate() error {
-	if err := c.Config.Validate(); err != nil {
-		return err
-	}
-
-	if c.EntitlementRepository == nil {
-		return errors.New("entitlement repository is required")
-	}
-
-	if c.FeatureRepository == nil {
-		return errors.New("feature repository is required")
-	}
-
-	if c.StreamingConnector == nil {
-		return errors.New("streaming connector is required")
-	}
-
-	return nil
-}
-
-func NewManage(config ManageConfig) (meter.ManageService, error) {
-	if err := config.Validate(); err != nil {
-		return nil, err
-	}
-
-	service, err := New(config.Config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create adapter: %w", err)
-	}
-
-	return &manageAdapter{
-		Service: service,
-		db:      config.Client,
-		logger:  config.Logger,
-
-		entitlementRepository: config.EntitlementRepository,
-		featureRepository:     config.FeatureRepository,
-		namespaceManager:      config.NamespaceManager,
-		streamingConnector:    config.StreamingConnector,
-	}, nil
-}
-
-var _ meter.ManageService = (*manageAdapter)(nil)
-
-type manageAdapter struct {
-	meter.Service
-
-	db             *db.Client
-	logger         *slog.Logger
-	preUpdateHooks []meter.PreUpdateMeterHook
-
-	entitlementRepository entitlement.EntitlementRepo
-	featureRepository     feature.FeatureRepo
-	namespaceManager      *namespace.Manager
-	streamingConnector    streaming.Connector
-}
-
 // Tx implements entutils.TxCreator interface
-func (a *manageAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+func (a *Adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := a.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
@@ -130,20 +60,15 @@ func (a *manageAdapter) Tx(ctx context.Context) (context.Context, transaction.Dr
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (a *manageAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *manageAdapter {
+func (a *Adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *Adapter {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 
-	return &manageAdapter{
+	return &Adapter{
 		db:     txClient.Client(),
 		logger: a.logger,
-
-		entitlementRepository: a.entitlementRepository,
-		featureRepository:     a.featureRepository,
-		namespaceManager:      a.namespaceManager,
-		streamingConnector:    a.streamingConnector,
 	}
 }
 
-func (a *manageAdapter) Self() *manageAdapter {
+func (a *Adapter) Self() *Adapter {
 	return a
 }

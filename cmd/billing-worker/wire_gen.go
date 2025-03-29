@@ -193,7 +193,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	meterService, err := common.NewMeterService(logger, client)
+	adapterAdapter, err := common.NewMeterAdapter(logger, client)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -203,8 +203,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	meterService := common.NewMeterService(adapterAdapter)
 	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher)
-	customerService, err := common.NewCustomerService(logger, client, entitlement)
+	customerService, err := common.NewCustomerService(logger, client, entitlement, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -214,10 +215,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	featureConnector := common.NewFeatureConnector(logger, client, meterService)
+	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
 	advancementStrategy := billingConfiguration.AdvancementStrategy
 	productCatalogConfiguration := conf.ProductCatalog
-	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector)
+	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
