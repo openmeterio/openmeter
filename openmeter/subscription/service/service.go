@@ -127,9 +127,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.CreatedEvent{
-			SubscriptionView: view,
-		})
+		err = s.Publisher.Publish(ctx, subscription.NewCreatedEvent(ctx, view))
 		if err != nil {
 			return sub, fmt.Errorf("failed to publish event: %w", err)
 		}
@@ -174,9 +172,7 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 			return subs, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.UpdatedEvent{
-			UpdatedView: updatedView,
-		})
+		err = s.Publisher.Publish(ctx, subscription.NewUpdatedEvent(ctx, updatedView))
 		if err != nil {
 			return subs, fmt.Errorf("failed to publish event: %w", err)
 		}
@@ -225,9 +221,7 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 		}
 
 		// Let's publish the event for the deletion
-		err = s.Publisher.Publish(ctx, subscription.DeletedEvent{
-			SubscriptionView: view,
-		})
+		err = s.Publisher.Publish(ctx, subscription.NewDeletedEvent(ctx, view))
 		if err != nil {
 			return fmt.Errorf("failed to publish event: %w", err)
 		}
@@ -281,9 +275,7 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.CancelledEvent{
-			SubscriptionView: view,
-		})
+		err = s.Publisher.Publish(ctx, subscription.NewCancelledEvent(ctx, view))
 		if err != nil {
 			return sub, fmt.Errorf("failed to publish event: %w", err)
 		}
@@ -332,9 +324,7 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.ContinuedEvent{
-			SubscriptionView: view,
-		})
+		err = s.Publisher.Publish(ctx, subscription.NewContinuedEvent(ctx, view))
 		if err != nil {
 			return sub, fmt.Errorf("failed to publish event: %w", err)
 		}
