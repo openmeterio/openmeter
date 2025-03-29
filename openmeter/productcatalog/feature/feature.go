@@ -85,7 +85,7 @@ func (f MeterGroupByFilters) Validate(meter meter.Meter) error {
 // Feature is a feature or service offered to a customer.
 // For example: CPU-Hours, Tokens, API Calls, etc.
 type Feature struct {
-	Namespace string `json:"-"`
+	Namespace string `json:"namespace"`
 	ID        string `json:"id,omitempty"`
 
 	// Name The name of the feature.
@@ -131,16 +131,16 @@ func (f *Feature) Validate() error {
 
 	if f.MeterSlug != nil {
 		if *f.MeterSlug == "" {
-			errs = append(errs, fmt.Errorf("meterSlug is required"))
+			errs = append(errs, fmt.Errorf("meter slug cannot be empty"))
 		}
 	}
 
 	if f.CreatedAt.IsZero() {
-		errs = append(errs, fmt.Errorf("createdAt is required"))
+		errs = append(errs, fmt.Errorf("created at is required"))
 	}
 
 	if f.UpdatedAt.IsZero() {
-		errs = append(errs, fmt.Errorf("updatedAt is required"))
+		errs = append(errs, fmt.Errorf("updated at is required"))
 	}
 
 	return errors.Join(errs...)
