@@ -140,6 +140,12 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 
 		logger.With("plan.id", p.ID).Debug("Plan created")
 
+		// Emit plan created event
+		event := plan.NewPlanCreateEvent(ctx, p)
+		if err := s.publisher.Publish(ctx, event); err != nil {
+			return nil, fmt.Errorf("failed to publish plan created event: %w", err)
+		}
+
 		return p, nil
 	}
 
@@ -188,6 +194,12 @@ func (s service) DeletePlan(ctx context.Context, params plan.DeletePlanInput) er
 		}
 
 		logger.Debug("Plan deleted")
+
+		// Emit plan deleted event
+		event := plan.NewPlanDeleteEvent(ctx, p)
+		if err := s.publisher.Publish(ctx, event); err != nil {
+			return nil, fmt.Errorf("failed to publish plan deleted event: %w", err)
+		}
 
 		return nil, nil
 	}
@@ -280,6 +292,12 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		}
 
 		logger.Debug("Plan updated")
+
+		// Emit plan updated event
+		event := plan.NewPlanUpdateEvent(ctx, p)
+		if err := s.publisher.Publish(ctx, event); err != nil {
+			return nil, fmt.Errorf("failed to publish plan updated event: %w", err)
+		}
 
 		return p, nil
 	}
@@ -394,6 +412,12 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 
 		logger.Debug("Plan published")
 
+		// Emit plan published event
+		event := plan.NewPlanPublishEvent(ctx, p)
+		if err := s.publisher.Publish(ctx, event); err != nil {
+			return nil, fmt.Errorf("failed to publish plan published event: %w", err)
+		}
+
 		return p, nil
 	}
 
@@ -454,6 +478,12 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 		}
 
 		logger.Debug("Plan archived")
+
+		// Emit plan archived event
+		event := plan.NewPlanArchiveEvent(ctx, p)
+		if err := s.publisher.Publish(ctx, event); err != nil {
+			return nil, fmt.Errorf("failed to publish plan archived event: %w", err)
+		}
 
 		return p, nil
 	}

@@ -45,6 +45,7 @@ func NewPlanService(
 	db *entdb.Client,
 	productCatalogConf config.ProductCatalogConfiguration,
 	featureConnector feature.FeatureConnector,
+	publisher eventbus.Publisher,
 ) (plan.Service, error) {
 	adapter, err := planadapter.New(planadapter.Config{
 		Client: db,
@@ -55,8 +56,9 @@ func NewPlanService(
 	}
 
 	return planservice.New(planservice.Config{
-		Feature: featureConnector,
-		Adapter: adapter,
-		Logger:  logger.With("subsystem", "productcatalog.plan"),
+		Adapter:   adapter,
+		Feature:   featureConnector,
+		Logger:    logger.With("subsystem", "productcatalog.plan"),
+		Publisher: publisher,
 	})
 }

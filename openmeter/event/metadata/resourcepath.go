@@ -16,6 +16,7 @@ const (
 	EntityApp          = "app"
 	EntityMeter        = "meter"
 	EntityFeature      = "feature"
+	EntityPlan         = "plan"
 )
 
 // Ingestion/Events

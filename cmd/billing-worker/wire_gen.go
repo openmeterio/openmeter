@@ -218,7 +218,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
 	advancementStrategy := billingConfiguration.AdvancementStrategy
 	productCatalogConfiguration := conf.ProductCatalog
-	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector)
+	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
