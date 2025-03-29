@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 var ProductCatalog = wire.NewSet(
@@ -29,9 +30,14 @@ var Plan = wire.NewSet(
 	NewPlanService,
 )
 
-func NewFeatureConnector(logger *slog.Logger, db *entdb.Client, meterService meter.Service) feature.FeatureConnector {
+func NewFeatureConnector(
+	logger *slog.Logger,
+	db *entdb.Client,
+	meterService meter.Service,
+	publisher eventbus.Publisher,
+) feature.FeatureConnector {
 	featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(db, logger)
-	return feature.NewFeatureConnector(featureRepo, meterService)
+	return feature.NewFeatureConnector(featureRepo, meterService, publisher)
 }
 
 func NewPlanService(

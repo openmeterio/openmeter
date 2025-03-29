@@ -133,7 +133,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	service := common.NewMeterService(adapter)
-	featureConnector := common.NewFeatureConnector(logger, client, service)
+	featureConnector := common.NewFeatureConnector(logger, client, service, eventbusPublisher)
 	v2 := conf.Svix
 	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v2, featureConnector)
 	if err != nil {

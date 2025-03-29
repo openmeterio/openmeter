@@ -1,6 +1,7 @@
 package feature
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -106,4 +107,41 @@ type Feature struct {
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// Validate validates the feature.
+func (f *Feature) Validate() error {
+	var errs []error
+
+	if f.Namespace == "" {
+		errs = append(errs, fmt.Errorf("namespace is required"))
+	}
+
+	if f.ID == "" {
+		errs = append(errs, fmt.Errorf("id is required"))
+	}
+
+	if f.Name == "" {
+		errs = append(errs, fmt.Errorf("name is required"))
+	}
+
+	if f.Key == "" {
+		errs = append(errs, fmt.Errorf("key is required"))
+	}
+
+	if f.MeterSlug != nil {
+		if *f.MeterSlug == "" {
+			errs = append(errs, fmt.Errorf("meterSlug is required"))
+		}
+	}
+
+	if f.CreatedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("createdAt is required"))
+	}
+
+	if f.UpdatedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("updatedAt is required"))
+	}
+
+	return errors.Join(errs...)
 }
