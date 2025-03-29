@@ -125,10 +125,7 @@ func (s *ManageService) DeleteMeter(ctx context.Context, input meter.DeleteMeter
 	}
 
 	// Get the deleted meter
-	deletedMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-		Namespace: input.Namespace,
-		IDOrSlug:  input.IDOrSlug,
-	})
+	deletedMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput(input))
 	if err != nil {
 		return err
 	}
