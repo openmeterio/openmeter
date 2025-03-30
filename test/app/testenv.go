@@ -72,6 +72,7 @@ const (
 
 func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	logger := slog.Default().WithGroup("app")
+	publisher := eventbus.NewMock(t)
 
 	// Initialize postgres driver
 	driver := testutils.InitPostgresDB(t)
@@ -96,7 +97,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		StreamingConnector: streamingConnector,
 		Logger:             logger,
 		MeterService:       meterAdapter,
-		Publisher:          eventbus.NewMock(t),
+		Publisher:          publisher,
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: isodate.String("P1D"),
 		},
@@ -114,7 +115,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:              customerAdapter,
 		EntitlementConnector: entitlementRegistry.Entitlement,
-		Publisher:            eventbus.NewMock(t),
+		Publisher:            publisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer service: %w", err)
@@ -140,7 +141,8 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	appService, err := appservice.New(appservice.Config{
-		Adapter: appAdapter,
+		Adapter:   appAdapter,
+		Publisher: publisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app service: %w", err)
@@ -173,7 +175,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		SecretService:  secretService,
 		Logger:         logger,
 		BillingService: billingService,
-		Publisher:      eventbus.NewMock(t),
+		Publisher:      publisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe service: %w", err)

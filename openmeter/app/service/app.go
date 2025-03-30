@@ -11,11 +11,24 @@ import (
 var _ app.AppService = (*Service)(nil)
 
 func (s *Service) CreateApp(ctx context.Context, input app.CreateAppInput) (app.AppBase, error) {
+	// Validate the input
 	if err := input.Validate(); err != nil {
 		return app.AppBase{}, models.NewGenericValidationError(err)
 	}
 
-	return s.adapter.CreateApp(ctx, input)
+	// Create the app
+	appBase, err := s.adapter.CreateApp(ctx, input)
+	if err != nil {
+		return app.AppBase{}, err
+	}
+
+	// Emit the app created event
+	event := app.NewAppCreateEvent(ctx, appBase)
+	if err := s.publisher.Publish(ctx, event); err != nil {
+		return app.AppBase{}, err
+	}
+
+	return appBase, nil
 }
 
 func (s *Service) GetApp(ctx context.Context, input app.GetAppInput) (app.App, error) {
@@ -35,11 +48,24 @@ func (s *Service) GetDefaultApp(ctx context.Context, input app.GetDefaultAppInpu
 }
 
 func (s *Service) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.App, error) {
+	// Validate the input
 	if err := input.Validate(); err != nil {
 		return nil, models.NewGenericValidationError(err)
 	}
 
-	return s.adapter.UpdateApp(ctx, input)
+	// Update the app
+	updatedApp, err := s.adapter.UpdateApp(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	// Emit the app updated event
+	event := app.NewAppUpdateEvent(ctx, updatedApp)
+	if err := s.publisher.Publish(ctx, event); err != nil {
+		return nil, err
+	}
+
+	return updatedApp, nil
 }
 
 func (s *Service) ListApps(ctx context.Context, input app.ListAppInput) (pagination.PagedResponse[app.App], error) {
@@ -51,17 +77,53 @@ func (s *Service) ListApps(ctx context.Context, input app.ListAppInput) (paginat
 }
 
 func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {
+	// Validate the input
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(err)
 	}
 
-	return s.adapter.UninstallApp(ctx, input)
+	// Delete the app
+	if err := s.adapter.UninstallApp(ctx, input); err != nil {
+		return err
+	}
+
+	// Get the deleted app to include in the event
+	deletedApp, err := s.adapter.GetApp(ctx, app.GetAppInput(input))
+	if err != nil {
+		return err
+	}
+
+	// Emit the app deleted event
+	event := app.NewAppDeleteEvent(ctx, deletedApp)
+	if err := s.publisher.Publish(ctx, event); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) UpdateAppStatus(ctx context.Context, input app.UpdateAppStatusInput) error {
+	// Validate the input
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(err)
 	}
 
-	return s.adapter.UpdateAppStatus(ctx, input)
+	// Update the app status
+	if err := s.adapter.UpdateAppStatus(ctx, input); err != nil {
+		return err
+	}
+
+	// Get the app after status update to include in the event
+	updatedApp, err := s.adapter.GetApp(ctx, app.GetAppInput(input.ID))
+	if err != nil {
+		return err
+	}
+
+	// Emit the app updated event
+	event := app.NewAppUpdateEvent(ctx, updatedApp)
+	if err := s.publisher.Publish(ctx, event); err != nil {
+		return err
+	}
+
+	return nil
 }

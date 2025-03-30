@@ -138,7 +138,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	appsConfiguration := conf.Apps
-	service, err := common.NewAppService(logger, client, appsConfiguration)
+	service, err := common.NewAppService(logger, client, appsConfiguration, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
