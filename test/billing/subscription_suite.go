@@ -84,6 +84,8 @@ func (d SubscriptionMixInDependencies) Validate() error {
 func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDependencies) {
 	require.NoError(t, deps.Validate())
 
+	publisher := eventbus.NewMock(t)
+
 	planAdapter, err := planadapter.New(planadapter.Config{
 		Client: deps.DBClient,
 		Logger: slog.Default(),
@@ -91,9 +93,10 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	require.NoError(t, err)
 
 	planService, err := planservice.New(planservice.Config{
-		Feature: deps.FeatureService,
-		Adapter: planAdapter,
-		Logger:  slog.Default(),
+		Feature:   deps.FeatureService,
+		Adapter:   planAdapter,
+		Logger:    slog.Default(),
+		Publisher: publisher,
 	})
 	require.NoError(t, err)
 
@@ -118,7 +121,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		// framework
 		TransactionManager: subsRepo,
 		// events
-		Publisher: eventbus.NewMock(t),
+		Publisher: publisher,
 	})
 
 	s.SubscriptionPlanAdapter = subscriptiontestutils.NewPlanSubscriptionAdapter(subscriptiontestutils.PlanSubscriptionAdapterConfig{

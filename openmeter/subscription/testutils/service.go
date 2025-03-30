@@ -51,6 +51,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	subRepo := NewSubscriptionRepo(t, dbDeps)
 	subPhaseRepo := NewSubscriptionPhaseRepo(t, dbDeps)
 	subItemRepo := NewSubscriptionItemRepo(t, dbDeps)
+	publisher := eventbus.NewMock(t)
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
 		ManagedResource: models.ManagedResource{
@@ -78,7 +79,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 		Logger:             logger,
 		Tracer:             noop.NewTracerProvider().Tracer("test"),
 		MeterService:       meterAdapter,
-		Publisher:          eventbus.NewMock(t),
+		Publisher:          publisher,
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: isodate.String("P1D"),
 		},
@@ -100,9 +101,10 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	require.NoError(t, err)
 
 	planService, err := planservice.New(planservice.Config{
-		Feature: entitlementRegistry.Feature,
-		Logger:  logger,
-		Adapter: planRepo,
+		Feature:   entitlementRegistry.Feature,
+		Logger:    logger,
+		Adapter:   planRepo,
+		Publisher: publisher,
 	})
 	require.NoError(t, err)
 
@@ -116,7 +118,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 		EntitlementAdapter:    entitlementAdapter,
 		FeatureService:        entitlementRegistry.Feature,
 		TransactionManager:    subItemRepo,
-		Publisher:             eventbus.NewMock(t),
+		Publisher:             publisher,
 	})
 
 	workflowSvc := service.NewWorkflowService(service.WorkflowServiceConfig{

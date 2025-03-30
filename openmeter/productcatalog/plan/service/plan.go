@@ -166,6 +166,7 @@ func (s service) DeletePlan(ctx context.Context, params plan.DeletePlanInput) er
 
 		logger.Debug("deleting Plan")
 
+		// Get the Plan to check if it can be deleted
 		p, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
@@ -188,6 +189,7 @@ func (s service) DeletePlan(ctx context.Context, params plan.DeletePlanInput) er
 			)
 		}
 
+		// Delete the Plan
 		err = s.adapter.DeletePlan(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete Plan: %w", err)
@@ -195,8 +197,19 @@ func (s service) DeletePlan(ctx context.Context, params plan.DeletePlanInput) er
 
 		logger.Debug("Plan deleted")
 
+		// Get the deleted Plan to emit the event
+		deletedPlan, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: params.Namespace,
+				ID:        params.ID,
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get deleted Plan: %w", err)
+		}
+
 		// Emit plan deleted event
-		event := plan.NewPlanDeleteEvent(ctx, p)
+		event := plan.NewPlanDeleteEvent(ctx, deletedPlan)
 		if err := s.publisher.Publish(ctx, event); err != nil {
 			return nil, fmt.Errorf("failed to publish plan deleted event: %w", err)
 		}
