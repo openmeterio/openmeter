@@ -46,8 +46,9 @@ type RateCardSerializer struct {
 	Feature     *feature.Feature `json:"feature,omitempty"`
 
 	// Type-specific fields
-	BillingCadence *string               `json:"billingCadence,omitempty"`
-	Price          *productcatalog.Price `json:"price,omitempty"`
+	BillingCadence      *string                             `json:"billingCadence,omitempty"`
+	Price               *productcatalog.Price               `json:"price,omitempty"`
+	EntitlementTemplate *productcatalog.EntitlementTemplate `json:"entitlementTemplate,omitempty"`
 }
 
 // MarshalJSON implements json.Marshaler
@@ -68,14 +69,17 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 		}
 
 		for j, rc := range phase.RateCards {
+			meta := rc.AsMeta()
+
 			rcSerde := RateCardSerializer{
-				Type:        rc.Type(),
-				Key:         rc.Key(),
-				Name:        rc.AsMeta().Name,
-				Description: rc.AsMeta().Description,
-				Metadata:    rc.AsMeta().Metadata,
-				Feature:     rc.Feature(),
-				Price:       rc.AsMeta().Price,
+				Type:                rc.Type(),
+				Key:                 rc.Key(),
+				Name:                meta.Name,
+				Description:         meta.Description,
+				Metadata:            meta.Metadata,
+				Feature:             rc.Feature(),
+				Price:               meta.Price,
+				EntitlementTemplate: meta.EntitlementTemplate,
 			}
 
 			if bc := rc.GetBillingCadence(); bc != nil {
@@ -128,12 +132,13 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 			case productcatalog.FlatFeeRateCardType:
 				frc := &productcatalog.FlatFeeRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:         rcSerde.Key,
-						Name:        rcSerde.Name,
-						Description: rcSerde.Description,
-						Metadata:    rcSerde.Metadata,
-						Feature:     rcSerde.Feature,
-						Price:       rcSerde.Price,
+						Key:                 rcSerde.Key,
+						Name:                rcSerde.Name,
+						Description:         rcSerde.Description,
+						Metadata:            rcSerde.Metadata,
+						Feature:             rcSerde.Feature,
+						Price:               rcSerde.Price,
+						EntitlementTemplate: rcSerde.EntitlementTemplate,
 					},
 				}
 				if rcSerde.BillingCadence != nil {
@@ -148,12 +153,13 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 			case productcatalog.UsageBasedRateCardType:
 				urc := &productcatalog.UsageBasedRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:         rcSerde.Key,
-						Name:        rcSerde.Name,
-						Description: rcSerde.Description,
-						Metadata:    rcSerde.Metadata,
-						Feature:     rcSerde.Feature,
-						Price:       rcSerde.Price,
+						Key:                 rcSerde.Key,
+						Name:                rcSerde.Name,
+						Description:         rcSerde.Description,
+						Metadata:            rcSerde.Metadata,
+						Feature:             rcSerde.Feature,
+						Price:               rcSerde.Price,
+						EntitlementTemplate: rcSerde.EntitlementTemplate,
 					},
 				}
 				if rcSerde.BillingCadence != nil {
