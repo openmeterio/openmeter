@@ -7,172 +7,224 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/isodate"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// PlanSerializer is a serialization/deserialization helper for Plan
-type PlanSerializer struct {
-	models.NamespacedID
-	models.ManagedModel
+type (
+	planAlias  Plan
+	phaseAlias Phase
+)
 
-	productcatalog.PlanMeta
-
-	// Phases
-	Phases []PhaseSerializer `json:"phases"`
-}
-
-// PhaseSerializer is a serialization/deserialization helper for Phase
-type PhaseSerializer struct {
-	models.ManagedModel
-
-	productcatalog.PhaseMeta
-
-	// Discounts stores a set of discount(s) applied to all or specific RateCards.
-	Discounts productcatalog.Discounts `json:"discounts,omitempty"`
-
-	// RateCards
-	RateCards []RateCardSerializer `json:"rateCards"`
-}
-
-// RateCardSerializer is a serialization/deserialization helper for RateCard
-type RateCardSerializer struct {
-	Type productcatalog.RateCardType `json:"type"`
-
-	// Common fields
-	Key         string           `json:"key"`
-	Name        string           `json:"name"`
-	Description *string          `json:"description,omitempty"`
-	Metadata    models.Metadata  `json:"metadata,omitempty"`
-	Feature     *feature.Feature `json:"feature,omitempty"`
-
-	// Type-specific fields
-	BillingCadence      *string                             `json:"billingCadence,omitempty"`
-	Price               *productcatalog.Price               `json:"price,omitempty"`
-	EntitlementTemplate *productcatalog.EntitlementTemplate `json:"entitlementTemplate,omitempty"`
+type rateCardAlias struct {
+	Type                productcatalog.RateCardType `json:"type"`
+	Key                 string                      `json:"key"`
+	Name                string                      `json:"name"`
+	Description         *string                     `json:"description,omitempty"`
+	Metadata            map[string]string           `json:"metadata,omitempty"`
+	Feature             json.RawMessage             `json:"feature,omitempty"`
+	BillingCadence      *string                     `json:"billingCadence,omitempty"`
+	Price               json.RawMessage             `json:"price,omitempty"`
+	EntitlementTemplate json.RawMessage             `json:"entitlementTemplate,omitempty"`
 }
 
 // MarshalJSON implements json.Marshaler
 func (p Plan) MarshalJSON() ([]byte, error) {
-	serde := PlanSerializer{
-		NamespacedID: p.NamespacedID,
-		ManagedModel: p.ManagedModel,
-		PlanMeta:     p.PlanMeta,
-		Phases:       make([]PhaseSerializer, len(p.Phases)),
-	}
+	// Create a copy of the plan to avoid recursion
+	plan := planAlias(p)
 
+	// Convert phases to a format suitable for JSON
+	phases := make([]json.RawMessage, len(p.Phases))
 	for i, phase := range p.Phases {
-		phaseSerde := PhaseSerializer{
-			ManagedModel: phase.ManagedModel,
-			PhaseMeta:    phase.PhaseMeta,
-			Discounts:    phase.Discounts,
-			RateCards:    make([]RateCardSerializer, len(phase.RateCards)),
-		}
+		// Create a copy of the phase
+		phaseJSON := phaseAlias(phase)
 
+		// Convert rate cards to a format suitable for JSON
+		rateCards := make([]rateCardAlias, len(phase.RateCards))
 		for j, rc := range phase.RateCards {
 			meta := rc.AsMeta()
 
-			rcSerde := RateCardSerializer{
+			// Marshal feature to raw JSON if present
+			var featureJSON json.RawMessage
+			if meta.Feature != nil {
+				featureBytes, err := json.Marshal(meta.Feature)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal feature: %w", err)
+				}
+				featureJSON = featureBytes
+			}
+
+			// Marshal price to raw JSON if present
+			var priceJSON json.RawMessage
+			if meta.Price != nil {
+				priceBytes, err := json.Marshal(meta.Price)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal price: %w", err)
+				}
+				priceJSON = priceBytes
+			}
+
+			// Marshal entitlement template to raw JSON if present
+			var entitlementTemplateJSON json.RawMessage
+			if meta.EntitlementTemplate != nil {
+				entitlementTemplateBytes, err := json.Marshal(meta.EntitlementTemplate)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal entitlement template: %w", err)
+				}
+				entitlementTemplateJSON = entitlementTemplateBytes
+			}
+
+			// Create rate card JSON
+			rateCard := rateCardAlias{
 				Type:                rc.Type(),
 				Key:                 rc.Key(),
 				Name:                meta.Name,
 				Description:         meta.Description,
 				Metadata:            meta.Metadata,
-				Feature:             rc.Feature(),
-				Price:               meta.Price,
-				EntitlementTemplate: meta.EntitlementTemplate,
+				Feature:             featureJSON,
+				Price:               priceJSON,
+				EntitlementTemplate: entitlementTemplateJSON,
 			}
 
 			if bc := rc.GetBillingCadence(); bc != nil {
 				bcStr := bc.String()
-				rcSerde.BillingCadence = &bcStr
+				rateCard.BillingCadence = &bcStr
 			}
 
-			phaseSerde.RateCards[j] = rcSerde
+			rateCards[j] = rateCard
 		}
 
-		serde.Phases[i] = phaseSerde
+		// Marshal phase with rate cards
+		phaseBytes, err := json.Marshal(struct {
+			phaseAlias
+			RateCards []rateCardAlias `json:"rateCards"`
+		}{
+			phaseAlias: phaseJSON,
+			RateCards:  rateCards,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal phase: %w", err)
+		}
+
+		phases[i] = phaseBytes
 	}
 
-	return json.Marshal(serde)
+	// Marshal plan with phases
+	return json.Marshal(struct {
+		planAlias
+		Phases []json.RawMessage `json:"phases"`
+	}{
+		planAlias: plan,
+		Phases:    phases,
+	})
 }
 
 // UnmarshalJSON implements json.Unmarshaler
 func (p *Plan) UnmarshalJSON(data []byte) error {
-	var serde PlanSerializer
-	if err := json.Unmarshal(data, &serde); err != nil {
+	type planAlias Plan
+	type phaseAlias Phase
+	type rateCardAlias struct {
+		Type                productcatalog.RateCardType `json:"type"`
+		Key                 string                      `json:"key"`
+		Name                string                      `json:"name"`
+		Description         *string                     `json:"description,omitempty"`
+		Metadata            map[string]string           `json:"metadata,omitempty"`
+		Feature             json.RawMessage             `json:"feature,omitempty"`
+		BillingCadence      *string                     `json:"billingCadence,omitempty"`
+		Price               json.RawMessage             `json:"price,omitempty"`
+		EntitlementTemplate json.RawMessage             `json:"entitlementTemplate,omitempty"`
+	}
+
+	// Unmarshal the base plan
+	var planData struct {
+		planAlias
+		Phases []json.RawMessage `json:"phases"`
+	}
+	if err := json.Unmarshal(data, &planData); err != nil {
 		return fmt.Errorf("failed to unmarshal plan: %w", err)
 	}
 
-	p.NamespacedID = serde.NamespacedID
-	p.ManagedModel = serde.ManagedModel
-	p.PlanMeta = serde.PlanMeta
-	p.Phases = make([]Phase, len(serde.Phases))
+	// Copy the base plan data
+	*p = Plan(planData.planAlias)
 
-	for i, phaseSerde := range serde.Phases {
-		phase := Phase{
-			PhaseManagedFields: PhaseManagedFields{
-				ManagedModel: phaseSerde.ManagedModel,
-				NamespacedID: models.NamespacedID{
-					Namespace: p.Namespace,
-					ID:        phaseSerde.Key,
-				},
-				PlanID: p.ID,
-			},
-			Phase: productcatalog.Phase{
-				PhaseMeta: phaseSerde.PhaseMeta,
-				Discounts: phaseSerde.Discounts,
-				RateCards: make([]productcatalog.RateCard, len(phaseSerde.RateCards)),
-			},
+	// Unmarshal phases
+	p.Phases = make([]Phase, len(planData.Phases))
+	for i, phaseData := range planData.Phases {
+		var phaseWithRateCards struct {
+			phaseAlias
+			RateCards []rateCardAlias `json:"rateCards"`
+		}
+		if err := json.Unmarshal(phaseData, &phaseWithRateCards); err != nil {
+			return fmt.Errorf("failed to unmarshal phase: %w", err)
 		}
 
-		for j, rcSerde := range phaseSerde.RateCards {
-			var rc productcatalog.RateCard
+		// Copy the phase data
+		phase := Phase(phaseWithRateCards.phaseAlias)
+		phase.NamespacedID.Namespace = p.Namespace
+		phase.NamespacedID.ID = phase.Key
+		phase.PlanID = p.ID
 
-			switch rcSerde.Type {
-			case productcatalog.FlatFeeRateCardType:
-				frc := &productcatalog.FlatFeeRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:                 rcSerde.Key,
-						Name:                rcSerde.Name,
-						Description:         rcSerde.Description,
-						Metadata:            rcSerde.Metadata,
-						Feature:             rcSerde.Feature,
-						Price:               rcSerde.Price,
-						EntitlementTemplate: rcSerde.EntitlementTemplate,
-					},
+		// Unmarshal rate cards
+		phase.RateCards = make([]productcatalog.RateCard, len(phaseWithRateCards.RateCards))
+		for j, rcData := range phaseWithRateCards.RateCards {
+			var f *feature.Feature
+			if len(rcData.Feature) > 0 {
+				f = &feature.Feature{}
+				if err := json.Unmarshal(rcData.Feature, f); err != nil {
+					return fmt.Errorf("failed to unmarshal feature: %w", err)
 				}
-				if rcSerde.BillingCadence != nil {
-					period, err := isodate.String(*rcSerde.BillingCadence).Parse()
+			}
+
+			var price *productcatalog.Price
+			if len(rcData.Price) > 0 {
+				price = &productcatalog.Price{}
+				if err := json.Unmarshal(rcData.Price, price); err != nil {
+					return fmt.Errorf("failed to unmarshal price: %w", err)
+				}
+			}
+
+			var entitlementTemplate *productcatalog.EntitlementTemplate
+			if len(rcData.EntitlementTemplate) > 0 {
+				entitlementTemplate = &productcatalog.EntitlementTemplate{}
+				if err := json.Unmarshal(rcData.EntitlementTemplate, entitlementTemplate); err != nil {
+					return fmt.Errorf("failed to unmarshal entitlement template: %w", err)
+				}
+			}
+
+			meta := productcatalog.RateCardMeta{
+				Key:                 rcData.Key,
+				Name:                rcData.Name,
+				Description:         rcData.Description,
+				Metadata:            rcData.Metadata,
+				Feature:             f,
+				Price:               price,
+				EntitlementTemplate: entitlementTemplate,
+			}
+
+			var rc productcatalog.RateCard
+			switch rcData.Type {
+			case productcatalog.FlatFeeRateCardType:
+				frc := &productcatalog.FlatFeeRateCard{RateCardMeta: meta}
+				if rcData.BillingCadence != nil {
+					period, err := isodate.String(*rcData.BillingCadence).Parse()
 					if err != nil {
-						return fmt.Errorf("invalid billing cadence for rate card %q: %w", rcSerde.Key, err)
+						return fmt.Errorf("invalid billing cadence for rate card %q: %w", rcData.Key, err)
 					}
 					frc.BillingCadence = &period
 				}
 				rc = frc
 
 			case productcatalog.UsageBasedRateCardType:
-				urc := &productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:                 rcSerde.Key,
-						Name:                rcSerde.Name,
-						Description:         rcSerde.Description,
-						Metadata:            rcSerde.Metadata,
-						Feature:             rcSerde.Feature,
-						Price:               rcSerde.Price,
-						EntitlementTemplate: rcSerde.EntitlementTemplate,
-					},
-				}
-				if rcSerde.BillingCadence != nil {
-					period, err := isodate.String(*rcSerde.BillingCadence).Parse()
+				urc := &productcatalog.UsageBasedRateCard{RateCardMeta: meta}
+				if rcData.BillingCadence != nil {
+					period, err := isodate.String(*rcData.BillingCadence).Parse()
 					if err != nil {
-						return fmt.Errorf("invalid billing cadence for rate card %q: %w", rcSerde.Key, err)
+						return fmt.Errorf("invalid billing cadence for rate card %q: %w", rcData.Key, err)
 					}
 					urc.BillingCadence = period
 				}
 				rc = urc
 
 			default:
-				return fmt.Errorf("unsupported rate card type: %s", rcSerde.Type)
+				return fmt.Errorf("unsupported rate card type: %s", rcData.Type)
 			}
 
 			phase.RateCards[j] = rc
