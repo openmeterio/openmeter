@@ -1889,6 +1889,20 @@ func (u *PlanPhaseUpdateOne) SetOrClearDuration(value *isodate.String) *PlanPhas
 	return u.SetDuration(*value)
 }
 
+func (u *PlanPhaseUpdate) SetOrClearDiscounts(value *productcatalog.Discounts) *PlanPhaseUpdate {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
+func (u *PlanPhaseUpdateOne) SetOrClearDiscounts(value *productcatalog.Discounts) *PlanPhaseUpdateOne {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
 func (u *PlanRateCardUpdate) SetOrClearMetadata(value *map[string]string) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearMetadata()

@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
@@ -129,6 +130,12 @@ func (ppc *PlanPhaseCreate) SetNillableDuration(i *isodate.String) *PlanPhaseCre
 	if i != nil {
 		ppc.SetDuration(*i)
 	}
+	return ppc
+}
+
+// SetDiscounts sets the "discounts" field.
+func (ppc *PlanPhaseCreate) SetDiscounts(pr productcatalog.Discounts) *PlanPhaseCreate {
+	ppc.mutation.SetDiscounts(pr)
 	return ppc
 }
 
@@ -263,7 +270,10 @@ func (ppc *PlanPhaseCreate) sqlSave(ctx context.Context) (*PlanPhase, error) {
 	if err := ppc.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := ppc.createSpec()
+	_node, _spec, err := ppc.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, ppc.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -282,7 +292,7 @@ func (ppc *PlanPhaseCreate) sqlSave(ctx context.Context) (*PlanPhase, error) {
 	return _node, nil
 }
 
-func (ppc *PlanPhaseCreate) createSpec() (*PlanPhase, *sqlgraph.CreateSpec) {
+func (ppc *PlanPhaseCreate) createSpec() (*PlanPhase, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &PlanPhase{config: ppc.config}
 		_spec = sqlgraph.NewCreateSpec(planphase.Table, sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString))
@@ -332,6 +342,14 @@ func (ppc *PlanPhaseCreate) createSpec() (*PlanPhase, *sqlgraph.CreateSpec) {
 		_spec.SetField(planphase.FieldDuration, field.TypeString, value)
 		_node.Duration = &value
 	}
+	if value, ok := ppc.mutation.Discounts(); ok {
+		vv, err := planphase.ValueScanner.Discounts.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(planphase.FieldDiscounts, field.TypeString, vv)
+		_node.Discounts = value
+	}
 	if nodes := ppc.mutation.PlanIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -365,7 +383,7 @@ func (ppc *PlanPhaseCreate) createSpec() (*PlanPhase, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -540,6 +558,24 @@ func (u *PlanPhaseUpsert) UpdateDuration() *PlanPhaseUpsert {
 // ClearDuration clears the value of the "duration" field.
 func (u *PlanPhaseUpsert) ClearDuration() *PlanPhaseUpsert {
 	u.SetNull(planphase.FieldDuration)
+	return u
+}
+
+// SetDiscounts sets the "discounts" field.
+func (u *PlanPhaseUpsert) SetDiscounts(v productcatalog.Discounts) *PlanPhaseUpsert {
+	u.Set(planphase.FieldDiscounts, v)
+	return u
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *PlanPhaseUpsert) UpdateDiscounts() *PlanPhaseUpsert {
+	u.SetExcluded(planphase.FieldDiscounts)
+	return u
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *PlanPhaseUpsert) ClearDiscounts() *PlanPhaseUpsert {
+	u.SetNull(planphase.FieldDiscounts)
 	return u
 }
 
@@ -747,6 +783,27 @@ func (u *PlanPhaseUpsertOne) ClearDuration() *PlanPhaseUpsertOne {
 	})
 }
 
+// SetDiscounts sets the "discounts" field.
+func (u *PlanPhaseUpsertOne) SetDiscounts(v productcatalog.Discounts) *PlanPhaseUpsertOne {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.SetDiscounts(v)
+	})
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *PlanPhaseUpsertOne) UpdateDiscounts() *PlanPhaseUpsertOne {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.UpdateDiscounts()
+	})
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *PlanPhaseUpsertOne) ClearDiscounts() *PlanPhaseUpsertOne {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.ClearDiscounts()
+	})
+}
+
 // Exec executes the query.
 func (u *PlanPhaseUpsertOne) Exec(ctx context.Context) error {
 	if len(u.create.conflict) == 0 {
@@ -815,7 +872,10 @@ func (ppcb *PlanPhaseCreateBulk) Save(ctx context.Context) ([]*PlanPhase, error)
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, ppcb.builders[i+1].mutation)
 				} else {
@@ -1115,6 +1175,27 @@ func (u *PlanPhaseUpsertBulk) UpdateDuration() *PlanPhaseUpsertBulk {
 func (u *PlanPhaseUpsertBulk) ClearDuration() *PlanPhaseUpsertBulk {
 	return u.Update(func(s *PlanPhaseUpsert) {
 		s.ClearDuration()
+	})
+}
+
+// SetDiscounts sets the "discounts" field.
+func (u *PlanPhaseUpsertBulk) SetDiscounts(v productcatalog.Discounts) *PlanPhaseUpsertBulk {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.SetDiscounts(v)
+	})
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *PlanPhaseUpsertBulk) UpdateDiscounts() *PlanPhaseUpsertBulk {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.UpdateDiscounts()
+	})
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *PlanPhaseUpsertBulk) ClearDiscounts() *PlanPhaseUpsertBulk {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.ClearDiscounts()
 	})
 }
 

@@ -214,7 +214,7 @@ var (
 	EntitlementTemplateValueScanner = entutils.JSONStringValueScanner[*productcatalog.EntitlementTemplate]()
 	TaxConfigValueScanner           = entutils.JSONStringValueScanner[*productcatalog.TaxConfig]()
 	PriceValueScanner               = entutils.JSONStringValueScanner[*productcatalog.Price]()
-	DiscountsValueScanner           = entutils.JSONStringValueScanner[[]productcatalog.Discount]()
+	DiscountsValueScanner           = entutils.JSONStringValueScanner[productcatalog.Discounts]()
 )
 
 // AlignmentMixin for Alignment config
