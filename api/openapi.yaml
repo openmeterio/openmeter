@@ -39,14 +39,14 @@ paths:
   /api/v1/addons:
     get:
       operationId: listAddons
-      summary: List addons
-      description: List all addons.
+      summary: List add-ons
+      description: List all add-ons.
       parameters:
         - name: includeDeleted
           in: query
           required: false
           description: |-
-            Include deleted addons in response.
+            Include deleted add-ons in response.
 
             Usage: `?includeDeleted=true`
           schema:
@@ -94,12 +94,12 @@ paths:
           in: query
           required: false
           description: |-
-            Only return addons with the given status.
+            Only return add-ons with the given status.
 
             Usage:
-            - `?status=active`: return only the currently active addon
-            - `?status=draft`: return only the draft addon
-            - `?status=archived`: return only the archived addons
+            - `?status=active`: return only the currently active add-ons
+            - `?status=draft`: return only the draft add-ons
+            - `?status=archived`: return only the archived add-ons
           schema:
             type: array
             items:
@@ -172,8 +172,8 @@ paths:
       x-internal: true
     post:
       operationId: createAddon
-      summary: Create an addon
-      description: Create a new addon.
+      summary: Create an add-on
+      description: Create a new add-on.
       parameters: []
       responses:
         '201':
@@ -236,8 +236,8 @@ paths:
   /api/v1/addons/{addonIdOrKey}:
     get:
       operationId: getAddon
-      summary: Get addon
-      description: Get addon by id or key. The latest published version is returned if latter is used.
+      summary: Get add-on
+      description: Get add-on by id or key. The latest published version is returned if latter is used.
       parameters:
         - name: addonIdOrKey
           in: path
@@ -253,7 +253,7 @@ paths:
           in: query
           required: false
           description: |-
-            Include latest version of the addon instead of the version in active state.
+            Include latest version of the add-on instead of the version in active state.
 
             Usage: `?includeLatest=true`
           schema:
@@ -322,8 +322,8 @@ paths:
   /api/v1/addons/{addonId}:
     put:
       operationId: updateAddon
-      summary: Update addon
-      description: Update addon by id.
+      summary: Update add-on
+      description: Update add-on by id.
       parameters:
         - name: addonId
           in: path
@@ -398,11 +398,11 @@ paths:
       x-internal: true
     delete:
       operationId: deleteAddon
-      summary: Delete addon
+      summary: Delete add-on
       description: |-
-        Soft delete addon by id.
+        Soft delete add-on by id.
 
-        Once a addon is deleted it cannot be undeleted.
+        Once a add-on is deleted it cannot be undeleted.
       parameters:
         - name: addonId
           in: path
@@ -468,8 +468,8 @@ paths:
   /api/v1/addons/{addonId}/archive:
     post:
       operationId: archiveAddon
-      summary: Archive addon version
-      description: Archive a addon version.
+      summary: Archive add-on version
+      description: Archive a add-on version.
       parameters:
         - name: addonId
           in: path
@@ -539,8 +539,8 @@ paths:
   /api/v1/addons/{addonId}/publish:
     post:
       operationId: publishAddon
-      summary: Publish addon
-      description: Publish a addon version.
+      summary: Publish add-on
+      description: Publish a add-on version.
       parameters:
         - name: addonId
           in: path
@@ -9636,32 +9636,32 @@ components:
         version:
           type: integer
           minimum: 1
-          description: Version of the addon. Incremented when the addon is updated.
+          description: Version of the add-on. Incremented when the add-on is updated.
           title: Version
           default: 1
           readOnly: true
         instanceType:
           allOf:
             - $ref: '#/components/schemas/AddonInstanceType'
-          description: The instanceType of the addons. Can be "single" or "multiple".
+          description: The instanceType of the add-ons. Can be "single" or "multiple".
           title: InstanceType
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency code of the addon.
+          description: The currency code of the add-on.
           title: Currency
           default: USD
         effectiveFrom:
           type: string
           format: date-time
-          description: The date and time when the addon becomes effective. When not specified, the addon is a draft.
+          description: The date and time when the add-on becomes effective. When not specified, the add-on is a draft.
           example: '2023-01-01T01:01:01.001Z'
           title: Effective start date
           readOnly: true
         effectiveTo:
           type: string
           format: date-time
-          description: The date and time when the addon is no longer effective. When not specified, the addon is effective indefinitely.
+          description: The date and time when the add-on is no longer effective. When not specified, the add-on is effective indefinitely.
           example: '2023-01-01T01:01:01.001Z'
           title: Effective end date
           readOnly: true
@@ -9669,7 +9669,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/AddonStatus'
           description: |-
-            The status of the addon.
+            The status of the add-on.
             Computed based on the effective start and end dates:
             - draft = no effectiveFrom
             - active = effectiveFrom <= now < effectiveTo
@@ -9680,9 +9680,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AddonRateCard'
-          description: The rate cards of the addon.
+          description: The rate cards of the add-on.
           title: Rate cards
-      description: Addon allows extending subscriptions with compatible plans with additional ratecards.
+      description: Add-on allows extending subscriptions with compatible plans with additional ratecards.
     AddonCreate:
       type: object
       required:
@@ -9720,19 +9720,19 @@ components:
         instanceType:
           allOf:
             - $ref: '#/components/schemas/AddonInstanceType'
-          description: The instanceType of the addons. Can be "single" or "multiple".
+          description: The instanceType of the add-ons. Can be "single" or "multiple".
           title: InstanceType
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency code of the addon.
+          description: The currency code of the add-on.
           title: Currency
           default: USD
         rateCards:
           type: array
           items:
             $ref: '#/components/schemas/AddonRateCard'
-          description: The rate cards of the addon.
+          description: The rate cards of the add-on.
           title: Rate cards
       description: Resource create operation model.
     AddonInstanceType:
@@ -9741,8 +9741,8 @@ components:
         - single
         - multiple
       description: |-
-        The instanceType of the addon.
-        Single instance addons can be added to subscription only once while addons with multiple type can be added more then once.
+        The instanceType of the add-on.
+        Single instance add-ons can be added to subscription only once while add-ons with multiple type can be added more then once.
     AddonOrderBy:
       type: string
       enum:
@@ -9751,7 +9751,7 @@ components:
         - version
         - created_at
         - updated_at
-      description: Order by options for addons.
+      description: Order by options for add-ons.
     AddonPaginatedResponse:
       type: object
       required:
@@ -9795,8 +9795,8 @@ components:
         - override
         - extend
       description: |-
-        The addon mode defines how the ratecards included in the addon are applied in a subscription.
-        Override mode means that the ratecards in addon take precedence over the ones which are defined in a plan with for the same feature.
+        The add-on mode defines how the ratecards included in the add-on are applied in a subscription.
+        Override mode means that the ratecards in add-on take precedence over the ones which are defined in a plan with for the same feature.
         While the extend mode extends the ratecards from plan for the same feature.
     AddonReplaceUpdate:
       type: object
@@ -9826,13 +9826,13 @@ components:
         instanceType:
           allOf:
             - $ref: '#/components/schemas/AddonInstanceType'
-          description: The instanceType of the addons. Can be "single" or "multiple".
+          description: The instanceType of the add-ons. Can be "single" or "multiple".
           title: InstanceType
         rateCards:
           type: array
           items:
             $ref: '#/components/schemas/AddonRateCard'
-          description: The rate cards of the addon.
+          description: The rate cards of the add-on.
           title: Rate cards
       description: Resource update operation model.
     AddonStatus:
@@ -9841,7 +9841,7 @@ components:
         - draft
         - active
         - archived
-      description: The status of the addon defined by the effectiveFrom and effectiveTo properties.
+      description: The status of the add-on defined by the effectiveFrom and effectiveTo properties.
     Address:
       type: object
       properties:

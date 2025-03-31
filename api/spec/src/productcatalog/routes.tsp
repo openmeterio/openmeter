@@ -163,15 +163,15 @@ interface Plans {
 @tag("Product Catalog")
 interface Addons {
   /**
-   * List all addons.
+   * List all add-ons.
    */
   @list
   @operationId("listAddons")
-  @summary("List addons")
+  @summary("List add-ons")
   @extension("x-internal", true)
   list(
     /**
-     * Include deleted addons in response.
+     * Include deleted add-ons in response.
      *
      * Usage: `?includeDeleted=true`
      */
@@ -198,12 +198,12 @@ interface Addons {
     keyVersion?: Record<integer[]>,
 
     /**
-     * Only return addons with the given status.
+     * Only return add-ons with the given status.
      *
      * Usage:
-     * - `?status=active`: return only the currently active addon
-     * - `?status=draft`: return only the draft addon
-     * - `?status=archived`: return only the archived addons
+     * - `?status=active`: return only the currently active add-ons
+     * - `?status=draft`: return only the draft add-ons
+     * - `?status=archived`: return only the archived add-ons
      */
     @query(#{ explode: true })
     status?: AddonStatus[],
@@ -219,11 +219,11 @@ interface Addons {
   ): OpenMeter.PaginatedResponse<Addon> | OpenMeter.CommonErrors;
 
   /**
-   * Create a new addon.
+   * Create a new add-on.
    */
   @post
   @operationId("createAddon")
-  @summary("Create an addon")
+  @summary("Create an add-on")
   @extension("x-internal", true)
   create(@body request: TypeSpec.Rest.Resource.ResourceCreateModel<Addon>): {
     @statusCode _: 201;
@@ -231,12 +231,12 @@ interface Addons {
   } | OpenMeter.CommonErrors;
 
   /**
-   * Update addon by id.
+   * Update add-on by id.
    */
   @put
   @route("/{addonId}")
   @operationId("updateAddon")
-  @summary("Update addon")
+  @summary("Update add-on")
   @extension("x-internal", true)
   update(
     @path addonId: ULID,
@@ -244,12 +244,12 @@ interface Addons {
   ): Addon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Get addon by id or key. The latest published version is returned if latter is used.
+   * Get add-on by id or key. The latest published version is returned if latter is used.
    */
   @get
   @route("/{addonIdOrKey}")
   @operationId("getAddon")
-  @summary("Get addon")
+  @summary("Get add-on")
   @extension("x-internal", true)
   get(
     @extension("x-go-type", "string")
@@ -257,7 +257,7 @@ interface Addons {
     addonIdOrKey: ULIDOrKey,
 
     /**
-     * Include latest version of the addon instead of the version in active state.
+     * Include latest version of the add-on instead of the version in active state.
      *
      * Usage: `?includeLatest=true`
      */
@@ -267,38 +267,38 @@ interface Addons {
   ): Addon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Soft delete addon by id.
+   * Soft delete add-on by id.
    *
-   * Once a addon is deleted it cannot be undeleted.
+   * Once a add-on is deleted it cannot be undeleted.
    */
   @delete
   @route("/{addonId}")
   @operationId("deleteAddon")
-  @summary("Delete addon")
+  @summary("Delete add-on")
   @extension("x-internal", true)
   delete(@path addonId: ULID): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Publish a addon version.
+   * Publish a add-on version.
    */
   @post
   @route("/{addonId}/publish")
   @operationId("publishAddon")
-  @summary("Publish addon")
+  @summary("Publish add-on")
   @extension("x-internal", true)
   publish(
     @path addonId: ULID,
   ): Addon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Archive a addon version.
+   * Archive a add-on version.
    */
   @post
   @route("/{addonId}/archive")
   @operationId("archiveAddon")
-  @summary("Archive addon version")
+  @summary("Archive add-on version")
   @extension("x-internal", true)
   archive(
     @path addonId: ULID,
