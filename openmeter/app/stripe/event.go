@@ -29,7 +29,7 @@ func NewAppCheckoutSessionEvent(ctx context.Context, namespace string, sessionID
 
 // AppCheckoutSessionEvent is an event that is emitted when a checkout session is created
 type AppCheckoutSessionEvent struct {
-	SessionID  string  `json:"-"`
+	SessionID  string  `json:"sessionId"`
 	Namespace  string  `json:"namespace"`
 	AppID      string  `json:"appId"`
 	CustomerID string  `json:"customerId"`
@@ -56,6 +56,10 @@ func (e AppCheckoutSessionEvent) EventMetadata() metadata.EventMetadata {
 }
 
 func (e AppCheckoutSessionEvent) Validate() error {
+	if e.Namespace == "" {
+		return fmt.Errorf("namespace is required")
+	}
+
 	if e.AppID == "" {
 		return fmt.Errorf("app id is required")
 	}
