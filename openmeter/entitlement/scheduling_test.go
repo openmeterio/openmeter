@@ -547,7 +547,7 @@ func TestSuperseding(t *testing.T) {
 						ActiveFrom: lo.ToPtr(activeFrom1.Add(time.Hour)),
 					},
 				)
-				assert.EqualError(t, err, "validation error: Old and new entitlements belong to different features")
+				assert.EqualError(t, err, "validation error: old and new entitlements belong to different features")
 			},
 		},
 		{
@@ -594,7 +594,7 @@ func TestSuperseding(t *testing.T) {
 						ActiveFrom:      lo.ToPtr(activeFrom1.Add(time.Hour)),
 					},
 				)
-				assert.EqualError(t, err, "validation error: Old and new entitlements belong to different subjects")
+				assert.EqualError(t, err, "validation error: old and new entitlements belong to different subjects")
 			},
 		},
 		{
@@ -697,7 +697,7 @@ func TestSuperseding(t *testing.T) {
 						ActiveTo:        lo.ToPtr(activeFrom1.Add(time.Hour * 3)),
 					},
 				)
-				assert.EqualError(t, err, "validation error: New entitlement must be active before the old one ends")
+				assert.EqualError(t, err, "validation error: new entitlement must be active before the old one ends")
 			},
 		},
 		{

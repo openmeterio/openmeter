@@ -124,7 +124,7 @@ func (s *Fixture) setupAppCustomerData(ctx context.Context, customerApp app.App,
 		Data:       data,
 	})
 	if err != nil {
-		return data, fmt.Errorf("Upsert customer data failed: %w", err)
+		return data, fmt.Errorf("upsert customer data failed: %w", err)
 	}
 
 	return data, nil
