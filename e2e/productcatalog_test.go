@@ -72,6 +72,16 @@ func TestPlan(t *testing.T) {
 	})
 	require.Nil(t, err)
 
+	t.Run("Should check access of customer returning nothing", func(t *testing.T) {
+		res, err := client.GetCustomerAccessWithResponse(ctx, customer1.Id)
+		require.Nil(t, err)
+
+		require.Equal(t, http.StatusOK, res.StatusCode(), "received the following body: %s", res.Body)
+		require.NotNil(t, res.JSON200)
+		require.NotNil(t, res.JSON200.Entitlements)
+		require.Equal(t, 0, len(res.JSON200.Entitlements))
+	})
+
 	customer2 := customerAPIRes.JSON201
 	require.NotNil(t, customer1)
 
