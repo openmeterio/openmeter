@@ -11,6 +11,8 @@ on:
         synchronize,
         review_requested,
         review_request_removed,
+        labeled,
+        unlabeled,
       ]
   pull_request_review:
     # Trigger on submitted reviews to re-check status
@@ -18,6 +20,7 @@ on:
 
 jobs:
   review-gatekeeper:
+    if: contains(github.event.pull_request.labels.*.name, 'require-all-reviewers')
     name: Review Gatekeeper
     # Grant necessary permissions for the job
     permissions:
