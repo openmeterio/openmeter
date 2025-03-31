@@ -48,7 +48,6 @@ var planV1Input = plan.CreatePlanInput{
 					Metadata:    models.Metadata{"name": "trial"},
 					Duration:    &MonthPeriod,
 				},
-				Discounts: nil,
 				RateCards: []productcatalog.RateCard{
 					&plan.FlatFeeRateCard{
 						RateCardManagedFields: plan.RateCardManagedFields{
@@ -94,7 +93,6 @@ var planV1Input = plan.CreatePlanInput{
 					Metadata:    models.Metadata{"name": "pro"},
 					Duration:    nil,
 				},
-				Discounts: nil,
 				RateCards: []productcatalog.RateCard{
 					&plan.UsageBasedRateCard{
 						RateCardManagedFields: plan.RateCardManagedFields{

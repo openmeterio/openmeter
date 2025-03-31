@@ -3321,12 +3321,13 @@ export interface components {
       subjectKeys: string[]
     }
     /** @description A discount on a price. */
-    Discount: components['schemas']['DiscountPercentage']
+    Discount:
+      | components['schemas']['DiscountPercentage']
+      | components['schemas']['DiscountUsage']
     /** @description Percentage discount. */
     DiscountPercentage: {
       /**
-       * Type
-       * @description The type of the discount.
+       * @description The type of the discount. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'percentage'
@@ -3335,12 +3336,25 @@ export interface components {
        * @description The percentage of the discount.
        */
       percentage: components['schemas']['Percentage']
+    }
+    /** @description Usage discount.
+     *
+     *     Usage discount means that the first N items are free. From billing perspective
+     *     this means that any usage on a specific feature is considered 0 until this discount
+     *     is exhausted. */
+    DiscountUsage: {
       /**
-       * Discounted RateCards
-       * @description The rate cards that the discount applies to.
-       *     When not specified, the discount applies to all rate cards.
+       * @description The type of the discount. (enum property replaced by openapi-typescript)
+       * @enum {string}
        */
-      rateCards?: string[]
+      type: 'usage'
+      /**
+       * Usage
+       * @description The quantity of the usage discount.
+       *
+       *     Must be positive.
+       */
+      quantity: components['schemas']['Numeric']
     }
     /** @description Dynamic price with spend commitments. */
     DynamicPriceWithCommitments: {
@@ -6837,11 +6851,6 @@ export interface components {
        * @description The rate cards of the plan.
        */
       rateCards: components['schemas']['RateCard'][]
-      /**
-       * Discounts
-       * @description The discounts on the plan.
-       */
-      discounts?: components['schemas']['Discount'][]
     }
     /** @description References an exact plan. */
     PlanReference: {
@@ -7104,6 +7113,12 @@ export interface components {
        *     }
        */
       price: components['schemas']['FlatPriceWithPaymentTerm'] | null
+      /**
+       * Discounts
+       * @description The discount of the rate card. For flat fee rate cards only percentage discounts are supported.
+       *     Only available when price is set.
+       */
+      discounts?: components['schemas']['DiscountPercentage'][]
     }
     /** @description The entitlement template with a metered entitlement. */
     RateCardMeteredEntitlement: {
@@ -7216,6 +7231,13 @@ export interface components {
       /** @description The price of the rate card.
        *     When null, the feature or service is free. */
       price: components['schemas']['RateCardUsageBasedPrice'] | null
+      /**
+       * Discounts
+       * @description The discounts of the rate card.
+       *
+       *     Flat fee rate cards only support percentage discounts.
+       */
+      discounts?: components['schemas']['Discount'][]
     }
     /** @description The price of the usage based rate card. */
     RateCardUsageBasedPrice:
@@ -8732,6 +8754,7 @@ export type CustomerUsageAttribution =
   components['schemas']['CustomerUsageAttribution']
 export type Discount = components['schemas']['Discount']
 export type DiscountPercentage = components['schemas']['DiscountPercentage']
+export type DiscountUsage = components['schemas']['DiscountUsage']
 export type DynamicPriceWithCommitments =
   components['schemas']['DynamicPriceWithCommitments']
 export type EditSubscriptionAddItem =

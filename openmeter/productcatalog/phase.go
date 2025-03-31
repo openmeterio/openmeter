@@ -91,9 +91,6 @@ var (
 type Phase struct {
 	PhaseMeta
 
-	// Discounts stores a set of discount(s) applied to all or specific RateCards.
-	Discounts Discounts `json:"discounts,omitempty"`
-
 	// RateCards
 	RateCards RateCards `json:"rateCards"`
 }
@@ -101,10 +98,6 @@ type Phase struct {
 // Equal returns true if the two Phases are equal.
 func (p Phase) Equal(v Phase) bool {
 	if !p.PhaseMeta.Equal(v.PhaseMeta) {
-		return false
-	}
-
-	if !p.Discounts.Equal(v.Discounts) {
 		return false
 	}
 
@@ -133,18 +126,6 @@ func (p Phase) Validate() error {
 
 		if err := rateCard.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid RateCard: %w", err))
-		}
-	}
-
-	for _, discount := range p.Discounts {
-		if err := discount.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid Discount: %w", err))
-		}
-
-		for _, key := range discount.RateCardKeys() {
-			if _, ok := rateCardKeys[key]; !ok {
-				errs = append(errs, fmt.Errorf("invalid Discount: unknown RateCard: %s", key))
-			}
 		}
 	}
 

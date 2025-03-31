@@ -44,6 +44,8 @@ type PlanPhase struct {
 	// The duration of the phase.
 	Duration *isodate.String `json:"duration,omitempty"`
 	// Discounts holds the value of the "discounts" field.
+	//
+	// Deprecated: Use ratecards.discounts instead
 	Discounts []productcatalog.Discount `json:"discounts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PlanPhaseQuery when eager-loading is set.

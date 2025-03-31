@@ -90,7 +90,8 @@ func (PlanPhase) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
-			Optional(),
+			Optional().
+			Deprecated("Use ratecards.discounts instead"),
 	}
 }
 

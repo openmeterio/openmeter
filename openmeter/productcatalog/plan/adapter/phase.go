@@ -67,7 +67,6 @@ func (a *adapter) createPhase(ctx context.Context, params createPhaseInput) (*pl
 			SetPlanID(params.PlanID).
 			SetIndex(uint8(params.Index)).
 			SetNillableDuration(params.Duration.ISOStringPtrOrNil()).
-			SetDiscounts(params.Discounts).
 			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create PlanPhase: %w", err)

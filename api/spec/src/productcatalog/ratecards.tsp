@@ -110,13 +110,12 @@ model RateCardFlatFee {
   @example(#{ type: PriceType.flat, amount: "100", paymentTerm: "in_arrears" })
   price: FlatPriceWithPaymentTerm | null;
 
-  // NOTE(chrisgacsal): discount on RateCard level going to be implemented in upcoming releases
-  // /**
-  //  * The discount of the rate card. Either a percentage or an amount.
-  //  * Only available when price is set.
-  //  */
-  // @summary("Discount")
-  // discount?: DiscountPercentage | DiscountAmount;
+  /**
+   * The discount of the rate card. For flat fee rate cards only percentage discounts are supported.
+   * Only available when price is set.
+   */
+  @summary("Discounts")
+  discounts?: DiscountPercentage[];
 }
 
 /**
@@ -154,38 +153,13 @@ model RateCardUsageBased {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   price: RateCardUsageBasedPrice | null;
 
-  // NOTE(chrisgacsal): discount on RateCard level going to be implemented in upcoming releases
-  // /**
-  //  * The discount of the rate card.
-  //  */
-  // @summary("Discount")
-  // discount?: Discount;
-}
-
-/**
- * Rate card override.
- */
-@friendlyName("RateCardOverride")
-@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
-union RateCardOverride {
-  flat_fee: RateCardOverrideFlatFee,
-  usage_based: RateCardOverrideUsageBased,
-}
-
-/**
- * Flat fee rate card override.
- */
-@friendlyName("RateCardOverrideFlatFee")
-model RateCardOverrideFlatFee {
-  ...PickProperties<RateCardFlatFee, "type" | "price">;
-}
-
-/**
- * Usage-based rate card override.
- */
-@friendlyName("RateCardOverrideUsageBased")
-model RateCardOverrideUsageBased {
-  ...PickProperties<RateCardUsageBased, "type" | "price">;
+  /**
+   * The discounts of the rate card.
+   *
+   * Flat fee rate cards only support percentage discounts.
+   */
+  @summary("Discounts")
+  discounts?: Discount[];
 }
 
 /**
