@@ -28,6 +28,19 @@ or if the change was already implemented but not yet released.
 We expect new pull requests to include tests for any affected behavior, and, as we follow semantic versioning,
 we may reserve breaking changes until the next major version release.
 
+### Ensuring All Requested Reviewers Approve
+
+By default, pull requests can often be merged once the minimum number of required approvals (e.g., from CODEOWNERS or branch protection rules) is met. However, sometimes you might explicitly request reviews from specific individuals because their input is crucial for that particular PR.
+
+To ensure that *all* individuals you've specifically requested using the GitHub "Reviewers" UI must approve before merging, follow these steps:
+
+1.  **Request Reviews:** Use the standard GitHub interface on the pull request page to request reviews from the necessary individuals.
+2.  **Add Label:** Add the label `require-all-reviewers` to the pull request.
+
+When this label is present, an automated check named "Review Gatekeeper" will run. This check will only pass if **every single user** listed under the "Reviewers" section has submitted an **approving** review. This check is required for merging, preventing merges until all explicitly requested reviewers are satisfied.
+
+If the label is removed, the "Review Gatekeeper" check will be skipped.
+
 ## Other ways to contribute
 
 We welcome anyone that wants to contribute to triage and reply to open issues to help troubleshoot and fix existing bugs.
