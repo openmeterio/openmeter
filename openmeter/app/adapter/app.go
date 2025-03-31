@@ -280,9 +280,9 @@ func (a *adapter) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.
 }
 
 // UninstallApp uninstalls an app
-func (a *adapter) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {
-	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
-		_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
+func (a *adapter) UninstallApp(ctx context.Context, input app.UninstallAppInput) (*app.AppBase, error) {
+	return transaction.Run(ctx, a, func(ctx context.Context) (*app.AppBase, error) {
+		return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (*app.AppBase, error) {
 			installedApp, err := repo.GetApp(ctx, input)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get app: %w", err)
@@ -302,6 +302,8 @@ func (a *adapter) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 				return nil, fmt.Errorf("failed to uninstall app: %w", err)
 			}
 
+			deletedAt := time.Now()
+
 			// Delete app from database
 			_, err = repo.db.App.Update().
 				Where(appdb.Namespace(input.Namespace)).
@@ -312,9 +314,11 @@ func (a *adapter) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 				return nil, fmt.Errorf("failed to delete app from database: %w", err)
 			}
 
-			return nil, nil
+			appBase := installedApp.GetAppBase()
+			appBase.DeletedAt = &deletedAt
+
+			return &appBase, nil
 		})
-		return err
 	})
 }
 

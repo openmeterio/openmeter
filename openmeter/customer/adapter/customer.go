@@ -226,15 +226,15 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 				// so we don't need to fetch it here.
 
 				customerEntity.Edges.Subjects = customerSubjects
-				customer, err := CustomerFromDBEntity(*customerEntity)
+				cus, err := CustomerFromDBEntity(*customerEntity)
 				if err != nil {
-					return customer, fmt.Errorf("failed to convert customer: %w", err)
+					return cus, fmt.Errorf("failed to convert customer: %w", err)
 				}
-				if customer == nil {
-					return customer, fmt.Errorf("invalid query result: nil customer received")
+				if cus == nil {
+					return cus, fmt.Errorf("invalid query result: nil customer received")
 				}
 
-				return customer, nil
+				return cus, nil
 			},
 		)
 	})
@@ -395,15 +395,15 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				}
 
 				// Get the customer to diff the subjects
-				dbCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput{
+				previousCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput{
 					CustomerID: &input.CustomerID,
 				})
 				if err != nil {
 					return nil, err
 				}
 
-				query := repo.db.Customer.UpdateOneID(dbCustomer.ID).
-					Where(customerdb.Namespace(dbCustomer.Namespace)).
+				query := repo.db.Customer.UpdateOneID(previousCustomer.ID).
+					Where(customerdb.Namespace(previousCustomer.Namespace)).
 					SetUpdatedAt(clock.Now().UTC()).
 					SetName(input.Name).
 					SetOrClearDescription(input.Description).
@@ -456,7 +456,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				for _, subjectKey := range input.UsageAttribution.SubjectKeys {
 					found := false
 
-					for _, existingSubjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
+					for _, existingSubjectKey := range previousCustomer.UsageAttribution.SubjectKeys {
 						if subjectKey == existingSubjectKey {
 							found = true
 							continue
@@ -495,7 +495,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				// Remove subjects
 				var subjectKeysToRemove []string
 
-				for _, existingSubjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
+				for _, existingSubjectKey := range previousCustomer.UsageAttribution.SubjectKeys {
 					found := false
 
 					for _, subjectKey := range input.UsageAttribution.SubjectKeys {
@@ -550,7 +550,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				entity.Edges.Subjects = []*entdb.CustomerSubjects{}
 
 				// Loop through the existing subjects and add the ones that are not removed
-				for _, subjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
+				for _, subjectKey := range previousCustomer.UsageAttribution.SubjectKeys {
 					if lo.Contains(subjectKeysToRemove, subjectKey) {
 						continue
 					}
@@ -571,7 +571,16 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 					})
 				}
 
-				return CustomerFromDBEntity(*entity)
+				cus, err := CustomerFromDBEntity(*entity)
+				if err != nil {
+					return cus, fmt.Errorf("failed to convert customer: %w", err)
+				}
+
+				if cus == nil {
+					return cus, fmt.Errorf("invalid query result: nil customer received")
+				}
+
+				return cus, nil
 			},
 		)
 	})

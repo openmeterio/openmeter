@@ -377,6 +377,7 @@ func (i CreateCheckoutSessionInput) Validate() error {
 }
 
 type CreateCheckoutSessionOutput struct {
+	AppID            app.AppID
 	CustomerID       customer.CustomerID
 	StripeCustomerID string
 
@@ -385,6 +386,10 @@ type CreateCheckoutSessionOutput struct {
 
 func (o CreateCheckoutSessionOutput) Validate() error {
 	var errs []error
+
+	if err := o.AppID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("error validating app id: %w", err))
+	}
 
 	if err := o.CustomerID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("error validating customer id: %w", err))

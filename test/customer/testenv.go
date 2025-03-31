@@ -64,22 +64,16 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	// Initialize postgres driver
 	dbDeps := subscriptiontestutils.SetupDBDeps(t)
 
-	// Initialize customer adapter
-	customerAdapter, err := customeradapter.New(customeradapter.Config{
-		Client: dbDeps.DBClient,
-		Logger: logger.WithGroup("postgres"),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create customer adapter: %w", err)
-	}
-
+	// Streaming
 	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
 
+	// Meter
 	meterAdapter, err := meteradapter.New([]meter.Meter{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create meter adapter: %w", err)
 	}
 
+	// Entitlement
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbDeps.DBClient,
 		StreamingConnector: streamingConnector,
@@ -91,9 +85,19 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		},
 	})
 
+	// Customer
+	customerAdapter, err := customeradapter.New(customeradapter.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger.WithGroup("postgres"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create customer adapter: %w", err)
+	}
+
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:              customerAdapter,
 		EntitlementConnector: entitlementRegistry.Entitlement,
+		Publisher:            eventbus.NewMock(t),
 	})
 	if err != nil {
 		return nil, err

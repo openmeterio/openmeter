@@ -525,6 +525,7 @@ func (a *adapter) CreateCheckoutSession(ctx context.Context, input appstripeenti
 		}
 
 		return appstripeentity.CreateCheckoutSessionOutput{
+			AppID:                 appID,
 			CustomerID:            customerID,
 			StripeCustomerID:      stripeCustomerId,
 			StripeCheckoutSession: checkoutSession,

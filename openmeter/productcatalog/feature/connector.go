@@ -8,6 +8,7 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -23,6 +24,7 @@ type CreateFeatureInputs struct {
 	Metadata            map[string]string   `json:"metadata"`
 }
 
+// TODO: refactor to service pattern
 type FeatureConnector interface {
 	// Feature Management
 	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
@@ -76,6 +78,7 @@ type ListFeaturesParams struct {
 type featureConnector struct {
 	featureRepo  FeatureRepo
 	meterService meterpkg.Service
+	publisher    eventbus.Publisher
 
 	validMeterAggregations []meterpkg.MeterAggregation
 }
@@ -83,10 +86,12 @@ type featureConnector struct {
 func NewFeatureConnector(
 	featureRepo FeatureRepo,
 	meterService meterpkg.Service,
+	publisher eventbus.Publisher,
 ) FeatureConnector {
 	return &featureConnector{
 		featureRepo:  featureRepo,
 		meterService: meterService,
+		publisher:    publisher,
 
 		validMeterAggregations: []meterpkg.MeterAggregation{
 			meterpkg.MeterAggregationSum,
@@ -96,8 +101,9 @@ func NewFeatureConnector(
 	}
 }
 
+// CreateFeature creates a new feature
 func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error) {
-	// validate meter configuration
+	// Validate meter configuration
 	if feature.MeterSlug != nil {
 		slug := *feature.MeterSlug
 		meter, err := c.meterService.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
@@ -123,11 +129,12 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		}
 	}
 
+	// Validate feature key
 	if _, err := ulid.Parse(feature.Key); err == nil {
 		return Feature{}, models.NewGenericValidationError(fmt.Errorf("Feature key cannot be a valid ULID"))
 	}
 
-	// check key is not taken
+	// Check key is not taken
 	found, err := c.featureRepo.GetByIdOrKey(ctx, feature.Namespace, feature.Key, false)
 	if err != nil {
 		if _, ok := err.(*FeatureNotFoundError); !ok {
@@ -137,17 +144,51 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		return Feature{}, &FeatureWithNameAlreadyExistsError{Name: feature.Key, ID: found.ID}
 	}
 
-	return c.featureRepo.CreateFeature(ctx, feature)
+	// Create the feature
+	createdFeature, err := c.featureRepo.CreateFeature(ctx, feature)
+	if err != nil {
+		return Feature{}, err
+	}
+
+	// Publish the feature created event
+	featureCreatedEvent := NewFeatureCreateEvent(ctx, &createdFeature)
+	if err := c.publisher.Publish(ctx, featureCreatedEvent); err != nil {
+		return createdFeature, fmt.Errorf("failed to publish feature created event: %w", err)
+	}
+
+	return createdFeature, nil
 }
 
+// ArchiveFeature archives a feature
 func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
+	// Get the feature
 	_, err := c.GetFeature(ctx, featureID.Namespace, featureID.ID, false)
 	if err != nil {
 		return err
 	}
-	return c.featureRepo.ArchiveFeature(ctx, featureID)
+
+	// Archive the feature
+	err = c.featureRepo.ArchiveFeature(ctx, featureID)
+	if err != nil {
+		return err
+	}
+
+	// Get the archived feature
+	archivedFeature, err := c.GetFeature(ctx, featureID.Namespace, featureID.ID, true)
+	if err != nil {
+		return err
+	}
+
+	// Publish the feature archived event
+	featureArchivedEvent := NewFeatureArchiveEvent(ctx, archivedFeature)
+	if err := c.publisher.Publish(ctx, featureArchivedEvent); err != nil {
+		return fmt.Errorf("failed to publish feature archived event: %w", err)
+	}
+
+	return nil
 }
 
+// ListFeatures lists features
 func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.PagedResponse[Feature], error) {
 	if !params.Page.IsZero() {
 		if err := params.Page.Validate(); err != nil {
@@ -157,6 +198,7 @@ func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeatures
 	return c.featureRepo.ListFeatures(ctx, params)
 }
 
+// GetFeature gets a feature
 func (c *featureConnector) GetFeature(ctx context.Context, namespace string, idOrKey string, includeArchived IncludeArchivedFeature) (*Feature, error) {
 	feature, err := c.featureRepo.GetByIdOrKey(ctx, namespace, idOrKey, bool(includeArchived))
 	if err != nil {

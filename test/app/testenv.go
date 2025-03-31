@@ -72,6 +72,7 @@ const (
 
 func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	logger := slog.Default().WithGroup("app")
+	publisher := eventbus.NewMock(t)
 
 	// Initialize postgres driver
 	driver := testutils.InitPostgresDB(t)
@@ -81,36 +82,40 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		t.Fatalf("failed to create schema: %v", err)
 	}
 
+	// Streaming
+	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
+
+	// Meter
+	meterAdapter, err := meteradapter.New([]meter.Meter{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create meter adapter: %w", err)
+	}
+
+	// Entitlement
+	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
+		DatabaseClient:     entClient,
+		StreamingConnector: streamingConnector,
+		Logger:             logger,
+		MeterService:       meterAdapter,
+		Publisher:          publisher,
+		EntitlementsConfiguration: config.EntitlementsConfiguration{
+			GracePeriod: isodate.String("P1D"),
+		},
+	})
+
 	// Customer
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
 		Client: entClient,
 		Logger: logger.WithGroup("postgres"),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create customer repo: %w", err)
+		return nil, fmt.Errorf("failed to create customer adapter: %w", err)
 	}
-
-	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
-
-	meterAdapter, err := meteradapter.New([]meter.Meter{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create meter adapter: %w", err)
-	}
-
-	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     entClient,
-		StreamingConnector: streamingConnector,
-		Logger:             logger,
-		MeterService:       meterAdapter,
-		Publisher:          eventbus.NewMock(t),
-		EntitlementsConfiguration: config.EntitlementsConfiguration{
-			GracePeriod: isodate.String("P1D"),
-		},
-	})
 
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:              customerAdapter,
 		EntitlementConnector: entitlementRegistry.Entitlement,
+		Publisher:            publisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer service: %w", err)
@@ -136,7 +141,8 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	appService, err := appservice.New(appservice.Config{
-		Adapter: appAdapter,
+		Adapter:   appAdapter,
+		Publisher: publisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app service: %w", err)
@@ -169,7 +175,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		SecretService:  secretService,
 		Logger:         logger,
 		BillingService: billingService,
-		Publisher:      eventbus.NewMock(t),
+		Publisher:      publisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe service: %w", err)

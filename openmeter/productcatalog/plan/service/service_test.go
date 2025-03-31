@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -900,12 +901,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	db := testutils.InitPostgresDB(t)
 	client := db.EntDriver.Client()
 
+	publisher := eventbus.NewMock(t)
+
 	meterAdapter, err := meteradapter.New(nil)
 	require.NoErrorf(t, err, "initializing Meter adapter must not fail")
 	require.NotNilf(t, meterAdapter, "Meter adapter must not be nil")
 
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)
-	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter)
+	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher)
 
 	planAdapter, err := adapter.New(adapter.Config{
 		Client: client,
@@ -915,9 +918,10 @@ func newTestEnv(t *testing.T) *testEnv {
 	require.NotNilf(t, planAdapter, "Plan adapter must not be nil")
 
 	config := Config{
-		Feature: featureService,
-		Adapter: planAdapter,
-		Logger:  logger,
+		Feature:   featureService,
+		Adapter:   planAdapter,
+		Logger:    logger,
+		Publisher: publisher,
 	}
 
 	planService, err := New(config)

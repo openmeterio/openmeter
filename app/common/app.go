@@ -31,7 +31,12 @@ var App = wire.NewSet(
 
 type AppSandboxProvisioner func() error
 
-func NewAppService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration) (app.Service, error) {
+func NewAppService(
+	logger *slog.Logger,
+	db *entdb.Client,
+	appsConfig config.AppsConfiguration,
+	publisher eventbus.Publisher,
+) (app.Service, error) {
 	appAdapter, err := appadapter.New(appadapter.Config{
 		Client:  db,
 		BaseURL: appsConfig.BaseURL,
@@ -41,7 +46,8 @@ func NewAppService(logger *slog.Logger, db *entdb.Client, appsConfig config.Apps
 	}
 
 	return appservice.New(appservice.Config{
-		Adapter: appAdapter,
+		Adapter:   appAdapter,
+		Publisher: publisher,
 	})
 }
 
