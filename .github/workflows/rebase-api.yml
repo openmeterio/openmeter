@@ -51,6 +51,11 @@ jobs:
       - name: Checkout Correct PR Head SHA
         run: git checkout ${{ steps.get_pr_data.outputs.headSha }}
 
+      - name: Create Local Branch
+        run: |
+          git checkout -b local-branch
+          git branch --set-upstream-to=origin/${{ steps.get_pr_data.outputs.headRef }} local-branch
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -68,7 +73,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           comment_id: ${{ github.event.comment.id }}
-          pr_branch_ref: ${{ steps.get_pr_data.outputs.headRef }} # Use the actual branch name
+          pr_branch_ref: "local-branch" # Using our local branch
           base_branch: ${{ steps.get_pr_data.outputs.baseRef }} # Use the actual base branch name
           api_directory: "api" # Specify your API directory
           # trigger_phrase: '/rebase-api' # Optional: uses default from action.yml if not set
