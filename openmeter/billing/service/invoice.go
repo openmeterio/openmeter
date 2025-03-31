@@ -287,6 +287,8 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			})
 
 			dueAt, _ := customerProfile.MergedProfile.WorkflowConfig.Invoicing.DueAfter.AddTo(clock.Now())
+			// Note: Stripe uses seconds precision, so let's truncate for easier testing
+			dueAt = dueAt.Truncate(time.Second)
 
 			createdInvoices := make([]billing.InvoiceID, 0, len(linesByCurrency))
 
