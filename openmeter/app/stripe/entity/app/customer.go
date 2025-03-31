@@ -68,50 +68,67 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 
 	collectionMethod := customerBillingProfile.MergedProfile.WorkflowConfig.Payment.CollectionMethod
 
-	// Payment capabilities with auto charge collection method requires the customer to have a payment method and a billing address
-	if collectionMethod == billing.CollectionMethodChargeAutomatically && slices.Contains(capabilities, app.CapabilityTypeCollectPayments) {
-		var paymentMethod stripeclient.StripePaymentMethod
+	// Validate customer for payment capabilitie
+	if slices.Contains(capabilities, app.CapabilityTypeCollectPayments) {
+		switch collectionMethod {
+		// With auto charge collection method requires the customer to have a payment method and a billing address
+		case billing.CollectionMethodChargeAutomatically:
+			var paymentMethod stripeclient.StripePaymentMethod
 
-		// Check if the customer has a default payment method in OpenMeter
-		// If not try to use the Stripe Customer's default payment method
-		if stripeCustomerData.StripeDefaultPaymentMethodID != nil {
-			// Get the default payment method
-			paymentMethod, err = stripeClient.GetPaymentMethod(ctx, *stripeCustomerData.StripeDefaultPaymentMethodID)
-			if err != nil {
-				if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
+			// Check if the customer has a default payment method in OpenMeter
+			// If not try to use the Stripe Customer's default payment method
+			if stripeCustomerData.StripeDefaultPaymentMethodID != nil {
+				// Get the default payment method
+				paymentMethod, err = stripeClient.GetPaymentMethod(ctx, *stripeCustomerData.StripeDefaultPaymentMethodID)
+				if err != nil {
+					if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
+						return app.NewAppCustomerPreConditionError(
+							a.GetID(),
+							a.GetType(),
+							&customerID,
+							fmt.Sprintf("default payment method %s not found in stripe account %s", *stripeCustomerData.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
+						)
+					}
+
+					return fmt.Errorf("failed to get default payment method: %w", err)
+				}
+			} else {
+				// Check if the customer has a default payment method
+				if stripeCustomer.DefaultPaymentMethod == nil {
 					return app.NewAppCustomerPreConditionError(
 						a.GetID(),
 						a.GetType(),
 						&customerID,
-						fmt.Sprintf("default payment method %s not found in stripe account %s", *stripeCustomerData.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
+						"stripe customer must have a default payment method",
 					)
 				}
 
-				return fmt.Errorf("failed to get default payment method: %w", err)
+				paymentMethod = *stripeCustomer.DefaultPaymentMethod
 			}
-		} else {
-			// Check if the customer has a default payment method
-			if stripeCustomer.DefaultPaymentMethod == nil {
+
+			// Payment method must have a billing address
+			// Billing address is required for tax calculation and invoice creation
+			if paymentMethod.BillingAddress == nil {
 				return app.NewAppCustomerPreConditionError(
 					a.GetID(),
 					a.GetType(),
 					&customerID,
-					"stripe customer must have a default payment method",
+					"stripe customer default payment method must have a billing address",
+				)
+			}
+		case billing.CollectionMethodSendInvoice:
+			// With send invoice collection method, the customer must have an email address
+			if stripeCustomer.Email == nil {
+				return app.NewAppCustomerPreConditionError(
+					a.GetID(),
+					a.GetType(),
+					&customerID,
+					fmt.Sprintf("stripe customer missing email: in order to create invoices that are sent to the stripe customer, the stripe customer %s must have a valid email", stripeCustomerData.StripeCustomerID),
 				)
 			}
 
-			paymentMethod = *stripeCustomer.DefaultPaymentMethod
-		}
-
-		// Payment method must have a billing address
-		// Billing address is required for tax calculation and invoice creation
-		if paymentMethod.BillingAddress == nil {
-			return app.NewAppCustomerPreConditionError(
-				a.GetID(),
-				a.GetType(),
-				&customerID,
-				"stripe customer default payment method must have a billing address",
-			)
+		default:
+			return fmt.Errorf("unsupported collection method: %s", collectionMethod)
 		}
 	}
 

@@ -195,6 +195,10 @@ func (c *stripeAppClient) GetCustomer(ctx context.Context, stripeCustomerID stri
 		StripeCustomerID: stripeCustomer.ID,
 	}
 
+	if stripeCustomer.Email != "" {
+		customer.Email = &stripeCustomer.Email
+	}
+
 	if stripeCustomer.Currency != "" {
 		customer.Currency = lo.ToPtr(string(stripeCustomer.Currency))
 	}

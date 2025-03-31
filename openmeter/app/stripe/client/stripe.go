@@ -27,6 +27,7 @@ type StripeCustomer struct {
 	StripeCustomerID string
 	Name             *string
 	Currency         *string
+	Email            *string
 	// ID of a payment method that’s attached to the customer,
 	// to be used as the customer’s default payment method for invoices.
 	DefaultPaymentMethod *StripePaymentMethod

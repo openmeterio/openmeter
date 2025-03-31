@@ -662,6 +662,7 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 		On("GetCustomer", defaultStripeCustomerID).
 		Return(stripeclient.StripeCustomer{
 			StripeCustomerID: defaultStripeCustomerID,
+			Email:            lo.ToPtr("test@example.com"),
 			// No payment method
 		}, nil)
 
@@ -680,6 +681,19 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 
 	err = customerApp.ValidateCustomer(ctx, testCustomer, []app.CapabilityType{app.CapabilityTypeCollectPayments})
 	require.NoError(t, err, "Validate customer must not return error")
+
+	// Validate the customer without email should return error with send invoice collection method
+	s.Env.StripeAppClient().Restore()
+	s.Env.StripeAppClient().
+		On("GetCustomer", defaultStripeCustomerID).
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: defaultStripeCustomerID,
+			// No email
+			// No payment method
+		}, nil)
+
+	err = customerApp.ValidateCustomer(ctx, testCustomer, []app.CapabilityType{app.CapabilityTypeCollectPayments})
+	require.ErrorContains(t, err, "stripe customer missing email", "Validate customer must return error")
 }
 
 // TestCreateCheckoutSession tests stripe app behavior when creating a new checkout session
