@@ -1,4 +1,4 @@
-name: Rebase API via Comment
+name: Rebase API via PR Comment
 
 on:
   issue_comment:
@@ -21,8 +21,8 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0 # Necessary for rebase
-          # Fetch the PR branch directly using the ref from the event payload
-          ref: ${{ github.event.issue.pull_request.url }}
+          # Don't use the URL directly as it's not a valid ref
+          ref: refs/pull/${{ github.event.issue.number }}/head
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fetch PR Base Branch
