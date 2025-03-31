@@ -28,6 +28,29 @@ or if the change was already implemented but not yet released.
 We expect new pull requests to include tests for any affected behavior, and, as we follow semantic versioning,
 we may reserve breaking changes until the next major version release.
 
+### Requesting Specific Reviewers
+
+If you need a review from a specific team member, you can trigger the GitHub CODEOWNERS mechanism by modifying a dedicated file for that user.
+This ensures they are automatically added as a reviewer to your Pull Request.
+
+We have a helper command in the Makefile to facilitate this:
+
+```bash
+make request-review user=<GITHUB_USERNAME> [message="Optional custom message"]
+```
+
+Replace `<GITHUB_USERNAME>` with the GitHub username of the desired reviewer. The available usernames are:
+
+*   `chrisgacsal`
+*   `GAlexIHU`
+*   `hekike`
+*   `solkimicreb`
+*   `tothandras`
+*   `turip`
+
+Running this command will append a timestamped line to the file `.github/review_triggers/<GITHUB_USERNAME>.trigger`.
+Commit this modified file along with your other changes.
+
 ## Other ways to contribute
 
 We welcome anyone that wants to contribute to triage and reply to open issues to help troubleshoot and fix existing bugs.

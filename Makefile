@@ -137,6 +137,24 @@ seed: ## Seed OpenMeter with test data
 	$(call print-target)
 	benthos -c etc/seed/seed.yaml
 
+.PHONY: request-review
+request-review: ## Request review from a specific team member. Usage: make request-review user=<username> [message="Optional message"]
+	$(call print-target)
+	@if [ -z "$(user)" ]; then \
+		echo "Error: 'user' argument is required."; \
+		exit 1; \
+	fi; \
+	TARGET_FILE=".github/review_triggers/$(user).trigger"; \
+	if [ ! -f "$$TARGET_FILE" ]; then \
+		echo "Error: Trigger file for user '$(user)' not found at $$TARGET_FILE"; \
+		exit 1; \
+	fi; \
+	MESSAGE=$$(echo "$(if $(message),$(message),Review requested via make)"); \
+	TIMESTAMP=$$(date '+%Y-%m-%d %H:%M:%S %Z'); \
+	echo "$$TIMESTAMP - $$MESSAGE" >> $$TARGET_FILE; \
+	echo "Review requested from $(user) by appending to $$TARGET_FILE"; \
+	exit 0
+
 .PHONY: help
 .DEFAULT_GOAL := help
 help:

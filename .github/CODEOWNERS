@@ -1,1 +1,9 @@
 * @openmeterio/engineering
+
+# Review Trigger Files
+.github/review_triggers/chrisgacsal.trigger @chrisgacsal
+.github/review_triggers/GAlexIHU.trigger @GAlexIHU
+.github/review_triggers/hekike.trigger @hekike
+.github/review_triggers/solkimicreb.trigger @solkimicreb
+.github/review_triggers/tothandras.trigger @tothandras
+.github/review_triggers/turip.trigger @turip
