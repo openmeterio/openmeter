@@ -16,7 +16,6 @@
     "chatops"
   ],
   "author": "",
-  "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.10.1",
     "@actions/exec": "^1.1.1",
