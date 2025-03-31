@@ -118,6 +118,8 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 			}
 		case billing.CollectionMethodSendInvoice:
 			// With send invoice collection method, the customer must have an email address
+			// Although OpenMeter customer has an optional email address field, Stripe requires an email address on the Stripe Customer for invoice creation.
+			// The OpenMeter customer email will be ignored for Stripe invoices.
 			if stripeCustomer.Email == nil {
 				return app.NewAppCustomerPreConditionError(
 					a.GetID(),
