@@ -11686,9 +11686,15 @@ components:
         One customer can have multiple subjects,
         but one subject can only belong to one customer.
     Discount:
-      anyOf:
+      type: object
+      oneOf:
         - $ref: '#/components/schemas/DiscountPercentage'
         - $ref: '#/components/schemas/DiscountUsage'
+      discriminator:
+        propertyName: type
+        mapping:
+          percentage: '#/components/schemas/DiscountPercentage'
+          usage: '#/components/schemas/DiscountUsage'
       description: A discount on a price.
     DiscountPercentage:
       type: object

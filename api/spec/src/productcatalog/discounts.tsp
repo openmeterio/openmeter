@@ -14,6 +14,7 @@ enum DiscountType {
  * A discount on a price.
  */
 @friendlyName("Discount")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union Discount {
   percentage: DiscountPercentage,
   usage: DiscountUsage,

@@ -3327,8 +3327,7 @@ export interface components {
     /** @description Percentage discount. */
     DiscountPercentage: {
       /**
-       * Type
-       * @description The type of the discount.
+       * @description The type of the discount. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'percentage'
@@ -3345,8 +3344,7 @@ export interface components {
      *     is exhausted. */
     DiscountUsage: {
       /**
-       * Type
-       * @description The type of the discount.
+       * @description The type of the discount. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'usage'
