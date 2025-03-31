@@ -544,7 +544,7 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	require.NoError(t, err, "setup fixture must not return error")
 
 	// Create default billing profile
-	_, err = s.Env.Billing().CreateProfile(ctx, billing.CreateProfileInput{
+	billingProfile, err := s.Env.Billing().CreateProfile(ctx, billing.CreateProfileInput{
 		Namespace: s.namespace,
 		Default:   true,
 		Name:      "Awesome Default Profile",
@@ -653,6 +653,33 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	// Validate the customer without stripe data
 	err = customerApp.ValidateCustomer(ctx, customerWithoutStripeData, []app.CapabilityType{app.CapabilityTypeCalculateTax})
 	require.ErrorContains(t, err, "customer has no data", "Validate customer must return error")
+
+	// Validate the customer without payment method should return error with auto collect payments
+
+	// Return a Stripe customer without payment method
+	s.Env.StripeAppClient().Restore()
+	s.Env.StripeAppClient().
+		On("GetCustomer", defaultStripeCustomerID).
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: defaultStripeCustomerID,
+			// No payment method
+		}, nil)
+
+	err = customerApp.ValidateCustomer(ctx, testCustomer, []app.CapabilityType{app.CapabilityTypeCollectPayments})
+	require.ErrorContains(t, err, "stripe customer must have a default payment method", "Validate customer must return error")
+
+	// Validate the customer without payment method should not return error with send invoice collection method
+
+	// Update billing profile to collection method send invoice
+	baseProfile := billingProfile.BaseProfile
+	baseProfile.WorkflowConfig.Payment.CollectionMethod = billing.CollectionMethodSendInvoice
+	baseProfile.AppReferences = nil // cannot be updated
+
+	_, err = s.Env.Billing().UpdateProfile(ctx, billing.UpdateProfileInput(baseProfile))
+	require.NoError(t, err, "Update profile must not return error")
+
+	err = customerApp.ValidateCustomer(ctx, testCustomer, []app.CapabilityType{app.CapabilityTypeCollectPayments})
+	require.NoError(t, err, "Validate customer must not return error")
 }
 
 // TestCreateCheckoutSession tests stripe app behavior when creating a new checkout session
