@@ -19,6 +19,10 @@ on:
 jobs:
   review-gatekeeper:
     name: Review Gatekeeper
+    # Grant necessary permissions for the job
+    permissions:
+      pull-requests: read
+      statuses: write
     # Use ubuntu-latest for the runner
     runs-on: ubuntu-latest
     steps:
