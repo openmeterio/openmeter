@@ -4,10 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/samber/lo"
 )
 
 var _ app.AppService = (*Service)(nil)
@@ -85,7 +86,7 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 	}
 
 	// Get the app before it is deleted
-	appToDelete, err := s.adapter.GetApp(ctx, app.GetAppInput(input))
+	appToDelete, err := s.adapter.GetApp(ctx, input)
 	if err != nil {
 		return err
 	}
@@ -122,7 +123,7 @@ func (s *Service) UpdateAppStatus(ctx context.Context, input app.UpdateAppStatus
 	}
 
 	// Get the app after status update to include in the event
-	updatedApp, err := s.adapter.GetApp(ctx, app.GetAppInput(input.ID))
+	updatedApp, err := s.adapter.GetApp(ctx, input.ID)
 	if err != nil {
 		return err
 	}

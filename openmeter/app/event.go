@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/oklog/ulid/v2"
+
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/session"
 )
