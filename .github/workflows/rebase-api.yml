@@ -2,7 +2,7 @@ name: Rebase API via PR Comment
 
 on:
   issue_comment:
-    types: [created]
+    types: [created, edited]
 
 permissions:
   contents: write # Need write access to push the rebased code and commit
@@ -13,8 +13,7 @@ jobs:
     # Only run on comments on PRs, by users with write/admin access, containing the trigger
     if: |
       github.event.issue.pull_request &&
-      (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER') &&
-      contains(github.event.comment.body, '/rebase-api')
+      (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code (Fetch Full History)
