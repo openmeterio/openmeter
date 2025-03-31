@@ -10,7 +10,6 @@ import (
 	"github.com/stripe/stripe-go/v80"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	"github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -473,7 +472,7 @@ func getStripeUpdateInvoiceItemParams(
 	line *billing.Line,
 	stripeLine *stripe.InvoiceLineItem,
 ) *stripeclient.StripeInvoiceItemWithID {
-	return &client.StripeInvoiceItemWithID{
+	return &stripeclient.StripeInvoiceItemWithID{
 		ID:                stripeLine.ID,
 		InvoiceItemParams: getStripeInvoiceItemParams(line, calculator),
 	}

@@ -9,7 +9,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -38,7 +37,7 @@ func ToAPIMeter(m meter.Meter) api.Meter {
 }
 
 // ToAPIMeterQueryResult constructs an api.MeterQueryResult
-func ToAPIMeterQueryResult(apiParams api.QueryMeterParams, rows []meterpkg.MeterQueryRow) api.MeterQueryResult {
+func ToAPIMeterQueryResult(apiParams api.QueryMeterParams, rows []meter.MeterQueryRow) api.MeterQueryResult {
 	return api.MeterQueryResult{
 		From:       apiParams.From,
 		To:         apiParams.To,
@@ -47,8 +46,8 @@ func ToAPIMeterQueryResult(apiParams api.QueryMeterParams, rows []meterpkg.Meter
 	}
 }
 
-// ToAPIMeterQueryRow converts a meterpkg.MeterQueryRow to an api.MeterQueryRow.
-func ToAPIMeterQueryRow(row meterpkg.MeterQueryRow) api.MeterQueryRow {
+// ToAPIMeterQueryRow converts a meter.MeterQueryRow to an api.MeterQueryRow.
+func ToAPIMeterQueryRow(row meter.MeterQueryRow) api.MeterQueryRow {
 	apiRow := api.MeterQueryRow{
 		Subject:     row.Subject,
 		GroupBy:     row.GroupBy,
@@ -60,8 +59,8 @@ func ToAPIMeterQueryRow(row meterpkg.MeterQueryRow) api.MeterQueryRow {
 	return apiRow
 }
 
-// ToAPIMeterQueryRowList converts a list of meterpkg.MeterQueryRow to a list of api.MeterQueryRow.
-func ToAPIMeterQueryRowList(rows []meterpkg.MeterQueryRow) []api.MeterQueryRow {
+// ToAPIMeterQueryRowList converts a list of meter.MeterQueryRow to a list of api.MeterQueryRow.
+func ToAPIMeterQueryRowList(rows []meter.MeterQueryRow) []api.MeterQueryRow {
 	apiRows := make([]api.MeterQueryRow, len(rows))
 	for i, row := range rows {
 		apiRows[i] = ToAPIMeterQueryRow(row)
@@ -71,7 +70,7 @@ func ToAPIMeterQueryRowList(rows []meterpkg.MeterQueryRow) []api.MeterQueryRow {
 }
 
 // ToQueryMeterParams converts a api.QueryMeterParams to a streaming.QueryParams.
-func ToQueryMeterParams(meter meter.Meter, apiParams api.QueryMeterParams) (streaming.QueryParams, error) {
+func ToQueryMeterParams(m meter.Meter, apiParams api.QueryMeterParams) (streaming.QueryParams, error) {
 	params := streaming.QueryParams{
 		ClientID: apiParams.ClientId,
 		From:     apiParams.From,
@@ -79,13 +78,13 @@ func ToQueryMeterParams(meter meter.Meter, apiParams api.QueryMeterParams) (stre
 	}
 
 	if apiParams.WindowSize != nil {
-		params.WindowSize = lo.ToPtr(meterpkg.WindowSize(*apiParams.WindowSize))
+		params.WindowSize = lo.ToPtr(meter.WindowSize(*apiParams.WindowSize))
 	}
 
 	if apiParams.GroupBy != nil {
 		for _, groupBy := range *apiParams.GroupBy {
 			// Validate group by, `subject` is a special group by
-			if ok := groupBy == "subject" || meter.GroupBy[groupBy] != ""; !ok {
+			if ok := groupBy == "subject" || m.GroupBy[groupBy] != ""; !ok {
 				err := fmt.Errorf("invalid group by: %s", groupBy)
 				return params, models.NewGenericValidationError(err)
 			}
@@ -116,7 +115,7 @@ func ToQueryMeterParams(meter meter.Meter, apiParams api.QueryMeterParams) (stre
 	if apiParams.FilterGroupBy != nil {
 		for k, v := range *apiParams.FilterGroupBy {
 			// GroupBy filters
-			if _, ok := meter.GroupBy[k]; ok {
+			if _, ok := m.GroupBy[k]; ok {
 				if params.FilterGroupBy == nil {
 					params.FilterGroupBy = map[string][]string{}
 				}

@@ -11,7 +11,6 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -109,7 +108,7 @@ func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, 
 }
 
 func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
-	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
+	txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return &adapter{
 		db:                     txClient.Client(),
 		appService:             a.appService,
