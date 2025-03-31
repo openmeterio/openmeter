@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -23,12 +24,20 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 		Customer: lo.ToPtr(input.StripeCustomerID),
 		// FinalizeInvoice will advance the invoice
 		AutoAdvance: lo.ToPtr(false),
-		// When charging automatically, Stripe will attempt to pay this invoice using the default source attached to the customer.
-		// When sending an invoice, Stripe will email this invoice to the customer with payment instructions. Defaults to charge_automatically.
-		CollectionMethod: lo.ToPtr(string(stripe.InvoiceCollectionMethodChargeAutomatically)),
 		// If not set, defaults to the default payment method in the customer’s invoice settings.
 		DefaultPaymentMethod: input.StripeDefaultPaymentMethodID,
 		StatementDescriptor:  input.StatementDescriptor,
+	}
+
+	// When charging automatically, Stripe will attempt to pay this invoice using the default source attached to the customer.
+	// When sending an invoice, Stripe will email this invoice to the customer with payment instructions.
+	switch input.CollectionMethod {
+	case billing.CollectionMethodChargeAutomatically:
+		params.CollectionMethod = lo.ToPtr(string(stripe.InvoiceCollectionMethodChargeAutomatically))
+	case billing.CollectionMethodSendInvoice:
+		params.CollectionMethod = lo.ToPtr(string(stripe.InvoiceCollectionMethodSendInvoice))
+	default:
+		return nil, fmt.Errorf("stripe create invoice: invalid collection method: %s", input.CollectionMethod)
 	}
 
 	if input.AutomaticTaxEnabled {
@@ -93,17 +102,18 @@ func (c *stripeAppClient) GetInvoice(ctx context.Context, input GetInvoiceInput)
 
 // CreateInvoiceInput is the input for creating a new invoice in Stripe.
 type CreateInvoiceInput struct {
-	StripeCustomerID             string
-	StripeDefaultPaymentMethodID *string
 	AutomaticTaxEnabled          bool
+	CollectionMethod             billing.CollectionMethod
 	Currency                     currencyx.Code
 	DueDate                      *time.Time
 	StatementDescriptor          *string
+	StripeCustomerID             string
+	StripeDefaultPaymentMethodID *string
 }
 
 func (i CreateInvoiceInput) Validate() error {
-	if i.StripeCustomerID == "" {
-		return errors.New("stripe customer id is required")
+	if i.CollectionMethod == "" {
+		return errors.New("collection method is required")
 	}
 
 	if i.Currency == "" {
@@ -112,6 +122,10 @@ func (i CreateInvoiceInput) Validate() error {
 
 	if i.DueDate != nil && i.DueDate.IsZero() {
 		return errors.New("due date cannot be zero")
+	}
+
+	if i.StripeCustomerID == "" {
+		return errors.New("stripe customer id is required")
 	}
 
 	if i.StatementDescriptor != nil && *i.StatementDescriptor == "" {

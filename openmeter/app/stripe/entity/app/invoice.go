@@ -151,8 +151,12 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Create the invoice in Stripe
 	createInvoiceParams := stripeclient.CreateInvoiceInput{
-		// TODO: enable tax collection based on billing profile
+		// TODO: Automatic tax is currently always set to true because we only support automated tax via Stripe.
+		// In the future set it to false when:
+		// 1. OpenMeter orchestrates tax calculation via Stripe API
+		// 2. Tax collection is done by a separate third party app
 		AutomaticTaxEnabled:          true,
+		CollectionMethod:             invoice.Workflow.Config.Payment.CollectionMethod,
 		Currency:                     invoice.Currency,
 		DueDate:                      invoice.DueAt,
 		StripeCustomerID:             stripeCustomerData.StripeCustomerID,

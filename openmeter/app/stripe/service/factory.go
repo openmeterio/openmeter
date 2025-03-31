@@ -216,6 +216,7 @@ func (s *Service) newApp(appBase app.AppBase, stripeApp appstripeentity.AppData)
 		AppBase:                appBase,
 		AppData:                stripeApp,
 		AppService:             s.appService,
+		BillingService:         s.billingService,
 		StripeAppService:       s,
 		SecretService:          s.secretService,
 		StripeAppClientFactory: s.adapter.GetStripeAppClientFactory(),

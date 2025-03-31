@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -57,53 +58,80 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 		return err
 	}
 
-	// Invoice and payment capabilities need to check if the customer has a country and default payment method via the Stripe API
-	if slices.Contains(capabilities, app.CapabilityTypeCalculateTax) || slices.Contains(capabilities, app.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, app.CapabilityTypeCollectPayments) {
-		var paymentMethod stripeclient.StripePaymentMethod
+	// Get customer billing profile
+	customerBillingProfile, err := a.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: customerID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get customer override: %w", err)
+	}
 
-		// Check if the customer has a default payment method in OpenMeter
-		// If not try to use the Stripe Customer's default payment method
-		if stripeCustomerData.StripeDefaultPaymentMethodID != nil {
-			// Get the default payment method
-			paymentMethod, err = stripeClient.GetPaymentMethod(ctx, *stripeCustomerData.StripeDefaultPaymentMethodID)
-			if err != nil {
-				if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
+	collectionMethod := customerBillingProfile.MergedProfile.WorkflowConfig.Payment.CollectionMethod
+
+	// Validate customer for payment capabilitie
+	if slices.Contains(capabilities, app.CapabilityTypeCollectPayments) {
+		switch collectionMethod {
+		// With auto charge collection method requires the customer to have a payment method and a billing address
+		case billing.CollectionMethodChargeAutomatically:
+			var paymentMethod stripeclient.StripePaymentMethod
+
+			// Check if the customer has a default payment method in OpenMeter
+			// If not try to use the Stripe Customer's default payment method
+			if stripeCustomerData.StripeDefaultPaymentMethodID != nil {
+				// Get the default payment method
+				paymentMethod, err = stripeClient.GetPaymentMethod(ctx, *stripeCustomerData.StripeDefaultPaymentMethodID)
+				if err != nil {
+					if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
+						return app.NewAppCustomerPreConditionError(
+							a.GetID(),
+							a.GetType(),
+							&customerID,
+							fmt.Sprintf("default payment method %s not found in stripe account %s", *stripeCustomerData.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
+						)
+					}
+
+					return fmt.Errorf("failed to get default payment method: %w", err)
+				}
+			} else {
+				// Check if the customer has a default payment method
+				if stripeCustomer.DefaultPaymentMethod == nil {
 					return app.NewAppCustomerPreConditionError(
 						a.GetID(),
 						a.GetType(),
 						&customerID,
-						fmt.Sprintf("default payment method %s not found in stripe account %s", *stripeCustomerData.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
+						"stripe customer must have a default payment method",
 					)
 				}
 
-				return fmt.Errorf("failed to get default payment method: %w", err)
+				paymentMethod = *stripeCustomer.DefaultPaymentMethod
 			}
-		} else {
-			// Check if the customer has a default payment method
-			if stripeCustomer.DefaultPaymentMethod == nil {
+
+			// Payment method must have a billing address
+			// Billing address is required for tax calculation and invoice creation
+			if paymentMethod.BillingAddress == nil {
 				return app.NewAppCustomerPreConditionError(
 					a.GetID(),
 					a.GetType(),
 					&customerID,
-					"stripe customer must have a default payment method",
+					"stripe customer default payment method must have a billing address",
+				)
+			}
+		case billing.CollectionMethodSendInvoice:
+			// With send invoice collection method, the customer must have an email address
+			// Although OpenMeter customer has an optional email address field, Stripe requires an email address on the Stripe Customer for invoice creation.
+			// The OpenMeter customer email will be ignored for Stripe invoices.
+			if stripeCustomer.Email == nil {
+				return app.NewAppCustomerPreConditionError(
+					a.GetID(),
+					a.GetType(),
+					&customerID,
+					fmt.Sprintf("stripe customer missing email: in order to create invoices that are sent to the stripe customer, the stripe customer %s must have a valid email", stripeCustomerData.StripeCustomerID),
 				)
 			}
 
-			paymentMethod = *stripeCustomer.DefaultPaymentMethod
+		default:
+			return fmt.Errorf("unsupported collection method: %s", collectionMethod)
 		}
-
-		// Payment method must have a billing address
-		// Billing address is required for tax calculation and invoice creation
-		if paymentMethod.BillingAddress == nil {
-			return app.NewAppCustomerPreConditionError(
-				a.GetID(),
-				a.GetType(),
-				&customerID,
-				"stripe customer default payment method must have a billing address",
-			)
-		}
-
-		// TODO: should we have currency as an input to validation?
 	}
 
 	return nil

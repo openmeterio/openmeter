@@ -116,6 +116,9 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
+	dueAt := lo.Must(time.Parse(time.RFC3339, "2024-09-10T12:14:14Z"))
+	clock.FreezeTime(periodStart)
+	defer clock.UnFreeze()
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
@@ -465,6 +468,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.Len(pendingLines, 6)
 	})
 
+	clock.FreezeTime(periodEnd.Add(time.Minute))
+
 	s.Run("upsert invoice", func() {
 		// Setup the app with the customer
 		app, err := s.Fixture.setupApp(ctx, namespace)
@@ -498,8 +503,10 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.StripeAppClient.
 			On("CreateInvoice", stripeclient.CreateInvoiceInput{
 				AutomaticTaxEnabled: true,
+				CollectionMethod:    billing.CollectionMethodChargeAutomatically,
 				StripeCustomerID:    customerData.StripeCustomerID,
 				Currency:            "USD",
+				DueDate:             lo.ToPtr(dueAt),
 			}).
 			Return(&stripe.Invoice{
 				ID: "stripe-invoice-id",
@@ -811,6 +818,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.StripeAppClient.
 			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
 				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
+				DueDate:         lo.ToPtr(dueAt),
 			}).
 			// We return the updated invoice.
 			Return(stripeInvoiceUpdated, nil)
@@ -876,8 +884,9 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	ctx := context.Background()
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
-	clock.SetTime(periodStart)
-	defer clock.ResetTime()
+	dueAt := lo.Must(time.Parse(time.RFC3339, "2024-09-10T12:14:14Z"))
+	clock.FreezeTime(periodStart)
+	defer clock.UnFreeze()
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
@@ -1023,13 +1032,15 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.NoError(err)
 	s.Len(pendingLines, 1)
 
-	clock.SetTime(periodEnd.Add(time.Minute))
+	clock.FreezeTime(periodEnd.Add(time.Minute))
 
 	s.StripeAppClient.
 		On("CreateInvoice", stripeclient.CreateInvoiceInput{
 			AutomaticTaxEnabled: true,
+			CollectionMethod:    billing.CollectionMethodChargeAutomatically,
 			StripeCustomerID:    customerData.StripeCustomerID,
 			Currency:            "USD",
+			DueDate:             lo.ToPtr(dueAt),
 		}).
 		Return(&stripe.Invoice{
 			ID: "stripe-invoice-id",
@@ -1062,6 +1073,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.StripeAppClient.
 		On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
 			StripeInvoiceID: invoice.ExternalIDs.Invoicing,
+			DueDate:         lo.ToPtr(dueAt),
 		}).
 		Return(&stripe.Invoice{
 			ID: "stripe-invoice-id",
