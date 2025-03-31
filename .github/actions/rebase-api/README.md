@@ -30,38 +30,7 @@ The action follows this workflow:
 
 ## Usage
 
-Add this action to your workflow file:
-
-```yaml
-name: Rebase API
-
-on:
-  issue_comment:
-    types: [created]
-
-jobs:
-  rebase:
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '/rebase-api')
-    runs-on: ubuntu-latest
-    # Required permissions for commenting and pushing to the repository
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Rebase PR branch with API conflict resolution
-        uses: ./.github/actions/rebase-api
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          comment_id: ${{ github.event.comment.id }}
-          pr_branch_ref: ${{ github.event.pull_request.head.ref }}
-          base_branch: ${{ github.event.pull_request.base.ref }}
-          api_directory: api
-```
+Check example of workflow file in [rebase-api.yml](../workflows/rebase-api.yml).
 
 Note: The workflow requires permissions to write content (for pushing), and to issues/pull-requests (for adding reactions).
 
@@ -73,13 +42,7 @@ Once the workflow is set up, any user with write access to the repository can tr
 /rebase-api
 ```
 
-You can also add additional context in the comment:
-
-```
-/rebase-api Please rebase this PR to resolve API conflicts
-```
-
-The action will be triggered as long as the comment contains `/rebase-api` anywhere in the text.
+The action will be triggered if the comment starts with `/rebase-api`.
 
 ## Inputs
 
@@ -90,6 +53,7 @@ The action will be triggered as long as the comment contains `/rebase-api` anywh
 | `pr_branch_ref` | Reference to the PR branch | Yes | N/A |
 | `base_branch` | Reference to the base branch | Yes | N/A |
 | `api_directory` | Directory containing API code | Yes | N/A |
+| `trigger_phrase` | Phrase to trigger the action | No | `/rebase-api` |
 
 ## Reactions
 

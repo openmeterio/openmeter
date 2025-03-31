@@ -29,7 +29,7 @@ export async function run(): Promise<void> {
 
     // --- Check comment body ---
     const commentBody = await getCommentBody(octokit, inputs.commentId)
-    if (!commentBody || !commentBody.includes(inputs.triggerPhrase)) {
+    if (!commentBody || !commentBody.startsWith(inputs.triggerPhrase)) {
       core.info(
         `Comment does not contain trigger phrase "${inputs.triggerPhrase}". Skipping rebase.`,
       )
