@@ -2,9 +2,6 @@ package appservice
 
 import (
 	"context"
-	"time"
-
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -85,25 +82,14 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 		return models.NewGenericValidationError(err)
 	}
 
-	// Get the app before it is deleted
-	appToDelete, err := s.adapter.GetApp(ctx, input)
+	// Delete the app
+	appBase, err := s.adapter.UninstallApp(ctx, input)
 	if err != nil {
 		return err
 	}
 
-	// Delete the app
-	if err := s.adapter.UninstallApp(ctx, input); err != nil {
-		return err
-	}
-
-	appBase := appToDelete.GetAppBase()
-
-	// FIXME: this is a hack to get the deleted app to include in the event
-	// we don't read back the deleted app from the database because it will read the stripe app data
-	appBase.DeletedAt = lo.ToPtr(time.Now())
-
 	// Emit the app deleted event
-	event := app.NewAppDeleteEvent(ctx, appBase)
+	event := app.NewAppDeleteEvent(ctx, *appBase)
 	if err := s.publisher.Publish(ctx, event); err != nil {
 		return err
 	}
