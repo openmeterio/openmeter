@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -57,8 +58,18 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 		return err
 	}
 
-	// Invoice and payment capabilities need to check if the customer has a country and default payment method via the Stripe API
-	if slices.Contains(capabilities, app.CapabilityTypeCalculateTax) || slices.Contains(capabilities, app.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, app.CapabilityTypeCollectPayments) {
+	// Get customer billing profile
+	customerBillingProfile, err := a.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: customerID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get customer override: %w", err)
+	}
+
+	collectionMethod := customerBillingProfile.MergedProfile.WorkflowConfig.Payment.CollectionMethod
+
+	// Payment capabilities with auto charge collection method requires the customer to have a payment method and a billing address
+	if collectionMethod == billing.CollectionMethodChargeAutomatically && slices.Contains(capabilities, app.CapabilityTypeCollectPayments) {
 		var paymentMethod stripeclient.StripePaymentMethod
 
 		// Check if the customer has a default payment method in OpenMeter
@@ -102,8 +113,6 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 				"stripe customer default payment method must have a billing address",
 			)
 		}
-
-		// TODO: should we have currency as an input to validation?
 	}
 
 	return nil

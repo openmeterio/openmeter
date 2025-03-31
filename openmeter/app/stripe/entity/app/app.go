@@ -9,6 +9,7 @@ import (
 	stripeapp "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 )
 
@@ -20,6 +21,7 @@ type App struct {
 	Logger *slog.Logger `json:"-"`
 
 	AppService             app.Service                         `json:"-"`
+	BillingService         billing.Service                     `json:"-"`
 	StripeAppClientFactory stripeclient.StripeAppClientFactory `json:"-"`
 	StripeAppService       stripeapp.Service                   `json:"-"`
 	SecretService          secret.Service                      `json:"-"`
@@ -40,6 +42,10 @@ func (a App) Validate() error {
 
 	if err := a.AppData.Validate(); err != nil {
 		return fmt.Errorf("error validating stripe app data: %w", err)
+	}
+
+	if a.BillingService == nil {
+		return errors.New("billing service is required")
 	}
 
 	if a.StripeAppClientFactory == nil {

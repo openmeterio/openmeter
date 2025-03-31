@@ -498,6 +498,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.StripeAppClient.
 			On("CreateInvoice", stripeclient.CreateInvoiceInput{
 				AutomaticTaxEnabled: true,
+				CollectionMethod:    billing.CollectionMethodChargeAutomatically,
 				StripeCustomerID:    customerData.StripeCustomerID,
 				Currency:            "USD",
 			}).
@@ -1028,6 +1029,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.StripeAppClient.
 		On("CreateInvoice", stripeclient.CreateInvoiceInput{
 			AutomaticTaxEnabled: true,
+			CollectionMethod:    billing.CollectionMethodChargeAutomatically,
 			StripeCustomerID:    customerData.StripeCustomerID,
 			Currency:            "USD",
 		}).

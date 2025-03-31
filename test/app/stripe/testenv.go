@@ -15,6 +15,7 @@ import (
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
@@ -35,6 +36,7 @@ const (
 type TestEnv interface {
 	App() app.Service
 	AppStripe() appstripe.Service
+	Billing() billing.Service
 	Customer() customer.Service
 	Fixture() *Fixture
 	Secret() *MockSecretService
@@ -48,6 +50,7 @@ var _ TestEnv = (*testEnv)(nil)
 type testEnv struct {
 	app             app.Service
 	appstripe       appstripe.Service
+	billing         billing.Service
 	customer        customer.Service
 	fixture         *Fixture
 	secret          *MockSecretService
@@ -67,6 +70,10 @@ func (n testEnv) App() app.Service {
 
 func (n testEnv) AppStripe() appstripe.Service {
 	return n.appstripe
+}
+
+func (n testEnv) Billing() billing.Service {
+	return n.billing
 }
 
 func (n testEnv) Customer() customer.Service {
@@ -227,6 +234,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	return &testEnv{
 		app:             appService,
 		appstripe:       appStripeService,
+		billing:         billingService,
 		customer:        customerService,
 		fixture:         NewFixture(appService, customerService, stripeClientMock, stripeAppClientMock),
 		secret:          secretService,

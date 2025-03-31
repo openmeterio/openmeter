@@ -14,10 +14,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -537,8 +539,61 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 // TestCustomerValidate tests stripe app behavior when validating a customer
 func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testing.T) {
+	// Create test app
 	testApp, testCustomer, _, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
 	require.NoError(t, err, "setup fixture must not return error")
+
+	// Create default billing profile
+	_, err = s.Env.Billing().CreateProfile(ctx, billing.CreateProfileInput{
+		Namespace: s.namespace,
+		Default:   true,
+		Name:      "Awesome Default Profile",
+
+		Metadata: map[string]string{
+			"key": "value",
+		},
+
+		WorkflowConfig: billing.WorkflowConfig{
+			Collection: billing.CollectionConfig{
+				Alignment: billing.AlignmentKindSubscription,
+				Interval:  isodate.MustParse(t, "PT30M"),
+			},
+			Invoicing: billing.InvoicingConfig{
+				AutoAdvance: true,
+				DraftPeriod: isodate.MustParse(t, "PT1H"),
+				DueAfter:    isodate.MustParse(t, "PT24H"),
+			},
+			Payment: billing.PaymentConfig{
+				CollectionMethod: billing.CollectionMethodChargeAutomatically,
+			},
+		},
+
+		Supplier: billing.SupplierContact{
+			Name: "Awesome Supplier",
+			Address: models.Address{
+				Country:     lo.ToPtr(models.CountryCode("US")),
+				PostalCode:  lo.ToPtr("12345"),
+				City:        lo.ToPtr("City"),
+				State:       lo.ToPtr("State"),
+				Line1:       lo.ToPtr("Line 1"),
+				Line2:       lo.ToPtr("Line 2"),
+				PhoneNumber: lo.ToPtr("1234567890"),
+			},
+		},
+
+		Apps: billing.CreateProfileAppsInput{
+			Invoicing: billing.AppReference{
+				ID: testApp.GetID().ID,
+			},
+			Payment: billing.AppReference{
+				ID: testApp.GetID().ID,
+			},
+			Tax: billing.AppReference{
+				ID: testApp.GetID().ID,
+			},
+		},
+	})
+	require.NoError(t, err, "Create billing profile must not return error")
 
 	// Create customer without stripe data
 	customerWithoutStripeData, err := s.Env.Customer().CreateCustomer(ctx, customer.CreateCustomerInput{
