@@ -121,11 +121,12 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 
 		var shift subscription.RemoveSubscriptionPhaseShifting
 
-		if apiP.Shift == api.RemovePhaseShiftingNext {
+		switch apiP.Shift {
+		case api.RemovePhaseShiftingNext:
 			shift = subscription.RemoveSubscriptionPhaseShiftNext
-		} else if apiP.Shift == api.RemovePhaseShiftingPrev {
+		case api.RemovePhaseShiftingPrev:
 			shift = subscription.RemoveSubscriptionPhaseShiftPrev
-		} else {
+		default:
 			return nil, fmt.Errorf("unknown shift value: %s", apiP.Shift)
 		}
 
