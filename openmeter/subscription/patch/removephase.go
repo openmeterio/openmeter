@@ -95,11 +95,8 @@ func (r PatchRemovePhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subs
 				sortedPhases[i].StartAfter = sa
 			}
 		}
-		//nolint:gosimple
-		break
 	case subscription.RemoveSubscriptionPhaseShiftPrev:
 		// We leave everything as is, the previous phase will fill up the gap
-		break
 	default:
 		return &subscription.PatchValidationError{Msg: fmt.Sprintf("invalid shift behavior: %T", r.RemoveInput.Shift)}
 	}

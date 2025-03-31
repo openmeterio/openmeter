@@ -3076,11 +3076,7 @@ func (s *SubscriptionHandlerTestSuite) generatePeriods(startStr, endStr string, 
 
 	out := []billing.Period{}
 
-	for {
-		if n == 0 {
-			break
-		}
-
+	for n != 0 {
 		out = append(out, billing.Period{
 			Start: start,
 			End:   end,
@@ -3100,11 +3096,7 @@ func (s *SubscriptionHandlerTestSuite) generateDailyTimestamps(startStr string, 
 
 	out := []time.Time{}
 
-	for {
-		if n == 0 {
-			break
-		}
-
+	for n != 0 {
 		out = append(out, start)
 
 		start, _ = cadence.AddTo(start)

@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	plandriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
-	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
@@ -122,11 +121,12 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 
 		var shift subscription.RemoveSubscriptionPhaseShifting
 
-		if apiP.Shift == api.RemovePhaseShiftingNext {
+		switch apiP.Shift {
+		case api.RemovePhaseShiftingNext:
 			shift = subscription.RemoveSubscriptionPhaseShiftNext
-		} else if apiP.Shift == api.RemovePhaseShiftingPrev {
+		case api.RemovePhaseShiftingPrev:
 			shift = subscription.RemoveSubscriptionPhaseShiftPrev
-		} else {
+		default:
 			return nil, fmt.Errorf("unknown shift value: %s", apiP.Shift)
 		}
 
@@ -217,14 +217,14 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 	var tx *api.TaxConfig
 
 	if item.SubscriptionItem.RateCard.TaxConfig != nil {
-		txv := planhttpdriver.FromTaxConfig(*item.SubscriptionItem.RateCard.TaxConfig)
+		txv := plandriver.FromTaxConfig(*item.SubscriptionItem.RateCard.TaxConfig)
 		tx = &txv
 	}
 
 	var pr *api.RateCardUsageBasedPrice
 
 	if item.SubscriptionItem.RateCard.Price != nil {
-		prc, err := planhttpdriver.FromRateCardUsageBasedPrice(*item.SubscriptionItem.RateCard.Price)
+		prc, err := plandriver.FromRateCardUsageBasedPrice(*item.SubscriptionItem.RateCard.Price)
 		if err != nil {
 			return api.SubscriptionItem{}, err
 		}
@@ -437,10 +437,10 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 	return base, nil
 }
 
-func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (planhttpdriver.CreatePlanRequest, error) {
+func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (plandriver.CreatePlanRequest, error) {
 	var err error
 
-	req := planhttpdriver.CreatePlanRequest{
+	req := plandriver.CreatePlanRequest{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
 		},
@@ -469,7 +469,7 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 		req.Phases = make([]productcatalog.Phase, 0, len(a.Phases))
 
 		for _, phase := range a.Phases {
-			planPhase, err := planhttpdriver.AsPlanPhase(phase)
+			planPhase, err := plandriver.AsPlanPhase(phase)
 			if err != nil {
 				return req, fmt.Errorf("failed to cast PlanPhase: %w", err)
 			}

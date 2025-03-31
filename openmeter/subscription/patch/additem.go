@@ -80,7 +80,7 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 		} else if phase.PhaseKey == currentPhase.PhaseKey {
 			// Sanity check
 			if actx.CurrentTime.Before(phaseStartTime) {
-				return fmt.Errorf("Current time is before the current phase start which is impossible")
+				return fmt.Errorf("current time is before the current phase start which is impossible")
 			}
 
 			// 2. If it's added to the current phase, the specified start time cannot point to the past
@@ -122,7 +122,7 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 	if hasCurrentItemAndShouldCloseCurrentItemForKey {
 		// Sanity check
 		if len(phase.ItemsByKey[a.ItemKey]) == 0 {
-			return fmt.Errorf("There should be an item to close")
+			return fmt.Errorf("there should be an item to close")
 		}
 
 		itemToClose := phase.ItemsByKey[a.ItemKey][len(phase.ItemsByKey[a.ItemKey])-1]

@@ -36,7 +36,14 @@ func (p Period) Contains(t time.Time) bool {
 // Returns false if the periods are exactly sequential, e.g.: [1, 2] and [2, 3]
 func (p Period) Overlaps(other Period) bool {
 	// If one period ends before or exactly when the other starts, they don't overlap
-	return !(p.To.Before(other.From) || p.To.Equal(other.From) || other.To.Before(p.From) || other.To.Equal(p.From))
+	switch {
+	case p.To.Before(other.From) || p.To.Equal(other.From):
+		return false
+	case other.To.Before(p.From) || other.To.Equal(p.From):
+		return false
+	default:
+		return true
+	}
 }
 
 // Returns true if the two periods overlap at any point

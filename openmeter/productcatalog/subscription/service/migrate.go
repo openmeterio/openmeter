@@ -22,7 +22,7 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 
 	if sub.PlanRef == nil {
 		return def, models.NewGenericValidationError(
-			fmt.Errorf("Subscription %s has no plan, cannot be migrated", request.ID.ID),
+			fmt.Errorf("subscription %s has no plan, cannot be migrated", request.ID.ID),
 		)
 	}
 
@@ -37,7 +37,7 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 
 	if plan.Version <= sub.PlanRef.Version {
 		return def, models.NewGenericValidationError(
-			fmt.Errorf("Subscription %s is already at version %d, cannot migrate to version %d", request.ID.ID, sub.PlanRef.Version, request.TargetVersion),
+			fmt.Errorf("subscription %s is already at version %d, cannot migrate to version %d", request.ID.ID, sub.PlanRef.Version, request.TargetVersion),
 		)
 	}
 

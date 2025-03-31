@@ -2200,10 +2200,10 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.Equal(s.T(), "INV-123", out[0].Number)
 
 		for _, line := range out[0].FlattenLinesByID() {
-			switch {
-			case line.Type == billing.InvoiceLineTypeFee:
+			switch line.Type {
+			case billing.InvoiceLineTypeFee:
 				require.Equal(s.T(), line.ID, line.ExternalIDs.Invoicing)
-			case line.Type == billing.InvoiceLineTypeUsageBased:
+			case billing.InvoiceLineTypeUsageBased:
 				require.Empty(s.T(), line.ExternalIDs.Invoicing)
 			default:
 				s.T().Errorf("unexpected line type: %s", line.Type)
@@ -2248,10 +2248,10 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			require.Equal(s.T(), "payment_external_id", finalizedInvoice.ExternalIDs.Payment)
 			// Invoice app testing
 			for _, line := range finalizedInvoice.FlattenLinesByID() {
-				switch {
-				case line.Type == billing.InvoiceLineTypeFee:
+				switch line.Type {
+				case billing.InvoiceLineTypeFee:
 					require.Equal(s.T(), "final_upsert_"+line.ID, line.ExternalIDs.Invoicing)
-				case line.Type == billing.InvoiceLineTypeUsageBased:
+				case billing.InvoiceLineTypeUsageBased:
 					require.Empty(s.T(), line.ExternalIDs.Invoicing)
 				default:
 					s.T().Errorf("unexpected line type: %s", line.Type)

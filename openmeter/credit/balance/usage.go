@@ -64,8 +64,10 @@ func (u *usageQuerier) QueryUsage(ctx context.Context, ownerID models.Namespaced
 		params.From = &periodStart
 		params.To = &period.To
 
-		var valueTo float64 = 0.0
-		var valueFrom float64 = 0.0
+		var (
+			valueTo   = 0.0
+			valueFrom = 0.0
+		)
 
 		if !periodStart.Equal(period.To) {
 			rows, err := u.StreamingConnector.QueryMeter(ctx, ownerID.Namespace, owner.Meter, params)

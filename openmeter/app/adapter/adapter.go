@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -64,7 +63,7 @@ func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, 
 }
 
 func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
-	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
+	txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return &adapter{
 		db:       txClient.Client(),
 		registry: a.registry,
