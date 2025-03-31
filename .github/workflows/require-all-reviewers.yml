@@ -31,8 +31,9 @@ jobs:
     steps:
       # This action checks reviewers; it doesn't need to check out the code itself.
       - name: Ensure all requested reviewers have approved
-        # Use a specific version tag for stability
-        uses: osievert/pr-gate-all-reviewers@v1.3
+        # Pin to specific commit SHA for security and stability
+        # Tag v1.3 corresponds to this hash
+        uses: osievert/pr-gate-all-reviewers@2419b1ba9d948371a5291643a86f98f70af1f592
         with:
           # GITHUB_TOKEN is automatically provided by GitHub Actions
           token: ${{ secrets.GITHUB_TOKEN }}
