@@ -25,7 +25,7 @@ interface Customer {
   ): EntitlementValue | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 
   /**
-   * Get the access of a customer to a given feature (by key).
+   * Get the overall access of a customer.
    */
   @get
   @operationId("getCustomerAccess")
