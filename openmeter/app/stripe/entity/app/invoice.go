@@ -149,22 +149,14 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		return nil, fmt.Errorf("failed to get stripe customer data: %w", err)
 	}
 
-	// Get customer billing profile
-	customerOverrideWithDetails, err := a.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-		Customer: customerID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get customer override: %w", err)
-	}
-
 	// Create the invoice in Stripe
 	createInvoiceParams := stripeclient.CreateInvoiceInput{
-		// TODO: Automatic tax is currently always set to true because we onl support automated tax via Stripe.
+		// TODO: Automatic tax is currently always set to true because we only support automated tax via Stripe.
 		// In the future set it to false when:
 		// 1. OpenMeter orchestrates tax calculation via Stripe API
 		// 2. Tax collection is done by a separate third party app
 		AutomaticTaxEnabled:          true,
-		CollectionMethod:             customerOverrideWithDetails.MergedProfile.WorkflowConfig.Payment.CollectionMethod,
+		CollectionMethod:             invoice.Workflow.Config.Payment.CollectionMethod,
 		Currency:                     invoice.Currency,
 		DueDate:                      invoice.DueAt,
 		StripeCustomerID:             stripeCustomerData.StripeCustomerID,
