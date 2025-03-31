@@ -39,7 +39,7 @@ func (s *Service) CreateCheckoutSession(ctx context.Context, input appstripeenti
 		}
 
 		// Emit the checkout session created event
-		event := appstripe.NewAppCheckoutSessionEvent(ctx, input.Namespace, output.SessionID, output.AppID.ID, input.CustomerID.ID)
+		event := appstripe.NewAppCheckoutSessionEvent(ctx, input.Namespace, output.SessionID, output.AppID.ID, output.CustomerID.ID)
 		if err := s.publisher.Publish(ctx, event); err != nil {
 			return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to publish event: %w", err)
 		}
