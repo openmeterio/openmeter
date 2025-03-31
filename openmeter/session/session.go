@@ -17,6 +17,10 @@ const (
 // GetUserID returns the user ID from the session if any
 func GetSessionUserID(ctx context.Context) *string {
 	if session := GetActiveSession(ctx); session != nil {
+		if session.UserID == "" {
+			return nil
+		}
+
 		return &session.UserID
 	}
 
