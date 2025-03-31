@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
@@ -155,6 +156,18 @@ func (ppu *PlanPhaseUpdate) SetNillableDuration(i *isodate.String) *PlanPhaseUpd
 // ClearDuration clears the value of the "duration" field.
 func (ppu *PlanPhaseUpdate) ClearDuration() *PlanPhaseUpdate {
 	ppu.mutation.ClearDuration()
+	return ppu
+}
+
+// SetDiscounts sets the "discounts" field.
+func (ppu *PlanPhaseUpdate) SetDiscounts(pr []productcatalog.Discount) *PlanPhaseUpdate {
+	ppu.mutation.SetDiscounts(pr)
+	return ppu
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (ppu *PlanPhaseUpdate) ClearDiscounts() *PlanPhaseUpdate {
+	ppu.mutation.ClearDiscounts()
 	return ppu
 }
 
@@ -306,6 +319,16 @@ func (ppu *PlanPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if ppu.mutation.DurationCleared() {
 		_spec.ClearField(planphase.FieldDuration, field.TypeString)
+	}
+	if value, ok := ppu.mutation.Discounts(); ok {
+		vv, err := planphase.ValueScanner.Discounts.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(planphase.FieldDiscounts, field.TypeString, vv)
+	}
+	if ppu.mutation.DiscountsCleared() {
+		_spec.ClearField(planphase.FieldDiscounts, field.TypeString)
 	}
 	if ppu.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -528,6 +551,18 @@ func (ppuo *PlanPhaseUpdateOne) ClearDuration() *PlanPhaseUpdateOne {
 	return ppuo
 }
 
+// SetDiscounts sets the "discounts" field.
+func (ppuo *PlanPhaseUpdateOne) SetDiscounts(pr []productcatalog.Discount) *PlanPhaseUpdateOne {
+	ppuo.mutation.SetDiscounts(pr)
+	return ppuo
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (ppuo *PlanPhaseUpdateOne) ClearDiscounts() *PlanPhaseUpdateOne {
+	ppuo.mutation.ClearDiscounts()
+	return ppuo
+}
+
 // SetPlan sets the "plan" edge to the Plan entity.
 func (ppuo *PlanPhaseUpdateOne) SetPlan(p *Plan) *PlanPhaseUpdateOne {
 	return ppuo.SetPlanID(p.ID)
@@ -706,6 +741,16 @@ func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, 
 	}
 	if ppuo.mutation.DurationCleared() {
 		_spec.ClearField(planphase.FieldDuration, field.TypeString)
+	}
+	if value, ok := ppuo.mutation.Discounts(); ok {
+		vv, err := planphase.ValueScanner.Discounts.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(planphase.FieldDiscounts, field.TypeString, vv)
+	}
+	if ppuo.mutation.DiscountsCleared() {
+		_spec.ClearField(planphase.FieldDiscounts, field.TypeString)
 	}
 	if ppuo.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{

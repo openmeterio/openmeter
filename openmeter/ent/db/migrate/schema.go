@@ -1533,6 +1533,7 @@ var (
 		{Name: "key", Type: field.TypeString},
 		{Name: "index", Type: field.TypeUint8},
 		{Name: "duration", Type: field.TypeString, Nullable: true},
+		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "plan_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// PlanPhasesTable holds the schema information for the "plan_phases" table.
@@ -1543,7 +1544,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "plan_phases_plans_phases",
-				Columns:    []*schema.Column{PlanPhasesColumns[11]},
+				Columns:    []*schema.Column{PlanPhasesColumns[12]},
 				RefColumns: []*schema.Column{PlansColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -1577,7 +1578,7 @@ var (
 			{
 				Name:    "planphase_plan_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{PlanPhasesColumns[11], PlanPhasesColumns[8]},
+				Columns: []*schema.Column{PlanPhasesColumns[12], PlanPhasesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -1585,7 +1586,7 @@ var (
 			{
 				Name:    "planphase_plan_id_index",
 				Unique:  true,
-				Columns: []*schema.Column{PlanPhasesColumns[11], PlanPhasesColumns[9]},
+				Columns: []*schema.Column{PlanPhasesColumns[12], PlanPhasesColumns[9]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},

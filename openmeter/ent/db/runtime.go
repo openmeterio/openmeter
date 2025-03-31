@@ -1024,6 +1024,9 @@ func init() {
 	planphaseDescPlanID := planphaseFields[0].Descriptor()
 	// planphase.PlanIDValidator is a validator for the "plan_id" field. It is called by the builders before save.
 	planphase.PlanIDValidator = planphaseDescPlanID.Validators[0].(func(string) error)
+	// planphaseDescDiscounts is the schema descriptor for discounts field.
+	planphaseDescDiscounts := planphaseFields[3].Descriptor()
+	planphase.ValueScanner.Discounts = planphaseDescDiscounts.ValueScanner.(field.TypeValueScanner[[]productcatalog.Discount])
 	// planphaseDescID is the schema descriptor for id field.
 	planphaseDescID := planphaseMixinFields0[0].Descriptor()
 	// planphase.DefaultID holds the default value on creation for the id field.
