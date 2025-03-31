@@ -9937,7 +9937,7 @@ components:
         rateCards:
           type: array
           items:
-            $ref: '#/components/schemas/AddonRateCard'
+            $ref: '#/components/schemas/RateCard'
           description: The rate cards of the add-on.
           title: Rate cards
       description: Add-on allows extending subscriptions with compatible plans with additional ratecards.
@@ -9989,7 +9989,7 @@ components:
         rateCards:
           type: array
           items:
-            $ref: '#/components/schemas/AddonRateCard'
+            $ref: '#/components/schemas/RateCard'
           description: The rate cards of the add-on.
           title: Rate cards
       description: Resource create operation model.
@@ -10036,26 +10036,6 @@ components:
             $ref: '#/components/schemas/Addon'
           description: The items in the current page.
       description: Paginated response
-    AddonRateCard:
-      type: object
-      required:
-        - rateCard
-        - mode
-      properties:
-        rateCard:
-          $ref: '#/components/schemas/RateCard'
-        mode:
-          $ref: '#/components/schemas/AddonRateCardMode'
-      description: AddonRateCard defines the ratecard itself and how it needs to be applied to plan/subscription.
-    AddonRateCardMode:
-      type: string
-      enum:
-        - override
-        - extend
-      description: |-
-        The add-on mode defines how the ratecards included in the add-on are applied in a subscription.
-        Override mode means that the ratecards in add-on take precedence over the ones which are defined in a plan with for the same feature.
-        While the extend mode extends the ratecards from plan for the same feature.
     AddonReplaceUpdate:
       type: object
       required:
@@ -10089,7 +10069,7 @@ components:
         rateCards:
           type: array
           items:
-            $ref: '#/components/schemas/AddonRateCard'
+            $ref: '#/components/schemas/RateCard'
           description: The rate cards of the add-on.
           title: Rate cards
       description: Resource update operation model.

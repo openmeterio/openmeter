@@ -1996,7 +1996,7 @@ export interface components {
        * Rate cards
        * @description The rate cards of the add-on.
        */
-      rateCards: components['schemas']['AddonRateCard'][]
+      rateCards: components['schemas']['RateCard'][]
     }
     /** @description Resource create operation model. */
     AddonCreate: {
@@ -2035,7 +2035,7 @@ export interface components {
        * Rate cards
        * @description The rate cards of the add-on.
        */
-      rateCards: components['schemas']['AddonRateCard'][]
+      rateCards: components['schemas']['RateCard'][]
     }
     /**
      * @description The instanceType of the add-on.
@@ -2068,18 +2068,6 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['Addon'][]
     }
-    /** @description AddonRateCard defines the ratecard itself and how it needs to be applied to plan/subscription. */
-    AddonRateCard: {
-      rateCard: components['schemas']['RateCard']
-      mode: components['schemas']['AddonRateCardMode']
-    }
-    /**
-     * @description The add-on mode defines how the ratecards included in the add-on are applied in a subscription.
-     *     Override mode means that the ratecards in add-on take precedence over the ones which are defined in a plan with for the same feature.
-     *     While the extend mode extends the ratecards from plan for the same feature.
-     * @enum {string}
-     */
-    AddonRateCardMode: 'override' | 'extend'
     /** @description Resource update operation model. */
     AddonReplaceUpdate: {
       /**
@@ -2106,7 +2094,7 @@ export interface components {
        * Rate cards
        * @description The rate cards of the add-on.
        */
-      rateCards: components['schemas']['AddonRateCard'][]
+      rateCards: components['schemas']['RateCard'][]
     }
     /**
      * @description The status of the add-on defined by the effectiveFrom and effectiveTo properties.
@@ -8614,8 +8602,6 @@ export type AddonInstanceType = components['schemas']['AddonInstanceType']
 export type AddonOrderBy = components['schemas']['AddonOrderBy']
 export type AddonPaginatedResponse =
   components['schemas']['AddonPaginatedResponse']
-export type AddonRateCard = components['schemas']['AddonRateCard']
-export type AddonRateCardMode = components['schemas']['AddonRateCardMode']
 export type AddonReplaceUpdate = components['schemas']['AddonReplaceUpdate']
 export type AddonStatus = components['schemas']['AddonStatus']
 export type Address = components['schemas']['Address']
