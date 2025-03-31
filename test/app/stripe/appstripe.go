@@ -637,6 +637,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	require.NoError(t, err, "Create checkout session must not return error")
 
 	require.Equal(t, appstripeentity.CreateCheckoutSessionOutput{
+		AppID:            appID,
 		CustomerID:       testCustomer.GetID(),
 		StripeCustomerID: defaultStripeCustomerID,
 		StripeCheckoutSession: stripeclient.StripeCheckoutSession{
