@@ -45,22 +45,33 @@ jobs:
             core.setOutput('baseRef', pr.base.ref); // The base branch name, e.g., main
             core.setOutput('headSha', pr.head.sha); // The sha to checkout
             console.log(`PR #${prNumber}: Head ref is ${pr.head.ref} (${pr.head.sha}), Base ref is ${pr.base.ref}`);
-            return pr.head.ref; # Return value not strictly needed but good practice
+            return pr.head.ref; // Return value not strictly needed but good practice
 
       # Checkout the correct SHA after potentially checking out the wrong thing initially
       - name: Checkout Correct PR Head SHA
         run: git checkout ${{ steps.get_pr_data.outputs.headSha }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Rebase API Action
+        run: |
+          cd .github/actions/rebase-api
+          npm ci
+          npx @vercel/ncc build src/main.ts -o dist
+
       - name: Run Rebase API Action
         id: rebase_api
         uses: ./.github/actions/rebase-api
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          comment-id: ${{ github.event.comment.id }}
-          pr-branch-ref: ${{ steps.get_pr_data.outputs.headRef }} # Use the actual branch name
-          base-branch: ${{ steps.get_pr_data.outputs.baseRef }} # Use the actual base branch name
-          api-directory: "api" # Specify your API directory
-          # trigger-phrase: '/rebase-api' # Optional: uses default from action.yml if not set
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          comment_id: ${{ github.event.comment.id }}
+          pr_branch_ref: ${{ steps.get_pr_data.outputs.headRef }} # Use the actual branch name
+          base_branch: ${{ steps.get_pr_data.outputs.baseRef }} # Use the actual base branch name
+          api_directory: "api" # Specify your API directory
+          # trigger_phrase: '/rebase-api' # Optional: uses default from action.yml if not set
         continue-on-error: true # Allow workflow to continue to report status
 
       - name: Check Action Status
