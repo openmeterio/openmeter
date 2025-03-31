@@ -47,7 +47,7 @@ const (
 
 func (a AutoMigrate) Enabled() bool {
 	// For all other values it's enabled
-	return !(a == "false")
+	return a != "false"
 }
 
 func (a AutoMigrate) Validate() error {

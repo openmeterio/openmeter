@@ -84,6 +84,7 @@ func TestPeriod(t *testing.T) {
 	t.Run("Overlaps", func(t *testing.T) {
 		t.Run("Should be false for exactly sequential periods", func(t *testing.T) {
 			assert.False(t, period.Overlaps(timeutil.Period{From: endTime, To: endTime.Add(time.Second)}))
+			assert.False(t, period.Overlaps(timeutil.Period{From: startTime.Add(-1 * time.Second), To: startTime}))
 		})
 
 		t.Run("Should be false for distant periods", func(t *testing.T) {
