@@ -1,65 +1,68 @@
-run:
-  timeout: 20m
-
-linters-settings:
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(github.com/openmeterio/openmeter)
-  goimports:
-    local-prefixes: github.com/openmeterio/openmeter
-  misspell:
-    locale: US
-  nolintlint:
-    require-specific: true # require nolint directives to be specific about which linter is being skipped
-  revive:
-    confidence: 0
-  sloglint:
-    {}
-    # kv-only: true # enforce using key-value pairs only
-    # no-global: "all" # enforce not using global loggers
-    # context: "scope" # enforce passing a context to loggers (if available)
-    # key-naming-case: snake|camel # enforce a single key naming convention
-
+# https://golangci-lint.run/jsonschema/golangci.jsonschema.json
+version: "2"
 linters:
   enable:
     - bodyclose
     - errcheck
-    # - errorlint
-    # - exhaustive
-    - gci
-    # - gochecknoinits
-    # - goconst
-    # - gocritic
-    # - gocyclo
-    # - godot
-    - gofmt
-    - gofumpt
-    # - goheader
-    - goimports
-    # - gosec
-    - gosimple
     - govet
     - ineffassign
-    # - lll
     - misspell
-    # - nlreturn
     - nolintlint
-    # - revive
     - sloglint
     - staticcheck
-    # - stylecheck
-    - tenv
-    # - testifylint
     - unconvert
     - unparam
     - unused
     - whitespace
-    # - wsl
-
-issues:
-  exclude-dirs:
-    - .dagger/internal
-    - .dagger/dagger.gen.go
-    - collector/benthos/internal
+  settings:
+    misspell:
+      locale: US
+    nolintlint:
+      require-specific: true
+    revive:
+      confidence: 0
+    staticcheck:
+      checks:
+        - "all"
+        - "-QF1008"
+        # FIXME: re-enable the following checks
+        - "-ST1003"
+        - "-ST1016"
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - .dagger/internal
+      - .dagger/dagger.gen.go
+      - collector/benthos/internal
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/openmeterio/openmeter)
+    goimports:
+      local-prefixes:
+        - github.com/openmeterio/openmeter
+  exclusions:
+    generated: lax
+    paths:
+      - .dagger/internal
+      - .dagger/dagger.gen.go
+      - collector/benthos/internal
+      - third_party$
+      - builtin$
+      - examples$
