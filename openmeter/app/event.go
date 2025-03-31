@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/session"
 )
@@ -16,17 +17,17 @@ const (
 )
 
 // NewAppCreateEvent creates a new app create event
-func NewAppCreateEvent(ctx context.Context, app AppBase) AppCreateEvent {
+func NewAppCreateEvent(ctx context.Context, appBase AppBase) AppCreateEvent {
 	return AppCreateEvent{
-		App:    app,
-		UserID: session.GetSessionUserID(ctx),
+		AppBase: appBase,
+		UserID:  session.GetSessionUserID(ctx),
 	}
 }
 
 // AppCreateEvent is an event that is emitted when an app is created
 type AppCreateEvent struct {
-	App    AppBase `json:"app"`
-	UserID *string `json:"userId,omitempty"`
+	AppBase AppBase `json:"appBase"`
+	UserID  *string `json:"userId,omitempty"`
 }
 
 func (e AppCreateEvent) EventName() string {
@@ -38,35 +39,35 @@ func (e AppCreateEvent) EventName() string {
 }
 
 func (e AppCreateEvent) EventMetadata() metadata.EventMetadata {
-	resourcePath := metadata.ComposeResourcePath(e.App.Namespace, metadata.EntityApp, e.App.ID)
+	resourcePath := metadata.ComposeResourcePath(e.AppBase.Namespace, metadata.EntityApp, e.AppBase.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.App.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
-		Time:    e.App.CreatedAt,
+		Time:    e.AppBase.CreatedAt,
 	}
 }
 
 func (e AppCreateEvent) Validate() error {
-	if e.App.ID == "" {
-		return fmt.Errorf("app is required")
+	if e.AppBase.ID == "" {
+		return fmt.Errorf("app base is required")
 	}
 	return nil
 }
 
 // NewAppUpdateEvent creates a new app update event
-func NewAppUpdateEvent(ctx context.Context, app App) AppUpdateEvent {
+func NewAppUpdateEvent(ctx context.Context, appBase AppBase) AppUpdateEvent {
 	return AppUpdateEvent{
-		App:    app,
-		UserID: session.GetSessionUserID(ctx),
+		AppBase: appBase,
+		UserID:  session.GetSessionUserID(ctx),
 	}
 }
 
 // AppUpdateEvent is an event that is emitted when an app is updated
 type AppUpdateEvent struct {
-	App    App     `json:"app"`
-	UserID *string `json:"userId,omitempty"`
+	AppBase AppBase `json:"appBase"`
+	UserID  *string `json:"userId,omitempty"`
 }
 
 func (e AppUpdateEvent) EventName() string {
@@ -78,11 +79,11 @@ func (e AppUpdateEvent) EventName() string {
 }
 
 func (e AppUpdateEvent) EventMetadata() metadata.EventMetadata {
-	appBase := e.App.GetAppBase()
+	appBase := e.AppBase.GetAppBase()
 	resourcePath := metadata.ComposeResourcePath(appBase.Namespace, metadata.EntityApp, appBase.ID)
 
 	return metadata.EventMetadata{
-		ID:      appBase.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    appBase.UpdatedAt,
@@ -90,24 +91,25 @@ func (e AppUpdateEvent) EventMetadata() metadata.EventMetadata {
 }
 
 func (e AppUpdateEvent) Validate() error {
-	if e.App == nil {
-		return fmt.Errorf("app is required")
+	if e.AppBase.ID == "" {
+		return fmt.Errorf("app base is required")
 	}
+
 	return nil
 }
 
 // NewAppDeleteEvent creates a new app delete event
-func NewAppDeleteEvent(ctx context.Context, app App) AppDeleteEvent {
+func NewAppDeleteEvent(ctx context.Context, appBase AppBase) AppDeleteEvent {
 	return AppDeleteEvent{
-		App:    app,
-		UserID: session.GetSessionUserID(ctx),
+		AppBase: appBase,
+		UserID:  session.GetSessionUserID(ctx),
 	}
 }
 
 // AppDeleteEvent is an event that is emitted when an app is deleted
 type AppDeleteEvent struct {
-	App    App     `json:"app"`
-	UserID *string `json:"userId,omitempty"`
+	AppBase AppBase `json:"appBase"`
+	UserID  *string `json:"userId,omitempty"`
 }
 
 func (e AppDeleteEvent) EventName() string {
@@ -119,24 +121,20 @@ func (e AppDeleteEvent) EventName() string {
 }
 
 func (e AppDeleteEvent) EventMetadata() metadata.EventMetadata {
-	appBase := e.App.GetAppBase()
-	resourcePath := metadata.ComposeResourcePath(appBase.Namespace, metadata.EntityApp, appBase.ID)
+	resourcePath := metadata.ComposeResourcePath(e.AppBase.Namespace, metadata.EntityApp, e.AppBase.ID)
 
 	return metadata.EventMetadata{
-		ID:      appBase.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
-		Time:    *appBase.DeletedAt,
+		Time:    *e.AppBase.DeletedAt,
 	}
 }
 
 func (e AppDeleteEvent) Validate() error {
-	if e.App == nil {
-		return fmt.Errorf("app is required")
+	if e.AppBase.ID == "" {
+		return fmt.Errorf("app base is required")
 	}
-	appBase := e.App.GetAppBase()
-	if appBase.DeletedAt == nil {
-		return fmt.Errorf("app deleted at is required")
-	}
+
 	return nil
 }

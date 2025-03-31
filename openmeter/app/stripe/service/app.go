@@ -32,7 +32,19 @@ func (s *Service) UpdateAPIKey(ctx context.Context, input appstripeentity.Update
 
 func (s *Service) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error) {
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.CreateCheckoutSessionOutput, error) {
-		return s.adapter.CreateCheckoutSession(ctx, input)
+		// Create the checkout session
+		output, err := s.adapter.CreateCheckoutSession(ctx, input)
+		if err != nil {
+			return appstripeentity.CreateCheckoutSessionOutput{}, err
+		}
+
+		// Emit the checkout session created event
+		event := appstripe.NewAppCheckoutSessionEvent(ctx, input.Namespace, output.SessionID, input.AppID.ID, input.CustomerID.ID)
+		if err := s.publisher.Publish(ctx, event); err != nil {
+			return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to publish event: %w", err)
+		}
+
+		return output, nil
 	})
 }
 

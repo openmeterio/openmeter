@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/session"
 )
@@ -42,7 +43,7 @@ func (e CustomerCreateEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Customer.Namespace, metadata.EntityCustomer, e.Customer.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Customer.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    e.Customer.CreatedAt,
@@ -89,7 +90,7 @@ func (e CustomerUpdateEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Customer.Namespace, metadata.EntityCustomer, e.Customer.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Customer.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    e.Customer.UpdatedAt,
@@ -136,7 +137,7 @@ func (e CustomerDeleteEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Customer.Namespace, metadata.EntityCustomer, e.Customer.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Customer.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    *e.Customer.DeletedAt,

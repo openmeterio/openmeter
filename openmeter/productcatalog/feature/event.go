@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/session"
 )
@@ -42,7 +43,7 @@ func (e FeatureCreateEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Feature.Namespace, metadata.EntityFeature, e.Feature.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Feature.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    e.Feature.CreatedAt,
@@ -89,7 +90,7 @@ func (e FeatureArchiveEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Feature.Namespace, metadata.EntityFeature, e.Feature.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Feature.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    *e.Feature.ArchivedAt,

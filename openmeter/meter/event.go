@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/session"
 )
@@ -42,7 +43,7 @@ func (e MeterCreateEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Meter.ManagedResource.Namespace, metadata.EntityMeter, e.Meter.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Meter.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    e.Meter.CreatedAt,
@@ -85,7 +86,7 @@ func (e MeterUpdateEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Meter.ManagedResource.Namespace, metadata.EntityMeter, e.Meter.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Meter.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    e.Meter.UpdatedAt,
@@ -128,7 +129,7 @@ func (e MeterDeleteEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Meter.ManagedResource.Namespace, metadata.EntityMeter, e.Meter.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Meter.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    *e.Meter.DeletedAt,

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/session"
 )
@@ -44,7 +45,7 @@ func (e PlanCreateEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Plan.Namespace, metadata.EntityPlan, e.Plan.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Plan.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    e.Plan.CreatedAt,
@@ -87,7 +88,7 @@ func (e PlanUpdateEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Plan.Namespace, metadata.EntityPlan, e.Plan.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Plan.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    e.Plan.UpdatedAt,
@@ -130,7 +131,7 @@ func (e PlanDeleteEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Plan.Namespace, metadata.EntityPlan, e.Plan.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Plan.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    *e.Plan.DeletedAt,
@@ -177,7 +178,7 @@ func (e PlanPublishEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Plan.Namespace, metadata.EntityPlan, e.Plan.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Plan.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    e.Plan.UpdatedAt,
@@ -220,7 +221,7 @@ func (e PlanArchiveEvent) EventMetadata() metadata.EventMetadata {
 	resourcePath := metadata.ComposeResourcePath(e.Plan.Namespace, metadata.EntityPlan, e.Plan.ID)
 
 	return metadata.EventMetadata{
-		ID:      e.Plan.ID,
+		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
 		Time:    e.Plan.UpdatedAt,

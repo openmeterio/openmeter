@@ -83,6 +83,7 @@ func (s *BaseSuite) SetupSuite() {
 	t := s.T()
 	t.Log("setup suite")
 	s.Assertions = require.New(t)
+	publisher := eventbus.NewMock(t)
 
 	s.TestDB = testutils.InitPostgresDB(t)
 
@@ -113,7 +114,7 @@ func (s *BaseSuite) SetupSuite() {
 		StreamingConnector: s.MockStreamingConnector,
 		Logger:             slog.Default(),
 		MeterService:       s.MeterAdapter,
-		Publisher:          eventbus.NewMock(t),
+		Publisher:          publisher,
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: isodate.String("P1D"),
 		},
@@ -134,7 +135,7 @@ func (s *BaseSuite) SetupSuite() {
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:              customerAdapter,
 		EntitlementConnector: entitlementRegistry.Entitlement,
-		Publisher:            eventbus.NewMock(t),
+		Publisher:            publisher,
 	})
 	require.NoError(t, err)
 	s.CustomerService = customerService
@@ -147,7 +148,8 @@ func (s *BaseSuite) SetupSuite() {
 	require.NoError(t, err)
 
 	appService, err := appservice.New(appservice.Config{
-		Adapter: appAdapter,
+		Adapter:   appAdapter,
+		Publisher: publisher,
 	})
 	require.NoError(t, err)
 	s.AppService = appService
@@ -168,7 +170,7 @@ func (s *BaseSuite) SetupSuite() {
 		FeatureService:      s.FeatureService,
 		MeterService:        s.MeterAdapter,
 		StreamingConnector:  s.MockStreamingConnector,
-		Publisher:           eventbus.NewMock(s.T()),
+		Publisher:           publisher,
 		AdvancementStrategy: billing.ForegroundAdvancementStrategy,
 	})
 	require.NoError(t, err)
