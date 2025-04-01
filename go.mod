@@ -10,7 +10,7 @@ replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527
 require (
 	entgo.io/ent v0.14.4
 	github.com/AppsFlyer/go-sundheit v0.6.0
-	github.com/ClickHouse/clickhouse-go/v2 v2.33.0
+	github.com/ClickHouse/clickhouse-go/v2 v2.34.0
 	github.com/IBM/sarama v1.45.1
 	github.com/ThreeDotsLabs/watermill v1.4.6
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.0.6
