@@ -85,6 +85,11 @@ func NewPhaseIterator(subs subscription.SubscriptionView, phaseKey string) (*Pha
 }
 
 func (it *PhaseIterator) HasInvoicableItems() bool {
+	// If the phase is 0 length it never activates so no items should be generated whatsoever
+	if it.phaseCadence.ActiveTo != nil && it.phaseCadence.ActiveTo.Equal(it.phaseCadence.ActiveFrom) {
+		return false
+	}
+
 	return it.phase.Spec.HasBillables()
 }
 

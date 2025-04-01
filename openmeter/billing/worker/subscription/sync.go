@@ -221,8 +221,17 @@ func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.Subsc
 		return nil, fmt.Errorf("collecting upcoming lines: %w", err)
 	}
 
-	if len(inScopeLines) == 0 {
-		// The subscription has no invoicable items, so we can return early
+	// Let's load the existing lines for the subscription
+	existingLines, err := h.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
+		Namespace:      subs.Subscription.Namespace,
+		SubscriptionID: subs.Subscription.ID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting existing lines: %w", err)
+	}
+
+	if len(inScopeLines) == 0 && len(existingLines) == 0 {
+		// The subscription has no invoicable items, no present lines exist, so there's nothing to do
 		return nil, nil
 	}
 
@@ -231,15 +240,6 @@ func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.Subsc
 	})
 	if !unique {
 		return nil, fmt.Errorf("duplicate unique ids in the upcoming lines")
-	}
-
-	// Let's load the existing lines for the subscription
-	existingLines, err := h.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
-		Namespace:      subs.Subscription.Namespace,
-		SubscriptionID: subs.Subscription.ID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("getting existing lines: %w", err)
 	}
 
 	existingLinesByUniqueID, unique := slicesx.UniqueGroupBy(
