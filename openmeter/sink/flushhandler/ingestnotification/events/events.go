@@ -50,10 +50,6 @@ func (b EventBatchedIngest) Validate() error {
 		return errors.New("subjectKey must be set")
 	}
 
-	if len(b.MeterSlugs) == 0 {
-		return errors.New("meterSlugs must not be empty")
-	}
-
 	return nil
 }
 

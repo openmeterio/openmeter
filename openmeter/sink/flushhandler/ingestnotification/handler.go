@@ -51,8 +51,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 
 	// Filter meaningful events for downstream
 	filtered := lo.Filter(events, func(event sinkmodels.SinkMessage, _ int) bool {
-		// We explicityl ignore non-parseable & non-meter affecting events
-		return event.Serialized != nil && len(event.Meters) > 0
+		return event.Serialized != nil
 	})
 
 	if len(filtered) == 0 {
