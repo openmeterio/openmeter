@@ -153,6 +153,14 @@ func (SubscriptionItem) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
+		field.String("discounts").
+			GoType(&productcatalog.Discounts{}).
+			ValueScanner(DiscountsValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
 	}
 }
 

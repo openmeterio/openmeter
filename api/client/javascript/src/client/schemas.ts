@@ -7974,6 +7974,11 @@ export interface components {
        * @example {}
        */
       price: components['schemas']['RateCardUsageBasedPrice'] | null
+      /**
+       * Discounts
+       * @description The discounts applied to the rate card.
+       */
+      discounts?: components['schemas']['Discount'][]
       /** @description Describes what access is gained via the SubscriptionItem */
       included?: components['schemas']['SubscriptionItemIncluded']
       /**

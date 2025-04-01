@@ -3,6 +3,8 @@ package repo
 import (
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -144,6 +146,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 			EntitlementTemplate: item.EntitlementTemplate,
 			TaxConfig:           item.TaxConfig,
 			Price:               item.Price,
+			Discounts:           lo.FromPtrOr(item.Discounts, nil),
 			BillingCadence:      cadence,
 		},
 	}, nil

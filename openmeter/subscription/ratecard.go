@@ -30,6 +30,9 @@ type RateCard struct {
 	// Price defines the price for the RateCard
 	Price *productcatalog.Price `json:"price,omitempty"`
 
+	// Discounts defines the discounts applied to the RateCard
+	Discounts productcatalog.Discounts `json:"discounts,omitempty"`
+
 	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
 	// Example: "P1D12H"
 	BillingCadence *isodate.Period `json:"billingCadence,omitempty"`
@@ -68,6 +71,12 @@ func (r RateCard) Validate() error {
 			if r.FeatureKey == nil {
 				return fmt.Errorf("feature must be defined for usage based price")
 			}
+		}
+	}
+
+	if len(r.Discounts) > 0 {
+		if err := r.Discounts.ValidateForPrice(r.Price); err != nil {
+			return fmt.Errorf("invalid Discounts: %w", err)
 		}
 	}
 

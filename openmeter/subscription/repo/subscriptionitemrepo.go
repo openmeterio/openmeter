@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbsubscriptionitem "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	dbsubscriptionphase "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -116,6 +118,10 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 
 		if input.RateCard.Price != nil {
 			cmd.SetPrice(input.RateCard.Price)
+		}
+
+		if input.RateCard.Discounts != nil {
+			cmd.SetDiscounts(lo.EmptyableToPtr(input.RateCard.Discounts))
 		}
 
 		i, err := cmd.Save(ctx)
