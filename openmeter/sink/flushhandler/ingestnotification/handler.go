@@ -115,7 +115,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 	return finalErr
 }
 
-func (h *handler) getMeterSlugsFromMeters(meters []meter.Meter) []string {
+func (h *handler) getMeterSlugsFromMeters(meters []*meter.Meter) []string {
 	slugs := make([]string, len(meters))
 	for i, meter := range meters {
 		slugs[i] = meter.Key

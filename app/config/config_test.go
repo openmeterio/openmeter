@@ -172,6 +172,7 @@ func TestComplete(t *testing.T) {
 			DrainTimeout:            10 * time.Second,
 			NamespaceRefetchTimeout: 9 * time.Second,
 			NamespaceTopicRegexp:    "^om_test_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$",
+			MeterRefetchInterval:    15 * time.Second,
 			Dedupe: DedupeConfiguration{
 				Enabled: true,
 				DedupeDriverConfiguration: DedupeDriverRedisConfiguration{

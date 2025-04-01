@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
@@ -156,6 +157,31 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	tracer := common.NewTracer(tracerProvider, commonMetadata)
+	postgresConfig := conf.Postgres
+	driver, cleanup6, err := common.NewPostgresDriver(ctx, postgresConfig, meterProvider, meter, tracerProvider, logger)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	db := common.NewDB(driver)
+	entPostgresDriver, cleanup7 := common.NewEntPostgresDriver(db, logger)
+	client := common.NewEntClient(entPostgresDriver)
+	adapter, err := common.NewMeterAdapter(logger, client)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	meterService := common.NewMeterService(adapter)
 	application := Application{
 		GlobalInitializer: globalInitializer,
 		FlushHandler:      flushEventHandler,
@@ -167,8 +193,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		TopicProvisioner:  topicProvisioner,
 		TopicResolver:     namespacedTopicResolver,
 		Tracer:            tracer,
+		MeterService:      meterService,
 	}
 	return application, func() {
+		cleanup7()
+		cleanup6()
 		cleanup5()
 		cleanup4()
 		cleanup3()
@@ -191,6 +220,7 @@ type Application struct {
 	TopicProvisioner kafka2.TopicProvisioner
 	TopicResolver    *topicresolver.NamespacedTopicResolver
 	Tracer           trace.Tracer
+	MeterService     meter.Service
 }
 
 func metadata(conf config.Configuration) common.Metadata {
