@@ -215,7 +215,7 @@ func (prcu *PlanRateCardUpdate) ClearFeatureID() *PlanRateCardUpdate {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (prcu *PlanRateCardUpdate) SetDiscounts(pr productcatalog.Discounts) *PlanRateCardUpdate {
+func (prcu *PlanRateCardUpdate) SetDiscounts(pr *productcatalog.Discounts) *PlanRateCardUpdate {
 	prcu.mutation.SetDiscounts(pr)
 	return prcu
 }
@@ -680,7 +680,7 @@ func (prcuo *PlanRateCardUpdateOne) ClearFeatureID() *PlanRateCardUpdateOne {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (prcuo *PlanRateCardUpdateOne) SetDiscounts(pr productcatalog.Discounts) *PlanRateCardUpdateOne {
+func (prcuo *PlanRateCardUpdateOne) SetDiscounts(pr *productcatalog.Discounts) *PlanRateCardUpdateOne {
 	prcuo.mutation.SetDiscounts(pr)
 	return prcuo
 }
