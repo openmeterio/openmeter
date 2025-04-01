@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/dedupe"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -109,6 +110,7 @@ func main() {
 		app.Tracer,
 		app.TopicResolver,
 		app.FlushHandler,
+		app.MeterService,
 	)
 	if err != nil {
 		logger.Error("failed to initialize sink worker", "error", err)
@@ -156,6 +158,7 @@ func initSink(
 	tracer trace.Tracer,
 	topicResolver *topicresolver.NamespacedTopicResolver,
 	flushHandler flushhandler.FlushEventHandler,
+	meterService meter.Service,
 ) (*sink.Sink, error) {
 	var err error
 
@@ -242,6 +245,8 @@ func initSink(
 		TopicResolver:           topicResolver,
 		NamespaceRefetchTimeout: conf.Sink.NamespaceRefetchTimeout,
 		NamespaceTopicRegexp:    conf.Sink.NamespaceTopicRegexp,
+		MeterRefetchInterval:    conf.Sink.MeterRefetchInterval,
+		MeterService:            meterService,
 	}
 
 	return sink.NewSink(sinkConfig)

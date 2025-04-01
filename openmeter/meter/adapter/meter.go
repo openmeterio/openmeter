@@ -21,8 +21,11 @@ func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams)
 
 	if !params.WithoutNamespace {
 		query = query.
-			Where(meterdb.NamespaceEQ(params.Namespace)).
-			Where(meterdb.DeletedAtIsNil())
+			Where(meterdb.NamespaceEQ(params.Namespace))
+	}
+
+	if !params.IncludeDeleted {
+		query = query.Where(meterdb.DeletedAtIsNil())
 	}
 
 	if params.SlugFilter != nil {

@@ -15,7 +15,7 @@ type SinkMessage struct {
 	Serialized   *serializer.CloudEventsKafkaPayload
 	Status       ProcessingStatus
 	// Meters contains the list of meters this message affects
-	Meters []meter.Meter
+	Meters []*meter.Meter
 }
 
 type ProcessingState int8

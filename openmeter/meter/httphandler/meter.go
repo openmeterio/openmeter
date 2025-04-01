@@ -26,8 +26,9 @@ type (
 )
 
 type ListMetersRequest struct {
-	namespace string
-	page      pagination.Page
+	namespace      string
+	page           pagination.Page
+	includeDeleted bool
 }
 
 // ListMeters returns a handler for listing meters.
@@ -42,13 +43,19 @@ func (h *handler) ListMeters() ListMetersHandler {
 			return ListMetersRequest{
 				namespace: ns,
 				// TODO: update when meter pagination is implemented
-				page: pagination.NewPage(1, limit),
+				page:           pagination.NewPage(1, limit),
+				includeDeleted: true,
 			}, nil
 		},
 		func(ctx context.Context, request ListMetersRequest) (ListMetersResponse, error) {
+			if err := request.page.Validate(); err != nil {
+				return ListMetersResponse{}, models.NewGenericValidationError(fmt.Errorf("invalid pagination: %w", err))
+			}
+
 			result, err := h.meterService.ListMeters(ctx, meter.ListMetersParams{
-				Namespace: request.namespace,
-				Page:      request.page,
+				Namespace:      request.namespace,
+				Page:           request.page,
+				IncludeDeleted: request.includeDeleted,
 			})
 			if err != nil {
 				return ListMetersResponse{}, fmt.Errorf("failed to list meters: %w", err)

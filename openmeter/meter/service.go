@@ -64,6 +64,9 @@ type ListMetersParams struct {
 	// We do this instead of letting the namespace be empty to avoid
 	// accidental listing of all meters across all namespaces.
 	WithoutNamespace bool
+
+	// IncludeDeleted is a flag to include deleted meters in the list.
+	IncludeDeleted bool
 }
 
 // Validate validates the list meters parameters.
@@ -72,10 +75,6 @@ func (p ListMetersParams) Validate() error {
 
 	if p.Namespace == "" && !p.WithoutNamespace {
 		errs = append(errs, errors.New("namespace is required"))
-	}
-
-	if err := p.Page.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid pagination: %w", err))
 	}
 
 	if p.SlugFilter != nil {

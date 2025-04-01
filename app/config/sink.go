@@ -32,6 +32,9 @@ type SinkConfiguration struct {
 
 	// NamespaceTopicRegexp defines the regular expression to match/validate topic names the sink-worker needs to subscribe to.
 	NamespaceTopicRegexp string
+
+	// MeterRefetchInterval is the interval to refetch meters from the database
+	MeterRefetchInterval time.Duration
 }
 
 func (c SinkConfiguration) Validate() error {
@@ -75,6 +78,10 @@ func (c SinkConfiguration) Validate() error {
 
 	if err := c.Kafka.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "kafka"))
+	}
+
+	if c.MeterRefetchInterval <= 0 {
+		errs = append(errs, errors.New("MeterRefetchInterval must be greater than 0"))
 	}
 
 	return errors.Join(errs...)
@@ -154,6 +161,7 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.ingestNotifications.maxEventsInBatch", 500)
 	v.SetDefault("sink.namespaceRefetchTimeout", "10s")
 	v.SetDefault("sink.namespaceTopicRegexp", "^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$")
+	v.SetDefault("sink.meterRefetchInterval", "15s")
 
 	// TODO: remove, config moved to aggregation config
 	// Sink Storage

@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -37,6 +38,7 @@ type Sink struct {
 	messageCounter    metric.Int64Counter
 	namespaceRefetch  *time.Timer
 	topicResolver     topicresolver.Resolver
+	meterCache        *NamespacedMeterCache
 
 	kafkaMetrics *kafkametrics.Metrics
 
@@ -85,6 +87,12 @@ type SinkConfig struct {
 	DrainTimeout time.Duration
 
 	TopicResolver topicresolver.Resolver
+
+	// MeterRefetchInterval is the interval to refetch meters from the database
+	MeterRefetchInterval time.Duration
+
+	// MeterService is the service to fetch meters from the database
+	MeterService meter.Service
 }
 
 func (s *SinkConfig) Validate() error {
@@ -144,6 +152,14 @@ func (s *SinkConfig) Validate() error {
 		return errors.New("topic resolver is required")
 	}
 
+	if s.MeterRefetchInterval <= 0 {
+		return errors.New("MeterRefetchInterval must be greater than 0")
+	}
+
+	if s.MeterService == nil {
+		return errors.New("meter service is required")
+	}
+
 	return nil
 }
 
@@ -191,6 +207,15 @@ func NewSink(config SinkConfig) (*Sink, error) {
 		config.NamespaceRefetchTimeout = (config.NamespaceRefetch / 3) * 2
 	}
 
+	meterCache, err := NewNamespaceStore(NamespacedMeterCacheConfig{
+		PeriodicRefetchInterval: config.MeterRefetchInterval,
+		Logger:                  config.Logger,
+		MeterService:            config.MeterService,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create namespace meter cache: %w", err)
+	}
+
 	sink := &Sink{
 		config:               config,
 		buffer:               NewSinkBuffer(),
@@ -199,6 +224,7 @@ func NewSink(config SinkConfig) (*Sink, error) {
 		kafkaMetrics:         kafkaMetrics,
 		topicResolver:        config.TopicResolver,
 		namespaceTopicRegexp: namespaceTopicRegexp,
+		meterCache:           meterCache,
 	}
 
 	return sink, nil
@@ -520,6 +546,10 @@ func (s *Sink) Run(ctx context.Context) error {
 		return nil
 	}
 
+	if err := s.meterCache.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start meter cache: %w", err)
+	}
+
 	logger := s.config.Logger.With("operation", "run")
 	if s.config.FlushEventHandler != nil {
 		logger.Info("starting flush event handler")
@@ -812,6 +842,14 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 			return sinkMessage, nil
 		}
 	}
+
+	// Let's resolve affected meters
+	affectedMeters, err := s.meterCache.GetAffectedMeters(ctx, sinkMessage)
+	if err != nil {
+		return sinkMessage, fmt.Errorf("failed to get affected meters: %w", err)
+	}
+
+	sinkMessage.Meters = affectedMeters
 
 	return sinkMessage, err
 }
