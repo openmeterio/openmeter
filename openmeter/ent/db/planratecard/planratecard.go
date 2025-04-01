@@ -125,7 +125,7 @@ var (
 		EntitlementTemplate field.TypeValueScanner[*productcatalog.EntitlementTemplate]
 		TaxConfig           field.TypeValueScanner[*productcatalog.TaxConfig]
 		Price               field.TypeValueScanner[*productcatalog.Price]
-		Discounts           field.TypeValueScanner[productcatalog.Discounts]
+		Discounts           field.TypeValueScanner[*productcatalog.Discounts]
 	}
 )
 

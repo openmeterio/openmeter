@@ -55,7 +55,7 @@ type PlanRateCard struct {
 	// The feature identifier the ratecard is related to.
 	FeatureID *string `json:"feature_id,omitempty"`
 	// Discounts holds the value of the "discounts" field.
-	Discounts productcatalog.Discounts `json:"discounts,omitempty"`
+	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PlanRateCardQuery when eager-loading is set.
 	Edges        PlanRateCardEdges `json:"edges"`
@@ -354,8 +354,10 @@ func (prc *PlanRateCard) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("discounts=")
-	builder.WriteString(fmt.Sprintf("%v", prc.Discounts))
+	if v := prc.Discounts; v != nil {
+		builder.WriteString("discounts=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

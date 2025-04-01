@@ -1889,20 +1889,6 @@ func (u *PlanPhaseUpdateOne) SetOrClearDuration(value *isodate.String) *PlanPhas
 	return u.SetDuration(*value)
 }
 
-func (u *PlanPhaseUpdate) SetOrClearDiscounts(value *productcatalog.Discounts) *PlanPhaseUpdate {
-	if value == nil {
-		return u.ClearDiscounts()
-	}
-	return u.SetDiscounts(*value)
-}
-
-func (u *PlanPhaseUpdateOne) SetOrClearDiscounts(value *productcatalog.Discounts) *PlanPhaseUpdateOne {
-	if value == nil {
-		return u.ClearDiscounts()
-	}
-	return u.SetDiscounts(*value)
-}
-
 func (u *PlanRateCardUpdate) SetOrClearMetadata(value *map[string]string) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearMetadata()
@@ -2029,14 +2015,14 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 	return u.SetFeatureID(*value)
 }
 
-func (u *PlanRateCardUpdate) SetOrClearDiscounts(value *productcatalog.Discounts) *PlanRateCardUpdate {
+func (u *PlanRateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
 	}
 	return u.SetDiscounts(*value)
 }
 
-func (u *PlanRateCardUpdateOne) SetOrClearDiscounts(value *productcatalog.Discounts) *PlanRateCardUpdateOne {
+func (u *PlanRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Discounts) *PlanRateCardUpdateOne {
 	if value == nil {
 		return u.ClearDiscounts()
 	}

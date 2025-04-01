@@ -180,7 +180,7 @@ func (prcc *PlanRateCardCreate) SetNillableFeatureID(s *string) *PlanRateCardCre
 }
 
 // SetDiscounts sets the "discounts" field.
-func (prcc *PlanRateCardCreate) SetDiscounts(pr productcatalog.Discounts) *PlanRateCardCreate {
+func (prcc *PlanRateCardCreate) SetDiscounts(pr *productcatalog.Discounts) *PlanRateCardCreate {
 	prcc.mutation.SetDiscounts(pr)
 	return prcc
 }
@@ -733,7 +733,7 @@ func (u *PlanRateCardUpsert) ClearFeatureID() *PlanRateCardUpsert {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *PlanRateCardUpsert) SetDiscounts(v productcatalog.Discounts) *PlanRateCardUpsert {
+func (u *PlanRateCardUpsert) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpsert {
 	u.Set(planratecard.FieldDiscounts, v)
 	return u
 }
@@ -1042,7 +1042,7 @@ func (u *PlanRateCardUpsertOne) ClearFeatureID() *PlanRateCardUpsertOne {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *PlanRateCardUpsertOne) SetDiscounts(v productcatalog.Discounts) *PlanRateCardUpsertOne {
+func (u *PlanRateCardUpsertOne) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.SetDiscounts(v)
 	})
@@ -1524,7 +1524,7 @@ func (u *PlanRateCardUpsertBulk) ClearFeatureID() *PlanRateCardUpsertBulk {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *PlanRateCardUpsertBulk) SetDiscounts(v productcatalog.Discounts) *PlanRateCardUpsertBulk {
+func (u *PlanRateCardUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.SetDiscounts(v)
 	})
