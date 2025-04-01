@@ -62,6 +62,8 @@ type SubscriptionItem struct {
 	BillingCadence *isodate.String `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
+	// Discounts holds the value of the "discounts" field.
+	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionItemQuery when eager-loading is set.
 	Edges        SubscriptionItemEdges `json:"edges"`
@@ -131,6 +133,8 @@ func (*SubscriptionItem) scanValues(columns []string) ([]any, error) {
 			values[i] = subscriptionitem.ValueScanner.TaxConfig.ScanValue()
 		case subscriptionitem.FieldPrice:
 			values[i] = subscriptionitem.ValueScanner.Price.ScanValue()
+		case subscriptionitem.FieldDiscounts:
+			values[i] = subscriptionitem.ValueScanner.Discounts.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -283,6 +287,12 @@ func (si *SubscriptionItem) assignValues(columns []string, values []any) error {
 			} else {
 				si.Price = value
 			}
+		case subscriptionitem.FieldDiscounts:
+			if value, err := subscriptionitem.ValueScanner.Discounts.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				si.Discounts = value
+			}
 		default:
 			si.selectValues.Set(columns[i], values[i])
 		}
@@ -415,6 +425,11 @@ func (si *SubscriptionItem) String() string {
 	builder.WriteString(", ")
 	if v := si.Price; v != nil {
 		builder.WriteString("price=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := si.Discounts; v != nil {
+		builder.WriteString("discounts=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')

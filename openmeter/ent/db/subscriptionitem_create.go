@@ -236,6 +236,12 @@ func (sic *SubscriptionItemCreate) SetPrice(pr *productcatalog.Price) *Subscript
 	return sic
 }
 
+// SetDiscounts sets the "discounts" field.
+func (sic *SubscriptionItemCreate) SetDiscounts(pr *productcatalog.Discounts) *SubscriptionItemCreate {
+	sic.mutation.SetDiscounts(pr)
+	return sic
+}
+
 // SetID sets the "id" field.
 func (sic *SubscriptionItemCreate) SetID(s string) *SubscriptionItemCreate {
 	sic.mutation.SetID(s)
@@ -507,6 +513,14 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 		}
 		_spec.SetField(subscriptionitem.FieldPrice, field.TypeString, vv)
 		_node.Price = value
+	}
+	if value, ok := sic.mutation.Discounts(); ok {
+		vv, err := subscriptionitem.ValueScanner.Discounts.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(subscriptionitem.FieldDiscounts, field.TypeString, vv)
+		_node.Discounts = value
 	}
 	if nodes := sic.mutation.PhaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -877,6 +891,24 @@ func (u *SubscriptionItemUpsert) UpdatePrice() *SubscriptionItemUpsert {
 // ClearPrice clears the value of the "price" field.
 func (u *SubscriptionItemUpsert) ClearPrice() *SubscriptionItemUpsert {
 	u.SetNull(subscriptionitem.FieldPrice)
+	return u
+}
+
+// SetDiscounts sets the "discounts" field.
+func (u *SubscriptionItemUpsert) SetDiscounts(v *productcatalog.Discounts) *SubscriptionItemUpsert {
+	u.Set(subscriptionitem.FieldDiscounts, v)
+	return u
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *SubscriptionItemUpsert) UpdateDiscounts() *SubscriptionItemUpsert {
+	u.SetExcluded(subscriptionitem.FieldDiscounts)
+	return u
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *SubscriptionItemUpsert) ClearDiscounts() *SubscriptionItemUpsert {
+	u.SetNull(subscriptionitem.FieldDiscounts)
 	return u
 }
 
@@ -1252,6 +1284,27 @@ func (u *SubscriptionItemUpsertOne) UpdatePrice() *SubscriptionItemUpsertOne {
 func (u *SubscriptionItemUpsertOne) ClearPrice() *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearPrice()
+	})
+}
+
+// SetDiscounts sets the "discounts" field.
+func (u *SubscriptionItemUpsertOne) SetDiscounts(v *productcatalog.Discounts) *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetDiscounts(v)
+	})
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertOne) UpdateDiscounts() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateDiscounts()
+	})
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *SubscriptionItemUpsertOne) ClearDiscounts() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearDiscounts()
 	})
 }
 
@@ -1797,6 +1850,27 @@ func (u *SubscriptionItemUpsertBulk) UpdatePrice() *SubscriptionItemUpsertBulk {
 func (u *SubscriptionItemUpsertBulk) ClearPrice() *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearPrice()
+	})
+}
+
+// SetDiscounts sets the "discounts" field.
+func (u *SubscriptionItemUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetDiscounts(v)
+	})
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertBulk) UpdateDiscounts() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateDiscounts()
+	})
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *SubscriptionItemUpsertBulk) ClearDiscounts() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearDiscounts()
 	})
 }
 

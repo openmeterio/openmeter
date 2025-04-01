@@ -152,6 +152,7 @@ func (r *RateCard) ToCreateSubscriptionItemPlanInput() subscription.CreateSubscr
 			EntitlementTemplate: m.EntitlementTemplate,
 			TaxConfig:           m.TaxConfig,
 			Price:               m.Price,
+			Discounts:           m.Discounts,
 			BillingCadence:      r.GetBillingCadence(),
 		},
 	}

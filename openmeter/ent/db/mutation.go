@@ -38346,6 +38346,7 @@ type SubscriptionItemMutation struct {
 	tax_config                                   **productcatalog.TaxConfig
 	billing_cadence                              *isodate.String
 	price                                        **productcatalog.Price
+	discounts                                    **productcatalog.Discounts
 	clearedFields                                map[string]struct{}
 	phase                                        *string
 	clearedphase                                 bool
@@ -39352,6 +39353,55 @@ func (m *SubscriptionItemMutation) ResetPrice() {
 	delete(m.clearedFields, subscriptionitem.FieldPrice)
 }
 
+// SetDiscounts sets the "discounts" field.
+func (m *SubscriptionItemMutation) SetDiscounts(pr *productcatalog.Discounts) {
+	m.discounts = &pr
+}
+
+// Discounts returns the value of the "discounts" field in the mutation.
+func (m *SubscriptionItemMutation) Discounts() (r *productcatalog.Discounts, exists bool) {
+	v := m.discounts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiscounts returns the old "discounts" field's value of the SubscriptionItem entity.
+// If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionItemMutation) OldDiscounts(ctx context.Context) (v *productcatalog.Discounts, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiscounts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiscounts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiscounts: %w", err)
+	}
+	return oldValue.Discounts, nil
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (m *SubscriptionItemMutation) ClearDiscounts() {
+	m.discounts = nil
+	m.clearedFields[subscriptionitem.FieldDiscounts] = struct{}{}
+}
+
+// DiscountsCleared returns if the "discounts" field was cleared in this mutation.
+func (m *SubscriptionItemMutation) DiscountsCleared() bool {
+	_, ok := m.clearedFields[subscriptionitem.FieldDiscounts]
+	return ok
+}
+
+// ResetDiscounts resets all changes to the "discounts" field.
+func (m *SubscriptionItemMutation) ResetDiscounts() {
+	m.discounts = nil
+	delete(m.clearedFields, subscriptionitem.FieldDiscounts)
+}
+
 // ClearPhase clears the "phase" edge to the SubscriptionPhase entity.
 func (m *SubscriptionItemMutation) ClearPhase() {
 	m.clearedphase = true
@@ -39494,7 +39544,7 @@ func (m *SubscriptionItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionItemMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 21)
 	if m.namespace != nil {
 		fields = append(fields, subscriptionitem.FieldNamespace)
 	}
@@ -39555,6 +39605,9 @@ func (m *SubscriptionItemMutation) Fields() []string {
 	if m.price != nil {
 		fields = append(fields, subscriptionitem.FieldPrice)
 	}
+	if m.discounts != nil {
+		fields = append(fields, subscriptionitem.FieldDiscounts)
+	}
 	return fields
 }
 
@@ -39603,6 +39656,8 @@ func (m *SubscriptionItemMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingCadence()
 	case subscriptionitem.FieldPrice:
 		return m.Price()
+	case subscriptionitem.FieldDiscounts:
+		return m.Discounts()
 	}
 	return nil, false
 }
@@ -39652,6 +39707,8 @@ func (m *SubscriptionItemMutation) OldField(ctx context.Context, name string) (e
 		return m.OldBillingCadence(ctx)
 	case subscriptionitem.FieldPrice:
 		return m.OldPrice(ctx)
+	case subscriptionitem.FieldDiscounts:
+		return m.OldDiscounts(ctx)
 	}
 	return nil, fmt.Errorf("unknown SubscriptionItem field %s", name)
 }
@@ -39801,6 +39858,13 @@ func (m *SubscriptionItemMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetPrice(v)
 		return nil
+	case subscriptionitem.FieldDiscounts:
+		v, ok := value.(*productcatalog.Discounts)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiscounts(v)
+		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionItem field %s", name)
 }
@@ -39870,6 +39934,9 @@ func (m *SubscriptionItemMutation) ClearedFields() []string {
 	if m.FieldCleared(subscriptionitem.FieldPrice) {
 		fields = append(fields, subscriptionitem.FieldPrice)
 	}
+	if m.FieldCleared(subscriptionitem.FieldDiscounts) {
+		fields = append(fields, subscriptionitem.FieldDiscounts)
+	}
 	return fields
 }
 
@@ -39922,6 +39989,9 @@ func (m *SubscriptionItemMutation) ClearField(name string) error {
 		return nil
 	case subscriptionitem.FieldPrice:
 		m.ClearPrice()
+		return nil
+	case subscriptionitem.FieldDiscounts:
+		m.ClearDiscounts()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionItem nullable field %s", name)
@@ -39990,6 +40060,9 @@ func (m *SubscriptionItemMutation) ResetField(name string) error {
 		return nil
 	case subscriptionitem.FieldPrice:
 		m.ResetPrice()
+		return nil
+	case subscriptionitem.FieldDiscounts:
+		m.ResetDiscounts()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionItem field %s", name)

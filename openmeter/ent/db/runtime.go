@@ -1177,6 +1177,9 @@ func init() {
 	// subscriptionitemDescPrice is the schema descriptor for price field.
 	subscriptionitemDescPrice := subscriptionitemFields[14].Descriptor()
 	subscriptionitem.ValueScanner.Price = subscriptionitemDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// subscriptionitemDescDiscounts is the schema descriptor for discounts field.
+	subscriptionitemDescDiscounts := subscriptionitemFields[15].Descriptor()
+	subscriptionitem.ValueScanner.Discounts = subscriptionitemDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// subscriptionitemDescID is the schema descriptor for id field.
 	subscriptionitemDescID := subscriptionitemMixinFields0[0].Descriptor()
 	// subscriptionitem.DefaultID holds the default value on creation for the id field.

@@ -18320,6 +18320,12 @@ components:
             When null, the feature or service is free.
           title: Price
           example: {}
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Discount'
+          description: The discounts applied to the rate card.
+          title: Discounts
         included:
           allOf:
             - $ref: '#/components/schemas/SubscriptionItemIncluded'

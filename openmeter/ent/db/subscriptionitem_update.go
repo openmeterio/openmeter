@@ -294,6 +294,18 @@ func (siu *SubscriptionItemUpdate) ClearPrice() *SubscriptionItemUpdate {
 	return siu
 }
 
+// SetDiscounts sets the "discounts" field.
+func (siu *SubscriptionItemUpdate) SetDiscounts(pr *productcatalog.Discounts) *SubscriptionItemUpdate {
+	siu.mutation.SetDiscounts(pr)
+	return siu
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (siu *SubscriptionItemUpdate) ClearDiscounts() *SubscriptionItemUpdate {
+	siu.mutation.ClearDiscounts()
+	return siu
+}
+
 // SetEntitlement sets the "entitlement" edge to the Entitlement entity.
 func (siu *SubscriptionItemUpdate) SetEntitlement(e *Entitlement) *SubscriptionItemUpdate {
 	return siu.SetEntitlementID(e.ID)
@@ -514,6 +526,16 @@ func (siu *SubscriptionItemUpdate) sqlSave(ctx context.Context) (n int, err erro
 	}
 	if siu.mutation.PriceCleared() {
 		_spec.ClearField(subscriptionitem.FieldPrice, field.TypeString)
+	}
+	if value, ok := siu.mutation.Discounts(); ok {
+		vv, err := subscriptionitem.ValueScanner.Discounts.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(subscriptionitem.FieldDiscounts, field.TypeString, vv)
+	}
+	if siu.mutation.DiscountsCleared() {
+		_spec.ClearField(subscriptionitem.FieldDiscounts, field.TypeString)
 	}
 	if siu.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -871,6 +893,18 @@ func (siuo *SubscriptionItemUpdateOne) ClearPrice() *SubscriptionItemUpdateOne {
 	return siuo
 }
 
+// SetDiscounts sets the "discounts" field.
+func (siuo *SubscriptionItemUpdateOne) SetDiscounts(pr *productcatalog.Discounts) *SubscriptionItemUpdateOne {
+	siuo.mutation.SetDiscounts(pr)
+	return siuo
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (siuo *SubscriptionItemUpdateOne) ClearDiscounts() *SubscriptionItemUpdateOne {
+	siuo.mutation.ClearDiscounts()
+	return siuo
+}
+
 // SetEntitlement sets the "entitlement" edge to the Entitlement entity.
 func (siuo *SubscriptionItemUpdateOne) SetEntitlement(e *Entitlement) *SubscriptionItemUpdateOne {
 	return siuo.SetEntitlementID(e.ID)
@@ -1121,6 +1155,16 @@ func (siuo *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subs
 	}
 	if siuo.mutation.PriceCleared() {
 		_spec.ClearField(subscriptionitem.FieldPrice, field.TypeString)
+	}
+	if value, ok := siuo.mutation.Discounts(); ok {
+		vv, err := subscriptionitem.ValueScanner.Discounts.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(subscriptionitem.FieldDiscounts, field.TypeString, vv)
+	}
+	if siuo.mutation.DiscountsCleared() {
+		_spec.ClearField(subscriptionitem.FieldDiscounts, field.TypeString)
 	}
 	if siuo.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{

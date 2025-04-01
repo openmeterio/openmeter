@@ -233,6 +233,12 @@ model SubscriptionItem {
   price: RateCardUsageBasedPrice | null;
 
   /**
+   * The discounts applied to the rate card.
+   */
+  @summary("Discounts")
+  discounts?: Discount[];
+
+  /**
    * Describes what access is gained via the SubscriptionItem
    */
   included?: SubscriptionItemIncluded;
