@@ -26,14 +26,17 @@ func NewStreamingConnector(
 	progressmanager progressmanager.Service,
 ) (streaming.Connector, error) {
 	connector, err := clickhouseconnector.New(ctx, clickhouseconnector.Config{
-		ClickHouse:          clickHouse,
-		Database:            conf.ClickHouse.Database,
-		EventsTableName:     conf.EventsTableName,
-		Logger:              logger,
-		AsyncInsert:         conf.AsyncInsert,
-		AsyncInsertWait:     conf.AsyncInsertWait,
-		InsertQuerySettings: conf.InsertQuerySettings,
-		ProgressManager:     progressmanager,
+		ClickHouse:                            clickHouse,
+		Database:                              conf.ClickHouse.Database,
+		EventsTableName:                       conf.EventsTableName,
+		Logger:                                logger,
+		AsyncInsert:                           conf.AsyncInsert,
+		AsyncInsertWait:                       conf.AsyncInsertWait,
+		InsertQuerySettings:                   conf.InsertQuerySettings,
+		ProgressManager:                       progressmanager,
+		QueryCacheEnabled:                     conf.QueryCache.Enabled,
+		QueryCacheMinimumCacheableQueryPeriod: conf.QueryCache.MinimumCacheableQueryPeriod,
+		QueryCacheMinimumCacheableUsageAge:    conf.QueryCache.MinimumCacheableUsageAge,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse connector: %w", err)
