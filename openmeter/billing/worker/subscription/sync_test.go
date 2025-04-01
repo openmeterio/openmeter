@@ -1553,6 +1553,137 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 	})
 }
 
+func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
+	ctx := s.Context
+	startTime := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(startTime)
+	defer clock.UnFreeze()
+
+	// Given
+	//	a subscription with two phases, first is a trial, second is a regular phase, that has been already sinced
+	// When
+	//  we cancel said subscription during the trial phase
+	// Then
+	//  items of future phases should be removed
+
+	// Let's create the initial subscription
+	subView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:     "Test Plan",
+				Key:      "test-plan",
+				Version:  1,
+				Currency: currency.USD,
+				Alignment: productcatalog.Alignment{
+					BillablesMustAlign: true,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Name:     "trial",
+						Key:      "trial",
+						Duration: lo.ToPtr(testutils.GetISODuration(s.T(), "P1M")),
+					},
+					// TODO[OM-1031]: let's add discount handling (as this could be a 100% discount for the first month)
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: &s.APIRequestsTotalFeature,
+							},
+							BillingCadence: isodate.MustParse(s.T(), "P1M"),
+						},
+					},
+				},
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Name:     "default",
+						Key:      "default",
+						Duration: nil,
+					},
+					// TODO[OM-1031]: 50% discount
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: &s.APIRequestsTotalFeature,
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount: alpacadecimal.NewFromFloat(5),
+								}),
+							},
+							BillingCadence: isodate.MustParse(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	// Let's advane the clock a minute
+	clock.FreezeTime(clock.Now().Add(time.Minute))
+
+	// Let's synchronize the subscription until well into the second phase
+	syncUntil := startTime.AddDate(0, 3, 0) // 3 months should suffice
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subView, syncUntil))
+
+	// Let's check the invoice
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+
+	// Trial isn't synchronized as its a free trial...
+	// Let's check the default phase
+	s.expectLines(gatheringInvoice, subView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "default",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 0,
+				PeriodMax: 1,
+			},
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(5)})),
+			Periods: []billing.Period{
+				{
+					Start: startTime.AddDate(0, 1, 0),
+					End:   startTime.AddDate(0, 2, 0),
+				},
+				{
+					Start: startTime.AddDate(0, 2, 0),
+					End:   startTime.AddDate(0, 3, 0),
+				},
+			},
+			InvoiceAt: []time.Time{
+				startTime.AddDate(0, 2, 0),
+				startTime.AddDate(0, 3, 0),
+			},
+		},
+	})
+
+	// Let's cancel the subscription a day later
+	cancelAt := clock.Now().Add(time.Hour * 24)
+
+	clock.FreezeTime(cancelAt)
+	sub, err := s.SubscriptionService.Cancel(ctx, subView.Subscription.NamespacedID, subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
+	})
+	s.NoError(err)
+
+	subView, err = s.SubscriptionService.GetView(ctx, sub.NamespacedID)
+	s.NoError(err)
+
+	// Let's synchronize the subscription
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subView, syncUntil))
+
+	// Let's validate that every line was canceled
+	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+}
+
 func (s *SubscriptionHandlerTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 	ctx := s.Context
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
