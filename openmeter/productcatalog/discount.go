@@ -13,6 +13,7 @@ import (
 
 const (
 	PercentageDiscountType DiscountType = "percentage"
+	UsageDiscountType      DiscountType = "usage"
 )
 
 type DiscountType string
@@ -20,12 +21,14 @@ type DiscountType string
 func (p DiscountType) Values() []DiscountType {
 	return []DiscountType{
 		PercentageDiscountType,
+		UsageDiscountType,
 	}
 }
 
 func (p DiscountType) StringValues() []string {
 	return []string{
 		string(PercentageDiscountType),
+		string(UsageDiscountType),
 	}
 }
 
@@ -37,9 +40,11 @@ type discounter interface {
 	hasher.Hasher
 
 	Type() DiscountType
-	RateCardKeys() []string
 	AsPercentage() (PercentageDiscount, error)
 	FromPercentage(PercentageDiscount)
+
+	// ValidateForPrice validates the discount for a given price.
+	ValidateForPrice(price *Price) error
 }
 
 var _ discounter = (*Discount)(nil)
@@ -47,23 +52,17 @@ var _ discounter = (*Discount)(nil)
 type Discount struct {
 	t          DiscountType
 	percentage *PercentageDiscount
+	usage      *UsageDiscount
 }
 
 func (d *Discount) Hash() hasher.Hash {
 	switch d.t {
 	case PercentageDiscountType:
 		return d.percentage.Hash()
+	case UsageDiscountType:
+		return d.usage.Hash()
 	default:
 		return 0
-	}
-}
-
-func (d *Discount) RateCardKeys() []string {
-	switch d.t {
-	case PercentageDiscountType:
-		return d.percentage.RateCards
-	default:
-		return nil
 	}
 }
 
@@ -80,6 +79,14 @@ func (d *Discount) MarshalJSON() ([]byte, error) {
 		}{
 			Type:               PercentageDiscountType,
 			PercentageDiscount: d.percentage,
+		}
+	case UsageDiscountType:
+		serde = struct {
+			Type DiscountType `json:"type"`
+			*UsageDiscount
+		}{
+			Type:          UsageDiscountType,
+			UsageDiscount: d.usage,
 		}
 	default:
 		return nil, fmt.Errorf("invalid Discount type: %s", d.t)
@@ -111,6 +118,14 @@ func (d *Discount) UnmarshalJSON(bytes []byte) error {
 
 		d.percentage = v
 		d.t = PercentageDiscountType
+	case UsageDiscountType:
+		v := &UsageDiscount{}
+		if err := json.Unmarshal(bytes, v); err != nil {
+			return fmt.Errorf("failed to JSON deserialize Discount: %w", err)
+		}
+
+		d.usage = v
+		d.t = UsageDiscountType
 	default:
 		return fmt.Errorf("invalid Discount type: %s", serde.Type)
 	}
@@ -122,9 +137,30 @@ func (d *Discount) Validate() error {
 	switch d.t {
 	case PercentageDiscountType:
 		return d.percentage.Validate()
+	case UsageDiscountType:
+		return d.usage.Validate()
 	default:
 		return errors.New("invalid discount: not initialized")
 	}
+}
+
+func (d *Discount) ValidateForPrice(price *Price) error {
+	var errs []error
+
+	if err := d.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	switch d.t {
+	case PercentageDiscountType:
+		errs = append(errs, d.percentage.ValidateForPrice(price))
+	case UsageDiscountType:
+		errs = append(errs, d.usage.ValidateForPrice(price))
+	default:
+		errs = append(errs, errors.New("invalid discount: not initialized"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (d *Discount) Type() DiscountType {
@@ -143,18 +179,38 @@ func (d *Discount) AsPercentage() (PercentageDiscount, error) {
 	return *d.percentage, nil
 }
 
+func (d *Discount) AsUsage() (UsageDiscount, error) {
+	if d.t == "" || d.usage == nil {
+		return UsageDiscount{}, errors.New("invalid discount: not initialized")
+	}
+
+	if d.t != UsageDiscountType {
+		return UsageDiscount{}, fmt.Errorf("discount type mismatch: %s", d.t)
+	}
+
+	return *d.usage, nil
+}
+
 func (d *Discount) FromPercentage(discount PercentageDiscount) {
 	d.percentage = &discount
 	d.t = PercentageDiscountType
 }
 
-func NewDiscountFrom[T PercentageDiscount](v T) Discount {
+func (d *Discount) FromUsage(discount UsageDiscount) {
+	d.usage = &discount
+	d.t = UsageDiscountType
+}
+
+func NewDiscountFrom[T PercentageDiscount | UsageDiscount](v T) Discount {
 	d := Discount{}
 
 	switch any(v).(type) {
 	case PercentageDiscount:
 		percentage := any(v).(PercentageDiscount)
 		d.FromPercentage(percentage)
+	case UsageDiscount:
+		usage := any(v).(UsageDiscount)
+		d.FromUsage(usage)
 	}
 
 	return d
@@ -168,20 +224,12 @@ var (
 type PercentageDiscount struct {
 	// Percentage defines percentage of the discount.
 	Percentage models.Percentage `json:"percentage"`
-
-	// RateCards is the list of specific RateCard Keys the discount is applied to.
-	// If not provided the discount applies to all RateCards in Phase.
-	RateCards []string `json:"rateCards,omitempty"`
 }
 
 func (f PercentageDiscount) Hash() hasher.Hash {
 	var content string
 
 	content += f.Percentage.String()
-
-	for _, rateCardName := range f.RateCards {
-		content += rateCardName
-	}
 
 	return hasher.NewHash([]byte(content))
 }
@@ -191,6 +239,56 @@ func (f PercentageDiscount) Validate() error {
 
 	if f.Percentage.LessThan(decimal.Zero) || f.Percentage.GreaterThan(decimal.NewFromInt(100)) {
 		errs = append(errs, errors.New("discount percentage must be between 0 and 100"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (f PercentageDiscount) ValidateForPrice(price *Price) error {
+	return nil
+}
+
+var (
+	_ models.Validator = (*UsageDiscount)(nil)
+	_ hasher.Hasher    = (*UsageDiscount)(nil)
+)
+
+type UsageDiscount struct {
+	Quantity decimal.Decimal `json:"quantity"`
+}
+
+func (f UsageDiscount) Hash() hasher.Hash {
+	var content string
+
+	content += f.Quantity.String()
+
+	return hasher.NewHash([]byte(content))
+}
+
+func (f UsageDiscount) Validate() error {
+	var errs []error
+
+	if f.Quantity.LessThan(decimal.Zero) {
+		errs = append(errs, errors.New("usage must be greater than 0"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (f UsageDiscount) ValidateForPrice(price *Price) error {
+	var errs []error
+
+	if price == nil {
+		// We cannot validate usage discount without a price.
+		return errors.New("price is required for usage discount")
+	}
+
+	if price.Type() == FlatPriceType {
+		errs = append(errs, errors.New("usage discount is not supported for flat price"))
+	}
+
+	if price.Type() == DynamicPriceType {
+		errs = append(errs, errors.New("usage discount is not supported for dynamic price"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -234,4 +332,35 @@ func (d Discounts) Equal(v Discounts) bool {
 	}
 
 	return visited == len(rightSet)
+}
+
+func (d Discounts) ValidateForPrice(price *Price) error {
+	var errs []error
+
+	if len(d) == 0 {
+		return nil
+	}
+
+	sumPercentage := models.Percentage{}
+
+	for i, discount := range d {
+		if err := discount.ValidateForPrice(price); err != nil {
+			errs = append(errs, fmt.Errorf("discounts[%d]: %w", i, err))
+		}
+
+		if discount.Type() == PercentageDiscountType {
+			percentage, err := discount.AsPercentage()
+			if err != nil {
+				errs = append(errs, fmt.Errorf("discounts[%d]: %w", i, err))
+			}
+
+			sumPercentage = sumPercentage.Add(percentage.Percentage)
+		}
+	}
+
+	if sumPercentage.GreaterThan(decimal.NewFromInt(100)) {
+		errs = append(errs, errors.New("sum of percentage discounts cannot be greater than 100"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

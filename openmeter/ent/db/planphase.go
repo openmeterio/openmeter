@@ -46,7 +46,7 @@ type PlanPhase struct {
 	// Discounts holds the value of the "discounts" field.
 	//
 	// Deprecated: Use ratecards.discounts instead
-	Discounts []productcatalog.Discount `json:"discounts,omitempty"`
+	Discounts productcatalog.Discounts `json:"discounts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PlanPhaseQuery when eager-loading is set.
 	Edges        PlanPhaseEdges `json:"edges"`

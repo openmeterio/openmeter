@@ -110,7 +110,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all PlanPhase fields.
 	ValueScanner struct {
-		Discounts field.TypeValueScanner[[]productcatalog.Discount]
+		Discounts field.TypeValueScanner[productcatalog.Discounts]
 	}
 )
 

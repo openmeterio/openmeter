@@ -85,7 +85,7 @@ func (PlanPhase) Fields() []ent.Field {
 			Nillable().
 			Comment("The duration of the phase."),
 		field.String("discounts").
-			GoType([]productcatalog.Discount{}).
+			GoType(productcatalog.Discounts{}).
 			ValueScanner(DiscountsValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
@@ -178,6 +178,13 @@ func (PlanRateCard) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("The feature identifier the ratecard is related to."),
+		field.String("discounts").
+			GoType(productcatalog.Discounts{}).
+			ValueScanner(DiscountsValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
 	}
 }
 
@@ -214,7 +221,7 @@ var (
 	EntitlementTemplateValueScanner = entutils.JSONStringValueScanner[*productcatalog.EntitlementTemplate]()
 	TaxConfigValueScanner           = entutils.JSONStringValueScanner[*productcatalog.TaxConfig]()
 	PriceValueScanner               = entutils.JSONStringValueScanner[*productcatalog.Price]()
-	DiscountsValueScanner           = entutils.JSONStringValueScanner[[]productcatalog.Discount]()
+	DiscountsValueScanner           = entutils.JSONStringValueScanner[productcatalog.Discounts]()
 )
 
 // AlignmentMixin for Alignment config

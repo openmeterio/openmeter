@@ -34365,7 +34365,7 @@ type PlanPhaseMutation struct {
 	index            *uint8
 	addindex         *int8
 	duration         *isodate.String
-	discounts        *[]productcatalog.Discount
+	discounts        *productcatalog.Discounts
 	clearedFields    map[string]struct{}
 	plan             *string
 	clearedplan      bool
@@ -34950,12 +34950,12 @@ func (m *PlanPhaseMutation) ResetDuration() {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (m *PlanPhaseMutation) SetDiscounts(pr []productcatalog.Discount) {
+func (m *PlanPhaseMutation) SetDiscounts(pr productcatalog.Discounts) {
 	m.discounts = &pr
 }
 
 // Discounts returns the value of the "discounts" field in the mutation.
-func (m *PlanPhaseMutation) Discounts() (r []productcatalog.Discount, exists bool) {
+func (m *PlanPhaseMutation) Discounts() (r productcatalog.Discounts, exists bool) {
 	v := m.discounts
 	if v == nil {
 		return
@@ -34966,7 +34966,7 @@ func (m *PlanPhaseMutation) Discounts() (r []productcatalog.Discount, exists boo
 // OldDiscounts returns the old "discounts" field's value of the PlanPhase entity.
 // If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanPhaseMutation) OldDiscounts(ctx context.Context) (v []productcatalog.Discount, err error) {
+func (m *PlanPhaseMutation) OldDiscounts(ctx context.Context) (v productcatalog.Discounts, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldDiscounts is only allowed on UpdateOne operations")
 	}
@@ -35302,7 +35302,7 @@ func (m *PlanPhaseMutation) SetField(name string, value ent.Value) error {
 		m.SetDuration(v)
 		return nil
 	case planphase.FieldDiscounts:
-		v, ok := value.([]productcatalog.Discount)
+		v, ok := value.(productcatalog.Discounts)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -35567,6 +35567,7 @@ type PlanRateCardMutation struct {
 	tax_config           **productcatalog.TaxConfig
 	billing_cadence      *isodate.String
 	price                **productcatalog.Price
+	discounts            *productcatalog.Discounts
 	clearedFields        map[string]struct{}
 	phase                *string
 	clearedphase         bool
@@ -36374,6 +36375,55 @@ func (m *PlanRateCardMutation) ResetFeatureID() {
 	delete(m.clearedFields, planratecard.FieldFeatureID)
 }
 
+// SetDiscounts sets the "discounts" field.
+func (m *PlanRateCardMutation) SetDiscounts(pr productcatalog.Discounts) {
+	m.discounts = &pr
+}
+
+// Discounts returns the value of the "discounts" field in the mutation.
+func (m *PlanRateCardMutation) Discounts() (r productcatalog.Discounts, exists bool) {
+	v := m.discounts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiscounts returns the old "discounts" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldDiscounts(ctx context.Context) (v productcatalog.Discounts, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiscounts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiscounts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiscounts: %w", err)
+	}
+	return oldValue.Discounts, nil
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (m *PlanRateCardMutation) ClearDiscounts() {
+	m.discounts = nil
+	m.clearedFields[planratecard.FieldDiscounts] = struct{}{}
+}
+
+// DiscountsCleared returns if the "discounts" field was cleared in this mutation.
+func (m *PlanRateCardMutation) DiscountsCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldDiscounts]
+	return ok
+}
+
+// ResetDiscounts resets all changes to the "discounts" field.
+func (m *PlanRateCardMutation) ResetDiscounts() {
+	m.discounts = nil
+	delete(m.clearedFields, planratecard.FieldDiscounts)
+}
+
 // ClearPhase clears the "phase" edge to the PlanPhase entity.
 func (m *PlanRateCardMutation) ClearPhase() {
 	m.clearedphase = true
@@ -36475,7 +36525,7 @@ func (m *PlanRateCardMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanRateCardMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.namespace != nil {
 		fields = append(fields, planratecard.FieldNamespace)
 	}
@@ -36524,6 +36574,9 @@ func (m *PlanRateCardMutation) Fields() []string {
 	if m.features != nil {
 		fields = append(fields, planratecard.FieldFeatureID)
 	}
+	if m.discounts != nil {
+		fields = append(fields, planratecard.FieldDiscounts)
+	}
 	return fields
 }
 
@@ -36564,6 +36617,8 @@ func (m *PlanRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.PhaseID()
 	case planratecard.FieldFeatureID:
 		return m.FeatureID()
+	case planratecard.FieldDiscounts:
+		return m.Discounts()
 	}
 	return nil, false
 }
@@ -36605,6 +36660,8 @@ func (m *PlanRateCardMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldPhaseID(ctx)
 	case planratecard.FieldFeatureID:
 		return m.OldFeatureID(ctx)
+	case planratecard.FieldDiscounts:
+		return m.OldDiscounts(ctx)
 	}
 	return nil, fmt.Errorf("unknown PlanRateCard field %s", name)
 }
@@ -36726,6 +36783,13 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetFeatureID(v)
 		return nil
+	case planratecard.FieldDiscounts:
+		v, ok := value.(productcatalog.Discounts)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiscounts(v)
+		return nil
 	}
 	return fmt.Errorf("unknown PlanRateCard field %s", name)
 }
@@ -36783,6 +36847,9 @@ func (m *PlanRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(planratecard.FieldFeatureID) {
 		fields = append(fields, planratecard.FieldFeatureID)
 	}
+	if m.FieldCleared(planratecard.FieldDiscounts) {
+		fields = append(fields, planratecard.FieldDiscounts)
+	}
 	return fields
 }
 
@@ -36823,6 +36890,9 @@ func (m *PlanRateCardMutation) ClearField(name string) error {
 		return nil
 	case planratecard.FieldFeatureID:
 		m.ClearFeatureID()
+		return nil
+	case planratecard.FieldDiscounts:
+		m.ClearDiscounts()
 		return nil
 	}
 	return fmt.Errorf("unknown PlanRateCard nullable field %s", name)
@@ -36879,6 +36949,9 @@ func (m *PlanRateCardMutation) ResetField(name string) error {
 		return nil
 	case planratecard.FieldFeatureID:
 		m.ResetFeatureID()
+		return nil
+	case planratecard.FieldDiscounts:
+		m.ResetDiscounts()
 		return nil
 	}
 	return fmt.Errorf("unknown PlanRateCard field %s", name)

@@ -160,7 +160,7 @@ func (ppu *PlanPhaseUpdate) ClearDuration() *PlanPhaseUpdate {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (ppu *PlanPhaseUpdate) SetDiscounts(pr []productcatalog.Discount) *PlanPhaseUpdate {
+func (ppu *PlanPhaseUpdate) SetDiscounts(pr productcatalog.Discounts) *PlanPhaseUpdate {
 	ppu.mutation.SetDiscounts(pr)
 	return ppu
 }
@@ -552,7 +552,7 @@ func (ppuo *PlanPhaseUpdateOne) ClearDuration() *PlanPhaseUpdateOne {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (ppuo *PlanPhaseUpdateOne) SetDiscounts(pr []productcatalog.Discount) *PlanPhaseUpdateOne {
+func (ppuo *PlanPhaseUpdateOne) SetDiscounts(pr productcatalog.Discounts) *PlanPhaseUpdateOne {
 	ppuo.mutation.SetDiscounts(pr)
 	return ppuo
 }

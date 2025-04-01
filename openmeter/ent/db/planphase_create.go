@@ -134,7 +134,7 @@ func (ppc *PlanPhaseCreate) SetNillableDuration(i *isodate.String) *PlanPhaseCre
 }
 
 // SetDiscounts sets the "discounts" field.
-func (ppc *PlanPhaseCreate) SetDiscounts(pr []productcatalog.Discount) *PlanPhaseCreate {
+func (ppc *PlanPhaseCreate) SetDiscounts(pr productcatalog.Discounts) *PlanPhaseCreate {
 	ppc.mutation.SetDiscounts(pr)
 	return ppc
 }
@@ -562,7 +562,7 @@ func (u *PlanPhaseUpsert) ClearDuration() *PlanPhaseUpsert {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *PlanPhaseUpsert) SetDiscounts(v []productcatalog.Discount) *PlanPhaseUpsert {
+func (u *PlanPhaseUpsert) SetDiscounts(v productcatalog.Discounts) *PlanPhaseUpsert {
 	u.Set(planphase.FieldDiscounts, v)
 	return u
 }
@@ -784,7 +784,7 @@ func (u *PlanPhaseUpsertOne) ClearDuration() *PlanPhaseUpsertOne {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *PlanPhaseUpsertOne) SetDiscounts(v []productcatalog.Discount) *PlanPhaseUpsertOne {
+func (u *PlanPhaseUpsertOne) SetDiscounts(v productcatalog.Discounts) *PlanPhaseUpsertOne {
 	return u.Update(func(s *PlanPhaseUpsert) {
 		s.SetDiscounts(v)
 	})
@@ -1179,7 +1179,7 @@ func (u *PlanPhaseUpsertBulk) ClearDuration() *PlanPhaseUpsertBulk {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *PlanPhaseUpsertBulk) SetDiscounts(v []productcatalog.Discount) *PlanPhaseUpsertBulk {
+func (u *PlanPhaseUpsertBulk) SetDiscounts(v productcatalog.Discounts) *PlanPhaseUpsertBulk {
 	return u.Update(func(s *PlanPhaseUpsert) {
 		s.SetDiscounts(v)
 	})
