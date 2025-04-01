@@ -8028,7 +8028,7 @@ export interface components {
        */
       currency: components['schemas']['CurrencyCode']
     }
-    /** @description A subscription addon, a concrete instance of an addon. */
+    /** @description A subscription addon, a concrete instance of an addon for a given subscription. */
     SubscriptionAddon: {
       /**
        * ID
@@ -8102,6 +8102,11 @@ export interface components {
        */
       readonly addonId: string
       /**
+       * Quantity
+       * @description The quantity of the addon. Always 1 for single instance add-ons.
+       */
+      quantity: number
+      /**
        * InstanceType
        * @description The instanceType of the addon. Can be "single" or "multiple".
        */
@@ -8116,7 +8121,7 @@ export interface components {
        * Rate cards
        * @description The rate cards of the addon.
        */
-      readonly rateCards: components['schemas']['RateCard'][]
+      readonly rateCards: components['schemas']['SubscriptionAddonRateCard'][]
     }
     /** @description Resource create operation model. */
     SubscriptionAddonCreate: {
@@ -8152,6 +8157,24 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
+      /**
+       * Quantity
+       * @description The quantity of the addon. Always 1 for single instance add-ons.
+       */
+      quantity: number
+    }
+    /** @description A rate card for a subscription addon. */
+    SubscriptionAddonRateCard: {
+      /**
+       * Rate card
+       * @description The rate card.
+       */
+      rateCard: components['schemas']['RateCard']
+      /**
+       * Affected subscription item IDs
+       * @description The IDs of the subscription items that this rate card belongs to.
+       */
+      readonly affectedSubscriptionItemIds: string[]
     }
     /** @description Alignment details enriched with the current billing period. */
     SubscriptionAlignment: {
@@ -9447,6 +9470,8 @@ export type Subscription = components['schemas']['Subscription']
 export type SubscriptionAddon = components['schemas']['SubscriptionAddon']
 export type SubscriptionAddonCreate =
   components['schemas']['SubscriptionAddonCreate']
+export type SubscriptionAddonRateCard =
+  components['schemas']['SubscriptionAddonRateCard']
 export type SubscriptionAlignment =
   components['schemas']['SubscriptionAlignment']
 export type SubscriptionChange = components['schemas']['SubscriptionChange']

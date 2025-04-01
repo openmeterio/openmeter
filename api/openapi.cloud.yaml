@@ -18509,6 +18509,7 @@ components:
         - activeFrom
         - version
         - addonId
+        - quantity
         - instanceType
         - subscriptionId
         - rateCards
@@ -18590,6 +18591,10 @@ components:
           example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: AddonID
           readOnly: true
+        quantity:
+          type: integer
+          description: The quantity of the addon. Always 1 for single instance add-ons.
+          title: Quantity
         instanceType:
           allOf:
             - $ref: '#/components/schemas/AddonInstanceType'
@@ -18606,17 +18611,18 @@ components:
         rateCards:
           type: array
           items:
-            $ref: '#/components/schemas/RateCard'
+            $ref: '#/components/schemas/SubscriptionAddonRateCard'
           description: The rate cards of the addon.
           title: Rate cards
           readOnly: true
-      description: A subscription addon, a concrete instance of an addon.
+      description: A subscription addon, a concrete instance of an addon for a given subscription.
     SubscriptionAddonCreate:
       type: object
       required:
         - name
         - key
         - activeFrom
+        - quantity
       properties:
         name:
           type: string
@@ -18653,7 +18659,33 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
+        quantity:
+          type: integer
+          description: The quantity of the addon. Always 1 for single instance add-ons.
+          title: Quantity
       description: Resource create operation model.
+    SubscriptionAddonRateCard:
+      type: object
+      required:
+        - rateCard
+        - affectedSubscriptionItemIds
+      properties:
+        rateCard:
+          allOf:
+            - $ref: '#/components/schemas/RateCard'
+          description: The rate card.
+          title: Rate card
+        affectedSubscriptionItemIds:
+          type: array
+          items:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            description: ULID (Universally Unique Lexicographically Sortable Identifier).
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+          description: The IDs of the subscription items that this rate card belongs to.
+          title: Affected subscription item IDs
+          readOnly: true
+      description: A rate card for a subscription addon.
     SubscriptionAlignment:
       type: object
       properties:
