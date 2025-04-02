@@ -45,12 +45,12 @@ const (
 	FieldBillingCadence = "billing_cadence"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
+	// FieldDiscounts holds the string denoting the discounts field in the database.
+	FieldDiscounts = "discounts"
 	// FieldPhaseID holds the string denoting the phase_id field in the database.
 	FieldPhaseID = "phase_id"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
 	FieldFeatureID = "feature_id"
-	// FieldDiscounts holds the string denoting the discounts field in the database.
-	FieldDiscounts = "discounts"
 	// EdgePhase holds the string denoting the phase edge name in mutations.
 	EdgePhase = "phase"
 	// EdgeFeatures holds the string denoting the features edge name in mutations.
@@ -90,9 +90,9 @@ var Columns = []string{
 	FieldTaxConfig,
 	FieldBillingCadence,
 	FieldPrice,
+	FieldDiscounts,
 	FieldPhaseID,
 	FieldFeatureID,
-	FieldDiscounts,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -212,6 +212,11 @@ func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrice, opts...).ToFunc()
 }
 
+// ByDiscounts orders the results by the discounts field.
+func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
+}
+
 // ByPhaseID orders the results by the phase_id field.
 func ByPhaseID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPhaseID, opts...).ToFunc()
@@ -220,11 +225,6 @@ func ByPhaseID(opts ...sql.OrderTermOption) OrderOption {
 // ByFeatureID orders the results by the feature_id field.
 func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
-}
-
-// ByDiscounts orders the results by the discounts field.
-func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
 }
 
 // ByPhaseField orders the results by phase field.

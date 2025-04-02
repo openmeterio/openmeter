@@ -1143,21 +1143,21 @@ func init() {
 	// planratecard.KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	planratecard.KeyValidator = planratecardDescKey.Validators[0].(func(string) error)
 	// planratecardDescEntitlementTemplate is the schema descriptor for entitlement_template field.
-	planratecardDescEntitlementTemplate := planratecardFields[2].Descriptor()
+	planratecardDescEntitlementTemplate := planratecardMixinFields1[2].Descriptor()
 	planratecard.ValueScanner.EntitlementTemplate = planratecardDescEntitlementTemplate.ValueScanner.(field.TypeValueScanner[*productcatalog.EntitlementTemplate])
 	// planratecardDescTaxConfig is the schema descriptor for tax_config field.
-	planratecardDescTaxConfig := planratecardFields[3].Descriptor()
+	planratecardDescTaxConfig := planratecardMixinFields1[3].Descriptor()
 	planratecard.ValueScanner.TaxConfig = planratecardDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
 	// planratecardDescPrice is the schema descriptor for price field.
-	planratecardDescPrice := planratecardFields[5].Descriptor()
+	planratecardDescPrice := planratecardMixinFields1[5].Descriptor()
 	planratecard.ValueScanner.Price = planratecardDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// planratecardDescDiscounts is the schema descriptor for discounts field.
+	planratecardDescDiscounts := planratecardMixinFields1[6].Descriptor()
+	planratecard.ValueScanner.Discounts = planratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// planratecardDescPhaseID is the schema descriptor for phase_id field.
-	planratecardDescPhaseID := planratecardFields[6].Descriptor()
+	planratecardDescPhaseID := planratecardFields[0].Descriptor()
 	// planratecard.PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.
 	planratecard.PhaseIDValidator = planratecardDescPhaseID.Validators[0].(func(string) error)
-	// planratecardDescDiscounts is the schema descriptor for discounts field.
-	planratecardDescDiscounts := planratecardFields[8].Descriptor()
-	planratecard.ValueScanner.Discounts = planratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// planratecardDescID is the schema descriptor for id field.
 	planratecardDescID := planratecardMixinFields0[0].Descriptor()
 	// planratecard.DefaultID holds the default value on creation for the id field.

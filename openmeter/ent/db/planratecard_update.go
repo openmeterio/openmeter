@@ -180,6 +180,18 @@ func (prcu *PlanRateCardUpdate) ClearPrice() *PlanRateCardUpdate {
 	return prcu
 }
 
+// SetDiscounts sets the "discounts" field.
+func (prcu *PlanRateCardUpdate) SetDiscounts(pr *productcatalog.Discounts) *PlanRateCardUpdate {
+	prcu.mutation.SetDiscounts(pr)
+	return prcu
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (prcu *PlanRateCardUpdate) ClearDiscounts() *PlanRateCardUpdate {
+	prcu.mutation.ClearDiscounts()
+	return prcu
+}
+
 // SetPhaseID sets the "phase_id" field.
 func (prcu *PlanRateCardUpdate) SetPhaseID(s string) *PlanRateCardUpdate {
 	prcu.mutation.SetPhaseID(s)
@@ -211,18 +223,6 @@ func (prcu *PlanRateCardUpdate) SetNillableFeatureID(s *string) *PlanRateCardUpd
 // ClearFeatureID clears the value of the "feature_id" field.
 func (prcu *PlanRateCardUpdate) ClearFeatureID() *PlanRateCardUpdate {
 	prcu.mutation.ClearFeatureID()
-	return prcu
-}
-
-// SetDiscounts sets the "discounts" field.
-func (prcu *PlanRateCardUpdate) SetDiscounts(pr *productcatalog.Discounts) *PlanRateCardUpdate {
-	prcu.mutation.SetDiscounts(pr)
-	return prcu
-}
-
-// ClearDiscounts clears the value of the "discounts" field.
-func (prcu *PlanRateCardUpdate) ClearDiscounts() *PlanRateCardUpdate {
-	prcu.mutation.ClearDiscounts()
 	return prcu
 }
 
@@ -645,6 +645,18 @@ func (prcuo *PlanRateCardUpdateOne) ClearPrice() *PlanRateCardUpdateOne {
 	return prcuo
 }
 
+// SetDiscounts sets the "discounts" field.
+func (prcuo *PlanRateCardUpdateOne) SetDiscounts(pr *productcatalog.Discounts) *PlanRateCardUpdateOne {
+	prcuo.mutation.SetDiscounts(pr)
+	return prcuo
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (prcuo *PlanRateCardUpdateOne) ClearDiscounts() *PlanRateCardUpdateOne {
+	prcuo.mutation.ClearDiscounts()
+	return prcuo
+}
+
 // SetPhaseID sets the "phase_id" field.
 func (prcuo *PlanRateCardUpdateOne) SetPhaseID(s string) *PlanRateCardUpdateOne {
 	prcuo.mutation.SetPhaseID(s)
@@ -676,18 +688,6 @@ func (prcuo *PlanRateCardUpdateOne) SetNillableFeatureID(s *string) *PlanRateCar
 // ClearFeatureID clears the value of the "feature_id" field.
 func (prcuo *PlanRateCardUpdateOne) ClearFeatureID() *PlanRateCardUpdateOne {
 	prcuo.mutation.ClearFeatureID()
-	return prcuo
-}
-
-// SetDiscounts sets the "discounts" field.
-func (prcuo *PlanRateCardUpdateOne) SetDiscounts(pr *productcatalog.Discounts) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetDiscounts(pr)
-	return prcuo
-}
-
-// ClearDiscounts clears the value of the "discounts" field.
-func (prcuo *PlanRateCardUpdateOne) ClearDiscounts() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearDiscounts()
 	return prcuo
 }
 
