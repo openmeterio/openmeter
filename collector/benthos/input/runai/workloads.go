@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/samber/lo"
 )
 
 // TODO: add fields as needed, see: https://api-docs.run.ai/latest/tag/Workloads#operation/get_workloads
@@ -81,8 +83,6 @@ func (s *Service) ListWorkloads(ctx context.Context, params ListWorkloadParams) 
 		SetQueryParams(map[string]string{
 			"limit":  fmt.Sprintf("%d", params.Limit),
 			"offset": fmt.Sprintf("%d", params.Offset),
-			// Matches phases: Creating, Initializing, Resuming, Pending, Deleting, Running, Updating, Stopping, Terminating
-			"filterBy": "phase=$ing",
 		}).
 		SetResult(&ListWorkloadsResponse{}).
 		Get("/api/v1/workloads")
@@ -95,6 +95,11 @@ func (s *Service) ListWorkloads(ctx context.Context, params ListWorkloadParams) 
 	}
 
 	result := resp.Result().(*ListWorkloadsResponse)
+
+	// Filter out workloads where running pod count is 0
+	result.Workloads = lo.Filter(result.Workloads, func(w Workload, _ int) bool {
+		return w.RunningPods > 0
+	})
 
 	j, err := json.Marshal(result)
 	if err == nil {
