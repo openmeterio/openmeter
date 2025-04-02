@@ -365,6 +365,22 @@ func (c RateCards) Billables() RateCards {
 	return billables
 }
 
+func (c RateCards) IsAligned() bool {
+	periods := make(map[isodate.String]struct{})
+
+	for _, rc := range c {
+		// An effective price of 0 is still counted as a billable item
+		if rc.AsMeta().Price != nil {
+			// One time prices are excluded
+			if d := rc.GetBillingCadence(); d != nil {
+				periods[d.Normalise(true).ISOString()] = struct{}{}
+			}
+		}
+	}
+
+	return len(periods) <= 1
+}
+
 func (c RateCards) Equal(v RateCards) bool {
 	if len(c) != len(v) {
 		return false
@@ -399,4 +415,16 @@ func (c RateCards) Equal(v RateCards) bool {
 	}
 
 	return visited == len(rightSet)
+}
+
+func (c RateCards) Validate() error {
+	var errs []error
+
+	for _, rc := range c {
+		if err := rc.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
