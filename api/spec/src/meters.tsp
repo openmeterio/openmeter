@@ -10,6 +10,40 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
 
+/**
+ * Query params for listing meters.
+ */
+@friendlyName("queryMeterList")
+model ListMetersParams {
+  ...QueryPagination;
+
+  /**
+   * Order meters by.
+   * @TODO: set default value to MeterOrderBy.key
+   */
+  ...OpenMeter.QueryOrdering<MeterOrderBy>;
+
+  /**
+   * Include deleted meters.
+   */
+  @query
+  includeDeleted?: boolean = false;
+}
+
+/**
+ * Order by options for meters.
+ */
+@friendlyName("MeterOrderBy")
+enum MeterOrderBy {
+  Key: "key",
+  Name: "name",
+  Aggregation: "aggregation",
+  #suppress "@openmeter/api-spec/casing" "Use existing values"
+  CreatedAt: "createdAt",
+  #suppress "@openmeter/api-spec/casing" "Use existing values"
+  UpdatedAt: "updatedAt",
+}
+
 @route("/api/v1/meters")
 @tag("Meters")
 interface Meters {
@@ -19,7 +53,7 @@ interface Meters {
   @get
   @operationId("listMeters")
   @summary("List meters")
-  list(): Meter[] | CommonErrors;
+  list(...ListMetersParams): Meter[] | CommonErrors;
 
   /**
    * Get a meter by ID or slug.

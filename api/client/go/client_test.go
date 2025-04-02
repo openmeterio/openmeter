@@ -186,7 +186,7 @@ func TestListMeters(t *testing.T) {
 	om, err := NewClientWithResponses(server.URL)
 	assert.NoError(t, err)
 
-	resp, err := om.ListMetersWithResponse(ctx)
+	resp, err := om.ListMetersWithResponse(ctx, &ListMetersParams{})
 	assert.NoError(t, err)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode())

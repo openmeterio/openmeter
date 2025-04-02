@@ -4674,7 +4674,12 @@ paths:
       operationId: listMeters
       summary: List meters
       description: List meters.
-      parameters: []
+      parameters:
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
+        - $ref: '#/components/parameters/MeterOrderByOrdering.order'
+        - $ref: '#/components/parameters/MeterOrderByOrdering.orderBy'
+        - $ref: '#/components/parameters/queryMeterList.includeDeleted'
       responses:
         '200':
           description: The request has succeeded.
@@ -9472,6 +9477,25 @@ components:
       description: The type of the app to install.
       schema:
         $ref: '#/components/schemas/AppType'
+    MeterOrderByOrdering.order:
+      name: order
+      in: query
+      required: false
+      description: The order direction.
+      schema:
+        $ref: '#/components/schemas/SortOrder'
+        default: ASC
+      explode: false
+      style: form
+    MeterOrderByOrdering.orderBy:
+      name: orderBy
+      in: query
+      required: false
+      description: The order by field.
+      schema:
+        $ref: '#/components/schemas/MeterOrderBy'
+      explode: false
+      style: form
     MeterQuery.clientId:
       name: clientId
       in: query
@@ -9815,6 +9839,16 @@ components:
       description: Filter customer data by app type.
       schema:
         $ref: '#/components/schemas/AppType'
+      explode: false
+      style: form
+    queryMeterList.includeDeleted:
+      name: includeDeleted
+      in: query
+      required: false
+      description: Include deleted meters.
+      schema:
+        type: boolean
+        default: false
       explode: false
       style: form
   schemas:
@@ -13097,6 +13131,8 @@ components:
       type: string
       enum:
         - id
+        - key
+        - name
         - createdAt
         - updatedAt
       description: Order by options for features.
@@ -15497,6 +15533,15 @@ components:
         groupBy:
           model: $.model
           type: $.type
+    MeterOrderBy:
+      type: string
+      enum:
+        - key
+        - name
+        - aggregation
+        - createdAt
+        - updatedAt
+      description: Order by options for meters.
     MeterQueryResult:
       type: object
       required:

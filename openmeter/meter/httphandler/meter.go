@@ -14,13 +14,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 const limit = 1000
 
 type (
-	// TODO: update when meter pagination is implemented
-	ListMetersParams   = interface{}
+	ListMetersParams   = api.ListMetersParams
 	ListMetersResponse = []api.Meter
 	ListMetersHandler  httptransport.HandlerWithArgs[ListMetersRequest, ListMetersResponse, ListMetersParams]
 )
@@ -28,6 +28,8 @@ type (
 type ListMetersRequest struct {
 	namespace      string
 	page           pagination.Page
+	orderBy        meter.OrderBy
+	order          sortx.Order
 	includeDeleted bool
 }
 
@@ -44,7 +46,9 @@ func (h *handler) ListMeters() ListMetersHandler {
 				namespace: ns,
 				// TODO: update when meter pagination is implemented
 				page:           pagination.NewPage(1, limit),
-				includeDeleted: true,
+				includeDeleted: lo.FromPtrOr(params.IncludeDeleted, false),
+				orderBy:        meter.OrderBy(lo.FromPtrOr(params.OrderBy, api.MeterOrderByKey)),
+				order:          sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderASC)),
 			}, nil
 		},
 		func(ctx context.Context, request ListMetersRequest) (ListMetersResponse, error) {
@@ -56,6 +60,8 @@ func (h *handler) ListMeters() ListMetersHandler {
 				Namespace:      request.namespace,
 				Page:           request.page,
 				IncludeDeleted: request.includeDeleted,
+				OrderBy:        request.orderBy,
+				Order:          request.order,
 			})
 			if err != nil {
 				return ListMetersResponse{}, fmt.Errorf("failed to list meters: %w", err)

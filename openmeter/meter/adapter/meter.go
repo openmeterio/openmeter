@@ -4,21 +4,27 @@ import (
 	"context"
 	"fmt"
 
+	"entgo.io/ent/dialect/sql"
+
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 // ListMeters returns a list of meters.
 func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams) (pagination.PagedResponse[meter.Meter], error) {
+	// Validate parameters
 	if err := params.Validate(); err != nil {
 		return pagination.PagedResponse[meter.Meter]{}, models.NewGenericValidationError(err)
 	}
 
+	// Start database query
 	query := a.db.Meter.Query()
 
+	// Filtering
 	if !params.WithoutNamespace {
 		query = query.
 			Where(meterdb.NamespaceEQ(params.Namespace))
@@ -32,11 +38,36 @@ func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams)
 		query = query.Where(meterdb.KeyIn(*params.SlugFilter...))
 	}
 
+	// Ordering
+	if params.Order != "" {
+		order := []sql.OrderTermOption{}
+		if !params.Order.IsDefaultValue() {
+			order = entutils.GetOrdering(params.Order)
+		}
+
+		switch params.OrderBy {
+		case meter.OrderByKey:
+			query = query.Order(meterdb.ByKey(order...))
+		case meter.OrderByName:
+			query = query.Order(meterdb.ByName(order...))
+		case meter.OrderByAggregation:
+			query = query.Order(meterdb.ByAggregation(order...))
+		case meter.OrderByCreatedAt:
+			query = query.Order(meterdb.ByCreatedAt(order...))
+		case meter.OrderByUpdatedAt:
+			query = query.Order(meterdb.ByUpdatedAt(order...))
+		default:
+			query = query.Order(meterdb.ByCreatedAt(order...))
+		}
+	}
+
+	// Pagination
 	entities, err := query.Paginate(ctx, params.Page)
 	if err != nil {
 		return pagination.PagedResponse[meter.Meter]{}, err
 	}
 
+	// Map to response
 	resp, err := pagination.MapPagedResponseError(entities, MapFromEntityFactory)
 	if err != nil {
 		return pagination.PagedResponse[meter.Meter]{}, fmt.Errorf("failed to map meters: %w", err)

@@ -127,6 +127,28 @@ func WindowSizeFromDuration(duration time.Duration) (WindowSize, error) {
 	}
 }
 
+// OrderBy is the order by clause for features
+type OrderBy string
+
+const (
+	OrderByKey         OrderBy = "key"
+	OrderByName        OrderBy = "name"
+	OrderByAggregation OrderBy = "aggregation"
+	OrderByCreatedAt   OrderBy = "createdAt"
+	OrderByUpdatedAt   OrderBy = "updatedAt"
+)
+
+func (f OrderBy) Values() []OrderBy {
+	return []OrderBy{
+		OrderByKey,
+		OrderByName,
+		OrderByAggregation,
+		OrderByCreatedAt,
+		OrderByUpdatedAt,
+	}
+}
+
+// Meter is the meter model
 type Meter struct {
 	models.ManagedResource `mapstructure:",squash"`
 
