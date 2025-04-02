@@ -159,6 +159,12 @@ func (prcc *PlanRateCardCreate) SetPrice(pr *productcatalog.Price) *PlanRateCard
 	return prcc
 }
 
+// SetDiscounts sets the "discounts" field.
+func (prcc *PlanRateCardCreate) SetDiscounts(pr *productcatalog.Discounts) *PlanRateCardCreate {
+	prcc.mutation.SetDiscounts(pr)
+	return prcc
+}
+
 // SetPhaseID sets the "phase_id" field.
 func (prcc *PlanRateCardCreate) SetPhaseID(s string) *PlanRateCardCreate {
 	prcc.mutation.SetPhaseID(s)
@@ -176,12 +182,6 @@ func (prcc *PlanRateCardCreate) SetNillableFeatureID(s *string) *PlanRateCardCre
 	if s != nil {
 		prcc.SetFeatureID(*s)
 	}
-	return prcc
-}
-
-// SetDiscounts sets the "discounts" field.
-func (prcc *PlanRateCardCreate) SetDiscounts(pr *productcatalog.Discounts) *PlanRateCardCreate {
-	prcc.mutation.SetDiscounts(pr)
 	return prcc
 }
 
@@ -702,6 +702,24 @@ func (u *PlanRateCardUpsert) ClearPrice() *PlanRateCardUpsert {
 	return u
 }
 
+// SetDiscounts sets the "discounts" field.
+func (u *PlanRateCardUpsert) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpsert {
+	u.Set(planratecard.FieldDiscounts, v)
+	return u
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *PlanRateCardUpsert) UpdateDiscounts() *PlanRateCardUpsert {
+	u.SetExcluded(planratecard.FieldDiscounts)
+	return u
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *PlanRateCardUpsert) ClearDiscounts() *PlanRateCardUpsert {
+	u.SetNull(planratecard.FieldDiscounts)
+	return u
+}
+
 // SetPhaseID sets the "phase_id" field.
 func (u *PlanRateCardUpsert) SetPhaseID(v string) *PlanRateCardUpsert {
 	u.Set(planratecard.FieldPhaseID, v)
@@ -729,24 +747,6 @@ func (u *PlanRateCardUpsert) UpdateFeatureID() *PlanRateCardUpsert {
 // ClearFeatureID clears the value of the "feature_id" field.
 func (u *PlanRateCardUpsert) ClearFeatureID() *PlanRateCardUpsert {
 	u.SetNull(planratecard.FieldFeatureID)
-	return u
-}
-
-// SetDiscounts sets the "discounts" field.
-func (u *PlanRateCardUpsert) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpsert {
-	u.Set(planratecard.FieldDiscounts, v)
-	return u
-}
-
-// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
-func (u *PlanRateCardUpsert) UpdateDiscounts() *PlanRateCardUpsert {
-	u.SetExcluded(planratecard.FieldDiscounts)
-	return u
-}
-
-// ClearDiscounts clears the value of the "discounts" field.
-func (u *PlanRateCardUpsert) ClearDiscounts() *PlanRateCardUpsert {
-	u.SetNull(planratecard.FieldDiscounts)
 	return u
 }
 
@@ -1006,6 +1006,27 @@ func (u *PlanRateCardUpsertOne) ClearPrice() *PlanRateCardUpsertOne {
 	})
 }
 
+// SetDiscounts sets the "discounts" field.
+func (u *PlanRateCardUpsertOne) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetDiscounts(v)
+	})
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *PlanRateCardUpsertOne) UpdateDiscounts() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateDiscounts()
+	})
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *PlanRateCardUpsertOne) ClearDiscounts() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearDiscounts()
+	})
+}
+
 // SetPhaseID sets the "phase_id" field.
 func (u *PlanRateCardUpsertOne) SetPhaseID(v string) *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
@@ -1038,27 +1059,6 @@ func (u *PlanRateCardUpsertOne) UpdateFeatureID() *PlanRateCardUpsertOne {
 func (u *PlanRateCardUpsertOne) ClearFeatureID() *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.ClearFeatureID()
-	})
-}
-
-// SetDiscounts sets the "discounts" field.
-func (u *PlanRateCardUpsertOne) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpsertOne {
-	return u.Update(func(s *PlanRateCardUpsert) {
-		s.SetDiscounts(v)
-	})
-}
-
-// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
-func (u *PlanRateCardUpsertOne) UpdateDiscounts() *PlanRateCardUpsertOne {
-	return u.Update(func(s *PlanRateCardUpsert) {
-		s.UpdateDiscounts()
-	})
-}
-
-// ClearDiscounts clears the value of the "discounts" field.
-func (u *PlanRateCardUpsertOne) ClearDiscounts() *PlanRateCardUpsertOne {
-	return u.Update(func(s *PlanRateCardUpsert) {
-		s.ClearDiscounts()
 	})
 }
 
@@ -1488,6 +1488,27 @@ func (u *PlanRateCardUpsertBulk) ClearPrice() *PlanRateCardUpsertBulk {
 	})
 }
 
+// SetDiscounts sets the "discounts" field.
+func (u *PlanRateCardUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetDiscounts(v)
+	})
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *PlanRateCardUpsertBulk) UpdateDiscounts() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateDiscounts()
+	})
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *PlanRateCardUpsertBulk) ClearDiscounts() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearDiscounts()
+	})
+}
+
 // SetPhaseID sets the "phase_id" field.
 func (u *PlanRateCardUpsertBulk) SetPhaseID(v string) *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
@@ -1520,27 +1541,6 @@ func (u *PlanRateCardUpsertBulk) UpdateFeatureID() *PlanRateCardUpsertBulk {
 func (u *PlanRateCardUpsertBulk) ClearFeatureID() *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.ClearFeatureID()
-	})
-}
-
-// SetDiscounts sets the "discounts" field.
-func (u *PlanRateCardUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpsertBulk {
-	return u.Update(func(s *PlanRateCardUpsert) {
-		s.SetDiscounts(v)
-	})
-}
-
-// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
-func (u *PlanRateCardUpsertBulk) UpdateDiscounts() *PlanRateCardUpsertBulk {
-	return u.Update(func(s *PlanRateCardUpsert) {
-		s.UpdateDiscounts()
-	})
-}
-
-// ClearDiscounts clears the value of the "discounts" field.
-func (u *PlanRateCardUpsertBulk) ClearDiscounts() *PlanRateCardUpsertBulk {
-	return u.Update(func(s *PlanRateCardUpsert) {
-		s.ClearDiscounts()
 	})
 }
 

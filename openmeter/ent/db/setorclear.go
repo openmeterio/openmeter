@@ -2337,20 +2337,6 @@ func (u *PlanRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *P
 	return u.SetPrice(*value)
 }
 
-func (u *PlanRateCardUpdate) SetOrClearFeatureID(value *string) *PlanRateCardUpdate {
-	if value == nil {
-		return u.ClearFeatureID()
-	}
-	return u.SetFeatureID(*value)
-}
-
-func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCardUpdateOne {
-	if value == nil {
-		return u.ClearFeatureID()
-	}
-	return u.SetFeatureID(*value)
-}
-
 func (u *PlanRateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -2363,6 +2349,20 @@ func (u *PlanRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Disco
 		return u.ClearDiscounts()
 	}
 	return u.SetDiscounts(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearFeatureID(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
 }
 
 func (u *SubscriptionUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionUpdate {

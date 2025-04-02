@@ -762,6 +762,16 @@ func PriceNotNil() predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldNotNull(FieldPrice))
 }
 
+// DiscountsIsNil applies the IsNil predicate on the "discounts" field.
+func DiscountsIsNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldIsNull(FieldDiscounts))
+}
+
+// DiscountsNotNil applies the NotNil predicate on the "discounts" field.
+func DiscountsNotNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNotNull(FieldDiscounts))
+}
+
 // PhaseIDEQ applies the EQ predicate on the "phase_id" field.
 func PhaseIDEQ(v string) predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldEQ(FieldPhaseID, v))
@@ -900,16 +910,6 @@ func FeatureIDEqualFold(v string) predicate.PlanRateCard {
 // FeatureIDContainsFold applies the ContainsFold predicate on the "feature_id" field.
 func FeatureIDContainsFold(v string) predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldContainsFold(FieldFeatureID, v))
-}
-
-// DiscountsIsNil applies the IsNil predicate on the "discounts" field.
-func DiscountsIsNil() predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldIsNull(FieldDiscounts))
-}
-
-// DiscountsNotNil applies the NotNil predicate on the "discounts" field.
-func DiscountsNotNil() predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldNotNull(FieldDiscounts))
 }
 
 // HasPhase applies the HasEdge predicate on the "phase" edge.

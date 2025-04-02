@@ -50,12 +50,12 @@ type PlanRateCard struct {
 	BillingCadence *isodate.String `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
+	// Discounts holds the value of the "discounts" field.
+	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// The phase identifier the ratecard is assigned to.
 	PhaseID string `json:"phase_id,omitempty"`
 	// The feature identifier the ratecard is related to.
 	FeatureID *string `json:"feature_id,omitempty"`
-	// Discounts holds the value of the "discounts" field.
-	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PlanRateCardQuery when eager-loading is set.
 	Edges        PlanRateCardEdges `json:"edges"`
@@ -225,6 +225,12 @@ func (prc *PlanRateCard) assignValues(columns []string, values []any) error {
 			} else {
 				prc.Price = value
 			}
+		case planratecard.FieldDiscounts:
+			if value, err := planratecard.ValueScanner.Discounts.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				prc.Discounts = value
+			}
 		case planratecard.FieldPhaseID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field phase_id", values[i])
@@ -237,12 +243,6 @@ func (prc *PlanRateCard) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				prc.FeatureID = new(string)
 				*prc.FeatureID = value.String
-			}
-		case planratecard.FieldDiscounts:
-			if value, err := planratecard.ValueScanner.Discounts.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				prc.Discounts = value
 			}
 		default:
 			prc.selectValues.Set(columns[i], values[i])
@@ -346,17 +346,17 @@ func (prc *PlanRateCard) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
+	if v := prc.Discounts; v != nil {
+		builder.WriteString("discounts=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
 	builder.WriteString("phase_id=")
 	builder.WriteString(prc.PhaseID)
 	builder.WriteString(", ")
 	if v := prc.FeatureID; v != nil {
 		builder.WriteString("feature_id=")
 		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := prc.Discounts; v != nil {
-		builder.WriteString("discounts=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')
 	return builder.String()
