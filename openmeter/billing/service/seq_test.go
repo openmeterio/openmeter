@@ -14,4 +14,8 @@ func TestCustomerPrefix(t *testing.T) {
 
 	require.Equal(t, "PETU", getCustomerPrefix("Peter Turi"))
 	require.Equal(t, "PTU", getCustomerPrefix("P Turi"))
+
+	require.Equal(t, "LIHO", getCustomerPrefix("Líb Hosted"))
+	require.Equal(t, "ABOR", getCustomerPrefix("Ábel Őri"))
+	require.Equal(t, "PETU", getCustomerPrefix("Péter Túri"))
 }

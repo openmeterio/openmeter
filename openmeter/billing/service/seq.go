@@ -6,6 +6,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/gosimple/unidecode"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -54,7 +56,9 @@ func (s *Service) GenerateInvoiceSequenceNumber(ctx context.Context, in billing.
 }
 
 func getCustomerPrefix(name string) string {
-	components := strings.Split(strings.ToUpper(name), " ")
+	asciiName := unidecode.Unidecode(name)
+
+	components := strings.Split(strings.ToUpper(asciiName), " ")
 	if len(components) == 0 || (len(components) == 1 && components[0] == "") {
 		return "UNKN"
 	}
