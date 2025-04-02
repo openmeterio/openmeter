@@ -14,6 +14,8 @@ namespace OpenMeter.Entitlements;
 @friendlyName("FeatureOrderBy")
 enum FeatureOrderBy {
   ID: "id",
+  Key: "key",
+  Name: "name",
   #suppress "@openmeter/api-spec/casing" "Use existing values"
   CreatedAt: "createdAt",
   #suppress "@openmeter/api-spec/casing" "Use existing values"

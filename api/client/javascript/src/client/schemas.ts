@@ -4356,7 +4356,7 @@ export interface components {
      * @description Order by options for features.
      * @enum {string}
      */
-    FeatureOrderBy: 'id' | 'createdAt' | 'updatedAt'
+    FeatureOrderBy: 'id' | 'key' | 'name' | 'createdAt' | 'updatedAt'
     /** @description Paginated response */
     FeaturePaginatedResponse: {
       /**
@@ -5964,6 +5964,11 @@ export interface components {
         [key: string]: string
       }
     }
+    /**
+     * @description Order by options for meters.
+     * @enum {string}
+     */
+    MeterOrderBy: 'key' | 'name' | 'aggregation' | 'createdAt' | 'updatedAt'
     /**
      * @description The result of a meter query.
      * @example {
@@ -8518,6 +8523,10 @@ export interface components {
     'MarketplaceApiKeyInstallRequest.type': components['schemas']['AppType']
     /** @description The type of the app to install. */
     'MarketplaceOAuth2InstallAuthorizeRequest.type': components['schemas']['AppType']
+    /** @description The order direction. */
+    'MeterOrderByOrdering.order': components['schemas']['SortOrder']
+    /** @description The order by field. */
+    'MeterOrderByOrdering.orderBy': components['schemas']['MeterOrderBy']
     /** @description Client ID
      *     Useful to track progress of a query. */
     'MeterQuery.clientId': string
@@ -8618,6 +8627,8 @@ export interface components {
     'queryCustomerList.subject': string
     /** @description Filter customer data by app type. */
     'queryCustomerList.type': components['schemas']['AppType']
+    /** @description Include deleted meters. */
+    'queryMeterList.includeDeleted': boolean
   }
   requestBodies: never
   headers: never
@@ -8917,6 +8928,7 @@ export type Metadata = components['schemas']['Metadata']
 export type Meter = components['schemas']['Meter']
 export type MeterAggregation = components['schemas']['MeterAggregation']
 export type MeterCreate = components['schemas']['MeterCreate']
+export type MeterOrderBy = components['schemas']['MeterOrderBy']
 export type MeterQueryResult = components['schemas']['MeterQueryResult']
 export type MeterQueryRow = components['schemas']['MeterQueryRow']
 export type MeterUpdate = components['schemas']['MeterUpdate']
@@ -9176,6 +9188,10 @@ export type ParameterMarketplaceApiKeyInstallRequestType =
   components['parameters']['MarketplaceApiKeyInstallRequest.type']
 export type ParameterMarketplaceOAuth2InstallAuthorizeRequestType =
   components['parameters']['MarketplaceOAuth2InstallAuthorizeRequest.type']
+export type ParameterMeterOrderByOrderingOrder =
+  components['parameters']['MeterOrderByOrdering.order']
+export type ParameterMeterOrderByOrderingOrderBy =
+  components['parameters']['MeterOrderByOrdering.orderBy']
 export type ParameterMeterQueryClientId =
   components['parameters']['MeterQuery.clientId']
 export type ParameterMeterQueryFilterGroupBy =
@@ -9235,6 +9251,8 @@ export type ParameterQueryCustomerListSubject =
   components['parameters']['queryCustomerList.subject']
 export type ParameterQueryCustomerListType =
   components['parameters']['queryCustomerList.type']
+export type ParameterQueryMeterListIncludeDeleted =
+  components['parameters']['queryMeterList.includeDeleted']
 export type $defs = Record<string, never>
 export interface operations {
   listAddons: {
@@ -15199,7 +15217,22 @@ export interface operations {
   }
   listMeters: {
     parameters: {
-      query?: never
+      query?: {
+        /** @description Page index.
+         *
+         *     Default is 1. */
+        page?: components['parameters']['Pagination.page']
+        /** @description The maximum number of items per page.
+         *
+         *     Default is 100. */
+        pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description The order direction. */
+        order?: components['parameters']['MeterOrderByOrdering.order']
+        /** @description The order by field. */
+        orderBy?: components['parameters']['MeterOrderByOrdering.orderBy']
+        /** @description Include deleted meters. */
+        includeDeleted?: components['parameters']['queryMeterList.includeDeleted']
+      }
       header?: never
       path?: never
       cookie?: never

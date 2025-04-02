@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"slices"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -17,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/strcase"
 )
 
@@ -136,13 +138,6 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 				return feature.ListFeaturesParams{}, err
 			}
 
-			// validate OrderBy
-			if apiParams.OrderBy != nil {
-				if !slices.Contains(feature.FeatureOrderBy("").StrValues(), strcase.CamelToSnake(string(*apiParams.OrderBy))) {
-					return feature.ListFeaturesParams{}, commonhttp.NewHTTPError(http.StatusBadRequest, errors.New("invalid order by"))
-				}
-			}
-
 			params := feature.ListFeaturesParams{
 				Namespace:       ns,
 				IncludeArchived: defaultx.WithDefault(apiParams.IncludeArchived, false),
@@ -153,9 +148,10 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 				Limit:  defaultx.WithDefault(apiParams.Limit, commonhttp.DefaultPageSize),
 				Offset: defaultx.WithDefault(apiParams.Offset, 0),
 				OrderBy: feature.FeatureOrderBy(
-					strcase.CamelToSnake(defaultx.WithDefault((*string)(apiParams.OrderBy), string(feature.FeatureOrderByUpdatedAt))),
+					// Go enum value has a snake_case name, so we need to convert it
+					strcase.CamelToSnake(string(lo.FromPtrOr(apiParams.OrderBy, api.FeatureOrderByKey))),
 				),
-				Order:      commonhttp.GetSortOrder(api.SortOrderASC, apiParams.Order),
+				Order:      sortx.Order(lo.FromPtrOr(apiParams.Order, api.SortOrderASC)),
 				MeterSlugs: convert.DerefHeaderPtr[string](apiParams.MeterSlug),
 			}
 

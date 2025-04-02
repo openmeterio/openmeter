@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 // Meter is an interface for the meter service.
@@ -56,6 +58,10 @@ func (i GetMeterInput) Validate() error {
 // ListMetersParams is a parameter object for listing meters.
 type ListMetersParams struct {
 	pagination.Page
+
+	OrderBy OrderBy
+	Order   sortx.Order
+
 	Namespace string
 
 	SlugFilter *[]string
@@ -75,6 +81,19 @@ func (p ListMetersParams) Validate() error {
 
 	if p.Namespace == "" && !p.WithoutNamespace {
 		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	// FIXME: we cannot validate the page here because it's not always set
+	// if err := p.Page.Validate(); err != nil {
+	// 	errs = append(errs, fmt.Errorf("invalid page: %w", err))
+	// }
+
+	if p.OrderBy != "" && !slices.Contains(OrderBy("").Values(), p.OrderBy) {
+		errs = append(errs, fmt.Errorf("invalid order by: %s", p.OrderBy))
+	}
+
+	if p.Order != sortx.OrderNone && (p.Order != sortx.OrderAsc && p.Order != sortx.OrderDesc) {
+		errs = append(errs, fmt.Errorf("invalid order: %s", p.Order))
 	}
 
 	if p.SlugFilter != nil {

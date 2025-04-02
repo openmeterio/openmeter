@@ -9,10 +9,7 @@ import (
 )
 
 // GET /api/v1/meters
-func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
-	// TODO: update when meter pagination is implemented
-	params := struct{}{}
-
+func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.ListMetersParams) {
 	a.meterHandler.ListMeters().With(params).ServeHTTP(w, r)
 }
 

@@ -162,13 +162,17 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 		query = query.Where(db_feature.Or(db_feature.ArchivedAtIsNil(), db_feature.ArchivedAtGT(clock.Now())))
 	}
 
-	if params.OrderBy == "" {
+	if params.OrderBy != "" {
 		order := []sql.OrderTermOption{}
 		if !params.Order.IsDefaultValue() {
 			order = entutils.GetOrdering(params.Order)
 		}
 
 		switch params.OrderBy {
+		case feature.FeatureOrderByKey:
+			query = query.Order(db_feature.ByKey(order...))
+		case feature.FeatureOrderByName:
+			query = query.Order(db_feature.ByName(order...))
 		case feature.FeatureOrderByCreatedAt:
 			query = query.Order(db_feature.ByCreatedAt(order...))
 		case feature.FeatureOrderByUpdatedAt:
