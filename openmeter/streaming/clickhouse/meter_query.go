@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -25,6 +24,32 @@ type queryMeter struct {
 	GroupBy         []string
 	WindowSize      *meter.WindowSize
 	WindowTimeZone  *time.Location
+}
+
+// from returns the from time for the query.
+func (d *queryMeter) from() *time.Time {
+	// If none of the from times are set, return nil
+	if d.From == nil && d.Meter.EventFrom == nil {
+		return nil
+	}
+
+	// If only the event from time is set, use it
+	if d.From == nil && d.Meter.EventFrom != nil {
+		return d.Meter.EventFrom
+	}
+
+	// If only the query from time is set, use it
+	if d.From != nil && d.Meter.EventFrom == nil {
+		return d.From
+	}
+
+	// If both the query from time and the event from time are set
+	// use the query from time if it's after the event from time
+	if d.From.After(*d.Meter.EventFrom) {
+		return d.From
+	}
+
+	return d.Meter.EventFrom
 }
 
 // toCountRowSQL returns the SQL query for the estimated number of rows.
@@ -52,12 +77,9 @@ func (d *queryMeter) toCountRowSQL() (string, []interface{}) {
 	}
 
 	// The event table is partitioned by time
-	if d.From != nil {
-		query.Where(query.GreaterEqualThan(timeColumn, d.From.Unix()))
-	}
+	from := d.from()
 
-	if d.From != nil || d.Meter.EventFrom != nil {
-		from, _ := lo.Coalesce(d.From, d.Meter.EventFrom)
+	if from != nil {
 		query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
 	}
 
@@ -214,12 +236,9 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		}
 	}
 
-	if d.From != nil || d.Meter.EventFrom != nil {
-		from, ok := lo.Coalesce(d.From, d.Meter.EventFrom)
-		if !ok {
-			return "", nil, fmt.Errorf("missing from time")
-		}
+	from := d.from()
 
+	if from != nil {
 		where = append(where, query.GreaterEqualThan(timeColumn, from.Unix()))
 	}
 
