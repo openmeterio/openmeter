@@ -13,6 +13,7 @@ import "./tax.tsp";
 import "./org.tsp";
 import "./pay.tsp";
 import "./docref.tsp";
+import "./discounts.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;

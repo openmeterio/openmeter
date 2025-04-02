@@ -180,12 +180,6 @@ model Invoice {
   lines?: InvoiceLine[];
 
   /**
-   * Discounts or allowances applied to the complete invoice.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  discounts?: Discount[];
-
-  /**
    * Information on when, how, and to whom the invoice should be paid.
    */
   @visibility(Lifecycle.Read)
@@ -405,38 +399,6 @@ enum InvoiceType {
    * Reflects a refund either partial or complete of the preceding document. A credit note effectively *extends* the previous document.
    */
   creditNote: "credit_note",
-}
-
-/**
- * Discount represents an allowance applied to the complete document independent from the individual lines.
- */
-@friendlyName("InvoiceDiscount")
-model InvoiceDiscount {
-  /**
-   * Base represents the value used as a base for percent calculations instead of the invoice's sum of lines.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  base?: Numeric;
-
-  /**
-   * Percentage to apply to the base or invoice's sum.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  percent?: Percentage;
-
-  /**
-   * Fixed discount amount to apply (calculated if percent present).
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  amount: Numeric;
-
-  /**
-   * Text description as to why the discount was applied.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  reason?: string;
-
-  // TODO: Add reference fields to plan/subscriptions if the discount is coming from there.
 }
 
 /**
@@ -683,6 +645,7 @@ model InvoiceLineBase {
   /**
    * Tax config specify the tax configuration for this line.
    */
+  #deprecated "Use rateCard.taxConfig instead"
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   taxConfig?: OpenMeter.ProductCatalog.TaxConfig;
 
@@ -722,7 +685,7 @@ model InvoiceLineBase {
    * Subscription are the references to the subscritpions that this line is related to.
    */
   @visibility(Lifecycle.Read)
-  subscriptions?: InvoiceLineSubscriptionReference;
+  subscription?: InvoiceLineSubscriptionReference;
 }
 
 /**
@@ -744,8 +707,19 @@ model InvoiceReference {
 }
 
 /**
- * InvoiceUsageBasedLine represents a line item that is sold to the customer based on usage.
+ * InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line.
  */
+@friendlyName("InvoiceUsageBasedRateCard")
+model InvoiceUsageBasedRateCard {
+  // TODO: Once the deprecation is done, let's make featureKey and price required
+  ...PickProperties<
+    OpenMeter.ProductCatalog.RateCardUsageBased,
+    "discounts" | "taxConfig" | "featureKey" | "price"
+  >;
+}
+
+/**
+ * InvoiceUsageBasedLine represents a line item that is sold to the customer based on usage. */
 @friendlyName("InvoiceUsageBasedLine")
 model InvoiceUsageBasedLine {
   ...OmitProperties<InvoiceLineBase, "type">;
@@ -758,13 +732,24 @@ model InvoiceUsageBasedLine {
   /**
    * Price of the usage-based item being sold.
    */
-  price: OpenMeter.ProductCatalog.RateCardUsageBasedPrice;
+  #deprecated "Use rateCard.price instead"
+  price?: OpenMeter.ProductCatalog.RateCardUsageBasedPrice;
 
   /**
    * The feature that the usage is based on.
    */
+  #deprecated "Use rateCard.featureKey instead"
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  featureKey: Key;
+  featureKey?: Key;
+
+  /**
+   * The rate card that is used for this line.
+   *
+   * The rate card captures the intent of the price and discounts for the usage-based item.
+   */
+  // TODO: Once the deprecation is done, let's make rateCard required
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  rateCard?: InvoiceUsageBasedRateCard;
 
   /**
    * The quantity of the item being sold.
@@ -782,6 +767,26 @@ model InvoiceUsageBasedLine {
 }
 
 /**
+ * InvoiceFlatFeeRateCard represents the rate card (intent) for a flat fee line.
+ */
+@friendlyName("InvoiceFlatFeeRateCard")
+model InvoiceFlatFeeRateCard {
+  // TODO: Once the deprecation is done, let's make price required
+  ...PickProperties<
+    OpenMeter.ProductCatalog.RateCardFlatFee,
+    "discounts" | "taxConfig" | "price"
+  >;
+
+  /**
+   * Quantity of the item being sold.
+   *
+   * Default: 1
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  quantity?: Numeric;
+}
+
+/**
  * InvoiceFlatFeeLine represents a line item that is sold to the customer as a manually added fee.
  */
 @friendlyName("InvoiceFlatFeeLine")
@@ -796,20 +801,30 @@ model InvoiceFlatFeeLine {
   /**
    * Price of the item being sold.
    */
+  #deprecated "Use rateCard.perUnitAmount instead"
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  perUnitAmount: Money;
+  perUnitAmount?: Money;
 
   /**
    * Payment term of the line.
    */
+  #deprecated "Use rateCard.paymentTerm instead"
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   paymentTerm?: OpenMeter.ProductCatalog.PricePaymentTerm = OpenMeter.ProductCatalog.PricePaymentTerm.inAdvance;
 
   /**
    * Quantity of the item being sold.
    */
+  #deprecated "Use rateCard.quantity instead"
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  quantity: Numeric;
+  quantity?: Numeric;
+
+  /**
+   * The rate card that is used for this line.
+   */
+  // TODO: Once the deprecation is done, let's make rateCard required
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  rateCard?: InvoiceFlatFeeRateCard;
 
   /**
    * Category of the flat fee.
@@ -833,66 +848,6 @@ union InvoiceFlatFeeCategory {
    * The fee is a fee due to a commitment (e.g. minimum spend).
    */
   commitment: "commitment",
-}
-
-/**
- * InvoiceGenericCharge represents a charge or discount that can be applied to a line or the entire invoice.
- */
-@friendlyName("InvoiceGenericCharge")
-model InvoiceGenericCharge {
-  ...ResourceTimestamps;
-
-  /**
-   * ID of the charge or discount.
-   */
-  @visibility(Lifecycle.Read)
-  id: ULID;
-
-  /**
-   * Percentage if fixed amount not applied
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  percent?: Percentage;
-
-  /**
-   * Fixed discount amount to apply (calculated if percent present).
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  amount: Numeric;
-
-  /**
-   * Reason code.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  code?: string;
-
-  /**
-   * Text description as to why the discount was applied.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  description?: string;
-}
-
-/**
- * InvoiceLineDiscount represents an amount deducted from the line, and will be applied before taxes.
- */
-@friendlyName("InvoiceLineDiscount")
-model InvoiceLineDiscount {
-  ...InvoiceGenericCharge;
-
-  /**
-   * External IDs of the invoice in other apps such as Stripe.
-   */
-  @visibility(Lifecycle.Read)
-  externalIds?: InvoiceLineAppExternalIds;
-}
-
-/**
- * InvoiceLineCharge represents an amount added to the line, and will be applied before taxes.
- */
-@friendlyName("BillingLineCharge")
-model InvoiceLineCharge {
-  ...InvoiceGenericCharge;
 }
 
 /*
@@ -1076,7 +1031,7 @@ model InvoiceLineAppExternalIds {
 }
 
 /**
- * InvoiceLineSubscriptionReference contains the references to the subscriptions that this line is related to.
+ * InvoiceLineSubscriptionReference contains the references to the subscription that this line is related to.
  */
 @friendlyName("InvoiceLineSubscriptionReference")
 model InvoiceLineSubscriptionReference {
