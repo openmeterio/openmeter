@@ -9,6 +9,148 @@ import (
 )
 
 var (
+	// AddonsColumns holds the columns for the "addons" table.
+	AddonsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "version", Type: field.TypeInt},
+		{Name: "currency", Type: field.TypeString, Default: "USD"},
+		{Name: "effective_from", Type: field.TypeTime, Nullable: true},
+		{Name: "effective_to", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+	}
+	// AddonsTable holds the schema information for the "addons" table.
+	AddonsTable = &schema.Table{
+		Name:       "addons",
+		Columns:    AddonsColumns,
+		PrimaryKey: []*schema.Column{AddonsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "addon_id",
+				Unique:  true,
+				Columns: []*schema.Column{AddonsColumns[0]},
+			},
+			{
+				Name:    "addon_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AddonsColumns[1]},
+			},
+			{
+				Name:    "addon_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{AddonsColumns[1], AddonsColumns[0]},
+			},
+			{
+				Name:    "addon_namespace_key_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{AddonsColumns[1], AddonsColumns[8], AddonsColumns[5]},
+			},
+			{
+				Name:    "addon_namespace_key_version",
+				Unique:  true,
+				Columns: []*schema.Column{AddonsColumns[1], AddonsColumns[8], AddonsColumns[9]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "addon_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{AddonsColumns[13]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+		},
+	}
+	// AddonRateCardsColumns holds the columns for the "addon_rate_cards" table.
+	AddonRateCardsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"flat_fee", "usage_based"}},
+		{Name: "feature_key", Type: field.TypeString, Nullable: true},
+		{Name: "entitlement_template", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
+		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "addon_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// AddonRateCardsTable holds the schema information for the "addon_rate_cards" table.
+	AddonRateCardsTable = &schema.Table{
+		Name:       "addon_rate_cards",
+		Columns:    AddonRateCardsColumns,
+		PrimaryKey: []*schema.Column{AddonRateCardsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "addon_rate_cards_addons_ratecards",
+				Columns:    []*schema.Column{AddonRateCardsColumns[16]},
+				RefColumns: []*schema.Column{AddonsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "addon_rate_cards_features_addon_ratecard",
+				Columns:    []*schema.Column{AddonRateCardsColumns[17]},
+				RefColumns: []*schema.Column{FeaturesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "addonratecard_id",
+				Unique:  true,
+				Columns: []*schema.Column{AddonRateCardsColumns[0]},
+			},
+			{
+				Name:    "addonratecard_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AddonRateCardsColumns[1]},
+			},
+			{
+				Name:    "addonratecard_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{AddonRateCardsColumns[1], AddonRateCardsColumns[0]},
+			},
+			{
+				Name:    "addonratecard_namespace_key_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{AddonRateCardsColumns[1], AddonRateCardsColumns[8], AddonRateCardsColumns[5]},
+			},
+			{
+				Name:    "addonratecard_addon_id_key",
+				Unique:  true,
+				Columns: []*schema.Column{AddonRateCardsColumns[16], AddonRateCardsColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "addonratecard_addon_id_feature_key",
+				Unique:  true,
+				Columns: []*schema.Column{AddonRateCardsColumns[16], AddonRateCardsColumns[10]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
 	// AppsColumns holds the columns for the "apps" table.
 	AppsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1937,6 +2079,8 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AddonsTable,
+		AddonRateCardsTable,
 		AppsTable,
 		AppCustomersTable,
 		AppStripesTable,
@@ -1977,6 +2121,8 @@ var (
 )
 
 func init() {
+	AddonRateCardsTable.ForeignKeys[0].RefTable = AddonsTable
+	AddonRateCardsTable.ForeignKeys[1].RefTable = FeaturesTable
 	AppCustomersTable.ForeignKeys[0].RefTable = AppsTable
 	AppCustomersTable.ForeignKeys[1].RefTable = CustomersTable
 	AppStripesTable.ForeignKeys[0].RefTable = AppsTable

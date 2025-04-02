@@ -5,6 +5,8 @@ package db
 import (
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
@@ -50,6 +52,89 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	addonMixin := schema.Addon{}.Mixin()
+	addonMixinFields0 := addonMixin[0].Fields()
+	_ = addonMixinFields0
+	addonFields := schema.Addon{}.Fields()
+	_ = addonFields
+	// addonDescNamespace is the schema descriptor for namespace field.
+	addonDescNamespace := addonMixinFields0[1].Descriptor()
+	// addon.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	addon.NamespaceValidator = addonDescNamespace.Validators[0].(func(string) error)
+	// addonDescCreatedAt is the schema descriptor for created_at field.
+	addonDescCreatedAt := addonMixinFields0[3].Descriptor()
+	// addon.DefaultCreatedAt holds the default value on creation for the created_at field.
+	addon.DefaultCreatedAt = addonDescCreatedAt.Default.(func() time.Time)
+	// addonDescUpdatedAt is the schema descriptor for updated_at field.
+	addonDescUpdatedAt := addonMixinFields0[4].Descriptor()
+	// addon.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	addon.DefaultUpdatedAt = addonDescUpdatedAt.Default.(func() time.Time)
+	// addon.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	addon.UpdateDefaultUpdatedAt = addonDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// addonDescKey is the schema descriptor for key field.
+	addonDescKey := addonMixinFields0[8].Descriptor()
+	// addon.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	addon.KeyValidator = addonDescKey.Validators[0].(func(string) error)
+	// addonDescVersion is the schema descriptor for version field.
+	addonDescVersion := addonFields[0].Descriptor()
+	// addon.VersionValidator is a validator for the "version" field. It is called by the builders before save.
+	addon.VersionValidator = addonDescVersion.Validators[0].(func(int) error)
+	// addonDescCurrency is the schema descriptor for currency field.
+	addonDescCurrency := addonFields[1].Descriptor()
+	// addon.DefaultCurrency holds the default value on creation for the currency field.
+	addon.DefaultCurrency = addonDescCurrency.Default.(string)
+	// addon.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	addon.CurrencyValidator = addonDescCurrency.Validators[0].(func(string) error)
+	// addonDescAnnotations is the schema descriptor for annotations field.
+	addonDescAnnotations := addonFields[4].Descriptor()
+	addon.ValueScanner.Annotations = addonDescAnnotations.ValueScanner.(field.TypeValueScanner[map[string]interface{}])
+	// addonDescID is the schema descriptor for id field.
+	addonDescID := addonMixinFields0[0].Descriptor()
+	// addon.DefaultID holds the default value on creation for the id field.
+	addon.DefaultID = addonDescID.Default.(func() string)
+	addonratecardMixin := schema.AddonRateCard{}.Mixin()
+	addonratecardMixinFields0 := addonratecardMixin[0].Fields()
+	_ = addonratecardMixinFields0
+	addonratecardFields := schema.AddonRateCard{}.Fields()
+	_ = addonratecardFields
+	// addonratecardDescNamespace is the schema descriptor for namespace field.
+	addonratecardDescNamespace := addonratecardMixinFields0[1].Descriptor()
+	// addonratecard.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	addonratecard.NamespaceValidator = addonratecardDescNamespace.Validators[0].(func(string) error)
+	// addonratecardDescCreatedAt is the schema descriptor for created_at field.
+	addonratecardDescCreatedAt := addonratecardMixinFields0[3].Descriptor()
+	// addonratecard.DefaultCreatedAt holds the default value on creation for the created_at field.
+	addonratecard.DefaultCreatedAt = addonratecardDescCreatedAt.Default.(func() time.Time)
+	// addonratecardDescUpdatedAt is the schema descriptor for updated_at field.
+	addonratecardDescUpdatedAt := addonratecardMixinFields0[4].Descriptor()
+	// addonratecard.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	addonratecard.DefaultUpdatedAt = addonratecardDescUpdatedAt.Default.(func() time.Time)
+	// addonratecard.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	addonratecard.UpdateDefaultUpdatedAt = addonratecardDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// addonratecardDescKey is the schema descriptor for key field.
+	addonratecardDescKey := addonratecardMixinFields0[8].Descriptor()
+	// addonratecard.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	addonratecard.KeyValidator = addonratecardDescKey.Validators[0].(func(string) error)
+	// addonratecardDescEntitlementTemplate is the schema descriptor for entitlement_template field.
+	addonratecardDescEntitlementTemplate := addonratecardFields[2].Descriptor()
+	addonratecard.ValueScanner.EntitlementTemplate = addonratecardDescEntitlementTemplate.ValueScanner.(field.TypeValueScanner[*productcatalog.EntitlementTemplate])
+	// addonratecardDescTaxConfig is the schema descriptor for tax_config field.
+	addonratecardDescTaxConfig := addonratecardFields[3].Descriptor()
+	addonratecard.ValueScanner.TaxConfig = addonratecardDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
+	// addonratecardDescPrice is the schema descriptor for price field.
+	addonratecardDescPrice := addonratecardFields[5].Descriptor()
+	addonratecard.ValueScanner.Price = addonratecardDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// addonratecardDescAddonID is the schema descriptor for addon_id field.
+	addonratecardDescAddonID := addonratecardFields[6].Descriptor()
+	// addonratecard.AddonIDValidator is a validator for the "addon_id" field. It is called by the builders before save.
+	addonratecard.AddonIDValidator = addonratecardDescAddonID.Validators[0].(func(string) error)
+	// addonratecardDescDiscounts is the schema descriptor for discounts field.
+	addonratecardDescDiscounts := addonratecardFields[8].Descriptor()
+	addonratecard.ValueScanner.Discounts = addonratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	// addonratecardDescID is the schema descriptor for id field.
+	addonratecardDescID := addonratecardMixinFields0[0].Descriptor()
+	// addonratecard.DefaultID holds the default value on creation for the id field.
+	addonratecard.DefaultID = addonratecardDescID.Default.(func() string)
 	dbappMixin := schema.App{}.Mixin()
 	dbappMixinFields0 := dbappMixin[0].Fields()
 	_ = dbappMixinFields0

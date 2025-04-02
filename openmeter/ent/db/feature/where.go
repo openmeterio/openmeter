@@ -621,6 +621,29 @@ func HasRatecardWith(preds ...predicate.PlanRateCard) predicate.Feature {
 	})
 }
 
+// HasAddonRatecard applies the HasEdge predicate on the "addon_ratecard" edge.
+func HasAddonRatecard() predicate.Feature {
+	return predicate.Feature(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AddonRatecardTable, AddonRatecardColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAddonRatecardWith applies the HasEdge predicate on the "addon_ratecard" edge with a given conditions (other predicates).
+func HasAddonRatecardWith(preds ...predicate.AddonRateCard) predicate.Feature {
+	return predicate.Feature(func(s *sql.Selector) {
+		step := newAddonRatecardStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Feature) predicate.Feature {
 	return predicate.Feature(sql.AndPredicates(predicates...))

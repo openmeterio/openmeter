@@ -13,6 +13,230 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+func (u *AddonUpdate) SetOrClearMetadata(value *map[string]string) *AddonUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *AddonUpdateOne) SetOrClearMetadata(value *map[string]string) *AddonUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *AddonUpdate) SetOrClearDeletedAt(value *time.Time) *AddonUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AddonUpdateOne) SetOrClearDeletedAt(value *time.Time) *AddonUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AddonUpdate) SetOrClearDescription(value *string) *AddonUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *AddonUpdateOne) SetOrClearDescription(value *string) *AddonUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *AddonUpdate) SetOrClearEffectiveFrom(value *time.Time) *AddonUpdate {
+	if value == nil {
+		return u.ClearEffectiveFrom()
+	}
+	return u.SetEffectiveFrom(*value)
+}
+
+func (u *AddonUpdateOne) SetOrClearEffectiveFrom(value *time.Time) *AddonUpdateOne {
+	if value == nil {
+		return u.ClearEffectiveFrom()
+	}
+	return u.SetEffectiveFrom(*value)
+}
+
+func (u *AddonUpdate) SetOrClearEffectiveTo(value *time.Time) *AddonUpdate {
+	if value == nil {
+		return u.ClearEffectiveTo()
+	}
+	return u.SetEffectiveTo(*value)
+}
+
+func (u *AddonUpdateOne) SetOrClearEffectiveTo(value *time.Time) *AddonUpdateOne {
+	if value == nil {
+		return u.ClearEffectiveTo()
+	}
+	return u.SetEffectiveTo(*value)
+}
+
+func (u *AddonUpdate) SetOrClearAnnotations(value *map[string]interface{}) *AddonUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *AddonUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *AddonUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearMetadata(value *map[string]string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearMetadata(value *map[string]string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearDeletedAt(value *time.Time) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearDeletedAt(value *time.Time) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearDescription(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearDescription(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearFeatureKey(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearFeatureKey(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearEntitlementTemplate(value **productcatalog.EntitlementTemplate) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearEntitlementTemplate()
+	}
+	return u.SetEntitlementTemplate(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearEntitlementTemplate(value **productcatalog.EntitlementTemplate) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearEntitlementTemplate()
+	}
+	return u.SetEntitlementTemplate(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearBillingCadence(value *isodate.String) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearBillingCadence()
+	}
+	return u.SetBillingCadence(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearBillingCadence(value *isodate.String) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearBillingCadence()
+	}
+	return u.SetBillingCadence(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearPrice(value **productcatalog.Price) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearPrice()
+	}
+	return u.SetPrice(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearPrice()
+	}
+	return u.SetPrice(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearFeatureID(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearFeatureID(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Discounts) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
 func (u *AppUpdate) SetOrClearMetadata(value *map[string]string) *AppUpdate {
 	if value == nil {
 		return u.ClearMetadata()

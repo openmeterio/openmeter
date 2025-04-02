@@ -9,6 +9,30 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 )
 
+// The AddonFunc type is an adapter to allow the use of ordinary
+// function as Addon mutator.
+type AddonFunc func(context.Context, *db.AddonMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AddonFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.AddonMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.AddonMutation", m)
+}
+
+// The AddonRateCardFunc type is an adapter to allow the use of ordinary
+// function as AddonRateCard mutator.
+type AddonRateCardFunc func(context.Context, *db.AddonRateCardMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AddonRateCardFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.AddonRateCardMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.AddonRateCardMutation", m)
+}
+
 // The AppFunc type is an adapter to allow the use of ordinary
 // function as App mutator.
 type AppFunc func(context.Context, *db.AppMutation) (db.Value, error)
