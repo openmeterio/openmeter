@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -306,8 +307,8 @@ func (s *SubscriptionTestSuite) createCustomerWithSubscription(ctx context.Conte
 	s.NoError(err)
 	s.NotNil(cust)
 
-	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
-		ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 			Timing: subscription.Timing{
 				Custom: lo.ToPtr(clock.Now()),
 			},

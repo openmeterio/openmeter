@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -28,7 +29,7 @@ type Handler interface {
 }
 
 type HandlerConfig struct {
-	SubscriptionWorkflowService subscription.WorkflowService
+	SubscriptionWorkflowService subscriptionworkflow.Service
 	SubscriptionService         subscription.Service
 	CustomerService             customer.Service
 	PlanSubscriptionService     plansubscription.PlanSubscriptionService

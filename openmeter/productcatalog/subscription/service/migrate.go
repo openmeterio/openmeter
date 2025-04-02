@@ -8,6 +8,7 @@ import (
 
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -64,7 +65,7 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 	}
 
 	// Then let's create the subscription from the plan
-	workflowInput := subscription.ChangeSubscriptionWorkflowInput{
+	workflowInput := subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 		Timing:        timing,
 		MetadataModel: sub.MetadataModel,
 		Name:          sub.Name,

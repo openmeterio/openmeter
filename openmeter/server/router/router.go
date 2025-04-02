@@ -51,6 +51,7 @@ import (
 	progresshttpdriver "github.com/openmeterio/openmeter/openmeter/progressmanager/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -99,7 +100,7 @@ type Config struct {
 	ProgressManager             progressmanager.Service
 	StreamingConnector          streaming.Connector
 	SubscriptionService         subscription.Service
-	SubscriptionWorkflowService subscription.WorkflowService
+	SubscriptionWorkflowService subscriptionworkflow.Service
 }
 
 func (c Config) Validate() error {

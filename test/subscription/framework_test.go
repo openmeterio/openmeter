@@ -7,8 +7,9 @@ import (
 
 	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	pcsubscriptionservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscription "github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 )
 
@@ -16,7 +17,7 @@ type testDeps struct {
 	subscriptiontestutils.ExposedServiceDeps
 	pcSubscriptionService       pcsubscription.PlanSubscriptionService
 	subscriptionService         subscription.Service
-	subscriptionWorkflowService subscription.WorkflowService
+	subscriptionWorkflowService subscriptionworkflow.Service
 	cleanup                     func(t *testing.T) // Cleanup function
 }
 

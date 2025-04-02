@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -88,8 +89,8 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				}
 
 				return CreateSubscriptionRequest{
-					WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
-						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+						ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 							Timing:      timing,
 							Name:        req.Name,        // We map the plan name to the subscription name
 							Description: req.Description, // We map the plan description to the subscription description
@@ -131,8 +132,8 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				}
 
 				return CreateSubscriptionRequest{
-					WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
-						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+						ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 							Timing:      timing,
 							Name:        lo.FromPtrOr(parsedBody.Name, ""),
 							Description: parsedBody.Description,

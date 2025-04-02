@@ -17,6 +17,8 @@ import (
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptioncustomer "github.com/openmeterio/openmeter/openmeter/subscription/validators/customer"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
@@ -29,7 +31,7 @@ var Subscription = wire.NewSet(
 // and share the same subscriptionRepo.
 type SubscriptionServiceWithWorkflow struct {
 	Service                 subscription.Service
-	WorkflowService         subscription.WorkflowService
+	WorkflowService         subscriptionworkflow.Service
 	PlanSubscriptionService plansubscription.PlanSubscriptionService
 }
 
@@ -63,7 +65,7 @@ func NewSubscriptionServices(
 		Publisher:             eventPublisher,
 	})
 
-	subscriptionWorkflowService := subscriptionservice.NewWorkflowService(subscriptionservice.WorkflowServiceConfig{
+	subscriptionWorkflowService := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            subscriptionService,
 		CustomerService:    customerService,
 		TransactionManager: subscriptionRepo,

@@ -8,32 +8,13 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type WorkflowServiceConfig struct {
-	Service subscription.Service
-	// connectors
-	CustomerService customer.Service
-	// framework
-	TransactionManager transaction.Creator
-}
-
-type workflowService struct {
-	WorkflowServiceConfig
-}
-
-func NewWorkflowService(cfg WorkflowServiceConfig) subscription.WorkflowService {
-	return &workflowService{
-		WorkflowServiceConfig: cfg,
-	}
-}
-
-var _ subscription.WorkflowService = &workflowService{}
-
-func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
+func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
 	var def subscription.SubscriptionView
 
 	// Let's find the customer
@@ -70,7 +51,7 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 		Description:   inp.Description,
 	})
 
-	if err := mapSubscriptionErrors(err); err != nil {
+	if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil {
 		return def, fmt.Errorf("failed to create spec from plan: %w", err)
 	}
 
@@ -85,7 +66,7 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 	})
 }
 
-func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []subscription.Patch, timing subscription.Timing) (subscription.SubscriptionView, error) {
+func (s *service) EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []subscription.Patch, timing subscription.Timing) (subscription.SubscriptionView, error) {
 	// First, let's fetch the current state of the Subscription
 	curr, err := s.Service.GetView(ctx, subscriptionID)
 	if err != nil {
@@ -115,7 +96,7 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	err = spec.ApplyPatches(lo.Map(customizations, subscription.ToApplies), subscription.ApplyContext{
 		CurrentTime: editTime,
 	})
-	if err := mapSubscriptionErrors(err); err != nil {
+	if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil {
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 
@@ -130,7 +111,7 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	})
 }
 
-func (s *workflowService) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscription.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (subscription.Subscription, subscription.SubscriptionView, error) {
+func (s *service) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscriptionworkflow.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (subscription.Subscription, subscription.SubscriptionView, error) {
 	// typing helper
 	type res struct {
 		curr subscription.Subscription
@@ -153,7 +134,7 @@ func (s *workflowService) ChangeToPlan(ctx context.Context, subscriptionID model
 		inp.Timing = verbatumTiming
 
 		// Third, let's create a new subscription with the new plan
-		new, err := s.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
+		new, err := s.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
 			ChangeSubscriptionWorkflowInput: inp,
 			Namespace:                       curr.Namespace,
 			CustomerID:                      curr.CustomerId,
@@ -169,7 +150,7 @@ func (s *workflowService) ChangeToPlan(ctx context.Context, subscriptionID model
 	return r.curr, r.new, err
 }
 
-func (s *workflowService) Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
+func (s *service) Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
 	now := clock.Now()
 
 	// Let's fetch the sub

@@ -24,6 +24,7 @@ import (
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/isodate"
@@ -234,8 +235,8 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 	})
 	s.NoError(err)
 
-	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
-		ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 			Timing: subscription.Timing{
 				Custom: lo.ToPtr(start),
 			},
@@ -532,8 +533,8 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 	})
 	s.NoError(err)
 
-	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
-		ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 			Timing: subscription.Timing{
 				Custom: lo.ToPtr(start),
 			},
@@ -3281,8 +3282,8 @@ func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlan(planInput plan
 	})
 	s.NoError(err)
 
-	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
-		ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 			Timing: subscription.Timing{
 				Custom: lo.ToPtr(clock.Now()),
 			},

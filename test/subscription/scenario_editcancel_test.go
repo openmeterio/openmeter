@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -133,10 +134,10 @@ func TestEditingAndCanceling(t *testing.T) {
 
 	// Fourth, let's create the subscription
 	s, err := tDeps.pcSubscriptionService.Create(ctx, pcsubscription.CreateSubscriptionRequest{
-		WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
+		WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
 			Namespace:  namespace,
 			CustomerID: c.ID,
-			ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 				Timing: subscription.Timing{
 					Custom: &currentTime,
 				},
@@ -151,10 +152,10 @@ func TestEditingAndCanceling(t *testing.T) {
 	// And let's subscribe the extra customers
 	for _, cust := range custs {
 		s, err := tDeps.pcSubscriptionService.Create(ctx, pcsubscription.CreateSubscriptionRequest{
-			WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
+			WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
 				Namespace:  namespace,
 				CustomerID: cust.ID,
-				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: &currentTime,
 					},

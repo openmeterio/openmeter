@@ -50,6 +50,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -1172,13 +1173,13 @@ func (n NoopSubscriptionService) GetAllForCustomerSince(ctx context.Context, cus
 	return []subscription.Subscription{}, nil
 }
 
-var _ subscription.WorkflowService = (*NoopSubscriptionWorkflowService)(nil)
+var _ subscriptionworkflow.Service = (*NoopSubscriptionWorkflowService)(nil)
 
-// NoopSubscriptionWorkflowService implements subscription.WorkflowService with no-op operations
+// NoopSubscriptionWorkflowService implements subscriptionworkflow.Service with no-op operations
 // for use in testing
 type NoopSubscriptionWorkflowService struct{}
 
-func (n NoopSubscriptionWorkflowService) CreateFromPlan(ctx context.Context, inp subscription.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
+func (n NoopSubscriptionWorkflowService) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
 	return subscription.SubscriptionView{}, nil
 }
 
@@ -1186,7 +1187,7 @@ func (n NoopSubscriptionWorkflowService) EditRunning(ctx context.Context, subscr
 	return subscription.SubscriptionView{}, nil
 }
 
-func (n NoopSubscriptionWorkflowService) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscription.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (current subscription.Subscription, new subscription.SubscriptionView, err error) {
+func (n NoopSubscriptionWorkflowService) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscriptionworkflow.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (current subscription.Subscription, new subscription.SubscriptionView, err error) {
 	return subscription.Subscription{}, subscription.SubscriptionView{}, nil
 }
 

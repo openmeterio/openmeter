@@ -1,4 +1,4 @@
-package service
+package subscriptionworkflow
 
 import (
 	"github.com/samber/lo"
@@ -7,8 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// mapSubscriptionErrors maps subscription errors to user errors
-func mapSubscriptionErrors(err error) error {
+func MapSubscriptionErrors(err error) error {
 	if err == nil {
 		return nil
 	}

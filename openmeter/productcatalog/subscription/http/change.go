@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -80,7 +80,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				return ChangeSubscriptionRequest{
 					ID:        models.NamespacedID{Namespace: ns, ID: params.ID},
 					PlanInput: planInp,
-					WorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					WorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 						Timing:      timing,
 						Name:        req.Name,
 						Description: req.Description,
@@ -110,7 +110,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				return ChangeSubscriptionRequest{
 					ID:        models.NamespacedID{Namespace: ns, ID: params.ID},
 					PlanInput: planInp,
-					WorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					WorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 						Timing: timing,
 						MetadataModel: models.MetadataModel{
 							Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
