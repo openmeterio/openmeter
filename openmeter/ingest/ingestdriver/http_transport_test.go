@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -24,10 +25,11 @@ import (
 func TestIngestEvents(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 
-	service := ingest.Service{
-		Collector: collector,
-		Logger:    slog.Default(),
-	}
+	service := ingest.NewService(
+		collector,
+		slog.Default(),
+		1000,
+	)
 
 	handler := ingestdriver.NewIngestEventsHandler(
 		service.IngestEvents,
@@ -74,10 +76,11 @@ func TestIngestEvents(t *testing.T) {
 func TestIngestEvents_InvalidEvent(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 
-	service := ingest.Service{
-		Collector: collector,
-		Logger:    slog.Default(),
-	}
+	service := ingest.NewService(
+		collector,
+		slog.Default(),
+		1000,
+	)
 
 	handler := ingestdriver.NewIngestEventsHandler(
 		service.IngestEvents,
@@ -100,10 +103,11 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 func TestBatchHandler(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 
-	service := ingest.Service{
-		Collector: collector,
-		Logger:    slog.Default(),
-	}
+	service := ingest.NewService(
+		collector,
+		slog.Default(),
+		1000,
+	)
 
 	handler := ingestdriver.NewIngestEventsHandler(
 		service.IngestEvents,
@@ -140,14 +144,22 @@ func TestBatchHandler(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
+	// We lookup by ID because the order of events is not guaranteed in the batch
+	expectedEvents := lo.KeyBy(events, func(event event.Event) string {
+		return event.ID()
+	})
+
 	collectedEvents := collector.Events("test")
 
 	require.Len(t, collectedEvents, 10)
-	for i, event := range collectedEvents {
+	for _, event := range collectedEvents {
+		expectedEvent, ok := expectedEvents[event.ID()]
+		require.True(t, ok, "expected event %s not found", event.ID())
+
 		event := event
-		assert.Equal(t, events[i].ID(), event.ID())
-		assert.Equal(t, events[i].Subject(), event.Subject())
-		assert.Equal(t, events[i].Source(), event.Source())
-		assert.Equal(t, event.Time(), events[i].Time())
+		assert.Equal(t, expectedEvent.ID(), event.ID())
+		assert.Equal(t, expectedEvent.Subject(), event.Subject())
+		assert.Equal(t, expectedEvent.Source(), event.Source())
+		assert.Equal(t, event.Time(), expectedEvent.Time())
 	}
 }
