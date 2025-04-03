@@ -33,6 +33,12 @@ func (sac *SubscriptionAddonCreate) SetNamespace(s string) *SubscriptionAddonCre
 	return sac
 }
 
+// SetMetadata sets the "metadata" field.
+func (sac *SubscriptionAddonCreate) SetMetadata(m map[string]string) *SubscriptionAddonCreate {
+	sac.mutation.SetMetadata(m)
+	return sac
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (sac *SubscriptionAddonCreate) SetCreatedAt(t time.Time) *SubscriptionAddonCreate {
 	sac.mutation.SetCreatedAt(t)
@@ -268,6 +274,10 @@ func (sac *SubscriptionAddonCreate) createSpec() (*SubscriptionAddon, *sqlgraph.
 		_spec.SetField(subscriptionaddon.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
+	if value, ok := sac.mutation.Metadata(); ok {
+		_spec.SetField(subscriptionaddon.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
+	}
 	if value, ok := sac.mutation.CreatedAt(); ok {
 		_spec.SetField(subscriptionaddon.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -398,6 +408,24 @@ type (
 	}
 )
 
+// SetMetadata sets the "metadata" field.
+func (u *SubscriptionAddonUpsert) SetMetadata(v map[string]string) *SubscriptionAddonUpsert {
+	u.Set(subscriptionaddon.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *SubscriptionAddonUpsert) UpdateMetadata() *SubscriptionAddonUpsert {
+	u.SetExcluded(subscriptionaddon.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *SubscriptionAddonUpsert) ClearMetadata() *SubscriptionAddonUpsert {
+	u.SetNull(subscriptionaddon.FieldMetadata)
+	return u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *SubscriptionAddonUpsert) SetUpdatedAt(v time.Time) *SubscriptionAddonUpsert {
 	u.Set(subscriptionaddon.FieldUpdatedAt, v)
@@ -486,6 +514,27 @@ func (u *SubscriptionAddonUpsertOne) Update(set func(*SubscriptionAddonUpsert)) 
 		set(&SubscriptionAddonUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *SubscriptionAddonUpsertOne) SetMetadata(v map[string]string) *SubscriptionAddonUpsertOne {
+	return u.Update(func(s *SubscriptionAddonUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *SubscriptionAddonUpsertOne) UpdateMetadata() *SubscriptionAddonUpsertOne {
+	return u.Update(func(s *SubscriptionAddonUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *SubscriptionAddonUpsertOne) ClearMetadata() *SubscriptionAddonUpsertOne {
+	return u.Update(func(s *SubscriptionAddonUpsert) {
+		s.ClearMetadata()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -748,6 +797,27 @@ func (u *SubscriptionAddonUpsertBulk) Update(set func(*SubscriptionAddonUpsert))
 		set(&SubscriptionAddonUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *SubscriptionAddonUpsertBulk) SetMetadata(v map[string]string) *SubscriptionAddonUpsertBulk {
+	return u.Update(func(s *SubscriptionAddonUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *SubscriptionAddonUpsertBulk) UpdateMetadata() *SubscriptionAddonUpsertBulk {
+	return u.Update(func(s *SubscriptionAddonUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *SubscriptionAddonUpsertBulk) ClearMetadata() *SubscriptionAddonUpsertBulk {
+	return u.Update(func(s *SubscriptionAddonUpsert) {
+		s.ClearMetadata()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.

@@ -30,6 +30,18 @@ func (sau *SubscriptionAddonUpdate) Where(ps ...predicate.SubscriptionAddon) *Su
 	return sau
 }
 
+// SetMetadata sets the "metadata" field.
+func (sau *SubscriptionAddonUpdate) SetMetadata(m map[string]string) *SubscriptionAddonUpdate {
+	sau.mutation.SetMetadata(m)
+	return sau
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (sau *SubscriptionAddonUpdate) ClearMetadata() *SubscriptionAddonUpdate {
+	sau.mutation.ClearMetadata()
+	return sau
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (sau *SubscriptionAddonUpdate) SetUpdatedAt(t time.Time) *SubscriptionAddonUpdate {
 	sau.mutation.SetUpdatedAt(t)
@@ -192,6 +204,12 @@ func (sau *SubscriptionAddonUpdate) sqlSave(ctx context.Context) (n int, err err
 			}
 		}
 	}
+	if value, ok := sau.mutation.Metadata(); ok {
+		_spec.SetField(subscriptionaddon.FieldMetadata, field.TypeJSON, value)
+	}
+	if sau.mutation.MetadataCleared() {
+		_spec.ClearField(subscriptionaddon.FieldMetadata, field.TypeJSON)
+	}
 	if value, ok := sau.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionaddon.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -309,6 +327,18 @@ type SubscriptionAddonUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *SubscriptionAddonMutation
+}
+
+// SetMetadata sets the "metadata" field.
+func (sauo *SubscriptionAddonUpdateOne) SetMetadata(m map[string]string) *SubscriptionAddonUpdateOne {
+	sauo.mutation.SetMetadata(m)
+	return sauo
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (sauo *SubscriptionAddonUpdateOne) ClearMetadata() *SubscriptionAddonUpdateOne {
+	sauo.mutation.ClearMetadata()
+	return sauo
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -502,6 +532,12 @@ func (sauo *SubscriptionAddonUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := sauo.mutation.Metadata(); ok {
+		_spec.SetField(subscriptionaddon.FieldMetadata, field.TypeJSON, value)
+	}
+	if sauo.mutation.MetadataCleared() {
+		_spec.ClearField(subscriptionaddon.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := sauo.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionaddon.FieldUpdatedAt, field.TypeTime, value)

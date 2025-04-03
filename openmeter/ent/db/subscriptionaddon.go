@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -21,6 +22,8 @@ type SubscriptionAddon struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata map[string]string `json:"metadata,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -97,6 +100,8 @@ func (*SubscriptionAddon) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case subscriptionaddon.FieldMetadata:
+			values[i] = new([]byte)
 		case subscriptionaddon.FieldID, subscriptionaddon.FieldNamespace, subscriptionaddon.FieldAddonID, subscriptionaddon.FieldSubscriptionID:
 			values[i] = new(sql.NullString)
 		case subscriptionaddon.FieldCreatedAt, subscriptionaddon.FieldUpdatedAt, subscriptionaddon.FieldDeletedAt:
@@ -127,6 +132,14 @@ func (sa *SubscriptionAddon) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				sa.Namespace = value.String
+			}
+		case subscriptionaddon.FieldMetadata:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &sa.Metadata); err != nil {
+					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
 			}
 		case subscriptionaddon.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -217,6 +230,9 @@ func (sa *SubscriptionAddon) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", sa.ID))
 	builder.WriteString("namespace=")
 	builder.WriteString(sa.Namespace)
+	builder.WriteString(", ")
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", sa.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(sa.CreatedAt.Format(time.ANSIC))

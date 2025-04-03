@@ -41741,6 +41741,7 @@ type SubscriptionAddonMutation struct {
 	typ                 string
 	id                  *string
 	namespace           *string
+	metadata            *map[string]string
 	created_at          *time.Time
 	updated_at          *time.Time
 	deleted_at          *time.Time
@@ -41898,6 +41899,55 @@ func (m *SubscriptionAddonMutation) OldNamespace(ctx context.Context) (v string,
 // ResetNamespace resets all changes to the "namespace" field.
 func (m *SubscriptionAddonMutation) ResetNamespace() {
 	m.namespace = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *SubscriptionAddonMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *SubscriptionAddonMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the SubscriptionAddon entity.
+// If the SubscriptionAddon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionAddonMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *SubscriptionAddonMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[subscriptionaddon.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *SubscriptionAddonMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[subscriptionaddon.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *SubscriptionAddonMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, subscriptionaddon.FieldMetadata)
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -42289,9 +42339,12 @@ func (m *SubscriptionAddonMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionAddonMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.namespace != nil {
 		fields = append(fields, subscriptionaddon.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, subscriptionaddon.FieldMetadata)
 	}
 	if m.created_at != nil {
 		fields = append(fields, subscriptionaddon.FieldCreatedAt)
@@ -42318,6 +42371,8 @@ func (m *SubscriptionAddonMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case subscriptionaddon.FieldNamespace:
 		return m.Namespace()
+	case subscriptionaddon.FieldMetadata:
+		return m.Metadata()
 	case subscriptionaddon.FieldCreatedAt:
 		return m.CreatedAt()
 	case subscriptionaddon.FieldUpdatedAt:
@@ -42339,6 +42394,8 @@ func (m *SubscriptionAddonMutation) OldField(ctx context.Context, name string) (
 	switch name {
 	case subscriptionaddon.FieldNamespace:
 		return m.OldNamespace(ctx)
+	case subscriptionaddon.FieldMetadata:
+		return m.OldMetadata(ctx)
 	case subscriptionaddon.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case subscriptionaddon.FieldUpdatedAt:
@@ -42364,6 +42421,13 @@ func (m *SubscriptionAddonMutation) SetField(name string, value ent.Value) error
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
+		return nil
+	case subscriptionaddon.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
 		return nil
 	case subscriptionaddon.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -42430,6 +42494,9 @@ func (m *SubscriptionAddonMutation) AddField(name string, value ent.Value) error
 // mutation.
 func (m *SubscriptionAddonMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(subscriptionaddon.FieldMetadata) {
+		fields = append(fields, subscriptionaddon.FieldMetadata)
+	}
 	if m.FieldCleared(subscriptionaddon.FieldDeletedAt) {
 		fields = append(fields, subscriptionaddon.FieldDeletedAt)
 	}
@@ -42447,6 +42514,9 @@ func (m *SubscriptionAddonMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *SubscriptionAddonMutation) ClearField(name string) error {
 	switch name {
+	case subscriptionaddon.FieldMetadata:
+		m.ClearMetadata()
+		return nil
 	case subscriptionaddon.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
@@ -42460,6 +42530,9 @@ func (m *SubscriptionAddonMutation) ResetField(name string) error {
 	switch name {
 	case subscriptionaddon.FieldNamespace:
 		m.ResetNamespace()
+		return nil
+	case subscriptionaddon.FieldMetadata:
+		m.ResetMetadata()
 		return nil
 	case subscriptionaddon.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -42632,6 +42705,7 @@ type SubscriptionAddonQuantityMutation struct {
 	op                        Op
 	typ                       string
 	id                        *string
+	namespace                 *string
 	created_at                *time.Time
 	updated_at                *time.Time
 	deleted_at                *time.Time
@@ -42748,6 +42822,42 @@ func (m *SubscriptionAddonQuantityMutation) IDs(ctx context.Context) ([]string, 
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *SubscriptionAddonQuantityMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *SubscriptionAddonQuantityMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the SubscriptionAddonQuantity entity.
+// If the SubscriptionAddonQuantity object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionAddonQuantityMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *SubscriptionAddonQuantityMutation) ResetNamespace() {
+	m.namespace = nil
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -43060,7 +43170,10 @@ func (m *SubscriptionAddonQuantityMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionAddonQuantityMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
+	if m.namespace != nil {
+		fields = append(fields, subscriptionaddonquantity.FieldNamespace)
+	}
 	if m.created_at != nil {
 		fields = append(fields, subscriptionaddonquantity.FieldCreatedAt)
 	}
@@ -43087,6 +43200,8 @@ func (m *SubscriptionAddonQuantityMutation) Fields() []string {
 // schema.
 func (m *SubscriptionAddonQuantityMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case subscriptionaddonquantity.FieldNamespace:
+		return m.Namespace()
 	case subscriptionaddonquantity.FieldCreatedAt:
 		return m.CreatedAt()
 	case subscriptionaddonquantity.FieldUpdatedAt:
@@ -43108,6 +43223,8 @@ func (m *SubscriptionAddonQuantityMutation) Field(name string) (ent.Value, bool)
 // database failed.
 func (m *SubscriptionAddonQuantityMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case subscriptionaddonquantity.FieldNamespace:
+		return m.OldNamespace(ctx)
 	case subscriptionaddonquantity.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case subscriptionaddonquantity.FieldUpdatedAt:
@@ -43129,6 +43246,13 @@ func (m *SubscriptionAddonQuantityMutation) OldField(ctx context.Context, name s
 // type.
 func (m *SubscriptionAddonQuantityMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case subscriptionaddonquantity.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
 	case subscriptionaddonquantity.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -43244,6 +43368,9 @@ func (m *SubscriptionAddonQuantityMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *SubscriptionAddonQuantityMutation) ResetField(name string) error {
 	switch name {
+	case subscriptionaddonquantity.FieldNamespace:
+		m.ResetNamespace()
+		return nil
 	case subscriptionaddonquantity.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil

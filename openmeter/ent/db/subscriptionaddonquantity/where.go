@@ -65,6 +65,11 @@ func IDContainsFold(id string) predicate.SubscriptionAddonQuantity {
 	return predicate.SubscriptionAddonQuantity(sql.FieldContainsFold(FieldID, id))
 }
 
+// Namespace applies equality check predicate on the "namespace" field. It's identical to NamespaceEQ.
+func Namespace(v string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldEQ(FieldNamespace, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.SubscriptionAddonQuantity {
 	return predicate.SubscriptionAddonQuantity(sql.FieldEQ(FieldCreatedAt, v))
@@ -93,6 +98,71 @@ func Quantity(v int) predicate.SubscriptionAddonQuantity {
 // SubscriptionAddonID applies equality check predicate on the "subscription_addon_id" field. It's identical to SubscriptionAddonIDEQ.
 func SubscriptionAddonID(v string) predicate.SubscriptionAddonQuantity {
 	return predicate.SubscriptionAddonQuantity(sql.FieldEQ(FieldSubscriptionAddonID, v))
+}
+
+// NamespaceEQ applies the EQ predicate on the "namespace" field.
+func NamespaceEQ(v string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldEQ(FieldNamespace, v))
+}
+
+// NamespaceNEQ applies the NEQ predicate on the "namespace" field.
+func NamespaceNEQ(v string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldNEQ(FieldNamespace, v))
+}
+
+// NamespaceIn applies the In predicate on the "namespace" field.
+func NamespaceIn(vs ...string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldIn(FieldNamespace, vs...))
+}
+
+// NamespaceNotIn applies the NotIn predicate on the "namespace" field.
+func NamespaceNotIn(vs ...string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldNotIn(FieldNamespace, vs...))
+}
+
+// NamespaceGT applies the GT predicate on the "namespace" field.
+func NamespaceGT(v string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldGT(FieldNamespace, v))
+}
+
+// NamespaceGTE applies the GTE predicate on the "namespace" field.
+func NamespaceGTE(v string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldGTE(FieldNamespace, v))
+}
+
+// NamespaceLT applies the LT predicate on the "namespace" field.
+func NamespaceLT(v string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldLT(FieldNamespace, v))
+}
+
+// NamespaceLTE applies the LTE predicate on the "namespace" field.
+func NamespaceLTE(v string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldLTE(FieldNamespace, v))
+}
+
+// NamespaceContains applies the Contains predicate on the "namespace" field.
+func NamespaceContains(v string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldContains(FieldNamespace, v))
+}
+
+// NamespaceHasPrefix applies the HasPrefix predicate on the "namespace" field.
+func NamespaceHasPrefix(v string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldHasPrefix(FieldNamespace, v))
+}
+
+// NamespaceHasSuffix applies the HasSuffix predicate on the "namespace" field.
+func NamespaceHasSuffix(v string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldHasSuffix(FieldNamespace, v))
+}
+
+// NamespaceEqualFold applies the EqualFold predicate on the "namespace" field.
+func NamespaceEqualFold(v string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldEqualFold(FieldNamespace, v))
+}
+
+// NamespaceContainsFold applies the ContainsFold predicate on the "namespace" field.
+func NamespaceContainsFold(v string) predicate.SubscriptionAddonQuantity {
+	return predicate.SubscriptionAddonQuantity(sql.FieldContainsFold(FieldNamespace, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

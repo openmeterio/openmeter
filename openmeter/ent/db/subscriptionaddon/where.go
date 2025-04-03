@@ -160,6 +160,16 @@ func NamespaceContainsFold(v string) predicate.SubscriptionAddon {
 	return predicate.SubscriptionAddon(sql.FieldContainsFold(FieldNamespace, v))
 }
 
+// MetadataIsNil applies the IsNil predicate on the "metadata" field.
+func MetadataIsNil() predicate.SubscriptionAddon {
+	return predicate.SubscriptionAddon(sql.FieldIsNull(FieldMetadata))
+}
+
+// MetadataNotNil applies the NotNil predicate on the "metadata" field.
+func MetadataNotNil() predicate.SubscriptionAddon {
+	return predicate.SubscriptionAddon(sql.FieldNotNull(FieldMetadata))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.SubscriptionAddon {
 	return predicate.SubscriptionAddon(sql.FieldEQ(FieldCreatedAt, v))

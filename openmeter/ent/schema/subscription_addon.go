@@ -20,6 +20,7 @@ func (SubscriptionAddon) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
+		entutils.MetadataMixin{},
 		entutils.TimeMixin{},
 	}
 }
@@ -57,6 +58,7 @@ type SubscriptionAddonQuantity struct {
 func (SubscriptionAddonQuantity) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 	}
 }

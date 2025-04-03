@@ -1870,6 +1870,7 @@ var (
 	SubscriptionAddonsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
@@ -1884,13 +1885,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscription_addons_addons_subscription_addons",
-				Columns:    []*schema.Column{SubscriptionAddonsColumns[5]},
+				Columns:    []*schema.Column{SubscriptionAddonsColumns[6]},
 				RefColumns: []*schema.Column{AddonsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "subscription_addons_subscriptions_addons",
-				Columns:    []*schema.Column{SubscriptionAddonsColumns[6]},
+				Columns:    []*schema.Column{SubscriptionAddonsColumns[7]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1911,6 +1912,7 @@ var (
 	// SubscriptionAddonQuantitiesColumns holds the columns for the "subscription_addon_quantities" table.
 	SubscriptionAddonQuantitiesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
@@ -1926,7 +1928,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscription_addon_quantities_subscription_addons_quantities",
-				Columns:    []*schema.Column{SubscriptionAddonQuantitiesColumns[6]},
+				Columns:    []*schema.Column{SubscriptionAddonQuantitiesColumns[7]},
 				RefColumns: []*schema.Column{SubscriptionAddonsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1938,9 +1940,14 @@ var (
 				Columns: []*schema.Column{SubscriptionAddonQuantitiesColumns[0]},
 			},
 			{
+				Name:    "subscriptionaddonquantity_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionAddonQuantitiesColumns[1]},
+			},
+			{
 				Name:    "subscriptionaddonquantity_subscription_addon_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionAddonQuantitiesColumns[6]},
+				Columns: []*schema.Column{SubscriptionAddonQuantitiesColumns[7]},
 			},
 		},
 	}

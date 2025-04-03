@@ -2421,6 +2421,20 @@ func (u *SubscriptionUpdateOne) SetOrClearPlanID(value *string) *SubscriptionUpd
 	return u.SetPlanID(*value)
 }
 
+func (u *SubscriptionAddonUpdate) SetOrClearMetadata(value *map[string]string) *SubscriptionAddonUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubscriptionAddonUpdateOne) SetOrClearMetadata(value *map[string]string) *SubscriptionAddonUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
 func (u *SubscriptionAddonUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionAddonUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

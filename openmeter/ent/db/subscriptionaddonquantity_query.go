@@ -300,12 +300,12 @@ func (saqq *SubscriptionAddonQuantityQuery) WithSubscriptionAddon(opts ...func(*
 // Example:
 //
 //	var v []struct {
-//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		Namespace string `json:"namespace,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.SubscriptionAddonQuantity.Query().
-//		GroupBy(subscriptionaddonquantity.FieldCreatedAt).
+//		GroupBy(subscriptionaddonquantity.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (saqq *SubscriptionAddonQuantityQuery) GroupBy(field string, fields ...string) *SubscriptionAddonQuantityGroupBy {
@@ -323,11 +323,11 @@ func (saqq *SubscriptionAddonQuantityQuery) GroupBy(field string, fields ...stri
 // Example:
 //
 //	var v []struct {
-//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		Namespace string `json:"namespace,omitempty"`
 //	}
 //
 //	client.SubscriptionAddonQuantity.Query().
-//		Select(subscriptionaddonquantity.FieldCreatedAt).
+//		Select(subscriptionaddonquantity.FieldNamespace).
 //		Scan(ctx, &v)
 func (saqq *SubscriptionAddonQuantityQuery) Select(fields ...string) *SubscriptionAddonQuantitySelect {
 	saqq.ctx.Fields = append(saqq.ctx.Fields, fields...)

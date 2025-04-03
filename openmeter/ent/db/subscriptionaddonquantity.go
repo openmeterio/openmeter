@@ -18,6 +18,8 @@ type SubscriptionAddonQuantity struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
+	// Namespace holds the value of the "namespace" field.
+	Namespace string `json:"namespace,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -63,7 +65,7 @@ func (*SubscriptionAddonQuantity) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case subscriptionaddonquantity.FieldQuantity:
 			values[i] = new(sql.NullInt64)
-		case subscriptionaddonquantity.FieldID, subscriptionaddonquantity.FieldSubscriptionAddonID:
+		case subscriptionaddonquantity.FieldID, subscriptionaddonquantity.FieldNamespace, subscriptionaddonquantity.FieldSubscriptionAddonID:
 			values[i] = new(sql.NullString)
 		case subscriptionaddonquantity.FieldCreatedAt, subscriptionaddonquantity.FieldUpdatedAt, subscriptionaddonquantity.FieldDeletedAt, subscriptionaddonquantity.FieldActiveFrom:
 			values[i] = new(sql.NullTime)
@@ -87,6 +89,12 @@ func (saq *SubscriptionAddonQuantity) assignValues(columns []string, values []an
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				saq.ID = value.String
+			}
+		case subscriptionaddonquantity.FieldNamespace:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field namespace", values[i])
+			} else if value.Valid {
+				saq.Namespace = value.String
 			}
 		case subscriptionaddonquantity.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -166,6 +174,9 @@ func (saq *SubscriptionAddonQuantity) String() string {
 	var builder strings.Builder
 	builder.WriteString("SubscriptionAddonQuantity(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", saq.ID))
+	builder.WriteString("namespace=")
+	builder.WriteString(saq.Namespace)
+	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(saq.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")

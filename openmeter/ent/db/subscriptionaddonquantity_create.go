@@ -24,6 +24,12 @@ type SubscriptionAddonQuantityCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetNamespace sets the "namespace" field.
+func (saqc *SubscriptionAddonQuantityCreate) SetNamespace(s string) *SubscriptionAddonQuantityCreate {
+	saqc.mutation.SetNamespace(s)
+	return saqc
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (saqc *SubscriptionAddonQuantityCreate) SetCreatedAt(t time.Time) *SubscriptionAddonQuantityCreate {
 	saqc.mutation.SetCreatedAt(t)
@@ -178,6 +184,14 @@ func (saqc *SubscriptionAddonQuantityCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (saqc *SubscriptionAddonQuantityCreate) check() error {
+	if _, ok := saqc.mutation.Namespace(); !ok {
+		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "SubscriptionAddonQuantity.namespace"`)}
+	}
+	if v, ok := saqc.mutation.Namespace(); ok {
+		if err := subscriptionaddonquantity.NamespaceValidator(v); err != nil {
+			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "SubscriptionAddonQuantity.namespace": %w`, err)}
+		}
+	}
 	if _, ok := saqc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "SubscriptionAddonQuantity.created_at"`)}
 	}
@@ -242,6 +256,10 @@ func (saqc *SubscriptionAddonQuantityCreate) createSpec() (*SubscriptionAddonQua
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := saqc.mutation.Namespace(); ok {
+		_spec.SetField(subscriptionaddonquantity.FieldNamespace, field.TypeString, value)
+		_node.Namespace = value
+	}
 	if value, ok := saqc.mutation.CreatedAt(); ok {
 		_spec.SetField(subscriptionaddonquantity.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -286,7 +304,7 @@ func (saqc *SubscriptionAddonQuantityCreate) createSpec() (*SubscriptionAddonQua
 // of the `INSERT` statement. For example:
 //
 //	client.SubscriptionAddonQuantity.Create().
-//		SetCreatedAt(v).
+//		SetNamespace(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -295,7 +313,7 @@ func (saqc *SubscriptionAddonQuantityCreate) createSpec() (*SubscriptionAddonQua
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.SubscriptionAddonQuantityUpsert) {
-//			SetCreatedAt(v+v).
+//			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
 func (saqc *SubscriptionAddonQuantityCreate) OnConflict(opts ...sql.ConflictOption) *SubscriptionAddonQuantityUpsertOne {
@@ -377,6 +395,9 @@ func (u *SubscriptionAddonQuantityUpsertOne) UpdateNewValues() *SubscriptionAddo
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(subscriptionaddonquantity.FieldID)
+		}
+		if _, exists := u.create.mutation.Namespace(); exists {
+			s.SetIgnore(subscriptionaddonquantity.FieldNamespace)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(subscriptionaddonquantity.FieldCreatedAt)
@@ -592,7 +613,7 @@ func (saqcb *SubscriptionAddonQuantityCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.SubscriptionAddonQuantityUpsert) {
-//			SetCreatedAt(v+v).
+//			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
 func (saqcb *SubscriptionAddonQuantityCreateBulk) OnConflict(opts ...sql.ConflictOption) *SubscriptionAddonQuantityUpsertBulk {
@@ -638,6 +659,9 @@ func (u *SubscriptionAddonQuantityUpsertBulk) UpdateNewValues() *SubscriptionAdd
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(subscriptionaddonquantity.FieldID)
+			}
+			if _, exists := b.mutation.Namespace(); exists {
+				s.SetIgnore(subscriptionaddonquantity.FieldNamespace)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(subscriptionaddonquantity.FieldCreatedAt)

@@ -1233,8 +1233,8 @@ func init() {
 	_ = subscriptionaddonMixinFields0
 	subscriptionaddonMixinFields1 := subscriptionaddonMixin[1].Fields()
 	_ = subscriptionaddonMixinFields1
-	subscriptionaddonMixinFields2 := subscriptionaddonMixin[2].Fields()
-	_ = subscriptionaddonMixinFields2
+	subscriptionaddonMixinFields3 := subscriptionaddonMixin[3].Fields()
+	_ = subscriptionaddonMixinFields3
 	subscriptionaddonFields := schema.SubscriptionAddon{}.Fields()
 	_ = subscriptionaddonFields
 	// subscriptionaddonDescNamespace is the schema descriptor for namespace field.
@@ -1242,11 +1242,11 @@ func init() {
 	// subscriptionaddon.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	subscriptionaddon.NamespaceValidator = subscriptionaddonDescNamespace.Validators[0].(func(string) error)
 	// subscriptionaddonDescCreatedAt is the schema descriptor for created_at field.
-	subscriptionaddonDescCreatedAt := subscriptionaddonMixinFields2[0].Descriptor()
+	subscriptionaddonDescCreatedAt := subscriptionaddonMixinFields3[0].Descriptor()
 	// subscriptionaddon.DefaultCreatedAt holds the default value on creation for the created_at field.
 	subscriptionaddon.DefaultCreatedAt = subscriptionaddonDescCreatedAt.Default.(func() time.Time)
 	// subscriptionaddonDescUpdatedAt is the schema descriptor for updated_at field.
-	subscriptionaddonDescUpdatedAt := subscriptionaddonMixinFields2[1].Descriptor()
+	subscriptionaddonDescUpdatedAt := subscriptionaddonMixinFields3[1].Descriptor()
 	// subscriptionaddon.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	subscriptionaddon.DefaultUpdatedAt = subscriptionaddonDescUpdatedAt.Default.(func() time.Time)
 	// subscriptionaddon.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -1268,14 +1268,20 @@ func init() {
 	_ = subscriptionaddonquantityMixinFields0
 	subscriptionaddonquantityMixinFields1 := subscriptionaddonquantityMixin[1].Fields()
 	_ = subscriptionaddonquantityMixinFields1
+	subscriptionaddonquantityMixinFields2 := subscriptionaddonquantityMixin[2].Fields()
+	_ = subscriptionaddonquantityMixinFields2
 	subscriptionaddonquantityFields := schema.SubscriptionAddonQuantity{}.Fields()
 	_ = subscriptionaddonquantityFields
+	// subscriptionaddonquantityDescNamespace is the schema descriptor for namespace field.
+	subscriptionaddonquantityDescNamespace := subscriptionaddonquantityMixinFields1[0].Descriptor()
+	// subscriptionaddonquantity.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	subscriptionaddonquantity.NamespaceValidator = subscriptionaddonquantityDescNamespace.Validators[0].(func(string) error)
 	// subscriptionaddonquantityDescCreatedAt is the schema descriptor for created_at field.
-	subscriptionaddonquantityDescCreatedAt := subscriptionaddonquantityMixinFields1[0].Descriptor()
+	subscriptionaddonquantityDescCreatedAt := subscriptionaddonquantityMixinFields2[0].Descriptor()
 	// subscriptionaddonquantity.DefaultCreatedAt holds the default value on creation for the created_at field.
 	subscriptionaddonquantity.DefaultCreatedAt = subscriptionaddonquantityDescCreatedAt.Default.(func() time.Time)
 	// subscriptionaddonquantityDescUpdatedAt is the schema descriptor for updated_at field.
-	subscriptionaddonquantityDescUpdatedAt := subscriptionaddonquantityMixinFields1[1].Descriptor()
+	subscriptionaddonquantityDescUpdatedAt := subscriptionaddonquantityMixinFields2[1].Descriptor()
 	// subscriptionaddonquantity.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	subscriptionaddonquantity.DefaultUpdatedAt = subscriptionaddonquantityDescUpdatedAt.Default.(func() time.Time)
 	// subscriptionaddonquantity.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
