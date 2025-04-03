@@ -48,10 +48,6 @@ func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 			query = tx.expandInvoiceLineItems(query, in.Expand)
 		}
 
-		if in.Expand.Discounts {
-			query = tx.expandDiscounts(query)
-		}
-
 		invoice, err := query.Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -246,10 +242,6 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 
 		if input.Expand.Lines {
 			query = tx.expandInvoiceLineItems(query, input.Expand)
-		}
-
-		if input.Expand.Discounts {
-			query = tx.expandDiscounts(query)
 		}
 
 		switch input.OrderBy {
@@ -586,23 +578,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			updatedLines = billing.NewLineChildren(lines)
 		}
 
-		if in.Discounts.IsPresent() {
-			snapshot := in.GetDiscountSnapshot()
-			if !snapshot.IsPresent() {
-				return in, fmt.Errorf("invoice with expanded discounts is required for discount updates")
-			}
-
-			err := tx.upsertInvoiceDiscounts(ctx, upsertInvoiceDiscountsInput{
-				OriginalState: snapshot.OrEmpty(),
-				TargetState:   in.Discounts.OrEmpty(),
-			})
-			if err != nil {
-				return in, err
-			}
-		}
-
 		// Let's return the updated invoice
-
 		if !in.ExpandedFields.DeletedLines && updatedLines.IsPresent() {
 			// If we haven't requested deleted lines, let's filter them out, as if there were lines marked deleted
 			// the adapter update would return them as well.
@@ -795,16 +771,6 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 			}
 		})
 	}
-
-	if expand.Discounts {
-		res.Discounts, err = a.mapInvoiceDiscountsFromDB(invoice.Edges.InvoiceDiscounts)
-		if err != nil {
-			return billing.Invoice{}, err
-		}
-	}
-
-	// Let's create a snapshot of the invoice for diffing purposes
-	res.Snapshot()
 
 	return res, nil
 }

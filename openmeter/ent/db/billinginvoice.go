@@ -156,11 +156,9 @@ type BillingInvoiceEdges struct {
 	InvoicingApp *App `json:"invoicing_app,omitempty"`
 	// PaymentApp holds the value of the payment_app edge.
 	PaymentApp *App `json:"payment_app,omitempty"`
-	// InvoiceDiscounts holds the value of the invoice_discounts edge.
-	InvoiceDiscounts []*BillingInvoiceDiscount `json:"invoice_discounts,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [9]bool
+	loadedTypes [8]bool
 }
 
 // SourceBillingProfileOrErr returns the SourceBillingProfile value or an error if the edge
@@ -245,15 +243,6 @@ func (e BillingInvoiceEdges) PaymentAppOrErr() (*App, error) {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment_app"}
-}
-
-// InvoiceDiscountsOrErr returns the InvoiceDiscounts value or an error if the edge
-// was not loaded in eager-loading.
-func (e BillingInvoiceEdges) InvoiceDiscountsOrErr() ([]*BillingInvoiceDiscount, error) {
-	if e.loadedTypes[8] {
-		return e.InvoiceDiscounts, nil
-	}
-	return nil, &NotLoadedError{edge: "invoice_discounts"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -692,11 +681,6 @@ func (bi *BillingInvoice) QueryInvoicingApp() *AppQuery {
 // QueryPaymentApp queries the "payment_app" edge of the BillingInvoice entity.
 func (bi *BillingInvoice) QueryPaymentApp() *AppQuery {
 	return NewBillingInvoiceClient(bi.config).QueryPaymentApp(bi)
-}
-
-// QueryInvoiceDiscounts queries the "invoice_discounts" edge of the BillingInvoice entity.
-func (bi *BillingInvoice) QueryInvoiceDiscounts() *BillingInvoiceDiscountQuery {
-	return NewBillingInvoiceClient(bi.config).QueryInvoiceDiscounts(bi)
 }
 
 // Update returns a builder for updating this BillingInvoice.

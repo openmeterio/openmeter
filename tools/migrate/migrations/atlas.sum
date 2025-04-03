@@ -1,4 +1,4 @@
-h1:N/8o47nwZxZqRuHRBr5x3I1b9mnGDzSTony+v68vLj8=
+h1:G8VMXNkQk+6aUrR/d4duWZqyA7O+mGHX+T4xASBvs64=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -147,3 +147,5 @@ h1:N/8o47nwZxZqRuHRBr5x3I1b9mnGDzSTony+v68vLj8=
 20250401085630_plan-discount-nillable.up.sql h1:9oIFAsI97eOVL0rDctKphzYZXLVZgJwDv0qv/VDbTCc=
 20250401093027_subs-item-discounts.down.sql h1:SKOzdg5cDbtu0dHDiVcn9JcOnE1qg67Tt/Fhk4+Bn20=
 20250401093027_subs-item-discounts.up.sql h1:io2nA9jxTWz7lrLwJtZ0k9dM11SL3J6APiJRI0spojI=
+20250403195308_deprecate-invoice-discounts.down.sql h1:p/59ZSyRvKZlwyZqu8DM11RQPSnM3GNReBDBAZn53hU=
+20250403195308_deprecate-invoice-discounts.up.sql h1:o5mRIIzLSMeHD1q92XLC8EE3wOCYaR00opyAHn7vgpA=
