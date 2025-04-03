@@ -4813,11 +4813,6 @@ export interface components {
        *     New discounts can be added via the invoice's discounts API, to facilitate
        *     discounts that are affecting multiple lines. */
       readonly discounts?: components['schemas']['InvoiceLineDiscount'][]
-      /** @description Charges applied to this line. (like minimum spend)
-       *
-       *     New charges can be added via the invoice's charges API, to facilitate
-       *     charges that are affecting multiple lines. */
-      readonly charges?: components['schemas']['InvoiceLineCharge'][]
       /** @description The invoice this item belongs to. */
       invoice?: components['schemas']['InvoiceReference']
       /** @description The currency of this line. */
@@ -5067,51 +5062,6 @@ export interface components {
       readonly invoicing?: string
       /** @description The external ID of the invoice in the tax app if available. */
       readonly tax?: string
-    }
-    /** @description InvoiceLineCharge represents a charge on the invoice line. */
-    InvoiceLineCharge: components['schemas']['InvoiceLineChargeAmount']
-    /** @description InvoiceLineChargeAmount represents an amount added to the line, and will be applied before taxes. */
-    InvoiceLineChargeAmount: {
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: Date
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: Date
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: Date
-      /**
-       * @description ID of the charge or discount.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      readonly id: string
-      /** @description Reason code. */
-      readonly code?: string
-      /** @description Text description as to why the discount was applied. */
-      readonly description?: string
-      /**
-       * Amount in the currency of the invoice
-       * @description Fixed discount amount to apply (calculated if percent present).
-       */
-      readonly amount: components['schemas']['Numeric']
-      /**
-       * @description The type of the charge. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'amount'
     }
     /** @description InvoiceLineDiscount represents the actual discount applied to the invoice line. */
     InvoiceLineDiscount:
@@ -5636,11 +5586,6 @@ export interface components {
        *     New discounts can be added via the invoice's discounts API, to facilitate
        *     discounts that are affecting multiple lines. */
       readonly discounts?: components['schemas']['InvoiceLineDiscount'][]
-      /** @description Charges applied to this line. (like minimum spend)
-       *
-       *     New charges can be added via the invoice's charges API, to facilitate
-       *     charges that are affecting multiple lines. */
-      readonly charges?: components['schemas']['InvoiceLineCharge'][]
       /** @description The invoice this item belongs to. */
       invoice?: components['schemas']['InvoiceReference']
       /** @description The currency of this line. */
@@ -9090,9 +9035,6 @@ export type InvoiceGenericDocumentRef =
 export type InvoiceLine = components['schemas']['InvoiceLine']
 export type InvoiceLineAppExternalIds =
   components['schemas']['InvoiceLineAppExternalIds']
-export type InvoiceLineCharge = components['schemas']['InvoiceLineCharge']
-export type InvoiceLineChargeAmount =
-  components['schemas']['InvoiceLineChargeAmount']
 export type InvoiceLineDiscount = components['schemas']['InvoiceLineDiscount']
 export type InvoiceLineDiscountAmount =
   components['schemas']['InvoiceLineDiscountAmount']

@@ -616,15 +616,6 @@ model InvoiceLineBase {
   discounts?: InvoiceLineDiscount[];
 
   /**
-   * Charges applied to this line. (like minimum spend)
-   *
-   * New charges can be added via the invoice's charges API, to facilitate
-   * charges that are affecting multiple lines.
-   */
-  @visibility(Lifecycle.Read)
-  charges?: InvoiceLineCharge[];
-
-  /**
    * The invoice this item belongs to.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)

@@ -13909,16 +13909,6 @@ components:
             New discounts can be added via the invoice's discounts API, to facilitate
             discounts that are affecting multiple lines.
           readOnly: true
-        charges:
-          type: array
-          items:
-            $ref: '#/components/schemas/InvoiceLineCharge'
-          description: |-
-            Charges applied to this line. (like minimum spend)
-
-            New charges can be added via the invoice's charges API, to facilitate
-            charges that are affecting multiple lines.
-          readOnly: true
         invoice:
           allOf:
             - $ref: '#/components/schemas/InvoiceReference'
@@ -14257,72 +14247,6 @@ components:
           description: The external ID of the invoice in the tax app if available.
           readOnly: true
       description: InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps such as Stripe.
-    InvoiceLineCharge:
-      type: object
-      oneOf:
-        - $ref: '#/components/schemas/InvoiceLineChargeAmount'
-      discriminator:
-        propertyName: type
-        mapping:
-          amount: '#/components/schemas/InvoiceLineChargeAmount'
-      description: InvoiceLineCharge represents a charge on the invoice line.
-    InvoiceLineChargeAmount:
-      type: object
-      required:
-        - createdAt
-        - updatedAt
-        - id
-        - amount
-        - type
-      properties:
-        createdAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was created.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Creation Time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was last updated.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Last Update Time
-          readOnly: true
-        deletedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was permanently deleted.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Deletion Time
-          readOnly: true
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ID of the charge or discount.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          readOnly: true
-        code:
-          type: string
-          description: Reason code.
-          readOnly: true
-        description:
-          type: string
-          description: Text description as to why the discount was applied.
-          readOnly: true
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Fixed discount amount to apply (calculated if percent present).
-          title: Amount in the currency of the invoice
-          readOnly: true
-        type:
-          type: string
-          enum:
-            - amount
-          description: The type of the charge.
-          readOnly: true
-      description: InvoiceLineChargeAmount represents an amount added to the line, and will be applied before taxes.
     InvoiceLineDiscount:
       type: object
       oneOf:
@@ -15117,16 +15041,6 @@ components:
 
             New discounts can be added via the invoice's discounts API, to facilitate
             discounts that are affecting multiple lines.
-          readOnly: true
-        charges:
-          type: array
-          items:
-            $ref: '#/components/schemas/InvoiceLineCharge'
-          description: |-
-            Charges applied to this line. (like minimum spend)
-
-            New charges can be added via the invoice's charges API, to facilitate
-            charges that are affecting multiple lines.
           readOnly: true
         invoice:
           allOf:
