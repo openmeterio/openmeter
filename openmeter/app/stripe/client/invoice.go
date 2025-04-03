@@ -36,6 +36,12 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 		params.CollectionMethod = lo.ToPtr(string(stripe.InvoiceCollectionMethodChargeAutomatically))
 	case billing.CollectionMethodSendInvoice:
 		params.CollectionMethod = lo.ToPtr(string(stripe.InvoiceCollectionMethodSendInvoice))
+
+		// The due date can only be set if we are not charging automatically.
+		if input.DueDate != nil {
+			params.DueDate = lo.ToPtr(input.DueDate.Unix())
+		}
+
 	default:
 		return nil, fmt.Errorf("stripe create invoice: invalid collection method: %s", input.CollectionMethod)
 	}
@@ -44,10 +50,6 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 		params.AutomaticTax = &stripe.InvoiceAutomaticTaxParams{
 			Enabled: lo.ToPtr(true),
 		}
-	}
-
-	if input.DueDate != nil {
-		params.DueDate = lo.ToPtr(input.DueDate.Unix())
 	}
 
 	return c.client.Invoices.New(params)
