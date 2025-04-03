@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 )
 
@@ -192,6 +193,21 @@ func (su *SubscriptionUpdate) AddBillingLines(b ...*BillingInvoiceLine) *Subscri
 	return su.AddBillingLineIDs(ids...)
 }
 
+// AddAddonIDs adds the "addons" edge to the SubscriptionAddon entity by IDs.
+func (su *SubscriptionUpdate) AddAddonIDs(ids ...string) *SubscriptionUpdate {
+	su.mutation.AddAddonIDs(ids...)
+	return su
+}
+
+// AddAddons adds the "addons" edges to the SubscriptionAddon entity.
+func (su *SubscriptionUpdate) AddAddons(s ...*SubscriptionAddon) *SubscriptionUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return su.AddAddonIDs(ids...)
+}
+
 // Mutation returns the SubscriptionMutation object of the builder.
 func (su *SubscriptionUpdate) Mutation() *SubscriptionMutation {
 	return su.mutation
@@ -243,6 +259,27 @@ func (su *SubscriptionUpdate) RemoveBillingLines(b ...*BillingInvoiceLine) *Subs
 		ids[i] = b[i].ID
 	}
 	return su.RemoveBillingLineIDs(ids...)
+}
+
+// ClearAddons clears all "addons" edges to the SubscriptionAddon entity.
+func (su *SubscriptionUpdate) ClearAddons() *SubscriptionUpdate {
+	su.mutation.ClearAddons()
+	return su
+}
+
+// RemoveAddonIDs removes the "addons" edge to SubscriptionAddon entities by IDs.
+func (su *SubscriptionUpdate) RemoveAddonIDs(ids ...string) *SubscriptionUpdate {
+	su.mutation.RemoveAddonIDs(ids...)
+	return su
+}
+
+// RemoveAddons removes "addons" edges to SubscriptionAddon entities.
+func (su *SubscriptionUpdate) RemoveAddons(s ...*SubscriptionAddon) *SubscriptionUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return su.RemoveAddonIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -458,6 +495,51 @@ func (su *SubscriptionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if su.mutation.AddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.AddonsTable,
+			Columns: []string{subscription.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.RemovedAddonsIDs(); len(nodes) > 0 && !su.mutation.AddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.AddonsTable,
+			Columns: []string{subscription.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.AddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.AddonsTable,
+			Columns: []string{subscription.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, su.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscription.Label}
@@ -639,6 +721,21 @@ func (suo *SubscriptionUpdateOne) AddBillingLines(b ...*BillingInvoiceLine) *Sub
 	return suo.AddBillingLineIDs(ids...)
 }
 
+// AddAddonIDs adds the "addons" edge to the SubscriptionAddon entity by IDs.
+func (suo *SubscriptionUpdateOne) AddAddonIDs(ids ...string) *SubscriptionUpdateOne {
+	suo.mutation.AddAddonIDs(ids...)
+	return suo
+}
+
+// AddAddons adds the "addons" edges to the SubscriptionAddon entity.
+func (suo *SubscriptionUpdateOne) AddAddons(s ...*SubscriptionAddon) *SubscriptionUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return suo.AddAddonIDs(ids...)
+}
+
 // Mutation returns the SubscriptionMutation object of the builder.
 func (suo *SubscriptionUpdateOne) Mutation() *SubscriptionMutation {
 	return suo.mutation
@@ -690,6 +787,27 @@ func (suo *SubscriptionUpdateOne) RemoveBillingLines(b ...*BillingInvoiceLine) *
 		ids[i] = b[i].ID
 	}
 	return suo.RemoveBillingLineIDs(ids...)
+}
+
+// ClearAddons clears all "addons" edges to the SubscriptionAddon entity.
+func (suo *SubscriptionUpdateOne) ClearAddons() *SubscriptionUpdateOne {
+	suo.mutation.ClearAddons()
+	return suo
+}
+
+// RemoveAddonIDs removes the "addons" edge to SubscriptionAddon entities by IDs.
+func (suo *SubscriptionUpdateOne) RemoveAddonIDs(ids ...string) *SubscriptionUpdateOne {
+	suo.mutation.RemoveAddonIDs(ids...)
+	return suo
+}
+
+// RemoveAddons removes "addons" edges to SubscriptionAddon entities.
+func (suo *SubscriptionUpdateOne) RemoveAddons(s ...*SubscriptionAddon) *SubscriptionUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return suo.RemoveAddonIDs(ids...)
 }
 
 // Where appends a list predicates to the SubscriptionUpdate builder.
@@ -928,6 +1046,51 @@ func (suo *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscript
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if suo.mutation.AddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.AddonsTable,
+			Columns: []string{subscription.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.RemovedAddonsIDs(); len(nodes) > 0 && !suo.mutation.AddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.AddonsTable,
+			Columns: []string{subscription.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.AddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.AddonsTable,
+			Columns: []string{subscription.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -1595,6 +1595,198 @@ var _ pagination.Paginator[*Subscription] = (*SubscriptionQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (sa *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionAddon], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	sa.ctx.Offset = &zero
+	sa.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := sa.Clone()
+	pagedQuery := sa
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*SubscriptionAddon]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*SubscriptionAddon] = (*SubscriptionAddonQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (saq *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionAddonQuantity], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	saq.ctx.Offset = &zero
+	saq.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := saq.Clone()
+	pagedQuery := saq
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*SubscriptionAddonQuantity]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*SubscriptionAddonQuantity] = (*SubscriptionAddonQuantityQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (sarc *SubscriptionAddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionAddonRateCard], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	sarc.ctx.Offset = &zero
+	sarc.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := sarc.Clone()
+	pagedQuery := sarc
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*SubscriptionAddonRateCard]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*SubscriptionAddonRateCard] = (*SubscriptionAddonRateCardQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (sarcil *SubscriptionAddonRateCardItemLinkQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionAddonRateCardItemLink], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	sarcil.ctx.Offset = &zero
+	sarcil.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := sarcil.Clone()
+	pagedQuery := sarcil
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*SubscriptionAddonRateCardItemLink]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*SubscriptionAddonRateCardItemLink] = (*SubscriptionAddonRateCardItemLinkQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (si *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionItem], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()

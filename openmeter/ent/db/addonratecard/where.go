@@ -762,6 +762,16 @@ func PriceNotNil() predicate.AddonRateCard {
 	return predicate.AddonRateCard(sql.FieldNotNull(FieldPrice))
 }
 
+// DiscountsIsNil applies the IsNil predicate on the "discounts" field.
+func DiscountsIsNil() predicate.AddonRateCard {
+	return predicate.AddonRateCard(sql.FieldIsNull(FieldDiscounts))
+}
+
+// DiscountsNotNil applies the NotNil predicate on the "discounts" field.
+func DiscountsNotNil() predicate.AddonRateCard {
+	return predicate.AddonRateCard(sql.FieldNotNull(FieldDiscounts))
+}
+
 // AddonIDEQ applies the EQ predicate on the "addon_id" field.
 func AddonIDEQ(v string) predicate.AddonRateCard {
 	return predicate.AddonRateCard(sql.FieldEQ(FieldAddonID, v))
@@ -902,16 +912,6 @@ func FeatureIDContainsFold(v string) predicate.AddonRateCard {
 	return predicate.AddonRateCard(sql.FieldContainsFold(FieldFeatureID, v))
 }
 
-// DiscountsIsNil applies the IsNil predicate on the "discounts" field.
-func DiscountsIsNil() predicate.AddonRateCard {
-	return predicate.AddonRateCard(sql.FieldIsNull(FieldDiscounts))
-}
-
-// DiscountsNotNil applies the NotNil predicate on the "discounts" field.
-func DiscountsNotNil() predicate.AddonRateCard {
-	return predicate.AddonRateCard(sql.FieldNotNull(FieldDiscounts))
-}
-
 // HasAddon applies the HasEdge predicate on the "addon" edge.
 func HasAddon() predicate.AddonRateCard {
 	return predicate.AddonRateCard(func(s *sql.Selector) {
@@ -950,6 +950,29 @@ func HasFeatures() predicate.AddonRateCard {
 func HasFeaturesWith(preds ...predicate.Feature) predicate.AddonRateCard {
 	return predicate.AddonRateCard(func(s *sql.Selector) {
 		step := newFeaturesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSubscriptionAddonRateCards applies the HasEdge predicate on the "subscription_addon_rate_cards" edge.
+func HasSubscriptionAddonRateCards() predicate.AddonRateCard {
+	return predicate.AddonRateCard(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionAddonRateCardsTable, SubscriptionAddonRateCardsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionAddonRateCardsWith applies the HasEdge predicate on the "subscription_addon_rate_cards" edge with a given conditions (other predicates).
+func HasSubscriptionAddonRateCardsWith(preds ...predicate.SubscriptionAddonRateCard) predicate.AddonRateCard {
+	return predicate.AddonRateCard(func(s *sql.Selector) {
+		step := newSubscriptionAddonRateCardsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

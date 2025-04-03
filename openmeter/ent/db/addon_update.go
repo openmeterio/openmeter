@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -204,6 +205,21 @@ func (au *AddonUpdate) AddRatecards(a ...*AddonRateCard) *AddonUpdate {
 	return au.AddRatecardIDs(ids...)
 }
 
+// AddSubscriptionAddonIDs adds the "subscription_addons" edge to the SubscriptionAddon entity by IDs.
+func (au *AddonUpdate) AddSubscriptionAddonIDs(ids ...string) *AddonUpdate {
+	au.mutation.AddSubscriptionAddonIDs(ids...)
+	return au
+}
+
+// AddSubscriptionAddons adds the "subscription_addons" edges to the SubscriptionAddon entity.
+func (au *AddonUpdate) AddSubscriptionAddons(s ...*SubscriptionAddon) *AddonUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return au.AddSubscriptionAddonIDs(ids...)
+}
+
 // Mutation returns the AddonMutation object of the builder.
 func (au *AddonUpdate) Mutation() *AddonMutation {
 	return au.mutation
@@ -228,6 +244,27 @@ func (au *AddonUpdate) RemoveRatecards(a ...*AddonRateCard) *AddonUpdate {
 		ids[i] = a[i].ID
 	}
 	return au.RemoveRatecardIDs(ids...)
+}
+
+// ClearSubscriptionAddons clears all "subscription_addons" edges to the SubscriptionAddon entity.
+func (au *AddonUpdate) ClearSubscriptionAddons() *AddonUpdate {
+	au.mutation.ClearSubscriptionAddons()
+	return au
+}
+
+// RemoveSubscriptionAddonIDs removes the "subscription_addons" edge to SubscriptionAddon entities by IDs.
+func (au *AddonUpdate) RemoveSubscriptionAddonIDs(ids ...string) *AddonUpdate {
+	au.mutation.RemoveSubscriptionAddonIDs(ids...)
+	return au
+}
+
+// RemoveSubscriptionAddons removes "subscription_addons" edges to SubscriptionAddon entities.
+func (au *AddonUpdate) RemoveSubscriptionAddons(s ...*SubscriptionAddon) *AddonUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return au.RemoveSubscriptionAddonIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -386,6 +423,51 @@ func (au *AddonUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if au.mutation.SubscriptionAddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.SubscriptionAddonsTable,
+			Columns: []string{addon.SubscriptionAddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := au.mutation.RemovedSubscriptionAddonsIDs(); len(nodes) > 0 && !au.mutation.SubscriptionAddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.SubscriptionAddonsTable,
+			Columns: []string{addon.SubscriptionAddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := au.mutation.SubscriptionAddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.SubscriptionAddonsTable,
+			Columns: []string{addon.SubscriptionAddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -587,6 +669,21 @@ func (auo *AddonUpdateOne) AddRatecards(a ...*AddonRateCard) *AddonUpdateOne {
 	return auo.AddRatecardIDs(ids...)
 }
 
+// AddSubscriptionAddonIDs adds the "subscription_addons" edge to the SubscriptionAddon entity by IDs.
+func (auo *AddonUpdateOne) AddSubscriptionAddonIDs(ids ...string) *AddonUpdateOne {
+	auo.mutation.AddSubscriptionAddonIDs(ids...)
+	return auo
+}
+
+// AddSubscriptionAddons adds the "subscription_addons" edges to the SubscriptionAddon entity.
+func (auo *AddonUpdateOne) AddSubscriptionAddons(s ...*SubscriptionAddon) *AddonUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return auo.AddSubscriptionAddonIDs(ids...)
+}
+
 // Mutation returns the AddonMutation object of the builder.
 func (auo *AddonUpdateOne) Mutation() *AddonMutation {
 	return auo.mutation
@@ -611,6 +708,27 @@ func (auo *AddonUpdateOne) RemoveRatecards(a ...*AddonRateCard) *AddonUpdateOne 
 		ids[i] = a[i].ID
 	}
 	return auo.RemoveRatecardIDs(ids...)
+}
+
+// ClearSubscriptionAddons clears all "subscription_addons" edges to the SubscriptionAddon entity.
+func (auo *AddonUpdateOne) ClearSubscriptionAddons() *AddonUpdateOne {
+	auo.mutation.ClearSubscriptionAddons()
+	return auo
+}
+
+// RemoveSubscriptionAddonIDs removes the "subscription_addons" edge to SubscriptionAddon entities by IDs.
+func (auo *AddonUpdateOne) RemoveSubscriptionAddonIDs(ids ...string) *AddonUpdateOne {
+	auo.mutation.RemoveSubscriptionAddonIDs(ids...)
+	return auo
+}
+
+// RemoveSubscriptionAddons removes "subscription_addons" edges to SubscriptionAddon entities.
+func (auo *AddonUpdateOne) RemoveSubscriptionAddons(s ...*SubscriptionAddon) *AddonUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return auo.RemoveSubscriptionAddonIDs(ids...)
 }
 
 // Where appends a list predicates to the AddonUpdate builder.
@@ -799,6 +917,51 @@ func (auo *AddonUpdateOne) sqlSave(ctx context.Context) (_node *Addon, err error
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if auo.mutation.SubscriptionAddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.SubscriptionAddonsTable,
+			Columns: []string{addon.SubscriptionAddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := auo.mutation.RemovedSubscriptionAddonsIDs(); len(nodes) > 0 && !auo.mutation.SubscriptionAddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.SubscriptionAddonsTable,
+			Columns: []string{addon.SubscriptionAddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := auo.mutation.SubscriptionAddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.SubscriptionAddonsTable,
+			Columns: []string{addon.SubscriptionAddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

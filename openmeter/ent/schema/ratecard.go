@@ -5,6 +5,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
+
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
@@ -17,7 +18,7 @@ func (RateCard) Fields() []ent.Field {
 	// Name fields (name, description) and key field are missing as they're present in the UniqueResourceMixin...
 	var fields []ent.Field
 
-	return append(
+	fields = append(
 		fields,
 		field.Enum("type").
 			GoType(productcatalog.RateCardType("")).
@@ -62,4 +63,6 @@ func (RateCard) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 	)
+
+	return fields
 }

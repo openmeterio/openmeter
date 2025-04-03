@@ -72,8 +72,8 @@ func TestCreateFromPlan(t *testing.T) {
 			require.NotNil(t, dbDeps)
 			defer dbDeps.Cleanup(t)
 
-			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
@@ -83,7 +83,7 @@ func TestCreateFromPlan(t *testing.T) {
 
 			tcDeps.DBDeps = dbDeps
 
-			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.WorkflowService = deps.WorkflowService
 
 			tc.Handler(t, tcDeps)
 		})
@@ -240,7 +240,7 @@ func TestEditRunning(t *testing.T) {
 					},
 				}
 
-				_, tuDeps := subscriptiontestutils.NewService(t, deps.DBDeps)
+				tuDeps := subscriptiontestutils.NewService(t, deps.DBDeps)
 
 				workflowService := workflowservice.NewWorkflowService(workflowservice.WorkflowServiceConfig{
 					Service:            &mSvc,
@@ -268,14 +268,14 @@ func TestEditRunning(t *testing.T) {
 			require.NotNil(t, dbDeps)
 			defer dbDeps.Cleanup(t)
 
-			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
 
 			// Let's create an example subscription
-			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
 				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: &tcDeps.CurrentTime,
@@ -290,8 +290,8 @@ func TestEditRunning(t *testing.T) {
 			tcDeps.SubView = sub
 			tcDeps.Customer = *cust
 			tcDeps.DBDeps = dbDeps
-			tcDeps.Service = services.Service
-			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.Service = deps.SubscriptionService
+			tcDeps.WorkflowService = deps.WorkflowService
 			tcDeps.Plan = plan
 
 			tc.Handler(t, tcDeps)
@@ -461,14 +461,14 @@ func TestEditingCurrentPhase(t *testing.T) {
 			require.NotNil(t, dbDeps)
 			defer dbDeps.Cleanup(t)
 
-			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
 
 			// Let's create an example subscription
-			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
 				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: &tcDeps.CurrentTime,
@@ -483,8 +483,8 @@ func TestEditingCurrentPhase(t *testing.T) {
 			tcDeps.SubView = sub
 			tcDeps.Customer = *cust
 			tcDeps.DBDeps = dbDeps
-			tcDeps.Service = services.Service
-			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.Service = deps.SubscriptionService
+			tcDeps.WorkflowService = deps.WorkflowService
 			tcDeps.Plan = plan
 			tcDeps.ItemRepo = deps.ItemRepo
 			tcDeps.EntReg = deps.EntitlementRegistry
@@ -704,8 +704,8 @@ func TestEditingWithTiming(t *testing.T) {
 			require.NotNil(t, dbDeps)
 			defer dbDeps.Cleanup(t)
 
-			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 			planInput := subscriptiontestutils.GetExamplePlanInput(t)
 
 			if tc.IsAligned {
@@ -717,7 +717,7 @@ func TestEditingWithTiming(t *testing.T) {
 			require.NotNil(t, cust)
 
 			// Let's create an example subscription
-			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
 				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: &tcDeps.CurrentTime,
@@ -732,8 +732,8 @@ func TestEditingWithTiming(t *testing.T) {
 			tcDeps.SubView = sub
 			tcDeps.Customer = *cust
 			tcDeps.DBDeps = dbDeps
-			tcDeps.Service = services.Service
-			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.Service = deps.SubscriptionService
+			tcDeps.WorkflowService = deps.WorkflowService
 			tcDeps.Plan = plan
 			tcDeps.ItemRepo = deps.ItemRepo
 			tcDeps.EntReg = deps.EntitlementRegistry
@@ -859,8 +859,8 @@ func TestChangeToPlan(t *testing.T) {
 			require.NotNil(t, dbDeps)
 			defer dbDeps.Cleanup(t)
 
-			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 
 			// Let's create the two plans
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -871,8 +871,8 @@ func TestChangeToPlan(t *testing.T) {
 
 			tcDeps.Customer = *cust
 			tcDeps.DBDeps = dbDeps
-			tcDeps.Service = services.Service
-			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.Service = deps.SubscriptionService
+			tcDeps.WorkflowService = deps.WorkflowService
 			tcDeps.Plan1 = plan1
 			tcDeps.Plan2 = plan2
 
@@ -962,8 +962,8 @@ func TestEditCombinations(t *testing.T) {
 			require.NotNil(t, dbDeps)
 			defer dbDeps.Cleanup(t)
 
-			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 
 			// Let's create the plan
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -973,8 +973,8 @@ func TestEditCombinations(t *testing.T) {
 
 			tcDeps.Customer = *cust
 			tcDeps.DBDeps = dbDeps
-			tcDeps.Service = services.Service
-			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.Service = deps.SubscriptionService
+			tcDeps.WorkflowService = deps.WorkflowService
 			tcDeps.Plan1 = plan1
 
 			fn(t, tcDeps)
@@ -1088,8 +1088,8 @@ func TestRestore(t *testing.T) {
 			require.NotNil(t, dbDeps)
 			defer dbDeps.Cleanup(t)
 
-			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 
 			// Let's create the plan
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -1099,8 +1099,8 @@ func TestRestore(t *testing.T) {
 
 			tcDeps.Customer = *cust
 			tcDeps.DBDeps = dbDeps
-			tcDeps.Service = services.Service
-			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.Service = deps.SubscriptionService
+			tcDeps.WorkflowService = deps.WorkflowService
 			tcDeps.Plan1 = plan1
 
 			fn(t, tcDeps)

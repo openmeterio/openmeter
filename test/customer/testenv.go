@@ -110,9 +110,9 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 
 	customerService.RegisterRequestValidator(entValidator)
 
-	subsServices, _ := subscriptiontestutils.NewService(t, dbDeps)
+	subsDeps := subscriptiontestutils.NewService(t, dbDeps)
 
-	subsCustValidator, err := subscriptioncustomer.NewValidator(subsServices.Service, customerService)
+	subsCustValidator, err := subscriptioncustomer.NewValidator(subsDeps.SubscriptionService, customerService)
 	if err != nil {
 		return nil, err
 	}
@@ -127,6 +127,6 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	return &testEnv{
 		customer:     customerService,
 		closerFunc:   closerFunc,
-		subscription: subsServices.Service,
+		subscription: subsDeps.SubscriptionService,
 	}, nil
 }

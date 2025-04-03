@@ -28,11 +28,11 @@ func TestCreation(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		services, deps := subscriptiontestutils.NewService(t, dbDeps)
-		service := services.Service
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeature(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
@@ -93,8 +93,8 @@ func TestCreation(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		services, deps := subscriptiontestutils.NewService(t, dbDeps)
-		service := services.Service
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_, err := deps.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
@@ -110,7 +110,7 @@ func TestCreation(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		_ = deps.FeatureConnector.CreateExampleFeature(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
@@ -137,8 +137,8 @@ func TestCreation(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		services, deps := subscriptiontestutils.NewService(t, dbDeps)
-		service := services.Service
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_, err := deps.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
@@ -154,7 +154,7 @@ func TestCreation(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		_ = deps.FeatureConnector.CreateExampleFeature(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
@@ -192,11 +192,11 @@ func TestCancellation(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		services, deps := subscriptiontestutils.NewService(t, dbDeps)
-		service := services.Service
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeature(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// First, let's create a subscription
@@ -308,11 +308,11 @@ func TestContinuing(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		services, deps := subscriptiontestutils.NewService(t, dbDeps)
-		service := services.Service
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeature(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// First, let's create a subscription
@@ -395,11 +395,11 @@ func TestContinuing(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		services, deps := subscriptiontestutils.NewService(t, dbDeps)
-		service := services.Service
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeature(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// First, let's create a subscription

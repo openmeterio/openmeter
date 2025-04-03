@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
@@ -180,6 +181,18 @@ func (arcu *AddonRateCardUpdate) ClearPrice() *AddonRateCardUpdate {
 	return arcu
 }
 
+// SetDiscounts sets the "discounts" field.
+func (arcu *AddonRateCardUpdate) SetDiscounts(pr *productcatalog.Discounts) *AddonRateCardUpdate {
+	arcu.mutation.SetDiscounts(pr)
+	return arcu
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (arcu *AddonRateCardUpdate) ClearDiscounts() *AddonRateCardUpdate {
+	arcu.mutation.ClearDiscounts()
+	return arcu
+}
+
 // SetAddonID sets the "addon_id" field.
 func (arcu *AddonRateCardUpdate) SetAddonID(s string) *AddonRateCardUpdate {
 	arcu.mutation.SetAddonID(s)
@@ -214,18 +227,6 @@ func (arcu *AddonRateCardUpdate) ClearFeatureID() *AddonRateCardUpdate {
 	return arcu
 }
 
-// SetDiscounts sets the "discounts" field.
-func (arcu *AddonRateCardUpdate) SetDiscounts(pr *productcatalog.Discounts) *AddonRateCardUpdate {
-	arcu.mutation.SetDiscounts(pr)
-	return arcu
-}
-
-// ClearDiscounts clears the value of the "discounts" field.
-func (arcu *AddonRateCardUpdate) ClearDiscounts() *AddonRateCardUpdate {
-	arcu.mutation.ClearDiscounts()
-	return arcu
-}
-
 // SetAddon sets the "addon" edge to the Addon entity.
 func (arcu *AddonRateCardUpdate) SetAddon(a *Addon) *AddonRateCardUpdate {
 	return arcu.SetAddonID(a.ID)
@@ -250,6 +251,21 @@ func (arcu *AddonRateCardUpdate) SetFeatures(f *Feature) *AddonRateCardUpdate {
 	return arcu.SetFeaturesID(f.ID)
 }
 
+// AddSubscriptionAddonRateCardIDs adds the "subscription_addon_rate_cards" edge to the SubscriptionAddonRateCard entity by IDs.
+func (arcu *AddonRateCardUpdate) AddSubscriptionAddonRateCardIDs(ids ...string) *AddonRateCardUpdate {
+	arcu.mutation.AddSubscriptionAddonRateCardIDs(ids...)
+	return arcu
+}
+
+// AddSubscriptionAddonRateCards adds the "subscription_addon_rate_cards" edges to the SubscriptionAddonRateCard entity.
+func (arcu *AddonRateCardUpdate) AddSubscriptionAddonRateCards(s ...*SubscriptionAddonRateCard) *AddonRateCardUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return arcu.AddSubscriptionAddonRateCardIDs(ids...)
+}
+
 // Mutation returns the AddonRateCardMutation object of the builder.
 func (arcu *AddonRateCardUpdate) Mutation() *AddonRateCardMutation {
 	return arcu.mutation
@@ -265,6 +281,27 @@ func (arcu *AddonRateCardUpdate) ClearAddon() *AddonRateCardUpdate {
 func (arcu *AddonRateCardUpdate) ClearFeatures() *AddonRateCardUpdate {
 	arcu.mutation.ClearFeatures()
 	return arcu
+}
+
+// ClearSubscriptionAddonRateCards clears all "subscription_addon_rate_cards" edges to the SubscriptionAddonRateCard entity.
+func (arcu *AddonRateCardUpdate) ClearSubscriptionAddonRateCards() *AddonRateCardUpdate {
+	arcu.mutation.ClearSubscriptionAddonRateCards()
+	return arcu
+}
+
+// RemoveSubscriptionAddonRateCardIDs removes the "subscription_addon_rate_cards" edge to SubscriptionAddonRateCard entities by IDs.
+func (arcu *AddonRateCardUpdate) RemoveSubscriptionAddonRateCardIDs(ids ...string) *AddonRateCardUpdate {
+	arcu.mutation.RemoveSubscriptionAddonRateCardIDs(ids...)
+	return arcu
+}
+
+// RemoveSubscriptionAddonRateCards removes "subscription_addon_rate_cards" edges to SubscriptionAddonRateCard entities.
+func (arcu *AddonRateCardUpdate) RemoveSubscriptionAddonRateCards(s ...*SubscriptionAddonRateCard) *AddonRateCardUpdate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return arcu.RemoveSubscriptionAddonRateCardIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -477,6 +514,51 @@ func (arcu *AddonRateCardUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if arcu.mutation.SubscriptionAddonRateCardsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addonratecard.SubscriptionAddonRateCardsTable,
+			Columns: []string{addonratecard.SubscriptionAddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := arcu.mutation.RemovedSubscriptionAddonRateCardsIDs(); len(nodes) > 0 && !arcu.mutation.SubscriptionAddonRateCardsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addonratecard.SubscriptionAddonRateCardsTable,
+			Columns: []string{addonratecard.SubscriptionAddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := arcu.mutation.SubscriptionAddonRateCardsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addonratecard.SubscriptionAddonRateCardsTable,
+			Columns: []string{addonratecard.SubscriptionAddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, arcu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{addonratecard.Label}
@@ -645,6 +727,18 @@ func (arcuo *AddonRateCardUpdateOne) ClearPrice() *AddonRateCardUpdateOne {
 	return arcuo
 }
 
+// SetDiscounts sets the "discounts" field.
+func (arcuo *AddonRateCardUpdateOne) SetDiscounts(pr *productcatalog.Discounts) *AddonRateCardUpdateOne {
+	arcuo.mutation.SetDiscounts(pr)
+	return arcuo
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (arcuo *AddonRateCardUpdateOne) ClearDiscounts() *AddonRateCardUpdateOne {
+	arcuo.mutation.ClearDiscounts()
+	return arcuo
+}
+
 // SetAddonID sets the "addon_id" field.
 func (arcuo *AddonRateCardUpdateOne) SetAddonID(s string) *AddonRateCardUpdateOne {
 	arcuo.mutation.SetAddonID(s)
@@ -679,18 +773,6 @@ func (arcuo *AddonRateCardUpdateOne) ClearFeatureID() *AddonRateCardUpdateOne {
 	return arcuo
 }
 
-// SetDiscounts sets the "discounts" field.
-func (arcuo *AddonRateCardUpdateOne) SetDiscounts(pr *productcatalog.Discounts) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetDiscounts(pr)
-	return arcuo
-}
-
-// ClearDiscounts clears the value of the "discounts" field.
-func (arcuo *AddonRateCardUpdateOne) ClearDiscounts() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearDiscounts()
-	return arcuo
-}
-
 // SetAddon sets the "addon" edge to the Addon entity.
 func (arcuo *AddonRateCardUpdateOne) SetAddon(a *Addon) *AddonRateCardUpdateOne {
 	return arcuo.SetAddonID(a.ID)
@@ -715,6 +797,21 @@ func (arcuo *AddonRateCardUpdateOne) SetFeatures(f *Feature) *AddonRateCardUpdat
 	return arcuo.SetFeaturesID(f.ID)
 }
 
+// AddSubscriptionAddonRateCardIDs adds the "subscription_addon_rate_cards" edge to the SubscriptionAddonRateCard entity by IDs.
+func (arcuo *AddonRateCardUpdateOne) AddSubscriptionAddonRateCardIDs(ids ...string) *AddonRateCardUpdateOne {
+	arcuo.mutation.AddSubscriptionAddonRateCardIDs(ids...)
+	return arcuo
+}
+
+// AddSubscriptionAddonRateCards adds the "subscription_addon_rate_cards" edges to the SubscriptionAddonRateCard entity.
+func (arcuo *AddonRateCardUpdateOne) AddSubscriptionAddonRateCards(s ...*SubscriptionAddonRateCard) *AddonRateCardUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return arcuo.AddSubscriptionAddonRateCardIDs(ids...)
+}
+
 // Mutation returns the AddonRateCardMutation object of the builder.
 func (arcuo *AddonRateCardUpdateOne) Mutation() *AddonRateCardMutation {
 	return arcuo.mutation
@@ -730,6 +827,27 @@ func (arcuo *AddonRateCardUpdateOne) ClearAddon() *AddonRateCardUpdateOne {
 func (arcuo *AddonRateCardUpdateOne) ClearFeatures() *AddonRateCardUpdateOne {
 	arcuo.mutation.ClearFeatures()
 	return arcuo
+}
+
+// ClearSubscriptionAddonRateCards clears all "subscription_addon_rate_cards" edges to the SubscriptionAddonRateCard entity.
+func (arcuo *AddonRateCardUpdateOne) ClearSubscriptionAddonRateCards() *AddonRateCardUpdateOne {
+	arcuo.mutation.ClearSubscriptionAddonRateCards()
+	return arcuo
+}
+
+// RemoveSubscriptionAddonRateCardIDs removes the "subscription_addon_rate_cards" edge to SubscriptionAddonRateCard entities by IDs.
+func (arcuo *AddonRateCardUpdateOne) RemoveSubscriptionAddonRateCardIDs(ids ...string) *AddonRateCardUpdateOne {
+	arcuo.mutation.RemoveSubscriptionAddonRateCardIDs(ids...)
+	return arcuo
+}
+
+// RemoveSubscriptionAddonRateCards removes "subscription_addon_rate_cards" edges to SubscriptionAddonRateCard entities.
+func (arcuo *AddonRateCardUpdateOne) RemoveSubscriptionAddonRateCards(s ...*SubscriptionAddonRateCard) *AddonRateCardUpdateOne {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return arcuo.RemoveSubscriptionAddonRateCardIDs(ids...)
 }
 
 // Where appends a list predicates to the AddonRateCardUpdate builder.
@@ -965,6 +1083,51 @@ func (arcuo *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonR
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if arcuo.mutation.SubscriptionAddonRateCardsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addonratecard.SubscriptionAddonRateCardsTable,
+			Columns: []string{addonratecard.SubscriptionAddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := arcuo.mutation.RemovedSubscriptionAddonRateCardsIDs(); len(nodes) > 0 && !arcuo.mutation.SubscriptionAddonRateCardsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addonratecard.SubscriptionAddonRateCardsTable,
+			Columns: []string{addonratecard.SubscriptionAddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := arcuo.mutation.SubscriptionAddonRateCardsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addonratecard.SubscriptionAddonRateCardsTable,
+			Columns: []string{addonratecard.SubscriptionAddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

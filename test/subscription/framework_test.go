@@ -14,7 +14,7 @@ import (
 )
 
 type testDeps struct {
-	subscriptiontestutils.ExposedServiceDeps
+	subscriptiontestutils.SubscriptionDependencies
 	pcSubscriptionService       pcsubscription.PlanSubscriptionService
 	subscriptionService         subscription.Service
 	subscriptionWorkflowService subscriptionworkflow.Service
@@ -30,21 +30,21 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	dbDeps := subscriptiontestutils.SetupDBDeps(t)
 	require.NotNil(t, dbDeps)
 
-	services, deps := subscriptiontestutils.NewService(t, dbDeps)
+	deps := subscriptiontestutils.NewService(t, dbDeps)
 
 	pcSubsService := pcsubscriptionservice.New(pcsubscriptionservice.Config{
-		WorkflowService:     services.WorkflowService,
-		SubscriptionService: services.Service,
+		WorkflowService:     deps.WorkflowService,
+		SubscriptionService: deps.SubscriptionService,
 		PlanService:         deps.PlanService,
 		Logger:              testutils.NewLogger(t),
 		CustomerService:     deps.CustomerService,
 	})
 
 	return testDeps{
-		ExposedServiceDeps:          deps,
+		SubscriptionDependencies:    deps,
 		pcSubscriptionService:       pcSubsService,
-		subscriptionService:         services.Service,
-		subscriptionWorkflowService: services.WorkflowService,
+		subscriptionService:         deps.SubscriptionService,
+		subscriptionWorkflowService: deps.WorkflowService,
 		cleanup:                     dbDeps.Cleanup,
 	}
 }

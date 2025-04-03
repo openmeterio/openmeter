@@ -19,7 +19,7 @@ func TestDiscountPersisting(t *testing.T) {
 	logger := testutils.NewLogger(t)
 
 	type tDeps struct {
-		subDeps subscriptiontestutils.ExposedServiceDeps
+		subDeps subscriptiontestutils.SubscriptionDependencies
 		subSvc  subscription.Service
 		wfSvc   subscriptionworkflow.Service
 	}
@@ -29,12 +29,12 @@ func TestDiscountPersisting(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		svc, exposedDeps := subscriptiontestutils.NewService(t, dbDeps)
+		deps := subscriptiontestutils.NewService(t, dbDeps)
 
 		f(t, tDeps{
-			subDeps: exposedDeps,
-			subSvc:  svc.Service,
-			wfSvc:   svc.WorkflowService,
+			subDeps: deps,
+			subSvc:  deps.SubscriptionService,
+			wfSvc:   deps.WorkflowService,
 		})
 	}
 
@@ -55,7 +55,7 @@ func TestDiscountPersisting(t *testing.T) {
 
 			// Let's set up the feature & customer
 			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
-			deps.subDeps.FeatureConnector.CreateExampleFeature(t)
+			deps.subDeps.FeatureConnector.CreateExampleFeatures(t)
 
 			// Let's create the plan
 			plan1 := deps.subDeps.PlanHelper.CreatePlan(t, examplePlanInput1)

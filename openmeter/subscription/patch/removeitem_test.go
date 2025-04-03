@@ -165,11 +165,13 @@ func TestRemoveItem(t *testing.T) {
 				GetExpectedSpec: func(t *testing.T) subscription.SubscriptionSpec {
 					s, _ := getDefaultSpec(t, now)
 
-					// Let's make sure that's the only item in the 3rd phase
-					require.Equal(t, 1, len(s.Phases["test_phase_3"].ItemsByKey))
+					// Let's make sure what items we have in the 3rd phase
+					require.Equal(t, 2, len(s.Phases["test_phase_3"].ItemsByKey))
+
+					require.NotNil(t, s.Phases["test_phase_3"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey])
 
 					// Let's remove the item from the 3rd phase
-					s.Phases["test_phase_3"].ItemsByKey = map[string][]*subscription.SubscriptionItemSpec{}
+					delete(s.Phases["test_phase_3"].ItemsByKey, subscriptiontestutils.ExampleFeatureKey)
 
 					return *s
 				},

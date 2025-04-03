@@ -405,6 +405,54 @@ func (f SubscriptionFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionMutation", m)
 }
 
+// The SubscriptionAddonFunc type is an adapter to allow the use of ordinary
+// function as SubscriptionAddon mutator.
+type SubscriptionAddonFunc func(context.Context, *db.SubscriptionAddonMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SubscriptionAddonFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.SubscriptionAddonMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionAddonMutation", m)
+}
+
+// The SubscriptionAddonQuantityFunc type is an adapter to allow the use of ordinary
+// function as SubscriptionAddonQuantity mutator.
+type SubscriptionAddonQuantityFunc func(context.Context, *db.SubscriptionAddonQuantityMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SubscriptionAddonQuantityFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.SubscriptionAddonQuantityMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionAddonQuantityMutation", m)
+}
+
+// The SubscriptionAddonRateCardFunc type is an adapter to allow the use of ordinary
+// function as SubscriptionAddonRateCard mutator.
+type SubscriptionAddonRateCardFunc func(context.Context, *db.SubscriptionAddonRateCardMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SubscriptionAddonRateCardFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.SubscriptionAddonRateCardMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionAddonRateCardMutation", m)
+}
+
+// The SubscriptionAddonRateCardItemLinkFunc type is an adapter to allow the use of ordinary
+// function as SubscriptionAddonRateCardItemLink mutator.
+type SubscriptionAddonRateCardItemLinkFunc func(context.Context, *db.SubscriptionAddonRateCardItemLinkMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SubscriptionAddonRateCardItemLinkFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.SubscriptionAddonRateCardItemLinkMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionAddonRateCardItemLinkMutation", m)
+}
+
 // The SubscriptionItemFunc type is an adapter to allow the use of ordinary
 // function as SubscriptionItem mutator.
 type SubscriptionItemFunc func(context.Context, *db.SubscriptionItemMutation) (db.Value, error)

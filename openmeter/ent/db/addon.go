@@ -57,9 +57,11 @@ type Addon struct {
 type AddonEdges struct {
 	// Ratecards holds the value of the ratecards edge.
 	Ratecards []*AddonRateCard `json:"ratecards,omitempty"`
+	// SubscriptionAddons holds the value of the subscription_addons edge.
+	SubscriptionAddons []*SubscriptionAddon `json:"subscription_addons,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // RatecardsOrErr returns the Ratecards value or an error if the edge
@@ -69,6 +71,15 @@ func (e AddonEdges) RatecardsOrErr() ([]*AddonRateCard, error) {
 		return e.Ratecards, nil
 	}
 	return nil, &NotLoadedError{edge: "ratecards"}
+}
+
+// SubscriptionAddonsOrErr returns the SubscriptionAddons value or an error if the edge
+// was not loaded in eager-loading.
+func (e AddonEdges) SubscriptionAddonsOrErr() ([]*SubscriptionAddon, error) {
+	if e.loadedTypes[1] {
+		return e.SubscriptionAddons, nil
+	}
+	return nil, &NotLoadedError{edge: "subscription_addons"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -213,6 +224,11 @@ func (a *Addon) Value(name string) (ent.Value, error) {
 // QueryRatecards queries the "ratecards" edge of the Addon entity.
 func (a *Addon) QueryRatecards() *AddonRateCardQuery {
 	return NewAddonClient(a.config).QueryRatecards(a)
+}
+
+// QuerySubscriptionAddons queries the "subscription_addons" edge of the Addon entity.
+func (a *Addon) QuerySubscriptionAddons() *SubscriptionAddonQuery {
+	return NewAddonClient(a.config).QuerySubscriptionAddons(a)
 }
 
 // Update returns a builder for updating this Addon.
