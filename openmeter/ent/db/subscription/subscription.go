@@ -48,6 +48,8 @@ const (
 	EdgePhases = "phases"
 	// EdgeBillingLines holds the string denoting the billing_lines edge name in mutations.
 	EdgeBillingLines = "billing_lines"
+	// EdgeAddons holds the string denoting the addons edge name in mutations.
+	EdgeAddons = "addons"
 	// Table holds the table name of the subscription in the database.
 	Table = "subscriptions"
 	// PlanTable is the table that holds the plan relation/edge.
@@ -78,6 +80,13 @@ const (
 	BillingLinesInverseTable = "billing_invoice_lines"
 	// BillingLinesColumn is the table column denoting the billing_lines relation/edge.
 	BillingLinesColumn = "subscription_id"
+	// AddonsTable is the table that holds the addons relation/edge.
+	AddonsTable = "subscription_addons"
+	// AddonsInverseTable is the table name for the SubscriptionAddon entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionaddon" package.
+	AddonsInverseTable = "subscription_addons"
+	// AddonsColumn is the table column denoting the addons relation/edge.
+	AddonsColumn = "subscription_id"
 )
 
 // Columns holds all SQL columns for subscription fields.
@@ -240,6 +249,20 @@ func ByBillingLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newBillingLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByAddonsCount orders the results by addons count.
+func ByAddonsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAddonsStep(), opts...)
+	}
+}
+
+// ByAddons orders the results by addons terms.
+func ByAddons(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAddonsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newPlanStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -266,5 +289,12 @@ func newBillingLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingLinesTable, BillingLinesColumn),
+	)
+}
+func newAddonsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AddonsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AddonsTable, AddonsColumn),
 	)
 }

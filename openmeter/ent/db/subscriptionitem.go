@@ -78,9 +78,11 @@ type SubscriptionItemEdges struct {
 	Entitlement *Entitlement `json:"entitlement,omitempty"`
 	// BillingLines holds the value of the billing_lines edge.
 	BillingLines []*BillingInvoiceLine `json:"billing_lines,omitempty"`
+	// SubscriptionAddonRateCardItems holds the value of the subscription_addon_rate_card_items edge.
+	SubscriptionAddonRateCardItems []*SubscriptionAddonRateCardItemLink `json:"subscription_addon_rate_card_items,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // PhaseOrErr returns the Phase value or an error if the edge
@@ -112,6 +114,15 @@ func (e SubscriptionItemEdges) BillingLinesOrErr() ([]*BillingInvoiceLine, error
 		return e.BillingLines, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_lines"}
+}
+
+// SubscriptionAddonRateCardItemsOrErr returns the SubscriptionAddonRateCardItems value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionItemEdges) SubscriptionAddonRateCardItemsOrErr() ([]*SubscriptionAddonRateCardItemLink, error) {
+	if e.loadedTypes[3] {
+		return e.SubscriptionAddonRateCardItems, nil
+	}
+	return nil, &NotLoadedError{edge: "subscription_addon_rate_card_items"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -319,6 +330,11 @@ func (si *SubscriptionItem) QueryEntitlement() *EntitlementQuery {
 // QueryBillingLines queries the "billing_lines" edge of the SubscriptionItem entity.
 func (si *SubscriptionItem) QueryBillingLines() *BillingInvoiceLineQuery {
 	return NewSubscriptionItemClient(si.config).QueryBillingLines(si)
+}
+
+// QuerySubscriptionAddonRateCardItems queries the "subscription_addon_rate_card_items" edge of the SubscriptionItem entity.
+func (si *SubscriptionItem) QuerySubscriptionAddonRateCardItems() *SubscriptionAddonRateCardItemLinkQuery {
+	return NewSubscriptionItemClient(si.config).QuerySubscriptionAddonRateCardItems(si)
 }
 
 // Update returns a builder for updating this SubscriptionItem.

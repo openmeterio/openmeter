@@ -45,16 +45,18 @@ const (
 	FieldBillingCadence = "billing_cadence"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
+	// FieldDiscounts holds the string denoting the discounts field in the database.
+	FieldDiscounts = "discounts"
 	// FieldAddonID holds the string denoting the addon_id field in the database.
 	FieldAddonID = "addon_id"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
 	FieldFeatureID = "feature_id"
-	// FieldDiscounts holds the string denoting the discounts field in the database.
-	FieldDiscounts = "discounts"
 	// EdgeAddon holds the string denoting the addon edge name in mutations.
 	EdgeAddon = "addon"
 	// EdgeFeatures holds the string denoting the features edge name in mutations.
 	EdgeFeatures = "features"
+	// EdgeSubscriptionAddonRateCards holds the string denoting the subscription_addon_rate_cards edge name in mutations.
+	EdgeSubscriptionAddonRateCards = "subscription_addon_rate_cards"
 	// Table holds the table name of the addonratecard in the database.
 	Table = "addon_rate_cards"
 	// AddonTable is the table that holds the addon relation/edge.
@@ -71,6 +73,13 @@ const (
 	FeaturesInverseTable = "features"
 	// FeaturesColumn is the table column denoting the features relation/edge.
 	FeaturesColumn = "feature_id"
+	// SubscriptionAddonRateCardsTable is the table that holds the subscription_addon_rate_cards relation/edge.
+	SubscriptionAddonRateCardsTable = "subscription_addon_rate_cards"
+	// SubscriptionAddonRateCardsInverseTable is the table name for the SubscriptionAddonRateCard entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionaddonratecard" package.
+	SubscriptionAddonRateCardsInverseTable = "subscription_addon_rate_cards"
+	// SubscriptionAddonRateCardsColumn is the table column denoting the subscription_addon_rate_cards relation/edge.
+	SubscriptionAddonRateCardsColumn = "addon_ratecard_id"
 )
 
 // Columns holds all SQL columns for addonratecard fields.
@@ -90,9 +99,9 @@ var Columns = []string{
 	FieldTaxConfig,
 	FieldBillingCadence,
 	FieldPrice,
+	FieldDiscounts,
 	FieldAddonID,
 	FieldFeatureID,
-	FieldDiscounts,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -212,6 +221,11 @@ func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrice, opts...).ToFunc()
 }
 
+// ByDiscounts orders the results by the discounts field.
+func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
+}
+
 // ByAddonID orders the results by the addon_id field.
 func ByAddonID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAddonID, opts...).ToFunc()
@@ -220,11 +234,6 @@ func ByAddonID(opts ...sql.OrderTermOption) OrderOption {
 // ByFeatureID orders the results by the feature_id field.
 func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
-}
-
-// ByDiscounts orders the results by the discounts field.
-func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
 }
 
 // ByAddonField orders the results by addon field.
@@ -240,6 +249,20 @@ func ByFeaturesField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newFeaturesStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// BySubscriptionAddonRateCardsCount orders the results by subscription_addon_rate_cards count.
+func BySubscriptionAddonRateCardsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSubscriptionAddonRateCardsStep(), opts...)
+	}
+}
+
+// BySubscriptionAddonRateCards orders the results by subscription_addon_rate_cards terms.
+func BySubscriptionAddonRateCards(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionAddonRateCardsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAddonStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -252,5 +275,12 @@ func newFeaturesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FeaturesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, FeaturesTable, FeaturesColumn),
+	)
+}
+func newSubscriptionAddonRateCardsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionAddonRateCardsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionAddonRateCardsTable, SubscriptionAddonRateCardsColumn),
 	)
 }

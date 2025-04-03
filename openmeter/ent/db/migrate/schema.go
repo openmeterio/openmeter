@@ -1866,6 +1866,199 @@ var (
 			},
 		},
 	}
+	// SubscriptionAddonsColumns holds the columns for the "subscription_addons" table.
+	SubscriptionAddonsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "addon_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionAddonsTable holds the schema information for the "subscription_addons" table.
+	SubscriptionAddonsTable = &schema.Table{
+		Name:       "subscription_addons",
+		Columns:    SubscriptionAddonsColumns,
+		PrimaryKey: []*schema.Column{SubscriptionAddonsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_addons_addons_subscription_addons",
+				Columns:    []*schema.Column{SubscriptionAddonsColumns[5]},
+				RefColumns: []*schema.Column{AddonsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "subscription_addons_subscriptions_addons",
+				Columns:    []*schema.Column{SubscriptionAddonsColumns[6]},
+				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionaddon_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionAddonsColumns[0]},
+			},
+			{
+				Name:    "subscriptionaddon_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionAddonsColumns[1]},
+			},
+		},
+	}
+	// SubscriptionAddonQuantitiesColumns holds the columns for the "subscription_addon_quantities" table.
+	SubscriptionAddonQuantitiesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "active_from", Type: field.TypeTime},
+		{Name: "quantity", Type: field.TypeInt, Default: 1},
+		{Name: "subscription_addon_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionAddonQuantitiesTable holds the schema information for the "subscription_addon_quantities" table.
+	SubscriptionAddonQuantitiesTable = &schema.Table{
+		Name:       "subscription_addon_quantities",
+		Columns:    SubscriptionAddonQuantitiesColumns,
+		PrimaryKey: []*schema.Column{SubscriptionAddonQuantitiesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_addon_quantities_subscription_addons_quantities",
+				Columns:    []*schema.Column{SubscriptionAddonQuantitiesColumns[6]},
+				RefColumns: []*schema.Column{SubscriptionAddonsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionaddonquantity_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionAddonQuantitiesColumns[0]},
+			},
+			{
+				Name:    "subscriptionaddonquantity_subscription_addon_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionAddonQuantitiesColumns[6]},
+			},
+		},
+	}
+	// SubscriptionAddonRateCardsColumns holds the columns for the "subscription_addon_rate_cards" table.
+	SubscriptionAddonRateCardsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "addon_ratecard_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_addon_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionAddonRateCardsTable holds the schema information for the "subscription_addon_rate_cards" table.
+	SubscriptionAddonRateCardsTable = &schema.Table{
+		Name:       "subscription_addon_rate_cards",
+		Columns:    SubscriptionAddonRateCardsColumns,
+		PrimaryKey: []*schema.Column{SubscriptionAddonRateCardsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_addon_rate_cards_addon_rate_cards_subscription_addon_rate_cards",
+				Columns:    []*schema.Column{SubscriptionAddonRateCardsColumns[9]},
+				RefColumns: []*schema.Column{AddonRateCardsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "subscription_addon_rate_cards_subscription_addons_rate_cards",
+				Columns:    []*schema.Column{SubscriptionAddonRateCardsColumns[10]},
+				RefColumns: []*schema.Column{SubscriptionAddonsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionaddonratecard_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionAddonRateCardsColumns[0]},
+			},
+			{
+				Name:    "subscriptionaddonratecard_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionAddonRateCardsColumns[1]},
+			},
+			{
+				Name:    "subscriptionaddonratecard_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionAddonRateCardsColumns[1], SubscriptionAddonRateCardsColumns[0]},
+			},
+			{
+				Name:    "subscriptionaddonratecard_namespace_key_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionAddonRateCardsColumns[1], SubscriptionAddonRateCardsColumns[8], SubscriptionAddonRateCardsColumns[5]},
+			},
+			{
+				Name:    "subscriptionaddonratecard_subscription_addon_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionAddonRateCardsColumns[10]},
+			},
+		},
+	}
+	// SubscriptionAddonRateCardItemLinksColumns holds the columns for the "subscription_addon_rate_card_item_links" table.
+	SubscriptionAddonRateCardItemLinksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "subscription_addon_rate_card_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_item_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionAddonRateCardItemLinksTable holds the schema information for the "subscription_addon_rate_card_item_links" table.
+	SubscriptionAddonRateCardItemLinksTable = &schema.Table{
+		Name:       "subscription_addon_rate_card_item_links",
+		Columns:    SubscriptionAddonRateCardItemLinksColumns,
+		PrimaryKey: []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_addon_rate_card_item_links_subscription_addon_rate_cards_items",
+				Columns:    []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[4]},
+				RefColumns: []*schema.Column{SubscriptionAddonRateCardsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "subscription_addon_rate_card_item_links_subscription_items_subscription_addon_rate_card_items",
+				Columns:    []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[5]},
+				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionaddonratecarditemlink_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[0]},
+			},
+			{
+				Name:    "subscriptionaddonratecarditemlink_subscription_addon_rate_card_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[4]},
+			},
+			{
+				Name:    "subscriptionaddonratecarditemlink_subscription_item_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[5]},
+			},
+			{
+				Name:    "subscriptionaddonratecarditemlink_subscription_item_id_subscription_addon_rate_card_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[5], SubscriptionAddonRateCardItemLinksColumns[4]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
 	// SubscriptionItemsColumns holds the columns for the "subscription_items" table.
 	SubscriptionItemsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2120,6 +2313,10 @@ var (
 		PlanPhasesTable,
 		PlanRateCardsTable,
 		SubscriptionsTable,
+		SubscriptionAddonsTable,
+		SubscriptionAddonQuantitiesTable,
+		SubscriptionAddonRateCardsTable,
+		SubscriptionAddonRateCardItemLinksTable,
 		SubscriptionItemsTable,
 		SubscriptionPhasesTable,
 		UsageResetsTable,
@@ -2167,6 +2364,13 @@ func init() {
 	PlanRateCardsTable.ForeignKeys[1].RefTable = PlanPhasesTable
 	SubscriptionsTable.ForeignKeys[0].RefTable = CustomersTable
 	SubscriptionsTable.ForeignKeys[1].RefTable = PlansTable
+	SubscriptionAddonsTable.ForeignKeys[0].RefTable = AddonsTable
+	SubscriptionAddonsTable.ForeignKeys[1].RefTable = SubscriptionsTable
+	SubscriptionAddonQuantitiesTable.ForeignKeys[0].RefTable = SubscriptionAddonsTable
+	SubscriptionAddonRateCardsTable.ForeignKeys[0].RefTable = AddonRateCardsTable
+	SubscriptionAddonRateCardsTable.ForeignKeys[1].RefTable = SubscriptionAddonsTable
+	SubscriptionAddonRateCardItemLinksTable.ForeignKeys[0].RefTable = SubscriptionAddonRateCardsTable
+	SubscriptionAddonRateCardItemLinksTable.ForeignKeys[1].RefTable = SubscriptionItemsTable
 	SubscriptionItemsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	SubscriptionItemsTable.ForeignKeys[1].RefTable = SubscriptionPhasesTable
 	SubscriptionPhasesTable.ForeignKeys[0].RefTable = SubscriptionsTable

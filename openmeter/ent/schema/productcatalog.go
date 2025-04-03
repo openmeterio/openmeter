@@ -123,12 +123,13 @@ type PlanRateCard struct {
 func (PlanRateCard) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.UniqueResourceMixin{},
-		RateCard{},
 	}
 }
 
 func (PlanRateCard) Fields() []ent.Field {
-	return []ent.Field{
+	fields := RateCard{}.Fields() // We have to use it like so due to some ent/runtime.go bug
+
+	fields = append(fields,
 		field.String("phase_id").
 			NotEmpty().
 			Comment("The phase identifier the ratecard is assigned to."),
@@ -136,7 +137,9 @@ func (PlanRateCard) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("The feature identifier the ratecard is related to."),
-	}
+	)
+
+	return fields
 }
 
 func (PlanRateCard) Edges() []ent.Edge {

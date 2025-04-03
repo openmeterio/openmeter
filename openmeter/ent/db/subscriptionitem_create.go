@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecarditemlink"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -279,6 +280,21 @@ func (sic *SubscriptionItemCreate) AddBillingLines(b ...*BillingInvoiceLine) *Su
 		ids[i] = b[i].ID
 	}
 	return sic.AddBillingLineIDs(ids...)
+}
+
+// AddSubscriptionAddonRateCardItemIDs adds the "subscription_addon_rate_card_items" edge to the SubscriptionAddonRateCardItemLink entity by IDs.
+func (sic *SubscriptionItemCreate) AddSubscriptionAddonRateCardItemIDs(ids ...string) *SubscriptionItemCreate {
+	sic.mutation.AddSubscriptionAddonRateCardItemIDs(ids...)
+	return sic
+}
+
+// AddSubscriptionAddonRateCardItems adds the "subscription_addon_rate_card_items" edges to the SubscriptionAddonRateCardItemLink entity.
+func (sic *SubscriptionItemCreate) AddSubscriptionAddonRateCardItems(s ...*SubscriptionAddonRateCardItemLink) *SubscriptionItemCreate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return sic.AddSubscriptionAddonRateCardItemIDs(ids...)
 }
 
 // Mutation returns the SubscriptionItemMutation object of the builder.
@@ -565,6 +581,22 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := sic.mutation.SubscriptionAddonRateCardItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.SubscriptionAddonRateCardItemsTable,
+			Columns: []string{subscriptionitem.SubscriptionAddonRateCardItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecarditemlink.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

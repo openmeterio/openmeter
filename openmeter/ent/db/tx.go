@@ -80,6 +80,14 @@ type Tx struct {
 	PlanRateCard *PlanRateCardClient
 	// Subscription is the client for interacting with the Subscription builders.
 	Subscription *SubscriptionClient
+	// SubscriptionAddon is the client for interacting with the SubscriptionAddon builders.
+	SubscriptionAddon *SubscriptionAddonClient
+	// SubscriptionAddonQuantity is the client for interacting with the SubscriptionAddonQuantity builders.
+	SubscriptionAddonQuantity *SubscriptionAddonQuantityClient
+	// SubscriptionAddonRateCard is the client for interacting with the SubscriptionAddonRateCard builders.
+	SubscriptionAddonRateCard *SubscriptionAddonRateCardClient
+	// SubscriptionAddonRateCardItemLink is the client for interacting with the SubscriptionAddonRateCardItemLink builders.
+	SubscriptionAddonRateCardItemLink *SubscriptionAddonRateCardItemLinkClient
 	// SubscriptionItem is the client for interacting with the SubscriptionItem builders.
 	SubscriptionItem *SubscriptionItemClient
 	// SubscriptionPhase is the client for interacting with the SubscriptionPhase builders.
@@ -250,6 +258,10 @@ func (tx *Tx) init() {
 	tx.PlanPhase = NewPlanPhaseClient(tx.config)
 	tx.PlanRateCard = NewPlanRateCardClient(tx.config)
 	tx.Subscription = NewSubscriptionClient(tx.config)
+	tx.SubscriptionAddon = NewSubscriptionAddonClient(tx.config)
+	tx.SubscriptionAddonQuantity = NewSubscriptionAddonQuantityClient(tx.config)
+	tx.SubscriptionAddonRateCard = NewSubscriptionAddonRateCardClient(tx.config)
+	tx.SubscriptionAddonRateCardItemLink = NewSubscriptionAddonRateCardItemLinkClient(tx.config)
 	tx.SubscriptionItem = NewSubscriptionItemClient(tx.config)
 	tx.SubscriptionPhase = NewSubscriptionPhaseClient(tx.config)
 	tx.UsageReset = NewUsageResetClient(tx.config)

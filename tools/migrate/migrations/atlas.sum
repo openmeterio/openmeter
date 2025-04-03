@@ -1,4 +1,4 @@
-h1:KsyQaWwxH1x/GUxdkCClkGEPz432NIsYrZrDlp8iVig=
+h1:Oq2sLtQo8LF9RMRoeGZ2WiYAFrztpj2LJdi1MrLH5as=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -159,3 +159,5 @@ h1:KsyQaWwxH1x/GUxdkCClkGEPz432NIsYrZrDlp8iVig=
 20250406215430_billing-line-discount-reason.up.sql h1:E2/fFyfuMJyYx1bv/yA3HG+iZQ7c9GlmwnnNDQ+2V4Q=
 20250407191828_billing-line-discount-unit-support.down.sql h1:L2kR0v0WGd0jkFyx2zCGb9M7+RvOWM/fNoeNVIyHfIc=
 20250407191828_billing-line-discount-unit-support.up.sql h1:RyFdJJl1BxQonfhIRQWRa4X6t0GFkRe3SxjNpqFSU/U=
+20250408095033_subscriptionaddon.down.sql h1:TlO7Nszf3QrOM0xMsgtOWmW3K3iCTK3IqpT99VuuT/g=
+20250408095033_subscriptionaddon.up.sql h1:iUdo59xgyNZiKnfLdGTYW3vaNrh4sW5fwvBUmvIcN1M=

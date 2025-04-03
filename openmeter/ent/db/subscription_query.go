@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 )
 
@@ -32,6 +33,7 @@ type SubscriptionQuery struct {
 	withCustomer     *CustomerQuery
 	withPhases       *SubscriptionPhaseQuery
 	withBillingLines *BillingInvoiceLineQuery
+	withAddons       *SubscriptionAddonQuery
 	modifiers        []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -150,6 +152,28 @@ func (sq *SubscriptionQuery) QueryBillingLines() *BillingInvoiceLineQuery {
 			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, subscription.BillingLinesTable, subscription.BillingLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAddons chains the current query on the "addons" edge.
+func (sq *SubscriptionQuery) QueryAddons() *SubscriptionAddonQuery {
+	query := (&SubscriptionAddonClient{config: sq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := sq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := sq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
+			sqlgraph.To(subscriptionaddon.Table, subscriptionaddon.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.AddonsTable, subscription.AddonsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
 		return fromU, nil
@@ -353,6 +377,7 @@ func (sq *SubscriptionQuery) Clone() *SubscriptionQuery {
 		withCustomer:     sq.withCustomer.Clone(),
 		withPhases:       sq.withPhases.Clone(),
 		withBillingLines: sq.withBillingLines.Clone(),
+		withAddons:       sq.withAddons.Clone(),
 		// clone intermediate query.
 		sql:  sq.sql.Clone(),
 		path: sq.path,
@@ -400,6 +425,17 @@ func (sq *SubscriptionQuery) WithBillingLines(opts ...func(*BillingInvoiceLineQu
 		opt(query)
 	}
 	sq.withBillingLines = query
+	return sq
+}
+
+// WithAddons tells the query-builder to eager-load the nodes that are connected to
+// the "addons" edge. The optional arguments are used to configure the query builder of the edge.
+func (sq *SubscriptionQuery) WithAddons(opts ...func(*SubscriptionAddonQuery)) *SubscriptionQuery {
+	query := (&SubscriptionAddonClient{config: sq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	sq.withAddons = query
 	return sq
 }
 
@@ -481,11 +517,12 @@ func (sq *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	var (
 		nodes       = []*Subscription{}
 		_spec       = sq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			sq.withPlan != nil,
 			sq.withCustomer != nil,
 			sq.withPhases != nil,
 			sq.withBillingLines != nil,
+			sq.withAddons != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -532,6 +569,13 @@ func (sq *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 		if err := sq.loadBillingLines(ctx, query, nodes,
 			func(n *Subscription) { n.Edges.BillingLines = []*BillingInvoiceLine{} },
 			func(n *Subscription, e *BillingInvoiceLine) { n.Edges.BillingLines = append(n.Edges.BillingLines, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := sq.withAddons; query != nil {
+		if err := sq.loadAddons(ctx, query, nodes,
+			func(n *Subscription) { n.Edges.Addons = []*SubscriptionAddon{} },
+			func(n *Subscription, e *SubscriptionAddon) { n.Edges.Addons = append(n.Edges.Addons, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -658,6 +702,36 @@ func (sq *SubscriptionQuery) loadBillingLines(ctx context.Context, query *Billin
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "subscription_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (sq *SubscriptionQuery) loadAddons(ctx context.Context, query *SubscriptionAddonQuery, nodes []*Subscription, init func(*Subscription), assign func(*Subscription, *SubscriptionAddon)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Subscription)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(subscriptionaddon.FieldSubscriptionID)
+	}
+	query.Where(predicate.SubscriptionAddon(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(subscription.AddonsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SubscriptionID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "subscription_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

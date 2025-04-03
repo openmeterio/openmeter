@@ -209,20 +209,6 @@ func (u *AddonRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *
 	return u.SetPrice(*value)
 }
 
-func (u *AddonRateCardUpdate) SetOrClearFeatureID(value *string) *AddonRateCardUpdate {
-	if value == nil {
-		return u.ClearFeatureID()
-	}
-	return u.SetFeatureID(*value)
-}
-
-func (u *AddonRateCardUpdateOne) SetOrClearFeatureID(value *string) *AddonRateCardUpdateOne {
-	if value == nil {
-		return u.ClearFeatureID()
-	}
-	return u.SetFeatureID(*value)
-}
-
 func (u *AddonRateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -235,6 +221,20 @@ func (u *AddonRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Disc
 		return u.ClearDiscounts()
 	}
 	return u.SetDiscounts(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearFeatureID(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearFeatureID(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
 }
 
 func (u *AppUpdate) SetOrClearMetadata(value *map[string]string) *AppUpdate {
@@ -2419,6 +2419,90 @@ func (u *SubscriptionUpdateOne) SetOrClearPlanID(value *string) *SubscriptionUpd
 		return u.ClearPlanID()
 	}
 	return u.SetPlanID(*value)
+}
+
+func (u *SubscriptionAddonUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionAddonUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionAddonUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionAddonUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionAddonQuantityUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionAddonQuantityUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionAddonQuantityUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionAddonQuantityUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionAddonRateCardUpdate) SetOrClearMetadata(value *map[string]string) *SubscriptionAddonRateCardUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubscriptionAddonRateCardUpdateOne) SetOrClearMetadata(value *map[string]string) *SubscriptionAddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubscriptionAddonRateCardUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionAddonRateCardUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionAddonRateCardUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionAddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionAddonRateCardUpdate) SetOrClearDescription(value *string) *SubscriptionAddonRateCardUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *SubscriptionAddonRateCardUpdateOne) SetOrClearDescription(value *string) *SubscriptionAddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *SubscriptionAddonRateCardItemLinkUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionAddonRateCardItemLinkUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionAddonRateCardItemLinkUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionAddonRateCardItemLinkUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
 }
 
 func (u *SubscriptionItemUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionItemUpdate {

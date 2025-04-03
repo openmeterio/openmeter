@@ -38,6 +38,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecarditemlink"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
@@ -124,13 +128,13 @@ func init() {
 	// addonratecardDescPrice is the schema descriptor for price field.
 	addonratecardDescPrice := addonratecardFields[5].Descriptor()
 	addonratecard.ValueScanner.Price = addonratecardDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// addonratecardDescDiscounts is the schema descriptor for discounts field.
+	addonratecardDescDiscounts := addonratecardFields[6].Descriptor()
+	addonratecard.ValueScanner.Discounts = addonratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// addonratecardDescAddonID is the schema descriptor for addon_id field.
-	addonratecardDescAddonID := addonratecardFields[6].Descriptor()
+	addonratecardDescAddonID := addonratecardFields[7].Descriptor()
 	// addonratecard.AddonIDValidator is a validator for the "addon_id" field. It is called by the builders before save.
 	addonratecard.AddonIDValidator = addonratecardDescAddonID.Validators[0].(func(string) error)
-	// addonratecardDescDiscounts is the schema descriptor for discounts field.
-	addonratecardDescDiscounts := addonratecardFields[8].Descriptor()
-	addonratecard.ValueScanner.Discounts = addonratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// addonratecardDescID is the schema descriptor for id field.
 	addonratecardDescID := addonratecardMixinFields0[0].Descriptor()
 	// addonratecard.DefaultID holds the default value on creation for the id field.
@@ -1143,19 +1147,19 @@ func init() {
 	// planratecard.KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	planratecard.KeyValidator = planratecardDescKey.Validators[0].(func(string) error)
 	// planratecardDescEntitlementTemplate is the schema descriptor for entitlement_template field.
-	planratecardDescEntitlementTemplate := planratecardMixinFields1[2].Descriptor()
+	planratecardDescEntitlementTemplate := planratecardFields[2].Descriptor()
 	planratecard.ValueScanner.EntitlementTemplate = planratecardDescEntitlementTemplate.ValueScanner.(field.TypeValueScanner[*productcatalog.EntitlementTemplate])
 	// planratecardDescTaxConfig is the schema descriptor for tax_config field.
-	planratecardDescTaxConfig := planratecardMixinFields1[3].Descriptor()
+	planratecardDescTaxConfig := planratecardFields[3].Descriptor()
 	planratecard.ValueScanner.TaxConfig = planratecardDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
 	// planratecardDescPrice is the schema descriptor for price field.
-	planratecardDescPrice := planratecardMixinFields1[5].Descriptor()
+	planratecardDescPrice := planratecardFields[5].Descriptor()
 	planratecard.ValueScanner.Price = planratecardDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// planratecardDescDiscounts is the schema descriptor for discounts field.
-	planratecardDescDiscounts := planratecardMixinFields1[6].Descriptor()
+	planratecardDescDiscounts := planratecardFields[6].Descriptor()
 	planratecard.ValueScanner.Discounts = planratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// planratecardDescPhaseID is the schema descriptor for phase_id field.
-	planratecardDescPhaseID := planratecardFields[0].Descriptor()
+	planratecardDescPhaseID := planratecardFields[7].Descriptor()
 	// planratecard.PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.
 	planratecard.PhaseIDValidator = planratecardDescPhaseID.Validators[0].(func(string) error)
 	// planratecardDescID is the schema descriptor for id field.
@@ -1224,6 +1228,140 @@ func init() {
 	subscriptionDescID := subscriptionMixinFields0[0].Descriptor()
 	// subscription.DefaultID holds the default value on creation for the id field.
 	subscription.DefaultID = subscriptionDescID.Default.(func() string)
+	subscriptionaddonMixin := schema.SubscriptionAddon{}.Mixin()
+	subscriptionaddonMixinFields0 := subscriptionaddonMixin[0].Fields()
+	_ = subscriptionaddonMixinFields0
+	subscriptionaddonMixinFields1 := subscriptionaddonMixin[1].Fields()
+	_ = subscriptionaddonMixinFields1
+	subscriptionaddonMixinFields2 := subscriptionaddonMixin[2].Fields()
+	_ = subscriptionaddonMixinFields2
+	subscriptionaddonFields := schema.SubscriptionAddon{}.Fields()
+	_ = subscriptionaddonFields
+	// subscriptionaddonDescNamespace is the schema descriptor for namespace field.
+	subscriptionaddonDescNamespace := subscriptionaddonMixinFields1[0].Descriptor()
+	// subscriptionaddon.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	subscriptionaddon.NamespaceValidator = subscriptionaddonDescNamespace.Validators[0].(func(string) error)
+	// subscriptionaddonDescCreatedAt is the schema descriptor for created_at field.
+	subscriptionaddonDescCreatedAt := subscriptionaddonMixinFields2[0].Descriptor()
+	// subscriptionaddon.DefaultCreatedAt holds the default value on creation for the created_at field.
+	subscriptionaddon.DefaultCreatedAt = subscriptionaddonDescCreatedAt.Default.(func() time.Time)
+	// subscriptionaddonDescUpdatedAt is the schema descriptor for updated_at field.
+	subscriptionaddonDescUpdatedAt := subscriptionaddonMixinFields2[1].Descriptor()
+	// subscriptionaddon.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	subscriptionaddon.DefaultUpdatedAt = subscriptionaddonDescUpdatedAt.Default.(func() time.Time)
+	// subscriptionaddon.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	subscriptionaddon.UpdateDefaultUpdatedAt = subscriptionaddonDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptionaddonDescAddonID is the schema descriptor for addon_id field.
+	subscriptionaddonDescAddonID := subscriptionaddonFields[0].Descriptor()
+	// subscriptionaddon.AddonIDValidator is a validator for the "addon_id" field. It is called by the builders before save.
+	subscriptionaddon.AddonIDValidator = subscriptionaddonDescAddonID.Validators[0].(func(string) error)
+	// subscriptionaddonDescSubscriptionID is the schema descriptor for subscription_id field.
+	subscriptionaddonDescSubscriptionID := subscriptionaddonFields[1].Descriptor()
+	// subscriptionaddon.SubscriptionIDValidator is a validator for the "subscription_id" field. It is called by the builders before save.
+	subscriptionaddon.SubscriptionIDValidator = subscriptionaddonDescSubscriptionID.Validators[0].(func(string) error)
+	// subscriptionaddonDescID is the schema descriptor for id field.
+	subscriptionaddonDescID := subscriptionaddonMixinFields0[0].Descriptor()
+	// subscriptionaddon.DefaultID holds the default value on creation for the id field.
+	subscriptionaddon.DefaultID = subscriptionaddonDescID.Default.(func() string)
+	subscriptionaddonquantityMixin := schema.SubscriptionAddonQuantity{}.Mixin()
+	subscriptionaddonquantityMixinFields0 := subscriptionaddonquantityMixin[0].Fields()
+	_ = subscriptionaddonquantityMixinFields0
+	subscriptionaddonquantityMixinFields1 := subscriptionaddonquantityMixin[1].Fields()
+	_ = subscriptionaddonquantityMixinFields1
+	subscriptionaddonquantityFields := schema.SubscriptionAddonQuantity{}.Fields()
+	_ = subscriptionaddonquantityFields
+	// subscriptionaddonquantityDescCreatedAt is the schema descriptor for created_at field.
+	subscriptionaddonquantityDescCreatedAt := subscriptionaddonquantityMixinFields1[0].Descriptor()
+	// subscriptionaddonquantity.DefaultCreatedAt holds the default value on creation for the created_at field.
+	subscriptionaddonquantity.DefaultCreatedAt = subscriptionaddonquantityDescCreatedAt.Default.(func() time.Time)
+	// subscriptionaddonquantityDescUpdatedAt is the schema descriptor for updated_at field.
+	subscriptionaddonquantityDescUpdatedAt := subscriptionaddonquantityMixinFields1[1].Descriptor()
+	// subscriptionaddonquantity.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	subscriptionaddonquantity.DefaultUpdatedAt = subscriptionaddonquantityDescUpdatedAt.Default.(func() time.Time)
+	// subscriptionaddonquantity.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	subscriptionaddonquantity.UpdateDefaultUpdatedAt = subscriptionaddonquantityDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptionaddonquantityDescActiveFrom is the schema descriptor for active_from field.
+	subscriptionaddonquantityDescActiveFrom := subscriptionaddonquantityFields[0].Descriptor()
+	// subscriptionaddonquantity.DefaultActiveFrom holds the default value on creation for the active_from field.
+	subscriptionaddonquantity.DefaultActiveFrom = subscriptionaddonquantityDescActiveFrom.Default.(func() time.Time)
+	// subscriptionaddonquantityDescQuantity is the schema descriptor for quantity field.
+	subscriptionaddonquantityDescQuantity := subscriptionaddonquantityFields[1].Descriptor()
+	// subscriptionaddonquantity.DefaultQuantity holds the default value on creation for the quantity field.
+	subscriptionaddonquantity.DefaultQuantity = subscriptionaddonquantityDescQuantity.Default.(int)
+	// subscriptionaddonquantity.QuantityValidator is a validator for the "quantity" field. It is called by the builders before save.
+	subscriptionaddonquantity.QuantityValidator = subscriptionaddonquantityDescQuantity.Validators[0].(func(int) error)
+	// subscriptionaddonquantityDescSubscriptionAddonID is the schema descriptor for subscription_addon_id field.
+	subscriptionaddonquantityDescSubscriptionAddonID := subscriptionaddonquantityFields[2].Descriptor()
+	// subscriptionaddonquantity.SubscriptionAddonIDValidator is a validator for the "subscription_addon_id" field. It is called by the builders before save.
+	subscriptionaddonquantity.SubscriptionAddonIDValidator = subscriptionaddonquantityDescSubscriptionAddonID.Validators[0].(func(string) error)
+	// subscriptionaddonquantityDescID is the schema descriptor for id field.
+	subscriptionaddonquantityDescID := subscriptionaddonquantityMixinFields0[0].Descriptor()
+	// subscriptionaddonquantity.DefaultID holds the default value on creation for the id field.
+	subscriptionaddonquantity.DefaultID = subscriptionaddonquantityDescID.Default.(func() string)
+	subscriptionaddonratecardMixin := schema.SubscriptionAddonRateCard{}.Mixin()
+	subscriptionaddonratecardMixinFields0 := subscriptionaddonratecardMixin[0].Fields()
+	_ = subscriptionaddonratecardMixinFields0
+	subscriptionaddonratecardFields := schema.SubscriptionAddonRateCard{}.Fields()
+	_ = subscriptionaddonratecardFields
+	// subscriptionaddonratecardDescNamespace is the schema descriptor for namespace field.
+	subscriptionaddonratecardDescNamespace := subscriptionaddonratecardMixinFields0[1].Descriptor()
+	// subscriptionaddonratecard.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	subscriptionaddonratecard.NamespaceValidator = subscriptionaddonratecardDescNamespace.Validators[0].(func(string) error)
+	// subscriptionaddonratecardDescCreatedAt is the schema descriptor for created_at field.
+	subscriptionaddonratecardDescCreatedAt := subscriptionaddonratecardMixinFields0[3].Descriptor()
+	// subscriptionaddonratecard.DefaultCreatedAt holds the default value on creation for the created_at field.
+	subscriptionaddonratecard.DefaultCreatedAt = subscriptionaddonratecardDescCreatedAt.Default.(func() time.Time)
+	// subscriptionaddonratecardDescUpdatedAt is the schema descriptor for updated_at field.
+	subscriptionaddonratecardDescUpdatedAt := subscriptionaddonratecardMixinFields0[4].Descriptor()
+	// subscriptionaddonratecard.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	subscriptionaddonratecard.DefaultUpdatedAt = subscriptionaddonratecardDescUpdatedAt.Default.(func() time.Time)
+	// subscriptionaddonratecard.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	subscriptionaddonratecard.UpdateDefaultUpdatedAt = subscriptionaddonratecardDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptionaddonratecardDescKey is the schema descriptor for key field.
+	subscriptionaddonratecardDescKey := subscriptionaddonratecardMixinFields0[8].Descriptor()
+	// subscriptionaddonratecard.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	subscriptionaddonratecard.KeyValidator = subscriptionaddonratecardDescKey.Validators[0].(func(string) error)
+	// subscriptionaddonratecardDescSubscriptionAddonID is the schema descriptor for subscription_addon_id field.
+	subscriptionaddonratecardDescSubscriptionAddonID := subscriptionaddonratecardFields[0].Descriptor()
+	// subscriptionaddonratecard.SubscriptionAddonIDValidator is a validator for the "subscription_addon_id" field. It is called by the builders before save.
+	subscriptionaddonratecard.SubscriptionAddonIDValidator = subscriptionaddonratecardDescSubscriptionAddonID.Validators[0].(func(string) error)
+	// subscriptionaddonratecardDescAddonRatecardID is the schema descriptor for addon_ratecard_id field.
+	subscriptionaddonratecardDescAddonRatecardID := subscriptionaddonratecardFields[1].Descriptor()
+	// subscriptionaddonratecard.AddonRatecardIDValidator is a validator for the "addon_ratecard_id" field. It is called by the builders before save.
+	subscriptionaddonratecard.AddonRatecardIDValidator = subscriptionaddonratecardDescAddonRatecardID.Validators[0].(func(string) error)
+	// subscriptionaddonratecardDescID is the schema descriptor for id field.
+	subscriptionaddonratecardDescID := subscriptionaddonratecardMixinFields0[0].Descriptor()
+	// subscriptionaddonratecard.DefaultID holds the default value on creation for the id field.
+	subscriptionaddonratecard.DefaultID = subscriptionaddonratecardDescID.Default.(func() string)
+	subscriptionaddonratecarditemlinkMixin := schema.SubscriptionAddonRateCardItemLink{}.Mixin()
+	subscriptionaddonratecarditemlinkMixinFields0 := subscriptionaddonratecarditemlinkMixin[0].Fields()
+	_ = subscriptionaddonratecarditemlinkMixinFields0
+	subscriptionaddonratecarditemlinkMixinFields1 := subscriptionaddonratecarditemlinkMixin[1].Fields()
+	_ = subscriptionaddonratecarditemlinkMixinFields1
+	subscriptionaddonratecarditemlinkFields := schema.SubscriptionAddonRateCardItemLink{}.Fields()
+	_ = subscriptionaddonratecarditemlinkFields
+	// subscriptionaddonratecarditemlinkDescCreatedAt is the schema descriptor for created_at field.
+	subscriptionaddonratecarditemlinkDescCreatedAt := subscriptionaddonratecarditemlinkMixinFields1[0].Descriptor()
+	// subscriptionaddonratecarditemlink.DefaultCreatedAt holds the default value on creation for the created_at field.
+	subscriptionaddonratecarditemlink.DefaultCreatedAt = subscriptionaddonratecarditemlinkDescCreatedAt.Default.(func() time.Time)
+	// subscriptionaddonratecarditemlinkDescUpdatedAt is the schema descriptor for updated_at field.
+	subscriptionaddonratecarditemlinkDescUpdatedAt := subscriptionaddonratecarditemlinkMixinFields1[1].Descriptor()
+	// subscriptionaddonratecarditemlink.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	subscriptionaddonratecarditemlink.DefaultUpdatedAt = subscriptionaddonratecarditemlinkDescUpdatedAt.Default.(func() time.Time)
+	// subscriptionaddonratecarditemlink.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	subscriptionaddonratecarditemlink.UpdateDefaultUpdatedAt = subscriptionaddonratecarditemlinkDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptionaddonratecarditemlinkDescSubscriptionAddonRateCardID is the schema descriptor for subscription_addon_rate_card_id field.
+	subscriptionaddonratecarditemlinkDescSubscriptionAddonRateCardID := subscriptionaddonratecarditemlinkFields[0].Descriptor()
+	// subscriptionaddonratecarditemlink.SubscriptionAddonRateCardIDValidator is a validator for the "subscription_addon_rate_card_id" field. It is called by the builders before save.
+	subscriptionaddonratecarditemlink.SubscriptionAddonRateCardIDValidator = subscriptionaddonratecarditemlinkDescSubscriptionAddonRateCardID.Validators[0].(func(string) error)
+	// subscriptionaddonratecarditemlinkDescSubscriptionItemID is the schema descriptor for subscription_item_id field.
+	subscriptionaddonratecarditemlinkDescSubscriptionItemID := subscriptionaddonratecarditemlinkFields[1].Descriptor()
+	// subscriptionaddonratecarditemlink.SubscriptionItemIDValidator is a validator for the "subscription_item_id" field. It is called by the builders before save.
+	subscriptionaddonratecarditemlink.SubscriptionItemIDValidator = subscriptionaddonratecarditemlinkDescSubscriptionItemID.Validators[0].(func(string) error)
+	// subscriptionaddonratecarditemlinkDescID is the schema descriptor for id field.
+	subscriptionaddonratecarditemlinkDescID := subscriptionaddonratecarditemlinkMixinFields0[0].Descriptor()
+	// subscriptionaddonratecarditemlink.DefaultID holds the default value on creation for the id field.
+	subscriptionaddonratecarditemlink.DefaultID = subscriptionaddonratecarditemlinkDescID.Default.(func() string)
 	subscriptionitemMixin := schema.SubscriptionItem{}.Mixin()
 	subscriptionitemMixinFields0 := subscriptionitemMixin[0].Fields()
 	_ = subscriptionitemMixinFields0

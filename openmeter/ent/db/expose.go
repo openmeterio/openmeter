@@ -155,6 +155,14 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		Subscription: NewSubscriptionClient(config),
 
+		SubscriptionAddon: NewSubscriptionAddonClient(config),
+
+		SubscriptionAddonQuantity: NewSubscriptionAddonQuantityClient(config),
+
+		SubscriptionAddonRateCard: NewSubscriptionAddonRateCardClient(config),
+
+		SubscriptionAddonRateCardItemLink: NewSubscriptionAddonRateCardItemLinkClient(config),
+
 		SubscriptionItem: NewSubscriptionItemClient(config),
 
 		SubscriptionPhase: NewSubscriptionPhaseClient(config),
