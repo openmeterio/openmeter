@@ -10177,56 +10177,6 @@ components:
         This profile is calculated from the customer override and the billing profile it references or the default.
 
         Thus this does not have any kind of resource fields, only the calculated values.
-    BillingLineCharge:
-      type: object
-      required:
-        - createdAt
-        - updatedAt
-        - id
-        - amount
-      properties:
-        createdAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was created.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Creation Time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was last updated.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Last Update Time
-          readOnly: true
-        deletedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was permanently deleted.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Deletion Time
-          readOnly: true
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ID of the charge or discount.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          readOnly: true
-        percent:
-          allOf:
-            - $ref: '#/components/schemas/Percentage'
-          description: Percentage if fixed amount not applied
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Fixed discount amount to apply (calculated if percent present).
-        code:
-          type: string
-          description: Reason code.
-        description:
-          type: string
-          description: Text description as to why the discount was applied.
-      description: InvoiceLineCharge represents an amount added to the line, and will be applied before taxes.
     BillingParty:
       type: object
       properties:
@@ -13763,11 +13713,6 @@ components:
           items:
             $ref: '#/components/schemas/InvoiceLine'
           description: List of invoice lines representing each of the items sold to the customer.
-        discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/Discount'
-          description: Discounts or allowances applied to the complete invoice.
         payment:
           allOf:
             - $ref: '#/components/schemas/InvoicePaymentTerms'
@@ -13895,8 +13840,6 @@ components:
         - period
         - invoiceAt
         - type
-        - perUnitAmount
-        - quantity
       properties:
         name:
           type: string
@@ -13966,16 +13909,6 @@ components:
             New discounts can be added via the invoice's discounts API, to facilitate
             discounts that are affecting multiple lines.
           readOnly: true
-        charges:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingLineCharge'
-          description: |-
-            Charges applied to this line. (like minimum spend)
-
-            New charges can be added via the invoice's charges API, to facilitate
-            charges that are affecting multiple lines.
-          readOnly: true
         invoice:
           allOf:
             - $ref: '#/components/schemas/InvoiceReference'
@@ -13994,6 +13927,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
           description: Tax config specify the tax configuration for this line.
+          deprecated: true
         children:
           description: The lines detailing the item or service sold.
           readOnly: true
@@ -14022,7 +13956,7 @@ components:
             - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
           description: External IDs of the invoice in other apps such as Stripe.
           readOnly: true
-        subscriptions:
+        subscription:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineSubscriptionReference'
           description: Subscription are the references to the subscritpions that this line is related to.
@@ -14036,15 +13970,22 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Price of the item being sold.
+          deprecated: true
         paymentTerm:
           allOf:
             - $ref: '#/components/schemas/PricePaymentTerm'
           description: Payment term of the line.
+          deprecated: true
           default: in_advance
         quantity:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Quantity of the item being sold.
+          deprecated: true
+        rateCard:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceFlatFeeRateCard'
+          description: The rate card that is used for this line.
         category:
           allOf:
             - $ref: '#/components/schemas/InvoiceFlatFeeCategory'
@@ -14058,8 +13999,6 @@ components:
         - period
         - invoiceAt
         - type
-        - perUnitAmount
-        - quantity
       properties:
         name:
           type: string
@@ -14083,6 +14022,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
           description: Tax config specify the tax configuration for this line.
+          deprecated: true
         period:
           allOf:
             - $ref: '#/components/schemas/Period'
@@ -14104,15 +14044,22 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Price of the item being sold.
+          deprecated: true
         paymentTerm:
           allOf:
             - $ref: '#/components/schemas/PricePaymentTerm'
           description: Payment term of the line.
+          deprecated: true
           default: in_advance
         quantity:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Quantity of the item being sold.
+          deprecated: true
+        rateCard:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceFlatFeeRateCard'
+          description: The rate card that is used for this line.
         category:
           allOf:
             - $ref: '#/components/schemas/InvoiceFlatFeeCategory'
@@ -14135,8 +14082,6 @@ components:
         - period
         - invoiceAt
         - type
-        - perUnitAmount
-        - quantity
         - customerId
       properties:
         name:
@@ -14165,6 +14110,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
           description: Tax config specify the tax configuration for this line.
+          deprecated: true
         period:
           allOf:
             - $ref: '#/components/schemas/Period'
@@ -14186,15 +14132,22 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Price of the item being sold.
+          deprecated: true
         paymentTerm:
           allOf:
             - $ref: '#/components/schemas/PricePaymentTerm'
           description: Payment term of the line.
+          deprecated: true
           default: in_advance
         quantity:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Quantity of the item being sold.
+          deprecated: true
+        rateCard:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceFlatFeeRateCard'
+          description: The rate card that is used for this line.
         category:
           allOf:
             - $ref: '#/components/schemas/InvoiceFlatFeeCategory'
@@ -14206,6 +14159,47 @@ components:
           description: The customer this line item belongs to.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: InvoiceFlatFeePendingLineCreate represents the create model for an invoice line that is sold to the customer as a manually added fee.
+    InvoiceFlatFeeRateCard:
+      type: object
+      required:
+        - price
+      properties:
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: |-
+            The tax config of the rate card.
+            When undefined, the tax config of the feature or the default tax config of the plan is used.
+          title: Tax config
+        price:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
+          nullable: true
+          description: |-
+            The price of the rate card.
+            When null, the feature or service is free.
+          title: Price
+          example:
+            type: flat
+            amount: '100'
+            paymentTerm: in_arrears
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiscountPercentage'
+          description: |-
+            The discount of the rate card. For flat fee rate cards only percentage discounts are supported.
+            Only available when price is set.
+          title: Discounts
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Quantity of the item being sold.
+
+            Default: 1
+      description: InvoiceFlatFeeRateCard represents the rate card (intent) for a flat fee line.
     InvoiceGenericDocumentRef:
       type: object
       required:
@@ -14255,11 +14249,23 @@ components:
       description: InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps such as Stripe.
     InvoiceLineDiscount:
       type: object
+      oneOf:
+        - $ref: '#/components/schemas/InvoiceLineDiscountAmount'
+        - $ref: '#/components/schemas/InvoiceLineDiscountUsage'
+      discriminator:
+        propertyName: type
+        mapping:
+          amount: '#/components/schemas/InvoiceLineDiscountAmount'
+          usage: '#/components/schemas/InvoiceLineDiscountUsage'
+      description: InvoiceLineDiscount represents the actual discount applied to the invoice line.
+    InvoiceLineDiscountAmount:
+      type: object
       required:
         - createdAt
         - updatedAt
         - id
         - amount
+        - type
       properties:
         createdAt:
           type: string
@@ -14288,26 +14294,111 @@ components:
           description: ID of the charge or discount.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
-        percent:
-          allOf:
-            - $ref: '#/components/schemas/Percentage'
-          description: Percentage if fixed amount not applied
+        code:
+          type: string
+          description: Reason code.
+          readOnly: true
+        description:
+          type: string
+          description: Text description as to why the discount was applied.
+          readOnly: true
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Fixed discount amount to apply (calculated if percent present).
-        code:
+          title: Amount in the currency of the invoice
+          readOnly: true
+        type:
           type: string
-          description: Reason code.
-        description:
-          type: string
-          description: Text description as to why the discount was applied.
+          enum:
+            - amount
+          description: The type of the discount.
+          readOnly: true
+        rateCardDiscount:
+          allOf:
+            - $ref: '#/components/schemas/Discount'
+          description: The discount from the rate card this discount is based on.
+          readOnly: true
         externalIds:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
           description: External IDs of the invoice in other apps such as Stripe.
           readOnly: true
-      description: InvoiceLineDiscount represents an amount deducted from the line, and will be applied before taxes.
+      description: InvoiceLineDiscountAmount represents an amount deducted from the line, and will be applied before taxes.
+    InvoiceLineDiscountUsage:
+      type: object
+      required:
+        - createdAt
+        - updatedAt
+        - id
+        - quantity
+        - type
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ID of the charge or discount.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          readOnly: true
+        code:
+          type: string
+          description: Reason code.
+          readOnly: true
+        description:
+          type: string
+          description: Text description as to why the discount was applied.
+          readOnly: true
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage to apply.
+          title: Usage quantity in the unit of the underlying meter
+          readOnly: true
+        preLinePeriodQuantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The usage discount already applied to the previous split lines.
+
+            Only set if progressive billing is enabled and the line is a split line.
+          title: Usage quantity in the unit of the underlying meter
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - usage
+          description: The type of the discount.
+          readOnly: true
+        rateCardDiscount:
+          allOf:
+            - $ref: '#/components/schemas/Discount'
+          description: The discount from the rate card this discount is based on.
+          readOnly: true
+      description: |-
+        InvoiceLineDiscountUsage represents an usage-based discount applied to the line.
+
+        The deduction is done before the pricing algorithm is applied.
     InvoiceLineManagedBy:
       type: string
       enum:
@@ -14355,7 +14446,7 @@ components:
             - $ref: '#/components/schemas/IDResource'
           description: The item this line is related to.
           readOnly: true
-      description: InvoiceLineSubscriptionReference contains the references to the subscriptions that this line is related to.
+      description: InvoiceLineSubscriptionReference contains the references to the subscription that this line is related to.
     InvoiceLineTaxBehavior:
       type: string
       enum:
@@ -14576,8 +14667,6 @@ components:
         - period
         - invoiceAt
         - type
-        - perUnitAmount
-        - quantity
       properties:
         name:
           type: string
@@ -14601,6 +14690,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
           description: Tax config specify the tax configuration for this line.
+          deprecated: true
         period:
           allOf:
             - $ref: '#/components/schemas/Period'
@@ -14622,15 +14712,22 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Price of the item being sold.
+          deprecated: true
         paymentTerm:
           allOf:
             - $ref: '#/components/schemas/PricePaymentTerm'
           description: Payment term of the line.
+          deprecated: true
           default: in_advance
         quantity:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Quantity of the item being sold.
+          deprecated: true
+        rateCard:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceFlatFeeRateCard'
+          description: The rate card that is used for this line.
         category:
           allOf:
             - $ref: '#/components/schemas/InvoiceFlatFeeCategory'
@@ -14686,8 +14783,6 @@ components:
         - period
         - invoiceAt
         - type
-        - price
-        - featureKey
         - quantity
       properties:
         name:
@@ -14712,6 +14807,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
           description: Tax config specify the tax configuration for this line.
+          deprecated: true
         period:
           allOf:
             - $ref: '#/components/schemas/Period'
@@ -14733,12 +14829,21 @@ components:
           allOf:
             - $ref: '#/components/schemas/RateCardUsageBasedPrice'
           description: Price of the usage-based item being sold.
+          deprecated: true
         featureKey:
           type: string
           minLength: 1
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: The feature that the usage is based on.
+          deprecated: true
+        rateCard:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceUsageBasedRateCard'
+          description: |-
+            The rate card that is used for this line.
+
+            The rate card captures the intent of the price and discounts for the usage-based item.
         quantity:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -14868,8 +14973,6 @@ components:
         - period
         - invoiceAt
         - type
-        - price
-        - featureKey
       properties:
         name:
           type: string
@@ -14939,16 +15042,6 @@ components:
             New discounts can be added via the invoice's discounts API, to facilitate
             discounts that are affecting multiple lines.
           readOnly: true
-        charges:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingLineCharge'
-          description: |-
-            Charges applied to this line. (like minimum spend)
-
-            New charges can be added via the invoice's charges API, to facilitate
-            charges that are affecting multiple lines.
-          readOnly: true
         invoice:
           allOf:
             - $ref: '#/components/schemas/InvoiceReference'
@@ -14967,6 +15060,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
           description: Tax config specify the tax configuration for this line.
+          deprecated: true
         children:
           description: The lines detailing the item or service sold.
           readOnly: true
@@ -14995,7 +15089,7 @@ components:
             - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
           description: External IDs of the invoice in other apps such as Stripe.
           readOnly: true
-        subscriptions:
+        subscription:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineSubscriptionReference'
           description: Subscription are the references to the subscritpions that this line is related to.
@@ -15009,12 +15103,21 @@ components:
           allOf:
             - $ref: '#/components/schemas/RateCardUsageBasedPrice'
           description: Price of the usage-based item being sold.
+          deprecated: true
         featureKey:
           type: string
           minLength: 1
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: The feature that the usage is based on.
+          deprecated: true
+        rateCard:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceUsageBasedRateCard'
+          description: |-
+            The rate card that is used for this line.
+
+            The rate card captures the intent of the price and discounts for the usage-based item.
         quantity:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -15036,8 +15139,6 @@ components:
         - period
         - invoiceAt
         - type
-        - price
-        - featureKey
       properties:
         name:
           type: string
@@ -15061,6 +15162,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
           description: Tax config specify the tax configuration for this line.
+          deprecated: true
         period:
           allOf:
             - $ref: '#/components/schemas/Period'
@@ -15082,12 +15184,21 @@ components:
           allOf:
             - $ref: '#/components/schemas/RateCardUsageBasedPrice'
           description: Price of the usage-based item being sold.
+          deprecated: true
         featureKey:
           type: string
           minLength: 1
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: The feature that the usage is based on.
+          deprecated: true
+        rateCard:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceUsageBasedRateCard'
+          description: |-
+            The rate card that is used for this line.
+
+            The rate card captures the intent of the price and discounts for the usage-based item.
         id:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
@@ -15105,8 +15216,6 @@ components:
         - period
         - invoiceAt
         - type
-        - price
-        - featureKey
         - customerId
       properties:
         name:
@@ -15135,6 +15244,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
           description: Tax config specify the tax configuration for this line.
+          deprecated: true
         period:
           allOf:
             - $ref: '#/components/schemas/Period'
@@ -15156,18 +15266,63 @@ components:
           allOf:
             - $ref: '#/components/schemas/RateCardUsageBasedPrice'
           description: Price of the usage-based item being sold.
+          deprecated: true
         featureKey:
           type: string
           minLength: 1
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: The feature that the usage is based on.
+          deprecated: true
+        rateCard:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceUsageBasedRateCard'
+          description: |-
+            The rate card that is used for this line.
+
+            The rate card captures the intent of the price and discounts for the usage-based item.
         customerId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The customer this line item belongs to.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: InvoiceUsageBasedLineCreateWithCustomer represents the create model for an invoice line that is sold to the customer based on usage.
+    InvoiceUsageBasedRateCard:
+      type: object
+      required:
+        - price
+      properties:
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature the customer is entitled to use.
+          title: Feature key
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: |-
+            The tax config of the rate card.
+            When undefined, the tax config of the feature or the default tax config of the plan is used.
+          title: Tax config
+        price:
+          allOf:
+            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          nullable: true
+          description: |-
+            The price of the rate card.
+            When null, the feature or service is free.
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Discount'
+          description: |-
+            The discounts of the rate card.
+
+            Flat fee rate cards only support percentage discounts.
+          title: Discounts
+      description: InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line.
     InvoiceWorkflowInvoicingSettingsReplaceUpdate:
       type: object
       properties:

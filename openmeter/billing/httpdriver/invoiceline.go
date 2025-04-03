@@ -28,6 +28,11 @@ type (
 	CreatePendingLineHandler  = httptransport.Handler[CreatePendingLineRequest, CreatePendingLineResponse]
 )
 
+const (
+	defaultFlatFeePaymentTerm        = productcatalog.InAdvancePaymentTerm
+	defaultFlatFeeQuantity    string = "1"
+)
+
 func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreatePendingLineRequest, error) {
@@ -118,14 +123,15 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (billin
 }
 
 func mapCreatePendingFlatFeeLineToEntity(line api.InvoiceFlatFeePendingLineCreate, ns string) (billing.LineWithCustomer, error) {
-	qty, err := alpacadecimal.NewFromString(line.Quantity)
+	rateCardParsed, err := mapAndValidateFlatFeeRateCardDeprecatedFields(flatFeeRateCardItems{
+		RateCard:      line.RateCard,
+		PerUnitAmount: line.PerUnitAmount,
+		PaymentTerm:   line.PaymentTerm,
+		Quantity:      line.Quantity,
+		TaxConfig:     line.TaxConfig,
+	})
 	if err != nil {
-		return billing.LineWithCustomer{}, fmt.Errorf("failed to map quantity: %w", err)
-	}
-
-	perUnitAmount, err := alpacadecimal.NewFromString(line.PerUnitAmount)
-	if err != nil {
-		return billing.LineWithCustomer{}, fmt.Errorf("failed to parse price: %w", err)
+		return billing.LineWithCustomer{}, fmt.Errorf("failed to map flat fee line: %w", err)
 	}
 
 	return billing.LineWithCustomer{
@@ -147,12 +153,12 @@ func mapCreatePendingFlatFeeLineToEntity(line api.InvoiceFlatFeePendingLineCreat
 				},
 
 				InvoiceAt: line.InvoiceAt,
-				TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
+				TaxConfig: rateCardParsed.TaxConfig,
 			},
 			FlatFee: &billing.FlatFeeLine{
-				PerUnitAmount: perUnitAmount,
-				PaymentTerm:   lo.FromPtrOr((*productcatalog.PaymentTermType)(line.PaymentTerm), productcatalog.InAdvancePaymentTerm),
-				Quantity:      qty,
+				PerUnitAmount: rateCardParsed.PerUnitAmount,
+				PaymentTerm:   rateCardParsed.PaymentTerm,
+				Quantity:      rateCardParsed.Quantity,
 				Category:      lo.FromPtrOr((*billing.FlatFeeCategory)(line.Category), billing.FlatFeeCategoryRegular),
 			},
 		},
@@ -161,9 +167,14 @@ func mapCreatePendingFlatFeeLineToEntity(line api.InvoiceFlatFeePendingLineCreat
 }
 
 func mapCreatePendingUsageBasedLineToEntity(line api.InvoiceUsageBasedPendingLineCreate, ns string) (billing.LineWithCustomer, error) {
-	price, err := planhttpdriver.AsPrice(line.Price)
+	rateCardParsed, err := mapAndValidateUsageBasedRateCardDeprecatedFields(usageBasedRateCardItems{
+		RateCard:   line.RateCard,
+		Price:      line.Price,
+		TaxConfig:  line.TaxConfig,
+		FeatureKey: line.FeatureKey,
+	})
 	if err != nil {
-		return billing.LineWithCustomer{}, fmt.Errorf("failed to map price: %w", err)
+		return billing.LineWithCustomer{}, fmt.Errorf("failed to map usage based line: %w", err)
 	}
 
 	return billing.LineWithCustomer{
@@ -185,11 +196,11 @@ func mapCreatePendingUsageBasedLineToEntity(line api.InvoiceUsageBasedPendingLin
 				},
 
 				InvoiceAt: line.InvoiceAt,
-				TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
+				TaxConfig: rateCardParsed.TaxConfig,
 			},
 			UsageBased: &billing.UsageBasedLine{
-				Price:      price,
-				FeatureKey: line.FeatureKey,
+				Price:      rateCardParsed.Price,
+				FeatureKey: rateCardParsed.FeatureKey,
 			},
 		},
 		CustomerID: line.CustomerId,
@@ -249,6 +260,11 @@ func mapFeeLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
 	}
 
+	discountsAPI, err := mapDiscountsToAPI(line.Discounts)
+	if err != nil {
+		return api.InvoiceLine{}, fmt.Errorf("failed to map discounts: %w", err)
+	}
+
 	feeLine := api.InvoiceFlatFeeLine{
 		Type: api.InvoiceFlatFeeLineTypeFlatFee,
 		Id:   line.ID,
@@ -275,20 +291,30 @@ func mapFeeLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 			To:   line.Period.End,
 		},
 
-		PerUnitAmount: line.FlatFee.PerUnitAmount.String(),
-		Quantity:      line.FlatFee.Quantity.String(),
+		PerUnitAmount: lo.ToPtr(line.FlatFee.PerUnitAmount.String()),
+		Quantity:      lo.ToPtr(line.FlatFee.Quantity.String()),
 		Category:      lo.ToPtr(api.InvoiceFlatFeeCategory(line.FlatFee.Category)),
 		TaxConfig:     mapTaxConfigToAPI(line.TaxConfig),
 		PaymentTerm:   lo.ToPtr(api.PricePaymentTerm(line.FlatFee.PaymentTerm)),
 
-		Discounts: mapDiscountsToAPI(line.Discounts),
+		RateCard: &api.InvoiceFlatFeeRateCard{
+			TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
+			Price: &api.FlatPriceWithPaymentTerm{
+				Type:        api.FlatPriceWithPaymentTermTypeFlat,
+				PaymentTerm: lo.ToPtr(api.PricePaymentTerm(line.FlatFee.PaymentTerm)),
+				Amount:      line.FlatFee.PerUnitAmount.String(),
+			},
+			Quantity: lo.ToPtr(line.FlatFee.Quantity.String()),
+		},
+
+		Discounts: discountsAPI,
 		Totals:    mapTotalsToAPI(line.Totals),
 		Children:  children,
 
 		ExternalIds: &api.InvoiceLineAppExternalIds{
 			Invoicing: lo.EmptyableToPtr(line.ExternalIDs.Invoicing),
 		},
-		Subscriptions: mapSubscriptionReferencesToAPI(line.Subscription),
+		Subscription: mapSubscriptionReferencesToAPI(line.Subscription),
 	}
 
 	out := api.InvoiceLine{}
@@ -313,6 +339,11 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 	children, err := mapChildLinesToAPI(line.Children)
 	if err != nil {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
+	}
+
+	discountsAPI, err := mapDiscountsToAPI(line.Discounts)
+	if err != nil {
+		return api.InvoiceLine{}, fmt.Errorf("failed to map discounts: %w", err)
 	}
 
 	ubpLine := api.InvoiceUsageBasedLine{
@@ -343,19 +374,25 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 
 		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
 
-		FeatureKey:            line.UsageBased.FeatureKey,
+		FeatureKey:            lo.ToPtr(line.UsageBased.FeatureKey),
 		Quantity:              decimalPtrToStringPtr(line.UsageBased.Quantity),
 		PreLinePeriodQuantity: decimalPtrToStringPtr(line.UsageBased.PreLinePeriodQuantity),
-		Price:                 price,
+		Price:                 lo.ToPtr(price),
 
-		Discounts: mapDiscountsToAPI(line.Discounts),
+		RateCard: &api.InvoiceUsageBasedRateCard{
+			TaxConfig:  mapTaxConfigToAPI(line.TaxConfig),
+			Price:      lo.ToPtr(price),
+			FeatureKey: lo.ToPtr(line.UsageBased.FeatureKey),
+		},
+
+		Discounts: discountsAPI,
 		Children:  children,
 		Totals:    mapTotalsToAPI(line.Totals),
 
 		ExternalIds: lo.EmptyableToPtr(api.InvoiceLineAppExternalIds{
 			Invoicing: lo.EmptyableToPtr(line.ExternalIDs.Invoicing),
 		}),
-		Subscriptions: mapSubscriptionReferencesToAPI(line.Subscription),
+		Subscription: mapSubscriptionReferencesToAPI(line.Subscription),
 	}
 
 	out := api.InvoiceLine{}
@@ -385,9 +422,9 @@ func mapSubscriptionReferencesToAPI(optSub *billing.SubscriptionReference) *api.
 	}
 }
 
-func mapDiscountsToAPI(optDiscounts billing.LineDiscounts) *[]api.InvoiceLineDiscount {
+func mapDiscountsToAPI(optDiscounts billing.LineDiscounts) (*[]api.InvoiceLineDiscount, error) {
 	if optDiscounts.IsAbsent() {
-		return nil
+		return nil, nil
 	}
 
 	discounts := optDiscounts.OrEmpty()
@@ -395,14 +432,20 @@ func mapDiscountsToAPI(optDiscounts billing.LineDiscounts) *[]api.InvoiceLineDis
 	out := make([]api.InvoiceLineDiscount, 0, len(discounts))
 
 	for _, discount := range discounts {
-		out = append(out, mapDiscountToAPI(discount))
+		discountAPI, err := mapDiscountToAPI(discount)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map discount: %w", err)
+		}
+		out = append(out, discountAPI)
 	}
 
-	return &out
+	return &out, nil
 }
 
-func mapDiscountToAPI(discount billing.LineDiscount) api.InvoiceLineDiscount {
-	return api.InvoiceLineDiscount{
+func mapDiscountToAPI(discount billing.LineDiscount) (api.InvoiceLineDiscount, error) {
+	out := api.InvoiceLineDiscount{}
+
+	err := out.FromInvoiceLineDiscountAmount(api.InvoiceLineDiscountAmount{
 		Id: discount.ID,
 
 		CreatedAt: discount.CreatedAt,
@@ -415,7 +458,9 @@ func mapDiscountToAPI(discount billing.LineDiscount) api.InvoiceLineDiscount {
 		ExternalIds: &api.InvoiceLineAppExternalIds{
 			Invoicing: lo.EmptyableToPtr(discount.ExternalIDs.Invoicing),
 		},
-	}
+	})
+
+	return out, err
 }
 
 func decimalPtrToStringPtr(d *alpacadecimal.Decimal) *string {
@@ -454,14 +499,15 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Line, e
 }
 
 func mapSimulationFlatFeeLineToEntity(line api.InvoiceSimulationFlatFeeLine) (*billing.Line, error) {
-	perUnitAmount, err := alpacadecimal.NewFromString(line.PerUnitAmount)
+	rateCardParsed, err := mapAndValidateFlatFeeRateCardDeprecatedFields(flatFeeRateCardItems{
+		RateCard:      line.RateCard,
+		PerUnitAmount: line.PerUnitAmount,
+		PaymentTerm:   line.PaymentTerm,
+		Quantity:      line.Quantity,
+		TaxConfig:     line.TaxConfig,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price: %w", err)
-	}
-
-	qty, err := alpacadecimal.NewFromString(line.Quantity)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse quantity: %w", err)
+		return nil, err
 	}
 
 	return &billing.Line{
@@ -480,34 +526,36 @@ func mapSimulationFlatFeeLineToEntity(line api.InvoiceSimulationFlatFeeLine) (*b
 			},
 
 			InvoiceAt: line.InvoiceAt,
-			TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
+			TaxConfig: rateCardParsed.TaxConfig,
 		},
 		FlatFee: &billing.FlatFeeLine{
-			PerUnitAmount: perUnitAmount,
-			PaymentTerm:   lo.FromPtrOr((*productcatalog.PaymentTermType)(line.PaymentTerm), productcatalog.InAdvancePaymentTerm),
-			Quantity:      qty,
+			PerUnitAmount: rateCardParsed.PerUnitAmount,
+			PaymentTerm:   rateCardParsed.PaymentTerm,
+			Quantity:      rateCardParsed.Quantity,
 			Category:      lo.FromPtrOr((*billing.FlatFeeCategory)(line.Category), billing.FlatFeeCategoryRegular),
 		},
 	}, nil
 }
 
 func mapUsageBasedSimulationLineToEntity(line api.InvoiceSimulationUsageBasedLine) (*billing.Line, error) {
+	rateCardParsed, err := mapAndValidateUsageBasedRateCardDeprecatedFields(usageBasedRateCardItems{
+		RateCard:   line.RateCard,
+		Price:      line.Price,
+		TaxConfig:  line.TaxConfig,
+		FeatureKey: line.FeatureKey,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	qty, err := alpacadecimal.NewFromString(line.Quantity)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse quantity: %w", err)
 	}
 
-	prePeriodQty := alpacadecimal.Zero
-	if line.PreLinePeriodQuantity != nil {
-		prePeriodQty, err = alpacadecimal.NewFromString(*line.PreLinePeriodQuantity)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse pre period quantity: %w", err)
-		}
-	}
-
-	price, err := planhttpdriver.AsPrice(line.Price)
+	prePeriodQty, err := alpacadecimal.NewFromString(lo.FromPtrOr(line.PreLinePeriodQuantity, "0"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to map price: %w", err)
+		return nil, fmt.Errorf("failed to parse preLinePeriodQuantity: %w", err)
 	}
 
 	return &billing.Line{
@@ -526,11 +574,11 @@ func mapUsageBasedSimulationLineToEntity(line api.InvoiceSimulationUsageBasedLin
 			},
 
 			InvoiceAt: line.InvoiceAt,
-			TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
+			TaxConfig: rateCardParsed.TaxConfig,
 		},
 		UsageBased: &billing.UsageBasedLine{
-			Price:                 price,
-			FeatureKey:            line.FeatureKey,
+			Price:                 rateCardParsed.Price,
+			FeatureKey:            rateCardParsed.FeatureKey,
 			Quantity:              &qty,
 			PreLinePeriodQuantity: &prePeriodQty,
 		},
@@ -561,18 +609,15 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 
 	switch v := value.(type) {
 	case api.InvoiceFlatFeeLineReplaceUpdate:
-		perUnitAmount, err := alpacadecimal.NewFromString(v.PerUnitAmount)
+		rateCardParsed, err := mapAndValidateFlatFeeRateCardDeprecatedFields(flatFeeRateCardItems{
+			RateCard:      v.RateCard,
+			PerUnitAmount: v.PerUnitAmount,
+			PaymentTerm:   v.PaymentTerm,
+			Quantity:      v.Quantity,
+			TaxConfig:     v.TaxConfig,
+		})
 		if err != nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("failed to parse per unit amount: %w", err),
-			}
-		}
-
-		quantity, err := alpacadecimal.NewFromString(v.Quantity)
-		if err != nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("failed to parse quantity: %w", err),
-			}
+			return nil, fmt.Errorf("failed to map flat fee line: %w", err)
 		}
 
 		return &billing.Line{
@@ -596,20 +641,25 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 				},
 				InvoiceAt: v.InvoiceAt,
 
-				TaxConfig: mapTaxConfigToEntity(v.TaxConfig),
+				TaxConfig: rateCardParsed.TaxConfig,
 			},
 			FlatFee: &billing.FlatFeeLine{
-				PerUnitAmount: perUnitAmount,
-				Quantity:      quantity,
+				PerUnitAmount: rateCardParsed.PerUnitAmount,
+				Quantity:      rateCardParsed.Quantity,
 
-				PaymentTerm: lo.FromPtrOr((*productcatalog.PaymentTermType)(v.PaymentTerm), productcatalog.InAdvancePaymentTerm),
+				PaymentTerm: rateCardParsed.PaymentTerm,
 				Category:    lo.FromPtrOr((*billing.FlatFeeCategory)(v.Category), billing.FlatFeeCategoryRegular),
 			},
 		}, nil
 	case api.InvoiceUsageBasedLineReplaceUpdate:
-		price, err := planhttpdriver.AsPrice(v.Price)
+		rateCardParsed, err := mapAndValidateUsageBasedRateCardDeprecatedFields(usageBasedRateCardItems{
+			RateCard:   v.RateCard,
+			Price:      v.Price,
+			TaxConfig:  v.TaxConfig,
+			FeatureKey: v.FeatureKey,
+		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to map price: %w", err)
+			return nil, fmt.Errorf("failed to map usage based line: %w", err)
 		}
 
 		return &billing.Line{
@@ -633,11 +683,11 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 				},
 				InvoiceAt: v.InvoiceAt,
 
-				TaxConfig: mapTaxConfigToEntity(v.TaxConfig),
+				TaxConfig: rateCardParsed.TaxConfig,
 			},
 			UsageBased: &billing.UsageBasedLine{
-				Price:      price,
-				FeatureKey: v.FeatureKey,
+				Price:      rateCardParsed.Price,
+				FeatureKey: rateCardParsed.FeatureKey,
 
 				// TODO: snapshotting
 			},
@@ -664,18 +714,15 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 		oldBase := existing.LineBase.Clone()
 		oldFee := existing.FlatFee.Clone()
 
-		perUnitAmount, err := alpacadecimal.NewFromString(v.PerUnitAmount)
+		rateCardParsed, err := mapAndValidateFlatFeeRateCardDeprecatedFields(flatFeeRateCardItems{
+			RateCard:      v.RateCard,
+			PerUnitAmount: v.PerUnitAmount,
+			PaymentTerm:   v.PaymentTerm,
+			Quantity:      v.Quantity,
+			TaxConfig:     v.TaxConfig,
+		})
 		if err != nil {
-			return nil, false, billing.ValidationError{
-				Err: fmt.Errorf("failed to parse per unit amount: %w", err),
-			}
-		}
-
-		quantity, err := alpacadecimal.NewFromString(v.Quantity)
-		if err != nil {
-			return nil, false, billing.ValidationError{
-				Err: fmt.Errorf("failed to parse quantity: %w", err),
-			}
+			return nil, false, fmt.Errorf("failed to map flat fee line: %w", err)
 		}
 
 		existing.LineBase.Metadata = lo.FromPtrOr(v.Metadata, existing.Metadata)
@@ -686,11 +733,11 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 		existing.Period.End = v.Period.To
 		existing.InvoiceAt = v.InvoiceAt
 
-		existing.TaxConfig = mapTaxConfigToEntity(v.TaxConfig)
+		existing.TaxConfig = rateCardParsed.TaxConfig
 
-		existing.FlatFee.PerUnitAmount = perUnitAmount
-		existing.FlatFee.Quantity = quantity
-		existing.FlatFee.PaymentTerm = lo.FromPtrOr((*productcatalog.PaymentTermType)(v.PaymentTerm), existing.FlatFee.PaymentTerm)
+		existing.FlatFee.PerUnitAmount = rateCardParsed.PerUnitAmount
+		existing.FlatFee.Quantity = rateCardParsed.Quantity
+		existing.FlatFee.PaymentTerm = rateCardParsed.PaymentTerm
 		existing.FlatFee.Category = lo.FromPtrOr((*billing.FlatFeeCategory)(v.Category), existing.FlatFee.Category)
 
 		wasChange := !oldBase.Equal(existing.LineBase) || !oldFee.Equal(existing.FlatFee)
@@ -709,10 +756,15 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 		oldBase := existing.LineBase.Clone()
 		oldUBP := existing.UsageBased.Clone()
 
-		price, err := planhttpdriver.AsPrice(v.Price)
+		rateCardParsed, err := mapAndValidateUsageBasedRateCardDeprecatedFields(usageBasedRateCardItems{
+			RateCard:   v.RateCard,
+			Price:      v.Price,
+			TaxConfig:  v.TaxConfig,
+			FeatureKey: v.FeatureKey,
+		})
 		if err != nil {
 			return nil, false, billing.ValidationError{
-				Err: fmt.Errorf("failed to map price: %w", err),
+				Err: fmt.Errorf("failed to map usage based line: %w", err),
 			}
 		}
 
@@ -724,10 +776,10 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 		existing.Period.End = v.Period.To
 		existing.InvoiceAt = v.InvoiceAt
 
-		existing.TaxConfig = mapTaxConfigToEntity(v.TaxConfig)
+		existing.TaxConfig = rateCardParsed.TaxConfig
 
-		existing.UsageBased.Price = price
-		existing.UsageBased.FeatureKey = v.FeatureKey
+		existing.UsageBased.Price = rateCardParsed.Price
+		existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
 
 		wasChange := !oldBase.Equal(existing.LineBase) || !oldUBP.Equal(existing.UsageBased)
 		if wasChange {

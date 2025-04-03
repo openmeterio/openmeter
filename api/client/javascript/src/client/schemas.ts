@@ -2263,43 +2263,6 @@ export interface components {
        *     Expand settings govern if this includes the whole app object or just the ID references. */
       readonly apps: components['schemas']['BillingProfileAppsOrReference']
     }
-    /** @description InvoiceLineCharge represents an amount added to the line, and will be applied before taxes. */
-    BillingLineCharge: {
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: Date
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: Date
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: Date
-      /**
-       * @description ID of the charge or discount.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      readonly id: string
-      /** @description Percentage if fixed amount not applied */
-      percent?: components['schemas']['Percentage']
-      /** @description Fixed discount amount to apply (calculated if percent present). */
-      amount: components['schemas']['Numeric']
-      /** @description Reason code. */
-      code?: string
-      /** @description Text description as to why the discount was applied. */
-      description?: string
-    }
     /** @description Party represents a person or business entity. */
     BillingParty: {
       /** @description Unique identifier for the party (if available) */
@@ -4734,8 +4697,6 @@ export interface components {
       workflow: components['schemas']['InvoiceWorkflowSettings']
       /** @description List of invoice lines representing each of the items sold to the customer. */
       lines?: components['schemas']['InvoiceLine'][]
-      /** @description Discounts or allowances applied to the complete invoice. */
-      discounts?: components['schemas']['Discount'][]
       /** @description Information on when, how, and to whom the invoice should be paid. */
       readonly payment?: components['schemas']['InvoicePaymentTerms']
       /** @description Validation issues reported by the invoice workflow. */
@@ -4852,18 +4813,16 @@ export interface components {
        *     New discounts can be added via the invoice's discounts API, to facilitate
        *     discounts that are affecting multiple lines. */
       readonly discounts?: components['schemas']['InvoiceLineDiscount'][]
-      /** @description Charges applied to this line. (like minimum spend)
-       *
-       *     New charges can be added via the invoice's charges API, to facilitate
-       *     charges that are affecting multiple lines. */
-      readonly charges?: components['schemas']['BillingLineCharge'][]
       /** @description The invoice this item belongs to. */
       invoice?: components['schemas']['InvoiceReference']
       /** @description The currency of this line. */
       currency: components['schemas']['CurrencyCode']
       /** @description Taxes applied to the invoice totals. */
       readonly taxes?: components['schemas']['InvoiceLineTaxItem'][]
-      /** @description Tax config specify the tax configuration for this line. */
+      /**
+       * @deprecated
+       * @description Tax config specify the tax configuration for this line.
+       */
       taxConfig?: components['schemas']['TaxConfig']
       /** @description The lines detailing the item or service sold. */
       readonly children?: components['schemas']['InvoiceLine'][]
@@ -4882,21 +4841,30 @@ export interface components {
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
       /** @description Subscription are the references to the subscritpions that this line is related to. */
-      readonly subscriptions?: components['schemas']['InvoiceLineSubscriptionReference']
+      readonly subscription?: components['schemas']['InvoiceLineSubscriptionReference']
       /**
        * @description Type of the line. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'flat_fee'
-      /** @description Price of the item being sold. */
-      perUnitAmount: components['schemas']['Numeric']
       /**
+       * @deprecated
+       * @description Price of the item being sold.
+       */
+      perUnitAmount?: components['schemas']['Numeric']
+      /**
+       * @deprecated
        * @description Payment term of the line.
        * @default in_advance
        */
       paymentTerm?: components['schemas']['PricePaymentTerm']
-      /** @description Quantity of the item being sold. */
-      quantity: components['schemas']['Numeric']
+      /**
+       * @deprecated
+       * @description Quantity of the item being sold.
+       */
+      quantity?: components['schemas']['Numeric']
+      /** @description The rate card that is used for this line. */
+      rateCard?: components['schemas']['InvoiceFlatFeeRateCard']
       /**
        * @description Category of the flat fee.
        * @default regular
@@ -4922,7 +4890,10 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /** @description Tax config specify the tax configuration for this line. */
+      /**
+       * @deprecated
+       * @description Tax config specify the tax configuration for this line.
+       */
       taxConfig?: components['schemas']['TaxConfig']
       /** @description Period of the line item applies to for revenue recognition pruposes.
        *
@@ -4939,15 +4910,24 @@ export interface components {
        * @enum {string}
        */
       type: 'flat_fee'
-      /** @description Price of the item being sold. */
-      perUnitAmount: components['schemas']['Numeric']
       /**
+       * @deprecated
+       * @description Price of the item being sold.
+       */
+      perUnitAmount?: components['schemas']['Numeric']
+      /**
+       * @deprecated
        * @description Payment term of the line.
        * @default in_advance
        */
       paymentTerm?: components['schemas']['PricePaymentTerm']
-      /** @description Quantity of the item being sold. */
-      quantity: components['schemas']['Numeric']
+      /**
+       * @deprecated
+       * @description Quantity of the item being sold.
+       */
+      quantity?: components['schemas']['Numeric']
+      /** @description The rate card that is used for this line. */
+      rateCard?: components['schemas']['InvoiceFlatFeeRateCard']
       /**
        * @description Category of the flat fee.
        * @default regular
@@ -4978,7 +4958,10 @@ export interface components {
       metadata?: components['schemas']['Metadata'] | null
       /** @description The currency of this line. */
       currency: components['schemas']['CurrencyCode']
-      /** @description Tax config specify the tax configuration for this line. */
+      /**
+       * @deprecated
+       * @description Tax config specify the tax configuration for this line.
+       */
       taxConfig?: components['schemas']['TaxConfig']
       /** @description Period of the line item applies to for revenue recognition pruposes.
        *
@@ -4995,15 +4978,24 @@ export interface components {
        * @enum {string}
        */
       type: 'flat_fee'
-      /** @description Price of the item being sold. */
-      perUnitAmount: components['schemas']['Numeric']
       /**
+       * @deprecated
+       * @description Price of the item being sold.
+       */
+      perUnitAmount?: components['schemas']['Numeric']
+      /**
+       * @deprecated
        * @description Payment term of the line.
        * @default in_advance
        */
       paymentTerm?: components['schemas']['PricePaymentTerm']
-      /** @description Quantity of the item being sold. */
-      quantity: components['schemas']['Numeric']
+      /**
+       * @deprecated
+       * @description Quantity of the item being sold.
+       */
+      quantity?: components['schemas']['Numeric']
+      /** @description The rate card that is used for this line. */
+      rateCard?: components['schemas']['InvoiceFlatFeeRateCard']
       /**
        * @description Category of the flat fee.
        * @default regular
@@ -5014,6 +5006,36 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       customerId: string
+    }
+    /** @description InvoiceFlatFeeRateCard represents the rate card (intent) for a flat fee line. */
+    InvoiceFlatFeeRateCard: {
+      /**
+       * Tax config
+       * @description The tax config of the rate card.
+       *     When undefined, the tax config of the feature or the default tax config of the plan is used.
+       */
+      taxConfig?: components['schemas']['TaxConfig']
+      /**
+       * Price
+       * @description The price of the rate card.
+       *     When null, the feature or service is free.
+       * @example {
+       *       "type": "flat",
+       *       "amount": "100",
+       *       "paymentTerm": "in_arrears"
+       *     }
+       */
+      price: components['schemas']['FlatPriceWithPaymentTerm'] | null
+      /**
+       * Discounts
+       * @description The discount of the rate card. For flat fee rate cards only percentage discounts are supported.
+       *     Only available when price is set.
+       */
+      discounts?: components['schemas']['DiscountPercentage'][]
+      /** @description Quantity of the item being sold.
+       *
+       *     Default: 1 */
+      quantity?: components['schemas']['Numeric']
     }
     /**
      * InvoiceGenericDocumentRef is used to describe an existing document or a specific part of it's contents.
@@ -5041,8 +5063,12 @@ export interface components {
       /** @description The external ID of the invoice in the tax app if available. */
       readonly tax?: string
     }
-    /** @description InvoiceLineDiscount represents an amount deducted from the line, and will be applied before taxes. */
-    InvoiceLineDiscount: {
+    /** @description InvoiceLineDiscount represents the actual discount applied to the invoice line. */
+    InvoiceLineDiscount:
+      | components['schemas']['InvoiceLineDiscountAmount']
+      | components['schemas']['InvoiceLineDiscountUsage']
+    /** @description InvoiceLineDiscountAmount represents an amount deducted from the line, and will be applied before taxes. */
+    InvoiceLineDiscountAmount: {
       /**
        * Creation Time
        * Format: date-time
@@ -5069,16 +5095,78 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       readonly id: string
-      /** @description Percentage if fixed amount not applied */
-      percent?: components['schemas']['Percentage']
-      /** @description Fixed discount amount to apply (calculated if percent present). */
-      amount: components['schemas']['Numeric']
       /** @description Reason code. */
-      code?: string
+      readonly code?: string
       /** @description Text description as to why the discount was applied. */
-      description?: string
+      readonly description?: string
+      /**
+       * Amount in the currency of the invoice
+       * @description Fixed discount amount to apply (calculated if percent present).
+       */
+      readonly amount: components['schemas']['Numeric']
+      /**
+       * @description The type of the discount. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'amount'
+      /** @description The discount from the rate card this discount is based on. */
+      readonly rateCardDiscount?: components['schemas']['Discount']
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
+    }
+    /** @description InvoiceLineDiscountUsage represents an usage-based discount applied to the line.
+     *
+     *     The deduction is done before the pricing algorithm is applied. */
+    InvoiceLineDiscountUsage: {
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /**
+       * @description ID of the charge or discount.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly id: string
+      /** @description Reason code. */
+      readonly code?: string
+      /** @description Text description as to why the discount was applied. */
+      readonly description?: string
+      /**
+       * Usage quantity in the unit of the underlying meter
+       * @description The usage to apply.
+       */
+      readonly quantity: components['schemas']['Numeric']
+      /**
+       * Usage quantity in the unit of the underlying meter
+       * @description The usage discount already applied to the previous split lines.
+       *
+       *     Only set if progressive billing is enabled and the line is a split line.
+       */
+      readonly preLinePeriodQuantity?: components['schemas']['Numeric']
+      /**
+       * @description The type of the discount. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'usage'
+      /** @description The discount from the rate card this discount is based on. */
+      readonly rateCardDiscount?: components['schemas']['Discount']
     }
     /**
      * @description InvoiceLineManagedBy specifies who manages the line.
@@ -5094,7 +5182,7 @@ export interface components {
      * @enum {string}
      */
     InvoiceLineStatus: 'valid' | 'detail' | 'split'
-    /** @description InvoiceLineSubscriptionReference contains the references to the subscriptions that this line is related to. */
+    /** @description InvoiceLineSubscriptionReference contains the references to the subscription that this line is related to. */
     InvoiceLineSubscriptionReference: {
       /** @description The subscription. */
       readonly subscription: components['schemas']['IDResource']
@@ -5262,7 +5350,10 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /** @description Tax config specify the tax configuration for this line. */
+      /**
+       * @deprecated
+       * @description Tax config specify the tax configuration for this line.
+       */
       taxConfig?: components['schemas']['TaxConfig']
       /** @description Period of the line item applies to for revenue recognition pruposes.
        *
@@ -5279,15 +5370,24 @@ export interface components {
        * @enum {string}
        */
       type: 'flat_fee'
-      /** @description Price of the item being sold. */
-      perUnitAmount: components['schemas']['Numeric']
       /**
+       * @deprecated
+       * @description Price of the item being sold.
+       */
+      perUnitAmount?: components['schemas']['Numeric']
+      /**
+       * @deprecated
        * @description Payment term of the line.
        * @default in_advance
        */
       paymentTerm?: components['schemas']['PricePaymentTerm']
-      /** @description Quantity of the item being sold. */
-      quantity: components['schemas']['Numeric']
+      /**
+       * @deprecated
+       * @description Quantity of the item being sold.
+       */
+      quantity?: components['schemas']['Numeric']
+      /** @description The rate card that is used for this line. */
+      rateCard?: components['schemas']['InvoiceFlatFeeRateCard']
       /**
        * @description Category of the flat fee.
        * @default regular
@@ -5333,7 +5433,10 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /** @description Tax config specify the tax configuration for this line. */
+      /**
+       * @deprecated
+       * @description Tax config specify the tax configuration for this line.
+       */
       taxConfig?: components['schemas']['TaxConfig']
       /** @description Period of the line item applies to for revenue recognition pruposes.
        *
@@ -5350,10 +5453,20 @@ export interface components {
        * @enum {string}
        */
       type: 'usage_based'
-      /** @description Price of the usage-based item being sold. */
-      price: components['schemas']['RateCardUsageBasedPrice']
-      /** @description The feature that the usage is based on. */
-      featureKey: string
+      /**
+       * @deprecated
+       * @description Price of the usage-based item being sold.
+       */
+      price?: components['schemas']['RateCardUsageBasedPrice']
+      /**
+       * @deprecated
+       * @description The feature that the usage is based on.
+       */
+      featureKey?: string
+      /** @description The rate card that is used for this line.
+       *
+       *     The rate card captures the intent of the price and discounts for the usage-based item. */
+      rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
       /** @description The quantity of the item being sold. */
       quantity: components['schemas']['Numeric']
       /** @description The quantity of the item used before this line's period, if the line is billed progressively. */
@@ -5473,18 +5586,16 @@ export interface components {
        *     New discounts can be added via the invoice's discounts API, to facilitate
        *     discounts that are affecting multiple lines. */
       readonly discounts?: components['schemas']['InvoiceLineDiscount'][]
-      /** @description Charges applied to this line. (like minimum spend)
-       *
-       *     New charges can be added via the invoice's charges API, to facilitate
-       *     charges that are affecting multiple lines. */
-      readonly charges?: components['schemas']['BillingLineCharge'][]
       /** @description The invoice this item belongs to. */
       invoice?: components['schemas']['InvoiceReference']
       /** @description The currency of this line. */
       currency: components['schemas']['CurrencyCode']
       /** @description Taxes applied to the invoice totals. */
       readonly taxes?: components['schemas']['InvoiceLineTaxItem'][]
-      /** @description Tax config specify the tax configuration for this line. */
+      /**
+       * @deprecated
+       * @description Tax config specify the tax configuration for this line.
+       */
       taxConfig?: components['schemas']['TaxConfig']
       /** @description The lines detailing the item or service sold. */
       readonly children?: components['schemas']['InvoiceLine'][]
@@ -5503,16 +5614,26 @@ export interface components {
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
       /** @description Subscription are the references to the subscritpions that this line is related to. */
-      readonly subscriptions?: components['schemas']['InvoiceLineSubscriptionReference']
+      readonly subscription?: components['schemas']['InvoiceLineSubscriptionReference']
       /**
        * @description Type of the line. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'usage_based'
-      /** @description Price of the usage-based item being sold. */
-      price: components['schemas']['RateCardUsageBasedPrice']
-      /** @description The feature that the usage is based on. */
-      featureKey: string
+      /**
+       * @deprecated
+       * @description Price of the usage-based item being sold.
+       */
+      price?: components['schemas']['RateCardUsageBasedPrice']
+      /**
+       * @deprecated
+       * @description The feature that the usage is based on.
+       */
+      featureKey?: string
+      /** @description The rate card that is used for this line.
+       *
+       *     The rate card captures the intent of the price and discounts for the usage-based item. */
+      rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
       /** @description The quantity of the item being sold. */
       readonly quantity?: components['schemas']['Numeric']
       /** @description The quantity of the item used in before this line's period.
@@ -5539,7 +5660,10 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /** @description Tax config specify the tax configuration for this line. */
+      /**
+       * @deprecated
+       * @description Tax config specify the tax configuration for this line.
+       */
       taxConfig?: components['schemas']['TaxConfig']
       /** @description Period of the line item applies to for revenue recognition pruposes.
        *
@@ -5556,10 +5680,20 @@ export interface components {
        * @enum {string}
        */
       type: 'usage_based'
-      /** @description Price of the usage-based item being sold. */
-      price: components['schemas']['RateCardUsageBasedPrice']
-      /** @description The feature that the usage is based on. */
-      featureKey: string
+      /**
+       * @deprecated
+       * @description Price of the usage-based item being sold.
+       */
+      price?: components['schemas']['RateCardUsageBasedPrice']
+      /**
+       * @deprecated
+       * @description The feature that the usage is based on.
+       */
+      featureKey?: string
+      /** @description The rate card that is used for this line.
+       *
+       *     The rate card captures the intent of the price and discounts for the usage-based item. */
+      rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
       /**
        * @description The ID of the line.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
@@ -5585,7 +5719,10 @@ export interface components {
       metadata?: components['schemas']['Metadata'] | null
       /** @description The currency of this line. */
       currency: components['schemas']['CurrencyCode']
-      /** @description Tax config specify the tax configuration for this line. */
+      /**
+       * @deprecated
+       * @description Tax config specify the tax configuration for this line.
+       */
       taxConfig?: components['schemas']['TaxConfig']
       /** @description Period of the line item applies to for revenue recognition pruposes.
        *
@@ -5602,15 +5739,49 @@ export interface components {
        * @enum {string}
        */
       type: 'usage_based'
-      /** @description Price of the usage-based item being sold. */
-      price: components['schemas']['RateCardUsageBasedPrice']
-      /** @description The feature that the usage is based on. */
-      featureKey: string
+      /**
+       * @deprecated
+       * @description Price of the usage-based item being sold.
+       */
+      price?: components['schemas']['RateCardUsageBasedPrice']
+      /**
+       * @deprecated
+       * @description The feature that the usage is based on.
+       */
+      featureKey?: string
+      /** @description The rate card that is used for this line.
+       *
+       *     The rate card captures the intent of the price and discounts for the usage-based item. */
+      rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
       /**
        * @description The customer this line item belongs to.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       customerId: string
+    }
+    /** @description InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line. */
+    InvoiceUsageBasedRateCard: {
+      /**
+       * Feature key
+       * @description The feature the customer is entitled to use.
+       */
+      featureKey?: string
+      /**
+       * Tax config
+       * @description The tax config of the rate card.
+       *     When undefined, the tax config of the feature or the default tax config of the plan is used.
+       */
+      taxConfig?: components['schemas']['TaxConfig']
+      /** @description The price of the rate card.
+       *     When null, the feature or service is free. */
+      price: components['schemas']['RateCardUsageBasedPrice'] | null
+      /**
+       * Discounts
+       * @description The discounts of the rate card.
+       *
+       *     Flat fee rate cards only support percentage discounts.
+       */
+      discounts?: components['schemas']['Discount'][]
     }
     /** @description InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow. */
     InvoiceWorkflowInvoicingSettingsReplaceUpdate: {
@@ -8658,7 +8829,6 @@ export type BadRequestProblemResponse =
 export type BalanceHistoryWindow = components['schemas']['BalanceHistoryWindow']
 export type BillingCustomerProfile =
   components['schemas']['BillingCustomerProfile']
-export type BillingLineCharge = components['schemas']['BillingLineCharge']
 export type BillingParty = components['schemas']['BillingParty']
 export type BillingPartyReplaceUpdate =
   components['schemas']['BillingPartyReplaceUpdate']
@@ -8858,12 +9028,18 @@ export type InvoiceFlatFeeLineReplaceUpdate =
   components['schemas']['InvoiceFlatFeeLineReplaceUpdate']
 export type InvoiceFlatFeePendingLineCreate =
   components['schemas']['InvoiceFlatFeePendingLineCreate']
+export type InvoiceFlatFeeRateCard =
+  components['schemas']['InvoiceFlatFeeRateCard']
 export type InvoiceGenericDocumentRef =
   components['schemas']['InvoiceGenericDocumentRef']
 export type InvoiceLine = components['schemas']['InvoiceLine']
 export type InvoiceLineAppExternalIds =
   components['schemas']['InvoiceLineAppExternalIds']
 export type InvoiceLineDiscount = components['schemas']['InvoiceLineDiscount']
+export type InvoiceLineDiscountAmount =
+  components['schemas']['InvoiceLineDiscountAmount']
+export type InvoiceLineDiscountUsage =
+  components['schemas']['InvoiceLineDiscountUsage']
 export type InvoiceLineManagedBy = components['schemas']['InvoiceLineManagedBy']
 export type InvoiceLineReplaceUpdate =
   components['schemas']['InvoiceLineReplaceUpdate']
@@ -8904,6 +9080,8 @@ export type InvoiceUsageBasedLineReplaceUpdate =
   components['schemas']['InvoiceUsageBasedLineReplaceUpdate']
 export type InvoiceUsageBasedPendingLineCreate =
   components['schemas']['InvoiceUsageBasedPendingLineCreate']
+export type InvoiceUsageBasedRateCard =
+  components['schemas']['InvoiceUsageBasedRateCard']
 export type InvoiceWorkflowInvoicingSettingsReplaceUpdate =
   components['schemas']['InvoiceWorkflowInvoicingSettingsReplaceUpdate']
 export type InvoiceWorkflowReplaceUpdate =
