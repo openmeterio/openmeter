@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/XSAM/otelsql"
 	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
@@ -72,6 +73,11 @@ func NewPostgresDriver(
 		pgdriver.WithMetricMeter(meter),
 		pgdriver.WithTracerProvider(tracerProvider),
 		pgdriver.WithMeterProvider(meterProvider),
+		pgdriver.WithSpanOptions(otelsql.SpanOptions{
+			OmitConnPrepare:      true,
+			OmitRows:             true,
+			OmitConnectorConnect: true,
+		}),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize postgres driver: %w", err)
