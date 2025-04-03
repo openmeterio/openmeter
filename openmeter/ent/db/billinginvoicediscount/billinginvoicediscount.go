@@ -3,12 +3,9 @@
 package billinginvoicediscount
 
 import (
-	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 const (
@@ -38,26 +35,8 @@ const (
 	FieldAmount = "amount"
 	// FieldLineIds holds the string denoting the line_ids field in the database.
 	FieldLineIds = "line_ids"
-	// EdgeInvoice holds the string denoting the invoice edge name in mutations.
-	EdgeInvoice = "invoice"
-	// EdgeLines holds the string denoting the lines edge name in mutations.
-	EdgeLines = "lines"
 	// Table holds the table name of the billinginvoicediscount in the database.
 	Table = "billing_invoice_discounts"
-	// InvoiceTable is the table that holds the invoice relation/edge.
-	InvoiceTable = "billing_invoice_discounts"
-	// InvoiceInverseTable is the table name for the BillingInvoice entity.
-	// It exists in this package in order to avoid circular dependency with the "billinginvoice" package.
-	InvoiceInverseTable = "billing_invoices"
-	// InvoiceColumn is the table column denoting the invoice relation/edge.
-	InvoiceColumn = "invoice_id"
-	// LinesTable is the table that holds the lines relation/edge.
-	LinesTable = "billing_invoice_lines"
-	// LinesInverseTable is the table name for the BillingInvoiceLine entity.
-	// It exists in this package in order to avoid circular dependency with the "billinginvoiceline" package.
-	LinesInverseTable = "billing_invoice_lines"
-	// LinesColumn is the table column denoting the lines relation/edge.
-	LinesColumn = "line_ids"
 )
 
 // Columns holds all SQL columns for billinginvoicediscount fields.
@@ -98,16 +77,6 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
-
-// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type billing.InvoiceDiscountType) error {
-	switch _type {
-	case "percentage":
-		return nil
-	default:
-		return fmt.Errorf("billinginvoicediscount: invalid enum value for type field: %q", _type)
-	}
-}
 
 // OrderOption defines the ordering options for the BillingInvoiceDiscount queries.
 type OrderOption func(*sql.Selector)
@@ -160,39 +129,4 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 // ByAmount orders the results by the amount field.
 func ByAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmount, opts...).ToFunc()
-}
-
-// ByInvoiceField orders the results by invoice field.
-func ByInvoiceField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newInvoiceStep(), sql.OrderByField(field, opts...))
-	}
-}
-
-// ByLinesCount orders the results by lines count.
-func ByLinesCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newLinesStep(), opts...)
-	}
-}
-
-// ByLines orders the results by lines terms.
-func ByLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-func newInvoiceStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(InvoiceInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, InvoiceTable, InvoiceColumn),
-	)
-}
-func newLinesStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(LinesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, LinesTable, LinesColumn),
-	)
 }

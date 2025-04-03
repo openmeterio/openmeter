@@ -11,8 +11,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
 )
 
@@ -38,46 +36,12 @@ type BillingInvoiceDiscount struct {
 	// InvoiceID holds the value of the "invoice_id" field.
 	InvoiceID string `json:"invoice_id,omitempty"`
 	// Type holds the value of the "type" field.
-	Type billing.InvoiceDiscountType `json:"type,omitempty"`
+	Type string `json:"type,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// LineIds holds the value of the "line_ids" field.
-	LineIds []string `json:"line_ids,omitempty"`
-	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the BillingInvoiceDiscountQuery when eager-loading is set.
-	Edges        BillingInvoiceDiscountEdges `json:"edges"`
+	LineIds      []string `json:"line_ids,omitempty"`
 	selectValues sql.SelectValues
-}
-
-// BillingInvoiceDiscountEdges holds the relations/edges for other nodes in the graph.
-type BillingInvoiceDiscountEdges struct {
-	// Invoice holds the value of the invoice edge.
-	Invoice *BillingInvoice `json:"invoice,omitempty"`
-	// Lines holds the value of the lines edge.
-	Lines []*BillingInvoiceLine `json:"lines,omitempty"`
-	// loadedTypes holds the information for reporting if a
-	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
-}
-
-// InvoiceOrErr returns the Invoice value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e BillingInvoiceDiscountEdges) InvoiceOrErr() (*BillingInvoice, error) {
-	if e.Invoice != nil {
-		return e.Invoice, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: billinginvoice.Label}
-	}
-	return nil, &NotLoadedError{edge: "invoice"}
-}
-
-// LinesOrErr returns the Lines value or an error if the edge
-// was not loaded in eager-loading.
-func (e BillingInvoiceDiscountEdges) LinesOrErr() ([]*BillingInvoiceLine, error) {
-	if e.loadedTypes[1] {
-		return e.Lines, nil
-	}
-	return nil, &NotLoadedError{edge: "lines"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -170,7 +134,7 @@ func (bid *BillingInvoiceDiscount) assignValues(columns []string, values []any) 
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				bid.Type = billing.InvoiceDiscountType(value.String)
+				bid.Type = value.String
 			}
 		case billinginvoicediscount.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -197,16 +161,6 @@ func (bid *BillingInvoiceDiscount) assignValues(columns []string, values []any) 
 // This includes values selected through modifiers, order, etc.
 func (bid *BillingInvoiceDiscount) Value(name string) (ent.Value, error) {
 	return bid.selectValues.Get(name)
-}
-
-// QueryInvoice queries the "invoice" edge of the BillingInvoiceDiscount entity.
-func (bid *BillingInvoiceDiscount) QueryInvoice() *BillingInvoiceQuery {
-	return NewBillingInvoiceDiscountClient(bid.config).QueryInvoice(bid)
-}
-
-// QueryLines queries the "lines" edge of the BillingInvoiceDiscount entity.
-func (bid *BillingInvoiceDiscount) QueryLines() *BillingInvoiceLineQuery {
-	return NewBillingInvoiceDiscountClient(bid.config).QueryLines(bid)
 }
 
 // Update returns a builder for updating this BillingInvoiceDiscount.
@@ -261,7 +215,7 @@ func (bid *BillingInvoiceDiscount) String() string {
 	builder.WriteString(bid.InvoiceID)
 	builder.WriteString(", ")
 	builder.WriteString("type=")
-	builder.WriteString(fmt.Sprintf("%v", bid.Type))
+	builder.WriteString(bid.Type)
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", bid.Amount))

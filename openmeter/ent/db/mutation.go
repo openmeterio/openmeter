@@ -6915,9 +6915,6 @@ type BillingInvoiceMutation struct {
 	clearedinvoicing_app                     bool
 	payment_app                              *string
 	clearedpayment_app                       bool
-	invoice_discounts                        map[string]struct{}
-	removedinvoice_discounts                 map[string]struct{}
-	clearedinvoice_discounts                 bool
 	done                                     bool
 	oldValue                                 func(context.Context) (*BillingInvoice, error)
 	predicates                               []predicate.BillingInvoice
@@ -9621,60 +9618,6 @@ func (m *BillingInvoiceMutation) ResetPaymentApp() {
 	m.clearedpayment_app = false
 }
 
-// AddInvoiceDiscountIDs adds the "invoice_discounts" edge to the BillingInvoiceDiscount entity by ids.
-func (m *BillingInvoiceMutation) AddInvoiceDiscountIDs(ids ...string) {
-	if m.invoice_discounts == nil {
-		m.invoice_discounts = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.invoice_discounts[ids[i]] = struct{}{}
-	}
-}
-
-// ClearInvoiceDiscounts clears the "invoice_discounts" edge to the BillingInvoiceDiscount entity.
-func (m *BillingInvoiceMutation) ClearInvoiceDiscounts() {
-	m.clearedinvoice_discounts = true
-}
-
-// InvoiceDiscountsCleared reports if the "invoice_discounts" edge to the BillingInvoiceDiscount entity was cleared.
-func (m *BillingInvoiceMutation) InvoiceDiscountsCleared() bool {
-	return m.clearedinvoice_discounts
-}
-
-// RemoveInvoiceDiscountIDs removes the "invoice_discounts" edge to the BillingInvoiceDiscount entity by IDs.
-func (m *BillingInvoiceMutation) RemoveInvoiceDiscountIDs(ids ...string) {
-	if m.removedinvoice_discounts == nil {
-		m.removedinvoice_discounts = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.invoice_discounts, ids[i])
-		m.removedinvoice_discounts[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedInvoiceDiscounts returns the removed IDs of the "invoice_discounts" edge to the BillingInvoiceDiscount entity.
-func (m *BillingInvoiceMutation) RemovedInvoiceDiscountsIDs() (ids []string) {
-	for id := range m.removedinvoice_discounts {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// InvoiceDiscountsIDs returns the "invoice_discounts" edge IDs in the mutation.
-func (m *BillingInvoiceMutation) InvoiceDiscountsIDs() (ids []string) {
-	for id := range m.invoice_discounts {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetInvoiceDiscounts resets all changes to the "invoice_discounts" edge.
-func (m *BillingInvoiceMutation) ResetInvoiceDiscounts() {
-	m.invoice_discounts = nil
-	m.clearedinvoice_discounts = false
-	m.removedinvoice_discounts = nil
-}
-
 // Where appends a list predicates to the BillingInvoiceMutation builder.
 func (m *BillingInvoiceMutation) Where(ps ...predicate.BillingInvoice) {
 	m.predicates = append(m.predicates, ps...)
@@ -10875,7 +10818,7 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceMutation) AddedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 8)
 	if m.source_billing_profile != nil {
 		edges = append(edges, billinginvoice.EdgeSourceBillingProfile)
 	}
@@ -10899,9 +10842,6 @@ func (m *BillingInvoiceMutation) AddedEdges() []string {
 	}
 	if m.payment_app != nil {
 		edges = append(edges, billinginvoice.EdgePaymentApp)
-	}
-	if m.invoice_discounts != nil {
-		edges = append(edges, billinginvoice.EdgeInvoiceDiscounts)
 	}
 	return edges
 }
@@ -10946,27 +10886,18 @@ func (m *BillingInvoiceMutation) AddedIDs(name string) []ent.Value {
 		if id := m.payment_app; id != nil {
 			return []ent.Value{*id}
 		}
-	case billinginvoice.EdgeInvoiceDiscounts:
-		ids := make([]ent.Value, 0, len(m.invoice_discounts))
-		for id := range m.invoice_discounts {
-			ids = append(ids, id)
-		}
-		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 8)
 	if m.removedbilling_invoice_lines != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceLines)
 	}
 	if m.removedbilling_invoice_validation_issues != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceValidationIssues)
-	}
-	if m.removedinvoice_discounts != nil {
-		edges = append(edges, billinginvoice.EdgeInvoiceDiscounts)
 	}
 	return edges
 }
@@ -10987,19 +10918,13 @@ func (m *BillingInvoiceMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case billinginvoice.EdgeInvoiceDiscounts:
-		ids := make([]ent.Value, 0, len(m.removedinvoice_discounts))
-		for id := range m.removedinvoice_discounts {
-			ids = append(ids, id)
-		}
-		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 8)
 	if m.clearedsource_billing_profile {
 		edges = append(edges, billinginvoice.EdgeSourceBillingProfile)
 	}
@@ -11024,9 +10949,6 @@ func (m *BillingInvoiceMutation) ClearedEdges() []string {
 	if m.clearedpayment_app {
 		edges = append(edges, billinginvoice.EdgePaymentApp)
 	}
-	if m.clearedinvoice_discounts {
-		edges = append(edges, billinginvoice.EdgeInvoiceDiscounts)
-	}
 	return edges
 }
 
@@ -11050,8 +10972,6 @@ func (m *BillingInvoiceMutation) EdgeCleared(name string) bool {
 		return m.clearedinvoicing_app
 	case billinginvoice.EdgePaymentApp:
 		return m.clearedpayment_app
-	case billinginvoice.EdgeInvoiceDiscounts:
-		return m.clearedinvoice_discounts
 	}
 	return false
 }
@@ -11110,9 +11030,6 @@ func (m *BillingInvoiceMutation) ResetEdge(name string) error {
 	case billinginvoice.EdgePaymentApp:
 		m.ResetPaymentApp()
 		return nil
-	case billinginvoice.EdgeInvoiceDiscounts:
-		m.ResetInvoiceDiscounts()
-		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoice edge %s", name)
 }
@@ -11130,16 +11047,12 @@ type BillingInvoiceDiscountMutation struct {
 	deleted_at     *time.Time
 	name           *string
 	description    *string
-	_type          *billing.InvoiceDiscountType
+	invoice_id     *string
+	_type          *string
 	amount         *alpacadecimal.Decimal
 	line_ids       *[]string
 	appendline_ids []string
 	clearedFields  map[string]struct{}
-	invoice        *string
-	clearedinvoice bool
-	lines          map[string]struct{}
-	removedlines   map[string]struct{}
-	clearedlines   bool
 	done           bool
 	oldValue       func(context.Context) (*BillingInvoiceDiscount, error)
 	predicates     []predicate.BillingInvoiceDiscount
@@ -11542,12 +11455,12 @@ func (m *BillingInvoiceDiscountMutation) ResetDescription() {
 
 // SetInvoiceID sets the "invoice_id" field.
 func (m *BillingInvoiceDiscountMutation) SetInvoiceID(s string) {
-	m.invoice = &s
+	m.invoice_id = &s
 }
 
 // InvoiceID returns the value of the "invoice_id" field in the mutation.
 func (m *BillingInvoiceDiscountMutation) InvoiceID() (r string, exists bool) {
-	v := m.invoice
+	v := m.invoice_id
 	if v == nil {
 		return
 	}
@@ -11573,16 +11486,16 @@ func (m *BillingInvoiceDiscountMutation) OldInvoiceID(ctx context.Context) (v st
 
 // ResetInvoiceID resets all changes to the "invoice_id" field.
 func (m *BillingInvoiceDiscountMutation) ResetInvoiceID() {
-	m.invoice = nil
+	m.invoice_id = nil
 }
 
 // SetType sets the "type" field.
-func (m *BillingInvoiceDiscountMutation) SetType(bdt billing.InvoiceDiscountType) {
-	m._type = &bdt
+func (m *BillingInvoiceDiscountMutation) SetType(s string) {
+	m._type = &s
 }
 
 // GetType returns the value of the "type" field in the mutation.
-func (m *BillingInvoiceDiscountMutation) GetType() (r billing.InvoiceDiscountType, exists bool) {
+func (m *BillingInvoiceDiscountMutation) GetType() (r string, exists bool) {
 	v := m._type
 	if v == nil {
 		return
@@ -11593,7 +11506,7 @@ func (m *BillingInvoiceDiscountMutation) GetType() (r billing.InvoiceDiscountTyp
 // OldType returns the old "type" field's value of the BillingInvoiceDiscount entity.
 // If the BillingInvoiceDiscount object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceDiscountMutation) OldType(ctx context.Context) (v billing.InvoiceDiscountType, err error) {
+func (m *BillingInvoiceDiscountMutation) OldType(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldType is only allowed on UpdateOne operations")
 	}
@@ -11713,87 +11626,6 @@ func (m *BillingInvoiceDiscountMutation) ResetLineIds() {
 	delete(m.clearedFields, billinginvoicediscount.FieldLineIds)
 }
 
-// ClearInvoice clears the "invoice" edge to the BillingInvoice entity.
-func (m *BillingInvoiceDiscountMutation) ClearInvoice() {
-	m.clearedinvoice = true
-	m.clearedFields[billinginvoicediscount.FieldInvoiceID] = struct{}{}
-}
-
-// InvoiceCleared reports if the "invoice" edge to the BillingInvoice entity was cleared.
-func (m *BillingInvoiceDiscountMutation) InvoiceCleared() bool {
-	return m.clearedinvoice
-}
-
-// InvoiceIDs returns the "invoice" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// InvoiceID instead. It exists only for internal usage by the builders.
-func (m *BillingInvoiceDiscountMutation) InvoiceIDs() (ids []string) {
-	if id := m.invoice; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetInvoice resets all changes to the "invoice" edge.
-func (m *BillingInvoiceDiscountMutation) ResetInvoice() {
-	m.invoice = nil
-	m.clearedinvoice = false
-}
-
-// AddLineIDs adds the "lines" edge to the BillingInvoiceLine entity by ids.
-func (m *BillingInvoiceDiscountMutation) AddLineIDs(ids ...string) {
-	if m.lines == nil {
-		m.lines = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.lines[ids[i]] = struct{}{}
-	}
-}
-
-// ClearLines clears the "lines" edge to the BillingInvoiceLine entity.
-func (m *BillingInvoiceDiscountMutation) ClearLines() {
-	m.clearedlines = true
-}
-
-// LinesCleared reports if the "lines" edge to the BillingInvoiceLine entity was cleared.
-func (m *BillingInvoiceDiscountMutation) LinesCleared() bool {
-	return m.clearedlines
-}
-
-// RemoveLineIDs removes the "lines" edge to the BillingInvoiceLine entity by IDs.
-func (m *BillingInvoiceDiscountMutation) RemoveLineIDs(ids ...string) {
-	if m.removedlines == nil {
-		m.removedlines = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.lines, ids[i])
-		m.removedlines[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedLines returns the removed IDs of the "lines" edge to the BillingInvoiceLine entity.
-func (m *BillingInvoiceDiscountMutation) RemovedLinesIDs() (ids []string) {
-	for id := range m.removedlines {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// LinesIDs returns the "lines" edge IDs in the mutation.
-func (m *BillingInvoiceDiscountMutation) LinesIDs() (ids []string) {
-	for id := range m.lines {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetLines resets all changes to the "lines" edge.
-func (m *BillingInvoiceDiscountMutation) ResetLines() {
-	m.lines = nil
-	m.clearedlines = false
-	m.removedlines = nil
-}
-
 // Where appends a list predicates to the BillingInvoiceDiscountMutation builder.
 func (m *BillingInvoiceDiscountMutation) Where(ps ...predicate.BillingInvoiceDiscount) {
 	m.predicates = append(m.predicates, ps...)
@@ -11850,7 +11682,7 @@ func (m *BillingInvoiceDiscountMutation) Fields() []string {
 	if m.description != nil {
 		fields = append(fields, billinginvoicediscount.FieldDescription)
 	}
-	if m.invoice != nil {
+	if m.invoice_id != nil {
 		fields = append(fields, billinginvoicediscount.FieldInvoiceID)
 	}
 	if m._type != nil {
@@ -11989,7 +11821,7 @@ func (m *BillingInvoiceDiscountMutation) SetField(name string, value ent.Value) 
 		m.SetInvoiceID(v)
 		return nil
 	case billinginvoicediscount.FieldType:
-		v, ok := value.(billing.InvoiceDiscountType)
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -12124,103 +11956,49 @@ func (m *BillingInvoiceDiscountMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceDiscountMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.invoice != nil {
-		edges = append(edges, billinginvoicediscount.EdgeInvoice)
-	}
-	if m.lines != nil {
-		edges = append(edges, billinginvoicediscount.EdgeLines)
-	}
+	edges := make([]string, 0, 0)
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *BillingInvoiceDiscountMutation) AddedIDs(name string) []ent.Value {
-	switch name {
-	case billinginvoicediscount.EdgeInvoice:
-		if id := m.invoice; id != nil {
-			return []ent.Value{*id}
-		}
-	case billinginvoicediscount.EdgeLines:
-		ids := make([]ent.Value, 0, len(m.lines))
-		for id := range m.lines {
-			ids = append(ids, id)
-		}
-		return ids
-	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceDiscountMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.removedlines != nil {
-		edges = append(edges, billinginvoicediscount.EdgeLines)
-	}
+	edges := make([]string, 0, 0)
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *BillingInvoiceDiscountMutation) RemovedIDs(name string) []ent.Value {
-	switch name {
-	case billinginvoicediscount.EdgeLines:
-		ids := make([]ent.Value, 0, len(m.removedlines))
-		for id := range m.removedlines {
-			ids = append(ids, id)
-		}
-		return ids
-	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceDiscountMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.clearedinvoice {
-		edges = append(edges, billinginvoicediscount.EdgeInvoice)
-	}
-	if m.clearedlines {
-		edges = append(edges, billinginvoicediscount.EdgeLines)
-	}
+	edges := make([]string, 0, 0)
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *BillingInvoiceDiscountMutation) EdgeCleared(name string) bool {
-	switch name {
-	case billinginvoicediscount.EdgeInvoice:
-		return m.clearedinvoice
-	case billinginvoicediscount.EdgeLines:
-		return m.clearedlines
-	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *BillingInvoiceDiscountMutation) ClearEdge(name string) error {
-	switch name {
-	case billinginvoicediscount.EdgeInvoice:
-		m.ClearInvoice()
-		return nil
-	}
 	return fmt.Errorf("unknown BillingInvoiceDiscount unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *BillingInvoiceDiscountMutation) ResetEdge(name string) error {
-	switch name {
-	case billinginvoicediscount.EdgeInvoice:
-		m.ResetInvoice()
-		return nil
-	case billinginvoicediscount.EdgeLines:
-		m.ResetLines()
-		return nil
-	}
 	return fmt.Errorf("unknown BillingInvoiceDiscount edge %s", name)
 }
 
@@ -12749,6 +12527,7 @@ type BillingInvoiceLineMutation struct {
 	tax_config                *productcatalog.TaxConfig
 	invoicing_app_external_id *string
 	child_unique_reference_id *string
+	line_ids                  *string
 	clearedFields             map[string]struct{}
 	billing_invoice           *string
 	clearedbilling_invoice    bool
@@ -12770,8 +12549,6 @@ type BillingInvoiceLineMutation struct {
 	clearedsubscription_phase bool
 	subscription_item         *string
 	clearedsubscription_item  bool
-	invoice_discounts         *string
-	clearedinvoice_discounts  bool
 	done                      bool
 	oldValue                  func(context.Context) (*BillingInvoiceLine, error)
 	predicates                []predicate.BillingInvoiceLine
@@ -14104,6 +13881,55 @@ func (m *BillingInvoiceLineMutation) ResetSubscriptionItemID() {
 	delete(m.clearedFields, billinginvoiceline.FieldSubscriptionItemID)
 }
 
+// SetLineIds sets the "line_ids" field.
+func (m *BillingInvoiceLineMutation) SetLineIds(s string) {
+	m.line_ids = &s
+}
+
+// LineIds returns the value of the "line_ids" field in the mutation.
+func (m *BillingInvoiceLineMutation) LineIds() (r string, exists bool) {
+	v := m.line_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLineIds returns the old "line_ids" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldLineIds(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLineIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLineIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLineIds: %w", err)
+	}
+	return oldValue.LineIds, nil
+}
+
+// ClearLineIds clears the value of the "line_ids" field.
+func (m *BillingInvoiceLineMutation) ClearLineIds() {
+	m.line_ids = nil
+	m.clearedFields[billinginvoiceline.FieldLineIds] = struct{}{}
+}
+
+// LineIdsCleared returns if the "line_ids" field was cleared in this mutation.
+func (m *BillingInvoiceLineMutation) LineIdsCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceline.FieldLineIds]
+	return ok
+}
+
+// ResetLineIds resets all changes to the "line_ids" field.
+func (m *BillingInvoiceLineMutation) ResetLineIds() {
+	m.line_ids = nil
+	delete(m.clearedFields, billinginvoiceline.FieldLineIds)
+}
+
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by id.
 func (m *BillingInvoiceLineMutation) SetBillingInvoiceID(id string) {
 	m.billing_invoice = &id
@@ -14438,45 +14264,6 @@ func (m *BillingInvoiceLineMutation) ResetSubscriptionItem() {
 	m.clearedsubscription_item = false
 }
 
-// SetInvoiceDiscountsID sets the "invoice_discounts" edge to the BillingInvoiceDiscount entity by id.
-func (m *BillingInvoiceLineMutation) SetInvoiceDiscountsID(id string) {
-	m.invoice_discounts = &id
-}
-
-// ClearInvoiceDiscounts clears the "invoice_discounts" edge to the BillingInvoiceDiscount entity.
-func (m *BillingInvoiceLineMutation) ClearInvoiceDiscounts() {
-	m.clearedinvoice_discounts = true
-}
-
-// InvoiceDiscountsCleared reports if the "invoice_discounts" edge to the BillingInvoiceDiscount entity was cleared.
-func (m *BillingInvoiceLineMutation) InvoiceDiscountsCleared() bool {
-	return m.clearedinvoice_discounts
-}
-
-// InvoiceDiscountsID returns the "invoice_discounts" edge ID in the mutation.
-func (m *BillingInvoiceLineMutation) InvoiceDiscountsID() (id string, exists bool) {
-	if m.invoice_discounts != nil {
-		return *m.invoice_discounts, true
-	}
-	return
-}
-
-// InvoiceDiscountsIDs returns the "invoice_discounts" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// InvoiceDiscountsID instead. It exists only for internal usage by the builders.
-func (m *BillingInvoiceLineMutation) InvoiceDiscountsIDs() (ids []string) {
-	if id := m.invoice_discounts; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetInvoiceDiscounts resets all changes to the "invoice_discounts" edge.
-func (m *BillingInvoiceLineMutation) ResetInvoiceDiscounts() {
-	m.invoice_discounts = nil
-	m.clearedinvoice_discounts = false
-}
-
 // Where appends a list predicates to the BillingInvoiceLineMutation builder.
 func (m *BillingInvoiceLineMutation) Where(ps ...predicate.BillingInvoiceLine) {
 	m.predicates = append(m.predicates, ps...)
@@ -14511,7 +14298,7 @@ func (m *BillingInvoiceLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceLineMutation) Fields() []string {
-	fields := make([]string, 0, 30)
+	fields := make([]string, 0, 31)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoiceline.FieldNamespace)
 	}
@@ -14602,6 +14389,9 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	if m.subscription_item != nil {
 		fields = append(fields, billinginvoiceline.FieldSubscriptionItemID)
 	}
+	if m.line_ids != nil {
+		fields = append(fields, billinginvoiceline.FieldLineIds)
+	}
 	return fields
 }
 
@@ -14670,6 +14460,8 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.SubscriptionPhaseID()
 	case billinginvoiceline.FieldSubscriptionItemID:
 		return m.SubscriptionItemID()
+	case billinginvoiceline.FieldLineIds:
+		return m.LineIds()
 	}
 	return nil, false
 }
@@ -14739,6 +14531,8 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldSubscriptionPhaseID(ctx)
 	case billinginvoiceline.FieldSubscriptionItemID:
 		return m.OldSubscriptionItemID(ctx)
+	case billinginvoiceline.FieldLineIds:
+		return m.OldLineIds(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingInvoiceLine field %s", name)
 }
@@ -14958,6 +14752,13 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		}
 		m.SetSubscriptionItemID(v)
 		return nil
+	case billinginvoiceline.FieldLineIds:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLineIds(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLine field %s", name)
 }
@@ -15021,6 +14822,9 @@ func (m *BillingInvoiceLineMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoiceline.FieldSubscriptionItemID) {
 		fields = append(fields, billinginvoiceline.FieldSubscriptionItemID)
 	}
+	if m.FieldCleared(billinginvoiceline.FieldLineIds) {
+		fields = append(fields, billinginvoiceline.FieldLineIds)
+	}
 	return fields
 }
 
@@ -15067,6 +14871,9 @@ func (m *BillingInvoiceLineMutation) ClearField(name string) error {
 		return nil
 	case billinginvoiceline.FieldSubscriptionItemID:
 		m.ClearSubscriptionItemID()
+		return nil
+	case billinginvoiceline.FieldLineIds:
+		m.ClearLineIds()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLine nullable field %s", name)
@@ -15166,13 +14973,16 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 	case billinginvoiceline.FieldSubscriptionItemID:
 		m.ResetSubscriptionItemID()
 		return nil
+	case billinginvoiceline.FieldLineIds:
+		m.ResetLineIds()
+		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLine field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceLineMutation) AddedEdges() []string {
-	edges := make([]string, 0, 10)
+	edges := make([]string, 0, 9)
 	if m.billing_invoice != nil {
 		edges = append(edges, billinginvoiceline.EdgeBillingInvoice)
 	}
@@ -15199,9 +15009,6 @@ func (m *BillingInvoiceLineMutation) AddedEdges() []string {
 	}
 	if m.subscription_item != nil {
 		edges = append(edges, billinginvoiceline.EdgeSubscriptionItem)
-	}
-	if m.invoice_discounts != nil {
-		edges = append(edges, billinginvoiceline.EdgeInvoiceDiscounts)
 	}
 	return edges
 }
@@ -15250,17 +15057,13 @@ func (m *BillingInvoiceLineMutation) AddedIDs(name string) []ent.Value {
 		if id := m.subscription_item; id != nil {
 			return []ent.Value{*id}
 		}
-	case billinginvoiceline.EdgeInvoiceDiscounts:
-		if id := m.invoice_discounts; id != nil {
-			return []ent.Value{*id}
-		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceLineMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 10)
+	edges := make([]string, 0, 9)
 	if m.removeddetailed_lines != nil {
 		edges = append(edges, billinginvoiceline.EdgeDetailedLines)
 	}
@@ -15292,7 +15095,7 @@ func (m *BillingInvoiceLineMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceLineMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 10)
+	edges := make([]string, 0, 9)
 	if m.clearedbilling_invoice {
 		edges = append(edges, billinginvoiceline.EdgeBillingInvoice)
 	}
@@ -15320,9 +15123,6 @@ func (m *BillingInvoiceLineMutation) ClearedEdges() []string {
 	if m.clearedsubscription_item {
 		edges = append(edges, billinginvoiceline.EdgeSubscriptionItem)
 	}
-	if m.clearedinvoice_discounts {
-		edges = append(edges, billinginvoiceline.EdgeInvoiceDiscounts)
-	}
 	return edges
 }
 
@@ -15348,8 +15148,6 @@ func (m *BillingInvoiceLineMutation) EdgeCleared(name string) bool {
 		return m.clearedsubscription_phase
 	case billinginvoiceline.EdgeSubscriptionItem:
 		return m.clearedsubscription_item
-	case billinginvoiceline.EdgeInvoiceDiscounts:
-		return m.clearedinvoice_discounts
 	}
 	return false
 }
@@ -15378,9 +15176,6 @@ func (m *BillingInvoiceLineMutation) ClearEdge(name string) error {
 		return nil
 	case billinginvoiceline.EdgeSubscriptionItem:
 		m.ClearSubscriptionItem()
-		return nil
-	case billinginvoiceline.EdgeInvoiceDiscounts:
-		m.ClearInvoiceDiscounts()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLine unique edge %s", name)
@@ -15416,9 +15211,6 @@ func (m *BillingInvoiceLineMutation) ResetEdge(name string) error {
 		return nil
 	case billinginvoiceline.EdgeSubscriptionItem:
 		m.ResetSubscriptionItem()
-		return nil
-	case billinginvoiceline.EdgeInvoiceDiscounts:
-		m.ResetInvoiceDiscounts()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLine edge %s", name)

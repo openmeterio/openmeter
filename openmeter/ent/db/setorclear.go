@@ -895,6 +895,20 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearSubscriptionItemID(value *string
 	return u.SetSubscriptionItemID(*value)
 }
 
+func (u *BillingInvoiceLineUpdate) SetOrClearLineIds(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearLineIds()
+	}
+	return u.SetLineIds(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearLineIds(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearLineIds()
+	}
+	return u.SetLineIds(*value)
+}
+
 func (u *BillingInvoiceLineDiscountUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceLineDiscountUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

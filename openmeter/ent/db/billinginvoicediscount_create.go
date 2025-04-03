@@ -13,10 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 )
 
 // BillingInvoiceDiscountCreate is the builder for creating a BillingInvoiceDiscount entity.
@@ -108,8 +105,8 @@ func (bidc *BillingInvoiceDiscountCreate) SetInvoiceID(s string) *BillingInvoice
 }
 
 // SetType sets the "type" field.
-func (bidc *BillingInvoiceDiscountCreate) SetType(bdt billing.InvoiceDiscountType) *BillingInvoiceDiscountCreate {
-	bidc.mutation.SetType(bdt)
+func (bidc *BillingInvoiceDiscountCreate) SetType(s string) *BillingInvoiceDiscountCreate {
+	bidc.mutation.SetType(s)
 	return bidc
 }
 
@@ -137,26 +134,6 @@ func (bidc *BillingInvoiceDiscountCreate) SetNillableID(s *string) *BillingInvoi
 		bidc.SetID(*s)
 	}
 	return bidc
-}
-
-// SetInvoice sets the "invoice" edge to the BillingInvoice entity.
-func (bidc *BillingInvoiceDiscountCreate) SetInvoice(b *BillingInvoice) *BillingInvoiceDiscountCreate {
-	return bidc.SetInvoiceID(b.ID)
-}
-
-// AddLineIDs adds the "lines" edge to the BillingInvoiceLine entity by IDs.
-func (bidc *BillingInvoiceDiscountCreate) AddLineIDs(ids ...string) *BillingInvoiceDiscountCreate {
-	bidc.mutation.AddLineIDs(ids...)
-	return bidc
-}
-
-// AddLines adds the "lines" edges to the BillingInvoiceLine entity.
-func (bidc *BillingInvoiceDiscountCreate) AddLines(b ...*BillingInvoiceLine) *BillingInvoiceDiscountCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
-	}
-	return bidc.AddLineIDs(ids...)
 }
 
 // Mutation returns the BillingInvoiceDiscountMutation object of the builder.
@@ -233,16 +210,8 @@ func (bidc *BillingInvoiceDiscountCreate) check() error {
 	if _, ok := bidc.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "BillingInvoiceDiscount.type"`)}
 	}
-	if v, ok := bidc.mutation.GetType(); ok {
-		if err := billinginvoicediscount.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceDiscount.type": %w`, err)}
-		}
-	}
 	if _, ok := bidc.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingInvoiceDiscount.amount"`)}
-	}
-	if len(bidc.mutation.InvoiceIDs()) == 0 {
-		return &ValidationError{Name: "invoice", err: errors.New(`db: missing required edge "BillingInvoiceDiscount.invoice"`)}
 	}
 	return nil
 }
@@ -308,8 +277,12 @@ func (bidc *BillingInvoiceDiscountCreate) createSpec() (*BillingInvoiceDiscount,
 		_spec.SetField(billinginvoicediscount.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
+	if value, ok := bidc.mutation.InvoiceID(); ok {
+		_spec.SetField(billinginvoicediscount.FieldInvoiceID, field.TypeString, value)
+		_node.InvoiceID = value
+	}
 	if value, ok := bidc.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicediscount.FieldType, field.TypeEnum, value)
+		_spec.SetField(billinginvoicediscount.FieldType, field.TypeString, value)
 		_node.Type = value
 	}
 	if value, ok := bidc.mutation.Amount(); ok {
@@ -319,39 +292,6 @@ func (bidc *BillingInvoiceDiscountCreate) createSpec() (*BillingInvoiceDiscount,
 	if value, ok := bidc.mutation.LineIds(); ok {
 		_spec.SetField(billinginvoicediscount.FieldLineIds, field.TypeJSON, value)
 		_node.LineIds = value
-	}
-	if nodes := bidc.mutation.InvoiceIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billinginvoicediscount.InvoiceTable,
-			Columns: []string{billinginvoicediscount.InvoiceColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.InvoiceID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := bidc.mutation.LinesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billinginvoicediscount.LinesTable,
-			Columns: []string{billinginvoicediscount.LinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }
@@ -496,7 +436,7 @@ func (u *BillingInvoiceDiscountUpsert) UpdateInvoiceID() *BillingInvoiceDiscount
 }
 
 // SetType sets the "type" field.
-func (u *BillingInvoiceDiscountUpsert) SetType(v billing.InvoiceDiscountType) *BillingInvoiceDiscountUpsert {
+func (u *BillingInvoiceDiscountUpsert) SetType(v string) *BillingInvoiceDiscountUpsert {
 	u.Set(billinginvoicediscount.FieldType, v)
 	return u
 }
@@ -697,7 +637,7 @@ func (u *BillingInvoiceDiscountUpsertOne) UpdateInvoiceID() *BillingInvoiceDisco
 }
 
 // SetType sets the "type" field.
-func (u *BillingInvoiceDiscountUpsertOne) SetType(v billing.InvoiceDiscountType) *BillingInvoiceDiscountUpsertOne {
+func (u *BillingInvoiceDiscountUpsertOne) SetType(v string) *BillingInvoiceDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
 		s.SetType(v)
 	})
@@ -1072,7 +1012,7 @@ func (u *BillingInvoiceDiscountUpsertBulk) UpdateInvoiceID() *BillingInvoiceDisc
 }
 
 // SetType sets the "type" field.
-func (u *BillingInvoiceDiscountUpsertBulk) SetType(v billing.InvoiceDiscountType) *BillingInvoiceDiscountUpsertBulk {
+func (u *BillingInvoiceDiscountUpsertBulk) SetType(v string) *BillingInvoiceDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
 		s.SetType(v)
 	})

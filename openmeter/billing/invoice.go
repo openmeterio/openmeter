@@ -211,7 +211,6 @@ func (i InvoiceID) Validate() error {
 }
 
 type InvoiceExpand struct {
-	Discounts    bool
 	Preceding    bool
 	WorkflowApps bool
 
@@ -225,7 +224,6 @@ type InvoiceExpand struct {
 }
 
 var InvoiceExpandAll = InvoiceExpand{
-	Discounts:    true,
 	Preceding:    true,
 	WorkflowApps: true,
 	Lines:        true,
@@ -334,13 +332,11 @@ type Invoice struct {
 	// Entities external to the invoice itself
 	Lines            LineChildren     `json:"lines,omitempty"`
 	ValidationIssues ValidationIssues `json:"validationIssues,omitempty"`
-	Discounts        InvoiceDiscounts `json:"discounts,omitempty"`
 
 	Totals Totals `json:"totals"`
 
 	// private fields required by the service
-	ExpandedFields InvoiceExpand    `json:"-"`
-	snapshots      invoiceSnapshots `json:"-"`
+	ExpandedFields InvoiceExpand `json:"-"`
 }
 
 func (i Invoice) Validate() error {
@@ -350,55 +346,11 @@ func (i Invoice) Validate() error {
 		outErr = errors.Join(outErr, err)
 	}
 
-	if err := i.Discounts.Validate(); err != nil {
-		outErr = errors.Join(outErr, ValidationWithFieldPrefix("discounts", err))
-	}
-
-	if err := i.validateDiscountReferences(); err != nil {
-		outErr = errors.Join(outErr, ValidationWithFieldPrefix("discounts", err))
-	}
-
 	if err := i.Lines.Validate(); err != nil {
 		outErr = errors.Join(outErr, ValidationWithFieldPrefix("lines", err))
 	}
 
 	return outErr
-}
-
-func (i Invoice) validateDiscountReferences() error {
-	if i.Discounts.IsAbsent() {
-		return nil
-	}
-
-	if i.Lines.IsAbsent() {
-		// This is a code problem, so we don't need a coded error
-		return fmt.Errorf("discounts are present, but lines are missing, cannot validate references")
-	}
-
-	linesById := i.FlattenLinesByID()
-
-	return errors.Join(lo.Map(i.Discounts.OrEmpty(), func(discount InvoiceDiscount, idx int) error {
-		base, err := discount.DiscountBase()
-		if err != nil {
-			return err
-		}
-
-		if len(base.LineIDs) == 0 && i.Status == InvoiceStatusGathering {
-			return ErrInvoiceDiscountNoWildcardDiscountOnGatheringInvoices
-		}
-
-		var outErr error
-		for _, lineID := range base.LineIDs {
-			if _, found := linesById[lineID]; !found {
-				outErr = errors.Join(outErr,
-					ValidationWithFieldPrefix(fmt.Sprintf("%d/lineIds", idx),
-						fmt.Errorf("%w [id=%s]", ErrInvoiceDiscountInvalidLineReference, lineID),
-					),
-				)
-			}
-		}
-		return outErr
-	})...)
 }
 
 func (i Invoice) InvoiceID() InvoiceID {
@@ -446,8 +398,6 @@ func (i Invoice) RemoveMetaForCompare() Invoice {
 	invoice.Lines = i.Lines.Map(func(line *Line) *Line {
 		return line.RemoveMetaForCompare()
 	})
-
-	invoice.snapshots = invoiceSnapshots{}
 
 	return invoice
 }
@@ -514,22 +464,6 @@ func (i Invoice) RemoveCircularReferences() Invoice {
 	})
 
 	return clone
-}
-
-func (i *Invoice) Snapshot() {
-	// TODO[OM-1089]: Refactor line snapshots and add it here as we should not do standalone line manipulation
-	// anymore
-	i.snapshots = invoiceSnapshots{
-		Discounts: i.Discounts.Clone(),
-	}
-}
-
-func (i *Invoice) GetDiscountSnapshot() InvoiceDiscounts {
-	return i.snapshots.Discounts
-}
-
-type invoiceSnapshots struct {
-	Discounts InvoiceDiscounts
 }
 
 type InvoiceExternalIDs struct {

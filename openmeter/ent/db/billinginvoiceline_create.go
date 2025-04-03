@@ -15,7 +15,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
@@ -311,6 +310,20 @@ func (bilc *BillingInvoiceLineCreate) SetNillableSubscriptionItemID(s *string) *
 	return bilc
 }
 
+// SetLineIds sets the "line_ids" field.
+func (bilc *BillingInvoiceLineCreate) SetLineIds(s string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetLineIds(s)
+	return bilc
+}
+
+// SetNillableLineIds sets the "line_ids" field if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableLineIds(s *string) *BillingInvoiceLineCreate {
+	if s != nil {
+		bilc.SetLineIds(*s)
+	}
+	return bilc
+}
+
 // SetID sets the "id" field.
 func (bilc *BillingInvoiceLineCreate) SetID(s string) *BillingInvoiceLineCreate {
 	bilc.mutation.SetID(s)
@@ -422,25 +435,6 @@ func (bilc *BillingInvoiceLineCreate) SetSubscriptionPhase(s *SubscriptionPhase)
 // SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
 func (bilc *BillingInvoiceLineCreate) SetSubscriptionItem(s *SubscriptionItem) *BillingInvoiceLineCreate {
 	return bilc.SetSubscriptionItemID(s.ID)
-}
-
-// SetInvoiceDiscountsID sets the "invoice_discounts" edge to the BillingInvoiceDiscount entity by ID.
-func (bilc *BillingInvoiceLineCreate) SetInvoiceDiscountsID(id string) *BillingInvoiceLineCreate {
-	bilc.mutation.SetInvoiceDiscountsID(id)
-	return bilc
-}
-
-// SetNillableInvoiceDiscountsID sets the "invoice_discounts" edge to the BillingInvoiceDiscount entity by ID if the given value is not nil.
-func (bilc *BillingInvoiceLineCreate) SetNillableInvoiceDiscountsID(id *string) *BillingInvoiceLineCreate {
-	if id != nil {
-		bilc = bilc.SetInvoiceDiscountsID(*id)
-	}
-	return bilc
-}
-
-// SetInvoiceDiscounts sets the "invoice_discounts" edge to the BillingInvoiceDiscount entity.
-func (bilc *BillingInvoiceLineCreate) SetInvoiceDiscounts(b *BillingInvoiceDiscount) *BillingInvoiceLineCreate {
-	return bilc.SetInvoiceDiscountsID(b.ID)
 }
 
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
@@ -720,6 +714,10 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
 		_node.ChildUniqueReferenceID = &value
 	}
+	if value, ok := bilc.mutation.LineIds(); ok {
+		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
+		_node.LineIds = &value
+	}
 	if nodes := bilc.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -869,23 +867,6 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.SubscriptionItemID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := bilc.mutation.InvoiceDiscountsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billinginvoiceline.InvoiceDiscountsTable,
-			Columns: []string{billinginvoiceline.InvoiceDiscountsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicediscount.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.line_ids = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -1315,6 +1296,24 @@ func (u *BillingInvoiceLineUpsert) UpdateSubscriptionItemID() *BillingInvoiceLin
 // ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
 func (u *BillingInvoiceLineUpsert) ClearSubscriptionItemID() *BillingInvoiceLineUpsert {
 	u.SetNull(billinginvoiceline.FieldSubscriptionItemID)
+	return u
+}
+
+// SetLineIds sets the "line_ids" field.
+func (u *BillingInvoiceLineUpsert) SetLineIds(v string) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldLineIds, v)
+	return u
+}
+
+// UpdateLineIds sets the "line_ids" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateLineIds() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldLineIds)
+	return u
+}
+
+// ClearLineIds clears the value of the "line_ids" field.
+func (u *BillingInvoiceLineUpsert) ClearLineIds() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldLineIds)
 	return u
 }
 
@@ -1816,6 +1815,27 @@ func (u *BillingInvoiceLineUpsertOne) UpdateSubscriptionItemID() *BillingInvoice
 func (u *BillingInvoiceLineUpsertOne) ClearSubscriptionItemID() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearSubscriptionItemID()
+	})
+}
+
+// SetLineIds sets the "line_ids" field.
+func (u *BillingInvoiceLineUpsertOne) SetLineIds(v string) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetLineIds(v)
+	})
+}
+
+// UpdateLineIds sets the "line_ids" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateLineIds() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateLineIds()
+	})
+}
+
+// ClearLineIds clears the value of the "line_ids" field.
+func (u *BillingInvoiceLineUpsertOne) ClearLineIds() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearLineIds()
 	})
 }
 
@@ -2484,6 +2504,27 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateSubscriptionItemID() *BillingInvoic
 func (u *BillingInvoiceLineUpsertBulk) ClearSubscriptionItemID() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearSubscriptionItemID()
+	})
+}
+
+// SetLineIds sets the "line_ids" field.
+func (u *BillingInvoiceLineUpsertBulk) SetLineIds(v string) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetLineIds(v)
+	})
+}
+
+// UpdateLineIds sets the "line_ids" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateLineIds() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateLineIds()
+	})
+}
+
+// ClearLineIds clears the value of the "line_ids" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearLineIds() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearLineIds()
 	})
 }
 

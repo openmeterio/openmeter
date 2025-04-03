@@ -13,10 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -120,15 +117,15 @@ func (bidu *BillingInvoiceDiscountUpdate) SetNillableInvoiceID(s *string) *Billi
 }
 
 // SetType sets the "type" field.
-func (bidu *BillingInvoiceDiscountUpdate) SetType(bdt billing.InvoiceDiscountType) *BillingInvoiceDiscountUpdate {
-	bidu.mutation.SetType(bdt)
+func (bidu *BillingInvoiceDiscountUpdate) SetType(s string) *BillingInvoiceDiscountUpdate {
+	bidu.mutation.SetType(s)
 	return bidu
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (bidu *BillingInvoiceDiscountUpdate) SetNillableType(bdt *billing.InvoiceDiscountType) *BillingInvoiceDiscountUpdate {
-	if bdt != nil {
-		bidu.SetType(*bdt)
+func (bidu *BillingInvoiceDiscountUpdate) SetNillableType(s *string) *BillingInvoiceDiscountUpdate {
+	if s != nil {
+		bidu.SetType(*s)
 	}
 	return bidu
 }
@@ -165,56 +162,9 @@ func (bidu *BillingInvoiceDiscountUpdate) ClearLineIds() *BillingInvoiceDiscount
 	return bidu
 }
 
-// SetInvoice sets the "invoice" edge to the BillingInvoice entity.
-func (bidu *BillingInvoiceDiscountUpdate) SetInvoice(b *BillingInvoice) *BillingInvoiceDiscountUpdate {
-	return bidu.SetInvoiceID(b.ID)
-}
-
-// AddLineIDs adds the "lines" edge to the BillingInvoiceLine entity by IDs.
-func (bidu *BillingInvoiceDiscountUpdate) AddLineIDs(ids ...string) *BillingInvoiceDiscountUpdate {
-	bidu.mutation.AddLineIDs(ids...)
-	return bidu
-}
-
-// AddLines adds the "lines" edges to the BillingInvoiceLine entity.
-func (bidu *BillingInvoiceDiscountUpdate) AddLines(b ...*BillingInvoiceLine) *BillingInvoiceDiscountUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
-	}
-	return bidu.AddLineIDs(ids...)
-}
-
 // Mutation returns the BillingInvoiceDiscountMutation object of the builder.
 func (bidu *BillingInvoiceDiscountUpdate) Mutation() *BillingInvoiceDiscountMutation {
 	return bidu.mutation
-}
-
-// ClearInvoice clears the "invoice" edge to the BillingInvoice entity.
-func (bidu *BillingInvoiceDiscountUpdate) ClearInvoice() *BillingInvoiceDiscountUpdate {
-	bidu.mutation.ClearInvoice()
-	return bidu
-}
-
-// ClearLines clears all "lines" edges to the BillingInvoiceLine entity.
-func (bidu *BillingInvoiceDiscountUpdate) ClearLines() *BillingInvoiceDiscountUpdate {
-	bidu.mutation.ClearLines()
-	return bidu
-}
-
-// RemoveLineIDs removes the "lines" edge to BillingInvoiceLine entities by IDs.
-func (bidu *BillingInvoiceDiscountUpdate) RemoveLineIDs(ids ...string) *BillingInvoiceDiscountUpdate {
-	bidu.mutation.RemoveLineIDs(ids...)
-	return bidu
-}
-
-// RemoveLines removes "lines" edges to BillingInvoiceLine entities.
-func (bidu *BillingInvoiceDiscountUpdate) RemoveLines(b ...*BillingInvoiceLine) *BillingInvoiceDiscountUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
-	}
-	return bidu.RemoveLineIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -253,23 +203,7 @@ func (bidu *BillingInvoiceDiscountUpdate) defaults() {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (bidu *BillingInvoiceDiscountUpdate) check() error {
-	if v, ok := bidu.mutation.GetType(); ok {
-		if err := billinginvoicediscount.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceDiscount.type": %w`, err)}
-		}
-	}
-	if bidu.mutation.InvoiceCleared() && len(bidu.mutation.InvoiceIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "BillingInvoiceDiscount.invoice"`)
-	}
-	return nil
-}
-
 func (bidu *BillingInvoiceDiscountUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := bidu.check(); err != nil {
-		return n, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoicediscount.Table, billinginvoicediscount.Columns, sqlgraph.NewFieldSpec(billinginvoicediscount.FieldID, field.TypeString))
 	if ps := bidu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -302,8 +236,11 @@ func (bidu *BillingInvoiceDiscountUpdate) sqlSave(ctx context.Context) (n int, e
 	if bidu.mutation.DescriptionCleared() {
 		_spec.ClearField(billinginvoicediscount.FieldDescription, field.TypeString)
 	}
+	if value, ok := bidu.mutation.InvoiceID(); ok {
+		_spec.SetField(billinginvoicediscount.FieldInvoiceID, field.TypeString, value)
+	}
 	if value, ok := bidu.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicediscount.FieldType, field.TypeEnum, value)
+		_spec.SetField(billinginvoicediscount.FieldType, field.TypeString, value)
 	}
 	if value, ok := bidu.mutation.Amount(); ok {
 		_spec.SetField(billinginvoicediscount.FieldAmount, field.TypeOther, value)
@@ -318,80 +255,6 @@ func (bidu *BillingInvoiceDiscountUpdate) sqlSave(ctx context.Context) (n int, e
 	}
 	if bidu.mutation.LineIdsCleared() {
 		_spec.ClearField(billinginvoicediscount.FieldLineIds, field.TypeJSON)
-	}
-	if bidu.mutation.InvoiceCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billinginvoicediscount.InvoiceTable,
-			Columns: []string{billinginvoicediscount.InvoiceColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bidu.mutation.InvoiceIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billinginvoicediscount.InvoiceTable,
-			Columns: []string{billinginvoicediscount.InvoiceColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if bidu.mutation.LinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billinginvoicediscount.LinesTable,
-			Columns: []string{billinginvoicediscount.LinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bidu.mutation.RemovedLinesIDs(); len(nodes) > 0 && !bidu.mutation.LinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billinginvoicediscount.LinesTable,
-			Columns: []string{billinginvoicediscount.LinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bidu.mutation.LinesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billinginvoicediscount.LinesTable,
-			Columns: []string{billinginvoicediscount.LinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, bidu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -500,15 +363,15 @@ func (biduo *BillingInvoiceDiscountUpdateOne) SetNillableInvoiceID(s *string) *B
 }
 
 // SetType sets the "type" field.
-func (biduo *BillingInvoiceDiscountUpdateOne) SetType(bdt billing.InvoiceDiscountType) *BillingInvoiceDiscountUpdateOne {
-	biduo.mutation.SetType(bdt)
+func (biduo *BillingInvoiceDiscountUpdateOne) SetType(s string) *BillingInvoiceDiscountUpdateOne {
+	biduo.mutation.SetType(s)
 	return biduo
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (biduo *BillingInvoiceDiscountUpdateOne) SetNillableType(bdt *billing.InvoiceDiscountType) *BillingInvoiceDiscountUpdateOne {
-	if bdt != nil {
-		biduo.SetType(*bdt)
+func (biduo *BillingInvoiceDiscountUpdateOne) SetNillableType(s *string) *BillingInvoiceDiscountUpdateOne {
+	if s != nil {
+		biduo.SetType(*s)
 	}
 	return biduo
 }
@@ -545,56 +408,9 @@ func (biduo *BillingInvoiceDiscountUpdateOne) ClearLineIds() *BillingInvoiceDisc
 	return biduo
 }
 
-// SetInvoice sets the "invoice" edge to the BillingInvoice entity.
-func (biduo *BillingInvoiceDiscountUpdateOne) SetInvoice(b *BillingInvoice) *BillingInvoiceDiscountUpdateOne {
-	return biduo.SetInvoiceID(b.ID)
-}
-
-// AddLineIDs adds the "lines" edge to the BillingInvoiceLine entity by IDs.
-func (biduo *BillingInvoiceDiscountUpdateOne) AddLineIDs(ids ...string) *BillingInvoiceDiscountUpdateOne {
-	biduo.mutation.AddLineIDs(ids...)
-	return biduo
-}
-
-// AddLines adds the "lines" edges to the BillingInvoiceLine entity.
-func (biduo *BillingInvoiceDiscountUpdateOne) AddLines(b ...*BillingInvoiceLine) *BillingInvoiceDiscountUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
-	}
-	return biduo.AddLineIDs(ids...)
-}
-
 // Mutation returns the BillingInvoiceDiscountMutation object of the builder.
 func (biduo *BillingInvoiceDiscountUpdateOne) Mutation() *BillingInvoiceDiscountMutation {
 	return biduo.mutation
-}
-
-// ClearInvoice clears the "invoice" edge to the BillingInvoice entity.
-func (biduo *BillingInvoiceDiscountUpdateOne) ClearInvoice() *BillingInvoiceDiscountUpdateOne {
-	biduo.mutation.ClearInvoice()
-	return biduo
-}
-
-// ClearLines clears all "lines" edges to the BillingInvoiceLine entity.
-func (biduo *BillingInvoiceDiscountUpdateOne) ClearLines() *BillingInvoiceDiscountUpdateOne {
-	biduo.mutation.ClearLines()
-	return biduo
-}
-
-// RemoveLineIDs removes the "lines" edge to BillingInvoiceLine entities by IDs.
-func (biduo *BillingInvoiceDiscountUpdateOne) RemoveLineIDs(ids ...string) *BillingInvoiceDiscountUpdateOne {
-	biduo.mutation.RemoveLineIDs(ids...)
-	return biduo
-}
-
-// RemoveLines removes "lines" edges to BillingInvoiceLine entities.
-func (biduo *BillingInvoiceDiscountUpdateOne) RemoveLines(b ...*BillingInvoiceLine) *BillingInvoiceDiscountUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
-	}
-	return biduo.RemoveLineIDs(ids...)
 }
 
 // Where appends a list predicates to the BillingInvoiceDiscountUpdate builder.
@@ -646,23 +462,7 @@ func (biduo *BillingInvoiceDiscountUpdateOne) defaults() {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (biduo *BillingInvoiceDiscountUpdateOne) check() error {
-	if v, ok := biduo.mutation.GetType(); ok {
-		if err := billinginvoicediscount.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceDiscount.type": %w`, err)}
-		}
-	}
-	if biduo.mutation.InvoiceCleared() && len(biduo.mutation.InvoiceIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "BillingInvoiceDiscount.invoice"`)
-	}
-	return nil
-}
-
 func (biduo *BillingInvoiceDiscountUpdateOne) sqlSave(ctx context.Context) (_node *BillingInvoiceDiscount, err error) {
-	if err := biduo.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoicediscount.Table, billinginvoicediscount.Columns, sqlgraph.NewFieldSpec(billinginvoicediscount.FieldID, field.TypeString))
 	id, ok := biduo.mutation.ID()
 	if !ok {
@@ -712,8 +512,11 @@ func (biduo *BillingInvoiceDiscountUpdateOne) sqlSave(ctx context.Context) (_nod
 	if biduo.mutation.DescriptionCleared() {
 		_spec.ClearField(billinginvoicediscount.FieldDescription, field.TypeString)
 	}
+	if value, ok := biduo.mutation.InvoiceID(); ok {
+		_spec.SetField(billinginvoicediscount.FieldInvoiceID, field.TypeString, value)
+	}
 	if value, ok := biduo.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicediscount.FieldType, field.TypeEnum, value)
+		_spec.SetField(billinginvoicediscount.FieldType, field.TypeString, value)
 	}
 	if value, ok := biduo.mutation.Amount(); ok {
 		_spec.SetField(billinginvoicediscount.FieldAmount, field.TypeOther, value)
@@ -728,80 +531,6 @@ func (biduo *BillingInvoiceDiscountUpdateOne) sqlSave(ctx context.Context) (_nod
 	}
 	if biduo.mutation.LineIdsCleared() {
 		_spec.ClearField(billinginvoicediscount.FieldLineIds, field.TypeJSON)
-	}
-	if biduo.mutation.InvoiceCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billinginvoicediscount.InvoiceTable,
-			Columns: []string{billinginvoicediscount.InvoiceColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := biduo.mutation.InvoiceIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billinginvoicediscount.InvoiceTable,
-			Columns: []string{billinginvoicediscount.InvoiceColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if biduo.mutation.LinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billinginvoicediscount.LinesTable,
-			Columns: []string{billinginvoicediscount.LinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := biduo.mutation.RemovedLinesIDs(); len(nodes) > 0 && !biduo.mutation.LinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billinginvoicediscount.LinesTable,
-			Columns: []string{billinginvoicediscount.LinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := biduo.mutation.LinesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billinginvoicediscount.LinesTable,
-			Columns: []string{billinginvoicediscount.LinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &BillingInvoiceDiscount{config: biduo.config}
 	_spec.Assign = _node.assignValues

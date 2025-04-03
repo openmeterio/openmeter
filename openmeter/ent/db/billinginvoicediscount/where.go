@@ -6,9 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -100,6 +98,11 @@ func Description(v string) predicate.BillingInvoiceDiscount {
 // InvoiceID applies equality check predicate on the "invoice_id" field. It's identical to InvoiceIDEQ.
 func InvoiceID(v string) predicate.BillingInvoiceDiscount {
 	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldInvoiceID, v))
+}
+
+// Type applies equality check predicate on the "type" field. It's identical to TypeEQ.
+func Type(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldType, v))
 }
 
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
@@ -518,33 +521,68 @@ func InvoiceIDContainsFold(v string) predicate.BillingInvoiceDiscount {
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v billing.InvoiceDiscountType) predicate.BillingInvoiceDiscount {
-	vc := v
-	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldType, vc))
+func TypeEQ(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldType, v))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v billing.InvoiceDiscountType) predicate.BillingInvoiceDiscount {
-	vc := v
-	return predicate.BillingInvoiceDiscount(sql.FieldNEQ(FieldType, vc))
+func TypeNEQ(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldNEQ(FieldType, v))
 }
 
 // TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...billing.InvoiceDiscountType) predicate.BillingInvoiceDiscount {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingInvoiceDiscount(sql.FieldIn(FieldType, v...))
+func TypeIn(vs ...string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldIn(FieldType, vs...))
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...billing.InvoiceDiscountType) predicate.BillingInvoiceDiscount {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingInvoiceDiscount(sql.FieldNotIn(FieldType, v...))
+func TypeNotIn(vs ...string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldNotIn(FieldType, vs...))
+}
+
+// TypeGT applies the GT predicate on the "type" field.
+func TypeGT(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldGT(FieldType, v))
+}
+
+// TypeGTE applies the GTE predicate on the "type" field.
+func TypeGTE(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldGTE(FieldType, v))
+}
+
+// TypeLT applies the LT predicate on the "type" field.
+func TypeLT(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldLT(FieldType, v))
+}
+
+// TypeLTE applies the LTE predicate on the "type" field.
+func TypeLTE(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldLTE(FieldType, v))
+}
+
+// TypeContains applies the Contains predicate on the "type" field.
+func TypeContains(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldContains(FieldType, v))
+}
+
+// TypeHasPrefix applies the HasPrefix predicate on the "type" field.
+func TypeHasPrefix(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldHasPrefix(FieldType, v))
+}
+
+// TypeHasSuffix applies the HasSuffix predicate on the "type" field.
+func TypeHasSuffix(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldHasSuffix(FieldType, v))
+}
+
+// TypeEqualFold applies the EqualFold predicate on the "type" field.
+func TypeEqualFold(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldEqualFold(FieldType, v))
+}
+
+// TypeContainsFold applies the ContainsFold predicate on the "type" field.
+func TypeContainsFold(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldContainsFold(FieldType, v))
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.
@@ -595,52 +633,6 @@ func LineIdsIsNil() predicate.BillingInvoiceDiscount {
 // LineIdsNotNil applies the NotNil predicate on the "line_ids" field.
 func LineIdsNotNil() predicate.BillingInvoiceDiscount {
 	return predicate.BillingInvoiceDiscount(sql.FieldNotNull(FieldLineIds))
-}
-
-// HasInvoice applies the HasEdge predicate on the "invoice" edge.
-func HasInvoice() predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, InvoiceTable, InvoiceColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasInvoiceWith applies the HasEdge predicate on the "invoice" edge with a given conditions (other predicates).
-func HasInvoiceWith(preds ...predicate.BillingInvoice) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(func(s *sql.Selector) {
-		step := newInvoiceStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasLines applies the HasEdge predicate on the "lines" edge.
-func HasLines() predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, LinesTable, LinesColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasLinesWith applies the HasEdge predicate on the "lines" edge with a given conditions (other predicates).
-func HasLinesWith(preds ...predicate.BillingInvoiceLine) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(func(s *sql.Selector) {
-		step := newLinesStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
 }
 
 // And groups predicates with the AND operator between them.
