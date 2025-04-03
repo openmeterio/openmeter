@@ -728,19 +728,19 @@ func (c Commitments) Equal(v Commitments) bool {
 
 var _ models.Validator = (*DynamicPrice)(nil)
 
-var DynamicPriceDefaultMarkupRate = decimal.NewFromFloat(1)
+var DynamicPriceDefaultMultiplier = decimal.NewFromFloat(1)
 
 type DynamicPrice struct {
 	Commitments `json:",inline"`
 
-	// MarkupRate defines the rate of the markup of the price.
-	MarkupRate decimal.Decimal `json:"markupRate"`
+	// Multiplier defines the multiplier applied to the price.
+	Multiplier decimal.Decimal `json:"multiplier"`
 }
 
 func (p DynamicPrice) Validate() error {
 	var errs []error
 
-	if p.MarkupRate.LessThan(decimal.Zero) {
+	if p.Multiplier.LessThan(decimal.Zero) {
 		errs = append(errs, errors.New("the markup rate must not be less than 0"))
 	}
 
@@ -760,7 +760,7 @@ func (p *DynamicPrice) Equal(v *DynamicPrice) bool {
 		return false
 	}
 
-	if !p.MarkupRate.Equal(v.MarkupRate) {
+	if !p.Multiplier.Equal(v.Multiplier) {
 		return false
 	}
 

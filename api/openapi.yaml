@@ -11792,18 +11792,18 @@ components:
           enum:
             - dynamic
           description: The type of the price.
-        markupRate:
+        multiplier:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            The rate to apply to the base price to get the dynamic price.
+            The multiplier to apply to the base price to get the dynamic price.
 
             Examples:
             - 0.0: the price is zero
             - 0.5: the price is 50% of the base price
             - 1.0: the price is the same as the base price
             - 1.5: the price is 150% of the base price
-          title: The rate to apply to the base price to get the dynamic price
+          title: The multiplier to apply to the base price to get the dynamic price
           default: '1'
       description: |-
         Dynamic price.
@@ -11822,18 +11822,18 @@ components:
           enum:
             - dynamic
           description: The type of the price.
-        markupRate:
+        multiplier:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            The rate to apply to the base price to get the dynamic price.
+            The multiplier to apply to the base price to get the dynamic price.
 
             Examples:
             - 0.0: the price is zero
             - 0.5: the price is 50% of the base price
             - 1.0: the price is the same as the base price
             - 1.5: the price is 150% of the base price
-          title: The rate to apply to the base price to get the dynamic price
+          title: The multiplier to apply to the base price to get the dynamic price
           default: '1'
         minimumAmount:
           allOf:

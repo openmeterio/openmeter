@@ -196,7 +196,7 @@ model DynamicPrice {
   type: PriceType.dynamic;
 
   /**
-   * The rate to apply to the base price to get the dynamic price.
+   * The multiplier to apply to the base price to get the dynamic price.
    *
    * Examples:
    * - 0.0: the price is zero
@@ -205,8 +205,8 @@ model DynamicPrice {
    * - 1.5: the price is 150% of the base price
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("The rate to apply to the base price to get the dynamic price")
-  markupRate?: Numeric = "1";
+  @summary("The multiplier to apply to the base price to get the dynamic price")
+  multiplier?: Numeric = "1";
 }
 
 /**

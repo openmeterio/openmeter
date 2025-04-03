@@ -3364,8 +3364,8 @@ export interface components {
        */
       type: 'dynamic'
       /**
-       * The rate to apply to the base price to get the dynamic price
-       * @description The rate to apply to the base price to get the dynamic price.
+       * The multiplier to apply to the base price to get the dynamic price
+       * @description The multiplier to apply to the base price to get the dynamic price.
        *
        *     Examples:
        *     - 0.0: the price is zero
@@ -3374,7 +3374,7 @@ export interface components {
        *     - 1.5: the price is 150% of the base price
        * @default 1
        */
-      markupRate?: components['schemas']['Numeric']
+      multiplier?: components['schemas']['Numeric']
       /**
        * Minimum amount
        * @description The customer is committed to spend at least the amount.
