@@ -490,6 +490,10 @@ func (i Line) Validate() error {
 func (i Line) ValidateFee() error {
 	var errs []error
 
+	if i.FlatFee == nil {
+		return errors.New("flat fee is required")
+	}
+
 	if i.FlatFee.PerUnitAmount.IsNegative() {
 		errs = append(errs, errors.New("price should be positive or zero"))
 	}
