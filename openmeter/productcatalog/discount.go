@@ -37,6 +37,7 @@ type discounter interface {
 	json.Unmarshaler
 
 	models.Validator
+	models.Clonable[Discount]
 	hasher.Hasher
 
 	Type() DiscountType
@@ -163,6 +164,19 @@ func (d *Discount) ValidateForPrice(price *Price) error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+func (d *Discount) Clone() Discount {
+	switch d.t {
+	case PercentageDiscountType:
+		return NewDiscountFrom(d.percentage.Clone())
+	case UsageDiscountType:
+		return NewDiscountFrom(d.usage.Clone())
+	default:
+		return Discount{
+			t: d.t,
+		}
+	}
+}
+
 func (d *Discount) Type() DiscountType {
 	return d.t
 }
@@ -217,8 +231,9 @@ func NewDiscountFrom[T PercentageDiscount | UsageDiscount](v T) Discount {
 }
 
 var (
-	_ models.Validator = (*PercentageDiscount)(nil)
-	_ hasher.Hasher    = (*PercentageDiscount)(nil)
+	_ models.Validator                    = (*PercentageDiscount)(nil)
+	_ hasher.Hasher                       = (*PercentageDiscount)(nil)
+	_ models.Clonable[PercentageDiscount] = (*PercentageDiscount)(nil)
 )
 
 type PercentageDiscount struct {
@@ -248,9 +263,16 @@ func (f PercentageDiscount) ValidateForPrice(price *Price) error {
 	return nil
 }
 
+func (f PercentageDiscount) Clone() PercentageDiscount {
+	return PercentageDiscount{
+		Percentage: f.Percentage,
+	}
+}
+
 var (
-	_ models.Validator = (*UsageDiscount)(nil)
-	_ hasher.Hasher    = (*UsageDiscount)(nil)
+	_ models.Validator               = (*UsageDiscount)(nil)
+	_ hasher.Hasher                  = (*UsageDiscount)(nil)
+	_ models.Clonable[UsageDiscount] = (*UsageDiscount)(nil)
 )
 
 type UsageDiscount struct {
@@ -294,9 +316,33 @@ func (f UsageDiscount) ValidateForPrice(price *Price) error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-var _ models.Equaler[Discounts] = (*Discounts)(nil)
+func (f UsageDiscount) Clone() UsageDiscount {
+	return UsageDiscount{
+		Quantity: f.Quantity,
+	}
+}
+
+var (
+	_ models.Equaler[Discounts]  = (*Discounts)(nil)
+	_ models.Clonable[Discounts] = (*Discounts)(nil)
+)
 
 type Discounts []Discount
+
+func (d Discounts) Clone() Discounts {
+	// If there are no discounts, let's represent it as nil, so that testing is easier
+	if len(d) == 0 {
+		return nil
+	}
+
+	clone := make(Discounts, len(d))
+
+	for i, discount := range d {
+		clone[i] = discount.Clone()
+	}
+
+	return clone
+}
 
 func (d Discounts) Equal(v Discounts) bool {
 	if len(d) != len(v) {

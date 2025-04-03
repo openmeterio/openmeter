@@ -1318,6 +1318,16 @@ func TaxConfigNotNil() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldTaxConfig))
 }
 
+// RatecardDiscountsIsNil applies the IsNil predicate on the "ratecard_discounts" field.
+func RatecardDiscountsIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldRatecardDiscounts))
+}
+
+// RatecardDiscountsNotNil applies the NotNil predicate on the "ratecard_discounts" field.
+func RatecardDiscountsNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldRatecardDiscounts))
+}
+
 // InvoicingAppExternalIDEQ applies the EQ predicate on the "invoicing_app_external_id" field.
 func InvoicingAppExternalIDEQ(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoicingAppExternalID, v))

@@ -151,7 +151,8 @@ type LineBase struct {
 	Status                 InvoiceLineStatus `json:"status"`
 	ChildUniqueReferenceID *string           `json:"childUniqueReferenceID,omitempty"`
 
-	TaxConfig *TaxConfig `json:"taxOverrides,omitempty"`
+	TaxConfig         *TaxConfig               `json:"taxOverrides,omitempty"`
+	RateCardDiscounts productcatalog.Discounts `json:"rateCardDiscounts,omitempty"`
 
 	ExternalIDs  LineExternalIDs        `json:"externalIDs,omitempty"`
 	Subscription *SubscriptionReference `json:"subscription,omitempty"`
@@ -218,6 +219,8 @@ func (i LineBase) Clone() LineBase {
 		tc := *i.TaxConfig
 		out.TaxConfig = &tc
 	}
+
+	out.RateCardDiscounts = i.RateCardDiscounts.Clone()
 
 	return out
 }
@@ -475,9 +478,22 @@ func (i Line) Validate() error {
 		if err := i.ValidateFee(); err != nil {
 			errs = append(errs, err)
 		}
+
+		price := productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      i.FlatFee.PerUnitAmount,
+			PaymentTerm: i.FlatFee.PaymentTerm,
+		})
+
+		if err := i.RateCardDiscounts.ValidateForPrice(price); err != nil {
+			errs = append(errs, fmt.Errorf("rateCardDiscounts: %w", err))
+		}
 	case InvoiceLineTypeUsageBased:
 		if err := i.ValidateUsageBased(); err != nil {
 			errs = append(errs, err)
+		}
+
+		if err := i.LineBase.RateCardDiscounts.ValidateForPrice(i.UsageBased.Price); err != nil {
+			errs = append(errs, fmt.Errorf("rateCardDiscounts: %w", err))
 		}
 
 	default:

@@ -1,4 +1,4 @@
-h1:G9XjqHmX/tMUs+S94ueLbhnCZbOnmsh3Uz09upcvK94=
+h1:EHqddFn+wd19V7cXWD3DIdwnfvcDcLpWNVrEeBeKdAg=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -151,3 +151,5 @@ h1:G9XjqHmX/tMUs+S94ueLbhnCZbOnmsh3Uz09upcvK94=
 20250403195308_deprecate-invoice-discounts.up.sql h1:o5mRIIzLSMeHD1q92XLC8EE3wOCYaR00opyAHn7vgpA=
 20250404105832_addon.down.sql h1:ztwYrYL/V7JGOwjQUQbtqdpqYsPEzTBNpY1HE84Cn/E=
 20250404105832_addon.up.sql h1:MTeqcE2aP+j7GHPcd5gkDg0TC+ZhJB9syY6sf1GVWDM=
+20250404145234_billing-line-ratecard-discounts.down.sql h1:6bqZhAHp8GE/SNWkWQ29MaJkN8BB674UexjinDdvhhs=
+20250404145234_billing-line-ratecard-discounts.up.sql h1:c97pwW9DYZDEysk5aJ+4PoWkxeobionRF7E0hL350hY=

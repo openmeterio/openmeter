@@ -343,6 +343,15 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			}).
 			Optional(),
 
+		field.String("ratecard_discounts").
+			GoType(&productcatalog.Discounts{}).
+			ValueScanner(DiscountsValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
+
 		// ID of the line in the external invoicing app
 		// For example, Stripe invoice line item ID
 		field.String("invoicing_app_external_id").

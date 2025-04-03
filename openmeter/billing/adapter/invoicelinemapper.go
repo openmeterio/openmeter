@@ -157,7 +157,8 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			Type:     dbLine.Type,
 			Currency: dbLine.Currency,
 
-			TaxConfig: lo.EmptyableToPtr(dbLine.TaxConfig),
+			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
+			RateCardDiscounts: lo.FromPtrOr(dbLine.RatecardDiscounts, nil),
 			Totals: billing.Totals{
 				Amount:              dbLine.Amount,
 				ChargesTotal:        dbLine.ChargesTotal,

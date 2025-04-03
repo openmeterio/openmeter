@@ -1049,6 +1049,20 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.
 	return u.SetTaxConfig(*value)
 }
 
+func (u *BillingInvoiceLineUpdate) SetOrClearRatecardDiscounts(value **productcatalog.Discounts) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearRatecardDiscounts()
+	}
+	return u.SetRatecardDiscounts(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearRatecardDiscounts(value **productcatalog.Discounts) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearRatecardDiscounts()
+	}
+	return u.SetRatecardDiscounts(*value)
+}
+
 func (u *BillingInvoiceLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearInvoicingAppExternalID()

@@ -78,6 +78,8 @@ type BillingInvoiceLine struct {
 	Quantity *alpacadecimal.Decimal `json:"quantity,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
+	// RatecardDiscounts holds the value of the "ratecard_discounts" field.
+	RatecardDiscounts *productcatalog.Discounts `json:"ratecard_discounts,omitempty"`
 	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
 	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
@@ -235,6 +237,8 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
+		case billinginvoiceline.FieldRatecardDiscounts:
+			values[i] = billinginvoiceline.ValueScanner.RatecardDiscounts.ScanValue()
 		case billinginvoiceline.ForeignKeys[0]: // fee_line_config_id
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.ForeignKeys[1]: // usage_based_line_config_id
@@ -417,6 +421,12 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 				if err := json.Unmarshal(*value, &bil.TaxConfig); err != nil {
 					return fmt.Errorf("unmarshal field tax_config: %w", err)
 				}
+			}
+		case billinginvoiceline.FieldRatecardDiscounts:
+			if value, err := billinginvoiceline.ValueScanner.RatecardDiscounts.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				bil.RatecardDiscounts = value
 			}
 		case billinginvoiceline.FieldInvoicingAppExternalID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -637,6 +647,11 @@ func (bil *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("tax_config=")
 	builder.WriteString(fmt.Sprintf("%v", bil.TaxConfig))
+	builder.WriteString(", ")
+	if v := bil.RatecardDiscounts; v != nil {
+		builder.WriteString("ratecard_discounts=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := bil.InvoicingAppExternalID; v != nil {
 		builder.WriteString("invoicing_app_external_id=")

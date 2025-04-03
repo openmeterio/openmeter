@@ -653,17 +653,19 @@ func AsDiscounts(discounts []api.Discount) (productcatalog.Discounts, error) {
 				return nil, fmt.Errorf("failed to cast DiscountPercentage: %w", err)
 			}
 
-			out = append(out, productcatalog.NewDiscountFrom(
-				productcatalog.PercentageDiscount{
-					Percentage: discount.Percentage,
-				},
-			))
+			out = append(out, productcatalog.NewDiscountFrom(AsPercentageDiscount(discount)))
 		default:
 			return nil, fmt.Errorf("invalid Discount type: %s", discountType)
 		}
 	}
 
 	return out, nil
+}
+
+func AsPercentageDiscount(d api.DiscountPercentage) productcatalog.PercentageDiscount {
+	return productcatalog.PercentageDiscount{
+		Percentage: d.Percentage,
+	}
 }
 
 func AsPrice(p api.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
