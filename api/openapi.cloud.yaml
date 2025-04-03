@@ -8762,7 +8762,7 @@ paths:
     get:
       operationId: listSubscriptionAddons
       summary: List subscription addons
-      description: List all addons of a subscription.
+      description: List all addons of a subscription. In the returned list will match to a set unique by addonId.
       parameters:
         - name: subscriptionId
           in: path
@@ -8909,11 +8909,10 @@ paths:
       tags:
         - Subscriptions
       x-internal: true
-  /api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}/cancel:
-    post:
-      operationId: cancelSubscriptionAddon
-      summary: Cancel subscription addon
-      description: Cancels a subscription addon (effectively unsubscribing from it) by the given time.
+    patch:
+      operationId: updateSubscriptionAddon
+      summary: Update subscription addon
+      description: 'Updates a subscription addon (allows changing the quantity: purchasing more instances or cancelling the current instances)'
       parameters:
         - name: subscriptionId
           in: path
@@ -8991,12 +8990,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                timing:
-                  allOf:
-                    - $ref: '#/components/schemas/SubscriptionTiming'
-                  description: If not provided, the addon will be canceled immediately.
+              $ref: '#/components/schemas/SubscriptionAddonUpdate'
       x-internal: true
   /api/v1/subscriptions/{subscriptionId}/cancel:
     post:
@@ -18509,7 +18503,9 @@ components:
         - activeFrom
         - version
         - addonId
+        - quantityAt
         - quantity
+        - timeline
         - instanceType
         - subscriptionId
         - rateCards
@@ -18591,10 +18587,34 @@ components:
           example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: AddonID
           readOnly: true
+        quantityAt:
+          type: string
+          format: date-time
+          description: For which point in time the quantity was resolved to.
+          example: '2025-01-05T00:00:00Z'
+          title: QuantityAt
+          readOnly: true
         quantity:
           type: integer
           description: The quantity of the addon. Always 1 for single instance add-ons.
           title: Quantity
+          example: 1
+        timeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionAddonTimelineSegment'
+          description: The timeline of the addon. The returned periods are sorted and continuous.
+          title: Timeline
+          example:
+            - quantity: 1
+              activeFrom: '2025-01-01T00:00:00Z'
+              activeTo: '2025-01-02T00:00:00Z'
+            - quantity: 0
+              activeFrom: '2025-01-02T00:00:00Z'
+              activeTo: '2025-01-03T00:00:00Z'
+            - quantity: 1
+              activeFrom: '2025-01-03T00:00:00Z'
+          readOnly: true
         instanceType:
           allOf:
             - $ref: '#/components/schemas/AddonInstanceType'
@@ -18615,7 +18635,7 @@ components:
           description: The rate cards of the addon.
           title: Rate cards
           readOnly: true
-      description: A subscription addon, a concrete instance of an addon for a given subscription.
+      description: A subscription addon, represents concrete instances of an addon for a given subscription.
     SubscriptionAddonCreate:
       type: object
       required:
@@ -18623,6 +18643,7 @@ components:
         - key
         - activeFrom
         - quantity
+        - timing
       properties:
         name:
           type: string
@@ -18663,6 +18684,12 @@ components:
           type: integer
           description: The quantity of the addon. Always 1 for single instance add-ons.
           title: Quantity
+          example: 1
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionTiming'
+          description: The timing of the operation. After the create or update, a new entry will be created in the timeline.
+          title: Timing
       description: Resource create operation model.
     SubscriptionAddonRateCard:
       type: object
@@ -18686,6 +18713,70 @@ components:
           title: Affected subscription item IDs
           readOnly: true
       description: A rate card for a subscription addon.
+    SubscriptionAddonTimelineSegment:
+      type: object
+      required:
+        - activeFrom
+        - quantity
+      properties:
+        activeFrom:
+          type: string
+          format: date-time
+          description: The cadence start of the resource.
+          example: '2023-01-01T01:01:01.001Z'
+        activeTo:
+          type: string
+          format: date-time
+          description: The cadence end of the resource.
+          example: '2023-01-01T01:01:01.001Z'
+        quantity:
+          type: integer
+          description: The quantity of the addon for the given period.
+          title: Quantity
+          readOnly: true
+      description: A subscription addon event.
+    SubscriptionAddonUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        activeFrom:
+          type: string
+          format: date-time
+          description: The cadence start of the resource.
+          example: '2023-01-01T01:01:01.001Z'
+        activeTo:
+          type: string
+          format: date-time
+          description: The cadence end of the resource.
+          example: '2023-01-01T01:01:01.001Z'
+        quantity:
+          type: integer
+          description: The quantity of the addon. Always 1 for single instance add-ons.
+          title: Quantity
+          example: 1
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionTiming'
+          description: The timing of the operation. After the create or update, a new entry will be created in the timeline.
+          title: Timing
+      description: Resource create or update operation model.
     SubscriptionAlignment:
       type: object
       properties:

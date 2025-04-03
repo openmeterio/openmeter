@@ -1782,7 +1782,7 @@ export interface paths {
     }
     /**
      * List subscription addons
-     * @description List all addons of a subscription.
+     * @description List all addons of a subscription. In the returned list will match to a set unique by addonId.
      */
     get: operations['listSubscriptionAddons']
     put?: never
@@ -1814,27 +1814,11 @@ export interface paths {
     delete?: never
     options?: never
     head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}/cancel': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
     /**
-     * Cancel subscription addon
-     * @description Cancels a subscription addon (effectively unsubscribing from it) by the given time.
+     * Update subscription addon
+     * @description Updates a subscription addon (allows changing the quantity: purchasing more instances or cancelling the current instances)
      */
-    post: operations['cancelSubscriptionAddon']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
+    patch: operations['updateSubscriptionAddon']
     trace?: never
   }
   '/api/v1/subscriptions/{subscriptionId}/cancel': {
@@ -8028,7 +8012,7 @@ export interface components {
        */
       currency: components['schemas']['CurrencyCode']
     }
-    /** @description A subscription addon, a concrete instance of an addon for a given subscription. */
+    /** @description A subscription addon, represents concrete instances of an addon for a given subscription. */
     SubscriptionAddon: {
       /**
        * ID
@@ -8102,10 +8086,39 @@ export interface components {
        */
       readonly addonId: string
       /**
+       * QuantityAt
+       * Format: date-time
+       * @description For which point in time the quantity was resolved to.
+       * @example 2025-01-05T00:00:00Z
+       */
+      readonly quantityAt: Date
+      /**
        * Quantity
        * @description The quantity of the addon. Always 1 for single instance add-ons.
+       * @example 1
        */
       quantity: number
+      /**
+       * Timeline
+       * @description The timeline of the addon. The returned periods are sorted and continuous.
+       * @example [
+       *       {
+       *         "quantity": 1,
+       *         "activeFrom": "2025-01-01T00:00:00Z",
+       *         "activeTo": "2025-01-02T00:00:00Z"
+       *       },
+       *       {
+       *         "quantity": 0,
+       *         "activeFrom": "2025-01-02T00:00:00Z",
+       *         "activeTo": "2025-01-03T00:00:00Z"
+       *       },
+       *       {
+       *         "quantity": 1,
+       *         "activeFrom": "2025-01-03T00:00:00Z"
+       *       }
+       *     ]
+       */
+      readonly timeline: components['schemas']['SubscriptionAddonTimelineSegment'][]
       /**
        * InstanceType
        * @description The instanceType of the addon. Can be "single" or "multiple".
@@ -8160,8 +8173,14 @@ export interface components {
       /**
        * Quantity
        * @description The quantity of the addon. Always 1 for single instance add-ons.
+       * @example 1
        */
       quantity: number
+      /**
+       * Timing
+       * @description The timing of the operation. After the create or update, a new entry will be created in the timeline.
+       */
+      timing: components['schemas']['SubscriptionTiming']
     }
     /** @description A rate card for a subscription addon. */
     SubscriptionAddonRateCard: {
@@ -8175,6 +8194,67 @@ export interface components {
        * @description The IDs of the subscription items that this rate card belongs to.
        */
       readonly affectedSubscriptionItemIds: string[]
+    }
+    /** @description A subscription addon event. */
+    SubscriptionAddonTimelineSegment: {
+      /**
+       * Format: date-time
+       * @description The cadence start of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeFrom: Date
+      /**
+       * Format: date-time
+       * @description The cadence end of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeTo?: Date
+      /**
+       * Quantity
+       * @description The quantity of the addon for the given period.
+       */
+      readonly quantity: number
+    }
+    /** @description Resource create or update operation model. */
+    SubscriptionAddonUpdate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name?: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Format: date-time
+       * @description The cadence start of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeFrom?: Date
+      /**
+       * Format: date-time
+       * @description The cadence end of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeTo?: Date
+      /**
+       * Quantity
+       * @description The quantity of the addon. Always 1 for single instance add-ons.
+       * @example 1
+       */
+      quantity?: number
+      /**
+       * Timing
+       * @description The timing of the operation. After the create or update, a new entry will be created in the timeline.
+       */
+      timing?: components['schemas']['SubscriptionTiming']
     }
     /** @description Alignment details enriched with the current billing period. */
     SubscriptionAlignment: {
@@ -9472,6 +9552,10 @@ export type SubscriptionAddonCreate =
   components['schemas']['SubscriptionAddonCreate']
 export type SubscriptionAddonRateCard =
   components['schemas']['SubscriptionAddonRateCard']
+export type SubscriptionAddonTimelineSegment =
+  components['schemas']['SubscriptionAddonTimelineSegment']
+export type SubscriptionAddonUpdate =
+  components['schemas']['SubscriptionAddonUpdate']
 export type SubscriptionAlignment =
   components['schemas']['SubscriptionAlignment']
 export type SubscriptionChange = components['schemas']['SubscriptionChange']
@@ -21009,7 +21093,7 @@ export interface operations {
       }
     }
   }
-  cancelSubscriptionAddon: {
+  updateSubscriptionAddon: {
     parameters: {
       query?: never
       header?: never
@@ -21021,10 +21105,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': {
-          /** @description If not provided, the addon will be canceled immediately. */
-          timing?: components['schemas']['SubscriptionTiming']
-        }
+        'application/json': components['schemas']['SubscriptionAddonUpdate']
       }
     }
     responses: {

@@ -22,8 +22,8 @@ func (a *Router) GetSubscriptionAddon(w http.ResponseWriter, r *http.Request, su
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Cancel subscription addon
-// (POST /api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}/cancel)
-func (a *Router) CancelSubscriptionAddon(w http.ResponseWriter, r *http.Request, subscriptionId string, subscriptionAddonId string) {
+// Update a subscription addon
+// (PATCH /api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId})
+func (a *Router) UpdateSubscriptionAddon(w http.ResponseWriter, r *http.Request, subscriptionId string, subscriptionAddonId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
