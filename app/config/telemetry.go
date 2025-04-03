@@ -127,7 +127,7 @@ func (c TraceTelemetryConfig) GetSampler() sdktrace.Sampler {
 			panic(fmt.Errorf("trace: invalid ratio: %w", err))
 		}
 
-		return sdktrace.TraceIDRatioBased(ratio)
+		return sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))
 	}
 }
 
