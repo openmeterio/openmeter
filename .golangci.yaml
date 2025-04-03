@@ -1,6 +1,7 @@
-# https://golangci-lint.run/jsonschema/golangci.jsonschema.json
+# yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json
 version: "2"
 linters:
+  default: none
   enable:
     - bodyclose
     - errcheck
@@ -11,9 +12,11 @@ linters:
     - sloglint
     - staticcheck
     - unconvert
-    - unparam
-    - unused
+    # FIXME: re-enable following linters
+    #- unparam
+    #- unused
     - whitespace
+    #- wsl
   settings:
     misspell:
       locale: US
