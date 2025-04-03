@@ -43,6 +43,12 @@ func WithMetricMeter(m metric.Meter) Option {
 	})
 }
 
+func WithSpanOptions(opt otelsql.SpanOptions) Option {
+	return optionFunc(func(o *options) {
+		o.otelOptions = append(o.otelOptions, otelsql.WithSpanOptions(opt))
+	})
+}
+
 type options struct {
 	connConfig  *pgxpool.Config
 	otelOptions []otelsql.Option
