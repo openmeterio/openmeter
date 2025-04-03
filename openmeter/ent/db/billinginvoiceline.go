@@ -88,10 +88,6 @@ type BillingInvoiceLine struct {
 	SubscriptionPhaseID *string `json:"subscription_phase_id,omitempty"`
 	// SubscriptionItemID holds the value of the "subscription_item_id" field.
 	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
-	// LineIds holds the value of the "line_ids" field.
-	//
-	// Deprecated: invoice discounts are deprecated, use line_discounts instead
-	LineIds *string `json:"line_ids,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceLineQuery when eager-loading is set.
 	Edges                      BillingInvoiceLineEdges `json:"edges"`
@@ -231,7 +227,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldLineIds:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -453,13 +449,6 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 				bil.SubscriptionItemID = new(string)
 				*bil.SubscriptionItemID = value.String
 			}
-		case billinginvoiceline.FieldLineIds:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field line_ids", values[i])
-			} else if value.Valid {
-				bil.LineIds = new(string)
-				*bil.LineIds = value.String
-			}
 		case billinginvoiceline.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field fee_line_config_id", values[i])
@@ -660,11 +649,6 @@ func (bil *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	if v := bil.SubscriptionItemID; v != nil {
 		builder.WriteString("subscription_item_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := bil.LineIds; v != nil {
-		builder.WriteString("line_ids=")
 		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')

@@ -194,11 +194,6 @@ func SubscriptionItemID(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldSubscriptionItemID, v))
 }
 
-// LineIds applies equality check predicate on the "line_ids" field. It's identical to LineIdsEQ.
-func LineIds(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldLineIds, v))
-}
-
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldNamespace, v))
@@ -1691,81 +1686,6 @@ func SubscriptionItemIDEqualFold(v string) predicate.BillingInvoiceLine {
 // SubscriptionItemIDContainsFold applies the ContainsFold predicate on the "subscription_item_id" field.
 func SubscriptionItemIDContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldSubscriptionItemID, v))
-}
-
-// LineIdsEQ applies the EQ predicate on the "line_ids" field.
-func LineIdsEQ(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldLineIds, v))
-}
-
-// LineIdsNEQ applies the NEQ predicate on the "line_ids" field.
-func LineIdsNEQ(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldLineIds, v))
-}
-
-// LineIdsIn applies the In predicate on the "line_ids" field.
-func LineIdsIn(vs ...string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIn(FieldLineIds, vs...))
-}
-
-// LineIdsNotIn applies the NotIn predicate on the "line_ids" field.
-func LineIdsNotIn(vs ...string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldLineIds, vs...))
-}
-
-// LineIdsGT applies the GT predicate on the "line_ids" field.
-func LineIdsGT(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGT(FieldLineIds, v))
-}
-
-// LineIdsGTE applies the GTE predicate on the "line_ids" field.
-func LineIdsGTE(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldLineIds, v))
-}
-
-// LineIdsLT applies the LT predicate on the "line_ids" field.
-func LineIdsLT(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLT(FieldLineIds, v))
-}
-
-// LineIdsLTE applies the LTE predicate on the "line_ids" field.
-func LineIdsLTE(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldLineIds, v))
-}
-
-// LineIdsContains applies the Contains predicate on the "line_ids" field.
-func LineIdsContains(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldContains(FieldLineIds, v))
-}
-
-// LineIdsHasPrefix applies the HasPrefix predicate on the "line_ids" field.
-func LineIdsHasPrefix(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldLineIds, v))
-}
-
-// LineIdsHasSuffix applies the HasSuffix predicate on the "line_ids" field.
-func LineIdsHasSuffix(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldLineIds, v))
-}
-
-// LineIdsIsNil applies the IsNil predicate on the "line_ids" field.
-func LineIdsIsNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldLineIds))
-}
-
-// LineIdsNotNil applies the NotNil predicate on the "line_ids" field.
-func LineIdsNotNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldLineIds))
-}
-
-// LineIdsEqualFold applies the EqualFold predicate on the "line_ids" field.
-func LineIdsEqualFold(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldLineIds, v))
-}
-
-// LineIdsContainsFold applies the ContainsFold predicate on the "line_ids" field.
-func LineIdsContainsFold(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldLineIds, v))
 }
 
 // HasBillingInvoice applies the HasEdge predicate on the "billing_invoice" edge.

@@ -30,8 +30,6 @@ type Tx struct {
 	BillingCustomerOverride *BillingCustomerOverrideClient
 	// BillingInvoice is the client for interacting with the BillingInvoice builders.
 	BillingInvoice *BillingInvoiceClient
-	// BillingInvoiceDiscount is the client for interacting with the BillingInvoiceDiscount builders.
-	BillingInvoiceDiscount *BillingInvoiceDiscountClient
 	// BillingInvoiceFlatFeeLineConfig is the client for interacting with the BillingInvoiceFlatFeeLineConfig builders.
 	BillingInvoiceFlatFeeLineConfig *BillingInvoiceFlatFeeLineConfigClient
 	// BillingInvoiceLine is the client for interacting with the BillingInvoiceLine builders.
@@ -221,7 +219,6 @@ func (tx *Tx) init() {
 	tx.BillingCustomerLock = NewBillingCustomerLockClient(tx.config)
 	tx.BillingCustomerOverride = NewBillingCustomerOverrideClient(tx.config)
 	tx.BillingInvoice = NewBillingInvoiceClient(tx.config)
-	tx.BillingInvoiceDiscount = NewBillingInvoiceDiscountClient(tx.config)
 	tx.BillingInvoiceFlatFeeLineConfig = NewBillingInvoiceFlatFeeLineConfigClient(tx.config)
 	tx.BillingInvoiceLine = NewBillingInvoiceLineClient(tx.config)
 	tx.BillingInvoiceLineDiscount = NewBillingInvoiceLineDiscountClient(tx.config)

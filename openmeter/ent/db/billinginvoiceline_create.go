@@ -310,20 +310,6 @@ func (bilc *BillingInvoiceLineCreate) SetNillableSubscriptionItemID(s *string) *
 	return bilc
 }
 
-// SetLineIds sets the "line_ids" field.
-func (bilc *BillingInvoiceLineCreate) SetLineIds(s string) *BillingInvoiceLineCreate {
-	bilc.mutation.SetLineIds(s)
-	return bilc
-}
-
-// SetNillableLineIds sets the "line_ids" field if the given value is not nil.
-func (bilc *BillingInvoiceLineCreate) SetNillableLineIds(s *string) *BillingInvoiceLineCreate {
-	if s != nil {
-		bilc.SetLineIds(*s)
-	}
-	return bilc
-}
-
 // SetID sets the "id" field.
 func (bilc *BillingInvoiceLineCreate) SetID(s string) *BillingInvoiceLineCreate {
 	bilc.mutation.SetID(s)
@@ -713,10 +699,6 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 	if value, ok := bilc.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
 		_node.ChildUniqueReferenceID = &value
-	}
-	if value, ok := bilc.mutation.LineIds(); ok {
-		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
-		_node.LineIds = &value
 	}
 	if nodes := bilc.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1299,24 +1281,6 @@ func (u *BillingInvoiceLineUpsert) ClearSubscriptionItemID() *BillingInvoiceLine
 	return u
 }
 
-// SetLineIds sets the "line_ids" field.
-func (u *BillingInvoiceLineUpsert) SetLineIds(v string) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldLineIds, v)
-	return u
-}
-
-// UpdateLineIds sets the "line_ids" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdateLineIds() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldLineIds)
-	return u
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (u *BillingInvoiceLineUpsert) ClearLineIds() *BillingInvoiceLineUpsert {
-	u.SetNull(billinginvoiceline.FieldLineIds)
-	return u
-}
-
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1815,27 +1779,6 @@ func (u *BillingInvoiceLineUpsertOne) UpdateSubscriptionItemID() *BillingInvoice
 func (u *BillingInvoiceLineUpsertOne) ClearSubscriptionItemID() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearSubscriptionItemID()
-	})
-}
-
-// SetLineIds sets the "line_ids" field.
-func (u *BillingInvoiceLineUpsertOne) SetLineIds(v string) *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetLineIds(v)
-	})
-}
-
-// UpdateLineIds sets the "line_ids" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdateLineIds() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateLineIds()
-	})
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (u *BillingInvoiceLineUpsertOne) ClearLineIds() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearLineIds()
 	})
 }
 
@@ -2504,27 +2447,6 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateSubscriptionItemID() *BillingInvoic
 func (u *BillingInvoiceLineUpsertBulk) ClearSubscriptionItemID() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearSubscriptionItemID()
-	})
-}
-
-// SetLineIds sets the "line_ids" field.
-func (u *BillingInvoiceLineUpsertBulk) SetLineIds(v string) *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetLineIds(v)
-	})
-}
-
-// UpdateLineIds sets the "line_ids" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdateLineIds() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateLineIds()
-	})
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (u *BillingInvoiceLineUpsertBulk) ClearLineIds() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearLineIds()
 	})
 }
 

@@ -452,26 +452,6 @@ func (bilu *BillingInvoiceLineUpdate) ClearSubscriptionItemID() *BillingInvoiceL
 	return bilu
 }
 
-// SetLineIds sets the "line_ids" field.
-func (bilu *BillingInvoiceLineUpdate) SetLineIds(s string) *BillingInvoiceLineUpdate {
-	bilu.mutation.SetLineIds(s)
-	return bilu
-}
-
-// SetNillableLineIds sets the "line_ids" field if the given value is not nil.
-func (bilu *BillingInvoiceLineUpdate) SetNillableLineIds(s *string) *BillingInvoiceLineUpdate {
-	if s != nil {
-		bilu.SetLineIds(*s)
-	}
-	return bilu
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (bilu *BillingInvoiceLineUpdate) ClearLineIds() *BillingInvoiceLineUpdate {
-	bilu.mutation.ClearLineIds()
-	return bilu
-}
-
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
 func (bilu *BillingInvoiceLineUpdate) SetBillingInvoiceID(id string) *BillingInvoiceLineUpdate {
 	bilu.mutation.SetBillingInvoiceID(id)
@@ -814,12 +794,6 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 	}
 	if bilu.mutation.ChildUniqueReferenceIDCleared() {
 		_spec.ClearField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString)
-	}
-	if value, ok := bilu.mutation.LineIds(); ok {
-		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
-	}
-	if bilu.mutation.LineIdsCleared() {
-		_spec.ClearField(billinginvoiceline.FieldLineIds, field.TypeString)
 	}
 	if bilu.mutation.BillingInvoiceCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1548,26 +1522,6 @@ func (biluo *BillingInvoiceLineUpdateOne) ClearSubscriptionItemID() *BillingInvo
 	return biluo
 }
 
-// SetLineIds sets the "line_ids" field.
-func (biluo *BillingInvoiceLineUpdateOne) SetLineIds(s string) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.SetLineIds(s)
-	return biluo
-}
-
-// SetNillableLineIds sets the "line_ids" field if the given value is not nil.
-func (biluo *BillingInvoiceLineUpdateOne) SetNillableLineIds(s *string) *BillingInvoiceLineUpdateOne {
-	if s != nil {
-		biluo.SetLineIds(*s)
-	}
-	return biluo
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (biluo *BillingInvoiceLineUpdateOne) ClearLineIds() *BillingInvoiceLineUpdateOne {
-	biluo.mutation.ClearLineIds()
-	return biluo
-}
-
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
 func (biluo *BillingInvoiceLineUpdateOne) SetBillingInvoiceID(id string) *BillingInvoiceLineUpdateOne {
 	biluo.mutation.SetBillingInvoiceID(id)
@@ -1940,12 +1894,6 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 	}
 	if biluo.mutation.ChildUniqueReferenceIDCleared() {
 		_spec.ClearField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString)
-	}
-	if value, ok := biluo.mutation.LineIds(); ok {
-		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
-	}
-	if biluo.mutation.LineIdsCleared() {
-		_spec.ClearField(billinginvoiceline.FieldLineIds, field.TypeString)
 	}
 	if biluo.mutation.BillingInvoiceCleared() {
 		edge := &sqlgraph.EdgeSpec{

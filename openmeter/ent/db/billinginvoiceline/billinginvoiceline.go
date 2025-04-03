@@ -76,8 +76,6 @@ const (
 	FieldSubscriptionPhaseID = "subscription_phase_id"
 	// FieldSubscriptionItemID holds the string denoting the subscription_item_id field in the database.
 	FieldSubscriptionItemID = "subscription_item_id"
-	// FieldLineIds holds the string denoting the line_ids field in the database.
-	FieldLineIds = "line_ids"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
 	EdgeBillingInvoice = "billing_invoice"
 	// EdgeFlatFeeLine holds the string denoting the flat_fee_line edge name in mutations.
@@ -208,11 +206,6 @@ func ValidColumn(column string) bool {
 	}
 	for i := range ForeignKeys {
 		if column == ForeignKeys[i] {
-			return true
-		}
-	}
-	for _, f := range [...]string{FieldLineIds} {
-		if column == f {
 			return true
 		}
 	}
@@ -410,11 +403,6 @@ func BySubscriptionPhaseID(opts ...sql.OrderTermOption) OrderOption {
 // BySubscriptionItemID orders the results by the subscription_item_id field.
 func BySubscriptionItemID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubscriptionItemID, opts...).ToFunc()
-}
-
-// ByLineIds orders the results by the line_ids field.
-func ByLineIds(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLineIds, opts...).ToFunc()
 }
 
 // ByBillingInvoiceField orders the results by billing_invoice field.

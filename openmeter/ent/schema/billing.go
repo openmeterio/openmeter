@@ -368,15 +368,6 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 		field.String("subscription_item_id").
 			Optional().
 			Nillable(),
-
-		// Deprecated fields
-		field.String("line_ids").
-			Optional().
-			Nillable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}).
-			Deprecated("invoice discounts are deprecated, use line_discounts instead"),
 	}
 }
 
@@ -546,42 +537,6 @@ func (BillingInvoiceLineDiscount) Edges() []ent.Edge {
 			Field("line_id").
 			Unique().
 			Required(),
-	}
-}
-
-// TODO: remove this later (first we need to deploy a version that doesn't reference this)
-type BillingInvoiceDiscount struct {
-	ent.Schema
-}
-
-func (BillingInvoiceDiscount) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		entutils.ResourceMixin{},
-	}
-}
-
-func (BillingInvoiceDiscount) Fields() []ent.Field {
-	return []ent.Field{
-		field.String("invoice_id").
-			SchemaType(map[string]string{
-				"postgres": "char(26)",
-			}),
-
-		field.String("type"),
-
-		field.Other("amount", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				"postgres": "numeric",
-			}),
-
-		field.Strings("line_ids").
-			Optional(),
-	}
-}
-
-func (BillingInvoiceDiscount) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("namespace", "invoice_id"),
 	}
 }
 
