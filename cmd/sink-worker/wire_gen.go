@@ -111,7 +111,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration)
+	tracer := common.NewTracer(tracerProvider, commonMetadata)
+	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -156,7 +157,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	postgresConfig := conf.Postgres
 	driver, cleanup6, err := common.NewPostgresDriver(ctx, postgresConfig, meterProvider, meter, tracerProvider, logger)
 	if err != nil {
