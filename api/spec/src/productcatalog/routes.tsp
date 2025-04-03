@@ -474,7 +474,7 @@ interface SubscriptionAddons {
     | OpenMeter.CommonErrors;
 
   /**
-   * List all addons of a subscription.
+   * List all addons of a subscription. In the returned list will match to a set unique by addonId.
    */
   @get
   @operationId("listSubscriptionAddons")
@@ -498,21 +498,18 @@ interface SubscriptionAddons {
   ): SubscriptionAddon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Cancels a subscription addon (effectively unsubscribing from it) by the given time.
+   * Updates a subscription addon (allows changing the quantity: purchasing more instances or cancelling the current instances)
    */
-  @post
-  @route("/{subscriptionAddonId}/cancel")
-  @operationId("cancelSubscriptionAddon")
-  @summary("Cancel subscription addon")
+  @patch
+  @route("/{subscriptionAddonId}")
+  @operationId("updateSubscriptionAddon")
+  @summary("Update subscription addon")
   @extension("x-internal", true)
-  cancel(
+  update(
     @path subscriptionId: ULID,
     @path subscriptionAddonId: ULID,
-    @body body: {
-      /**
-       * If not provided, the addon will be canceled immediately.
-       */
-      timing?: SubscriptionTiming;
-    },
+
+    @body
+    body: TypeSpec.Rest.Resource.ResourceCreateOrUpdateModel<SubscriptionAddon>,
   ): SubscriptionAddon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
