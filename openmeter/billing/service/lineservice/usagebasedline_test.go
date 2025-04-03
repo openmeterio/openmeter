@@ -417,7 +417,7 @@ func TestDynamicPriceCalculation(t *testing.T) {
 	t.Run("dynamic price, no usage", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
-				MarkupRate: DecimalOne,
+				Multiplier: DecimalOne,
 			}),
 			lineMode: singlePerPeriodLineMode,
 			usage: featureUsageResponse{
@@ -431,7 +431,7 @@ func TestDynamicPriceCalculation(t *testing.T) {
 	t.Run("dynamic price, no usage, min spend set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
-				MarkupRate: DecimalOne,
+				Multiplier: DecimalOne,
 				Commitments: productcatalog.Commitments{
 					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 				},
@@ -458,7 +458,7 @@ func TestDynamicPriceCalculation(t *testing.T) {
 	t.Run("no usage, not the last line in period, min spend set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
-				MarkupRate: DecimalOne,
+				Multiplier: DecimalOne,
 				Commitments: productcatalog.Commitments{
 					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 				},
@@ -475,7 +475,7 @@ func TestDynamicPriceCalculation(t *testing.T) {
 	t.Run("no usage, last line in period, min spend set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
-				MarkupRate: DecimalOne,
+				Multiplier: DecimalOne,
 				Commitments: productcatalog.Commitments{
 					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 				},
@@ -502,7 +502,7 @@ func TestDynamicPriceCalculation(t *testing.T) {
 	t.Run("usage present", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
-				MarkupRate: alpacadecimal.NewFromFloat(1.33333),
+				Multiplier: alpacadecimal.NewFromFloat(1.33333),
 			}),
 			lineMode: singlePerPeriodLineMode,
 			usage: featureUsageResponse{
@@ -523,7 +523,7 @@ func TestDynamicPriceCalculation(t *testing.T) {
 	t.Run("usage present, mid line", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
-				MarkupRate: alpacadecimal.NewFromFloat(1.33333),
+				Multiplier: alpacadecimal.NewFromFloat(1.33333),
 			}),
 			lineMode: midPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -545,7 +545,7 @@ func TestDynamicPriceCalculation(t *testing.T) {
 	t.Run("usage present, max spend set, but not hit", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
-				MarkupRate: alpacadecimal.NewFromFloat(1.33333),
+				Multiplier: alpacadecimal.NewFromFloat(1.33333),
 				Commitments: productcatalog.Commitments{
 					MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 				},
@@ -569,7 +569,7 @@ func TestDynamicPriceCalculation(t *testing.T) {
 	t.Run("usage present, max spend set and hit", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
-				MarkupRate: alpacadecimal.NewFromFloat(1.33333),
+				Multiplier: alpacadecimal.NewFromFloat(1.33333),
 				Commitments: productcatalog.Commitments{
 					MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 				},

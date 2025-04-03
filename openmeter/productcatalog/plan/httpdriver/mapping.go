@@ -309,16 +309,16 @@ func FromRateCardUsageBasedPrice(price productcatalog.Price) (api.RateCardUsageB
 			return resp, fmt.Errorf("failed to cast DynamicPrice: %w", err)
 		}
 
-		var markupRate *string
-		if !dynamicPrice.MarkupRate.Equal(productcatalog.DynamicPriceDefaultMarkupRate) {
-			markupRate = lo.ToPtr(dynamicPrice.MarkupRate.String())
+		var multiplier *string
+		if !dynamicPrice.Multiplier.Equal(productcatalog.DynamicPriceDefaultMultiplier) {
+			multiplier = lo.ToPtr(dynamicPrice.Multiplier.String())
 		}
 
 		err = resp.FromDynamicPriceWithCommitments(api.DynamicPriceWithCommitments{
 			Type:          api.DynamicPriceWithCommitmentsTypeDynamic,
 			MinimumAmount: convert.StringerPtrToStringPtr(dynamicPrice.MinimumAmount),
 			MaximumAmount: convert.StringerPtrToStringPtr(dynamicPrice.MaximumAmount),
-			MarkupRate:    markupRate,
+			Multiplier:    multiplier,
 		})
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast DynamicPrice: %w", err)
@@ -920,15 +920,15 @@ func AsPrice(p api.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
 
 		dynamicPrice := productcatalog.DynamicPrice{}
 
-		if dynamic.MarkupRate != nil {
-			markupRate, err := decimal.NewFromString(*dynamic.MarkupRate)
+		if dynamic.Multiplier != nil {
+			multiplier, err := decimal.NewFromString(*dynamic.Multiplier)
 			if err != nil {
-				return price, fmt.Errorf("failed to cast MarkupRate of DynamicPrice to decimal: %w", err)
+				return price, fmt.Errorf("failed to cast Multiplier of DynamicPrice to decimal: %w", err)
 			}
 
-			dynamicPrice.MarkupRate = markupRate
+			dynamicPrice.Multiplier = multiplier
 		} else {
-			dynamicPrice.MarkupRate = decimal.NewFromInt(1)
+			dynamicPrice.Multiplier = decimal.NewFromInt(1)
 		}
 
 		// Commitments

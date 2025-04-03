@@ -420,7 +420,7 @@ func (l usageBasedLine) calculateDynamicPriceDetailedLines(usage *featureUsageRe
 
 	if usage.LinePeriodQty.IsPositive() {
 		amountInPeriod := l.currency.RoundToPrecision(
-			usage.LinePeriodQty.Mul(dynamicPrice.MarkupRate),
+			usage.LinePeriodQty.Mul(dynamicPrice.Multiplier),
 		)
 
 		out = newDetailedLinesInput{
@@ -434,7 +434,7 @@ func (l usageBasedLine) calculateDynamicPriceDetailedLines(usage *featureUsageRe
 		}
 	}
 
-	amountBilledInPreviousPeriods := l.currency.RoundToPrecision(usage.PreLinePeriodQty.Mul(dynamicPrice.MarkupRate))
+	amountBilledInPreviousPeriods := l.currency.RoundToPrecision(usage.PreLinePeriodQty.Mul(dynamicPrice.Multiplier))
 
 	detailedLines, err := l.applyCommitments(applyCommitmentsInput{
 		Commitments:                   dynamicPrice.Commitments,

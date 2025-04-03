@@ -358,7 +358,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 						Feature: feat1,
 						Price: NewPriceFrom(
 							DynamicPrice{
-								MarkupRate: decimal.NewFromInt(1),
+								Multiplier: decimal.NewFromInt(1),
 							}),
 						Discounts: Discounts{
 							NewDiscountFrom(PercentageDiscount{
