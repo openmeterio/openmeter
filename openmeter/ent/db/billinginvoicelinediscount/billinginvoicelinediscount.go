@@ -8,7 +8,9 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -24,16 +26,26 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldLineID holds the string denoting the line_id field in the database.
-	FieldLineID = "line_id"
+	// FieldType holds the string denoting the type field in the database.
+	FieldType = "type"
 	// FieldReason holds the string denoting the reason field in the database.
 	FieldReason = "reason"
+	// FieldLineID holds the string denoting the line_id field in the database.
+	FieldLineID = "line_id"
 	// FieldChildUniqueReferenceID holds the string denoting the child_unique_reference_id field in the database.
 	FieldChildUniqueReferenceID = "child_unique_reference_id"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
+	// FieldRoundingAmount holds the string denoting the rounding_amount field in the database.
+	FieldRoundingAmount = "rounding_amount"
+	// FieldQuantity holds the string denoting the quantity field in the database.
+	FieldQuantity = "quantity"
+	// FieldPreLinePeriodQuantity holds the string denoting the pre_line_period_quantity field in the database.
+	FieldPreLinePeriodQuantity = "pre_line_period_quantity"
+	// FieldSourceDiscount holds the string denoting the source_discount field in the database.
+	FieldSourceDiscount = "source_discount"
 	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
 	FieldInvoicingAppExternalID = "invoicing_app_external_id"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
@@ -56,11 +68,16 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldLineID,
+	FieldType,
 	FieldReason,
+	FieldLineID,
 	FieldChildUniqueReferenceID,
 	FieldDescription,
 	FieldAmount,
+	FieldRoundingAmount,
+	FieldQuantity,
+	FieldPreLinePeriodQuantity,
+	FieldSourceDiscount,
 	FieldInvoicingAppExternalID,
 }
 
@@ -85,7 +102,21 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all BillingInvoiceLineDiscount fields.
+	ValueScanner struct {
+		SourceDiscount field.TypeValueScanner[*productcatalog.Discount]
+	}
 )
+
+// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
+func TypeValidator(_type billing.LineDiscountType) error {
+	switch _type {
+	case "amount", "usage":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoicelinediscount: invalid enum value for type field: %q", _type)
+	}
+}
 
 // ReasonValidator is a validator for the "reason" field enum values. It is called by the builders before save.
 func ReasonValidator(r billing.LineDiscountReason) error {
@@ -125,14 +156,19 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// ByLineID orders the results by the line_id field.
-func ByLineID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLineID, opts...).ToFunc()
+// ByType orders the results by the type field.
+func ByType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
 // ByReason orders the results by the reason field.
 func ByReason(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReason, opts...).ToFunc()
+}
+
+// ByLineID orders the results by the line_id field.
+func ByLineID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLineID, opts...).ToFunc()
 }
 
 // ByChildUniqueReferenceID orders the results by the child_unique_reference_id field.
@@ -148,6 +184,26 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByAmount orders the results by the amount field.
 func ByAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmount, opts...).ToFunc()
+}
+
+// ByRoundingAmount orders the results by the rounding_amount field.
+func ByRoundingAmount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRoundingAmount, opts...).ToFunc()
+}
+
+// ByQuantity orders the results by the quantity field.
+func ByQuantity(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldQuantity, opts...).ToFunc()
+}
+
+// ByPreLinePeriodQuantity orders the results by the pre_line_period_quantity field.
+func ByPreLinePeriodQuantity(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPreLinePeriodQuantity, opts...).ToFunc()
+}
+
+// BySourceDiscount orders the results by the source_discount field.
+func BySourceDiscount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSourceDiscount, opts...).ToFunc()
 }
 
 // ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.

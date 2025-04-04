@@ -441,22 +441,65 @@ func mapDiscountsToAPI(discounts billing.LineDiscounts) (*[]api.InvoiceLineDisco
 func mapDiscountToAPI(discount billing.LineDiscount) (api.InvoiceLineDiscount, error) {
 	out := api.InvoiceLineDiscount{}
 
-	err := out.FromInvoiceLineDiscountAmount(api.InvoiceLineDiscountAmount{
-		Id: discount.ID,
+	switch discount.Type() {
+	case billing.LineDiscountTypeAmount:
+		amount, err := discount.AsAmount()
+		if err != nil {
+			return api.InvoiceLineDiscount{}, fmt.Errorf("failed to map amount discount: %w", err)
+		}
 
-		CreatedAt: discount.CreatedAt,
-		DeletedAt: discount.DeletedAt,
-		UpdatedAt: discount.UpdatedAt,
+		err = out.FromInvoiceLineDiscountAmount(api.InvoiceLineDiscountAmount{
+			Id: amount.ID,
 
-		Reason:      api.InvoiceDiscountReason(discount.Reason),
-		Description: discount.Description,
-		Amount:      discount.Amount.String(),
-		ExternalIds: &api.InvoiceLineAppExternalIds{
-			Invoicing: lo.EmptyableToPtr(discount.ExternalIDs.Invoicing),
-		},
-	})
+			CreatedAt: amount.CreatedAt,
+			DeletedAt: amount.DeletedAt,
+			UpdatedAt: amount.UpdatedAt,
+			Type:      api.InvoiceLineDiscountAmountTypeAmount,
 
-	return out, err
+			Description: amount.Description,
+			Reason:      api.InvoiceDiscountReason(amount.Reason),
+			ExternalIds: &api.InvoiceLineAppExternalIds{
+				Invoicing: lo.EmptyableToPtr(amount.ExternalIDs.Invoicing),
+			},
+
+			Amount: amount.Amount.String(),
+		})
+		if err != nil {
+			return api.InvoiceLineDiscount{}, fmt.Errorf("failed to map amount discount: %w", err)
+		}
+
+		return out, nil
+	case billing.LineDiscountTypeUsage:
+		usage, err := discount.AsUsage()
+		if err != nil {
+			return api.InvoiceLineDiscount{}, fmt.Errorf("failed to map usage discount: %w", err)
+		}
+
+		err = out.FromInvoiceLineDiscountUsage(api.InvoiceLineDiscountUsage{
+			Id: usage.ID,
+
+			CreatedAt: usage.CreatedAt,
+			DeletedAt: usage.DeletedAt,
+			UpdatedAt: usage.UpdatedAt,
+			Type:      api.InvoiceLineDiscountUsageTypeUsage,
+
+			Description: usage.Description,
+			Reason:      api.InvoiceDiscountReason(usage.Reason),
+			ExternalIds: &api.InvoiceLineAppExternalIds{
+				Invoicing: lo.EmptyableToPtr(usage.ExternalIDs.Invoicing),
+			},
+
+			Quantity:              usage.Quantity.String(),
+			PreLinePeriodQuantity: decimalPtrToStringPtr(usage.PreLinePeriodQuantity),
+		})
+		if err != nil {
+			return api.InvoiceLineDiscount{}, fmt.Errorf("failed to map amount discount: %w", err)
+		}
+
+		return out, nil
+	default:
+		return api.InvoiceLineDiscount{}, fmt.Errorf("unsupported discount type[id=%s]: %s", discount.GetID(), discount.Type())
+	}
 }
 
 func decimalPtrToStringPtr(d *alpacadecimal.Decimal) *string {

@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type LineID models.NamespacedID
@@ -236,6 +235,10 @@ type LineExternalIDs struct {
 	Invoicing string `json:"invoicing,omitempty"`
 }
 
+func (i LineExternalIDs) Equal(other LineExternalIDs) bool {
+	return i.Invoicing == other.Invoicing
+}
+
 type FlatFeeCategory string
 
 const (
@@ -292,17 +295,6 @@ func (i Line) LineID() LineID {
 		Namespace: i.Namespace,
 		ID:        i.ID,
 	}
-}
-
-// DiscountsByID returns all discounts for the line and its children.
-func (i Line) DiscountsByID() map[string]LineDiscount {
-	discountsByID := map[string]LineDiscount{}
-
-	for _, discount := range i.Discounts {
-		discountsByID[discount.ID] = discount
-	}
-
-	return discountsByID
 }
 
 // CloneWithoutDependencies returns a clone of the line without any external dependencies. Could be used
@@ -406,10 +398,8 @@ func (i Line) clone(opts cloneOptions) *Line {
 		})
 	}
 
-	if !opts.skipDiscounts && len(i.Discounts) > 0 {
-		res.Discounts = lo.Map(i.Discounts, func(ld LineDiscount, _ int) LineDiscount {
-			return ld
-		})
+	if !opts.skipDiscounts {
+		res.Discounts = i.Discounts.Clone()
 	}
 
 	return res
@@ -433,6 +423,10 @@ func (i Line) Validate() error {
 
 	if i.InvoiceAt.Before(i.Period.Truncate(DefaultMeterResolution).Start) {
 		errs = append(errs, errors.New("invoice at must be after period start"))
+	}
+
+	if err := i.Discounts.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("discounts: %w", err))
 	}
 
 	if i.Children.IsPresent() {
@@ -632,9 +626,9 @@ func (c *LineChildren) ReplaceByID(id string, newLine *Line) bool {
 
 // ChildrenWithIDReuse returns a new LineChildren instance with the given lines. If the line has a child
 // with a unique reference ID, it will try to retain the database ID of the existing child to avoid a delete/create.
-func (c Line) ChildrenWithIDReuse(l []*Line) LineChildren {
+func (c Line) ChildrenWithIDReuse(l []*Line) (LineChildren, error) {
 	if !c.Children.IsPresent() {
-		return NewLineChildren(l)
+		return NewLineChildren(l), nil
 	}
 
 	clonedNewLines := lo.Map(l, func(line *Line, _ int) *Line {
@@ -668,11 +662,16 @@ func (c Line) ChildrenWithIDReuse(l []*Line) LineChildren {
 			newChild.CreatedAt = existing.CreatedAt
 			newChild.UpdatedAt = existing.UpdatedAt
 
-			newChild.Discounts = existing.Discounts.ChildrenWithIDReuse(newChild.Discounts)
+			discountsWithIDReuse, err := newChild.Discounts.ReuseIDsFrom(existing.Discounts)
+			if err != nil {
+				return LineChildren{}, fmt.Errorf("failed to reuse discount ids: %w", err)
+			}
+
+			newChild.Discounts = discountsWithIDReuse
 		}
 	}
 
-	return NewLineChildren(clonedNewLines)
+	return NewLineChildren(clonedNewLines), nil
 }
 
 func (c LineChildren) Clone() LineChildren {
@@ -724,77 +723,6 @@ func (i UsageBasedLine) Validate() error {
 	}
 
 	return errors.Join(errs...)
-}
-
-type LineDiscountReason string
-
-const (
-	LineDiscountReasonMaximumSpend     LineDiscountReason = "maximum_spend"
-	LineDiscountReasonRatecardDiscount LineDiscountReason = "ratecard_discount"
-)
-
-func (LineDiscountReason) Values() []string {
-	return []string{
-		string(LineDiscountReasonMaximumSpend),
-		string(LineDiscountReasonRatecardDiscount),
-	}
-}
-
-const (
-	// LineMaximumSpendReferenceID is a discount applied due to maximum spend.
-	LineMaximumSpendReferenceID = "line_maximum_spend"
-)
-
-type LineDiscount struct {
-	ID        string     `json:"id"`
-	CreatedAt time.Time  `json:"createdAt"`
-	UpdatedAt time.Time  `json:"updatedAt"`
-	DeletedAt *time.Time `json:"deletedAt,omitempty"`
-
-	Reason                 LineDiscountReason    `json:"reason"`
-	Amount                 alpacadecimal.Decimal `json:"amount"`
-	Description            *string               `json:"description,omitempty"`
-	ChildUniqueReferenceID *string               `json:"childUniqueReferenceId,omitempty"`
-	ExternalIDs            LineExternalIDs       `json:"externalIDs,omitempty"`
-}
-
-func (i LineDiscount) Equal(other LineDiscount) bool {
-	return reflect.DeepEqual(i, other)
-}
-
-type LineDiscounts []LineDiscount
-
-func (c LineDiscounts) ChildrenWithIDReuse(l LineDiscounts) LineDiscounts {
-	clonedNewItems := lo.Map(l, func(item LineDiscount, _ int) LineDiscount {
-		return item
-	})
-
-	existingItemsByType := lo.GroupBy(
-		lo.Filter(c, func(item LineDiscount, _ int) bool {
-			return item.ChildUniqueReferenceID != nil
-		}),
-		func(item LineDiscount) string {
-			return *item.ChildUniqueReferenceID
-		},
-	)
-
-	clonedNewItems = lo.Map(clonedNewItems, func(newItem LineDiscount, _ int) LineDiscount {
-		if newItem.ChildUniqueReferenceID != nil {
-			if existingItems, ok := existingItemsByType[*newItem.ChildUniqueReferenceID]; ok {
-				existing := existingItems[0]
-
-				// Let's retain the created and updated at timestamps so that we
-				// don't trigger an update in vain
-				newItem.CreatedAt = existing.CreatedAt
-				newItem.UpdatedAt = existing.UpdatedAt
-				newItem.ID = existing.ID
-			}
-		}
-
-		return newItem
-	})
-
-	return slicesx.EmptyAsNil(clonedNewItems)
 }
 
 type CreateInvoiceLinesInput struct {

@@ -184,7 +184,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Iterate over the leaf lines
 	for _, line := range leafLines {
 		// Add discounts for line if any
-		for _, discount := range line.DiscountsByID() {
+		for _, discount := range line.Discounts.GetAmountDiscounts() {
 			stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddInvoiceItemParams(calculator, line, discount, stripeCustomerData.StripeCustomerID))
 		}
 
@@ -293,8 +293,13 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Iterate over the leaf lines
 	for _, line := range leafLines {
+		amountDiscountsById, err := line.Discounts.GetAmountDiscountsByID()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get amount discounts by ID: %w", err)
+		}
+
 		// Add discounts for line if any
-		for _, discount := range line.DiscountsByID() {
+		for _, discount := range amountDiscountsById {
 			// Update discount line item if it already has an external ID
 			if discount.ExternalIDs.Invoicing != "" {
 				// Get the Stripe line item for the discount
@@ -422,7 +427,7 @@ func sortInvoiceLines[K StripeInvoiceLineOperationParams](stripeLineAdd []*K) {
 func getDiscountStripeUpdateInvoiceItemParams(
 	calculator StripeCalculator,
 	line *billing.Line,
-	discount billing.LineDiscount,
+	discount billing.AmountLineDiscountManaged,
 	stripeLine *stripe.InvoiceLineItem,
 ) *stripeclient.StripeInvoiceItemWithID {
 	return &stripeclient.StripeInvoiceItemWithID{
@@ -432,7 +437,7 @@ func getDiscountStripeUpdateInvoiceItemParams(
 }
 
 // getDiscountStripeInvoiceItemParams returns the Stripe line item for a discount
-func getDiscountStripeInvoiceItemParams(calculator StripeCalculator, line *billing.Line, discount billing.LineDiscount) *stripe.InvoiceItemParams {
+func getDiscountStripeInvoiceItemParams(calculator StripeCalculator, line *billing.Line, discount billing.AmountLineDiscountManaged) *stripe.InvoiceItemParams {
 	name := getDiscountLineName(line, discount)
 	period := getPeriod(line)
 
@@ -449,7 +454,7 @@ func getDiscountStripeInvoiceItemParams(calculator StripeCalculator, line *billi
 	return applyTaxSettingsToInvoiceItem(addParams, line)
 }
 
-func getDiscountStripeAddInvoiceItemParams(calculator StripeCalculator, line *billing.Line, discount billing.LineDiscount, stripeCustomerID string) *stripe.InvoiceItemParams {
+func getDiscountStripeAddInvoiceItemParams(calculator StripeCalculator, line *billing.Line, discount billing.AmountLineDiscountManaged, stripeCustomerID string) *stripe.InvoiceItemParams {
 	params := getDiscountStripeInvoiceItemParams(calculator, line, discount)
 	// Customer is required for adds
 	params.Customer = stripe.String(stripeCustomerID)
@@ -535,7 +540,7 @@ func getPeriod(line *billing.Line) *stripe.InvoiceItemPeriodParams {
 }
 
 // getDiscountLineName returns the line name
-func getDiscountLineName(line *billing.Line, discount billing.LineDiscount) string {
+func getDiscountLineName(line *billing.Line, discount billing.AmountLineDiscountManaged) string {
 	name := line.Name
 	if discount.Description != nil {
 		name = fmt.Sprintf("%s (%s)", name, *discount.Description)

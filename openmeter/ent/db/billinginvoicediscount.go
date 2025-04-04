@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
 )
 
@@ -36,7 +37,7 @@ type BillingInvoiceDiscount struct {
 	// InvoiceID holds the value of the "invoice_id" field.
 	InvoiceID string `json:"invoice_id,omitempty"`
 	// Type holds the value of the "type" field.
-	Type string `json:"type,omitempty"`
+	Type billing.LineDiscountType `json:"type,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// LineIds holds the value of the "line_ids" field.
@@ -134,7 +135,7 @@ func (bid *BillingInvoiceDiscount) assignValues(columns []string, values []any) 
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				bid.Type = value.String
+				bid.Type = billing.LineDiscountType(value.String)
 			}
 		case billinginvoicediscount.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -215,7 +216,7 @@ func (bid *BillingInvoiceDiscount) String() string {
 	builder.WriteString(bid.InvoiceID)
 	builder.WriteString(", ")
 	builder.WriteString("type=")
-	builder.WriteString(bid.Type)
+	builder.WriteString(fmt.Sprintf("%v", bid.Type))
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", bid.Amount))

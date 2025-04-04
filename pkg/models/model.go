@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/equal"
 )
 
 type ManagedUniqueResource struct {
@@ -133,6 +134,22 @@ func (m ManagedModel) IsDeletedAt(t time.Time) bool {
 	}
 
 	return !m.DeletedAt.After(t)
+}
+
+func (m ManagedModel) Equal(other ManagedModel) bool {
+	if !m.CreatedAt.Equal(other.CreatedAt) {
+		return false
+	}
+
+	if !m.UpdatedAt.Equal(other.UpdatedAt) {
+		return false
+	}
+
+	if !equal.PtrEqual(m.DeletedAt, other.DeletedAt) {
+		return false
+	}
+
+	return true
 }
 
 type NamespacedModel struct {

@@ -366,24 +366,18 @@ func handleLineDiscounts(line *billing.Line, lineOperation operation, out *invoi
 
 func handleLineDiscountUpdate(line *billing.Line, out *invoiceLineDiff) error {
 	// We need to figure out what we need to update
-	currentDiscountIDs := lo.GroupBy(
-		lo.Filter(
-			line.Discounts,
-			func(d billing.LineDiscount, _ int) bool {
-				return d.ID != ""
-			},
-		),
-		func(d billing.LineDiscount) string {
-			return d.ID
-		},
-	)
+	currentDiscountIDs, err := line.Discounts.DiscountsByID()
+	if err != nil {
+		return fmt.Errorf("failed to get line discounts by ID: %w", err)
+	}
 
-	dbDiscountIDs := lo.GroupBy(line.DBState.Discounts, func(d billing.LineDiscount) string {
-		return d.ID
-	})
+	dbDiscountIDs, err := line.DBState.Discounts.DiscountsByID()
+	if err != nil {
+		return fmt.Errorf("failed to get line discounts by ID: %w", err)
+	}
 
-	for _, dbDiscount := range line.DBState.Discounts {
-		if _, ok := currentDiscountIDs[dbDiscount.ID]; !ok {
+	for _, dbDiscount := range dbDiscountIDs {
+		if _, ok := currentDiscountIDs[dbDiscount.GetID()]; !ok {
 			// We need to delete this discount
 			out.Discounts.NeedsDelete(discountWithLine{
 				Discount: dbDiscount,
@@ -395,7 +389,7 @@ func handleLineDiscountUpdate(line *billing.Line, out *invoiceLineDiff) error {
 	}
 
 	for _, currentDiscount := range line.Discounts {
-		if currentDiscount.ID == "" {
+		if currentDiscount.GetID() == "" {
 			// We need to create this discount
 			out.Discounts.NeedsCreate(discountWithLine{
 				Discount: currentDiscount,
@@ -407,17 +401,12 @@ func handleLineDiscountUpdate(line *billing.Line, out *invoiceLineDiff) error {
 			continue
 		}
 
-		dbDiscount, ok := dbDiscountIDs[currentDiscount.ID]
+		dbDiscount, ok := dbDiscountIDs[currentDiscount.GetID()]
 		if !ok {
-			return fmt.Errorf("discount[%s]: not found in DB", currentDiscount.ID)
+			return fmt.Errorf("discount[%s]: not found in DB", currentDiscount.GetID())
 		}
 
-		dbItem := dbDiscount[0]
-		currentDiscount.ID = dbItem.ID
-		currentDiscount.CreatedAt = dbItem.CreatedAt
-		currentDiscount.UpdatedAt = dbItem.UpdatedAt
-
-		if !dbItem.Equal(currentDiscount) {
+		if !dbDiscount.ContentsEqual(currentDiscount) {
 			out.Discounts.NeedsUpdate(discountWithLine{
 				Discount: currentDiscount,
 				Line:     line,

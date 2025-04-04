@@ -3,9 +3,11 @@
 package billinginvoicediscount
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 const (
@@ -77,6 +79,16 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
+
+// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
+func TypeValidator(_type billing.LineDiscountType) error {
+	switch _type {
+	case "amount", "usage":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoicediscount: invalid enum value for type field: %q", _type)
+	}
+}
 
 // OrderOption defines the ordering options for the BillingInvoiceDiscount queries.
 type OrderOption func(*sql.Selector)

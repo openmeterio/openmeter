@@ -181,21 +181,51 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		allDiscountDiffs := unionOfDiffs(lineDiffs.Discounts, lineDiffs.ChildrenDiff.Discounts)
 		err = upsertWithOptions(ctx, tx.db, allDiscountDiffs, upsertInput[discountWithLine, *db.BillingInvoiceLineDiscountCreate]{
 			Create: func(tx *db.Client, d discountWithLine) (*db.BillingInvoiceLineDiscountCreate, error) {
-				if d.Discount.ID == "" {
-					d.Discount.ID = ulid.Make().String()
+				base, err := d.Discount.AsDiscountBase()
+				if err != nil {
+					return nil, fmt.Errorf("failed to get discount base: %w", err)
+				}
+
+				if base.ID == "" {
+					base.ID = ulid.Make().String()
 				}
 
 				create := tx.BillingInvoiceLineDiscount.Create().
-					SetID(d.Discount.ID).
+					SetID(base.ID).
 					SetNamespace(d.Line.Namespace).
 					SetLineID(d.Line.ID).
-					SetReason(d.Discount.Reason).
-					SetNillableDeletedAt(d.Discount.DeletedAt).
-					SetAmount(d.Discount.Amount).
-					SetNillableChildUniqueReferenceID(d.Discount.ChildUniqueReferenceID).
-					SetNillableDescription(d.Discount.Description).
+					SetType(d.Discount.Type()).
+					SetReason(base.Reason).
+					SetNillableDeletedAt(base.DeletedAt).
+					SetNillableChildUniqueReferenceID(base.ChildUniqueReferenceID).
+					SetNillableDescription(base.Description).
 					// ExternalIDs
-					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(d.Discount.ExternalIDs.Invoicing))
+					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(base.ExternalIDs.Invoicing))
+
+				if base.SourceDiscount != nil {
+					create = create.SetSourceDiscount(base.SourceDiscount)
+				}
+
+				switch d.Discount.Type() {
+				case billing.LineDiscountTypeAmount:
+					amount, err := d.Discount.AsAmount()
+					if err != nil {
+						return nil, fmt.Errorf("failed to get amount discount: %w", err)
+					}
+
+					create = create.SetAmount(amount.Amount).
+						SetRoundingAmount(amount.RoundingAmount)
+				case billing.LineDiscountTypeUsage:
+					usage, err := d.Discount.AsUsage()
+					if err != nil {
+						return nil, fmt.Errorf("failed to get usage discount: %w", err)
+					}
+
+					create = create.SetQuantity(usage.Quantity).
+						SetNillablePreLinePeriodQuantity(usage.PreLinePeriodQuantity)
+				default:
+					return nil, fmt.Errorf("unsupported discount type: %s", d.Discount.Type())
+				}
 
 				return create, nil
 			},
@@ -211,8 +241,15 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					).Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, d discountWithLine) (discountWithLine, error) {
-				d.Discount.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
-				return d, nil
+				deletedDiscount, err := d.Discount.Mutate(billing.MarkDiscountDeleted(clock.Now().In(time.UTC)))
+				if err != nil {
+					return discountWithLine{}, fmt.Errorf("failed to set deleted at: %w", err)
+				}
+
+				return discountWithLine{
+					Line:     d.Line,
+					Discount: deletedDiscount,
+				}, nil
 			},
 		})
 		if err != nil {

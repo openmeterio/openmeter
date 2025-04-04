@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
 )
 
@@ -105,8 +106,8 @@ func (bidc *BillingInvoiceDiscountCreate) SetInvoiceID(s string) *BillingInvoice
 }
 
 // SetType sets the "type" field.
-func (bidc *BillingInvoiceDiscountCreate) SetType(s string) *BillingInvoiceDiscountCreate {
-	bidc.mutation.SetType(s)
+func (bidc *BillingInvoiceDiscountCreate) SetType(bdt billing.LineDiscountType) *BillingInvoiceDiscountCreate {
+	bidc.mutation.SetType(bdt)
 	return bidc
 }
 
@@ -210,6 +211,11 @@ func (bidc *BillingInvoiceDiscountCreate) check() error {
 	if _, ok := bidc.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "BillingInvoiceDiscount.type"`)}
 	}
+	if v, ok := bidc.mutation.GetType(); ok {
+		if err := billinginvoicediscount.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceDiscount.type": %w`, err)}
+		}
+	}
 	if _, ok := bidc.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingInvoiceDiscount.amount"`)}
 	}
@@ -282,7 +288,7 @@ func (bidc *BillingInvoiceDiscountCreate) createSpec() (*BillingInvoiceDiscount,
 		_node.InvoiceID = value
 	}
 	if value, ok := bidc.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicediscount.FieldType, field.TypeString, value)
+		_spec.SetField(billinginvoicediscount.FieldType, field.TypeEnum, value)
 		_node.Type = value
 	}
 	if value, ok := bidc.mutation.Amount(); ok {
@@ -436,7 +442,7 @@ func (u *BillingInvoiceDiscountUpsert) UpdateInvoiceID() *BillingInvoiceDiscount
 }
 
 // SetType sets the "type" field.
-func (u *BillingInvoiceDiscountUpsert) SetType(v string) *BillingInvoiceDiscountUpsert {
+func (u *BillingInvoiceDiscountUpsert) SetType(v billing.LineDiscountType) *BillingInvoiceDiscountUpsert {
 	u.Set(billinginvoicediscount.FieldType, v)
 	return u
 }
@@ -637,7 +643,7 @@ func (u *BillingInvoiceDiscountUpsertOne) UpdateInvoiceID() *BillingInvoiceDisco
 }
 
 // SetType sets the "type" field.
-func (u *BillingInvoiceDiscountUpsertOne) SetType(v string) *BillingInvoiceDiscountUpsertOne {
+func (u *BillingInvoiceDiscountUpsertOne) SetType(v billing.LineDiscountType) *BillingInvoiceDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
 		s.SetType(v)
 	})
@@ -1012,7 +1018,7 @@ func (u *BillingInvoiceDiscountUpsertBulk) UpdateInvoiceID() *BillingInvoiceDisc
 }
 
 // SetType sets the "type" field.
-func (u *BillingInvoiceDiscountUpsertBulk) SetType(v string) *BillingInvoiceDiscountUpsertBulk {
+func (u *BillingInvoiceDiscountUpsertBulk) SetType(v billing.LineDiscountType) *BillingInvoiceDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
 		s.SetType(v)
 	})

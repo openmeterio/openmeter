@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
@@ -46,13 +45,7 @@ func (l *feeLine) UpdateTotals() error {
 
 	// Calculate the line totals
 	totals := billing.Totals{
-		DiscountsTotal: calc.RoundToPrecision(
-			alpacadecimal.Sum(alpacadecimal.Zero,
-				lo.Map(l.line.Discounts, func(d billing.LineDiscount, _ int) alpacadecimal.Decimal {
-					return d.Amount
-				})...,
-			),
-		),
+		DiscountsTotal: l.line.Discounts.SumAmount(calc),
 
 		// TODO[OM-979]: implement taxes
 		TaxesInclusiveTotal: alpacadecimal.Zero,
