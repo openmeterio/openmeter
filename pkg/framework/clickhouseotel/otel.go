@@ -118,6 +118,7 @@ func (c *ClickHouseTracer) AsyncInsert(ctx context.Context, query string, wait b
 	err := c.Conn.AsyncInsert(ctx, query, wait, args...)
 	if err != nil {
 		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 	}
 
 	return err
