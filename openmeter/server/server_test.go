@@ -465,6 +465,7 @@ func getTestServer(t *testing.T) *Server {
 
 	// Create plan service
 	planService := &NoopPlanService{}
+	addonService := &NoopAddonService{}
 
 	// Create plan subscription service
 	planSubscriptionService := &NoopPlanSubscriptionService{}
@@ -481,6 +482,7 @@ func getTestServer(t *testing.T) *Server {
 
 	config := &Config{
 		RouterConfig: router.Config{
+			Addon:                       addonService,
 			App:                         appService,
 			AppStripe:                   appStripeService,
 			Billing:                     billingService,
