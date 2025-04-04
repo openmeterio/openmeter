@@ -13,21 +13,21 @@ import (
 )
 
 const (
-	DraftStatus     PlanStatus = "draft"
-	ActiveStatus    PlanStatus = "active"
-	ArchivedStatus  PlanStatus = "archived"
-	ScheduledStatus PlanStatus = "scheduled"
-	InvalidStatus   PlanStatus = "invalid"
+	PlanStatusDraft     PlanStatus = "draft"
+	PlanStatusActive    PlanStatus = "active"
+	PlanStatusArchived  PlanStatus = "archived"
+	PlanStatusScheduled PlanStatus = "scheduled"
+	PlanStatusInvalid   PlanStatus = "invalid"
 )
 
 type PlanStatus string
 
 func (s PlanStatus) Values() []string {
 	return []string{
-		string(DraftStatus),
-		string(ActiveStatus),
-		string(ArchivedStatus),
-		string(ScheduledStatus),
+		string(PlanStatusDraft),
+		string(PlanStatusActive),
+		string(PlanStatusArchived),
+		string(PlanStatusScheduled),
 	}
 }
 
@@ -231,25 +231,25 @@ func (p PlanMeta) StatusAt(t time.Time) PlanStatus {
 
 	// Plan has DraftStatus if neither the EffectiveFrom nor EffectiveTo are set
 	if from.IsZero() && to.IsZero() {
-		return DraftStatus
+		return PlanStatusDraft
 	}
 
 	// Plan has ArchivedStatus if EffectiveTo is in the past relative to time t.
 	if from.Before(t) && (to.Before(t) && from.Before(to)) {
-		return ArchivedStatus
+		return PlanStatusArchived
 	}
 
 	// Plan has ActiveStatus if EffectiveFrom is set in the past relative to time t and EffectiveTo is not set
 	// or in the future relative to time t.
 	if from.Before(t) && (to.IsZero() || to.After(t)) {
-		return ActiveStatus
+		return PlanStatusActive
 	}
 
 	// Plan is ScheduledForActiveStatus if EffectiveFrom is set in the future relative to time t and EffectiveTo is not set
 	// or in the future relative to time t.
 	if from.After(t) && (to.IsZero() || to.After(from)) {
-		return ScheduledStatus
+		return PlanStatusScheduled
 	}
 
-	return InvalidStatus
+	return PlanStatusInvalid
 }

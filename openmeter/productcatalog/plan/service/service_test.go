@@ -84,8 +84,8 @@ func TestPlanService(t *testing.T) {
 			require.NotNil(t, draftPlan, "Plan must not be empty")
 
 			plan.AssertPlanCreateInputEqual(t, planInput, *draftPlan)
-			assert.Equalf(t, productcatalog.DraftStatus, draftPlan.Status(),
-				"Plan Status mismatch: expected=%s, actual=%s", productcatalog.DraftStatus, draftPlan.Status())
+			assert.Equalf(t, productcatalog.PlanStatusDraft, draftPlan.Status(),
+				"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, draftPlan.Status())
 
 			t.Run("Get", func(t *testing.T) {
 				getPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
@@ -104,8 +104,8 @@ func TestPlanService(t *testing.T) {
 					"Plan Key mismatch: %s = %s", draftPlan.Key, getPlan.Key)
 				assert.Equalf(t, draftPlan.Version, getPlan.Version,
 					"Plan Version mismatch: %d = %d", draftPlan.Version, getPlan.Version)
-				assert.Equalf(t, productcatalog.DraftStatus, getPlan.Status(),
-					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.DraftStatus, getPlan.Status())
+				assert.Equalf(t, productcatalog.PlanStatusDraft, getPlan.Status(),
+					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, getPlan.Status())
 			})
 
 			t.Run("NewPhase", func(t *testing.T) {
@@ -218,8 +218,8 @@ func TestPlanService(t *testing.T) {
 				require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
 				require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
 
-				assert.Equalf(t, productcatalog.DraftStatus, updatedPlan.Status(),
-					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.DraftStatus, updatedPlan.Status())
+				assert.Equalf(t, productcatalog.PlanStatusDraft, updatedPlan.Status(),
+					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, updatedPlan.Status())
 
 				plan.AssertPlanPhasesEqual(t, updatedPhases, updatedPlan.Phases)
 
@@ -423,8 +423,8 @@ func TestPlanService(t *testing.T) {
 
 				assert.Equalf(t, publishAt, *publishedPlan.EffectiveFrom,
 					"EffectiveFrom for published Plan mismatch: expected=%s, actual=%s", publishAt, *publishedPlan.EffectiveFrom)
-				assert.Equalf(t, productcatalog.ActiveStatus, publishedPlan.Status(),
-					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.ActiveStatus, publishedPlan.Status())
+				assert.Equalf(t, productcatalog.PlanStatusActive, publishedPlan.Status(),
+					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusActive, publishedPlan.Status())
 
 				t.Run("Update", func(t *testing.T) {
 					updateInput := plan.UpdatePlanInput{
@@ -448,8 +448,8 @@ func TestPlanService(t *testing.T) {
 
 				assert.Equalf(t, publishedPlan.Version+1, nextPlan.Version,
 					"new draft Plan must have higher version number")
-				assert.Equalf(t, productcatalog.DraftStatus, nextPlan.Status(),
-					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.DraftStatus, nextPlan.Status())
+				assert.Equalf(t, productcatalog.PlanStatusDraft, nextPlan.Status(),
+					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, nextPlan.Status())
 
 				// Let's update the plan to enforce alignment
 				t.Run("Update to enforce alignment", func(t *testing.T) {
@@ -568,8 +568,8 @@ func TestPlanService(t *testing.T) {
 
 					assert.Equalf(t, publishAt, *publishedNextPlan.EffectiveFrom,
 						"EffectiveFrom for published Plan mismatch: expected=%s, actual=%s", publishAt, *publishedPlan.EffectiveFrom)
-					assert.Equalf(t, productcatalog.ActiveStatus, publishedNextPlan.Status(),
-						"Plan Status mismatch: expected=%s, actual=%s", productcatalog.ActiveStatus, publishedNextPlan.Status())
+					assert.Equalf(t, productcatalog.PlanStatusActive, publishedNextPlan.Status(),
+						"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusActive, publishedNextPlan.Status())
 
 					prevPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
 						NamespacedID: models.NamespacedID{
@@ -580,8 +580,8 @@ func TestPlanService(t *testing.T) {
 					require.NoErrorf(t, err, "getting previous Plan version must not fail")
 					require.NotNil(t, prevPlan, "previous Plan version must not be empty")
 
-					assert.Equalf(t, productcatalog.ArchivedStatus, prevPlan.Status(),
-						"Plan Status mismatch: expected=%s, actual=%s", productcatalog.ArchivedStatus, prevPlan.Status())
+					assert.Equalf(t, productcatalog.PlanStatusArchived, prevPlan.Status(),
+						"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusArchived, prevPlan.Status())
 
 					t.Run("Archive", func(t *testing.T) {
 						archiveAt := time.Now().Truncate(time.Microsecond)
@@ -601,8 +601,8 @@ func TestPlanService(t *testing.T) {
 
 						assert.Equalf(t, archiveAt, *archivedPlan.EffectiveTo,
 							"EffectiveTo for published Plan mismatch: expected=%s, actual=%s", archiveAt, *archivedPlan.EffectiveTo)
-						assert.Equalf(t, productcatalog.ArchivedStatus, archivedPlan.Status(),
-							"Status mismatch for archived Plan: expected=%s, actual=%s", productcatalog.ArchivedStatus, archivedPlan.Status())
+						assert.Equalf(t, productcatalog.PlanStatusArchived, archivedPlan.Status(),
+							"Status mismatch for archived Plan: expected=%s, actual=%s", productcatalog.PlanStatusArchived, archivedPlan.Status())
 					})
 				})
 
