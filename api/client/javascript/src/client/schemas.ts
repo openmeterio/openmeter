@@ -610,7 +610,7 @@ export interface paths {
     }
     /**
      * Get customer access
-     * @description Get the access of a customer to a given feature (by key).
+     * @description Get the overall access of a customer.
      */
     get: operations['getCustomerAccess']
     put?: never
@@ -3141,7 +3141,7 @@ export interface components {
       /** @description Map of entitlements the customer has access to.
        *     The key is the feature key, the value is the entitlement value + the entitlement ID. */
       readonly entitlements: {
-        [key: string]: components['schemas']['EntitlementValueWithId']
+        [key: string]: components['schemas']['EntitlementValue']
       }
     }
     /** @description CustomerAppData
@@ -4137,43 +4137,6 @@ export interface components {
        * @example { key: "value" }
        */
       readonly config?: string
-    }
-    /** @description EntitlementValueWithID extends EntitlementValue with an entitlement ID. */
-    EntitlementValueWithId: {
-      /**
-       * @description Whether the subject has access to the feature. Shared accross all entitlement types.
-       * @example true
-       */
-      readonly hasAccess: boolean
-      /**
-       * Format: double
-       * @description Only available for metered entitlements. Metered entitlements are built around a balance calculation where feature usage is deducted from the issued grants. Balance represents the remaining balance of the entitlement, it's value never turns negative.
-       * @example 100
-       */
-      readonly balance?: number
-      /**
-       * Format: double
-       * @description Only available for metered entitlements. Returns the total feature usage in the current period.
-       * @example 50
-       */
-      readonly usage?: number
-      /**
-       * Format: double
-       * @description Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
-       * @example 0
-       */
-      readonly overage?: number
-      /**
-       * @description Only available for static entitlements. The JSON parsable config of the entitlement.
-       * @example { key: "value" }
-       */
-      readonly config?: string
-      /**
-       * The entitlement ID
-       * @description The entitlement ID.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      id: string
     }
     /**
      * @description CloudEvents Specification JSON Schema
@@ -9043,8 +9006,6 @@ export type EntitlementStaticCreateInputs =
   components['schemas']['EntitlementStaticCreateInputs']
 export type EntitlementType = components['schemas']['EntitlementType']
 export type EntitlementValue = components['schemas']['EntitlementValue']
-export type EntitlementValueWithId =
-  components['schemas']['EntitlementValueWithId']
 export type Event = components['schemas']['Event']
 export type ExpirationDuration = components['schemas']['ExpirationDuration']
 export type ExpirationPeriod = components['schemas']['ExpirationPeriod']

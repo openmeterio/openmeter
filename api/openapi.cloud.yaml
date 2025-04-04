@@ -2919,7 +2919,7 @@ paths:
     get:
       operationId: getCustomerAccess
       summary: Get customer access
-      description: Get the access of a customer to a given feature (by key).
+      description: Get the overall access of a customer.
       parameters:
         - name: customerIdOrKey
           in: path
@@ -11652,7 +11652,7 @@ components:
         entitlements:
           type: object
           additionalProperties:
-            $ref: '#/components/schemas/EntitlementValueWithId'
+            $ref: '#/components/schemas/EntitlementValue'
           description: |-
             Map of entitlements the customer has access to.
             The key is the feature key, the value is the entitlement value + the entitlement ID.
@@ -12914,47 +12914,6 @@ components:
           example: '{ key: "value" }'
           readOnly: true
       description: Entitlements are the core of OpenMeter access management. They define access to features for subjects. Entitlements can be metered, boolean, or static.
-    EntitlementValueWithId:
-      type: object
-      required:
-        - hasAccess
-        - id
-      properties:
-        hasAccess:
-          type: boolean
-          description: Whether the subject has access to the feature. Shared accross all entitlement types.
-          example: true
-          readOnly: true
-        balance:
-          type: number
-          format: double
-          description: Only available for metered entitlements. Metered entitlements are built around a balance calculation where feature usage is deducted from the issued grants. Balance represents the remaining balance of the entitlement, it's value never turns negative.
-          example: 100
-          readOnly: true
-        usage:
-          type: number
-          format: double
-          description: Only available for metered entitlements. Returns the total feature usage in the current period.
-          example: 50
-          readOnly: true
-        overage:
-          type: number
-          format: double
-          description: Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
-          example: 0
-          readOnly: true
-        config:
-          type: string
-          description: Only available for static entitlements. The JSON parsable config of the entitlement.
-          example: '{ key: "value" }'
-          readOnly: true
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: The entitlement ID.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          title: The entitlement ID
-      description: EntitlementValueWithID extends EntitlementValue with an entitlement ID.
     Event:
       type: object
       required:

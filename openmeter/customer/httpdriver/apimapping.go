@@ -92,7 +92,7 @@ func CustomerToAPI(c customer.Customer) (api.Customer, error) {
 }
 
 func MapAccessToAPI(access entitlement.Access) (api.CustomerAccess, error) {
-	entitlements := make(map[string]api.EntitlementValueWithId)
+	entitlements := make(map[string]api.EntitlementValue)
 
 	for fKey, v := range access.Entitlements {
 		apiVal, err := entitlementdriver.MapEntitlementValueToAPI(v.Value)
@@ -100,14 +100,7 @@ func MapAccessToAPI(access entitlement.Access) (api.CustomerAccess, error) {
 			return api.CustomerAccess{}, err
 		}
 
-		entitlements[fKey] = api.EntitlementValueWithId{
-			Id:        v.ID,
-			Balance:   apiVal.Balance,
-			Usage:     apiVal.Usage,
-			Overage:   apiVal.Overage,
-			Config:    apiVal.Config,
-			HasAccess: apiVal.HasAccess,
-		}
+		entitlements[fKey] = apiVal
 	}
 
 	return api.CustomerAccess{

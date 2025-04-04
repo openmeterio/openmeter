@@ -46,19 +46,5 @@ model CustomerAccess {
    * The key is the feature key, the value is the entitlement value + the entitlement ID.
    */
   @visibility(Lifecycle.Read)
-  entitlements: Record<EntitlementValueWithId>;
-}
-
-/**
- * EntitlementValueWithID extends EntitlementValue with an entitlement ID.
- */
-@friendlyName("EntitlementValueWithId")
-model EntitlementValueWithId {
-  ...EntitlementValue;
-
-  /**
-   * The entitlement ID.
-   */
-  @summary("The entitlement ID")
-  id: global.ULID;
+  entitlements: Record<EntitlementValue>;
 }
