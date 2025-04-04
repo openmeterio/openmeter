@@ -9,6 +9,7 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -86,7 +87,8 @@ func (c *ClickHouseTracer) QueryRow(ctx context.Context, query string, args ...a
 
 	rows = c.Conn.QueryRow(ctx, query, args...)
 	if rows != nil && rows.Err() != nil {
-		span.RecordError(rows.Err())
+		err := rows.Err()
+		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 	}
 
