@@ -239,7 +239,7 @@ func TestPostgresAdapter(t *testing.T) {
 					Namespace: namespace,
 					ID:        addonV1.ID,
 				},
-				AddonEffectivePeriod: productcatalog.AddonEffectivePeriod{
+				EffectivePeriod: productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(now.UTC()),
 					EffectiveTo:   lo.ToPtr(now.Add(30 * 24 * time.Hour).UTC()),
 				},
@@ -312,7 +312,7 @@ func TestPostgresAdapter(t *testing.T) {
 type createAddonVersionInput struct {
 	Namespace       string
 	Version         int
-	EffectivePeriod productcatalog.AddonEffectivePeriod
+	EffectivePeriod productcatalog.EffectivePeriod
 	Template        addon.CreateAddonInput
 }
 
@@ -331,7 +331,7 @@ func createAddonVersion(ctx context.Context, repo *adapter, in createAddonVersio
 			Namespace: in.Namespace,
 			ID:        addonVersion.ID,
 		},
-		AddonEffectivePeriod: in.EffectivePeriod,
+		EffectivePeriod: in.EffectivePeriod,
 	})
 
 	return err
@@ -346,7 +346,7 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) 
 		Namespace: ns,
 		Version:   1,
 		Template:  addonV1Input,
-		EffectivePeriod: productcatalog.AddonEffectivePeriod{
+		EffectivePeriod: productcatalog.EffectivePeriod{
 			EffectiveFrom: lo.ToPtr(testutils.GetRFC3339Time(t, "2025-03-15T00:00:00Z")),
 			EffectiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2025-03-15T12:00:00Z")),
 		},
@@ -357,7 +357,7 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) 
 		Namespace: ns,
 		Version:   2,
 		Template:  addonV1Input,
-		EffectivePeriod: productcatalog.AddonEffectivePeriod{
+		EffectivePeriod: productcatalog.EffectivePeriod{
 			EffectiveFrom: lo.ToPtr(testutils.GetRFC3339Time(t, "2025-03-15T12:00:00Z")),
 		},
 	})
@@ -367,7 +367,7 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) 
 		Namespace:       ns,
 		Version:         3,
 		Template:        addonV1Input,
-		EffectivePeriod: productcatalog.AddonEffectivePeriod{},
+		EffectivePeriod: productcatalog.EffectivePeriod{},
 	})
 	require.NoErrorf(t, err, "creating add-on version must not fail")
 

@@ -293,7 +293,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 
 		// NOTE(chrisgacsal): we only allow updating the state of the add-on via Publish/Archive,
 		// therefore the AddonEffectivePeriod attribute must be zeroed before updating the add-on.
-		params.AddonEffectivePeriod = productcatalog.AddonEffectivePeriod{}
+		params.EffectivePeriod = productcatalog.EffectivePeriod{}
 
 		aa, err = s.adapter.UpdateAddon(ctx, params)
 		if err != nil {
@@ -457,8 +457,9 @@ func (s service) ArchiveAddon(ctx context.Context, params addon.ArchiveAddonInpu
 				Namespace: aa.Namespace,
 				ID:        aa.ID,
 			},
-			AddonEffectivePeriod: productcatalog.AddonEffectivePeriod{
-				EffectiveTo: lo.ToPtr(params.EffectiveTo.UTC()),
+			EffectivePeriod: productcatalog.EffectivePeriod{
+				EffectiveFrom: aa.EffectiveFrom,
+				EffectiveTo:   lo.ToPtr(params.EffectiveTo.UTC()),
 			},
 		})
 		if err != nil {

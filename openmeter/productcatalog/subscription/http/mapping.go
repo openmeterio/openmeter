@@ -12,6 +12,7 @@ import (
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	plandriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -37,7 +38,7 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 
 		// Let's parse and validate value.
 		// Fortunately TypeSpec to OpenAPI generation is utterly logical and consistent, so we have to work with a structurally identical but differently named type.
-		planRC, err := plandriver.AsRateCard(apiP.RateCard)
+		planRC, err := productcataloghttp.AsRateCard(apiP.RateCard)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast to RateCard: %w", err)
 		}
@@ -217,14 +218,14 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 	var tx *api.TaxConfig
 
 	if item.SubscriptionItem.RateCard.TaxConfig != nil {
-		txv := plandriver.FromTaxConfig(*item.SubscriptionItem.RateCard.TaxConfig)
+		txv := productcataloghttp.FromTaxConfig(*item.SubscriptionItem.RateCard.TaxConfig)
 		tx = &txv
 	}
 
 	var pr *api.RateCardUsageBasedPrice
 
 	if item.SubscriptionItem.RateCard.Price != nil {
-		prc, err := plandriver.FromRateCardUsageBasedPrice(*item.SubscriptionItem.RateCard.Price)
+		prc, err := productcataloghttp.FromRateCardUsageBasedPrice(*item.SubscriptionItem.RateCard.Price)
 		if err != nil {
 			return api.SubscriptionItem{}, err
 		}
@@ -235,7 +236,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 	var di *[]api.Discount
 
 	if len(item.SubscriptionItem.RateCard.Discounts) > 0 {
-		disc, err := plandriver.FromDiscounts(item.SubscriptionItem.RateCard.Discounts)
+		disc, err := productcataloghttp.FromDiscounts(item.SubscriptionItem.RateCard.Discounts)
 		if err != nil {
 			return api.SubscriptionItem{}, err
 		}

@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -212,7 +212,7 @@ func mapTaxConfigToEntity(tc *api.TaxConfig) *billing.TaxConfig {
 		return nil
 	}
 
-	return lo.ToPtr(planhttpdriver.AsTaxConfig(*tc))
+	return lo.ToPtr(productcataloghttp.AsTaxConfig(*tc))
 }
 
 func mapTaxConfigToAPI(to *billing.TaxConfig) *api.TaxConfig {
@@ -220,7 +220,7 @@ func mapTaxConfigToAPI(to *billing.TaxConfig) *api.TaxConfig {
 		return nil
 	}
 
-	return lo.ToPtr(planhttpdriver.FromTaxConfig(*to))
+	return lo.ToPtr(productcataloghttp.FromTaxConfig(*to))
 }
 
 func mapBillingLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
@@ -331,7 +331,7 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 		return api.InvoiceLine{}, fmt.Errorf("price is nil [line=%s]", line.ID)
 	}
 
-	price, err := planhttpdriver.FromRateCardUsageBasedPrice(*line.UsageBased.Price)
+	price, err := productcataloghttp.FromRateCardUsageBasedPrice(*line.UsageBased.Price)
 	if err != nil {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
 	}

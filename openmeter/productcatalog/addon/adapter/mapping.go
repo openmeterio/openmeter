@@ -32,7 +32,7 @@ func fromAddonRow(a entdb.Addon) (*addon.Addon, error) {
 			Annotations: a.Annotations,
 			Version:     a.Version,
 			Currency:    currency.Code(a.Currency),
-			AddonEffectivePeriod: productcatalog.AddonEffectivePeriod{
+			EffectivePeriod: productcatalog.EffectivePeriod{
 				EffectiveFrom: a.EffectiveFrom,
 				EffectiveTo:   a.EffectiveTo,
 			},

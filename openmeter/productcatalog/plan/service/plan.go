@@ -483,7 +483,8 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 				ID:        p.ID,
 			},
 			EffectivePeriod: productcatalog.EffectivePeriod{
-				EffectiveTo: lo.ToPtr(params.EffectiveTo.UTC()),
+				EffectiveFrom: p.EffectiveFrom,
+				EffectiveTo:   lo.ToPtr(params.EffectiveTo.UTC()),
 			},
 		})
 		if err != nil {
