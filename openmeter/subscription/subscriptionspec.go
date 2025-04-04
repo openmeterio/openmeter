@@ -539,7 +539,6 @@ func (s SubscriptionPhaseSpec) Validate(
 		}
 
 		// Some validations that might feel reasonable but are misleading:
-		//
 		// 1. The phase length doesn't have to be a multiple of the billing cadence. If an edit is done with resetanchor, alignment would drift either way. If a cancel or stretch is done, valid cancels and stretches would break this condition.
 	}
 
