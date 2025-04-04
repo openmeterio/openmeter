@@ -281,7 +281,7 @@ type Line struct {
 	Children   LineChildren `json:"children,omitempty"`
 	ParentLine *Line        `json:"parent,omitempty"`
 
-	Discounts LineDiscounts `json:"discounts,omitempty"`
+	Discounts mo.Option[LineDiscountsByType] `json:"discountByType,omitempty"`
 
 	DBState *Line `json:"-"`
 }
@@ -739,20 +739,181 @@ const (
 	LineMaximumSpendReferenceID = "line_maximum_spend"
 )
 
-type LineDiscount struct {
+type LineDiscountBase struct {
 	ID        string     `json:"id"`
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
-	Amount                 alpacadecimal.Decimal `json:"amount"`
-	Description            *string               `json:"description,omitempty"`
-	ChildUniqueReferenceID *string               `json:"childUniqueReferenceId,omitempty"`
-	ExternalIDs            LineExternalIDs       `json:"externalIDs,omitempty"`
+	Description            *string         `json:"description,omitempty"`
+	ChildUniqueReferenceID *string         `json:"childUniqueReferenceId,omitempty"`
+	ExternalIDs            LineExternalIDs `json:"externalIDs,omitempty"`
+
+	SourceDiscount *productcatalog.Discount `json:"rateCardDiscount,omitempty"`
 }
 
-func (i LineDiscount) Equal(other LineDiscount) bool {
+type AmountLineDiscount struct {
+	LineDiscountBase `json:",inline"`
+
+	Amount alpacadecimal.Decimal `json:"amount"`
+}
+
+func (i AmountLineDiscount) Equal(other AmountLineDiscount) bool {
 	return reflect.DeepEqual(i, other)
+}
+
+type UsageLineDiscount struct {
+	LineDiscountBase `json:",inline"`
+
+	Quantity alpacadecimal.Decimal `json:"quantity"`
+}
+
+func (i UsageLineDiscount) Equal(other UsageLineDiscount) bool {
+	return reflect.DeepEqual(i, other)
+}
+
+type LineDiscountType string
+
+const (
+	LineDiscountTypeAmount LineDiscountType = "amount"
+	LineDiscountTypeUsage  LineDiscountType = "usage"
+)
+
+type LineDiscount interface {
+	Type() LineDiscountType
+	Equal(other LineDiscount) bool
+
+	// AsAmount returns the amount discount if the discount is an amount discount, if no error is returned
+	// the pointer is guaranteed to be non-nil. A pointer is used as invocing relies on in-place manipulation
+	// of the invoice.
+	AsAmount() (*AmountLineDiscount, error)
+
+	// AsUsage returns the usage discount if the discount is a usage discount, if no error is returned
+	// the pointer is guaranteed to be non-nil. A pointer is used as invocing relies on in-place manipulation
+	// of the invoice.
+	AsUsage() (*UsageLineDiscount, error)
+
+	// AsDiscountBase returns the discount base if the discount is a discount base, if no error is returned
+	// the pointer is guaranteed to be non-nil. A pointer is used as invocing relies on in-place manipulation
+	// of the invoice.
+	AsDiscountBase() (*LineDiscountBase, error)
+}
+
+type lineDiscount struct {
+	t LineDiscountType
+
+	amount *AmountLineDiscount
+	usage  *UsageLineDiscount
+}
+
+func NewLineDiscountFrom[T AmountLineDiscount | UsageLineDiscount](discount T) LineDiscount {
+	switch any(discount).(type) {
+	case AmountLineDiscount:
+		amount := any(discount).(AmountLineDiscount)
+
+		return lineDiscount{t: LineDiscountTypeAmount, amount: &amount}
+	case UsageLineDiscount:
+		usage := any(discount).(UsageLineDiscount)
+
+		return lineDiscount{t: LineDiscountTypeUsage, usage: &usage}
+	}
+
+	return lineDiscount{}
+}
+
+func (i lineDiscount) Type() LineDiscountType {
+	return i.t
+}
+
+func (i lineDiscount) AsAmount() (*AmountLineDiscount, error) {
+	if i.t != LineDiscountTypeAmount {
+		return nil, errors.New("not an amount discount")
+	}
+
+	if i.amount == nil {
+		return nil, errors.New("amount discount is nil")
+	}
+
+	return i.amount, nil
+}
+
+func (i lineDiscount) AsUsage() (*UsageLineDiscount, error) {
+	if i.t != LineDiscountTypeUsage {
+		return nil, errors.New("not a usage discount")
+	}
+
+	if i.usage == nil {
+		return nil, errors.New("usage discount is nil")
+	}
+
+	return i.usage, nil
+}
+
+func (i lineDiscount) AsDiscountBase() (*LineDiscountBase, error) {
+	switch i.t {
+	case LineDiscountTypeAmount:
+		if i.amount == nil {
+			return nil, errors.New("amount discount is nil")
+		}
+
+		return &i.amount.LineDiscountBase, nil
+	case LineDiscountTypeUsage:
+		if i.usage == nil {
+			return nil, errors.New("usage discount is nil")
+		}
+
+		return &i.usage.LineDiscountBase, nil
+	default:
+		return nil, errors.New("unknown discount type")
+	}
+}
+
+func (i lineDiscount) Equal(other LineDiscount) bool {
+	switch i.t {
+	case LineDiscountTypeAmount:
+		amount, err := other.AsAmount()
+		if err != nil {
+			return false
+		}
+
+		return i.amount.Equal(*amount)
+	case LineDiscountTypeUsage:
+		usage, err := other.AsUsage()
+		if err != nil {
+			return false
+		}
+
+		return i.usage.Equal(*usage)
+	}
+
+	return false
+}
+
+type LineDiscountsByType struct {
+	Amounts []*AmountLineDiscount
+	Usages  []*UsageLineDiscount
+}
+
+func (d LineDiscountsByType) AsLineDiscounts() LineDiscounts {
+	out := make([]LineDiscount, 0, len(d.Amounts)+len(d.Usages))
+
+	for _, amount := range d.Amounts {
+		if amount == nil {
+			continue
+		}
+
+		out = append(out, NewLineDiscountFrom(*amount))
+	}
+
+	for _, usage := range d.Usages {
+		if usage == nil {
+			continue
+		}
+
+		out = append(out, NewLineDiscountFrom(*usage))
+	}
+
+	return NewLineDiscounts(out)
 }
 
 // TODO[OM-1016]: For events we need a json marshaler
