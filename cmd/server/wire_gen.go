@@ -151,7 +151,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration)
+	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
 	if err != nil {
 		cleanup6()
 		cleanup5()

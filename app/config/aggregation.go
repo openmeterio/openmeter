@@ -60,6 +60,8 @@ type ClickHouseAggregationConfiguration struct {
 	MaxIdleConns    int
 	ConnMaxLifetime time.Duration
 	BlockBufferSize uint8
+
+	Tracing bool
 }
 
 func (c ClickHouseAggregationConfiguration) Validate() error {
@@ -127,7 +129,7 @@ func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.clickhouse.database", "openmeter")
 	v.SetDefault("aggregation.clickhouse.username", "default")
 	v.SetDefault("aggregation.clickhouse.password", "default")
-
+	v.SetDefault("aggregation.clickhouse.tracing", false)
 	// ClickHouse connection options
 	v.SetDefault("aggregation.clickhouse.dialTimeout", "10s")
 	v.SetDefault("aggregation.clickhouse.maxOpenConns", 5)
