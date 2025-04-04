@@ -140,7 +140,6 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		parentLineIn.UpdatedAt = parentLine.UpdatedAt
 		parentLineIn.UsageBased.ConfigID = parentLine.UsageBased.ConfigID
 		parentLineIn.Children = billing.NewLineChildren(nil)
-		parentLineIn.Discounts = billing.NewLineDiscounts([]billing.LineDiscount{})
 
 		require.Equal(s.T(), parentLineIn, parentLine.WithoutDBState())
 
@@ -211,13 +210,13 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		splitPre = mergeDBFields(splitPre, lines[0])
 		splitPre.ParentLine = lines[0].ParentLine
 		splitPre.Children = billing.NewLineChildren(nil)
-		splitPre.Discounts = billing.NewLineDiscounts(nil)
+		splitPre.Discounts = nil
 		require.Equal(s.T(), splitPre, lines[0].WithoutDBState(), "preMatches")
 
 		splitPost = mergeDBFields(splitPost, lines[1])
 		splitPost.ParentLine = lines[1].ParentLine
 		splitPost.Children = billing.NewLineChildren(nil)
-		splitPost.Discounts = billing.NewLineDiscounts(nil)
+		splitPost.Discounts = nil
 		require.Equal(s.T(), splitPost, lines[1].WithoutDBState(), "postMatches")
 
 		splitPost = lines[1]
@@ -268,7 +267,7 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		newLastLine = mergeDBFields(newLastLine, lines[1])
 		newLastLine.ParentLine = nil
 		newLastLine.Children = billing.NewLineChildren(nil)
-		newLastLine.Discounts = billing.NewLineDiscounts(nil)
+		newLastLine.Discounts = nil
 		lines[1].ParentLine = nil
 		require.Equal(s.T(), newLastLine.WithoutDBState(), lines[1].WithoutDBState())
 	})
@@ -640,7 +639,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 
 	manualDiscountName := "Test Discount 3 - manual"
 
-	lineIn.Children.MustGet()[0].Discounts = billing.NewLineDiscounts([]billing.LineDiscount{
+	lineIn.Children.MustGet()[0].Discounts = []billing.LineDiscount{
 		{
 			Amount:                 alpacadecimal.NewFromFloat(10),
 			Description:            lo.ToPtr("Test Discount 1"),
@@ -655,7 +654,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 			Amount:      alpacadecimal.NewFromFloat(30),
 			Description: lo.ToPtr(manualDiscountName),
 		},
-	})
+	}
 
 	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 		Namespace: ns,
@@ -667,16 +666,16 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	require.Len(s.T(), lines, 1)
 
 	// Then the discounts are persisted as expected
-	persistedDiscounts := lines[0].Children.MustGet()[0].Discounts.MustGet()
+	persistedDiscounts := lines[0].Children.MustGet()[0].Discounts
 	require.Len(s.T(), persistedDiscounts, 3)
 
 	discountContents := removeDiscountAdapterFields(persistedDiscounts)
 
-	require.ElementsMatch(s.T(), discountContents, lineIn.Children.MustGet()[0].Discounts.MustGet())
+	require.ElementsMatch(s.T(), discountContents, lineIn.Children.MustGet()[0].Discounts)
 
 	// Let's update the discounts
 	childLine := lines[0].Children.MustGet()[0].Clone()
-	childLine.Discounts = billing.NewLineDiscounts([]billing.LineDiscount{
+	childLine.Discounts = []billing.LineDiscount{
 		// Should get the ID from the original discount by calling the ChildrenWithIDReuse
 		{
 			Amount:                 alpacadecimal.NewFromFloat(30),
@@ -699,7 +698,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 			Amount:      alpacadecimal.NewFromFloat(50),
 			Description: lo.ToPtr("Test Discount 4 - manual"),
 		},
-	})
+	}
 
 	updateLineIn := lines[0].Clone()
 	updateLineIn.Children = updateLineIn.ChildrenWithIDReuse(
@@ -716,10 +715,10 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	require.Len(s.T(), updatedLines, 1)
 
 	previousVersionDiscounts := persistedDiscounts
-	persistedDiscounts = updatedLines[0].Children.MustGet()[0].Discounts.MustGet()
+	persistedDiscounts = updatedLines[0].Children.MustGet()[0].Discounts
 	require.Len(s.T(), persistedDiscounts, 3)
 
-	expectedChildLineDiscounts := childLine.Discounts.MustGet()
+	expectedChildLineDiscounts := childLine.Discounts
 	// Line 0: we expect that the ID is set to the same value
 	previousVersion := lo.FindOrElse(
 		previousVersionDiscounts,

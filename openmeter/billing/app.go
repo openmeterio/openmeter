@@ -216,11 +216,9 @@ func MergeUpsertInvoiceResult(invoice *Invoice, result *UpsertInvoiceResult) err
 		discountMap := map[string]*LineDiscount{}
 
 		for _, line := range flattenedLines {
-			line.Discounts.ForEach(func(discounts []LineDiscount) {
-				for i, discount := range discounts {
-					discountMap[discount.ID] = &discounts[i]
-				}
-			})
+			for idx, discount := range line.Discounts {
+				discountMap[discount.ID] = &line.Discounts[idx]
+			}
 		}
 
 		// Merge the line discount IDs

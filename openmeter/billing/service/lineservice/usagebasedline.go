@@ -1027,7 +1027,7 @@ func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]*bil
 				Quantity:      in.Quantity,
 				Category:      in.Category,
 			},
-			Discounts: billing.NewLineDiscounts(in.Discounts),
+			Discounts: in.Discounts,
 		}
 
 		if err := line.Validate(); err != nil {
