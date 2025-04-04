@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 )
 
 // Deprecation handlers for flat fee line's rateCard
@@ -210,12 +210,12 @@ func (i *usageBasedRateCardItems) ValidateRateCard() error {
 	}
 
 	if i.Price != nil && i.RateCard.Price != nil {
-		deprecatedPrice, err := planhttpdriver.AsPrice(*i.Price)
+		deprecatedPrice, err := productcataloghttp.AsPrice(*i.Price)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("failed to parse price: %w", err))
 		}
 
-		rateCardPrice, err := planhttpdriver.AsPrice(*i.RateCard.Price)
+		rateCardPrice, err := productcataloghttp.AsPrice(*i.RateCard.Price)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("failed to parse rateCard.price: %w", err))
 		}
@@ -256,7 +256,7 @@ func mapAndValidateUsageBasedRateCardDeprecatedFields(in usageBasedRateCardItems
 			}
 		}
 
-		price, err := planhttpdriver.AsPrice(*in.Price)
+		price, err := productcataloghttp.AsPrice(*in.Price)
 		if err != nil {
 			return nil, billing.ValidationError{
 				Err: fmt.Errorf("failed to parse price: %w", err),
@@ -278,7 +278,7 @@ func mapAndValidateUsageBasedRateCardDeprecatedFields(in usageBasedRateCardItems
 		}
 	}
 
-	price, err := planhttpdriver.AsPrice(*in.RateCard.Price)
+	price, err := productcataloghttp.AsPrice(*in.RateCard.Price)
 	if err != nil {
 		return nil, billing.ValidationError{
 			Err: fmt.Errorf("failed to parse rateCard.price: %w", err),

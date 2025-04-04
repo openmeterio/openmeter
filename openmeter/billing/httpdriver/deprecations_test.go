@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/api"
-	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 )
 
 func TestFlatFeeLineParser(t *testing.T) {
@@ -121,7 +121,7 @@ func TestUsageBasedLineParser(t *testing.T) {
 		Amount: "100",
 	}))
 
-	unitPrice, err := planhttpdriver.AsPrice(unitPriceAPI)
+	unitPrice, err := productcataloghttp.AsPrice(unitPriceAPI)
 	require.NoError(err)
 
 	unitPrice2API := api.RateCardUsageBasedPrice{}
