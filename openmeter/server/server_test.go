@@ -41,6 +41,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	portaladapter "github.com/openmeterio/openmeter/openmeter/portal/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
@@ -1061,6 +1062,44 @@ func (n NoopPlanService) ArchivePlan(ctx context.Context, params plan.ArchivePla
 
 func (n NoopPlanService) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan.Plan, error) {
 	return &plan.Plan{}, nil
+}
+
+var _ addon.Service = (*NoopAddonService)(nil)
+
+// NoopAddonService implements addon.Service interface with no-op operations
+// for use in testing
+type NoopAddonService struct{}
+
+func (n NoopAddonService) ListAddons(ctx context.Context, params addon.ListAddonsInput) (pagination.PagedResponse[addon.Addon], error) {
+	return pagination.PagedResponse[addon.Addon]{}, nil
+}
+
+func (n NoopAddonService) CreateAddon(ctx context.Context, params addon.CreateAddonInput) (*addon.Addon, error) {
+	return &addon.Addon{}, nil
+}
+
+func (n NoopAddonService) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput) error {
+	return nil
+}
+
+func (n NoopAddonService) GetAddon(ctx context.Context, params addon.GetAddonInput) (*addon.Addon, error) {
+	return &addon.Addon{}, nil
+}
+
+func (n NoopAddonService) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput) (*addon.Addon, error) {
+	return &addon.Addon{}, nil
+}
+
+func (n NoopAddonService) PublishAddon(ctx context.Context, params addon.PublishAddonInput) (*addon.Addon, error) {
+	return &addon.Addon{}, nil
+}
+
+func (n NoopAddonService) ArchiveAddon(ctx context.Context, params addon.ArchiveAddonInput) (*addon.Addon, error) {
+	return &addon.Addon{}, nil
+}
+
+func (n NoopAddonService) NextAddon(ctx context.Context, params addon.NextAddonInput) (*addon.Addon, error) {
+	return &addon.Addon{}, nil
 }
 
 var _ plansubscription.PlanSubscriptionService = (*NoopPlanSubscriptionService)(nil)

@@ -39,6 +39,8 @@ import (
 	notificationhttpdriver "github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	portalhttphandler "github.com/openmeterio/openmeter/openmeter/portal/httphandler"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	addonhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/httpdriver"
 	productcatalog_httpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -72,6 +74,7 @@ type IngestHandler interface {
 }
 
 type Config struct {
+	Addon                       addon.Service
 	App                         app.Service
 	AppStripe                   appstripe.Service
 	Billing                     billing.Service
@@ -113,6 +116,10 @@ func (c Config) Validate() error {
 	}
 
 	// Validate connectors
+	if c.Addon == nil {
+		return errors.New("add-on service is required")
+	}
+
 	if c.App == nil {
 		return errors.New("app service is required")
 	}
@@ -171,6 +178,7 @@ func (c Config) Validate() error {
 type Router struct {
 	config Config
 
+	addonHandler              addonhttpdriver.AddonHandler
 	appHandler                apphttpdriver.Handler
 	appStripeHandler          appstripehttpdriver.AppStripeHandler
 	billingHandler            billinghttpdriver.Handler
@@ -307,6 +315,12 @@ func NewRouter(config Config) (*Router, error) {
 	router.planHandler = planhttpdriver.New(
 		staticNamespaceDecoder,
 		config.Plan,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	router.addonHandler = addonhttpdriver.New(
+		staticNamespaceDecoder,
+		config.Addon,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

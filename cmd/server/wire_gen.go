@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/portal"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
@@ -86,7 +87,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Client: client,
 		Logger: logger,
 	}
-	appsConfiguration := conf.Apps
+	adapter, err := common.NewMeterAdapter(logger, client)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	service := common.NewMeterService(adapter)
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
@@ -137,7 +147,19 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	service, err := common.NewAppService(logger, client, appsConfiguration, eventbusPublisher)
+	featureConnector := common.NewFeatureConnector(logger, client, service, eventbusPublisher)
+	addonService, err := common.NewAddonService(logger, client, featureConnector, eventbusPublisher)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appsConfiguration := conf.Apps
+	appService, err := common.NewAppService(logger, client, appsConfiguration, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -182,18 +204,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	adapter, err := common.NewMeterAdapter(logger, client)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	meterService := common.NewMeterService(adapter)
-	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher)
+	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, service, eventbusPublisher)
 	customerService, err := common.NewCustomerService(logger, client, entitlement, eventbusPublisher)
 	if err != nil {
 		cleanup6()
@@ -224,7 +235,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
 	billingConfiguration := conf.Billing
 	advancementStrategy := billingConfiguration.AdvancementStrategy
 	productCatalogConfiguration := conf.ProductCatalog
@@ -248,7 +258,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingService, err := common.BillingService(logger, service, billingAdapter, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy, subscriptionServiceWithWorkflow)
+	billingService, err := common.BillingService(logger, appService, billingAdapter, customerService, featureConnector, service, connector, eventbusPublisher, advancementStrategy, subscriptionServiceWithWorkflow)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -258,7 +268,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingService, eventbusPublisher)
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, appService, customerService, secretserviceService, billingService, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -300,7 +310,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, service, manager, billingService)
+	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, appService, manager, billingService)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -354,7 +364,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	v4 := conf.Meters
 	manageService := common.NewMeterManageService(ctx, adapter, entitlement, manager, connector, eventbusPublisher)
 	v5 := common.NewMeterConfigInitializer(logger, v4, manageService, manager)
-	metereventService := common.NewMeterEventService(connector, meterService)
+	metereventService := common.NewMeterEventService(connector, service)
 	notificationConfiguration := conf.Notification
 	v6 := conf.Svix
 	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v6, featureConnector)
@@ -411,7 +421,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	application := Application{
 		GlobalInitializer:       globalInitializer,
 		Migrator:                migrator,
-		App:                     service,
+		Addon:                   addonService,
+		App:                     appService,
 		AppStripe:               appstripeService,
 		AppSandboxProvisioner:   appSandboxProvisioner,
 		Customer:                customerService,
@@ -461,6 +472,7 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
+	Addon                   addon.Service
 	App                     app.Service
 	AppStripe               appstripe.Service
 	AppSandboxProvisioner   common.AppSandboxProvisioner
