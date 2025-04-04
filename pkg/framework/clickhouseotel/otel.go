@@ -66,6 +66,7 @@ func (c *ClickHouseTracer) Query(ctx context.Context, query string, args ...any)
 	rows, err = c.Conn.Query(ctx, query, args...)
 	if err != nil {
 		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 	}
 
 	if rows != nil && rows.Err() != nil {
