@@ -57,7 +57,7 @@ func (e PlanCreateEvent) Validate() error {
 	var errs []error
 
 	if e.Plan == nil {
-		return fmt.Errorf("plan is required")
+		errs = append(errs, fmt.Errorf("plan is required"))
 	}
 
 	return errors.Join(errs...)
@@ -100,7 +100,7 @@ func (e PlanUpdateEvent) Validate() error {
 	var errs []error
 
 	if e.Plan == nil {
-		return fmt.Errorf("plan is required")
+		errs = append(errs, fmt.Errorf("plan is required"))
 	}
 
 	return errors.Join(errs...)
@@ -143,11 +143,11 @@ func (e PlanDeleteEvent) Validate() error {
 	var errs []error
 
 	if e.Plan == nil {
-		return fmt.Errorf("plan is required")
+		errs = append(errs, fmt.Errorf("plan is required"))
 	}
 
 	if e.Plan.DeletedAt == nil {
-		return fmt.Errorf("plan deleted at is required")
+		errs = append(errs, fmt.Errorf("plan deleted at is required"))
 	}
 
 	return errors.Join(errs...)
@@ -190,7 +190,7 @@ func (e PlanPublishEvent) Validate() error {
 	var errs []error
 
 	if e.Plan == nil {
-		return fmt.Errorf("plan is required")
+		errs = append(errs, fmt.Errorf("plan is required"))
 	}
 
 	return errors.Join(errs...)
@@ -233,7 +233,7 @@ func (e PlanArchiveEvent) Validate() error {
 	var errs []error
 
 	if e.Plan == nil {
-		return fmt.Errorf("plan is required")
+		errs = append(errs, fmt.Errorf("plan is required"))
 	}
 
 	return errors.Join(errs...)

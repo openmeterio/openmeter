@@ -3,7 +3,6 @@ package meter
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/oklog/ulid/v2"
 
@@ -55,7 +54,7 @@ func (e MeterCreateEvent) Validate() error {
 	var errs []error
 
 	if e.Meter == nil {
-		return fmt.Errorf("meter is required")
+		errs = append(errs, errors.New("meter is required"))
 	}
 
 	return errors.Join(errs...)
@@ -98,7 +97,7 @@ func (e MeterUpdateEvent) Validate() error {
 	var errs []error
 
 	if e.Meter == nil {
-		return fmt.Errorf("meter is required")
+		errs = append(errs, errors.New("meter is required"))
 	}
 
 	return errors.Join(errs...)
@@ -141,11 +140,11 @@ func (e MeterDeleteEvent) Validate() error {
 	var errs []error
 
 	if e.Meter == nil {
-		return fmt.Errorf("meter is required")
+		errs = append(errs, errors.New("meter is required"))
 	}
 
 	if e.Meter.DeletedAt == nil {
-		return fmt.Errorf("meter deleted at is required")
+		errs = append(errs, errors.New("meter deleted at is required"))
 	}
 
 	return errors.Join(errs...)
