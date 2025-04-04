@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
@@ -144,6 +145,21 @@ func (fu *FeatureUpdate) AddRatecard(p ...*PlanRateCard) *FeatureUpdate {
 	return fu.AddRatecardIDs(ids...)
 }
 
+// AddAddonRatecardIDs adds the "addon_ratecard" edge to the AddonRateCard entity by IDs.
+func (fu *FeatureUpdate) AddAddonRatecardIDs(ids ...string) *FeatureUpdate {
+	fu.mutation.AddAddonRatecardIDs(ids...)
+	return fu
+}
+
+// AddAddonRatecard adds the "addon_ratecard" edges to the AddonRateCard entity.
+func (fu *FeatureUpdate) AddAddonRatecard(a ...*AddonRateCard) *FeatureUpdate {
+	ids := make([]string, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return fu.AddAddonRatecardIDs(ids...)
+}
+
 // Mutation returns the FeatureMutation object of the builder.
 func (fu *FeatureUpdate) Mutation() *FeatureMutation {
 	return fu.mutation
@@ -189,6 +205,27 @@ func (fu *FeatureUpdate) RemoveRatecard(p ...*PlanRateCard) *FeatureUpdate {
 		ids[i] = p[i].ID
 	}
 	return fu.RemoveRatecardIDs(ids...)
+}
+
+// ClearAddonRatecard clears all "addon_ratecard" edges to the AddonRateCard entity.
+func (fu *FeatureUpdate) ClearAddonRatecard() *FeatureUpdate {
+	fu.mutation.ClearAddonRatecard()
+	return fu
+}
+
+// RemoveAddonRatecardIDs removes the "addon_ratecard" edge to AddonRateCard entities by IDs.
+func (fu *FeatureUpdate) RemoveAddonRatecardIDs(ids ...string) *FeatureUpdate {
+	fu.mutation.RemoveAddonRatecardIDs(ids...)
+	return fu
+}
+
+// RemoveAddonRatecard removes "addon_ratecard" edges to AddonRateCard entities.
+func (fu *FeatureUpdate) RemoveAddonRatecard(a ...*AddonRateCard) *FeatureUpdate {
+	ids := make([]string, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return fu.RemoveAddonRatecardIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -372,6 +409,51 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if fu.mutation.AddonRatecardCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.AddonRatecardTable,
+			Columns: []string{feature.AddonRatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fu.mutation.RemovedAddonRatecardIDs(); len(nodes) > 0 && !fu.mutation.AddonRatecardCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.AddonRatecardTable,
+			Columns: []string{feature.AddonRatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fu.mutation.AddonRatecardIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.AddonRatecardTable,
+			Columns: []string{feature.AddonRatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, fu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{feature.Label}
@@ -506,6 +588,21 @@ func (fuo *FeatureUpdateOne) AddRatecard(p ...*PlanRateCard) *FeatureUpdateOne {
 	return fuo.AddRatecardIDs(ids...)
 }
 
+// AddAddonRatecardIDs adds the "addon_ratecard" edge to the AddonRateCard entity by IDs.
+func (fuo *FeatureUpdateOne) AddAddonRatecardIDs(ids ...string) *FeatureUpdateOne {
+	fuo.mutation.AddAddonRatecardIDs(ids...)
+	return fuo
+}
+
+// AddAddonRatecard adds the "addon_ratecard" edges to the AddonRateCard entity.
+func (fuo *FeatureUpdateOne) AddAddonRatecard(a ...*AddonRateCard) *FeatureUpdateOne {
+	ids := make([]string, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return fuo.AddAddonRatecardIDs(ids...)
+}
+
 // Mutation returns the FeatureMutation object of the builder.
 func (fuo *FeatureUpdateOne) Mutation() *FeatureMutation {
 	return fuo.mutation
@@ -551,6 +648,27 @@ func (fuo *FeatureUpdateOne) RemoveRatecard(p ...*PlanRateCard) *FeatureUpdateOn
 		ids[i] = p[i].ID
 	}
 	return fuo.RemoveRatecardIDs(ids...)
+}
+
+// ClearAddonRatecard clears all "addon_ratecard" edges to the AddonRateCard entity.
+func (fuo *FeatureUpdateOne) ClearAddonRatecard() *FeatureUpdateOne {
+	fuo.mutation.ClearAddonRatecard()
+	return fuo
+}
+
+// RemoveAddonRatecardIDs removes the "addon_ratecard" edge to AddonRateCard entities by IDs.
+func (fuo *FeatureUpdateOne) RemoveAddonRatecardIDs(ids ...string) *FeatureUpdateOne {
+	fuo.mutation.RemoveAddonRatecardIDs(ids...)
+	return fuo
+}
+
+// RemoveAddonRatecard removes "addon_ratecard" edges to AddonRateCard entities.
+func (fuo *FeatureUpdateOne) RemoveAddonRatecard(a ...*AddonRateCard) *FeatureUpdateOne {
+	ids := make([]string, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return fuo.RemoveAddonRatecardIDs(ids...)
 }
 
 // Where appends a list predicates to the FeatureUpdate builder.
@@ -757,6 +875,51 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if fuo.mutation.AddonRatecardCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.AddonRatecardTable,
+			Columns: []string{feature.AddonRatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fuo.mutation.RemovedAddonRatecardIDs(); len(nodes) > 0 && !fuo.mutation.AddonRatecardCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.AddonRatecardTable,
+			Columns: []string{feature.AddonRatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fuo.mutation.AddonRatecardIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.AddonRatecardTable,
+			Columns: []string{feature.AddonRatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

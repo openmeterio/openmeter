@@ -14,6 +14,10 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// Addon is the client for interacting with the Addon builders.
+	Addon *AddonClient
+	// AddonRateCard is the client for interacting with the AddonRateCard builders.
+	AddonRateCard *AddonRateCardClient
 	// App is the client for interacting with the App builders.
 	App *AppClient
 	// AppCustomer is the client for interacting with the AppCustomer builders.
@@ -213,6 +217,8 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.Addon = NewAddonClient(tx.config)
+	tx.AddonRateCard = NewAddonRateCardClient(tx.config)
 	tx.App = NewAppClient(tx.config)
 	tx.AppCustomer = NewAppCustomerClient(tx.config)
 	tx.AppStripe = NewAppStripeClient(tx.config)
@@ -256,7 +262,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: App.QueryXXX(), the query will be executed
+// applies a query, for example: Addon.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

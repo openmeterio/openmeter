@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
@@ -167,6 +168,21 @@ func (fc *FeatureCreate) AddRatecard(p ...*PlanRateCard) *FeatureCreate {
 		ids[i] = p[i].ID
 	}
 	return fc.AddRatecardIDs(ids...)
+}
+
+// AddAddonRatecardIDs adds the "addon_ratecard" edge to the AddonRateCard entity by IDs.
+func (fc *FeatureCreate) AddAddonRatecardIDs(ids ...string) *FeatureCreate {
+	fc.mutation.AddAddonRatecardIDs(ids...)
+	return fc
+}
+
+// AddAddonRatecard adds the "addon_ratecard" edges to the AddonRateCard entity.
+func (fc *FeatureCreate) AddAddonRatecard(a ...*AddonRateCard) *FeatureCreate {
+	ids := make([]string, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return fc.AddAddonRatecardIDs(ids...)
 }
 
 // Mutation returns the FeatureMutation object of the builder.
@@ -351,6 +367,22 @@ func (fc *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := fc.mutation.AddonRatecardIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.AddonRatecardTable,
+			Columns: []string{feature.AddonRatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

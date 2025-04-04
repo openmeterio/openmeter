@@ -148,6 +148,7 @@ func main() {
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
+			Addon:                       app.Addon,
 			App:                         app.App,
 			AppStripe:                   app.AppStripe,
 			Billing:                     app.Billing,

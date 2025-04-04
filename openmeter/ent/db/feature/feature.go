@@ -38,6 +38,8 @@ const (
 	EdgeEntitlement = "entitlement"
 	// EdgeRatecard holds the string denoting the ratecard edge name in mutations.
 	EdgeRatecard = "ratecard"
+	// EdgeAddonRatecard holds the string denoting the addon_ratecard edge name in mutations.
+	EdgeAddonRatecard = "addon_ratecard"
 	// Table holds the table name of the feature in the database.
 	Table = "features"
 	// EntitlementTable is the table that holds the entitlement relation/edge.
@@ -54,6 +56,13 @@ const (
 	RatecardInverseTable = "plan_rate_cards"
 	// RatecardColumn is the table column denoting the ratecard relation/edge.
 	RatecardColumn = "feature_id"
+	// AddonRatecardTable is the table that holds the addon_ratecard relation/edge.
+	AddonRatecardTable = "addon_rate_cards"
+	// AddonRatecardInverseTable is the table name for the AddonRateCard entity.
+	// It exists in this package in order to avoid circular dependency with the "addonratecard" package.
+	AddonRatecardInverseTable = "addon_rate_cards"
+	// AddonRatecardColumn is the table column denoting the addon_ratecard relation/edge.
+	AddonRatecardColumn = "feature_id"
 )
 
 // Columns holds all SQL columns for feature fields.
@@ -173,6 +182,20 @@ func ByRatecard(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newRatecardStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByAddonRatecardCount orders the results by addon_ratecard count.
+func ByAddonRatecardCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAddonRatecardStep(), opts...)
+	}
+}
+
+// ByAddonRatecard orders the results by addon_ratecard terms.
+func ByAddonRatecard(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAddonRatecardStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newEntitlementStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -185,5 +208,12 @@ func newRatecardStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(RatecardInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, RatecardTable, RatecardColumn),
+	)
+}
+func newAddonRatecardStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AddonRatecardInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AddonRatecardTable, AddonRatecardColumn),
 	)
 }

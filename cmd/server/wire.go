@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/portal"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
@@ -40,6 +41,7 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
+	Addon                   addon.Service
 	App                     app.Service
 	AppStripe               appstripe.Service
 	AppSandboxProvisioner   common.AppSandboxProvisioner

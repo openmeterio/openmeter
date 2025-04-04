@@ -10,6 +10,9 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	productcatalogpgadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	addonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
+	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
@@ -20,6 +23,7 @@ import (
 var ProductCatalog = wire.NewSet(
 	Feature,
 	Plan,
+	Addon,
 )
 
 var Feature = wire.NewSet(
@@ -28,6 +32,10 @@ var Feature = wire.NewSet(
 
 var Plan = wire.NewSet(
 	NewPlanService,
+)
+
+var Addon = wire.NewSet(
+	NewAddonService,
 )
 
 func NewFeatureConnector(
@@ -59,6 +67,28 @@ func NewPlanService(
 		Adapter:   adapter,
 		Feature:   featureConnector,
 		Logger:    logger.With("subsystem", "productcatalog.plan"),
+		Publisher: publisher,
+	})
+}
+
+func NewAddonService(
+	logger *slog.Logger,
+	db *entdb.Client,
+	featureConnector feature.FeatureConnector,
+	publisher eventbus.Publisher,
+) (addon.Service, error) {
+	adapter, err := addonadapter.New(addonadapter.Config{
+		Client: db,
+		Logger: logger.With("subsystem", "productcatalog.addon"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize add-on adapter: %w", err)
+	}
+
+	return addonservice.New(addonservice.Config{
+		Adapter:   adapter,
+		Feature:   featureConnector,
+		Logger:    logger.With("subsystem", "productcatalog.addon"),
 		Publisher: publisher,
 	})
 }

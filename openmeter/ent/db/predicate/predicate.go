@@ -6,6 +6,34 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Addon is the predicate function for addon builders.
+type Addon func(*sql.Selector)
+
+// AddonOrErr calls the predicate only if the error is not nit.
+func AddonOrErr(p Addon, err error) Addon {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// AddonRateCard is the predicate function for addonratecard builders.
+type AddonRateCard func(*sql.Selector)
+
+// AddonRateCardOrErr calls the predicate only if the error is not nit.
+func AddonRateCardOrErr(p AddonRateCard, err error) AddonRateCard {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // App is the predicate function for dbapp builders.
 type App func(*sql.Selector)
 

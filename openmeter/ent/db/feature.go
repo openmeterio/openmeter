@@ -50,9 +50,11 @@ type FeatureEdges struct {
 	Entitlement []*Entitlement `json:"entitlement,omitempty"`
 	// Ratecard holds the value of the ratecard edge.
 	Ratecard []*PlanRateCard `json:"ratecard,omitempty"`
+	// AddonRatecard holds the value of the addon_ratecard edge.
+	AddonRatecard []*AddonRateCard `json:"addon_ratecard,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // EntitlementOrErr returns the Entitlement value or an error if the edge
@@ -71,6 +73,15 @@ func (e FeatureEdges) RatecardOrErr() ([]*PlanRateCard, error) {
 		return e.Ratecard, nil
 	}
 	return nil, &NotLoadedError{edge: "ratecard"}
+}
+
+// AddonRatecardOrErr returns the AddonRatecard value or an error if the edge
+// was not loaded in eager-loading.
+func (e FeatureEdges) AddonRatecardOrErr() ([]*AddonRateCard, error) {
+	if e.loadedTypes[2] {
+		return e.AddonRatecard, nil
+	}
+	return nil, &NotLoadedError{edge: "addon_ratecard"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -193,6 +204,11 @@ func (f *Feature) QueryEntitlement() *EntitlementQuery {
 // QueryRatecard queries the "ratecard" edge of the Feature entity.
 func (f *Feature) QueryRatecard() *PlanRateCardQuery {
 	return NewFeatureClient(f.config).QueryRatecard(f)
+}
+
+// QueryAddonRatecard queries the "addon_ratecard" edge of the Feature entity.
+func (f *Feature) QueryAddonRatecard() *AddonRateCardQuery {
+	return NewFeatureClient(f.config).QueryAddonRatecard(f)
 }
 
 // Update returns a builder for updating this Feature.

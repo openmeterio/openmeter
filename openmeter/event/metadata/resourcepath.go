@@ -17,6 +17,7 @@ const (
 	EntityMeter        = "meter"
 	EntityFeature      = "feature"
 	EntityPlan         = "plan"
+	EntityAddon        = "addon"
 )
 
 // Ingestion/Events
