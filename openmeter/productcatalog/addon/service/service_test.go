@@ -130,7 +130,7 @@ func TestAddonService(t *testing.T) {
 
 				publishInput := addon.PublishAddonInput{
 					NamespacedID: draftAddon.NamespacedID,
-					AddonEffectivePeriod: productcatalog.AddonEffectivePeriod{
+					EffectivePeriod: productcatalog.EffectivePeriod{
 						EffectiveFrom: &publishAt,
 						EffectiveTo:   nil,
 					},
@@ -211,7 +211,7 @@ func TestAddonService(t *testing.T) {
 
 					publishInput := addon.PublishAddonInput{
 						NamespacedID: nextAddon.NamespacedID,
-						AddonEffectivePeriod: productcatalog.AddonEffectivePeriod{
+						EffectivePeriod: productcatalog.EffectivePeriod{
 							EffectiveFrom: &publishAt,
 							EffectiveTo:   nil,
 						},
@@ -233,7 +233,7 @@ func TestAddonService(t *testing.T) {
 
 					publishInput := addon.PublishAddonInput{
 						NamespacedID: nextAddon.NamespacedID,
-						AddonEffectivePeriod: productcatalog.AddonEffectivePeriod{
+						EffectivePeriod: productcatalog.EffectivePeriod{
 							EffectiveFrom: &publishAt,
 							EffectiveTo:   nil,
 						},

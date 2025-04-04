@@ -306,7 +306,7 @@ func (h *handler) PublishAddon() PublishAddonHandler {
 					Namespace: ns,
 					ID:        addonID,
 				},
-				AddonEffectivePeriod: productcatalog.AddonEffectivePeriod{
+				EffectivePeriod: productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(time.Now()),
 				},
 			}

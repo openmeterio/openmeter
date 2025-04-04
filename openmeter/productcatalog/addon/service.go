@@ -123,7 +123,7 @@ type UpdateAddonInput struct {
 	models.NamespacedID
 
 	// EffectivePeriod
-	productcatalog.AddonEffectivePeriod
+	productcatalog.EffectivePeriod
 
 	// Name
 	Name *string `json:"name"`
@@ -150,7 +150,7 @@ func (i UpdateAddonInput) Equal(p Addon) bool {
 		return false
 	}
 
-	if !i.AddonEffectivePeriod.Equal(p.AddonEffectivePeriod) {
+	if !i.EffectivePeriod.Equal(p.EffectivePeriod) {
 		return false
 	}
 
@@ -185,7 +185,7 @@ func (i UpdateAddonInput) Validate() error {
 	}
 
 	if i.EffectiveFrom != nil || i.EffectiveTo != nil {
-		if err := i.AddonEffectivePeriod.Validate(); err != nil {
+		if err := i.EffectivePeriod.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid EffectivePeriod: %w", err))
 		}
 	}
@@ -246,7 +246,7 @@ type PublishAddonInput struct {
 	models.NamespacedID
 
 	// AddonEffectivePeriod
-	productcatalog.AddonEffectivePeriod
+	productcatalog.EffectivePeriod
 }
 
 func (i PublishAddonInput) Validate() error {

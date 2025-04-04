@@ -219,34 +219,13 @@ func (p PlanMeta) Equal(o PlanMeta) bool {
 	return true
 }
 
-var (
-	_ models.Validator                = (*EffectivePeriod)(nil)
-	_ models.Equaler[EffectivePeriod] = (*EffectivePeriod)(nil)
-)
-
-type EffectivePeriod struct {
-	// EffectiveFrom defines the time from the Plan becomes active.
-	EffectiveFrom *time.Time `json:"effectiveFrom,omitempty"`
-
-	// EffectiveTO defines the time from the Plan becomes archived.
-	EffectiveTo *time.Time `json:"effectiveTo,omitempty"`
-}
-
-func (p EffectivePeriod) Validate() error {
-	if p.Status() == InvalidStatus {
-		return models.NewGenericValidationError(fmt.Errorf("invalid effective time range: to is before from"))
-	}
-
-	return nil
-}
-
 // Status returns the current status of the Plan
-func (p EffectivePeriod) Status() PlanStatus {
+func (p PlanMeta) Status() PlanStatus {
 	return p.StatusAt(time.Now())
 }
 
 // StatusAt returns the plan status relative to time t.
-func (p EffectivePeriod) StatusAt(t time.Time) PlanStatus {
+func (p PlanMeta) StatusAt(t time.Time) PlanStatus {
 	from := lo.FromPtrOr(p.EffectiveFrom, time.Time{})
 	to := lo.FromPtrOr(p.EffectiveTo, time.Time{})
 
@@ -273,10 +252,4 @@ func (p EffectivePeriod) StatusAt(t time.Time) PlanStatus {
 	}
 
 	return InvalidStatus
-}
-
-// Equal returns true if the two EffectivePeriods are equal.
-func (p EffectivePeriod) Equal(o EffectivePeriod) bool {
-	return lo.FromPtrOr(p.EffectiveFrom, time.Time{}).Equal(lo.FromPtrOr(o.EffectiveFrom, time.Time{})) &&
-		lo.FromPtrOr(p.EffectiveTo, time.Time{}).Equal(lo.FromPtrOr(o.EffectiveTo, time.Time{}))
 }

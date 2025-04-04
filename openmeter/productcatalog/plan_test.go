@@ -18,78 +18,114 @@ func TestPlanStatus(t *testing.T) {
 	tests := []struct {
 		Name string
 
-		Effective productcatalog.EffectivePeriod
-		Expected  productcatalog.PlanStatus
+		Plan     productcatalog.Plan
+		Expected productcatalog.PlanStatus
 	}{
 		{
 			Name: "Draft",
-			Effective: productcatalog.EffectivePeriod{
-				EffectiveFrom: nil,
-				EffectiveTo:   nil,
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					EffectivePeriod: productcatalog.EffectivePeriod{
+						EffectiveFrom: nil,
+						EffectiveTo:   nil,
+					},
+				},
 			},
 			Expected: productcatalog.DraftStatus,
 		},
 		{
 			Name: "Archived",
-			Effective: productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now.Add(-24 * time.Hour)),
-				EffectiveTo:   lo.ToPtr(now.Add(-1 * time.Hour)),
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					EffectivePeriod: productcatalog.EffectivePeriod{
+						EffectiveFrom: lo.ToPtr(now.Add(-24 * time.Hour)),
+						EffectiveTo:   lo.ToPtr(now.Add(-1 * time.Hour)),
+					},
+				},
 			},
 			Expected: productcatalog.ArchivedStatus,
 		},
 		{
 			Name: "Active with open end",
-			Effective: productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now.Add(-24 * time.Hour)),
-				EffectiveTo:   nil,
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					EffectivePeriod: productcatalog.EffectivePeriod{
+						EffectiveFrom: lo.ToPtr(now.Add(-24 * time.Hour)),
+						EffectiveTo:   nil,
+					},
+				},
 			},
 			Expected: productcatalog.ActiveStatus,
 		},
 		{
 			Name: "Active with fixed end",
-			Effective: productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now.Add(-24 * time.Hour)),
-				EffectiveTo:   lo.ToPtr(now.Add(24 * time.Hour)),
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					EffectivePeriod: productcatalog.EffectivePeriod{
+						EffectiveFrom: lo.ToPtr(now.Add(-24 * time.Hour)),
+						EffectiveTo:   lo.ToPtr(now.Add(24 * time.Hour)),
+					},
+				},
 			},
 			Expected: productcatalog.ActiveStatus,
 		},
 		{
 			Name: "Scheduled with open end",
-			Effective: productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now.Add(24 * time.Hour)),
-				EffectiveTo:   nil,
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					EffectivePeriod: productcatalog.EffectivePeriod{
+						EffectiveFrom: lo.ToPtr(now.Add(24 * time.Hour)),
+						EffectiveTo:   nil,
+					},
+				},
 			},
 			Expected: productcatalog.ScheduledStatus,
 		},
 		{
 			Name: "Scheduled with fixed period",
-			Effective: productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now.Add(24 * time.Hour)),
-				EffectiveTo:   lo.ToPtr(now.Add(48 * time.Hour)),
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					EffectivePeriod: productcatalog.EffectivePeriod{
+						EffectiveFrom: lo.ToPtr(now.Add(24 * time.Hour)),
+						EffectiveTo:   lo.ToPtr(now.Add(48 * time.Hour)),
+					},
+				},
 			},
 			Expected: productcatalog.ScheduledStatus,
 		},
 		{
 			Name: "Invalid with inverse period",
-			Effective: productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now.Add(24 * time.Hour)),
-				EffectiveTo:   lo.ToPtr(now.Add(-24 * time.Hour)),
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					EffectivePeriod: productcatalog.EffectivePeriod{
+						EffectiveFrom: lo.ToPtr(now.Add(24 * time.Hour)),
+						EffectiveTo:   lo.ToPtr(now.Add(-24 * time.Hour)),
+					},
+				},
 			},
 			Expected: productcatalog.InvalidStatus,
 		},
 		{
 			Name: "Invalid with no start with end in the past",
-			Effective: productcatalog.EffectivePeriod{
-				EffectiveFrom: nil,
-				EffectiveTo:   lo.ToPtr(now.Add(-24 * time.Hour)),
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					EffectivePeriod: productcatalog.EffectivePeriod{
+						EffectiveFrom: nil,
+						EffectiveTo:   lo.ToPtr(now.Add(-24 * time.Hour)),
+					},
+				},
 			},
 			Expected: productcatalog.ArchivedStatus,
 		},
 		{
 			Name: "Invalid with no start with end in the future",
-			Effective: productcatalog.EffectivePeriod{
-				EffectiveFrom: nil,
-				EffectiveTo:   lo.ToPtr(now.Add(24 * time.Hour)),
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					EffectivePeriod: productcatalog.EffectivePeriod{
+						EffectiveFrom: nil,
+						EffectiveTo:   lo.ToPtr(now.Add(24 * time.Hour)),
+					},
+				},
 			},
 			Expected: productcatalog.ActiveStatus,
 		},
@@ -97,7 +133,7 @@ func TestPlanStatus(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			assert.Equal(t, test.Expected, test.Effective.Status())
+			assert.Equal(t, test.Expected, test.Plan.Status())
 		})
 	}
 }

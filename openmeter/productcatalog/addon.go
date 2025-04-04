@@ -30,69 +30,12 @@ func (s AddonStatus) Values() []string {
 }
 
 var (
-	_ models.Validator                     = (*AddonEffectivePeriod)(nil)
-	_ models.Equaler[AddonEffectivePeriod] = (*AddonEffectivePeriod)(nil)
-)
-
-// FIXME: consolidate AddonEffectivePeriod with EffectivePeriod by moving StatusAt and Status methods to Plan and Addon
-type AddonEffectivePeriod struct {
-	// EffectiveFrom defines the time from the Addon becomes active.
-	EffectiveFrom *time.Time `json:"effectiveFrom,omitempty"`
-
-	// EffectiveTO defines the time from the Addon becomes archived.
-	EffectiveTo *time.Time `json:"effectiveTo,omitempty"`
-}
-
-func (p AddonEffectivePeriod) Validate() error {
-	if p.Status() == AddonStatusInvalid {
-		return models.NewGenericValidationError(fmt.Errorf("invalid effective time range: to is before from"))
-	}
-
-	return nil
-}
-
-// Status returns the current status of the Addon
-func (p AddonEffectivePeriod) Status() AddonStatus {
-	return p.StatusAt(time.Now())
-}
-
-// StatusAt returns the Addon status relative to time t.
-func (p AddonEffectivePeriod) StatusAt(t time.Time) AddonStatus {
-	from := lo.FromPtrOr(p.EffectiveFrom, time.Time{})
-	to := lo.FromPtrOr(p.EffectiveTo, time.Time{})
-
-	// Add-on has DraftStatus if neither the EffectiveFrom nor EffectiveTo are set
-	if from.IsZero() && to.IsZero() {
-		return AddonStatusDraft
-	}
-
-	// Add-on has ArchivedStatus if EffectiveTo is in the past relative to time t.
-	if from.Before(t) && (to.Before(t) && from.Before(to)) {
-		return AddonStatusArchived
-	}
-
-	// Add-on has ActiveStatus if EffectiveFrom is set in the past relative to time t and EffectiveTo is not set
-	// or in the future relative to time t.
-	if from.Before(t) && (to.IsZero() || to.After(t)) {
-		return AddonStatusActive
-	}
-
-	return AddonStatusInvalid
-}
-
-// Equal returns true if the two EffectivePeriods are equal.
-func (p AddonEffectivePeriod) Equal(o AddonEffectivePeriod) bool {
-	return lo.FromPtrOr(p.EffectiveFrom, time.Time{}).Equal(lo.FromPtrOr(o.EffectiveFrom, time.Time{})) &&
-		lo.FromPtrOr(p.EffectiveTo, time.Time{}).Equal(lo.FromPtrOr(o.EffectiveTo, time.Time{}))
-}
-
-var (
 	_ models.Validator          = (*AddonMeta)(nil)
 	_ models.Equaler[AddonMeta] = (*AddonMeta)(nil)
 )
 
 type AddonMeta struct {
-	AddonEffectivePeriod
+	EffectivePeriod
 
 	// Key is the unique key for Add-on.
 	Key string `json:"key"`
@@ -116,10 +59,10 @@ type AddonMeta struct {
 	Annotations models.Annotations `json:"annotations,omitempty"`
 }
 
-func (m *AddonMeta) Validate() error {
+func (m AddonMeta) Validate() error {
 	var errs []error
 
-	if err := m.AddonEffectivePeriod.Validate(); err != nil {
+	if err := m.EffectivePeriod.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("invalid EffectivePeriod: %s", err))
 	}
 
@@ -138,7 +81,7 @@ func (m *AddonMeta) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (m *AddonMeta) Equal(v AddonMeta) bool {
+func (m AddonMeta) Equal(v AddonMeta) bool {
 	if m.Key != v.Key {
 		return false
 	}
@@ -159,7 +102,7 @@ func (m *AddonMeta) Equal(v AddonMeta) bool {
 		return false
 	}
 
-	if !m.AddonEffectivePeriod.Equal(v.AddonEffectivePeriod) {
+	if !m.EffectivePeriod.Equal(v.EffectivePeriod) {
 		return false
 	}
 
@@ -174,6 +117,35 @@ func (m *AddonMeta) Equal(v AddonMeta) bool {
 	return true
 }
 
+// Status returns the current status of the Addons
+func (a AddonMeta) Status() AddonStatus {
+	return a.StatusAt(time.Now())
+}
+
+// StatusAt returns the Addon status relative to time t.
+func (a AddonMeta) StatusAt(t time.Time) AddonStatus {
+	from := lo.FromPtrOr(a.EffectiveFrom, time.Time{})
+	to := lo.FromPtrOr(a.EffectiveTo, time.Time{})
+
+	// Add-on has DraftStatus if neither the EffectiveFrom nor EffectiveTo are set
+	if from.IsZero() && to.IsZero() {
+		return AddonStatusDraft
+	}
+
+	// Add-on has ArchivedStatus if EffectiveTo is in the past relative to time t.
+	if from.Before(t) && (to.Before(t) && from.Before(to)) {
+		return AddonStatusArchived
+	}
+
+	// Add-on has ActiveStatus if EffectiveFrom is set in the past relative to time t and EffectiveTo is not set
+	// or in the future relative to time t.
+	if from.Before(t) && (to.IsZero() || to.After(t)) {
+		return AddonStatusActive
+	}
+
+	return AddonStatusInvalid
+}
+
 type Addon struct {
 	AddonMeta
 
@@ -181,7 +153,7 @@ type Addon struct {
 	RateCards RateCards `json:"rateCards"`
 }
 
-func (a *Addon) Validate() error {
+func (a Addon) Validate() error {
 	var errs []error
 
 	if err := a.AddonMeta.Validate(); err != nil {
@@ -208,7 +180,7 @@ func (a *Addon) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (a *Addon) Equal(v Addon) bool {
+func (a Addon) Equal(v Addon) bool {
 	if !a.AddonMeta.Equal(v.AddonMeta) {
 		return false
 	}
