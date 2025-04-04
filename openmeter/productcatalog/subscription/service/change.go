@@ -31,7 +31,7 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 			return def, err
 		}
 
-		if p.Status() != productcatalog.ActiveStatus {
+		if p.Status() != productcatalog.PlanStatusActive {
 			return def, models.NewGenericValidationError(fmt.Errorf("plan is not active"))
 		}
 

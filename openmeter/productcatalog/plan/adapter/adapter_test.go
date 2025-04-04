@@ -412,7 +412,7 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) 
 			name: "list latest active",
 			at:   testutils.GetRFC3339Time(t, "2025-03-16T00:00:00Z"),
 			filter: []productcatalog.PlanStatus{
-				productcatalog.ActiveStatus,
+				productcatalog.PlanStatusActive,
 			},
 			expectVersion: []int{2},
 		},
@@ -420,7 +420,7 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) 
 			name: "list latest draft",
 			at:   testutils.GetRFC3339Time(t, "2025-03-16T00:00:00Z"),
 			filter: []productcatalog.PlanStatus{
-				productcatalog.DraftStatus,
+				productcatalog.PlanStatusDraft,
 			},
 			expectVersion: []int{3},
 		},
@@ -428,7 +428,7 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) 
 			name: "list latest archived",
 			at:   testutils.GetRFC3339Time(t, "2025-03-16T00:00:00Z"),
 			filter: []productcatalog.PlanStatus{
-				productcatalog.ArchivedStatus,
+				productcatalog.PlanStatusArchived,
 			},
 			expectVersion: []int{1},
 		},
@@ -436,9 +436,9 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) 
 			name: "list all",
 			at:   testutils.GetRFC3339Time(t, "2025-03-16T00:00:00Z"),
 			filter: []productcatalog.PlanStatus{
-				productcatalog.ActiveStatus,
-				productcatalog.DraftStatus,
-				productcatalog.ArchivedStatus,
+				productcatalog.PlanStatusActive,
+				productcatalog.PlanStatusDraft,
+				productcatalog.PlanStatusArchived,
 			},
 			expectVersion: []int{1, 2, 3},
 		},
@@ -446,7 +446,7 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) 
 			name: "plan schedule to be actived in the future - active filter",
 			at:   testutils.GetRFC3339Time(t, "2025-03-15T01:00:00Z"),
 			filter: []productcatalog.PlanStatus{
-				productcatalog.ActiveStatus,
+				productcatalog.PlanStatusActive,
 			},
 			expectVersion: []int{1}, // 2 is not yet active
 		},
@@ -454,7 +454,7 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) 
 			name: "plan schedule to be actived in the future - draft filter",
 			at:   testutils.GetRFC3339Time(t, "2025-03-15T01:00:00Z"),
 			filter: []productcatalog.PlanStatus{
-				productcatalog.DraftStatus,
+				productcatalog.PlanStatusDraft,
 			},
 			expectVersion: []int{3},
 		},
@@ -462,7 +462,7 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) 
 			name: "plan schedule to be actived in the future - scheduled filter",
 			at:   testutils.GetRFC3339Time(t, "2025-03-15T01:00:00Z"),
 			filter: []productcatalog.PlanStatus{
-				productcatalog.ScheduledStatus,
+				productcatalog.PlanStatusScheduled,
 			},
 			expectVersion: []int{2},
 		},

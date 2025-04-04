@@ -60,11 +60,11 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 		}
 
 		if len(params.Status) > 0 {
-			predicates := []predicate.Plan{}
+			var predicates []predicate.Plan
 
 			now := clock.Now().UTC()
 
-			if slices.Contains(params.Status, productcatalog.ActiveStatus) {
+			if slices.Contains(params.Status, productcatalog.PlanStatusActive) {
 				predicates = append(predicates, plandb.And(
 					plandb.EffectiveFromLTE(now),
 					plandb.Or(
@@ -74,14 +74,14 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 				))
 			}
 
-			if slices.Contains(params.Status, productcatalog.DraftStatus) {
+			if slices.Contains(params.Status, productcatalog.PlanStatusDraft) {
 				predicates = append(predicates, plandb.And(
 					plandb.EffectiveFromIsNil(),
 					plandb.EffectiveToIsNil(),
 				))
 			}
 
-			if slices.Contains(params.Status, productcatalog.ScheduledStatus) {
+			if slices.Contains(params.Status, productcatalog.PlanStatusScheduled) {
 				predicates = append(predicates, plandb.And(
 					plandb.Or(
 						plandb.EffectiveFromGT(now),
@@ -89,15 +89,11 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 				))
 			}
 
-			if slices.Contains(params.Status, productcatalog.ArchivedStatus) {
+			if slices.Contains(params.Status, productcatalog.PlanStatusArchived) {
 				predicates = append(predicates, plandb.EffectiveToLT(now))
 			}
 
-			if slices.Contains(params.Status, productcatalog.ScheduledStatus) {
-				predicates = append(predicates, plandb.EffectiveFromGT(now))
-			}
-
-			if slices.Contains(params.Status, productcatalog.InvalidStatus) {
+			if slices.Contains(params.Status, productcatalog.PlanStatusInvalid) {
 				predicates = append(predicates, func(s *sql.Selector) {
 					s.Where(sql.ColumnsLT(plandb.FieldEffectiveTo, plandb.FieldEffectiveFrom))
 				})

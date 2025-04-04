@@ -45,13 +45,13 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 
 	var status api.PlanStatus
 	switch p.Status() {
-	case productcatalog.DraftStatus:
+	case productcatalog.PlanStatusDraft:
 		status = api.PlanStatusDraft
-	case productcatalog.ActiveStatus:
+	case productcatalog.PlanStatusActive:
 		status = api.PlanStatusActive
-	case productcatalog.ArchivedStatus:
+	case productcatalog.PlanStatusArchived:
 		status = api.PlanStatusArchived
-	case productcatalog.ScheduledStatus:
+	case productcatalog.PlanStatusScheduled:
 		status = api.PlanStatusScheduled
 	default:
 		return resp, fmt.Errorf("invalid PlanStatus: %s", p.Status())

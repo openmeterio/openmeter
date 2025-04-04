@@ -31,7 +31,7 @@ func TestPlanStatus(t *testing.T) {
 					},
 				},
 			},
-			Expected: productcatalog.DraftStatus,
+			Expected: productcatalog.PlanStatusDraft,
 		},
 		{
 			Name: "Archived",
@@ -43,7 +43,7 @@ func TestPlanStatus(t *testing.T) {
 					},
 				},
 			},
-			Expected: productcatalog.ArchivedStatus,
+			Expected: productcatalog.PlanStatusArchived,
 		},
 		{
 			Name: "Active with open end",
@@ -55,7 +55,7 @@ func TestPlanStatus(t *testing.T) {
 					},
 				},
 			},
-			Expected: productcatalog.ActiveStatus,
+			Expected: productcatalog.PlanStatusActive,
 		},
 		{
 			Name: "Active with fixed end",
@@ -67,7 +67,7 @@ func TestPlanStatus(t *testing.T) {
 					},
 				},
 			},
-			Expected: productcatalog.ActiveStatus,
+			Expected: productcatalog.PlanStatusActive,
 		},
 		{
 			Name: "Scheduled with open end",
@@ -79,7 +79,7 @@ func TestPlanStatus(t *testing.T) {
 					},
 				},
 			},
-			Expected: productcatalog.ScheduledStatus,
+			Expected: productcatalog.PlanStatusScheduled,
 		},
 		{
 			Name: "Scheduled with fixed period",
@@ -91,7 +91,7 @@ func TestPlanStatus(t *testing.T) {
 					},
 				},
 			},
-			Expected: productcatalog.ScheduledStatus,
+			Expected: productcatalog.PlanStatusScheduled,
 		},
 		{
 			Name: "Invalid with inverse period",
@@ -103,7 +103,7 @@ func TestPlanStatus(t *testing.T) {
 					},
 				},
 			},
-			Expected: productcatalog.InvalidStatus,
+			Expected: productcatalog.PlanStatusInvalid,
 		},
 		{
 			Name: "Invalid with no start with end in the past",
@@ -115,7 +115,7 @@ func TestPlanStatus(t *testing.T) {
 					},
 				},
 			},
-			Expected: productcatalog.ArchivedStatus,
+			Expected: productcatalog.PlanStatusArchived,
 		},
 		{
 			Name: "Invalid with no start with end in the future",
@@ -127,7 +127,7 @@ func TestPlanStatus(t *testing.T) {
 					},
 				},
 			},
-			Expected: productcatalog.ActiveStatus,
+			Expected: productcatalog.PlanStatusActive,
 		},
 	}
 

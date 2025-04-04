@@ -111,7 +111,7 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 		// * calculate the version number for the new Plan based by incrementing the last version
 		if len(allVersions.Items) >= 0 {
 			for _, p := range allVersions.Items {
-				if p.DeletedAt == nil && p.Status() == productcatalog.DraftStatus {
+				if p.DeletedAt == nil && p.Status() == productcatalog.PlanStatusDraft {
 					return nil, models.NewGenericValidationError(
 						fmt.Errorf("only a single draft version is allowed for Plan"),
 					)
@@ -178,9 +178,9 @@ func (s service) DeletePlan(ctx context.Context, params plan.DeletePlanInput) er
 		}
 
 		allowedPlanStatuses := []productcatalog.PlanStatus{
-			productcatalog.ArchivedStatus,
-			productcatalog.ScheduledStatus,
-			productcatalog.DraftStatus,
+			productcatalog.PlanStatusArchived,
+			productcatalog.PlanStatusScheduled,
+			productcatalog.PlanStatusDraft,
 		}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
@@ -283,8 +283,8 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		}
 
 		allowedPlanStatuses := []productcatalog.PlanStatus{
-			productcatalog.DraftStatus,
-			productcatalog.ScheduledStatus,
+			productcatalog.PlanStatusDraft,
+			productcatalog.PlanStatusScheduled,
 		}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
@@ -364,8 +364,8 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 
 		// Second, let's validate that the plan status and the version history is correct
 		allowedPlanStatuses := []productcatalog.PlanStatus{
-			productcatalog.DraftStatus,
-			productcatalog.ScheduledStatus,
+			productcatalog.PlanStatusDraft,
+			productcatalog.PlanStatusScheduled,
 		}
 		planStatus := pp.Status()
 		if !lo.Contains(allowedPlanStatuses, pp.Status()) {
@@ -461,7 +461,7 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		activeStatuses := []productcatalog.PlanStatus{productcatalog.ActiveStatus}
+		activeStatuses := []productcatalog.PlanStatus{productcatalog.PlanStatusActive}
 		status := p.Status()
 		if !lo.Contains(activeStatuses, status) {
 			return nil, models.NewGenericValidationError(
@@ -576,7 +576,7 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		nextVersion := 1
 		var match, stop bool
 		for _, p := range allVersions.Items {
-			if p.DeletedAt == nil && p.Status() == productcatalog.DraftStatus {
+			if p.DeletedAt == nil && p.Status() == productcatalog.PlanStatusDraft {
 				return nil, models.NewGenericValidationError(
 					fmt.Errorf("only a single draft version is allowed for Plan"),
 				)
