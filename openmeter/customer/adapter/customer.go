@@ -614,5 +614,10 @@ func applyActiveSubscriptionFilter(query *entdb.SubscriptionQuery, at time.Time)
 			subscriptiondb.ActiveToIsNil(),
 			subscriptiondb.ActiveToGT(at),
 		),
+		subscriptiondb.Or(
+			subscriptiondb.DeletedAtIsNil(),
+			subscriptiondb.DeletedAtGT(at),
+		),
+		subscriptiondb.CreatedAtLTE(at),
 	)
 }
