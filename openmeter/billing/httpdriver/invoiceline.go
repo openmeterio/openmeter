@@ -152,8 +152,9 @@ func mapCreatePendingFlatFeeLineToEntity(line api.InvoiceFlatFeePendingLineCreat
 					End:   line.Period.To,
 				},
 
-				InvoiceAt: line.InvoiceAt,
-				TaxConfig: rateCardParsed.TaxConfig,
+				InvoiceAt:         line.InvoiceAt,
+				TaxConfig:         rateCardParsed.TaxConfig,
+				RateCardDiscounts: rateCardParsed.Discounts,
 			},
 			FlatFee: &billing.FlatFeeLine{
 				PerUnitAmount: rateCardParsed.PerUnitAmount,
@@ -195,8 +196,9 @@ func mapCreatePendingUsageBasedLineToEntity(line api.InvoiceUsageBasedPendingLin
 					End:   line.Period.To,
 				},
 
-				InvoiceAt: line.InvoiceAt,
-				TaxConfig: rateCardParsed.TaxConfig,
+				InvoiceAt:         line.InvoiceAt,
+				TaxConfig:         rateCardParsed.TaxConfig,
+				RateCardDiscounts: rateCardParsed.Discounts,
 			},
 			UsageBased: &billing.UsageBasedLine{
 				Price:      rateCardParsed.Price,
@@ -525,8 +527,9 @@ func mapSimulationFlatFeeLineToEntity(line api.InvoiceSimulationFlatFeeLine) (*b
 				End:   line.Period.To,
 			},
 
-			InvoiceAt: line.InvoiceAt,
-			TaxConfig: rateCardParsed.TaxConfig,
+			InvoiceAt:         line.InvoiceAt,
+			TaxConfig:         rateCardParsed.TaxConfig,
+			RateCardDiscounts: rateCardParsed.Discounts,
 		},
 		FlatFee: &billing.FlatFeeLine{
 			PerUnitAmount: rateCardParsed.PerUnitAmount,
@@ -573,8 +576,9 @@ func mapUsageBasedSimulationLineToEntity(line api.InvoiceSimulationUsageBasedLin
 				End:   line.Period.To,
 			},
 
-			InvoiceAt: line.InvoiceAt,
-			TaxConfig: rateCardParsed.TaxConfig,
+			InvoiceAt:         line.InvoiceAt,
+			TaxConfig:         rateCardParsed.TaxConfig,
+			RateCardDiscounts: rateCardParsed.Discounts,
 		},
 		UsageBased: &billing.UsageBasedLine{
 			Price:                 rateCardParsed.Price,
@@ -641,7 +645,8 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 				},
 				InvoiceAt: v.InvoiceAt,
 
-				TaxConfig: rateCardParsed.TaxConfig,
+				TaxConfig:         rateCardParsed.TaxConfig,
+				RateCardDiscounts: rateCardParsed.Discounts,
 			},
 			FlatFee: &billing.FlatFeeLine{
 				PerUnitAmount: rateCardParsed.PerUnitAmount,
@@ -683,7 +688,8 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 				},
 				InvoiceAt: v.InvoiceAt,
 
-				TaxConfig: rateCardParsed.TaxConfig,
+				TaxConfig:         rateCardParsed.TaxConfig,
+				RateCardDiscounts: rateCardParsed.Discounts,
 			},
 			UsageBased: &billing.UsageBasedLine{
 				Price:      rateCardParsed.Price,
@@ -734,6 +740,7 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 		existing.InvoiceAt = v.InvoiceAt
 
 		existing.TaxConfig = rateCardParsed.TaxConfig
+		existing.RateCardDiscounts = rateCardParsed.Discounts
 
 		existing.FlatFee.PerUnitAmount = rateCardParsed.PerUnitAmount
 		existing.FlatFee.Quantity = rateCardParsed.Quantity
@@ -777,7 +784,7 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 		existing.InvoiceAt = v.InvoiceAt
 
 		existing.TaxConfig = rateCardParsed.TaxConfig
-
+		existing.RateCardDiscounts = rateCardParsed.Discounts
 		existing.UsageBased.Price = rateCardParsed.Price
 		existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
 

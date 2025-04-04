@@ -240,6 +240,12 @@ func (bilc *BillingInvoiceLineCreate) SetNillableTaxConfig(pc *productcatalog.Ta
 	return bilc
 }
 
+// SetRatecardDiscounts sets the "ratecard_discounts" field.
+func (bilc *BillingInvoiceLineCreate) SetRatecardDiscounts(pr *productcatalog.Discounts) *BillingInvoiceLineCreate {
+	bilc.mutation.SetRatecardDiscounts(pr)
+	return bilc
+}
+
 // SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
 func (bilc *BillingInvoiceLineCreate) SetInvoicingAppExternalID(s string) *BillingInvoiceLineCreate {
 	bilc.mutation.SetInvoicingAppExternalID(s)
@@ -585,7 +591,10 @@ func (bilc *BillingInvoiceLineCreate) sqlSave(ctx context.Context) (*BillingInvo
 	if err := bilc.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := bilc.createSpec()
+	_node, _spec, err := bilc.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, bilc.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -604,7 +613,7 @@ func (bilc *BillingInvoiceLineCreate) sqlSave(ctx context.Context) (*BillingInvo
 	return _node, nil
 }
 
-func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph.CreateSpec) {
+func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &BillingInvoiceLine{config: bilc.config}
 		_spec = sqlgraph.NewCreateSpec(billinginvoiceline.Table, sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString))
@@ -705,6 +714,14 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 	if value, ok := bilc.mutation.TaxConfig(); ok {
 		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
 		_node.TaxConfig = value
+	}
+	if value, ok := bilc.mutation.RatecardDiscounts(); ok {
+		vv, err := billinginvoiceline.ValueScanner.RatecardDiscounts.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(billinginvoiceline.FieldRatecardDiscounts, field.TypeString, vv)
+		_node.RatecardDiscounts = value
 	}
 	if value, ok := bilc.mutation.InvoicingAppExternalID(); ok {
 		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)
@@ -869,7 +886,7 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 		_node.SubscriptionItemID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -1206,6 +1223,24 @@ func (u *BillingInvoiceLineUpsert) UpdateTaxConfig() *BillingInvoiceLineUpsert {
 // ClearTaxConfig clears the value of the "tax_config" field.
 func (u *BillingInvoiceLineUpsert) ClearTaxConfig() *BillingInvoiceLineUpsert {
 	u.SetNull(billinginvoiceline.FieldTaxConfig)
+	return u
+}
+
+// SetRatecardDiscounts sets the "ratecard_discounts" field.
+func (u *BillingInvoiceLineUpsert) SetRatecardDiscounts(v *productcatalog.Discounts) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldRatecardDiscounts, v)
+	return u
+}
+
+// UpdateRatecardDiscounts sets the "ratecard_discounts" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateRatecardDiscounts() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldRatecardDiscounts)
+	return u
+}
+
+// ClearRatecardDiscounts clears the value of the "ratecard_discounts" field.
+func (u *BillingInvoiceLineUpsert) ClearRatecardDiscounts() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldRatecardDiscounts)
 	return u
 }
 
@@ -1713,6 +1748,27 @@ func (u *BillingInvoiceLineUpsertOne) ClearTaxConfig() *BillingInvoiceLineUpsert
 	})
 }
 
+// SetRatecardDiscounts sets the "ratecard_discounts" field.
+func (u *BillingInvoiceLineUpsertOne) SetRatecardDiscounts(v *productcatalog.Discounts) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetRatecardDiscounts(v)
+	})
+}
+
+// UpdateRatecardDiscounts sets the "ratecard_discounts" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateRatecardDiscounts() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateRatecardDiscounts()
+	})
+}
+
+// ClearRatecardDiscounts clears the value of the "ratecard_discounts" field.
+func (u *BillingInvoiceLineUpsertOne) ClearRatecardDiscounts() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearRatecardDiscounts()
+	})
+}
+
 // SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
 func (u *BillingInvoiceLineUpsertOne) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
@@ -1907,7 +1963,10 @@ func (bilcb *BillingInvoiceLineCreateBulk) Save(ctx context.Context) ([]*Billing
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, bilcb.builders[i+1].mutation)
 				} else {
@@ -2399,6 +2458,27 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateTaxConfig() *BillingInvoiceLineUpse
 func (u *BillingInvoiceLineUpsertBulk) ClearTaxConfig() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearTaxConfig()
+	})
+}
+
+// SetRatecardDiscounts sets the "ratecard_discounts" field.
+func (u *BillingInvoiceLineUpsertBulk) SetRatecardDiscounts(v *productcatalog.Discounts) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetRatecardDiscounts(v)
+	})
+}
+
+// UpdateRatecardDiscounts sets the "ratecard_discounts" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateRatecardDiscounts() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateRatecardDiscounts()
+	})
+}
+
+// ClearRatecardDiscounts clears the value of the "ratecard_discounts" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearRatecardDiscounts() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearRatecardDiscounts()
 	})
 }
 

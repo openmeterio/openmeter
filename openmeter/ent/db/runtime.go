@@ -482,6 +482,9 @@ func init() {
 	billinginvoicelineDescCurrency := billinginvoicelineFields[8].Descriptor()
 	// billinginvoiceline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billinginvoiceline.CurrencyValidator = billinginvoicelineDescCurrency.Validators[0].(func(string) error)
+	// billinginvoicelineDescRatecardDiscounts is the schema descriptor for ratecard_discounts field.
+	billinginvoicelineDescRatecardDiscounts := billinginvoicelineFields[11].Descriptor()
+	billinginvoiceline.ValueScanner.RatecardDiscounts = billinginvoicelineDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// billinginvoicelineDescID is the schema descriptor for id field.
 	billinginvoicelineDescID := billinginvoicelineMixinFields0[0].Descriptor()
 	// billinginvoiceline.DefaultID holds the default value on creation for the id field.

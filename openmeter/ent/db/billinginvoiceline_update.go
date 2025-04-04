@@ -352,6 +352,18 @@ func (bilu *BillingInvoiceLineUpdate) ClearTaxConfig() *BillingInvoiceLineUpdate
 	return bilu
 }
 
+// SetRatecardDiscounts sets the "ratecard_discounts" field.
+func (bilu *BillingInvoiceLineUpdate) SetRatecardDiscounts(pr *productcatalog.Discounts) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetRatecardDiscounts(pr)
+	return bilu
+}
+
+// ClearRatecardDiscounts clears the value of the "ratecard_discounts" field.
+func (bilu *BillingInvoiceLineUpdate) ClearRatecardDiscounts() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearRatecardDiscounts()
+	return bilu
+}
+
 // SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
 func (bilu *BillingInvoiceLineUpdate) SetInvoicingAppExternalID(s string) *BillingInvoiceLineUpdate {
 	bilu.mutation.SetInvoicingAppExternalID(s)
@@ -802,6 +814,16 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 	}
 	if bilu.mutation.TaxConfigCleared() {
 		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
+	}
+	if value, ok := bilu.mutation.RatecardDiscounts(); ok {
+		vv, err := billinginvoiceline.ValueScanner.RatecardDiscounts.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(billinginvoiceline.FieldRatecardDiscounts, field.TypeString, vv)
+	}
+	if bilu.mutation.RatecardDiscountsCleared() {
+		_spec.ClearField(billinginvoiceline.FieldRatecardDiscounts, field.TypeString)
 	}
 	if value, ok := bilu.mutation.InvoicingAppExternalID(); ok {
 		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)
@@ -1448,6 +1470,18 @@ func (biluo *BillingInvoiceLineUpdateOne) ClearTaxConfig() *BillingInvoiceLineUp
 	return biluo
 }
 
+// SetRatecardDiscounts sets the "ratecard_discounts" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetRatecardDiscounts(pr *productcatalog.Discounts) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetRatecardDiscounts(pr)
+	return biluo
+}
+
+// ClearRatecardDiscounts clears the value of the "ratecard_discounts" field.
+func (biluo *BillingInvoiceLineUpdateOne) ClearRatecardDiscounts() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearRatecardDiscounts()
+	return biluo
+}
+
 // SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
 func (biluo *BillingInvoiceLineUpdateOne) SetInvoicingAppExternalID(s string) *BillingInvoiceLineUpdateOne {
 	biluo.mutation.SetInvoicingAppExternalID(s)
@@ -1928,6 +1962,16 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 	}
 	if biluo.mutation.TaxConfigCleared() {
 		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
+	}
+	if value, ok := biluo.mutation.RatecardDiscounts(); ok {
+		vv, err := billinginvoiceline.ValueScanner.RatecardDiscounts.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(billinginvoiceline.FieldRatecardDiscounts, field.TypeString, vv)
+	}
+	if biluo.mutation.RatecardDiscountsCleared() {
+		_spec.ClearField(billinginvoiceline.FieldRatecardDiscounts, field.TypeString)
 	}
 	if value, ok := biluo.mutation.InvoicingAppExternalID(); ok {
 		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)

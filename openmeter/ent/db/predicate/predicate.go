@@ -67,6 +67,17 @@ type BillingInvoiceFlatFeeLineConfig func(*sql.Selector)
 // BillingInvoiceLine is the predicate function for billinginvoiceline builders.
 type BillingInvoiceLine func(*sql.Selector)
 
+// BillingInvoiceLineOrErr calls the predicate only if the error is not nit.
+func BillingInvoiceLineOrErr(p BillingInvoiceLine, err error) BillingInvoiceLine {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // BillingInvoiceLineDiscount is the predicate function for billinginvoicelinediscount builders.
 type BillingInvoiceLineDiscount func(*sql.Selector)
 

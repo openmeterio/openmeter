@@ -8,7 +8,9 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -66,6 +68,8 @@ const (
 	FieldQuantity = "quantity"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
+	// FieldRatecardDiscounts holds the string denoting the ratecard_discounts field in the database.
+	FieldRatecardDiscounts = "ratecard_discounts"
 	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
 	FieldInvoicingAppExternalID = "invoicing_app_external_id"
 	// FieldChildUniqueReferenceID holds the string denoting the child_unique_reference_id field in the database.
@@ -185,6 +189,7 @@ var Columns = []string{
 	FieldCurrency,
 	FieldQuantity,
 	FieldTaxConfig,
+	FieldRatecardDiscounts,
 	FieldInvoicingAppExternalID,
 	FieldChildUniqueReferenceID,
 	FieldSubscriptionID,
@@ -232,6 +237,10 @@ var (
 	CurrencyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all BillingInvoiceLine fields.
+	ValueScanner struct {
+		RatecardDiscounts field.TypeValueScanner[*productcatalog.Discounts]
+	}
 )
 
 // ManagedByValidator is a validator for the "managed_by" field enum values. It is called by the builders before save.
@@ -385,6 +394,11 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 // ByQuantity orders the results by the quantity field.
 func ByQuantity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldQuantity, opts...).ToFunc()
+}
+
+// ByRatecardDiscounts orders the results by the ratecard_discounts field.
+func ByRatecardDiscounts(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRatecardDiscounts, opts...).ToFunc()
 }
 
 // ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.

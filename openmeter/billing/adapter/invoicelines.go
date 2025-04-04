@@ -114,6 +114,10 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					create = create.SetTaxConfig(*line.TaxConfig)
 				}
 
+				if len(line.RateCardDiscounts) > 0 {
+					create = create.SetRatecardDiscounts(lo.ToPtr(line.RateCardDiscounts))
+				}
+
 				switch line.Type {
 				case billing.InvoiceLineTypeFee:
 					create = create.SetQuantity(line.FlatFee.Quantity).
