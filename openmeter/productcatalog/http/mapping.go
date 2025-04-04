@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -23,34 +22,36 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 
 	resp := api.RateCard{}
 
+	meta := r.AsMeta()
+
+	var featureKey *string
+	if meta.Feature != nil {
+		featureKey = &meta.Feature.Key
+	}
+
+	var tmpl api.RateCardEntitlement
+	if meta.EntitlementTemplate != nil {
+		tmpl, err = FromEntitlementTemplate(*meta.EntitlementTemplate)
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast EntitlementTemplate: %w", err)
+		}
+	}
+
+	var taxConfig *api.TaxConfig
+	if meta.TaxConfig != nil {
+		taxConfig = lo.ToPtr(FromTaxConfig(*meta.TaxConfig))
+	}
+
 	switch r.Type() {
 	case productcatalog.FlatFeeRateCardType:
-		rc, ok := r.(*plan.FlatFeeRateCard)
-		if !ok {
-			return resp, errors.New("failed to cast FlatFeeRateCard")
-		}
-
-		var tmpl api.RateCardEntitlement
-		if rc.EntitlementTemplate != nil {
-			tmpl, err = FromEntitlementTemplate(*rc.EntitlementTemplate)
-			if err != nil {
-				return resp, fmt.Errorf("failed to cast EntitlementTemplate: %w", err)
-			}
-		}
-
-		var featureKey *string
-		if rc.Feature() != nil {
-			featureKey = &rc.Feature().Key
-		}
-
 		var billingCadence *string
-		if rc.BillingCadence != nil {
-			billingCadence = lo.ToPtr(rc.BillingCadence.ISOString().String())
+		if bc := r.GetBillingCadence(); bc != nil {
+			billingCadence = lo.ToPtr(bc.ISOString().String())
 		}
 
 		var price *api.FlatPriceWithPaymentTerm
-		if rc.Price != nil {
-			flatPrice, err := rc.Price.AsFlat()
+		if meta.Price != nil {
+			flatPrice, err := meta.Price.AsFlat()
 			if err != nil {
 				return resp, fmt.Errorf("failed to cast FlatPrice: %w", err)
 			}
@@ -62,14 +63,9 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			}
 		}
 
-		var taxConfig *api.TaxConfig
-		if rc.TaxConfig != nil {
-			taxConfig = lo.ToPtr(FromTaxConfig(*rc.TaxConfig))
-		}
-
 		var discountPercentages []api.DiscountPercentage
-		if len(rc.Discounts) > 0 {
-			discountPercentages, err = FromDiscountPercentages(rc.Discounts)
+		if len(meta.Discounts) > 0 {
+			discountPercentages, err = FromDiscountPercentages(meta.Discounts)
 			if err != nil {
 				return resp, fmt.Errorf("failed to cast Discounts: %w", err)
 			}
@@ -77,12 +73,12 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 
 		err = resp.FromRateCardFlatFee(api.RateCardFlatFee{
 			BillingCadence:      billingCadence,
-			Description:         rc.Description,
+			Description:         meta.Description,
 			EntitlementTemplate: lo.EmptyableToPtr(tmpl),
 			FeatureKey:          featureKey,
-			Key:                 rc.Key(),
-			Metadata:            lo.EmptyableToPtr(api.Metadata(rc.Metadata)),
-			Name:                rc.Name,
+			Key:                 meta.Key,
+			Metadata:            lo.EmptyableToPtr(api.Metadata(meta.Metadata)),
+			Name:                meta.Name,
 			Price:               price,
 			TaxConfig:           taxConfig,
 			Type:                api.RateCardFlatFeeTypeFlatFee,
@@ -92,27 +88,9 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			return resp, fmt.Errorf("failed to cast FlatPriceRateCard: %w", err)
 		}
 	case productcatalog.UsageBasedRateCardType:
-		rc, ok := r.(*plan.UsageBasedRateCard)
-		if !ok {
-			return resp, errors.New("failed to cast UsageBasedRateCard")
-		}
-
-		var tmpl api.RateCardEntitlement
-		if rc.EntitlementTemplate != nil {
-			tmpl, err = FromEntitlementTemplate(*rc.EntitlementTemplate)
-			if err != nil {
-				return resp, fmt.Errorf("failed to cast EntitlementTemplate: %w", err)
-			}
-		}
-
-		var featureKey *string
-		if rc.Feature() != nil {
-			featureKey = &rc.Feature().Key
-		}
-
 		var price *api.RateCardUsageBasedPrice
-		if rc.Price != nil {
-			ubpPrice, err := FromRateCardUsageBasedPrice(*rc.Price)
+		if meta.Price != nil {
+			ubpPrice, err := FromRateCardUsageBasedPrice(*meta.Price)
 			if err != nil {
 				return resp, fmt.Errorf("failed to cast UsageBasedPrice: %w", err)
 			}
@@ -120,28 +98,28 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			price = &ubpPrice
 		}
 
-		var taxConfig *api.TaxConfig
-		if rc.TaxConfig != nil {
-			taxConfig = lo.ToPtr(FromTaxConfig(*rc.TaxConfig))
-		}
-
 		var discounts []api.Discount
-		if len(rc.Discounts) > 0 {
-			discounts, err = FromDiscounts(rc.Discounts)
+		if len(meta.Discounts) > 0 {
+			discounts, err = FromDiscounts(meta.Discounts)
 			if err != nil {
 				return resp, fmt.Errorf("failed to cast Discounts: %w", err)
 			}
 		}
 
+		billingCadence := r.GetBillingCadence()
+		if billingCadence == nil {
+			return resp, errors.New("invalid UsageBasedRateCard: billing cadence must be set")
+		}
+
 		err = resp.FromRateCardUsageBased(api.RateCardUsageBased{
 			Type:                api.RateCardUsageBasedTypeUsageBased,
-			BillingCadence:      rc.BillingCadence.ISOString().String(),
-			Description:         rc.Description,
+			BillingCadence:      billingCadence.ISOString().String(),
+			Description:         meta.Description,
 			EntitlementTemplate: lo.EmptyableToPtr(tmpl),
 			FeatureKey:          featureKey,
-			Key:                 rc.Key(),
-			Metadata:            lo.EmptyableToPtr(api.Metadata(rc.Metadata)),
-			Name:                rc.Name,
+			Key:                 meta.Key,
+			Metadata:            lo.EmptyableToPtr(api.Metadata(meta.Metadata)),
+			Name:                meta.Name,
 			Price:               price,
 			TaxConfig:           taxConfig,
 			Discounts:           lo.EmptyableToPtr(discounts),
