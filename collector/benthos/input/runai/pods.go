@@ -116,7 +116,7 @@ func (s *Service) ListAllPods(ctx context.Context) ([]Pod, error) {
 
 	for {
 		resp, err := s.ListPods(ctx, ListPodsParams{
-			Limit:  500,
+			Limit:  100,
 			Offset: len(pods),
 		})
 		if err != nil {

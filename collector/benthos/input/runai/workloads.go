@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -77,12 +78,32 @@ func (s *Service) ListWorkloads(ctx context.Context, params ListWorkloadParams) 
 		return nil, fmt.Errorf("limit must be less than 500")
 	}
 
+	// Filter out workloads where phase is in the list
+	filteredOutPhases := []string{
+		"Creating",
+		"Initializing",
+		"Resuming",
+		"Pending",
+		// "Deleting",
+		// "Running",
+		"Updating",
+		"Stopped",
+		"Stopping",
+		// "Degraded",
+		"Failed",
+	}
+
+	filterBy := strings.Join(lo.Map(filteredOutPhases, func(p string, _ int) string {
+		return fmt.Sprintf("phase!=%s", p)
+	}), ",")
+
 	resp, err := s.client.R().
 		SetContext(ctx).
 		SetHeader("Accept", "application/json").
 		SetQueryParams(map[string]string{
-			"limit":  fmt.Sprintf("%d", params.Limit),
-			"offset": fmt.Sprintf("%d", params.Offset),
+			"limit":    fmt.Sprintf("%d", params.Limit),
+			"offset":   fmt.Sprintf("%d", params.Offset),
+			"filterBy": filterBy,
 		}).
 		SetResult(&ListWorkloadsResponse{}).
 		Get("/api/v1/workloads")
@@ -115,7 +136,7 @@ func (s *Service) ListAllWorkloads(ctx context.Context) ([]Workload, error) {
 
 	for {
 		resp, err := s.ListWorkloads(ctx, ListWorkloadParams{
-			Limit:  500,
+			Limit:  100,
 			Offset: len(workloads),
 		})
 		if err != nil {
