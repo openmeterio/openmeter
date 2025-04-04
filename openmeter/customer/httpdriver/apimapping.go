@@ -5,6 +5,8 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -87,4 +89,21 @@ func CustomerToAPI(c customer.Customer) (api.Customer, error) {
 	}
 
 	return apiCustomer, nil
+}
+
+func MapAccessToAPI(access entitlement.Access) (api.CustomerAccess, error) {
+	entitlements := make(map[string]api.EntitlementValue)
+
+	for fKey, v := range access.Entitlements {
+		apiVal, err := entitlementdriver.MapEntitlementValueToAPI(v.Value)
+		if err != nil {
+			return api.CustomerAccess{}, err
+		}
+
+		entitlements[fKey] = apiVal
+	}
+
+	return api.CustomerAccess{
+		Entitlements: entitlements,
+	}, nil
 }

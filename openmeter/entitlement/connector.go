@@ -3,9 +3,12 @@ package entitlement
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/samber/lo"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -80,6 +83,10 @@ type Connector interface {
 	//
 	// For consistency, it is forbidden for entitlements to be created for featueres the keys of which could be mistaken for entitlement IDs.
 	GetEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (*Entitlement, error)
+
+	// GetAccess returns the access of a subject for a given namespace.
+	// It returns a map of featureKey to entitlement value + ID.
+	GetAccess(ctx context.Context, namespace string, subjectKey string) (Access, error)
 }
 
 type entitlementConnector struct {
@@ -219,6 +226,92 @@ func (c *entitlementConnector) ListEntitlements(ctx context.Context, params List
 		}
 	}
 	return c.entitlementRepo.ListEntitlements(ctx, params)
+}
+
+func (c *entitlementConnector) GetAccess(ctx context.Context, namespace string, subjectKey string) (Access, error) {
+	now := clock.Now()
+
+	entitlements, err := c.GetEntitlementsOfSubject(ctx, namespace, subjectKey, now)
+	if err != nil {
+		return Access{}, err
+	}
+
+	if len(entitlements) == 0 {
+		return Access{}, nil
+	}
+
+	var result sync.Map
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	// Let's limit concurrency
+	const maxConcurrency = 10 // TODO: Make this configurable
+	sem := semaphore.NewWeighted(int64(maxConcurrency))
+
+	// Start a goroutine for each entitlement
+	for _, ent := range entitlements {
+		// Let's create a local copy for the goroutine
+		entitlement := ent
+
+		weight := int64(1)
+
+		if err := sem.Acquire(ctx, weight); err != nil {
+			// Ctx canceled or never rly happens, but critical if does
+			return Access{}, err
+		}
+
+		g.Go(func() error {
+			defer sem.Release(weight)
+
+			// Get the entitlement value
+			entValue, err := c.GetEntitlementValue(ctx, namespace, subjectKey, entitlement.ID, now)
+			if err != nil {
+				return fmt.Errorf("failed to get entitlement value for ID %s: %w", entitlement.ID, err)
+			}
+
+			// Store the result
+			result.Store(entitlement.FeatureKey, EntitlementValueWithId{
+				Value: entValue,
+				ID:    entitlement.ID,
+			})
+
+			return nil
+		})
+	}
+
+	// Wait for all goroutines to complete and return any error
+	if err := g.Wait(); err != nil {
+		return Access{}, err
+	}
+
+	// Convert sync.Map to regular map for return value
+	finalResult := make(map[string]EntitlementValueWithId)
+	var conversionErrors []error
+
+	result.Range(func(key, value any) bool {
+		// Better safe than sorry
+		k, ok := key.(string)
+		if !ok {
+			conversionErrors = append(conversionErrors, fmt.Errorf("unexpected key type in entitlement map: %T", key))
+			return false
+		}
+
+		v, ok := value.(EntitlementValueWithId)
+		if !ok {
+			conversionErrors = append(conversionErrors, fmt.Errorf("unexpected value type in entitlement map for key %s: %T", k, value))
+			return false
+		}
+
+		finalResult[k] = v
+		return true
+	})
+
+	// If there were any type assertion errors, return them
+	if len(conversionErrors) > 0 {
+		return Access{}, fmt.Errorf("errors converting entitlement values: %v", conversionErrors)
+	}
+
+	return Access{Entitlements: finalResult}, nil
 }
 
 func (c *entitlementConnector) getTypeConnector(inp TypedEntitlement) (SubTypeConnector, error) {

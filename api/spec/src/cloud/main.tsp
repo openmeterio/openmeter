@@ -174,6 +174,11 @@ namespace OpenMeterCloud.Entitlements {
   @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
   @tag("Entitlements")
   interface Subjects extends OpenMeter.Entitlements.Subjects {}
+
+  @route("/api/v1/customers/{customerIdOrKey}")
+  @tag("Entitlements")
+  @tag("Customers")
+  interface Customer extends OpenMeter.Entitlements.Customer {}
 }
 
 namespace OpenMeterCloud.Billing {

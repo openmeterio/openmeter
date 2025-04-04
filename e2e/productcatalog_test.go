@@ -47,6 +47,7 @@ func TestPlan(t *testing.T) {
 	})
 	require.Nil(t, err)
 
+	require.Equal(t, 201, customerAPIRes.StatusCode(), "received the following body: %s", customerAPIRes.Body)
 	customer1 := customerAPIRes.JSON201
 	require.NotNil(t, customer1)
 
@@ -70,6 +71,16 @@ func TestPlan(t *testing.T) {
 		},
 	})
 	require.Nil(t, err)
+
+	t.Run("Should check access of customer returning nothing", func(t *testing.T) {
+		res, err := client.GetCustomerAccessWithResponse(ctx, customer1.Id)
+		require.Nil(t, err)
+
+		require.Equal(t, http.StatusOK, res.StatusCode(), "received the following body: %s", res.Body)
+		require.NotNil(t, res.JSON200)
+		require.NotNil(t, res.JSON200.Entitlements)
+		require.Equal(t, 0, len(res.JSON200.Entitlements))
+	})
 
 	customer2 := customerAPIRes.JSON201
 	require.NotNil(t, customer1)
@@ -764,5 +775,16 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, res.JSON200)
 		require.NotNil(t, res.JSON200.HasAccess)
 		assert.True(t, res.JSON200.HasAccess)
+	})
+
+	t.Run("Should check access of customer", func(t *testing.T) {
+		res, err := client.GetCustomerAccessWithResponse(ctx, customer1.Id)
+		require.Nil(t, err)
+
+		require.Equal(t, http.StatusOK, res.StatusCode(), "received the following body: %s", res.Body)
+		require.NotNil(t, res.JSON200)
+		require.NotNil(t, res.JSON200.Entitlements)
+		require.NotNil(t, res.JSON200.Entitlements[PlanFeatureKey])
+		require.True(t, res.JSON200.Entitlements[PlanFeatureKey].HasAccess)
 	})
 }

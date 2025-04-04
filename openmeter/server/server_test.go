@@ -723,6 +723,10 @@ func (n NoopEntitlementConnector) GetEntitlementOfSubjectAt(ctx context.Context,
 	return &entitlement.Entitlement{}, nil
 }
 
+func (n NoopEntitlementConnector) GetAccess(ctx context.Context, namespace string, subjectKey string) (entitlement.Access, error) {
+	return entitlement.Access{}, nil
+}
+
 // NoopEntitlementBalanceConnector
 
 var _ meteredentitlement.Connector = (*NoopEntitlementBalanceConnector)(nil)
@@ -1016,6 +1020,10 @@ func (n NoopCustomerService) UpdateCustomer(ctx context.Context, params customer
 
 func (n NoopCustomerService) GetEntitlementValue(ctx context.Context, input customer.GetEntitlementValueInput) (entitlement.EntitlementValue, error) {
 	return nil, nil
+}
+
+func (n NoopCustomerService) GetCustomerAccess(ctx context.Context, input customer.GetCustomerInput) (entitlement.Access, error) {
+	return entitlement.Access{}, nil
 }
 
 func (n NoopCustomerService) FindCustomer(ctx context.Context, namespace string, customerRef ref.IDOrKey) (*customer.Customer, error) {

@@ -11,6 +11,7 @@ import "./entitlements.tsp";
 import "./feature.tsp";
 import "./grant.tsp";
 import "./subjects.tsp";
+import "./customer.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
