@@ -2,6 +2,7 @@ package appstripe
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -56,21 +57,23 @@ func (e AppCheckoutSessionEvent) EventMetadata() metadata.EventMetadata {
 }
 
 func (e AppCheckoutSessionEvent) Validate() error {
+	var errs []error
+
 	if e.Namespace == "" {
-		return fmt.Errorf("namespace is required")
+		errs = append(errs, fmt.Errorf("namespace is required"))
 	}
 
 	if e.AppID == "" {
-		return fmt.Errorf("app id is required")
+		errs = append(errs, fmt.Errorf("app id is required"))
 	}
 
 	if e.CustomerID == "" {
-		return fmt.Errorf("customer id is required")
+		errs = append(errs, fmt.Errorf("customer id is required"))
 	}
 
 	if e.SessionID == "" {
-		return fmt.Errorf("session id is required")
+		errs = append(errs, fmt.Errorf("session id is required"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }

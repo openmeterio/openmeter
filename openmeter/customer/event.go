@@ -55,7 +55,7 @@ func (e CustomerCreateEvent) Validate() error {
 	var errs []error
 
 	if e.Customer == nil {
-		return fmt.Errorf("customer is required")
+		errs = append(errs, fmt.Errorf("customer is required"))
 	}
 
 	if err := e.Customer.Validate(); err != nil {
@@ -102,7 +102,7 @@ func (e CustomerUpdateEvent) Validate() error {
 	var errs []error
 
 	if e.Customer == nil {
-		return fmt.Errorf("customer is required")
+		errs = append(errs, fmt.Errorf("customer is required"))
 	}
 
 	if err := e.Customer.Validate(); err != nil {
@@ -149,11 +149,11 @@ func (e CustomerDeleteEvent) Validate() error {
 	var errs []error
 
 	if e.Customer == nil {
-		return fmt.Errorf("customer is required")
+		errs = append(errs, fmt.Errorf("customer is required"))
 	}
 
 	if e.Customer.DeletedAt == nil {
-		return fmt.Errorf("customer deleted at is required")
+		errs = append(errs, fmt.Errorf("customer deleted at is required"))
 	}
 
 	if err := e.Customer.Validate(); err != nil {
