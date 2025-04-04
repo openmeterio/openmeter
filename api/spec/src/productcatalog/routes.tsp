@@ -247,14 +247,14 @@ interface Addons {
    * Get add-on by id or key. The latest published version is returned if latter is used.
    */
   @get
-  @route("/{addonIdOrKey}")
+  @route("/{addonId}")
   @operationId("getAddon")
   @summary("Get add-on")
   @extension("x-internal", true)
   get(
     @extension("x-go-type", "string")
     @path
-    addonIdOrKey: ULIDOrKey,
+    addonId: ULIDOrKey,
 
     /**
      * Include latest version of the add-on instead of the version in active state.

@@ -23,7 +23,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/addons/{addonIdOrKey}': {
+  '/api/v1/addons/{addonId}': {
     parameters: {
       query?: never
       header?: never
@@ -35,22 +35,6 @@ export interface paths {
      * @description Get add-on by id or key. The latest published version is returned if latter is used.
      */
     get: operations['getAddon']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/addons/{addonId}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
     /**
      * Update add-on
      * @description Update add-on by id.
@@ -9676,7 +9660,7 @@ export interface operations {
       }
       header?: never
       path: {
-        addonIdOrKey: string
+        addonId: string
       }
       cookie?: never
     }

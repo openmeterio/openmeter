@@ -28,10 +28,10 @@ func (a *Router) DeleteAddon(w http.ResponseWriter, r *http.Request, addonId str
 }
 
 // Get addon
-// (GET /api/v1/addons/{addonIdOrKey})
-func (a *Router) GetAddon(w http.ResponseWriter, r *http.Request, addonIdOrKey string, params api.GetAddonParams) {
+// (GET /api/v1/addons/{addonId})
+func (a *Router) GetAddon(w http.ResponseWriter, r *http.Request, addonId string, params api.GetAddonParams) {
 	a.addonHandler.GetAddon().With(addonhttpdriver.GetAddonRequestParams{
-		IDOrKey:       addonIdOrKey,
+		IDOrKey:       addonId,
 		IncludeLatest: lo.FromPtrOr(params.IncludeLatest, false),
 	}).ServeHTTP(w, r)
 }
