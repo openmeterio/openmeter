@@ -1912,22 +1912,6 @@ func (c *BillingInvoiceClient) QueryPaymentApp(bi *BillingInvoice) *AppQuery {
 	return query
 }
 
-// QueryInvoiceDiscounts queries the invoice_discounts edge of a BillingInvoice.
-func (c *BillingInvoiceClient) QueryInvoiceDiscounts(bi *BillingInvoice) *BillingInvoiceDiscountQuery {
-	query := (&BillingInvoiceDiscountClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := bi.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
-			sqlgraph.To(billinginvoicediscount.Table, billinginvoicediscount.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.InvoiceDiscountsTable, billinginvoice.InvoiceDiscountsColumn),
-		)
-		fromV = sqlgraph.Neighbors(bi.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // Hooks returns the client hooks.
 func (c *BillingInvoiceClient) Hooks() []Hook {
 	return c.hooks.BillingInvoice
@@ -2059,38 +2043,6 @@ func (c *BillingInvoiceDiscountClient) GetX(ctx context.Context, id string) *Bil
 		panic(err)
 	}
 	return obj
-}
-
-// QueryInvoice queries the invoice edge of a BillingInvoiceDiscount.
-func (c *BillingInvoiceDiscountClient) QueryInvoice(bid *BillingInvoiceDiscount) *BillingInvoiceQuery {
-	query := (&BillingInvoiceClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := bid.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoicediscount.Table, billinginvoicediscount.FieldID, id),
-			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicediscount.InvoiceTable, billinginvoicediscount.InvoiceColumn),
-		)
-		fromV = sqlgraph.Neighbors(bid.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryLines queries the lines edge of a BillingInvoiceDiscount.
-func (c *BillingInvoiceDiscountClient) QueryLines(bid *BillingInvoiceDiscount) *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceLineClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := bid.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoicediscount.Table, billinginvoicediscount.FieldID, id),
-			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoicediscount.LinesTable, billinginvoicediscount.LinesColumn),
-		)
-		fromV = sqlgraph.Neighbors(bid.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
 }
 
 // Hooks returns the client hooks.
@@ -2496,22 +2448,6 @@ func (c *BillingInvoiceLineClient) QuerySubscriptionItem(bil *BillingInvoiceLine
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
 			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.SubscriptionItemTable, billinginvoiceline.SubscriptionItemColumn),
-		)
-		fromV = sqlgraph.Neighbors(bil.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryInvoiceDiscounts queries the invoice_discounts edge of a BillingInvoiceLine.
-func (c *BillingInvoiceLineClient) QueryInvoiceDiscounts(bil *BillingInvoiceLine) *BillingInvoiceDiscountQuery {
-	query := (&BillingInvoiceDiscountClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := bil.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
-			sqlgraph.To(billinginvoicediscount.Table, billinginvoicediscount.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.InvoiceDiscountsTable, billinginvoiceline.InvoiceDiscountsColumn),
 		)
 		fromV = sqlgraph.Neighbors(bil.driver.Dialect(), step)
 		return fromV, nil

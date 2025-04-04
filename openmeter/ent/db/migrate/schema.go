@@ -478,24 +478,16 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"percentage"}},
+		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "type", Type: field.TypeString},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "line_ids", Type: field.TypeJSON, Nullable: true},
-		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoiceDiscountsTable holds the schema information for the "billing_invoice_discounts" table.
 	BillingInvoiceDiscountsTable = &schema.Table{
 		Name:       "billing_invoice_discounts",
 		Columns:    BillingInvoiceDiscountsColumns,
 		PrimaryKey: []*schema.Column{BillingInvoiceDiscountsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "billing_invoice_discounts_billing_invoices_invoice_discounts",
-				Columns:    []*schema.Column{BillingInvoiceDiscountsColumns[11]},
-				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "billinginvoicediscount_id",
@@ -515,7 +507,7 @@ var (
 			{
 				Name:    "billinginvoicediscount_namespace_invoice_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceDiscountsColumns[1], BillingInvoiceDiscountsColumns[11]},
+				Columns: []*schema.Column{BillingInvoiceDiscountsColumns[1], BillingInvoiceDiscountsColumns[8]},
 			},
 		},
 	}
@@ -573,8 +565,8 @@ var (
 		{Name: "tax_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
 		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
-		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "line_ids", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "fee_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "usage_based_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "parent_line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -590,15 +582,9 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoice_lines_billing_invoices_billing_invoice_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[26]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[27]},
 				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
 				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "billing_invoice_lines_billing_invoice_discounts_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[27]},
-				RefColumns: []*schema.Column{BillingInvoiceDiscountsColumns[0]},
-				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "billing_invoice_lines_billing_invoice_flat_fee_line_configs_flat_fee_line",
@@ -656,7 +642,7 @@ var (
 			{
 				Name:    "billinginvoiceline_namespace_invoice_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[26]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[27]},
 			},
 			{
 				Name:    "billinginvoiceline_namespace_parent_line_id",
@@ -2005,15 +1991,13 @@ func init() {
 	BillingInvoicesTable.ForeignKeys[3].RefTable = BillingProfilesTable
 	BillingInvoicesTable.ForeignKeys[4].RefTable = BillingWorkflowConfigsTable
 	BillingInvoicesTable.ForeignKeys[5].RefTable = CustomersTable
-	BillingInvoiceDiscountsTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingInvoiceLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
-	BillingInvoiceLinesTable.ForeignKeys[1].RefTable = BillingInvoiceDiscountsTable
-	BillingInvoiceLinesTable.ForeignKeys[2].RefTable = BillingInvoiceFlatFeeLineConfigsTable
-	BillingInvoiceLinesTable.ForeignKeys[3].RefTable = BillingInvoiceUsageBasedLineConfigsTable
-	BillingInvoiceLinesTable.ForeignKeys[4].RefTable = BillingInvoiceLinesTable
-	BillingInvoiceLinesTable.ForeignKeys[5].RefTable = SubscriptionsTable
-	BillingInvoiceLinesTable.ForeignKeys[6].RefTable = SubscriptionItemsTable
-	BillingInvoiceLinesTable.ForeignKeys[7].RefTable = SubscriptionPhasesTable
+	BillingInvoiceLinesTable.ForeignKeys[1].RefTable = BillingInvoiceFlatFeeLineConfigsTable
+	BillingInvoiceLinesTable.ForeignKeys[2].RefTable = BillingInvoiceUsageBasedLineConfigsTable
+	BillingInvoiceLinesTable.ForeignKeys[3].RefTable = BillingInvoiceLinesTable
+	BillingInvoiceLinesTable.ForeignKeys[4].RefTable = SubscriptionsTable
+	BillingInvoiceLinesTable.ForeignKeys[5].RefTable = SubscriptionItemsTable
+	BillingInvoiceLinesTable.ForeignKeys[6].RefTable = SubscriptionPhasesTable
 	BillingInvoiceLineDiscountsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	BillingInvoiceValidationIssuesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingProfilesTable.ForeignKeys[0].RefTable = AppsTable

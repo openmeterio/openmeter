@@ -76,6 +76,8 @@ const (
 	FieldSubscriptionPhaseID = "subscription_phase_id"
 	// FieldSubscriptionItemID holds the string denoting the subscription_item_id field in the database.
 	FieldSubscriptionItemID = "subscription_item_id"
+	// FieldLineIds holds the string denoting the line_ids field in the database.
+	FieldLineIds = "line_ids"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
 	EdgeBillingInvoice = "billing_invoice"
 	// EdgeFlatFeeLine holds the string denoting the flat_fee_line edge name in mutations.
@@ -94,8 +96,6 @@ const (
 	EdgeSubscriptionPhase = "subscription_phase"
 	// EdgeSubscriptionItem holds the string denoting the subscription_item edge name in mutations.
 	EdgeSubscriptionItem = "subscription_item"
-	// EdgeInvoiceDiscounts holds the string denoting the invoice_discounts edge name in mutations.
-	EdgeInvoiceDiscounts = "invoice_discounts"
 	// Table holds the table name of the billinginvoiceline in the database.
 	Table = "billing_invoice_lines"
 	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
@@ -155,13 +155,6 @@ const (
 	SubscriptionItemInverseTable = "subscription_items"
 	// SubscriptionItemColumn is the table column denoting the subscription_item relation/edge.
 	SubscriptionItemColumn = "subscription_item_id"
-	// InvoiceDiscountsTable is the table that holds the invoice_discounts relation/edge.
-	InvoiceDiscountsTable = "billing_invoice_lines"
-	// InvoiceDiscountsInverseTable is the table name for the BillingInvoiceDiscount entity.
-	// It exists in this package in order to avoid circular dependency with the "billinginvoicediscount" package.
-	InvoiceDiscountsInverseTable = "billing_invoice_discounts"
-	// InvoiceDiscountsColumn is the table column denoting the invoice_discounts relation/edge.
-	InvoiceDiscountsColumn = "line_ids"
 )
 
 // Columns holds all SQL columns for billinginvoiceline fields.
@@ -202,7 +195,6 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "billing_invoice_lines"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
-	"line_ids",
 	"fee_line_config_id",
 	"usage_based_line_config_id",
 }
@@ -216,6 +208,11 @@ func ValidColumn(column string) bool {
 	}
 	for i := range ForeignKeys {
 		if column == ForeignKeys[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldLineIds} {
+		if column == f {
 			return true
 		}
 	}
@@ -415,6 +412,11 @@ func BySubscriptionItemID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubscriptionItemID, opts...).ToFunc()
 }
 
+// ByLineIds orders the results by the line_ids field.
+func ByLineIds(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLineIds, opts...).ToFunc()
+}
+
 // ByBillingInvoiceField orders the results by billing_invoice field.
 func ByBillingInvoiceField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -491,13 +493,6 @@ func BySubscriptionItemField(field string, opts ...sql.OrderTermOption) OrderOpt
 		sqlgraph.OrderByNeighborTerms(s, newSubscriptionItemStep(), sql.OrderByField(field, opts...))
 	}
 }
-
-// ByInvoiceDiscountsField orders the results by invoice_discounts field.
-func ByInvoiceDiscountsField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newInvoiceDiscountsStep(), sql.OrderByField(field, opts...))
-	}
-}
 func newBillingInvoiceStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -559,12 +554,5 @@ func newSubscriptionItemStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubscriptionItemInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionItemTable, SubscriptionItemColumn),
-	)
-}
-func newInvoiceDiscountsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(InvoiceDiscountsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, InvoiceDiscountsTable, InvoiceDiscountsColumn),
 	)
 }

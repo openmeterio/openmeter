@@ -4,7 +4,6 @@ package db
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -13,22 +12,18 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
 // BillingInvoiceDiscountQuery is the builder for querying BillingInvoiceDiscount entities.
 type BillingInvoiceDiscountQuery struct {
 	config
-	ctx         *QueryContext
-	order       []billinginvoicediscount.OrderOption
-	inters      []Interceptor
-	predicates  []predicate.BillingInvoiceDiscount
-	withInvoice *BillingInvoiceQuery
-	withLines   *BillingInvoiceLineQuery
-	modifiers   []func(*sql.Selector)
+	ctx        *QueryContext
+	order      []billinginvoicediscount.OrderOption
+	inters     []Interceptor
+	predicates []predicate.BillingInvoiceDiscount
+	modifiers  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -63,50 +58,6 @@ func (bidq *BillingInvoiceDiscountQuery) Unique(unique bool) *BillingInvoiceDisc
 func (bidq *BillingInvoiceDiscountQuery) Order(o ...billinginvoicediscount.OrderOption) *BillingInvoiceDiscountQuery {
 	bidq.order = append(bidq.order, o...)
 	return bidq
-}
-
-// QueryInvoice chains the current query on the "invoice" edge.
-func (bidq *BillingInvoiceDiscountQuery) QueryInvoice() *BillingInvoiceQuery {
-	query := (&BillingInvoiceClient{config: bidq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bidq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := bidq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoicediscount.Table, billinginvoicediscount.FieldID, selector),
-			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicediscount.InvoiceTable, billinginvoicediscount.InvoiceColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(bidq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryLines chains the current query on the "lines" edge.
-func (bidq *BillingInvoiceDiscountQuery) QueryLines() *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceLineClient{config: bidq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bidq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := bidq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoicediscount.Table, billinginvoicediscount.FieldID, selector),
-			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoicediscount.LinesTable, billinginvoicediscount.LinesColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(bidq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
 }
 
 // First returns the first BillingInvoiceDiscount entity from the query.
@@ -296,39 +247,15 @@ func (bidq *BillingInvoiceDiscountQuery) Clone() *BillingInvoiceDiscountQuery {
 		return nil
 	}
 	return &BillingInvoiceDiscountQuery{
-		config:      bidq.config,
-		ctx:         bidq.ctx.Clone(),
-		order:       append([]billinginvoicediscount.OrderOption{}, bidq.order...),
-		inters:      append([]Interceptor{}, bidq.inters...),
-		predicates:  append([]predicate.BillingInvoiceDiscount{}, bidq.predicates...),
-		withInvoice: bidq.withInvoice.Clone(),
-		withLines:   bidq.withLines.Clone(),
+		config:     bidq.config,
+		ctx:        bidq.ctx.Clone(),
+		order:      append([]billinginvoicediscount.OrderOption{}, bidq.order...),
+		inters:     append([]Interceptor{}, bidq.inters...),
+		predicates: append([]predicate.BillingInvoiceDiscount{}, bidq.predicates...),
 		// clone intermediate query.
 		sql:  bidq.sql.Clone(),
 		path: bidq.path,
 	}
-}
-
-// WithInvoice tells the query-builder to eager-load the nodes that are connected to
-// the "invoice" edge. The optional arguments are used to configure the query builder of the edge.
-func (bidq *BillingInvoiceDiscountQuery) WithInvoice(opts ...func(*BillingInvoiceQuery)) *BillingInvoiceDiscountQuery {
-	query := (&BillingInvoiceClient{config: bidq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	bidq.withInvoice = query
-	return bidq
-}
-
-// WithLines tells the query-builder to eager-load the nodes that are connected to
-// the "lines" edge. The optional arguments are used to configure the query builder of the edge.
-func (bidq *BillingInvoiceDiscountQuery) WithLines(opts ...func(*BillingInvoiceLineQuery)) *BillingInvoiceDiscountQuery {
-	query := (&BillingInvoiceLineClient{config: bidq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	bidq.withLines = query
-	return bidq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -407,12 +334,8 @@ func (bidq *BillingInvoiceDiscountQuery) prepareQuery(ctx context.Context) error
 
 func (bidq *BillingInvoiceDiscountQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoiceDiscount, error) {
 	var (
-		nodes       = []*BillingInvoiceDiscount{}
-		_spec       = bidq.querySpec()
-		loadedTypes = [2]bool{
-			bidq.withInvoice != nil,
-			bidq.withLines != nil,
-		}
+		nodes = []*BillingInvoiceDiscount{}
+		_spec = bidq.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingInvoiceDiscount).scanValues(nil, columns)
@@ -420,7 +343,6 @@ func (bidq *BillingInvoiceDiscountQuery) sqlAll(ctx context.Context, hooks ...qu
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &BillingInvoiceDiscount{config: bidq.config}
 		nodes = append(nodes, node)
-		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(bidq.modifiers) > 0 {
@@ -435,81 +357,7 @@ func (bidq *BillingInvoiceDiscountQuery) sqlAll(ctx context.Context, hooks ...qu
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := bidq.withInvoice; query != nil {
-		if err := bidq.loadInvoice(ctx, query, nodes, nil,
-			func(n *BillingInvoiceDiscount, e *BillingInvoice) { n.Edges.Invoice = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := bidq.withLines; query != nil {
-		if err := bidq.loadLines(ctx, query, nodes,
-			func(n *BillingInvoiceDiscount) { n.Edges.Lines = []*BillingInvoiceLine{} },
-			func(n *BillingInvoiceDiscount, e *BillingInvoiceLine) { n.Edges.Lines = append(n.Edges.Lines, e) }); err != nil {
-			return nil, err
-		}
-	}
 	return nodes, nil
-}
-
-func (bidq *BillingInvoiceDiscountQuery) loadInvoice(ctx context.Context, query *BillingInvoiceQuery, nodes []*BillingInvoiceDiscount, init func(*BillingInvoiceDiscount), assign func(*BillingInvoiceDiscount, *BillingInvoice)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*BillingInvoiceDiscount)
-	for i := range nodes {
-		fk := nodes[i].InvoiceID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(billinginvoice.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "invoice_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (bidq *BillingInvoiceDiscountQuery) loadLines(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*BillingInvoiceDiscount, init func(*BillingInvoiceDiscount), assign func(*BillingInvoiceDiscount, *BillingInvoiceLine)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[string]*BillingInvoiceDiscount)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	query.withFKs = true
-	query.Where(predicate.BillingInvoiceLine(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(billinginvoicediscount.LinesColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.line_ids
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "line_ids" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "line_ids" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
 }
 
 func (bidq *BillingInvoiceDiscountQuery) sqlCount(ctx context.Context) (int, error) {
@@ -539,9 +387,6 @@ func (bidq *BillingInvoiceDiscountQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != billinginvoicediscount.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
-		}
-		if bidq.withInvoice != nil {
-			_spec.Node.AddColumnOnce(billinginvoicediscount.FieldInvoiceID)
 		}
 	}
 	if ps := bidq.predicates; len(ps) > 0 {
