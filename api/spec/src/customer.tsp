@@ -116,19 +116,6 @@ interface Customers {
     @path customerIdOrKey: ULIDOrKey,
     ...QueryPagination,
   ): PaginatedResponse<ProductCatalog.Subscription> | NotFoundError | CommonErrors;
-
-  /**
-   * Checks customer access to a given feature (by key). All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
-   */
-  @get
-  @operationId("getCustomerEntitlementValue")
-  @route("/{customerIdOrKey}/entitlements/{featureKey}/value")
-  @summary("Get entitlement value")
-  getCustomerEntitlementValue(
-    @path customerIdOrKey: ULIDOrKey,
-    @path featureKey: Key,
-    @query(#{ explode: true }) time?: DateTime,
-  ): Entitlements.EntitlementValue | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 }
 
 /**
