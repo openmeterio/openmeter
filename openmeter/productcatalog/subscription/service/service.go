@@ -7,11 +7,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 )
 
 type Config struct {
 	// TODO: WorkflowService and this can probably be merged
-	WorkflowService     subscription.WorkflowService
+	WorkflowService     subscriptionworkflow.Service
 	SubscriptionService subscription.Service
 	PlanService         plan.Service
 	Logger              *slog.Logger

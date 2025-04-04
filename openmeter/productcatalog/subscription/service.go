@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -26,11 +27,11 @@ type MigrateSubscriptionRequest struct {
 
 type ChangeSubscriptionRequest struct {
 	ID            models.NamespacedID
-	WorkflowInput subscription.ChangeSubscriptionWorkflowInput
+	WorkflowInput subscriptionworkflow.ChangeSubscriptionWorkflowInput
 	PlanInput     PlanInput
 }
 
 type CreateSubscriptionRequest struct {
-	WorkflowInput subscription.CreateSubscriptionWorkflowInput
+	WorkflowInput subscriptionworkflow.CreateSubscriptionWorkflowInput
 	PlanInput     PlanInput
 }

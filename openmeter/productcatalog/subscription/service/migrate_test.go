@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -27,7 +28,7 @@ func TestMigrate(t *testing.T) {
 	type tDeps struct {
 		subDeps subscriptiontestutils.ExposedServiceDeps
 		subSvc  subscription.Service
-		wfSvc   subscription.WorkflowService
+		wfSvc   subscriptionworkflow.Service
 	}
 
 	withDeps := func(t *testing.T, f func(t *testing.T, deps tDeps)) {
@@ -76,8 +77,8 @@ func TestMigrate(t *testing.T) {
 
 			sub, err := svc.Create(ctx, plansubscription.CreateSubscriptionRequest{
 				PlanInput: p1Inp,
-				WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
-					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+				WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 						Name: "test",
 						Timing: subscription.Timing{
 							Custom: lo.ToPtr(now.Add(time.Second)),
@@ -154,8 +155,8 @@ func TestMigrate(t *testing.T) {
 
 			sub, err := svc.Create(ctx, plansubscription.CreateSubscriptionRequest{
 				PlanInput: p1Inp,
-				WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
-					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+				WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 						Name: "test",
 						Timing: subscription.Timing{
 							Custom: lo.ToPtr(now.Add(time.Second)),

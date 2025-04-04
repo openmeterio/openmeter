@@ -20,8 +20,10 @@ import (
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
+	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription/service"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/isodate"
@@ -42,7 +44,7 @@ type ExposedServiceDeps struct {
 
 type services struct {
 	Service         subscription.Service
-	WorkflowService subscription.WorkflowService
+	WorkflowService subscriptionworkflow.Service
 }
 
 func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
@@ -121,7 +123,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 		Publisher:             publisher,
 	})
 
-	workflowSvc := service.NewWorkflowService(service.WorkflowServiceConfig{
+	workflowSvc := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            svc,
 		CustomerService:    customer,
 		TransactionManager: subItemRepo,

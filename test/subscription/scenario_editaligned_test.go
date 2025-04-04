@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -122,10 +123,10 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 
 	// 4th, let's create the subscription
 	s, err := tDeps.pcSubscriptionService.Create(ctx, pcsubscription.CreateSubscriptionRequest{
-		WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
+		WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
 			Namespace:  namespace,
 			CustomerID: c.ID,
-			ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 				Timing: subscription.Timing{
 					Custom: &currentTime,
 				},
@@ -294,10 +295,10 @@ func TestEditingEntitlementOfUnalignedSub(t *testing.T) {
 
 	// 4th, let's create the subscription
 	s, err := tDeps.pcSubscriptionService.Create(ctx, pcsubscription.CreateSubscriptionRequest{
-		WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
+		WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
 			Namespace:  namespace,
 			CustomerID: c.ID,
-			ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 				Timing: subscription.Timing{
 					Custom: &currentTime,
 				},

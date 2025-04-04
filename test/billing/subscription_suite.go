@@ -28,9 +28,11 @@ import (
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/testutils"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptionentitlementadatapter "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
+	subscriptionentitlementadatapter "github.com/openmeterio/openmeter/openmeter/subscription/entitlement"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
@@ -39,7 +41,7 @@ type SubscriptionMixin struct {
 	PlanService                 plan.Service
 	SubscriptionService         subscription.Service
 	SubscriptionPlanAdapter     subscriptiontestutils.PlanSubscriptionAdapter
-	SubscriptionWorkflowService subscription.WorkflowService
+	SubscriptionWorkflowService subscriptionworkflow.Service
 }
 
 type SubscriptionMixInDependencies struct {
@@ -129,7 +131,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Logger:      slog.Default(),
 	})
 
-	s.SubscriptionWorkflowService = subscriptionservice.NewWorkflowService(subscriptionservice.WorkflowServiceConfig{
+	s.SubscriptionWorkflowService = subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            s.SubscriptionService,
 		CustomerService:    deps.CustomerService,
 		TransactionManager: subsRepo,

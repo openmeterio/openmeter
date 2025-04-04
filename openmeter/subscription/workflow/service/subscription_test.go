@@ -20,8 +20,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
-	"github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	workflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -32,7 +33,7 @@ func TestCreateFromPlan(t *testing.T) {
 		Plan            subscription.Plan
 		CurrentTime     time.Time
 		Customer        customer.Customer
-		WorkflowService subscription.WorkflowService
+		WorkflowService subscriptionworkflow.Service
 		DBDeps          *subscriptiontestutils.DBDeps
 	}
 
@@ -46,8 +47,8 @@ func TestCreateFromPlan(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
 
-				_, err := deps.WorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
-					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+				_, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 						Timing: subscription.Timing{
 							Custom: &deps.CurrentTime,
 						},
@@ -95,7 +96,7 @@ func TestEditRunning(t *testing.T) {
 		CurrentTime     time.Time
 		SubView         subscription.SubscriptionView
 		Customer        customer.Customer
-		WorkflowService subscription.WorkflowService
+		WorkflowService subscriptionworkflow.Service
 		Service         subscription.Service
 		DBDeps          *subscriptiontestutils.DBDeps
 		Plan            subscription.Plan
@@ -242,7 +243,7 @@ func TestEditRunning(t *testing.T) {
 
 				_, tuDeps := subscriptiontestutils.NewService(t, deps.DBDeps)
 
-				workflowService := service.NewWorkflowService(service.WorkflowServiceConfig{
+				workflowService := workflowservice.NewWorkflowService(workflowservice.WorkflowServiceConfig{
 					Service:            &mSvc,
 					CustomerService:    tuDeps.CustomerService,
 					TransactionManager: tuDeps.CustomerAdapter,
@@ -274,8 +275,8 @@ func TestEditRunning(t *testing.T) {
 			require.NotNil(t, cust)
 
 			// Let's create an example subscription
-			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
-				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: &tcDeps.CurrentTime,
 					},
@@ -303,7 +304,7 @@ func TestEditingCurrentPhase(t *testing.T) {
 		CurrentTime     time.Time
 		SubView         subscription.SubscriptionView
 		Customer        customer.Customer
-		WorkflowService subscription.WorkflowService
+		WorkflowService subscriptionworkflow.Service
 		Service         subscription.Service
 		ItemRepo        subscription.SubscriptionItemRepository
 		DBDeps          *subscriptiontestutils.DBDeps
@@ -467,8 +468,8 @@ func TestEditingCurrentPhase(t *testing.T) {
 			require.NotNil(t, cust)
 
 			// Let's create an example subscription
-			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
-				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: &tcDeps.CurrentTime,
 					},
@@ -498,7 +499,7 @@ func TestEditingWithTiming(t *testing.T) {
 		CurrentTime     time.Time
 		SubView         subscription.SubscriptionView
 		Customer        customer.Customer
-		WorkflowService subscription.WorkflowService
+		WorkflowService subscriptionworkflow.Service
 		Service         subscription.Service
 		ItemRepo        subscription.SubscriptionItemRepository
 		DBDeps          *subscriptiontestutils.DBDeps
@@ -716,8 +717,8 @@ func TestEditingWithTiming(t *testing.T) {
 			require.NotNil(t, cust)
 
 			// Let's create an example subscription
-			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
-				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: &tcDeps.CurrentTime,
 					},
@@ -839,7 +840,7 @@ func TestChangeToPlan(t *testing.T) {
 	type testCaseDeps struct {
 		CurrentTime     time.Time
 		Customer        customer.Customer
-		WorkflowService subscription.WorkflowService
+		WorkflowService subscriptionworkflow.Service
 		Service         subscription.Service
 		DBDeps          *subscriptiontestutils.DBDeps
 		Plan1           subscription.Plan
@@ -887,8 +888,8 @@ func TestChangeToPlan(t *testing.T) {
 
 			// First, let's create a subscription from the first plan
 			// Let's create an example subscription
-			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
-				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: &deps.CurrentTime,
 					},
@@ -901,7 +902,7 @@ func TestChangeToPlan(t *testing.T) {
 
 			someTimeLater := deps.CurrentTime.AddDate(0, 0, 10)
 
-			changeInput := subscription.ChangeSubscriptionWorkflowInput{
+			changeInput := subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 				Timing: subscription.Timing{
 					Custom: &someTimeLater,
 				},
@@ -943,7 +944,7 @@ func TestEditCombinations(t *testing.T) {
 	type testCaseDeps struct {
 		CurrentTime     time.Time
 		Customer        customer.Customer
-		WorkflowService subscription.WorkflowService
+		WorkflowService subscriptionworkflow.Service
 		Service         subscription.Service
 		DBDeps          *subscriptiontestutils.DBDeps
 		Plan1           subscription.Plan
@@ -987,8 +988,8 @@ func TestEditCombinations(t *testing.T) {
 			defer cancel()
 
 			// Let's create an example subscription
-			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
-				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: &deps.CurrentTime,
 					},
@@ -1069,7 +1070,7 @@ func TestRestore(t *testing.T) {
 	type testCaseDeps struct {
 		CurrentTime     time.Time
 		Customer        customer.Customer
-		WorkflowService subscription.WorkflowService
+		WorkflowService subscriptionworkflow.Service
 		Service         subscription.Service
 		DBDeps          *subscriptiontestutils.DBDeps
 		Plan1           subscription.Plan
@@ -1113,8 +1114,8 @@ func TestRestore(t *testing.T) {
 			defer cancel()
 
 			// Let's create an example subscription
-			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
-				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: &deps.CurrentTime,
 					},
@@ -1156,8 +1157,8 @@ func TestRestore(t *testing.T) {
 			defer cancel()
 
 			// Let's create an example subscription
-			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
-				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: &deps.CurrentTime,
 					},
@@ -1173,7 +1174,7 @@ func TestRestore(t *testing.T) {
 
 			// Let's change to another plan (same plan, but still a change)
 			changeBy := clock.Now().AddDate(0, 0, 1)
-			old, new, err := deps.WorkflowService.ChangeToPlan(ctx, sub.Subscription.NamespacedID, subscription.ChangeSubscriptionWorkflowInput{
+			old, new, err := deps.WorkflowService.ChangeToPlan(ctx, sub.Subscription.NamespacedID, subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 				Timing: subscription.Timing{
 					Custom: &changeBy,
 				},

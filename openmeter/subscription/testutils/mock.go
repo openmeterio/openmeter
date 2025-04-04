@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -71,12 +72,12 @@ func (s *MockService) GetAllForCustomerSince(ctx context.Context, customerID mod
 }
 
 type MockWorkflowService struct {
-	CreateFromPlanFn func(ctx context.Context, inp subscription.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error)
+	CreateFromPlanFn func(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error)
 	EditRunningFn    func(ctx context.Context, subscriptionID models.NamespacedID, customizations []subscription.Patch) (subscription.SubscriptionView, error)
-	ChangeToPlanFn   func(ctx context.Context, subscriptionID models.NamespacedID, inp subscription.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (current subscription.Subscription, new subscription.SubscriptionView, err error)
+	ChangeToPlanFn   func(ctx context.Context, subscriptionID models.NamespacedID, inp subscriptionworkflow.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (current subscription.Subscription, new subscription.SubscriptionView, err error)
 }
 
-func (s *MockWorkflowService) CreateFromPlan(ctx context.Context, inp subscription.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
+func (s *MockWorkflowService) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
 	return s.CreateFromPlanFn(ctx, inp, plan)
 }
 
@@ -84,6 +85,6 @@ func (s *MockWorkflowService) EditRunning(ctx context.Context, subscriptionID mo
 	return s.EditRunningFn(ctx, subscriptionID, customizations)
 }
 
-func (s *MockWorkflowService) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscription.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (current subscription.Subscription, new subscription.SubscriptionView, err error) {
+func (s *MockWorkflowService) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscriptionworkflow.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (current subscription.Subscription, new subscription.SubscriptionView, err error) {
 	return s.ChangeToPlanFn(ctx, subscriptionID, inp, plan)
 }

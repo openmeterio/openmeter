@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -27,7 +28,7 @@ func TestChange(t *testing.T) {
 	type tDeps struct {
 		subDeps subscriptiontestutils.ExposedServiceDeps
 		subSvc  subscription.Service
-		wfSvc   subscription.WorkflowService
+		wfSvc   subscriptionworkflow.Service
 	}
 
 	withDeps := func(t *testing.T, f func(t *testing.T, deps tDeps)) {
@@ -76,8 +77,8 @@ func TestChange(t *testing.T) {
 
 			sub, err := svc.Create(ctx, plansubscription.CreateSubscriptionRequest{
 				PlanInput: p1Inp,
-				WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
-					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+				WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 						Name: "test",
 						Timing: subscription.Timing{
 							Custom: lo.ToPtr(now.Add(time.Second)),
@@ -133,7 +134,7 @@ func TestChange(t *testing.T) {
 			// Let's change the subscription to the new plan
 			resp, err := svc.Change(ctx, plansubscription.ChangeSubscriptionRequest{
 				ID: sub.NamespacedID,
-				WorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+				WorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: lo.ToPtr(clock.Now()),
 					},
@@ -180,8 +181,8 @@ func TestChange(t *testing.T) {
 
 			sub, err := svc.Create(ctx, plansubscription.CreateSubscriptionRequest{
 				PlanInput: p1Inp,
-				WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
-					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+				WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 						Name: "test",
 						Timing: subscription.Timing{
 							Custom: lo.ToPtr(now.Add(time.Second)),
@@ -256,7 +257,7 @@ func TestChange(t *testing.T) {
 			// Let's change the subscription to the new plan
 			_, err = svc.Change(ctx, plansubscription.ChangeSubscriptionRequest{
 				ID: sub.NamespacedID,
-				WorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+				WorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: lo.ToPtr(clock.Now()),
 					},
