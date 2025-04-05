@@ -64,9 +64,9 @@ func (e AddonCreateEvent) Validate() error {
 }
 
 // NewAddonUpdateEvent creates a new Addon update event
-func NewAddonUpdateEvent(ctx context.Context, Addon *Addon) AddonUpdateEvent {
+func NewAddonUpdateEvent(ctx context.Context, addon *Addon) AddonUpdateEvent {
 	return AddonUpdateEvent{
-		Addon:  Addon,
+		Addon:  addon,
 		UserID: session.GetSessionUserID(ctx),
 	}
 }
@@ -107,9 +107,9 @@ func (e AddonUpdateEvent) Validate() error {
 }
 
 // NewAddonDeleteEvent creates a new Addon delete event
-func NewAddonDeleteEvent(ctx context.Context, Addon *Addon) AddonDeleteEvent {
+func NewAddonDeleteEvent(ctx context.Context, addon *Addon) AddonDeleteEvent {
 	return AddonDeleteEvent{
-		Addon:  Addon,
+		Addon:  addon,
 		UserID: session.GetSessionUserID(ctx),
 	}
 }
