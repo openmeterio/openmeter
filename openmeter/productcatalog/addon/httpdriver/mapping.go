@@ -28,6 +28,7 @@ func FromAddon(a addon.Addon) (api.Addon, error) {
 		Name:          a.Name,
 		UpdatedAt:     a.UpdatedAt,
 		Version:       a.Version,
+		InstanceType:  api.AddonInstanceType(string(a.InstanceType)),
 	}
 
 	resp.RateCards = make([]api.RateCard, 0, len(a.RateCards))
@@ -63,10 +64,11 @@ func AsCreateAddonRequest(a api.AddonCreate, namespace string) (CreateAddonReque
 		},
 		Addon: productcatalog.Addon{
 			AddonMeta: productcatalog.AddonMeta{
-				Key:         a.Key,
-				Name:        a.Name,
-				Description: a.Description,
-				Metadata:    lo.FromPtrOr(a.Metadata, nil),
+				Key:          a.Key,
+				Name:         a.Name,
+				Description:  a.Description,
+				Metadata:     lo.FromPtrOr(a.Metadata, nil),
+				InstanceType: productcatalog.AddonInstanceType(a.InstanceType),
 			},
 			RateCards: nil,
 		},
@@ -91,9 +93,10 @@ func AsUpdateAddonRequest(a api.AddonReplaceUpdate, namespace string, addonID st
 			Namespace: namespace,
 			ID:        addonID,
 		},
-		Name:        lo.ToPtr(a.Name),
-		Description: a.Description,
-		Metadata:    (*models.Metadata)(a.Metadata),
+		Name:         lo.ToPtr(a.Name),
+		Description:  a.Description,
+		Metadata:     (*models.Metadata)(a.Metadata),
+		InstanceType: lo.ToPtr(productcatalog.AddonInstanceType(a.InstanceType)),
 	}
 
 	if len(a.RateCards) > 0 {

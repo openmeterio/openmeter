@@ -137,6 +137,9 @@ type UpdateAddonInput struct {
 	// Metadata
 	Annotations *models.Annotations `json:"annotations,omitempty"`
 
+	// InstanceType
+	InstanceType *productcatalog.AddonInstanceType `json:"instanceType,omitempty"`
+
 	// RateCards
 	RateCards *productcatalog.RateCards `json:"rateCards,omitempty"`
 }
@@ -166,6 +169,10 @@ func (i UpdateAddonInput) Equal(p Addon) bool {
 		return false
 	}
 
+	if i.InstanceType != nil && *i.InstanceType != p.InstanceType {
+		return false
+	}
+
 	if i.RateCards != nil && !i.RateCards.Equal(p.RateCards) {
 		return false
 	}
@@ -187,6 +194,12 @@ func (i UpdateAddonInput) Validate() error {
 	if i.EffectiveFrom != nil || i.EffectiveTo != nil {
 		if err := i.EffectivePeriod.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid EffectivePeriod: %w", err))
+		}
+	}
+
+	if i.InstanceType != nil {
+		if err := i.InstanceType.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid InstanceType: %w", err))
 		}
 	}
 

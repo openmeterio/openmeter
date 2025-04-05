@@ -52,6 +52,9 @@ type AddonMeta struct {
 	// Currency
 	Currency currency.Code `json:"currency"`
 
+	// InstanceType
+	InstanceType AddonInstanceType `json:"instanceType"`
+
 	// Metadata
 	Metadata models.Metadata `json:"metadata,omitempty"`
 
@@ -78,6 +81,10 @@ func (m AddonMeta) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid Currency: %s", err))
 	}
 
+	if err := m.InstanceType.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid InstanceType: %s", err))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -99,6 +106,10 @@ func (m AddonMeta) Equal(v AddonMeta) bool {
 	}
 
 	if m.Currency != v.Currency {
+		return false
+	}
+
+	if m.InstanceType != v.InstanceType {
 		return false
 	}
 
@@ -186,4 +197,27 @@ func (a Addon) Equal(v Addon) bool {
 	}
 
 	return a.RateCards.Equal(v.RateCards)
+}
+
+type AddonInstanceType string
+
+const (
+	AddonInstanceTypeSingle   AddonInstanceType = "single"
+	AddonInstanceTypeMultiple AddonInstanceType = "multiple"
+)
+
+func (a AddonInstanceType) Validate() error {
+	switch a {
+	case AddonInstanceTypeSingle, AddonInstanceTypeMultiple:
+		return nil
+	default:
+		return fmt.Errorf("invalid AddonInstanceType: %s", a)
+	}
+}
+
+func (a AddonInstanceType) Values() []string {
+	return []string{
+		string(AddonInstanceTypeSingle),
+		string(AddonInstanceTypeMultiple),
+	}
 }

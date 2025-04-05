@@ -86,7 +86,7 @@ func init() {
 	// addon.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	addon.CurrencyValidator = addonDescCurrency.Validators[0].(func(string) error)
 	// addonDescAnnotations is the schema descriptor for annotations field.
-	addonDescAnnotations := addonFields[4].Descriptor()
+	addonDescAnnotations := addonFields[5].Descriptor()
 	addon.ValueScanner.Annotations = addonDescAnnotations.ValueScanner.(field.TypeValueScanner[map[string]interface{}])
 	// addonDescID is the schema descriptor for id field.
 	addonDescID := addonMixinFields0[0].Descriptor()

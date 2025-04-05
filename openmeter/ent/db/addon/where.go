@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // ID filters vertices based on their ID field.
@@ -633,6 +634,36 @@ func CurrencyEqualFold(v string) predicate.Addon {
 // CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
 func CurrencyContainsFold(v string) predicate.Addon {
 	return predicate.Addon(sql.FieldContainsFold(FieldCurrency, v))
+}
+
+// InstanceTypeEQ applies the EQ predicate on the "instance_type" field.
+func InstanceTypeEQ(v productcatalog.AddonInstanceType) predicate.Addon {
+	vc := v
+	return predicate.Addon(sql.FieldEQ(FieldInstanceType, vc))
+}
+
+// InstanceTypeNEQ applies the NEQ predicate on the "instance_type" field.
+func InstanceTypeNEQ(v productcatalog.AddonInstanceType) predicate.Addon {
+	vc := v
+	return predicate.Addon(sql.FieldNEQ(FieldInstanceType, vc))
+}
+
+// InstanceTypeIn applies the In predicate on the "instance_type" field.
+func InstanceTypeIn(vs ...productcatalog.AddonInstanceType) predicate.Addon {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Addon(sql.FieldIn(FieldInstanceType, v...))
+}
+
+// InstanceTypeNotIn applies the NotIn predicate on the "instance_type" field.
+func InstanceTypeNotIn(vs ...productcatalog.AddonInstanceType) predicate.Addon {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Addon(sql.FieldNotIn(FieldInstanceType, v...))
 }
 
 // EffectiveFromEQ applies the EQ predicate on the "effective_from" field.

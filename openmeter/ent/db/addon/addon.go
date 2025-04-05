@@ -3,11 +3,13 @@
 package addon
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -35,6 +37,8 @@ const (
 	FieldVersion = "version"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldInstanceType holds the string denoting the instance_type field in the database.
+	FieldInstanceType = "instance_type"
 	// FieldEffectiveFrom holds the string denoting the effective_from field in the database.
 	FieldEffectiveFrom = "effective_from"
 	// FieldEffectiveTo holds the string denoting the effective_to field in the database.
@@ -67,6 +71,7 @@ var Columns = []string{
 	FieldKey,
 	FieldVersion,
 	FieldCurrency,
+	FieldInstanceType,
 	FieldEffectiveFrom,
 	FieldEffectiveTo,
 	FieldAnnotations,
@@ -106,6 +111,18 @@ var (
 		Annotations field.TypeValueScanner[map[string]interface{}]
 	}
 )
+
+const DefaultInstanceType productcatalog.AddonInstanceType = "single"
+
+// InstanceTypeValidator is a validator for the "instance_type" field enum values. It is called by the builders before save.
+func InstanceTypeValidator(it productcatalog.AddonInstanceType) error {
+	switch it {
+	case "single", "multiple":
+		return nil
+	default:
+		return fmt.Errorf("addon: invalid enum value for instance_type field: %q", it)
+	}
+}
 
 // OrderOption defines the ordering options for the Addon queries.
 type OrderOption func(*sql.Selector)
@@ -158,6 +175,11 @@ func ByVersion(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByInstanceType orders the results by the instance_type field.
+func ByInstanceType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInstanceType, opts...).ToFunc()
 }
 
 // ByEffectiveFrom orders the results by the effective_from field.

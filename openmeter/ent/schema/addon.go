@@ -32,6 +32,9 @@ func (Addon) Fields() []ent.Field {
 			Default("USD").
 			NotEmpty().
 			Immutable(),
+		field.Enum("instance_type").
+			GoType(productcatalog.AddonInstanceType("")).
+			Default(string(productcatalog.AddonInstanceTypeSingle)),
 		field.Time("effective_from").
 			Optional().
 			Nillable(),

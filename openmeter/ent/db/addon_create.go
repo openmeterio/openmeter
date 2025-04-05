@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // AddonCreate is the builder for creating a Addon entity.
@@ -120,6 +121,20 @@ func (ac *AddonCreate) SetCurrency(s string) *AddonCreate {
 func (ac *AddonCreate) SetNillableCurrency(s *string) *AddonCreate {
 	if s != nil {
 		ac.SetCurrency(*s)
+	}
+	return ac
+}
+
+// SetInstanceType sets the "instance_type" field.
+func (ac *AddonCreate) SetInstanceType(pit productcatalog.AddonInstanceType) *AddonCreate {
+	ac.mutation.SetInstanceType(pit)
+	return ac
+}
+
+// SetNillableInstanceType sets the "instance_type" field if the given value is not nil.
+func (ac *AddonCreate) SetNillableInstanceType(pit *productcatalog.AddonInstanceType) *AddonCreate {
+	if pit != nil {
+		ac.SetInstanceType(*pit)
 	}
 	return ac
 }
@@ -234,6 +249,10 @@ func (ac *AddonCreate) defaults() {
 		v := addon.DefaultCurrency
 		ac.mutation.SetCurrency(v)
 	}
+	if _, ok := ac.mutation.InstanceType(); !ok {
+		v := addon.DefaultInstanceType
+		ac.mutation.SetInstanceType(v)
+	}
 	if _, ok := ac.mutation.ID(); !ok {
 		v := addon.DefaultID()
 		ac.mutation.SetID(v)
@@ -281,6 +300,14 @@ func (ac *AddonCreate) check() error {
 	if v, ok := ac.mutation.Currency(); ok {
 		if err := addon.CurrencyValidator(v); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Addon.currency": %w`, err)}
+		}
+	}
+	if _, ok := ac.mutation.InstanceType(); !ok {
+		return &ValidationError{Name: "instance_type", err: errors.New(`db: missing required field "Addon.instance_type"`)}
+	}
+	if v, ok := ac.mutation.InstanceType(); ok {
+		if err := addon.InstanceTypeValidator(v); err != nil {
+			return &ValidationError{Name: "instance_type", err: fmt.Errorf(`db: validator failed for field "Addon.instance_type": %w`, err)}
 		}
 	}
 	return nil
@@ -361,6 +388,10 @@ func (ac *AddonCreate) createSpec() (*Addon, *sqlgraph.CreateSpec, error) {
 	if value, ok := ac.mutation.Currency(); ok {
 		_spec.SetField(addon.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
+	}
+	if value, ok := ac.mutation.InstanceType(); ok {
+		_spec.SetField(addon.FieldInstanceType, field.TypeEnum, value)
+		_node.InstanceType = value
 	}
 	if value, ok := ac.mutation.EffectiveFrom(); ok {
 		_spec.SetField(addon.FieldEffectiveFrom, field.TypeTime, value)
@@ -539,6 +570,18 @@ func (u *AddonUpsert) UpdateVersion() *AddonUpsert {
 // AddVersion adds v to the "version" field.
 func (u *AddonUpsert) AddVersion(v int) *AddonUpsert {
 	u.Add(addon.FieldVersion, v)
+	return u
+}
+
+// SetInstanceType sets the "instance_type" field.
+func (u *AddonUpsert) SetInstanceType(v productcatalog.AddonInstanceType) *AddonUpsert {
+	u.Set(addon.FieldInstanceType, v)
+	return u
+}
+
+// UpdateInstanceType sets the "instance_type" field to the value that was provided on create.
+func (u *AddonUpsert) UpdateInstanceType() *AddonUpsert {
+	u.SetExcluded(addon.FieldInstanceType)
 	return u
 }
 
@@ -765,6 +808,20 @@ func (u *AddonUpsertOne) AddVersion(v int) *AddonUpsertOne {
 func (u *AddonUpsertOne) UpdateVersion() *AddonUpsertOne {
 	return u.Update(func(s *AddonUpsert) {
 		s.UpdateVersion()
+	})
+}
+
+// SetInstanceType sets the "instance_type" field.
+func (u *AddonUpsertOne) SetInstanceType(v productcatalog.AddonInstanceType) *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.SetInstanceType(v)
+	})
+}
+
+// UpdateInstanceType sets the "instance_type" field to the value that was provided on create.
+func (u *AddonUpsertOne) UpdateInstanceType() *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.UpdateInstanceType()
 	})
 }
 
@@ -1170,6 +1227,20 @@ func (u *AddonUpsertBulk) AddVersion(v int) *AddonUpsertBulk {
 func (u *AddonUpsertBulk) UpdateVersion() *AddonUpsertBulk {
 	return u.Update(func(s *AddonUpsert) {
 		s.UpdateVersion()
+	})
+}
+
+// SetInstanceType sets the "instance_type" field.
+func (u *AddonUpsertBulk) SetInstanceType(v productcatalog.AddonInstanceType) *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.SetInstanceType(v)
+	})
+}
+
+// UpdateInstanceType sets the "instance_type" field to the value that was provided on create.
+func (u *AddonUpsertBulk) UpdateInstanceType() *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.UpdateInstanceType()
 	})
 }
 

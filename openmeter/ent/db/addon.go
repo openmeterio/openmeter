@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // Addon is the model entity for the Addon schema.
@@ -38,6 +39,8 @@ type Addon struct {
 	Version int `json:"version,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency string `json:"currency,omitempty"`
+	// InstanceType holds the value of the "instance_type" field.
+	InstanceType productcatalog.AddonInstanceType `json:"instance_type,omitempty"`
 	// EffectiveFrom holds the value of the "effective_from" field.
 	EffectiveFrom *time.Time `json:"effective_from,omitempty"`
 	// EffectiveTo holds the value of the "effective_to" field.
@@ -77,7 +80,7 @@ func (*Addon) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case addon.FieldVersion:
 			values[i] = new(sql.NullInt64)
-		case addon.FieldID, addon.FieldNamespace, addon.FieldName, addon.FieldDescription, addon.FieldKey, addon.FieldCurrency:
+		case addon.FieldID, addon.FieldNamespace, addon.FieldName, addon.FieldDescription, addon.FieldKey, addon.FieldCurrency, addon.FieldInstanceType:
 			values[i] = new(sql.NullString)
 		case addon.FieldCreatedAt, addon.FieldUpdatedAt, addon.FieldDeletedAt, addon.FieldEffectiveFrom, addon.FieldEffectiveTo:
 			values[i] = new(sql.NullTime)
@@ -167,6 +170,12 @@ func (a *Addon) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				a.Currency = value.String
+			}
+		case addon.FieldInstanceType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field instance_type", values[i])
+			} else if value.Valid {
+				a.InstanceType = productcatalog.AddonInstanceType(value.String)
 			}
 		case addon.FieldEffectiveFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -262,6 +271,9 @@ func (a *Addon) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(a.Currency)
+	builder.WriteString(", ")
+	builder.WriteString("instance_type=")
+	builder.WriteString(fmt.Sprintf("%v", a.InstanceType))
 	builder.WriteString(", ")
 	if v := a.EffectiveFrom; v != nil {
 		builder.WriteString("effective_from=")

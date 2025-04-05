@@ -125,6 +125,7 @@ type AddonMutation struct {
 	version          *int
 	addversion       *int
 	currency         *string
+	instance_type    *productcatalog.AddonInstanceType
 	effective_from   *time.Time
 	effective_to     *time.Time
 	annotations      *map[string]interface{}
@@ -660,6 +661,42 @@ func (m *AddonMutation) ResetCurrency() {
 	m.currency = nil
 }
 
+// SetInstanceType sets the "instance_type" field.
+func (m *AddonMutation) SetInstanceType(pit productcatalog.AddonInstanceType) {
+	m.instance_type = &pit
+}
+
+// InstanceType returns the value of the "instance_type" field in the mutation.
+func (m *AddonMutation) InstanceType() (r productcatalog.AddonInstanceType, exists bool) {
+	v := m.instance_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInstanceType returns the old "instance_type" field's value of the Addon entity.
+// If the Addon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AddonMutation) OldInstanceType(ctx context.Context) (v productcatalog.AddonInstanceType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInstanceType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInstanceType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInstanceType: %w", err)
+	}
+	return oldValue.InstanceType, nil
+}
+
+// ResetInstanceType resets all changes to the "instance_type" field.
+func (m *AddonMutation) ResetInstanceType() {
+	m.instance_type = nil
+}
+
 // SetEffectiveFrom sets the "effective_from" field.
 func (m *AddonMutation) SetEffectiveFrom(t time.Time) {
 	m.effective_from = &t
@@ -895,7 +932,7 @@ func (m *AddonMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AddonMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.namespace != nil {
 		fields = append(fields, addon.FieldNamespace)
 	}
@@ -925,6 +962,9 @@ func (m *AddonMutation) Fields() []string {
 	}
 	if m.currency != nil {
 		fields = append(fields, addon.FieldCurrency)
+	}
+	if m.instance_type != nil {
+		fields = append(fields, addon.FieldInstanceType)
 	}
 	if m.effective_from != nil {
 		fields = append(fields, addon.FieldEffectiveFrom)
@@ -963,6 +1003,8 @@ func (m *AddonMutation) Field(name string) (ent.Value, bool) {
 		return m.Version()
 	case addon.FieldCurrency:
 		return m.Currency()
+	case addon.FieldInstanceType:
+		return m.InstanceType()
 	case addon.FieldEffectiveFrom:
 		return m.EffectiveFrom()
 	case addon.FieldEffectiveTo:
@@ -998,6 +1040,8 @@ func (m *AddonMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldVersion(ctx)
 	case addon.FieldCurrency:
 		return m.OldCurrency(ctx)
+	case addon.FieldInstanceType:
+		return m.OldInstanceType(ctx)
 	case addon.FieldEffectiveFrom:
 		return m.OldEffectiveFrom(ctx)
 	case addon.FieldEffectiveTo:
@@ -1082,6 +1126,13 @@ func (m *AddonMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
+		return nil
+	case addon.FieldInstanceType:
+		v, ok := value.(productcatalog.AddonInstanceType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInstanceType(v)
 		return nil
 	case addon.FieldEffectiveFrom:
 		v, ok := value.(time.Time)
@@ -1236,6 +1287,9 @@ func (m *AddonMutation) ResetField(name string) error {
 		return nil
 	case addon.FieldCurrency:
 		m.ResetCurrency()
+		return nil
+	case addon.FieldInstanceType:
+		m.ResetInstanceType()
 		return nil
 	case addon.FieldEffectiveFrom:
 		m.ResetEffectiveFrom()
