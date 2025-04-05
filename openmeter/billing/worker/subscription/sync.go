@@ -474,11 +474,11 @@ func (h *Handler) shouldProrateFlatFee(price productcatalog.FlatPrice) bool {
 	}
 }
 
-func (h *Handler) provisionPendingLines(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, line []subscriptionItemWithPeriod) error {
-	newLines, err := slicesx.MapWithErr(line, func(subsItem subscriptionItemWithPeriod) (*billing.LineWithCustomer, error) {
+func (h *Handler) provisionPendingLines(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []subscriptionItemWithPeriod) error {
+	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem subscriptionItemWithPeriod) (*billing.LineWithCustomer, error) {
 		line, err := h.lineFromSubscritionRateCard(subs, subsItem, currency)
 		if err != nil {
-			return nil, fmt.Errorf("generating line[%s]: %w", line.ID, err)
+			return nil, fmt.Errorf("generating line from subscription item [%s]: %w", subsItem.SubscriptionItem.ID, err)
 		}
 
 		if line == nil {
