@@ -439,12 +439,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			Category:      billing.FlatFeeCategoryRegular,
 		}
 
-	case productcatalog.UnitPriceType, productcatalog.TieredPriceType:
-		// Should not happen, but let's be safe
-		if item.SubscriptionItem.RateCard.FeatureKey == nil {
-			return nil, fmt.Errorf("feature must be defined for usage based price")
-		}
-
+	default:
 		if item.SubscriptionItem.RateCard.Price == nil {
 			return nil, fmt.Errorf("price must be defined for usage based price")
 		}
@@ -455,9 +450,6 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			Price:      item.SubscriptionItem.RateCard.Price,
 			FeatureKey: *item.SubscriptionItem.RateCard.FeatureKey,
 		}
-
-	default:
-		return nil, fmt.Errorf("unsupported price type: %v", item.SubscriptionItem.RateCard.Price.Type())
 	}
 
 	return line, nil
