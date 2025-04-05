@@ -71,7 +71,8 @@ func (c *ClickHouseTracer) Query(ctx context.Context, query string, args ...any)
 	}
 
 	if rows != nil && rows.Err() != nil {
-		span.RecordError(rows.Err())
+		err = rows.Err()
+		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 	}
 
