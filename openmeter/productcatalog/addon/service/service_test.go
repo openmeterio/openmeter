@@ -315,12 +315,13 @@ func NewAddon(t *testing.T, namespace string) addon.CreateAddonInput {
 		},
 		Addon: productcatalog.Addon{
 			AddonMeta: productcatalog.AddonMeta{
-				Key:         "security",
-				Name:        "Security",
-				Description: lo.ToPtr("Security add-on"),
-				Metadata:    models.Metadata{"name": "security"},
-				Annotations: models.Annotations{"name": "security"},
-				Currency:    currency.USD,
+				Key:          "security",
+				Name:         "Security",
+				Description:  lo.ToPtr("Security add-on"),
+				InstanceType: productcatalog.AddonInstanceTypeSingle,
+				Currency:     currency.USD,
+				Metadata:     models.Metadata{"name": "security"},
+				Annotations:  models.Annotations{"name": "security"},
 			},
 		},
 	}

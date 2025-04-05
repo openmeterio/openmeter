@@ -174,6 +174,7 @@ func (a *adapter) CreateAddon(ctx context.Context, params addon.CreateAddonInput
 			SetMetadata(params.Metadata).
 			SetVersion(params.Version).
 			SetAnnotations(params.Annotations).
+			SetInstanceType(params.InstanceType).
 			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create add-on [namespace=%s]: %w", params.Namespace, err)
@@ -432,6 +433,10 @@ func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput
 
 			if params.Annotations != nil {
 				query = query.SetAnnotations(*params.Annotations)
+			}
+
+			if params.InstanceType != nil {
+				query = query.SetInstanceType(*params.InstanceType)
 			}
 
 			err = query.Exec(ctx)

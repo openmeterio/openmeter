@@ -22,6 +22,7 @@ var (
 		{Name: "key", Type: field.TypeString},
 		{Name: "version", Type: field.TypeInt},
 		{Name: "currency", Type: field.TypeString, Default: "USD"},
+		{Name: "instance_type", Type: field.TypeEnum, Enums: []string{"single", "multiple"}, Default: "single"},
 		{Name: "effective_from", Type: field.TypeTime, Nullable: true},
 		{Name: "effective_to", Type: field.TypeTime, Nullable: true},
 		{Name: "annotations", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
@@ -63,7 +64,7 @@ var (
 			{
 				Name:    "addon_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{AddonsColumns[13]},
+				Columns: []*schema.Column{AddonsColumns[14]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",

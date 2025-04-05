@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // AddonUpdate is the builder for updating Addon entities.
@@ -119,6 +120,20 @@ func (au *AddonUpdate) SetNillableVersion(i *int) *AddonUpdate {
 // AddVersion adds i to the "version" field.
 func (au *AddonUpdate) AddVersion(i int) *AddonUpdate {
 	au.mutation.AddVersion(i)
+	return au
+}
+
+// SetInstanceType sets the "instance_type" field.
+func (au *AddonUpdate) SetInstanceType(pit productcatalog.AddonInstanceType) *AddonUpdate {
+	au.mutation.SetInstanceType(pit)
+	return au
+}
+
+// SetNillableInstanceType sets the "instance_type" field if the given value is not nil.
+func (au *AddonUpdate) SetNillableInstanceType(pit *productcatalog.AddonInstanceType) *AddonUpdate {
+	if pit != nil {
+		au.SetInstanceType(*pit)
+	}
 	return au
 }
 
@@ -258,6 +273,11 @@ func (au *AddonUpdate) check() error {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`db: validator failed for field "Addon.version": %w`, err)}
 		}
 	}
+	if v, ok := au.mutation.InstanceType(); ok {
+		if err := addon.InstanceTypeValidator(v); err != nil {
+			return &ValidationError{Name: "instance_type", err: fmt.Errorf(`db: validator failed for field "Addon.instance_type": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -302,6 +322,9 @@ func (au *AddonUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := au.mutation.AddedVersion(); ok {
 		_spec.AddField(addon.FieldVersion, field.TypeInt, value)
+	}
+	if value, ok := au.mutation.InstanceType(); ok {
+		_spec.SetField(addon.FieldInstanceType, field.TypeEnum, value)
 	}
 	if value, ok := au.mutation.EffectiveFrom(); ok {
 		_spec.SetField(addon.FieldEffectiveFrom, field.TypeTime, value)
@@ -483,6 +506,20 @@ func (auo *AddonUpdateOne) AddVersion(i int) *AddonUpdateOne {
 	return auo
 }
 
+// SetInstanceType sets the "instance_type" field.
+func (auo *AddonUpdateOne) SetInstanceType(pit productcatalog.AddonInstanceType) *AddonUpdateOne {
+	auo.mutation.SetInstanceType(pit)
+	return auo
+}
+
+// SetNillableInstanceType sets the "instance_type" field if the given value is not nil.
+func (auo *AddonUpdateOne) SetNillableInstanceType(pit *productcatalog.AddonInstanceType) *AddonUpdateOne {
+	if pit != nil {
+		auo.SetInstanceType(*pit)
+	}
+	return auo
+}
+
 // SetEffectiveFrom sets the "effective_from" field.
 func (auo *AddonUpdateOne) SetEffectiveFrom(t time.Time) *AddonUpdateOne {
 	auo.mutation.SetEffectiveFrom(t)
@@ -632,6 +669,11 @@ func (auo *AddonUpdateOne) check() error {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`db: validator failed for field "Addon.version": %w`, err)}
 		}
 	}
+	if v, ok := auo.mutation.InstanceType(); ok {
+		if err := addon.InstanceTypeValidator(v); err != nil {
+			return &ValidationError{Name: "instance_type", err: fmt.Errorf(`db: validator failed for field "Addon.instance_type": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -693,6 +735,9 @@ func (auo *AddonUpdateOne) sqlSave(ctx context.Context) (_node *Addon, err error
 	}
 	if value, ok := auo.mutation.AddedVersion(); ok {
 		_spec.AddField(addon.FieldVersion, field.TypeInt, value)
+	}
+	if value, ok := auo.mutation.InstanceType(); ok {
+		_spec.SetField(addon.FieldInstanceType, field.TypeEnum, value)
 	}
 	if value, ok := auo.mutation.EffectiveFrom(); ok {
 		_spec.SetField(addon.FieldEffectiveFrom, field.TypeTime, value)
