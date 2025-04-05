@@ -424,13 +424,7 @@ func mapSubscriptionReferencesToAPI(optSub *billing.SubscriptionReference) *api.
 	}
 }
 
-func mapDiscountsToAPI(optDiscounts billing.LineDiscounts) (*[]api.InvoiceLineDiscount, error) {
-	if optDiscounts.IsAbsent() {
-		return nil, nil
-	}
-
-	discounts := optDiscounts.OrEmpty()
-
+func mapDiscountsToAPI(discounts billing.LineDiscounts) (*[]api.InvoiceLineDiscount, error) {
 	out := make([]api.InvoiceLineDiscount, 0, len(discounts))
 
 	for _, discount := range discounts {

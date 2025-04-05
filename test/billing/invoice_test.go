@@ -2080,7 +2080,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				}
 
 				// We set the external id the same as the discount id to make it easier to test the output.
-				for discountId := range line.FlattenDiscountsByID() {
+				for discountId := range line.DiscountsByID() {
 					out.AddLineDiscountExternalID(discountId, discountId)
 				}
 			}
@@ -2209,7 +2209,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			}
 
 			// Test discounts
-			for _, discount := range line.FlattenDiscountsByID() {
+			for _, discount := range line.DiscountsByID() {
 				require.Equal(s.T(), discount.ID, discount.ExternalIDs.Invoicing)
 			}
 		}
@@ -2227,7 +2227,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 						out.AddLineExternalID(line.ID, "final_upsert_"+line.ID)
 					}
 
-					for discountId := range line.FlattenDiscountsByID() {
+					for discountId := range line.DiscountsByID() {
 						out.AddLineDiscountExternalID(discountId, "final_upsert_"+discountId)
 					}
 				}
@@ -2257,7 +2257,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				}
 
 				// Test discounts
-				for _, discount := range line.FlattenDiscountsByID() {
+				for _, discount := range line.DiscountsByID() {
 					require.Equal(s.T(), "final_upsert_"+discount.ID, discount.ExternalIDs.Invoicing)
 				}
 			}
@@ -3209,7 +3209,7 @@ func requireDetailedLines(t *testing.T, line *billing.Line, expectations lineExp
 		require.Equal(t, expect.Quantity, detail.FlatFee.Quantity.InexactFloat64(), "quantity should match")
 		require.Equal(t, expect.PerUnitAmount, detail.FlatFee.PerUnitAmount.InexactFloat64(), "per unit amount should match")
 
-		discounts := detail.Discounts.MustGet()
+		discounts := detail.Discounts
 		require.Len(t, discounts, len(expect.Discounts), "discounts should match")
 
 		discountsById := lo.GroupBy(discounts, func(d billing.LineDiscount) string {

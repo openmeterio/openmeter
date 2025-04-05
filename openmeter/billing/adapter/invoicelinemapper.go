@@ -207,22 +207,23 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 		return invoiceLine, fmt.Errorf("unsupported line type[%s]: %s", dbLine.ID, dbLine.Type)
 	}
 
-	discounts := lo.Map(dbLine.Edges.LineDiscounts, func(discount *db.BillingInvoiceLineDiscount, _ int) billing.LineDiscount {
-		return billing.LineDiscount{
-			ID:        discount.ID,
-			CreatedAt: discount.CreatedAt.In(time.UTC),
-			UpdatedAt: discount.UpdatedAt.In(time.UTC),
-			DeletedAt: convert.TimePtrIn(discount.DeletedAt, time.UTC),
+	if len(dbLine.Edges.LineDiscounts) > 0 {
+		invoiceLine.Discounts = lo.Map(dbLine.Edges.LineDiscounts, func(discount *db.BillingInvoiceLineDiscount, _ int) billing.LineDiscount {
+			return billing.LineDiscount{
+				ID:        discount.ID,
+				CreatedAt: discount.CreatedAt.In(time.UTC),
+				UpdatedAt: discount.UpdatedAt.In(time.UTC),
+				DeletedAt: convert.TimePtrIn(discount.DeletedAt, time.UTC),
 
-			Amount:                 discount.Amount,
-			Description:            discount.Description,
-			ChildUniqueReferenceID: discount.ChildUniqueReferenceID,
-			ExternalIDs: billing.LineExternalIDs{
-				Invoicing: lo.FromPtrOr(discount.InvoicingAppExternalID, ""),
-			},
-		}
-	})
-	invoiceLine.Discounts = billing.NewLineDiscounts(discounts)
+				Amount:                 discount.Amount,
+				Description:            discount.Description,
+				ChildUniqueReferenceID: discount.ChildUniqueReferenceID,
+				ExternalIDs: billing.LineExternalIDs{
+					Invoicing: lo.FromPtrOr(discount.InvoicingAppExternalID, ""),
+				},
+			}
+		})
+	}
 
 	return invoiceLine, nil
 }

@@ -558,14 +558,11 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				return id
 			}
 
-			line.Discounts.ForEach(func(discounts []billing.LineDiscount) {
-				for _, discount := range discounts {
-					if discount.Description != nil && group[0][2] == *discount.Description {
-						id = discount.ID
-						return
-					}
+			for _, discount := range line.Discounts {
+				if discount.Description != nil && group[0][2] == *discount.Description {
+					return discount.ID
 				}
-			})
+			}
 
 			return id
 		}

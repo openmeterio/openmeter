@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type LineID models.NamespacedID
@@ -293,15 +294,13 @@ func (i Line) LineID() LineID {
 	}
 }
 
-// FlattenDiscountsByID returns all discounts for the line and its children.
-func (i Line) FlattenDiscountsByID() map[string]LineDiscount {
+// DiscountsByID returns all discounts for the line and its children.
+func (i Line) DiscountsByID() map[string]LineDiscount {
 	discountsByID := map[string]LineDiscount{}
 
-	i.Discounts.ForEach(func(discounts []LineDiscount) {
-		for _, discount := range discounts {
-			discountsByID[discount.ID] = discount
-		}
-	})
+	for _, discount := range i.Discounts {
+		discountsByID[discount.ID] = discount
+	}
 
 	return discountsByID
 }
@@ -356,19 +355,12 @@ func (i Line) RemoveCircularReferences() *Line {
 func (i Line) RemoveMetaForCompare() *Line {
 	out := i.Clone()
 
-	if !out.Discounts.IsPresent() || len(out.Discounts.OrEmpty()) == 0 {
-		out.Discounts = NewLineDiscounts(nil)
-	}
-
 	if !out.Children.IsPresent() || len(out.Children.OrEmpty()) == 0 {
 		out.Children = NewLineChildren(nil)
 	}
 
 	for _, child := range out.Children.OrEmpty() {
 		child.ParentLine = out
-		if !child.Discounts.IsPresent() || len(child.Discounts.OrEmpty()) == 0 {
-			child.Discounts = NewLineDiscounts(nil)
-		}
 
 		if !child.Children.IsPresent() || len(child.Children.OrEmpty()) == 0 {
 			child.Children = NewLineChildren(nil)
@@ -414,8 +406,8 @@ func (i Line) clone(opts cloneOptions) *Line {
 		})
 	}
 
-	if !opts.skipDiscounts {
-		res.Discounts = i.Discounts.Map(func(ld LineDiscount) LineDiscount {
+	if !opts.skipDiscounts && len(i.Discounts) > 0 {
+		res.Discounts = lo.Map(i.Discounts, func(ld LineDiscount, _ int) LineDiscount {
 			return ld
 		})
 	}
@@ -755,43 +747,15 @@ func (i LineDiscount) Equal(other LineDiscount) bool {
 	return reflect.DeepEqual(i, other)
 }
 
-// TODO[OM-1016]: For events we need a json marshaler
-type LineDiscounts struct {
-	mo.Option[[]LineDiscount]
-}
-
-func NewLineDiscounts(discounts []LineDiscount) LineDiscounts {
-	// Note: this helps with test equality checks
-	if len(discounts) == 0 {
-		discounts = nil
-	}
-
-	return LineDiscounts{mo.Some(discounts)}
-}
-
-func (c LineDiscounts) Map(fn func(LineDiscount) LineDiscount) LineDiscounts {
-	if !c.IsPresent() {
-		return c
-	}
-
-	return LineDiscounts{
-		mo.Some(lo.Map(c.OrEmpty(), func(item LineDiscount, _ int) LineDiscount {
-			return fn(item)
-		})),
-	}
-}
+type LineDiscounts []LineDiscount
 
 func (c LineDiscounts) ChildrenWithIDReuse(l LineDiscounts) LineDiscounts {
-	if !c.IsPresent() {
-		return l
-	}
-
-	clonedNewItems := lo.Map(l.OrEmpty(), func(item LineDiscount, _ int) LineDiscount {
+	clonedNewItems := lo.Map(l, func(item LineDiscount, _ int) LineDiscount {
 		return item
 	})
 
 	existingItemsByType := lo.GroupBy(
-		lo.Filter(c.OrEmpty(), func(item LineDiscount, _ int) bool {
+		lo.Filter(c, func(item LineDiscount, _ int) bool {
 			return item.ChildUniqueReferenceID != nil
 		}),
 		func(item LineDiscount) string {
@@ -815,7 +779,7 @@ func (c LineDiscounts) ChildrenWithIDReuse(l LineDiscounts) LineDiscounts {
 		return newItem
 	})
 
-	return NewLineDiscounts(clonedNewItems)
+	return slicesx.EmptyAsNil(clonedNewItems)
 }
 
 type CreateInvoiceLinesInput struct {

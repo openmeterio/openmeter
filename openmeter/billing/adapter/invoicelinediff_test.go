@@ -46,11 +46,11 @@ func TestInvoiceLineDiffing(t *testing.T) {
 						Type: billing.InvoiceLineTypeFee,
 					},
 					FlatFee: &billing.FlatFeeLine{},
-					Discounts: billing.NewLineDiscounts([]billing.LineDiscount{
+					Discounts: []billing.LineDiscount{
 						{
 							ID: "D2.1.1",
 						},
-					}),
+					},
 				},
 				{
 					LineBase: billing.LineBase{
@@ -178,9 +178,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		changedLine.ID = ""
 		changedLine.Description = lo.ToPtr("2.3")
 
-		discounts := changedLine.Discounts.MustGet()
-		discounts[0].Description = lo.ToPtr("D2.1.3")
-		changedLine.Discounts = billing.NewLineDiscounts(discounts)
+		changedLine.Discounts[0].Description = lo.ToPtr("D2.1.3")
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -209,7 +207,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		base[1].Children.GetByID("2.1").Discounts = billing.NewLineDiscounts(nil)
+		base[1].Children.GetByID("2.1").Discounts = nil
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -228,9 +226,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		discounts := base[1].Children.GetByID("2.1").Discounts.MustGet()
-		discounts[0].Amount = alpacadecimal.NewFromFloat(10)
-		base[1].Children.GetByID("2.1").Discounts = billing.NewLineDiscounts(discounts)
+		base[1].Children.GetByID("2.1").Discounts[0].Amount = alpacadecimal.NewFromFloat(10)
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -249,10 +245,9 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		discounts := base[1].Children.GetByID("2.1").Discounts.MustGet()
+		discounts := base[1].Children.GetByID("2.1").Discounts
 		discounts[0].ID = ""
 		discounts[0].Description = lo.ToPtr("D2.1.2")
-		base[1].Children.GetByID("2.1").Discounts = billing.NewLineDiscounts(discounts)
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
