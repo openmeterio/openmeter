@@ -263,7 +263,7 @@ func (a *adapter) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput
 			return nil, fmt.Errorf("invalid delete add-on parameters: %w", err)
 		}
 
-		p, err := a.GetAddon(ctx, addon.GetAddonInput{
+		add, err := a.GetAddon(ctx, addon.GetAddonInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
 				ID:        params.ID,
@@ -281,8 +281,8 @@ func (a *adapter) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput
 		}
 
 		deletedAt := time.Now().UTC()
-		err = a.db.Addon.UpdateOneID(p.ID).
-			Where(addondb.Namespace(p.Namespace)).
+		err = a.db.Addon.UpdateOneID(add.ID).
+			Where(addondb.Namespace(add.Namespace)).
 			SetDeletedAt(deletedAt).
 			Exec(ctx)
 		if err != nil {
@@ -392,12 +392,12 @@ func (a *adapter) GetAddon(ctx context.Context, params addon.GetAddonInput) (*ad
 			return nil, fmt.Errorf("invalid query result: nil add-on received")
 		}
 
-		p, err := fromAddonRow(*addonRow)
+		add, err := fromAddonRow(*addonRow)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast add-on: %w", err)
 		}
 
-		return p, nil
+		return add, nil
 	}
 
 	return entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)
