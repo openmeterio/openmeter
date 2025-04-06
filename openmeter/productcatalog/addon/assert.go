@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 func AssertAddonCreateInputEqual(t *testing.T, i CreateAddonInput, a Addon) {
@@ -103,21 +102,6 @@ func AssertAddonRateCardsEqual(t *testing.T, r1, r2 productcatalog.RateCards) {
 	}
 }
 
-// getBillingCadence extracts billing cadence from different RateCard types
-func getBillingCadence(r productcatalog.RateCard) isodate.Period {
-	switch vv := r.(type) {
-	case *productcatalog.FlatFeeRateCard:
-		return lo.FromPtr(vv.BillingCadence)
-	case *FlatFeeRateCard:
-		return lo.FromPtr(vv.FlatFeeRateCard.BillingCadence)
-	case *productcatalog.UsageBasedRateCard:
-		return vv.BillingCadence
-	case *UsageBasedRateCard:
-		return vv.UsageBasedRateCard.BillingCadence
-	}
-	return isodate.Period{}
-}
-
 func AssertRateCardEqual(t *testing.T, r1, r2 productcatalog.RateCard) {
 	t.Helper()
 
@@ -144,8 +128,8 @@ func AssertRateCardEqual(t *testing.T, r1, r2 productcatalog.RateCard) {
 
 	assert.Truef(t, m1.Price.Equal(m2.Price), "price mismatch")
 
-	billingCadence1 := getBillingCadence(r1)
-	billingCadence2 := getBillingCadence(r2)
+	billingCadence1 := r1.GetBillingCadence().ISOStringPtrOrNil()
+	billingCadence2 := r2.GetBillingCadence().ISOStringPtrOrNil()
 
 	assert.Equal(t, billingCadence1, billingCadence2)
 }

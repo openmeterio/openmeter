@@ -120,17 +120,17 @@ func fromAddonRateCardRow(r entdb.AddonRateCard) (productcatalog.RateCard, error
 
 	switch r.Type {
 	case productcatalog.FlatFeeRateCardType:
-		ratecard = &addon.FlatFeeRateCard{
+		ratecard = &addon.RateCard{
 			RateCardManagedFields: managed,
-			FlatFeeRateCard: productcatalog.FlatFeeRateCard{
+			RateCard: &productcatalog.FlatFeeRateCard{
 				RateCardMeta:   meta,
 				BillingCadence: billingCadence,
 			},
 		}
 	case productcatalog.UsageBasedRateCardType:
-		ratecard = &addon.UsageBasedRateCard{
+		ratecard = &addon.RateCard{
 			RateCardManagedFields: managed,
-			UsageBasedRateCard: productcatalog.UsageBasedRateCard{
+			RateCard: &productcatalog.UsageBasedRateCard{
 				RateCardMeta:   meta,
 				BillingCadence: lo.FromPtr(billingCadence),
 			},
@@ -175,12 +175,8 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 	switch v := r.(type) {
 	case *productcatalog.FlatFeeRateCard:
 		ratecard.BillingCadence = v.BillingCadence.ISOStringPtrOrNil()
-	case *addon.FlatFeeRateCard:
-		ratecard.BillingCadence = v.FlatFeeRateCard.BillingCadence.ISOStringPtrOrNil()
 	case *productcatalog.UsageBasedRateCard:
 		ratecard.BillingCadence = v.BillingCadence.ISOStringPtrOrNil()
-	case *addon.UsageBasedRateCard:
-		ratecard.BillingCadence = v.UsageBasedRateCard.BillingCadence.ISOStringPtrOrNil()
 	default:
 		return ratecard, fmt.Errorf("invalid ratecard [key=%s]: invalid type: %T", r.Key(), r)
 	}
