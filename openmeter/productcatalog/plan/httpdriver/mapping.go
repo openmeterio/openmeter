@@ -150,17 +150,9 @@ func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 		return phase, fmt.Errorf("failed to cast duration to period: %w", err)
 	}
 
-	if len(a.RateCards) > 0 {
-		phase.RateCards = make([]productcatalog.RateCard, 0, len(a.RateCards))
-
-		for _, rc := range a.RateCards {
-			rateCard, err := http.AsRateCard(rc)
-			if err != nil {
-				return phase, fmt.Errorf("failed to cast RateCard: %w", err)
-			}
-
-			phase.RateCards = append(phase.RateCards, rateCard)
-		}
+	phase.RateCards, err = http.AsRateCards(a.RateCards)
+	if err != nil {
+		return phase, err
 	}
 
 	return phase, nil
