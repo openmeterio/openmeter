@@ -644,15 +644,18 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 			Amount:                 alpacadecimal.NewFromFloat(10),
 			Description:            lo.ToPtr("Test Discount 1"),
 			ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+			Reason:                 billing.LineDiscountReasonMaximumSpend,
 		},
 		{
 			Amount:                 alpacadecimal.NewFromFloat(20),
 			Description:            lo.ToPtr("Test Discount 2"),
 			ChildUniqueReferenceID: lo.ToPtr("max-spend-multiline"),
+			Reason:                 billing.LineDiscountReasonMaximumSpend,
 		},
 		{
 			Amount:      alpacadecimal.NewFromFloat(30),
 			Description: lo.ToPtr(manualDiscountName),
+			Reason:      billing.LineDiscountReasonRatecardDiscount,
 		},
 	}
 
@@ -681,6 +684,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 			Amount:                 alpacadecimal.NewFromFloat(30),
 			Description:            lo.ToPtr("Test Discount 1 v2"),
 			ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+			Reason:                 billing.LineDiscountReasonMaximumSpend,
 		},
 		// Maximum spend is deleted
 		{
@@ -693,10 +697,12 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 				}).ID,
 			Amount:      alpacadecimal.NewFromFloat(40),
 			Description: lo.ToPtr("Test Discount 3 - updated"),
+			Reason:      billing.LineDiscountReasonRatecardDiscount,
 		},
 		{
 			Amount:      alpacadecimal.NewFromFloat(50),
 			Description: lo.ToPtr("Test Discount 4 - manual"),
+			Reason:      billing.LineDiscountReasonRatecardDiscount,
 		},
 	}
 

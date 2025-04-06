@@ -405,6 +405,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 							Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
 							Amount:                 alpacadecimal.NewFromFloat(20),
 							ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+							Reason:                 billing.LineDiscountReasonMaximumSpend,
 						},
 					},
 				},
@@ -589,6 +590,7 @@ func TestDynamicPriceCalculation(t *testing.T) {
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Discounts: []billing.LineDiscount{
 						{
+							Reason:                 billing.LineDiscountReasonMaximumSpend,
 							Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
 							Amount:                 alpacadecimal.NewFromFloat(60),
 							ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
@@ -830,6 +832,7 @@ func TestPackagePriceCalculation(t *testing.T) {
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Discounts: []billing.LineDiscount{
 						{
+							Reason:                 billing.LineDiscountReasonMaximumSpend,
 							Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
 							Amount:                 alpacadecimal.NewFromFloat(65),
 							ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
@@ -1234,6 +1237,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Discounts: []billing.LineDiscount{
 						{
+							Reason:                 billing.LineDiscountReasonMaximumSpend,
 							Description:            lo.ToPtr("Maximum spend discount for charges over 125"),
 							Amount:                 alpacadecimal.NewFromFloat(25),
 							ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
@@ -1483,6 +1487,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Discounts: []billing.LineDiscount{
 						{
+							Reason:                 billing.LineDiscountReasonMaximumSpend,
 							Description:            lo.ToPtr("Maximum spend discount for charges over 170"),
 							Amount:                 alpacadecimal.NewFromFloat(5),
 							ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
@@ -1497,6 +1502,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Discounts: []billing.LineDiscount{
 						{
+							Reason:                 billing.LineDiscountReasonMaximumSpend,
 							Description:            lo.ToPtr("Maximum spend discount for charges over 170"),
 							Amount:                 alpacadecimal.NewFromFloat(7),
 							ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
@@ -1553,6 +1559,7 @@ func TestAddDiscountForOverage(t *testing.T) {
 			Quantity:      alpacadecimal.NewFromFloat(10),
 			Discounts: []billing.LineDiscount{
 				{
+					Reason:                 billing.LineDiscountReasonMaximumSpend,
 					Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
 					Amount:                 alpacadecimal.NewFromFloat(0.01),
 					ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
@@ -1574,6 +1581,7 @@ func TestAddDiscountForOverage(t *testing.T) {
 			Quantity:      alpacadecimal.NewFromFloat(10),
 			Discounts: []billing.LineDiscount{
 				{
+					Reason:                 billing.LineDiscountReasonMaximumSpend,
 					Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
 					Amount:                 alpacadecimal.NewFromFloat(600),
 					ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
@@ -1595,6 +1603,7 @@ func TestAddDiscountForOverage(t *testing.T) {
 			Quantity:      alpacadecimal.NewFromFloat(10),
 			Discounts: []billing.LineDiscount{
 				{
+					Reason:                 billing.LineDiscountReasonMaximumSpend,
 					Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
 					Amount:                 alpacadecimal.NewFromFloat(1000),
 					ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
@@ -1616,6 +1625,7 @@ func TestAddDiscountForOverage(t *testing.T) {
 			Quantity:      alpacadecimal.NewFromFloat(10),
 			Discounts: []billing.LineDiscount{
 				{
+					Reason:                 billing.LineDiscountReasonMaximumSpend,
 					Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
 					Amount:                 alpacadecimal.NewFromFloat(1000),
 					ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),

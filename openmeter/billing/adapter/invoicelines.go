@@ -189,6 +189,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetID(d.Discount.ID).
 					SetNamespace(d.Line.Namespace).
 					SetLineID(d.Line.ID).
+					SetReason(d.Discount.Reason).
 					SetNillableDeletedAt(d.Discount.DeletedAt).
 					SetAmount(d.Discount.Amount).
 					SetNillableChildUniqueReferenceID(d.Discount.ChildUniqueReferenceID).

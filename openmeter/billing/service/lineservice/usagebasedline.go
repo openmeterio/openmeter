@@ -977,6 +977,7 @@ func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDeta
 			Amount:                 lineTotal,
 			Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
 			ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+			Reason:                 billing.LineDiscountReasonMaximumSpend,
 		})
 		return i
 	}
@@ -986,6 +987,7 @@ func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDeta
 		Amount:                 discountAmount,
 		Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
 		ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+		Reason:                 billing.LineDiscountReasonMaximumSpend,
 	})
 
 	return i

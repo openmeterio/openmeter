@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 )
@@ -29,6 +30,8 @@ type BillingInvoiceLineDiscount struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// LineID holds the value of the "line_id" field.
 	LineID string `json:"line_id,omitempty"`
+	// Reason holds the value of the "reason" field.
+	Reason billing.LineDiscountReason `json:"reason,omitempty"`
 	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
 	ChildUniqueReferenceID *string `json:"child_unique_reference_id,omitempty"`
 	// Description holds the value of the "description" field.
@@ -70,7 +73,7 @@ func (*BillingInvoiceLineDiscount) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billinginvoicelinediscount.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoicelinediscount.FieldID, billinginvoicelinediscount.FieldNamespace, billinginvoicelinediscount.FieldLineID, billinginvoicelinediscount.FieldChildUniqueReferenceID, billinginvoicelinediscount.FieldDescription, billinginvoicelinediscount.FieldInvoicingAppExternalID:
+		case billinginvoicelinediscount.FieldID, billinginvoicelinediscount.FieldNamespace, billinginvoicelinediscount.FieldLineID, billinginvoicelinediscount.FieldReason, billinginvoicelinediscount.FieldChildUniqueReferenceID, billinginvoicelinediscount.FieldDescription, billinginvoicelinediscount.FieldInvoicingAppExternalID:
 			values[i] = new(sql.NullString)
 		case billinginvoicelinediscount.FieldCreatedAt, billinginvoicelinediscount.FieldUpdatedAt, billinginvoicelinediscount.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -125,6 +128,12 @@ func (bild *BillingInvoiceLineDiscount) assignValues(columns []string, values []
 				return fmt.Errorf("unexpected type %T for field line_id", values[i])
 			} else if value.Valid {
 				bild.LineID = value.String
+			}
+		case billinginvoicelinediscount.FieldReason:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field reason", values[i])
+			} else if value.Valid {
+				bild.Reason = billing.LineDiscountReason(value.String)
 			}
 		case billinginvoicelinediscount.FieldChildUniqueReferenceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -210,6 +219,9 @@ func (bild *BillingInvoiceLineDiscount) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("line_id=")
 	builder.WriteString(bild.LineID)
+	builder.WriteString(", ")
+	builder.WriteString("reason=")
+	builder.WriteString(fmt.Sprintf("%v", bild.Reason))
 	builder.WriteString(", ")
 	if v := bild.ChildUniqueReferenceID; v != nil {
 		builder.WriteString("child_unique_reference_id=")

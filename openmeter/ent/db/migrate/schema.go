@@ -815,6 +815,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "reason", Type: field.TypeEnum, Enums: []string{"maximum_spend", "ratecard_discount"}},
 		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
@@ -829,7 +830,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoice_line_discounts_billing_invoice_lines_line_discounts",
-				Columns:    []*schema.Column{BillingInvoiceLineDiscountsColumns[9]},
+				Columns:    []*schema.Column{BillingInvoiceLineDiscountsColumns[10]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -848,12 +849,12 @@ var (
 			{
 				Name:    "billinginvoicelinediscount_namespace_line_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[9]},
+				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[10]},
 			},
 			{
 				Name:    "billinginvoicelinediscount_namespace_line_id_child_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[9], BillingInvoiceLineDiscountsColumns[5]},
+				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[10], BillingInvoiceLineDiscountsColumns[6]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},

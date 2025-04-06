@@ -5,6 +5,15 @@ import "@typespec/openapi3";
 namespace Invoices;
 
 /**
+ * Reason code.
+ */
+@friendlyName("InvoiceDiscountReason")
+enum InvoiceDiscountReason {
+  maximumSpend: "maximum_spend",
+  ratecardDiscount: "ratecard_discount",
+}
+
+/**
  * InvoiceDiscountBase represents a charge or discount that can be applied to a line or the entire invoice.
  */
 @friendlyName("InvoiceDiscountBase")
@@ -21,13 +30,25 @@ model InvoiceDiscountBase {
    * Reason code.
    */
   @visibility(Lifecycle.Read)
-  code?: string;
+  reason: InvoiceDiscountReason;
 
   /**
    * Text description as to why the discount was applied.
    */
   @visibility(Lifecycle.Read)
   description?: string;
+
+  /**
+   * External IDs of the invoice in other apps such as Stripe.
+   */
+  @visibility(Lifecycle.Read)
+  externalIds?: InvoiceLineAppExternalIds;
+
+  /**
+   * The discount from the rate card this discount is based on.
+   */
+  @visibility(Lifecycle.Read)
+  rateCardDiscount?: OpenMeter.ProductCatalog.Discount;
 }
 
 /**
@@ -79,12 +100,6 @@ model InvoiceLineDiscountUsage {
    */
   @visibility(Lifecycle.Read)
   type: InvoiceLineDiscountType.usage;
-
-  /**
-   * The discount from the rate card this discount is based on.
-   */
-  @visibility(Lifecycle.Read)
-  rateCardDiscount?: OpenMeter.ProductCatalog.Discount;
 }
 
 /**
@@ -106,16 +121,4 @@ model InvoiceLineDiscountAmount {
    */
   @visibility(Lifecycle.Read)
   type: InvoiceLineDiscountType.amount;
-
-  /**
-   * The discount from the rate card this discount is based on.
-   */
-  @visibility(Lifecycle.Read)
-  rateCardDiscount?: OpenMeter.ProductCatalog.Discount;
-
-  /**
-   * External IDs of the invoice in other apps such as Stripe.
-   */
-  @visibility(Lifecycle.Read)
-  externalIds?: InvoiceLineAppExternalIds;
 }

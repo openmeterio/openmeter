@@ -516,6 +516,9 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 				"postgres": "char(26)",
 			}),
 
+		field.Enum("reason").
+			GoType(billing.LineDiscountReason("")),
+
 		field.String("child_unique_reference_id").
 			Optional().
 			Nillable(),

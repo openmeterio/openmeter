@@ -3,10 +3,12 @@
 package billinginvoicelinediscount
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 const (
@@ -24,6 +26,8 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldLineID holds the string denoting the line_id field in the database.
 	FieldLineID = "line_id"
+	// FieldReason holds the string denoting the reason field in the database.
+	FieldReason = "reason"
 	// FieldChildUniqueReferenceID holds the string denoting the child_unique_reference_id field in the database.
 	FieldChildUniqueReferenceID = "child_unique_reference_id"
 	// FieldDescription holds the string denoting the description field in the database.
@@ -53,6 +57,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldLineID,
+	FieldReason,
 	FieldChildUniqueReferenceID,
 	FieldDescription,
 	FieldAmount,
@@ -81,6 +86,16 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
+
+// ReasonValidator is a validator for the "reason" field enum values. It is called by the builders before save.
+func ReasonValidator(r billing.LineDiscountReason) error {
+	switch r {
+	case "maximum_spend", "ratecard_discount":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoicelinediscount: invalid enum value for reason field: %q", r)
+	}
+}
 
 // OrderOption defines the ordering options for the BillingInvoiceLineDiscount queries.
 type OrderOption func(*sql.Selector)
@@ -113,6 +128,11 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByLineID orders the results by the line_id field.
 func ByLineID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLineID, opts...).ToFunc()
+}
+
+// ByReason orders the results by the reason field.
+func ByReason(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReason, opts...).ToFunc()
 }
 
 // ByChildUniqueReferenceID orders the results by the child_unique_reference_id field.

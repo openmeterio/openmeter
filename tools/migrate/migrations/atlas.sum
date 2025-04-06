@@ -1,4 +1,4 @@
-h1:8KGHJ3AX9mMyi3Nsf22dDKq58DC2UwKz/d/lbKK/vww=
+h1:sNuQIhFtEztVeVlRoQK/I22PrjVv33P+E9ukdF148sY=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -155,3 +155,5 @@ h1:8KGHJ3AX9mMyi3Nsf22dDKq58DC2UwKz/d/lbKK/vww=
 20250404145234_billing-line-ratecard-discounts.up.sql h1:c97pwW9DYZDEysk5aJ+4PoWkxeobionRF7E0hL350hY=
 20250405193107_addon-instance-type.down.sql h1:RR27X9vbO6bbqJkXkGEKsTTE9kIaIwilvKkUsePDRck=
 20250405193107_addon-instance-type.up.sql h1:sPbBMyoVCqdadLv5yJwv0a29mwmBL1hZBlMgGMcl4gs=
+20250406215430_billing-line-discount-reason.down.sql h1:/nvecNFsikhlgUHGrwUJbACOriKiRAm2A4pyTyIw69Q=
+20250406215430_billing-line-discount-reason.up.sql h1:E2/fFyfuMJyYx1bv/yA3HG+iZQ7c9GlmwnnNDQ+2V4Q=

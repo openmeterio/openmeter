@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -66,6 +67,20 @@ func (bildu *BillingInvoiceLineDiscountUpdate) SetLineID(s string) *BillingInvoi
 func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableLineID(s *string) *BillingInvoiceLineDiscountUpdate {
 	if s != nil {
 		bildu.SetLineID(*s)
+	}
+	return bildu
+}
+
+// SetReason sets the "reason" field.
+func (bildu *BillingInvoiceLineDiscountUpdate) SetReason(bdr billing.LineDiscountReason) *BillingInvoiceLineDiscountUpdate {
+	bildu.mutation.SetReason(bdr)
+	return bildu
+}
+
+// SetNillableReason sets the "reason" field if the given value is not nil.
+func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableReason(bdr *billing.LineDiscountReason) *BillingInvoiceLineDiscountUpdate {
+	if bdr != nil {
+		bildu.SetReason(*bdr)
 	}
 	return bildu
 }
@@ -204,6 +219,11 @@ func (bildu *BillingInvoiceLineDiscountUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bildu *BillingInvoiceLineDiscountUpdate) check() error {
+	if v, ok := bildu.mutation.Reason(); ok {
+		if err := billinginvoicelinediscount.ReasonValidator(v); err != nil {
+			return &ValidationError{Name: "reason", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.reason": %w`, err)}
+		}
+	}
 	if bildu.mutation.BillingInvoiceLineCleared() && len(bildu.mutation.BillingInvoiceLineIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceLineDiscount.billing_invoice_line"`)
 	}
@@ -230,6 +250,9 @@ func (bildu *BillingInvoiceLineDiscountUpdate) sqlSave(ctx context.Context) (n i
 	}
 	if bildu.mutation.DeletedAtCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := bildu.mutation.Reason(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldReason, field.TypeEnum, value)
 	}
 	if value, ok := bildu.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString, value)
@@ -337,6 +360,20 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetLineID(s string) *BillingI
 func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableLineID(s *string) *BillingInvoiceLineDiscountUpdateOne {
 	if s != nil {
 		bilduo.SetLineID(*s)
+	}
+	return bilduo
+}
+
+// SetReason sets the "reason" field.
+func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetReason(bdr billing.LineDiscountReason) *BillingInvoiceLineDiscountUpdateOne {
+	bilduo.mutation.SetReason(bdr)
+	return bilduo
+}
+
+// SetNillableReason sets the "reason" field if the given value is not nil.
+func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableReason(bdr *billing.LineDiscountReason) *BillingInvoiceLineDiscountUpdateOne {
+	if bdr != nil {
+		bilduo.SetReason(*bdr)
 	}
 	return bilduo
 }
@@ -488,6 +525,11 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bilduo *BillingInvoiceLineDiscountUpdateOne) check() error {
+	if v, ok := bilduo.mutation.Reason(); ok {
+		if err := billinginvoicelinediscount.ReasonValidator(v); err != nil {
+			return &ValidationError{Name: "reason", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.reason": %w`, err)}
+		}
+	}
 	if bilduo.mutation.BillingInvoiceLineCleared() && len(bilduo.mutation.BillingInvoiceLineIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceLineDiscount.billing_invoice_line"`)
 	}
@@ -531,6 +573,9 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) sqlSave(ctx context.Context) 
 	}
 	if bilduo.mutation.DeletedAtCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := bilduo.mutation.Reason(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldReason, field.TypeEnum, value)
 	}
 	if value, ok := bilduo.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString, value)

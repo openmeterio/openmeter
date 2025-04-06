@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -369,6 +370,36 @@ func LineIDEqualFold(v string) predicate.BillingInvoiceLineDiscount {
 // LineIDContainsFold applies the ContainsFold predicate on the "line_id" field.
 func LineIDContainsFold(v string) predicate.BillingInvoiceLineDiscount {
 	return predicate.BillingInvoiceLineDiscount(sql.FieldContainsFold(FieldLineID, v))
+}
+
+// ReasonEQ applies the EQ predicate on the "reason" field.
+func ReasonEQ(v billing.LineDiscountReason) predicate.BillingInvoiceLineDiscount {
+	vc := v
+	return predicate.BillingInvoiceLineDiscount(sql.FieldEQ(FieldReason, vc))
+}
+
+// ReasonNEQ applies the NEQ predicate on the "reason" field.
+func ReasonNEQ(v billing.LineDiscountReason) predicate.BillingInvoiceLineDiscount {
+	vc := v
+	return predicate.BillingInvoiceLineDiscount(sql.FieldNEQ(FieldReason, vc))
+}
+
+// ReasonIn applies the In predicate on the "reason" field.
+func ReasonIn(vs ...billing.LineDiscountReason) predicate.BillingInvoiceLineDiscount {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceLineDiscount(sql.FieldIn(FieldReason, v...))
+}
+
+// ReasonNotIn applies the NotIn predicate on the "reason" field.
+func ReasonNotIn(vs ...billing.LineDiscountReason) predicate.BillingInvoiceLineDiscount {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceLineDiscount(sql.FieldNotIn(FieldReason, v...))
 }
 
 // ChildUniqueReferenceIDEQ applies the EQ predicate on the "child_unique_reference_id" field.

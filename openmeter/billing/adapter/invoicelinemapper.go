@@ -215,6 +215,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 				UpdatedAt: discount.UpdatedAt.In(time.UTC),
 				DeletedAt: convert.TimePtrIn(discount.DeletedAt, time.UTC),
 
+				Reason:                 discount.Reason,
 				Amount:                 discount.Amount,
 				Description:            discount.Description,
 				ChildUniqueReferenceID: discount.ChildUniqueReferenceID,

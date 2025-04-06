@@ -18085,6 +18085,7 @@ type BillingInvoiceLineDiscountMutation struct {
 	created_at                  *time.Time
 	updated_at                  *time.Time
 	deleted_at                  *time.Time
+	reason                      *billing.LineDiscountReason
 	child_unique_reference_id   *string
 	description                 *string
 	amount                      *alpacadecimal.Decimal
@@ -18394,6 +18395,42 @@ func (m *BillingInvoiceLineDiscountMutation) ResetLineID() {
 	m.billing_invoice_line = nil
 }
 
+// SetReason sets the "reason" field.
+func (m *BillingInvoiceLineDiscountMutation) SetReason(bdr billing.LineDiscountReason) {
+	m.reason = &bdr
+}
+
+// Reason returns the value of the "reason" field in the mutation.
+func (m *BillingInvoiceLineDiscountMutation) Reason() (r billing.LineDiscountReason, exists bool) {
+	v := m.reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReason returns the old "reason" field's value of the BillingInvoiceLineDiscount entity.
+// If the BillingInvoiceLineDiscount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineDiscountMutation) OldReason(ctx context.Context) (v billing.LineDiscountReason, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// ResetReason resets all changes to the "reason" field.
+func (m *BillingInvoiceLineDiscountMutation) ResetReason() {
+	m.reason = nil
+}
+
 // SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
 func (m *BillingInvoiceLineDiscountMutation) SetChildUniqueReferenceID(s string) {
 	m.child_unique_reference_id = &s
@@ -18651,7 +18688,7 @@ func (m *BillingInvoiceLineDiscountMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceLineDiscountMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoicelinediscount.FieldNamespace)
 	}
@@ -18666,6 +18703,9 @@ func (m *BillingInvoiceLineDiscountMutation) Fields() []string {
 	}
 	if m.billing_invoice_line != nil {
 		fields = append(fields, billinginvoicelinediscount.FieldLineID)
+	}
+	if m.reason != nil {
+		fields = append(fields, billinginvoicelinediscount.FieldReason)
 	}
 	if m.child_unique_reference_id != nil {
 		fields = append(fields, billinginvoicelinediscount.FieldChildUniqueReferenceID)
@@ -18697,6 +18737,8 @@ func (m *BillingInvoiceLineDiscountMutation) Field(name string) (ent.Value, bool
 		return m.DeletedAt()
 	case billinginvoicelinediscount.FieldLineID:
 		return m.LineID()
+	case billinginvoicelinediscount.FieldReason:
+		return m.Reason()
 	case billinginvoicelinediscount.FieldChildUniqueReferenceID:
 		return m.ChildUniqueReferenceID()
 	case billinginvoicelinediscount.FieldDescription:
@@ -18724,6 +18766,8 @@ func (m *BillingInvoiceLineDiscountMutation) OldField(ctx context.Context, name 
 		return m.OldDeletedAt(ctx)
 	case billinginvoicelinediscount.FieldLineID:
 		return m.OldLineID(ctx)
+	case billinginvoicelinediscount.FieldReason:
+		return m.OldReason(ctx)
 	case billinginvoicelinediscount.FieldChildUniqueReferenceID:
 		return m.OldChildUniqueReferenceID(ctx)
 	case billinginvoicelinediscount.FieldDescription:
@@ -18775,6 +18819,13 @@ func (m *BillingInvoiceLineDiscountMutation) SetField(name string, value ent.Val
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetLineID(v)
+		return nil
+	case billinginvoicelinediscount.FieldReason:
+		v, ok := value.(billing.LineDiscountReason)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReason(v)
 		return nil
 	case billinginvoicelinediscount.FieldChildUniqueReferenceID:
 		v, ok := value.(string)
@@ -18894,6 +18945,9 @@ func (m *BillingInvoiceLineDiscountMutation) ResetField(name string) error {
 		return nil
 	case billinginvoicelinediscount.FieldLineID:
 		m.ResetLineID()
+		return nil
+	case billinginvoicelinediscount.FieldReason:
+		m.ResetReason()
 		return nil
 	case billinginvoicelinediscount.FieldChildUniqueReferenceID:
 		m.ResetChildUniqueReferenceID()
