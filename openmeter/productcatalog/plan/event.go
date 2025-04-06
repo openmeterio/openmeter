@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/session"
@@ -135,7 +136,7 @@ func (e PlanDeleteEvent) EventMetadata() metadata.EventMetadata {
 		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
-		Time:    *e.Plan.DeletedAt,
+		Time:    lo.FromPtr(e.Plan.DeletedAt),
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 func AssertPlanCreateInputEqual(t *testing.T, i CreatePlanInput, p Plan) {
@@ -198,29 +197,8 @@ func AssertRateCardEqual(t *testing.T, r1, r2 productcatalog.RateCard) {
 
 	assert.Truef(t, m1.Price.Equal(m2.Price), "price mismatch")
 
-	var billingCadence1, billingCadence2 isodate.Period
-
-	switch vv := r1.(type) {
-	case *productcatalog.FlatFeeRateCard:
-		billingCadence1 = lo.FromPtr(vv.BillingCadence)
-	case *FlatFeeRateCard:
-		billingCadence1 = lo.FromPtr(vv.FlatFeeRateCard.BillingCadence)
-	case *productcatalog.UsageBasedRateCard:
-		billingCadence1 = vv.BillingCadence
-	case *UsageBasedRateCard:
-		billingCadence1 = vv.UsageBasedRateCard.BillingCadence
-	}
-
-	switch vv := r2.(type) {
-	case *productcatalog.FlatFeeRateCard:
-		billingCadence2 = lo.FromPtr(vv.BillingCadence)
-	case *FlatFeeRateCard:
-		billingCadence2 = lo.FromPtr(vv.FlatFeeRateCard.BillingCadence)
-	case *productcatalog.UsageBasedRateCard:
-		billingCadence2 = vv.BillingCadence
-	case *UsageBasedRateCard:
-		billingCadence2 = vv.UsageBasedRateCard.BillingCadence
-	}
+	billingCadence1 := r1.GetBillingCadence().ISOStringPtrOrNil()
+	billingCadence2 := r2.GetBillingCadence().ISOStringPtrOrNil()
 
 	assert.Equal(t, billingCadence1, billingCadence2)
 }

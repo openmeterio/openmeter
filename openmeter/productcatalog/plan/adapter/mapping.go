@@ -181,17 +181,17 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 
 	switch r.Type {
 	case productcatalog.FlatFeeRateCardType:
-		ratecard = &plan.FlatFeeRateCard{
+		ratecard = &plan.RateCard{
 			RateCardManagedFields: managed,
-			FlatFeeRateCard: productcatalog.FlatFeeRateCard{
+			RateCard: &productcatalog.FlatFeeRateCard{
 				RateCardMeta:   meta,
 				BillingCadence: billingCadence,
 			},
 		}
 	case productcatalog.UsageBasedRateCardType:
-		ratecard = &plan.UsageBasedRateCard{
+		ratecard = &plan.RateCard{
 			RateCardManagedFields: managed,
-			UsageBasedRateCard: productcatalog.UsageBasedRateCard{
+			RateCard: &productcatalog.UsageBasedRateCard{
 				RateCardMeta:   meta,
 				BillingCadence: lo.FromPtr(billingCadence),
 			},
@@ -234,18 +234,7 @@ func asPlanRateCardRow(r productcatalog.RateCard) (entdb.PlanRateCard, error) {
 		ratecard.FeatureID = &meta.Feature.ID
 	}
 
-	switch v := r.(type) {
-	case *productcatalog.FlatFeeRateCard:
-		ratecard.BillingCadence = v.BillingCadence.ISOStringPtrOrNil()
-	case *plan.FlatFeeRateCard:
-		ratecard.BillingCadence = v.FlatFeeRateCard.BillingCadence.ISOStringPtrOrNil()
-	case *productcatalog.UsageBasedRateCard:
-		ratecard.BillingCadence = v.BillingCadence.ISOStringPtrOrNil()
-	case *plan.UsageBasedRateCard:
-		ratecard.BillingCadence = v.UsageBasedRateCard.BillingCadence.ISOStringPtrOrNil()
-	default:
-		return ratecard, fmt.Errorf("invalid RateCard type: %T", r)
-	}
+	ratecard.BillingCadence = r.GetBillingCadence().ISOStringPtrOrNil()
 
 	return ratecard, nil
 }

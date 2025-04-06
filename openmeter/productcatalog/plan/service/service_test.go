@@ -249,63 +249,49 @@ func TestPlanService(t *testing.T) {
 									Duration:    nil,
 								},
 								RateCards: []productcatalog.RateCard{
-									&plan.UsageBasedRateCard{
-										RateCardManagedFields: plan.RateCardManagedFields{
-											ManagedModel: models.ManagedModel{
-												CreatedAt: time.Time{},
-												UpdatedAt: time.Time{},
-												DeletedAt: &time.Time{},
-											},
-											NamespacedID: models.NamespacedID{
-												Namespace: namespace,
-												ID:        "",
-											},
-											PhaseID: "",
-										},
-										UsageBasedRateCard: productcatalog.UsageBasedRateCard{
-											RateCardMeta: productcatalog.RateCardMeta{
-												Key:                 "pro-2-ratecard-1",
-												Name:                "Pro-2 RateCard 1",
-												Description:         lo.ToPtr("Pro-2 RateCard 1"),
-												Metadata:            models.Metadata{"name": "pro-ratecard-1"},
-												Feature:             nil,
-												EntitlementTemplate: nil,
-												TaxConfig: &productcatalog.TaxConfig{
-													Stripe: &productcatalog.StripeTaxConfig{
-														Code: "txcd_10000000",
-													},
+									&productcatalog.UsageBasedRateCard{
+										RateCardMeta: productcatalog.RateCardMeta{
+											Key:                 "pro-2-ratecard-1",
+											Name:                "Pro-2 RateCard 1",
+											Description:         lo.ToPtr("Pro-2 RateCard 1"),
+											Metadata:            models.Metadata{"name": "pro-ratecard-1"},
+											Feature:             nil,
+											EntitlementTemplate: nil,
+											TaxConfig: &productcatalog.TaxConfig{
+												Stripe: &productcatalog.StripeTaxConfig{
+													Code: "txcd_10000000",
 												},
-												Price: productcatalog.NewPriceFrom(
-													productcatalog.TieredPrice{
-														Mode: productcatalog.VolumeTieredPrice,
-														Tiers: []productcatalog.PriceTier{
-															{
-																UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-																FlatPrice: &productcatalog.PriceTierFlatPrice{
-																	Amount: decimal.NewFromInt(50),
-																},
-																UnitPrice: &productcatalog.PriceTierUnitPrice{
-																	Amount: decimal.NewFromInt(25),
-																},
-															},
-															{
-																UpToAmount: nil,
-																FlatPrice: &productcatalog.PriceTierFlatPrice{
-																	Amount: decimal.NewFromInt(25),
-																},
-																UnitPrice: &productcatalog.PriceTierUnitPrice{
-																	Amount: decimal.NewFromInt(12),
-																},
-															},
-														},
-														Commitments: productcatalog.Commitments{
-															MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-															MaximumAmount: nil,
-														},
-													}),
 											},
-											BillingCadence: MonthPeriod,
+											Price: productcatalog.NewPriceFrom(
+												productcatalog.TieredPrice{
+													Mode: productcatalog.VolumeTieredPrice,
+													Tiers: []productcatalog.PriceTier{
+														{
+															UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+															FlatPrice: &productcatalog.PriceTierFlatPrice{
+																Amount: decimal.NewFromInt(50),
+															},
+															UnitPrice: &productcatalog.PriceTierUnitPrice{
+																Amount: decimal.NewFromInt(25),
+															},
+														},
+														{
+															UpToAmount: nil,
+															FlatPrice: &productcatalog.PriceTierFlatPrice{
+																Amount: decimal.NewFromInt(25),
+															},
+															UnitPrice: &productcatalog.PriceTierUnitPrice{
+																Amount: decimal.NewFromInt(12),
+															},
+														},
+													},
+													Commitments: productcatalog.Commitments{
+														MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+														MaximumAmount: nil,
+													},
+												}),
 										},
+										BillingCadence: MonthPeriod,
 									},
 								},
 							},
@@ -665,40 +651,26 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 						Duration:    &TwoMonthPeriod,
 					},
 					RateCards: []productcatalog.RateCard{
-						&plan.FlatFeeRateCard{
-							RateCardManagedFields: plan.RateCardManagedFields{
-								ManagedModel: models.ManagedModel{
-									CreatedAt: time.Time{},
-									UpdatedAt: time.Time{},
-									DeletedAt: &time.Time{},
-								},
-								NamespacedID: models.NamespacedID{
-									Namespace: "",
-									ID:        "",
-								},
-								PhaseID: "",
-							},
-							FlatFeeRateCard: productcatalog.FlatFeeRateCard{
-								RateCardMeta: productcatalog.RateCardMeta{
-									Key:                 "trial-ratecard-1",
-									Name:                "Trial RateCard 1",
-									Description:         lo.ToPtr("Trial RateCard 1"),
-									Metadata:            models.Metadata{"name": "trial-ratecard-1"},
-									Feature:             nil,
-									EntitlementTemplate: nil,
-									TaxConfig: &productcatalog.TaxConfig{
-										Stripe: &productcatalog.StripeTaxConfig{
-											Code: "txcd_10000000",
-										},
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:                 "trial-ratecard-1",
+								Name:                "Trial RateCard 1",
+								Description:         lo.ToPtr("Trial RateCard 1"),
+								Metadata:            models.Metadata{"name": "trial-ratecard-1"},
+								Feature:             nil,
+								EntitlementTemplate: nil,
+								TaxConfig: &productcatalog.TaxConfig{
+									Stripe: &productcatalog.StripeTaxConfig{
+										Code: "txcd_10000000",
 									},
-									Price: productcatalog.NewPriceFrom(
-										productcatalog.FlatPrice{
-											Amount:      decimal.NewFromInt(0),
-											PaymentTerm: productcatalog.InArrearsPaymentTerm,
-										}),
 								},
-								BillingCadence: &MonthPeriod,
+								Price: productcatalog.NewPriceFrom(
+									productcatalog.FlatPrice{
+										Amount:      decimal.NewFromInt(0),
+										PaymentTerm: productcatalog.InArrearsPaymentTerm,
+									}),
 							},
+							BillingCadence: &MonthPeriod,
 						},
 					},
 				},
@@ -710,63 +682,49 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 						Metadata:    models.Metadata{"name": "pro"},
 					},
 					RateCards: []productcatalog.RateCard{
-						&plan.UsageBasedRateCard{
-							RateCardManagedFields: plan.RateCardManagedFields{
-								ManagedModel: models.ManagedModel{
-									CreatedAt: time.Time{},
-									UpdatedAt: time.Time{},
-									DeletedAt: &time.Time{},
-								},
-								NamespacedID: models.NamespacedID{
-									Namespace: namespace,
-									ID:        "",
-								},
-								PhaseID: "",
-							},
-							UsageBasedRateCard: productcatalog.UsageBasedRateCard{
-								RateCardMeta: productcatalog.RateCardMeta{
-									Key:                 "pro-ratecard-1",
-									Name:                "Pro RateCard 1",
-									Description:         lo.ToPtr("Pro RateCard 1"),
-									Metadata:            models.Metadata{"name": "pro-ratecard-1"},
-									Feature:             nil,
-									EntitlementTemplate: nil,
-									TaxConfig: &productcatalog.TaxConfig{
-										Stripe: &productcatalog.StripeTaxConfig{
-											Code: "txcd_10000000",
-										},
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:                 "pro-ratecard-1",
+								Name:                "Pro RateCard 1",
+								Description:         lo.ToPtr("Pro RateCard 1"),
+								Metadata:            models.Metadata{"name": "pro-ratecard-1"},
+								Feature:             nil,
+								EntitlementTemplate: nil,
+								TaxConfig: &productcatalog.TaxConfig{
+									Stripe: &productcatalog.StripeTaxConfig{
+										Code: "txcd_10000000",
 									},
-									Price: productcatalog.NewPriceFrom(
-										productcatalog.TieredPrice{
-											Mode: productcatalog.VolumeTieredPrice,
-											Tiers: []productcatalog.PriceTier{
-												{
-													UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-													FlatPrice: &productcatalog.PriceTierFlatPrice{
-														Amount: decimal.NewFromInt(100),
-													},
-													UnitPrice: &productcatalog.PriceTierUnitPrice{
-														Amount: decimal.NewFromInt(50),
-													},
-												},
-												{
-													UpToAmount: nil,
-													FlatPrice: &productcatalog.PriceTierFlatPrice{
-														Amount: decimal.NewFromInt(75),
-													},
-													UnitPrice: &productcatalog.PriceTierUnitPrice{
-														Amount: decimal.NewFromInt(25),
-													},
-												},
-											},
-											Commitments: productcatalog.Commitments{
-												MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-												MaximumAmount: nil,
-											},
-										}),
 								},
-								BillingCadence: MonthPeriod,
+								Price: productcatalog.NewPriceFrom(
+									productcatalog.TieredPrice{
+										Mode: productcatalog.VolumeTieredPrice,
+										Tiers: []productcatalog.PriceTier{
+											{
+												UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+												FlatPrice: &productcatalog.PriceTierFlatPrice{
+													Amount: decimal.NewFromInt(100),
+												},
+												UnitPrice: &productcatalog.PriceTierUnitPrice{
+													Amount: decimal.NewFromInt(50),
+												},
+											},
+											{
+												UpToAmount: nil,
+												FlatPrice: &productcatalog.PriceTierFlatPrice{
+													Amount: decimal.NewFromInt(75),
+												},
+												UnitPrice: &productcatalog.PriceTierUnitPrice{
+													Amount: decimal.NewFromInt(25),
+												},
+											},
+										},
+										Commitments: productcatalog.Commitments{
+											MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+											MaximumAmount: nil,
+										},
+									}),
 							},
+							BillingCadence: MonthPeriod,
 						},
 					},
 				},
