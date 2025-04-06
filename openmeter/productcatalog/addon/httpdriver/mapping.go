@@ -19,6 +19,7 @@ func FromAddon(a addon.Addon) (api.Addon, error) {
 		Currency:      a.Currency.String(),
 		DeletedAt:     a.DeletedAt,
 		Description:   a.Description,
+		InstanceType:  api.AddonInstanceType(string(a.InstanceType)),
 		EffectiveFrom: a.EffectiveFrom,
 		EffectiveTo:   a.EffectiveTo,
 		Id:            a.ID,
@@ -28,7 +29,6 @@ func FromAddon(a addon.Addon) (api.Addon, error) {
 		Name:          a.Name,
 		UpdatedAt:     a.UpdatedAt,
 		Version:       a.Version,
-		InstanceType:  api.AddonInstanceType(string(a.InstanceType)),
 	}
 
 	resp.RateCards = make([]api.RateCard, 0, len(a.RateCards))
@@ -67,8 +67,8 @@ func AsCreateAddonRequest(a api.AddonCreate, namespace string) (CreateAddonReque
 				Key:          a.Key,
 				Name:         a.Name,
 				Description:  a.Description,
-				Metadata:     lo.FromPtrOr(a.Metadata, nil),
 				InstanceType: productcatalog.AddonInstanceType(a.InstanceType),
+				Metadata:     lo.FromPtrOr(a.Metadata, nil),
 			},
 			RateCards: nil,
 		},
@@ -95,18 +95,16 @@ func AsUpdateAddonRequest(a api.AddonReplaceUpdate, namespace string, addonID st
 		},
 		Name:         lo.ToPtr(a.Name),
 		Description:  a.Description,
-		Metadata:     (*models.Metadata)(a.Metadata),
 		InstanceType: lo.ToPtr(productcatalog.AddonInstanceType(a.InstanceType)),
+		Metadata:     (*models.Metadata)(a.Metadata),
 	}
 
-	if len(a.RateCards) > 0 {
-		rateCards, err := http.AsRateCards(a.RateCards)
-		if err != nil {
-			return req, err
-		}
-
-		req.RateCards = &rateCards
+	rateCards, err := http.AsRateCards(a.RateCards)
+	if err != nil {
+		return req, err
 	}
+
+	req.RateCards = &rateCards
 
 	return req, nil
 }
