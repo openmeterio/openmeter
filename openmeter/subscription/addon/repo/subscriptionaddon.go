@@ -53,15 +53,11 @@ func (r *subscriptionAddonRepo) Create(ctx context.Context, namespace string, in
 // Get retrieves a subscription addon by ID
 func (r *subscriptionAddonRepo) Get(ctx context.Context, id models.NamespacedID) (*subscriptionaddon.SubscriptionAddon, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionAddonRepo) (*subscriptionaddon.SubscriptionAddon, error) {
-		entity, err := repo.db.SubscriptionAddon.Query().
+		entity, err := querySubscriptionAddon(repo.db.SubscriptionAddon.Query()).
 			Where(
 				dbsubscriptionaddon.ID(id.ID),
 				dbsubscriptionaddon.Namespace(id.Namespace),
 			).
-			WithQuantities().
-			WithRateCards(func(sarcq *db.SubscriptionAddonRateCardQuery) {
-				sarcq.WithItems().WithAddonRatecard()
-			}).
 			Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -85,20 +81,11 @@ func (r *subscriptionAddonRepo) Get(ctx context.Context, id models.NamespacedID)
 // List retrieves multiple subscription addons
 func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filter subscriptionaddon.ListSubscriptionAddonRepositoryInput) (pagination.PagedResponse[subscriptionaddon.SubscriptionAddon], error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionAddonRepo) (pagination.PagedResponse[subscriptionaddon.SubscriptionAddon], error) {
-		query := repo.db.SubscriptionAddon.Query().
+		query := querySubscriptionAddon(repo.db.SubscriptionAddon.Query()).
 			Where(
 				dbsubscriptionaddon.Namespace(namespace),
 				dbsubscriptionaddon.SubscriptionID(filter.SubscriptionID),
-			).
-			WithQuantities(func(saqq *db.SubscriptionAddonQuantityQuery) {
-				saqq.Order(
-					db.Asc(dbsubscriptionaddonquantity.FieldActiveFrom),
-					db.Asc(dbsubscriptionaddonquantity.FieldCreatedAt),
-				)
-			}).
-			WithRateCards(func(sarcq *db.SubscriptionAddonRateCardQuery) {
-				sarcq.WithItems()
-			})
+			)
 
 		// Let's return everything if no pagination is requested
 		if filter.Page.IsZero() {
@@ -125,4 +112,18 @@ func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filt
 
 		return entutils.MapPagedWithErr(paged, MapSubscriptionAddon)
 	})
+}
+
+func querySubscriptionAddon(query *db.SubscriptionAddonQuery) *db.SubscriptionAddonQuery {
+	return query.
+		WithAddon().
+		WithQuantities(func(saqq *db.SubscriptionAddonQuantityQuery) {
+			saqq.Order(
+				db.Asc(dbsubscriptionaddonquantity.FieldActiveFrom),
+				db.Asc(dbsubscriptionaddonquantity.FieldCreatedAt),
+			)
+		}).
+		WithRateCards(func(sarcq *db.SubscriptionAddonRateCardQuery) {
+			sarcq.WithItems().WithAddonRatecard()
+		})
 }

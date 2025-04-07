@@ -367,19 +367,7 @@ func TestAddonServiceCreate(t *testing.T) {
 			})
 
 			t.Run("Should return same addon on create and then a subsequent get", func(t *testing.T) {
-				// Let's validate that the return value of
-				require.Equal(t, subAdd1.AddonID, subAdd2.AddonID)
-				require.Equal(t, subAdd1.SubscriptionID, subAdd2.SubscriptionID)
-				require.Len(t, subAdd1.RateCards, 1)
-				require.Len(t, subAdd2.RateCards, 1)
-				require.Equal(t, subAdd1.RateCards, subAdd2.RateCards)
-
-				// Compare quantities by extracting the actual values from the timeline
-				require.Equal(t, len(subAdd1.Quantities.GetTimes()), len(subAdd2.Quantities.GetTimes()))
-				for i := 0; i < len(subAdd1.Quantities.GetTimes()); i++ {
-					require.Equal(t, subAdd1.Quantities.GetAt(i).GetValue().Quantity, subAdd2.Quantities.GetAt(i).GetValue().Quantity)
-					require.Equal(t, subAdd1.Quantities.GetAt(i).GetTime(), subAdd2.Quantities.GetAt(i).GetTime())
-				}
+				subscriptiontestutils.SubscriptionAddonsEqual(t, *subAdd1, *subAdd2)
 			})
 		})
 	})

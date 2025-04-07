@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -175,5 +176,18 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 				assert.Equal(t, i1.CreateSubscriptionItemCustomerInput, i2.CreateSubscriptionItemCustomerInput)
 			}
 		}
+	}
+}
+
+func SubscriptionAddonsEqual(t *testing.T, a1, a2 subscriptionaddon.SubscriptionAddon) {
+	assert.Equal(t, a1.AddonID, a2.AddonID)
+	assert.Equal(t, a1.SubscriptionID, a2.SubscriptionID)
+	assert.Equal(t, a1.Metadata, a2.Metadata)
+	assert.Equal(t, a1.RateCards, a2.RateCards)
+
+	require.Equal(t, len(a1.Quantities.GetTimes()), len(a2.Quantities.GetTimes()))
+	for i := 0; i < len(a1.Quantities.GetTimes()); i++ {
+		require.Equal(t, a1.Quantities.GetAt(i).GetValue().Quantity, a2.Quantities.GetAt(i).GetValue().Quantity)
+		require.Equal(t, a1.Quantities.GetAt(i).GetTime(), a2.Quantities.GetAt(i).GetTime())
 	}
 }
