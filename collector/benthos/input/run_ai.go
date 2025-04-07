@@ -3,6 +3,7 @@ package input
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"sync"
 	"time"
 
@@ -192,6 +193,10 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger, httpMetri
 	pageSize, err := conf.FieldInt(fieldPageSize)
 	if err != nil {
 		return nil, err
+	}
+
+	if pageSize < 100 || pageSize > 500 {
+		return nil, errors.New("page size must be between 100 and 500")
 	}
 
 	var interval time.Duration
