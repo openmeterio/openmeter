@@ -25,6 +25,7 @@ func NewSubscriptionAddonQuantityRepo(db *db.Client) *subscriptionAddonQuantityR
 func (r *subscriptionAddonQuantityRepo) Create(ctx context.Context, subscriptionAddonID models.NamespacedID, input subscriptionaddon.CreateSubscriptionAddonQuantityRepositoryInput) (*subscriptionaddon.SubscriptionAddonQuantity, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionAddonQuantityRepo) (*subscriptionaddon.SubscriptionAddonQuantity, error) {
 		entity, err := repo.db.SubscriptionAddonQuantity.Create().
+			SetNamespace(subscriptionAddonID.Namespace).
 			SetSubscriptionAddonID(subscriptionAddonID.ID).
 			SetActiveFrom(input.ActiveFrom).
 			SetQuantity(input.Quantity).

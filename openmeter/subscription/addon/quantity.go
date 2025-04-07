@@ -1,6 +1,7 @@
 package subscriptionaddon
 
 import (
+	"errors"
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -24,4 +25,18 @@ func (q SubscriptionAddonQuantity) AsTimed() timeutil.Timed[SubscriptionAddonQua
 type CreateSubscriptionAddonQuantityInput struct {
 	ActiveFrom time.Time `json:"activeFrom"`
 	Quantity   int       `json:"quantity"`
+}
+
+func (i CreateSubscriptionAddonQuantityInput) Validate() error {
+	var errs []error
+
+	if i.ActiveFrom.IsZero() {
+		errs = append(errs, errors.New("activeFrom is required"))
+	}
+
+	if i.Quantity <= 0 {
+		errs = append(errs, errors.New("quantity has to be greater or equal to 0"))
+	}
+
+	return errors.Join(errs...)
 }

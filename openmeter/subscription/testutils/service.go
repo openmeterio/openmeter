@@ -13,6 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
+	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
+	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
@@ -20,6 +22,9 @@ import (
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	subscriptionaddonrepo "github.com/openmeterio/openmeter/openmeter/subscription/addon/repo"
+	subscriptionaddonservice "github.com/openmeterio/openmeter/openmeter/subscription/addon/service"
 	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -31,17 +36,19 @@ import (
 )
 
 type SubscriptionDependencies struct {
-	ItemRepo            subscription.SubscriptionItemRepository
-	CustomerAdapter     *testCustomerRepo
-	CustomerService     customer.Service
-	FeatureConnector    *testFeatureConnector
-	EntitlementAdapter  subscription.EntitlementAdapter
-	PlanHelper          *planHelper
-	PlanService         plan.Service
-	DBDeps              *DBDeps
-	EntitlementRegistry *registry.Entitlement
-	SubscriptionService subscription.Service
-	WorkflowService     subscriptionworkflow.Service
+	ItemRepo                 subscription.SubscriptionItemRepository
+	CustomerAdapter          *testCustomerRepo
+	CustomerService          customer.Service
+	FeatureConnector         *testFeatureConnector
+	EntitlementAdapter       subscription.EntitlementAdapter
+	PlanHelper               *planHelper
+	PlanService              plan.Service
+	DBDeps                   *DBDeps
+	EntitlementRegistry      *registry.Entitlement
+	SubscriptionService      subscription.Service
+	WorkflowService          subscriptionworkflow.Service
+	SubscriptionAddonService subscriptionaddon.Service
+	AddonService             *testAddonService
 }
 
 func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
@@ -126,17 +133,47 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		TransactionManager: subItemRepo,
 	})
 
+	addonRepo, err := addonrepo.New(addonrepo.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger,
+	})
+	require.NoError(t, err)
+
+	addonService, err := addonservice.New(addonservice.Config{
+		Adapter:   addonRepo,
+		Logger:    logger,
+		Publisher: publisher,
+		Feature:   entitlementRegistry.Feature,
+	})
+	require.NoError(t, err)
+
+	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(dbDeps.DBClient)
+	subAddRCRepo := subscriptionaddonrepo.NewSubscriptionAddonRateCardRepo(dbDeps.DBClient)
+	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(dbDeps.DBClient)
+
+	subAddSvc := subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
+		TxManager:     subItemRepo,
+		Logger:        logger,
+		AddonService:  addonService,
+		SubService:    svc,
+		SubAddRepo:    subAddRepo,
+		SubAddRCRepo:  subAddRCRepo,
+		SubAddQtyRepo: subAddQtyRepo,
+	})
+
 	return SubscriptionDependencies{
-		WorkflowService:     workflowSvc,
-		SubscriptionService: svc,
-		CustomerAdapter:     customerAdapter,
-		CustomerService:     customer,
-		FeatureConnector:    NewTestFeatureConnector(entitlementRegistry.Feature),
-		EntitlementAdapter:  entitlementAdapter,
-		DBDeps:              dbDeps,
-		PlanHelper:          planHelper,
-		PlanService:         planService,
-		ItemRepo:            subItemRepo,
-		EntitlementRegistry: entitlementRegistry,
+		SubscriptionService:      svc,
+		WorkflowService:          workflowSvc,
+		CustomerAdapter:          customerAdapter,
+		CustomerService:          customer,
+		FeatureConnector:         NewTestFeatureConnector(entitlementRegistry.Feature),
+		EntitlementAdapter:       entitlementAdapter,
+		DBDeps:                   dbDeps,
+		PlanHelper:               planHelper,
+		PlanService:              planService,
+		ItemRepo:                 subItemRepo,
+		EntitlementRegistry:      entitlementRegistry,
+		SubscriptionAddonService: subAddSvc,
+		AddonService:             NewTestAddonService(addonService),
 	}
 }

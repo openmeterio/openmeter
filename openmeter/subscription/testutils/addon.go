@@ -1,6 +1,7 @@
 package subscriptiontestutils
 
 import (
+	"context"
 	"testing"
 
 	"github.com/invopop/gobl/currency"
@@ -47,4 +48,23 @@ func GetExampleAddonInput(t *testing.T, effectivePeriod productcatalog.Effective
 	}
 
 	return inp
+}
+
+type testAddonService struct {
+	addon.Service
+}
+
+func NewTestAddonService(svc addon.Service) *testAddonService {
+	return &testAddonService{svc}
+}
+
+func (s *testAddonService) CreateExampleAddon(t *testing.T, period productcatalog.EffectivePeriod) addon.Addon {
+	t.Helper()
+
+	add, err := s.CreateAddon(context.Background(), GetExampleAddonInput(t, period))
+	if err != nil {
+		t.Fatalf("failed to create addon: %v", err)
+	}
+
+	return *add
 }

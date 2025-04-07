@@ -15,7 +15,7 @@ type SubscriptionAddonRateCard struct {
 }
 
 type CreateSubscriptionAddonRateCardInput struct {
-	RateCardID string `json:"rateCardID"`
+	AddonRateCardID string `json:"addonRateCardID"`
 
 	AffectedSubscriptionItemIDs []string `json:"affectedSubscriptionItemIDs"`
 }
