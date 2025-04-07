@@ -1357,8 +1357,8 @@ github.com/gofrs/flock v0.12.1/go.mod h1:9zxTsyu5xtJ9DK+1tFZyibEV7y3uwDxPPfbxeeH
 github.com/gofrs/uuid v4.0.0+incompatible/go.mod h1:b2aQJv3Z4Fp6yNu3cdSllBxTCLRxnplIgP/c0N/04lM=
 github.com/gofrs/uuid v4.4.0+incompatible h1:3qXRTX8/NbyulANqlc0lchS1gqAVxRgsuW1YrTJupqA=
 github.com/gofrs/uuid v4.4.0+incompatible/go.mod h1:b2aQJv3Z4Fp6yNu3cdSllBxTCLRxnplIgP/c0N/04lM=
-github.com/gofrs/uuid/v5 v5.3.1 h1:aPx49MwJbekCzOyhZDjJVb0hx3A0KLjlbLx6p2gY0p0=
-github.com/gofrs/uuid/v5 v5.3.1/go.mod h1:CDOjlDMVAtN56jqyRUZh58JT31Tiw7/oQyEXZV+9bD8=
+github.com/gofrs/uuid/v5 v5.3.2 h1:2jfO8j3XgSwlz/wHqemAEugfnTlikAYHhnqQ8Xh4fE0=
+github.com/gofrs/uuid/v5 v5.3.2/go.mod h1:CDOjlDMVAtN56jqyRUZh58JT31Tiw7/oQyEXZV+9bD8=
 github.com/gogo/googleapis v1.4.1 h1:1Yx4Myt7BxzvUr5ldGSbwYiZG6t9wGBZ+8/fX3Wvtq0=
 github.com/gogo/googleapis v1.4.1/go.mod h1:2lpHqI5OcWCtVElxXnPt+s8oJvMpySlOyM6xDCrzib4=
 github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
@@ -2076,8 +2076,8 @@ github.com/redis/go-redis/extra/redisotel/v9 v9.7.3 h1:ICBA9xYh+SmZqMfBtjKpp1ohi
 github.com/redis/go-redis/extra/redisotel/v9 v9.7.3/go.mod h1:DMzxd0CDyZ9VFw9sEPIVpIgKTAaubfGuaPQSUaS7/fo=
 github.com/redis/go-redis/v9 v9.7.3 h1:YpPyAayJV+XErNsatSElgRZZVCwXX9QzkKYNvO7x0wM=
 github.com/redis/go-redis/v9 v9.7.3/go.mod h1:bGUrSggJ9X9GUmZpZNEOQKaANxSGgOEBRltRTZHSvrA=
-github.com/redpanda-data/benthos/v4 v4.46.0 h1:HAtyCcmRNo5wxPDkX0C/68awuf2VlD4wvcBr5Ko1Q8o=
-github.com/redpanda-data/benthos/v4 v4.46.0/go.mod h1:YU9FTVkYBXi1Qz6FmPvszHm6zGV12UGQXnn3/H6FmFI=
+github.com/redpanda-data/benthos/v4 v4.47.0 h1:kIFBr7zYmoOcVgsWPgLxAcgl6gG8a8Sb8SkQuthFa6U=
+github.com/redpanda-data/benthos/v4 v4.47.0/go.mod h1:zMLG/yCfRp4YM0mrrkIAxVGGVHBM2Vt1dWTgFakMTp8=
 github.com/redpanda-data/connect/public/bundle/free/v4 v4.49.1 h1:P/DyC50Z22nNOByc7L6btlQ1LuaNNDVUIWzv2fpn4PU=
 github.com/redpanda-data/connect/public/bundle/free/v4 v4.49.1/go.mod h1:+59jDrBszHGElD66rZ9Bo6Ge4L/QGDWUznwC4JpG/Xk=
 github.com/redpanda-data/connect/v4 v4.49.1 h1:tzd0DAxWPDIwmupwSfDRxvjsfVhgLoojp1rDHhMAFfg=
