@@ -2,6 +2,7 @@ package runai
 
 import (
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -14,6 +15,7 @@ type Service struct {
 	appID     string
 	appSecret string
 	token     string
+	pageSize  int
 }
 
 type HTTPRequestConfig struct {
@@ -21,6 +23,8 @@ type HTTPRequestConfig struct {
 	RetryWaitTime    time.Duration
 	RetryMaxWaitTime time.Duration
 	RetryCount       int
+	PageSize         int
+	TimingMetrics    *service.MetricTimer
 }
 
 func NewService(baseURL, appID, appSecret string, logger *service.Logger, requestConfig HTTPRequestConfig) (*Service, error) {
@@ -28,6 +32,7 @@ func NewService(baseURL, appID, appSecret string, logger *service.Logger, reques
 		logger:    logger,
 		appID:     appID,
 		appSecret: appSecret,
+		pageSize:  requestConfig.PageSize,
 	}
 
 	client := resty.New().
@@ -57,6 +62,20 @@ func NewService(baseURL, appID, appSecret string, logger *service.Logger, reques
 		OnAfterResponse(func(client *resty.Client, response *resty.Response) error {
 			if response.StatusCode() == http.StatusUnauthorized {
 				service.SetToken("")
+			}
+
+			if requestConfig.TimingMetrics != nil {
+				path := response.Request.RawRequest.URL.Path
+				if matched, err := regexp.MatchString("/api/v1/workloads/[0-9a-f-]+/pods/[0-9a-f-]+/metrics", path); err == nil && matched {
+					path = "/api/v1/workloads/:workloadID/pods/:podID/metrics"
+				} else if matched, err := regexp.MatchString("/api/v1/workloads/[0-9a-f-]+/metrics", path); err == nil && matched {
+					path = "/api/v1/workloads/:workloadID/metrics"
+				} else if matched, err := regexp.MatchString("/api/v1/pods", path); err == nil && matched {
+					path = "/api/v1/pods"
+				} else if matched, err := regexp.MatchString("/api/v1/workloads", path); err == nil && matched {
+					path = "/api/v1/workloads"
+				}
+				requestConfig.TimingMetrics.Timing(response.Time().Nanoseconds(), path)
 			}
 
 			return nil

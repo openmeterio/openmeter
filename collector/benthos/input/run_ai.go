@@ -3,6 +3,7 @@ package input
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"sync"
 	"time"
 
@@ -24,6 +25,7 @@ const (
 	fieldMetrics              = "metrics"
 	fieldSchedule             = "schedule"
 	fieldMetricsOffset        = "metrics_offset"
+	fieldPageSize             = "page_size"
 	fieldHTTPConfig           = "http"
 	fieldHTTPTimeout          = "timeout"
 	fieldHTTPRetryCount       = "retry_count"
@@ -45,6 +47,9 @@ func runAIInputConfig() *service.ConfigSpec {
 			service.NewStringEnumField(fieldResourceType, resourceTypes...).
 				Default("workload").
 				Description("Run AI resource to collect metrics from."),
+			service.NewIntField(fieldPageSize).
+				Description("Run AI page size.").
+				Default(500),
 			service.NewStringListField(fieldMetrics).
 				Description("Run AI metrics to collect.").
 				Default(lo.Map([]runai.MetricType{
@@ -90,9 +95,10 @@ input:
     url: "${RUNAI_URL:}"
     app_id: "${RUNAI_APP_ID:}"
     app_secret: "${RUNAI_APP_SECRET:}"
-    schedule: "${RUNAI_SCRAPE_SCHEDULE:*/30 * * * * *}"
-    metrics_scrape_offset: "${RUNAI_METRICS_SCRAPE_OFFSET:30s}"
-    resource_type: "${RUNAI_RESOURCE_TYPE:workload}"
+    schedule: "*/30 * * * * *"
+    metrics_scrape_offset: "30s"
+    resource_type: "workload"
+    page_size: 500
     metrics:
       - CPU_LIMIT_CORES
       - CPU_MEMORY_LIMIT_BYTES
@@ -116,7 +122,15 @@ input:
 
 func init() {
 	err := service.RegisterBatchInput("run_ai", runAIInputConfig(), func(conf *service.ParsedConfig, mgr *service.Resources) (service.BatchInput, error) {
-		return newRunAIInput(conf, mgr.Logger())
+		httpMetrics := mgr.Metrics().NewTimer("run_ai_http_request", "url")
+		in, err := newRunAIInput(conf, mgr.Logger(), httpMetrics)
+		if err != nil {
+			return nil, err
+		}
+
+		in.timingMetrics = httpMetrics
+
+		return in, nil
 	})
 	if err != nil {
 		panic(err)
@@ -136,9 +150,11 @@ type runAIInput struct {
 	scheduler     gocron.Scheduler
 	store         map[time.Time][]runai.ResourceWithMetrics
 	mu            sync.Mutex
+
+	timingMetrics *service.MetricTimer
 }
 
-func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIInput, error) {
+func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger, httpMetrics *service.MetricTimer) (*runAIInput, error) {
 	url, err := conf.FieldString(fieldURL)
 	if err != nil {
 		return nil, err
@@ -172,6 +188,15 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIIn
 	metricsOffset, err := conf.FieldDuration(fieldMetricsOffset)
 	if err != nil {
 		return nil, err
+	}
+
+	pageSize, err := conf.FieldInt(fieldPageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	if pageSize < 100 || pageSize > 500 {
+		return nil, errors.New("page size must be between 100 and 500")
 	}
 
 	var interval time.Duration
@@ -219,6 +244,8 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIIn
 		RetryCount:       retryCount,
 		RetryWaitTime:    retryWaitTime,
 		RetryMaxWaitTime: retryMaxWaitTime,
+		TimingMetrics:    httpMetrics,
+		PageSize:         pageSize,
 	})
 	if err != nil {
 		return nil, err
