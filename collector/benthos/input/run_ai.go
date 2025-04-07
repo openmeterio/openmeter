@@ -94,10 +94,10 @@ input:
     url: "${RUNAI_URL:}"
     app_id: "${RUNAI_APP_ID:}"
     app_secret: "${RUNAI_APP_SECRET:}"
-    schedule: "${RUNAI_SCRAPE_SCHEDULE:*/30 * * * * *}"
-    metrics_scrape_offset: "${RUNAI_METRICS_SCRAPE_OFFSET:30s}"
-    resource_type: "${RUNAI_RESOURCE_TYPE:workload}"
-    page_size: "${RUNAI_PAGE_SIZE:500}"
+    schedule: "*/30 * * * * *"
+    metrics_scrape_offset: "30s"
+    resource_type: "workload"
+    page_size: 500
     metrics:
       - CPU_LIMIT_CORES
       - CPU_MEMORY_LIMIT_BYTES
