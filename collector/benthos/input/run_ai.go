@@ -116,7 +116,15 @@ input:
 
 func init() {
 	err := service.RegisterBatchInput("run_ai", runAIInputConfig(), func(conf *service.ParsedConfig, mgr *service.Resources) (service.BatchInput, error) {
-		return newRunAIInput(conf, mgr.Logger())
+		httpMetrics := mgr.Metrics().NewTimer("run_ai_http_request", "url")
+		in, err := newRunAIInput(conf, mgr.Logger(), httpMetrics)
+		if err != nil {
+			return nil, err
+		}
+
+		in.timingMetrics = httpMetrics
+
+		return in, nil
 	})
 	if err != nil {
 		panic(err)
@@ -136,9 +144,11 @@ type runAIInput struct {
 	scheduler     gocron.Scheduler
 	store         map[time.Time][]runai.ResourceWithMetrics
 	mu            sync.Mutex
+
+	timingMetrics *service.MetricTimer
 }
 
-func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIInput, error) {
+func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger, httpMetrics *service.MetricTimer) (*runAIInput, error) {
 	url, err := conf.FieldString(fieldURL)
 	if err != nil {
 		return nil, err
@@ -219,6 +229,7 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIIn
 		RetryCount:       retryCount,
 		RetryWaitTime:    retryWaitTime,
 		RetryMaxWaitTime: retryMaxWaitTime,
+		TimingMetrics:    httpMetrics,
 	})
 	if err != nil {
 		return nil, err
