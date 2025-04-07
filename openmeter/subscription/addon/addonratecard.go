@@ -1,12 +1,15 @@
 package subscriptionaddon
 
-import "github.com/openmeterio/openmeter/pkg/models"
+import (
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/pkg/models"
+)
 
 type SubscriptionAddonRateCard struct {
 	models.NamespacedID
 	models.ManagedModel
 
-	RateCardID string `json:"rateCardID"` // TODO: replace with [RateCard Addon.RateCard] once exixts
+	AddonRateCard addon.RateCard `json:"addonRateCard"`
 
 	AffectedSubscriptionItemIDs []string `json:"affectedSubscriptionItemIDs"`
 }

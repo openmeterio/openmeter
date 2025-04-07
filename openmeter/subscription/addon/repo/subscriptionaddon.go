@@ -59,7 +59,7 @@ func (r *subscriptionAddonRepo) Get(ctx context.Context, id models.NamespacedID)
 			).
 			WithQuantities().
 			WithRateCards(func(sarcq *db.SubscriptionAddonRateCardQuery) {
-				sarcq.WithItems()
+				sarcq.WithItems().WithAddonRatecard()
 			}).
 			Only(ctx)
 		if err != nil {
@@ -72,7 +72,10 @@ func (r *subscriptionAddonRepo) Get(ctx context.Context, id models.NamespacedID)
 			return nil, err
 		}
 
-		addon := MapSubscriptionAddon(entity)
+		addon, err := MapSubscriptionAddon(entity)
+		if err != nil {
+			return nil, err
+		}
 
 		return &addon, nil
 	})
@@ -98,7 +101,10 @@ func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filt
 				return pagination.PagedResponse[subscriptionaddon.SubscriptionAddon]{}, err
 			}
 
-			items := MapSubscriptionAddons(entities)
+			items, err := MapSubscriptionAddons(entities)
+			if err != nil {
+				return pagination.PagedResponse[subscriptionaddon.SubscriptionAddon]{}, err
+			}
 			return pagination.PagedResponse[subscriptionaddon.SubscriptionAddon]{
 				Items:      items,
 				Page:       pagination.NewPage(1, len(items)),
@@ -111,6 +117,6 @@ func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filt
 			return pagination.PagedResponse[subscriptionaddon.SubscriptionAddon]{}, err
 		}
 
-		return entutils.MapPaged(paged, MapSubscriptionAddon), nil
+		return entutils.MapPagedWithErr(paged, MapSubscriptionAddon)
 	})
 }

@@ -56,7 +56,10 @@ func (r *subscriptionAddonRateCardRepo) CreateMany(ctx context.Context, subscrip
 				rateCard.Edges.Items = links
 
 				// Map to domain model
-				result := MapSubscriptionAddonRateCard(rateCard)
+				result, err := MapSubscriptionAddonRateCard(rateCard)
+				if err != nil {
+					return nil, fmt.Errorf("failed to map rate card to domain model: %w", err)
+				}
 
 				results = append(results, result)
 			}

@@ -4,15 +4,18 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // MapSubscriptionAddon maps a db.SubscriptionAddon to a subscriptionaddon.SubscriptionAddon
 func MapSubscriptionAddon(
 	entity *db.SubscriptionAddon,
-) subscriptionaddon.SubscriptionAddon {
+) (subscriptionaddon.SubscriptionAddon, error) {
 	base := subscriptionaddon.SubscriptionAddon{
 		NamespacedID: models.NamespacedID{
 			ID:        entity.ID,
@@ -41,21 +44,25 @@ func MapSubscriptionAddon(
 	}
 
 	if len(entity.Edges.RateCards) > 0 {
-		base.RateCards = MapSubscriptionAddonRateCards(entity.Edges.RateCards)
+		rateCards, err := MapSubscriptionAddonRateCards(entity.Edges.RateCards)
+		if err != nil {
+			return subscriptionaddon.SubscriptionAddon{}, err
+		}
+		base.RateCards = rateCards
 	}
 
-	return base
+	return base, nil
 }
 
 // MapSubscriptionAddons maps a slice of db.SubscriptionAddon to a slice of subscriptionaddon.SubscriptionAddon
-func MapSubscriptionAddons(entities []*db.SubscriptionAddon) []subscriptionaddon.SubscriptionAddon {
-	return lo.Map(entities, func(entity *db.SubscriptionAddon, _ int) subscriptionaddon.SubscriptionAddon {
+func MapSubscriptionAddons(entities []*db.SubscriptionAddon) ([]subscriptionaddon.SubscriptionAddon, error) {
+	return slicesx.MapWithErr(entities, func(entity *db.SubscriptionAddon) (subscriptionaddon.SubscriptionAddon, error) {
 		return MapSubscriptionAddon(entity)
 	})
 }
 
 // MapSubscriptionAddonRateCard maps a db.SubscriptionAddonRateCard to a subscriptionaddon.SubscriptionAddonRateCard
-func MapSubscriptionAddonRateCard(entity *db.SubscriptionAddonRateCard) subscriptionaddon.SubscriptionAddonRateCard {
+func MapSubscriptionAddonRateCard(entity *db.SubscriptionAddonRateCard) (subscriptionaddon.SubscriptionAddonRateCard, error) {
 	base := subscriptionaddon.SubscriptionAddonRateCard{
 		NamespacedID: models.NamespacedID{
 			ID:        entity.ID,
@@ -66,7 +73,6 @@ func MapSubscriptionAddonRateCard(entity *db.SubscriptionAddonRateCard) subscrip
 			UpdatedAt: entity.UpdatedAt,
 			DeletedAt: entity.DeletedAt,
 		},
-		RateCardID: entity.ID, // Using ID as RateCardID for now
 	}
 	if len(entity.Edges.Items) > 0 {
 		base.AffectedSubscriptionItemIDs = lo.Map(entity.Edges.Items, func(item *db.SubscriptionAddonRateCardItemLink, _ int) string {
@@ -74,12 +80,36 @@ func MapSubscriptionAddonRateCard(entity *db.SubscriptionAddonRateCard) subscrip
 		})
 	}
 
-	return base
+	// TODO: This mapping should happen in addon repo...
+	if entity.Edges.AddonRatecard != nil {
+		arc := entity.Edges.AddonRatecard
+		pcRC, err := addonrepo.FromAddonRateCardRow(*arc)
+		if err != nil {
+			return subscriptionaddon.SubscriptionAddonRateCard{}, err
+		}
+		base.AddonRateCard = addon.RateCard{
+			RateCard: pcRC,
+			RateCardManagedFields: addon.RateCardManagedFields{
+				AddonID: arc.AddonID,
+				NamespacedID: models.NamespacedID{
+					Namespace: arc.Namespace,
+					ID:        arc.ID,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: arc.CreatedAt,
+					UpdatedAt: arc.UpdatedAt,
+					DeletedAt: arc.DeletedAt,
+				},
+			},
+		}
+	}
+
+	return base, nil
 }
 
 // MapSubscriptionAddonRateCards maps a slice of db.SubscriptionAddonRateCard to a slice of subscriptionaddon.SubscriptionAddonRateCard
-func MapSubscriptionAddonRateCards(entities []*db.SubscriptionAddonRateCard) []subscriptionaddon.SubscriptionAddonRateCard {
-	return lo.Map(entities, func(entity *db.SubscriptionAddonRateCard, _ int) subscriptionaddon.SubscriptionAddonRateCard {
+func MapSubscriptionAddonRateCards(entities []*db.SubscriptionAddonRateCard) ([]subscriptionaddon.SubscriptionAddonRateCard, error) {
+	return slicesx.MapWithErr(entities, func(entity *db.SubscriptionAddonRateCard) (subscriptionaddon.SubscriptionAddonRateCard, error) {
 		return MapSubscriptionAddonRateCard(entity)
 	})
 }
