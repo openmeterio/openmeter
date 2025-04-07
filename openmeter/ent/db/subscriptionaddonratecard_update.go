@@ -29,18 +29,6 @@ func (sarcu *SubscriptionAddonRateCardUpdate) Where(ps ...predicate.Subscription
 	return sarcu
 }
 
-// SetMetadata sets the "metadata" field.
-func (sarcu *SubscriptionAddonRateCardUpdate) SetMetadata(m map[string]string) *SubscriptionAddonRateCardUpdate {
-	sarcu.mutation.SetMetadata(m)
-	return sarcu
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (sarcu *SubscriptionAddonRateCardUpdate) ClearMetadata() *SubscriptionAddonRateCardUpdate {
-	sarcu.mutation.ClearMetadata()
-	return sarcu
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (sarcu *SubscriptionAddonRateCardUpdate) SetUpdatedAt(t time.Time) *SubscriptionAddonRateCardUpdate {
 	sarcu.mutation.SetUpdatedAt(t)
@@ -67,37 +55,15 @@ func (sarcu *SubscriptionAddonRateCardUpdate) ClearDeletedAt() *SubscriptionAddo
 	return sarcu
 }
 
-// SetName sets the "name" field.
-func (sarcu *SubscriptionAddonRateCardUpdate) SetName(s string) *SubscriptionAddonRateCardUpdate {
-	sarcu.mutation.SetName(s)
+// SetMetadata sets the "metadata" field.
+func (sarcu *SubscriptionAddonRateCardUpdate) SetMetadata(m map[string]string) *SubscriptionAddonRateCardUpdate {
+	sarcu.mutation.SetMetadata(m)
 	return sarcu
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (sarcu *SubscriptionAddonRateCardUpdate) SetNillableName(s *string) *SubscriptionAddonRateCardUpdate {
-	if s != nil {
-		sarcu.SetName(*s)
-	}
-	return sarcu
-}
-
-// SetDescription sets the "description" field.
-func (sarcu *SubscriptionAddonRateCardUpdate) SetDescription(s string) *SubscriptionAddonRateCardUpdate {
-	sarcu.mutation.SetDescription(s)
-	return sarcu
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (sarcu *SubscriptionAddonRateCardUpdate) SetNillableDescription(s *string) *SubscriptionAddonRateCardUpdate {
-	if s != nil {
-		sarcu.SetDescription(*s)
-	}
-	return sarcu
-}
-
-// ClearDescription clears the value of the "description" field.
-func (sarcu *SubscriptionAddonRateCardUpdate) ClearDescription() *SubscriptionAddonRateCardUpdate {
-	sarcu.mutation.ClearDescription()
+// ClearMetadata clears the value of the "metadata" field.
+func (sarcu *SubscriptionAddonRateCardUpdate) ClearMetadata() *SubscriptionAddonRateCardUpdate {
+	sarcu.mutation.ClearMetadata()
 	return sarcu
 }
 
@@ -201,12 +167,6 @@ func (sarcu *SubscriptionAddonRateCardUpdate) sqlSave(ctx context.Context) (n in
 			}
 		}
 	}
-	if value, ok := sarcu.mutation.Metadata(); ok {
-		_spec.SetField(subscriptionaddonratecard.FieldMetadata, field.TypeJSON, value)
-	}
-	if sarcu.mutation.MetadataCleared() {
-		_spec.ClearField(subscriptionaddonratecard.FieldMetadata, field.TypeJSON)
-	}
 	if value, ok := sarcu.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionaddonratecard.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -216,14 +176,11 @@ func (sarcu *SubscriptionAddonRateCardUpdate) sqlSave(ctx context.Context) (n in
 	if sarcu.mutation.DeletedAtCleared() {
 		_spec.ClearField(subscriptionaddonratecard.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := sarcu.mutation.Name(); ok {
-		_spec.SetField(subscriptionaddonratecard.FieldName, field.TypeString, value)
+	if value, ok := sarcu.mutation.Metadata(); ok {
+		_spec.SetField(subscriptionaddonratecard.FieldMetadata, field.TypeJSON, value)
 	}
-	if value, ok := sarcu.mutation.Description(); ok {
-		_spec.SetField(subscriptionaddonratecard.FieldDescription, field.TypeString, value)
-	}
-	if sarcu.mutation.DescriptionCleared() {
-		_spec.ClearField(subscriptionaddonratecard.FieldDescription, field.TypeString)
+	if sarcu.mutation.MetadataCleared() {
+		_spec.ClearField(subscriptionaddonratecard.FieldMetadata, field.TypeJSON)
 	}
 	if sarcu.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -290,18 +247,6 @@ type SubscriptionAddonRateCardUpdateOne struct {
 	mutation *SubscriptionAddonRateCardMutation
 }
 
-// SetMetadata sets the "metadata" field.
-func (sarcuo *SubscriptionAddonRateCardUpdateOne) SetMetadata(m map[string]string) *SubscriptionAddonRateCardUpdateOne {
-	sarcuo.mutation.SetMetadata(m)
-	return sarcuo
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (sarcuo *SubscriptionAddonRateCardUpdateOne) ClearMetadata() *SubscriptionAddonRateCardUpdateOne {
-	sarcuo.mutation.ClearMetadata()
-	return sarcuo
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (sarcuo *SubscriptionAddonRateCardUpdateOne) SetUpdatedAt(t time.Time) *SubscriptionAddonRateCardUpdateOne {
 	sarcuo.mutation.SetUpdatedAt(t)
@@ -328,37 +273,15 @@ func (sarcuo *SubscriptionAddonRateCardUpdateOne) ClearDeletedAt() *Subscription
 	return sarcuo
 }
 
-// SetName sets the "name" field.
-func (sarcuo *SubscriptionAddonRateCardUpdateOne) SetName(s string) *SubscriptionAddonRateCardUpdateOne {
-	sarcuo.mutation.SetName(s)
+// SetMetadata sets the "metadata" field.
+func (sarcuo *SubscriptionAddonRateCardUpdateOne) SetMetadata(m map[string]string) *SubscriptionAddonRateCardUpdateOne {
+	sarcuo.mutation.SetMetadata(m)
 	return sarcuo
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (sarcuo *SubscriptionAddonRateCardUpdateOne) SetNillableName(s *string) *SubscriptionAddonRateCardUpdateOne {
-	if s != nil {
-		sarcuo.SetName(*s)
-	}
-	return sarcuo
-}
-
-// SetDescription sets the "description" field.
-func (sarcuo *SubscriptionAddonRateCardUpdateOne) SetDescription(s string) *SubscriptionAddonRateCardUpdateOne {
-	sarcuo.mutation.SetDescription(s)
-	return sarcuo
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (sarcuo *SubscriptionAddonRateCardUpdateOne) SetNillableDescription(s *string) *SubscriptionAddonRateCardUpdateOne {
-	if s != nil {
-		sarcuo.SetDescription(*s)
-	}
-	return sarcuo
-}
-
-// ClearDescription clears the value of the "description" field.
-func (sarcuo *SubscriptionAddonRateCardUpdateOne) ClearDescription() *SubscriptionAddonRateCardUpdateOne {
-	sarcuo.mutation.ClearDescription()
+// ClearMetadata clears the value of the "metadata" field.
+func (sarcuo *SubscriptionAddonRateCardUpdateOne) ClearMetadata() *SubscriptionAddonRateCardUpdateOne {
+	sarcuo.mutation.ClearMetadata()
 	return sarcuo
 }
 
@@ -492,12 +415,6 @@ func (sarcuo *SubscriptionAddonRateCardUpdateOne) sqlSave(ctx context.Context) (
 			}
 		}
 	}
-	if value, ok := sarcuo.mutation.Metadata(); ok {
-		_spec.SetField(subscriptionaddonratecard.FieldMetadata, field.TypeJSON, value)
-	}
-	if sarcuo.mutation.MetadataCleared() {
-		_spec.ClearField(subscriptionaddonratecard.FieldMetadata, field.TypeJSON)
-	}
 	if value, ok := sarcuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionaddonratecard.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -507,14 +424,11 @@ func (sarcuo *SubscriptionAddonRateCardUpdateOne) sqlSave(ctx context.Context) (
 	if sarcuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(subscriptionaddonratecard.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := sarcuo.mutation.Name(); ok {
-		_spec.SetField(subscriptionaddonratecard.FieldName, field.TypeString, value)
+	if value, ok := sarcuo.mutation.Metadata(); ok {
+		_spec.SetField(subscriptionaddonratecard.FieldMetadata, field.TypeJSON, value)
 	}
-	if value, ok := sarcuo.mutation.Description(); ok {
-		_spec.SetField(subscriptionaddonratecard.FieldDescription, field.TypeString, value)
-	}
-	if sarcuo.mutation.DescriptionCleared() {
-		_spec.ClearField(subscriptionaddonratecard.FieldDescription, field.TypeString)
+	if sarcuo.mutation.MetadataCleared() {
+		_spec.ClearField(subscriptionaddonratecard.FieldMetadata, field.TypeJSON)
 	}
 	if sarcuo.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{

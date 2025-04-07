@@ -1955,13 +1955,10 @@ var (
 	SubscriptionAddonRateCardsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
-		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "name", Type: field.TypeString},
-		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "key", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "addon_ratecard_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_addon_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -1973,13 +1970,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscription_addon_rate_cards_addon_rate_cards_subscription_addon_rate_cards",
-				Columns:    []*schema.Column{SubscriptionAddonRateCardsColumns[9]},
+				Columns:    []*schema.Column{SubscriptionAddonRateCardsColumns[6]},
 				RefColumns: []*schema.Column{AddonRateCardsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "subscription_addon_rate_cards_subscription_addons_rate_cards",
-				Columns:    []*schema.Column{SubscriptionAddonRateCardsColumns[10]},
+				Columns:    []*schema.Column{SubscriptionAddonRateCardsColumns[7]},
 				RefColumns: []*schema.Column{SubscriptionAddonsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1996,19 +1993,14 @@ var (
 				Columns: []*schema.Column{SubscriptionAddonRateCardsColumns[1]},
 			},
 			{
+				Name:    "subscriptionaddonratecard_subscription_addon_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionAddonRateCardsColumns[7]},
+			},
+			{
 				Name:    "subscriptionaddonratecard_namespace_id",
 				Unique:  true,
 				Columns: []*schema.Column{SubscriptionAddonRateCardsColumns[1], SubscriptionAddonRateCardsColumns[0]},
-			},
-			{
-				Name:    "subscriptionaddonratecard_namespace_key_deleted_at",
-				Unique:  true,
-				Columns: []*schema.Column{SubscriptionAddonRateCardsColumns[1], SubscriptionAddonRateCardsColumns[8], SubscriptionAddonRateCardsColumns[5]},
-			},
-			{
-				Name:    "subscriptionaddonratecard_subscription_addon_id",
-				Unique:  false,
-				Columns: []*schema.Column{SubscriptionAddonRateCardsColumns[10]},
 			},
 		},
 	}

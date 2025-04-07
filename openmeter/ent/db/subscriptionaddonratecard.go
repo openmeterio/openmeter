@@ -22,20 +22,14 @@ type SubscriptionAddonRateCard struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
-	// Metadata holds the value of the "metadata" field.
-	Metadata map[string]string `json:"metadata,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// Name holds the value of the "name" field.
-	Name string `json:"name,omitempty"`
-	// Description holds the value of the "description" field.
-	Description *string `json:"description,omitempty"`
-	// Key holds the value of the "key" field.
-	Key string `json:"key,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata map[string]string `json:"metadata,omitempty"`
 	// SubscriptionAddonID holds the value of the "subscription_addon_id" field.
 	SubscriptionAddonID string `json:"subscription_addon_id,omitempty"`
 	// AddonRatecardID holds the value of the "addon_ratecard_id" field.
@@ -97,7 +91,7 @@ func (*SubscriptionAddonRateCard) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case subscriptionaddonratecard.FieldMetadata:
 			values[i] = new([]byte)
-		case subscriptionaddonratecard.FieldID, subscriptionaddonratecard.FieldNamespace, subscriptionaddonratecard.FieldName, subscriptionaddonratecard.FieldDescription, subscriptionaddonratecard.FieldKey, subscriptionaddonratecard.FieldSubscriptionAddonID, subscriptionaddonratecard.FieldAddonRatecardID:
+		case subscriptionaddonratecard.FieldID, subscriptionaddonratecard.FieldNamespace, subscriptionaddonratecard.FieldSubscriptionAddonID, subscriptionaddonratecard.FieldAddonRatecardID:
 			values[i] = new(sql.NullString)
 		case subscriptionaddonratecard.FieldCreatedAt, subscriptionaddonratecard.FieldUpdatedAt, subscriptionaddonratecard.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -128,14 +122,6 @@ func (sarc *SubscriptionAddonRateCard) assignValues(columns []string, values []a
 			} else if value.Valid {
 				sarc.Namespace = value.String
 			}
-		case subscriptionaddonratecard.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &sarc.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
-			}
 		case subscriptionaddonratecard.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -155,24 +141,13 @@ func (sarc *SubscriptionAddonRateCard) assignValues(columns []string, values []a
 				sarc.DeletedAt = new(time.Time)
 				*sarc.DeletedAt = value.Time
 			}
-		case subscriptionaddonratecard.FieldName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
-			} else if value.Valid {
-				sarc.Name = value.String
-			}
-		case subscriptionaddonratecard.FieldDescription:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
-			} else if value.Valid {
-				sarc.Description = new(string)
-				*sarc.Description = value.String
-			}
-		case subscriptionaddonratecard.FieldKey:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field key", values[i])
-			} else if value.Valid {
-				sarc.Key = value.String
+		case subscriptionaddonratecard.FieldMetadata:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &sarc.Metadata); err != nil {
+					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
 			}
 		case subscriptionaddonratecard.FieldSubscriptionAddonID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -240,9 +215,6 @@ func (sarc *SubscriptionAddonRateCard) String() string {
 	builder.WriteString("namespace=")
 	builder.WriteString(sarc.Namespace)
 	builder.WriteString(", ")
-	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", sarc.Metadata))
-	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(sarc.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
@@ -254,16 +226,8 @@ func (sarc *SubscriptionAddonRateCard) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(sarc.Name)
-	builder.WriteString(", ")
-	if v := sarc.Description; v != nil {
-		builder.WriteString("description=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	builder.WriteString("key=")
-	builder.WriteString(sarc.Key)
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", sarc.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("subscription_addon_id=")
 	builder.WriteString(sarc.SubscriptionAddonID)

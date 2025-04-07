@@ -32,12 +32,6 @@ func (sarcc *SubscriptionAddonRateCardCreate) SetNamespace(s string) *Subscripti
 	return sarcc
 }
 
-// SetMetadata sets the "metadata" field.
-func (sarcc *SubscriptionAddonRateCardCreate) SetMetadata(m map[string]string) *SubscriptionAddonRateCardCreate {
-	sarcc.mutation.SetMetadata(m)
-	return sarcc
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (sarcc *SubscriptionAddonRateCardCreate) SetCreatedAt(t time.Time) *SubscriptionAddonRateCardCreate {
 	sarcc.mutation.SetCreatedAt(t)
@@ -80,29 +74,9 @@ func (sarcc *SubscriptionAddonRateCardCreate) SetNillableDeletedAt(t *time.Time)
 	return sarcc
 }
 
-// SetName sets the "name" field.
-func (sarcc *SubscriptionAddonRateCardCreate) SetName(s string) *SubscriptionAddonRateCardCreate {
-	sarcc.mutation.SetName(s)
-	return sarcc
-}
-
-// SetDescription sets the "description" field.
-func (sarcc *SubscriptionAddonRateCardCreate) SetDescription(s string) *SubscriptionAddonRateCardCreate {
-	sarcc.mutation.SetDescription(s)
-	return sarcc
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (sarcc *SubscriptionAddonRateCardCreate) SetNillableDescription(s *string) *SubscriptionAddonRateCardCreate {
-	if s != nil {
-		sarcc.SetDescription(*s)
-	}
-	return sarcc
-}
-
-// SetKey sets the "key" field.
-func (sarcc *SubscriptionAddonRateCardCreate) SetKey(s string) *SubscriptionAddonRateCardCreate {
-	sarcc.mutation.SetKey(s)
+// SetMetadata sets the "metadata" field.
+func (sarcc *SubscriptionAddonRateCardCreate) SetMetadata(m map[string]string) *SubscriptionAddonRateCardCreate {
+	sarcc.mutation.SetMetadata(m)
 	return sarcc
 }
 
@@ -222,17 +196,6 @@ func (sarcc *SubscriptionAddonRateCardCreate) check() error {
 	if _, ok := sarcc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "SubscriptionAddonRateCard.updated_at"`)}
 	}
-	if _, ok := sarcc.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "SubscriptionAddonRateCard.name"`)}
-	}
-	if _, ok := sarcc.mutation.Key(); !ok {
-		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "SubscriptionAddonRateCard.key"`)}
-	}
-	if v, ok := sarcc.mutation.Key(); ok {
-		if err := subscriptionaddonratecard.KeyValidator(v); err != nil {
-			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "SubscriptionAddonRateCard.key": %w`, err)}
-		}
-	}
 	if _, ok := sarcc.mutation.SubscriptionAddonID(); !ok {
 		return &ValidationError{Name: "subscription_addon_id", err: errors.New(`db: missing required field "SubscriptionAddonRateCard.subscription_addon_id"`)}
 	}
@@ -295,10 +258,6 @@ func (sarcc *SubscriptionAddonRateCardCreate) createSpec() (*SubscriptionAddonRa
 		_spec.SetField(subscriptionaddonratecard.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := sarcc.mutation.Metadata(); ok {
-		_spec.SetField(subscriptionaddonratecard.FieldMetadata, field.TypeJSON, value)
-		_node.Metadata = value
-	}
 	if value, ok := sarcc.mutation.CreatedAt(); ok {
 		_spec.SetField(subscriptionaddonratecard.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -311,17 +270,9 @@ func (sarcc *SubscriptionAddonRateCardCreate) createSpec() (*SubscriptionAddonRa
 		_spec.SetField(subscriptionaddonratecard.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := sarcc.mutation.Name(); ok {
-		_spec.SetField(subscriptionaddonratecard.FieldName, field.TypeString, value)
-		_node.Name = value
-	}
-	if value, ok := sarcc.mutation.Description(); ok {
-		_spec.SetField(subscriptionaddonratecard.FieldDescription, field.TypeString, value)
-		_node.Description = &value
-	}
-	if value, ok := sarcc.mutation.Key(); ok {
-		_spec.SetField(subscriptionaddonratecard.FieldKey, field.TypeString, value)
-		_node.Key = value
+	if value, ok := sarcc.mutation.Metadata(); ok {
+		_spec.SetField(subscriptionaddonratecard.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
 	}
 	if nodes := sarcc.mutation.SubscriptionAddonIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -425,24 +376,6 @@ type (
 	}
 )
 
-// SetMetadata sets the "metadata" field.
-func (u *SubscriptionAddonRateCardUpsert) SetMetadata(v map[string]string) *SubscriptionAddonRateCardUpsert {
-	u.Set(subscriptionaddonratecard.FieldMetadata, v)
-	return u
-}
-
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *SubscriptionAddonRateCardUpsert) UpdateMetadata() *SubscriptionAddonRateCardUpsert {
-	u.SetExcluded(subscriptionaddonratecard.FieldMetadata)
-	return u
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (u *SubscriptionAddonRateCardUpsert) ClearMetadata() *SubscriptionAddonRateCardUpsert {
-	u.SetNull(subscriptionaddonratecard.FieldMetadata)
-	return u
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *SubscriptionAddonRateCardUpsert) SetUpdatedAt(v time.Time) *SubscriptionAddonRateCardUpsert {
 	u.Set(subscriptionaddonratecard.FieldUpdatedAt, v)
@@ -473,33 +406,21 @@ func (u *SubscriptionAddonRateCardUpsert) ClearDeletedAt() *SubscriptionAddonRat
 	return u
 }
 
-// SetName sets the "name" field.
-func (u *SubscriptionAddonRateCardUpsert) SetName(v string) *SubscriptionAddonRateCardUpsert {
-	u.Set(subscriptionaddonratecard.FieldName, v)
+// SetMetadata sets the "metadata" field.
+func (u *SubscriptionAddonRateCardUpsert) SetMetadata(v map[string]string) *SubscriptionAddonRateCardUpsert {
+	u.Set(subscriptionaddonratecard.FieldMetadata, v)
 	return u
 }
 
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *SubscriptionAddonRateCardUpsert) UpdateName() *SubscriptionAddonRateCardUpsert {
-	u.SetExcluded(subscriptionaddonratecard.FieldName)
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *SubscriptionAddonRateCardUpsert) UpdateMetadata() *SubscriptionAddonRateCardUpsert {
+	u.SetExcluded(subscriptionaddonratecard.FieldMetadata)
 	return u
 }
 
-// SetDescription sets the "description" field.
-func (u *SubscriptionAddonRateCardUpsert) SetDescription(v string) *SubscriptionAddonRateCardUpsert {
-	u.Set(subscriptionaddonratecard.FieldDescription, v)
-	return u
-}
-
-// UpdateDescription sets the "description" field to the value that was provided on create.
-func (u *SubscriptionAddonRateCardUpsert) UpdateDescription() *SubscriptionAddonRateCardUpsert {
-	u.SetExcluded(subscriptionaddonratecard.FieldDescription)
-	return u
-}
-
-// ClearDescription clears the value of the "description" field.
-func (u *SubscriptionAddonRateCardUpsert) ClearDescription() *SubscriptionAddonRateCardUpsert {
-	u.SetNull(subscriptionaddonratecard.FieldDescription)
+// ClearMetadata clears the value of the "metadata" field.
+func (u *SubscriptionAddonRateCardUpsert) ClearMetadata() *SubscriptionAddonRateCardUpsert {
+	u.SetNull(subscriptionaddonratecard.FieldMetadata)
 	return u
 }
 
@@ -525,9 +446,6 @@ func (u *SubscriptionAddonRateCardUpsertOne) UpdateNewValues() *SubscriptionAddo
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(subscriptionaddonratecard.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.Key(); exists {
-			s.SetIgnore(subscriptionaddonratecard.FieldKey)
 		}
 		if _, exists := u.create.mutation.SubscriptionAddonID(); exists {
 			s.SetIgnore(subscriptionaddonratecard.FieldSubscriptionAddonID)
@@ -566,27 +484,6 @@ func (u *SubscriptionAddonRateCardUpsertOne) Update(set func(*SubscriptionAddonR
 	return u
 }
 
-// SetMetadata sets the "metadata" field.
-func (u *SubscriptionAddonRateCardUpsertOne) SetMetadata(v map[string]string) *SubscriptionAddonRateCardUpsertOne {
-	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.SetMetadata(v)
-	})
-}
-
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *SubscriptionAddonRateCardUpsertOne) UpdateMetadata() *SubscriptionAddonRateCardUpsertOne {
-	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.UpdateMetadata()
-	})
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (u *SubscriptionAddonRateCardUpsertOne) ClearMetadata() *SubscriptionAddonRateCardUpsertOne {
-	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.ClearMetadata()
-	})
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *SubscriptionAddonRateCardUpsertOne) SetUpdatedAt(v time.Time) *SubscriptionAddonRateCardUpsertOne {
 	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
@@ -622,38 +519,24 @@ func (u *SubscriptionAddonRateCardUpsertOne) ClearDeletedAt() *SubscriptionAddon
 	})
 }
 
-// SetName sets the "name" field.
-func (u *SubscriptionAddonRateCardUpsertOne) SetName(v string) *SubscriptionAddonRateCardUpsertOne {
+// SetMetadata sets the "metadata" field.
+func (u *SubscriptionAddonRateCardUpsertOne) SetMetadata(v map[string]string) *SubscriptionAddonRateCardUpsertOne {
 	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.SetName(v)
+		s.SetMetadata(v)
 	})
 }
 
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *SubscriptionAddonRateCardUpsertOne) UpdateName() *SubscriptionAddonRateCardUpsertOne {
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *SubscriptionAddonRateCardUpsertOne) UpdateMetadata() *SubscriptionAddonRateCardUpsertOne {
 	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.UpdateName()
+		s.UpdateMetadata()
 	})
 }
 
-// SetDescription sets the "description" field.
-func (u *SubscriptionAddonRateCardUpsertOne) SetDescription(v string) *SubscriptionAddonRateCardUpsertOne {
+// ClearMetadata clears the value of the "metadata" field.
+func (u *SubscriptionAddonRateCardUpsertOne) ClearMetadata() *SubscriptionAddonRateCardUpsertOne {
 	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.SetDescription(v)
-	})
-}
-
-// UpdateDescription sets the "description" field to the value that was provided on create.
-func (u *SubscriptionAddonRateCardUpsertOne) UpdateDescription() *SubscriptionAddonRateCardUpsertOne {
-	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.UpdateDescription()
-	})
-}
-
-// ClearDescription clears the value of the "description" field.
-func (u *SubscriptionAddonRateCardUpsertOne) ClearDescription() *SubscriptionAddonRateCardUpsertOne {
-	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.ClearDescription()
+		s.ClearMetadata()
 	})
 }
 
@@ -846,9 +729,6 @@ func (u *SubscriptionAddonRateCardUpsertBulk) UpdateNewValues() *SubscriptionAdd
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(subscriptionaddonratecard.FieldCreatedAt)
 			}
-			if _, exists := b.mutation.Key(); exists {
-				s.SetIgnore(subscriptionaddonratecard.FieldKey)
-			}
 			if _, exists := b.mutation.SubscriptionAddonID(); exists {
 				s.SetIgnore(subscriptionaddonratecard.FieldSubscriptionAddonID)
 			}
@@ -887,27 +767,6 @@ func (u *SubscriptionAddonRateCardUpsertBulk) Update(set func(*SubscriptionAddon
 	return u
 }
 
-// SetMetadata sets the "metadata" field.
-func (u *SubscriptionAddonRateCardUpsertBulk) SetMetadata(v map[string]string) *SubscriptionAddonRateCardUpsertBulk {
-	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.SetMetadata(v)
-	})
-}
-
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *SubscriptionAddonRateCardUpsertBulk) UpdateMetadata() *SubscriptionAddonRateCardUpsertBulk {
-	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.UpdateMetadata()
-	})
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (u *SubscriptionAddonRateCardUpsertBulk) ClearMetadata() *SubscriptionAddonRateCardUpsertBulk {
-	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.ClearMetadata()
-	})
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *SubscriptionAddonRateCardUpsertBulk) SetUpdatedAt(v time.Time) *SubscriptionAddonRateCardUpsertBulk {
 	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
@@ -943,38 +802,24 @@ func (u *SubscriptionAddonRateCardUpsertBulk) ClearDeletedAt() *SubscriptionAddo
 	})
 }
 
-// SetName sets the "name" field.
-func (u *SubscriptionAddonRateCardUpsertBulk) SetName(v string) *SubscriptionAddonRateCardUpsertBulk {
+// SetMetadata sets the "metadata" field.
+func (u *SubscriptionAddonRateCardUpsertBulk) SetMetadata(v map[string]string) *SubscriptionAddonRateCardUpsertBulk {
 	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.SetName(v)
+		s.SetMetadata(v)
 	})
 }
 
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *SubscriptionAddonRateCardUpsertBulk) UpdateName() *SubscriptionAddonRateCardUpsertBulk {
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *SubscriptionAddonRateCardUpsertBulk) UpdateMetadata() *SubscriptionAddonRateCardUpsertBulk {
 	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.UpdateName()
+		s.UpdateMetadata()
 	})
 }
 
-// SetDescription sets the "description" field.
-func (u *SubscriptionAddonRateCardUpsertBulk) SetDescription(v string) *SubscriptionAddonRateCardUpsertBulk {
+// ClearMetadata clears the value of the "metadata" field.
+func (u *SubscriptionAddonRateCardUpsertBulk) ClearMetadata() *SubscriptionAddonRateCardUpsertBulk {
 	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.SetDescription(v)
-	})
-}
-
-// UpdateDescription sets the "description" field to the value that was provided on create.
-func (u *SubscriptionAddonRateCardUpsertBulk) UpdateDescription() *SubscriptionAddonRateCardUpsertBulk {
-	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.UpdateDescription()
-	})
-}
-
-// ClearDescription clears the value of the "description" field.
-func (u *SubscriptionAddonRateCardUpsertBulk) ClearDescription() *SubscriptionAddonRateCardUpsertBulk {
-	return u.Update(func(s *SubscriptionAddonRateCardUpsert) {
-		s.ClearDescription()
+		s.ClearMetadata()
 	})
 }
 

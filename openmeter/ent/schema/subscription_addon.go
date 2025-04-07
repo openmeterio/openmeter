@@ -94,7 +94,10 @@ type SubscriptionAddonRateCard struct {
 
 func (SubscriptionAddonRateCard) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.UniqueResourceMixin{},
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+		entutils.MetadataMixin{},
 	}
 }
 
@@ -129,6 +132,7 @@ func (SubscriptionAddonRateCard) Edges() []ent.Edge {
 func (SubscriptionAddonRateCard) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("subscription_addon_id"),
+		index.Fields("namespace", "id").Unique(),
 	}
 }
 

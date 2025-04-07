@@ -1,4 +1,4 @@
-h1:vjyaF7kAmWKmCxpBRN46+9CGFJe6TlhGlUwdNrJ1m78=
+h1:pOy6vMnX2Lj7LiZHDrkMMFh53Wt3SH0wP+U7QJVkQSA=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -163,3 +163,5 @@ h1:vjyaF7kAmWKmCxpBRN46+9CGFJe6TlhGlUwdNrJ1m78=
 20250408095033_subscriptionaddon.up.sql h1:iUdo59xgyNZiKnfLdGTYW3vaNrh4sW5fwvBUmvIcN1M=
 20250408095735_subscriptionaddon-namespace.down.sql h1:m9P48bE+qzgx9+u0zXNyUNJiEUtrLk1amNWEdGXEMqw=
 20250408095735_subscriptionaddon-namespace.up.sql h1:OMeWOAy4XTTZX52zQMPkf9eJ0MR4Muo/X2fyuPfsxPs=
+20250408100130_subscriptionaddon-remove-redundancies.down.sql h1:Gz2lxqtSis91GAgwK2iOChTa8FVPB/czCtsTh0Ps50k=
+20250408100130_subscriptionaddon-remove-redundancies.up.sql h1:AnkLtZSHydOpTF0J3FMBy1dVFLTNLSQxLHQYc0X8G1g=

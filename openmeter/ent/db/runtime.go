@@ -1307,26 +1307,26 @@ func init() {
 	subscriptionaddonratecardMixin := schema.SubscriptionAddonRateCard{}.Mixin()
 	subscriptionaddonratecardMixinFields0 := subscriptionaddonratecardMixin[0].Fields()
 	_ = subscriptionaddonratecardMixinFields0
+	subscriptionaddonratecardMixinFields1 := subscriptionaddonratecardMixin[1].Fields()
+	_ = subscriptionaddonratecardMixinFields1
+	subscriptionaddonratecardMixinFields2 := subscriptionaddonratecardMixin[2].Fields()
+	_ = subscriptionaddonratecardMixinFields2
 	subscriptionaddonratecardFields := schema.SubscriptionAddonRateCard{}.Fields()
 	_ = subscriptionaddonratecardFields
 	// subscriptionaddonratecardDescNamespace is the schema descriptor for namespace field.
-	subscriptionaddonratecardDescNamespace := subscriptionaddonratecardMixinFields0[1].Descriptor()
+	subscriptionaddonratecardDescNamespace := subscriptionaddonratecardMixinFields1[0].Descriptor()
 	// subscriptionaddonratecard.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	subscriptionaddonratecard.NamespaceValidator = subscriptionaddonratecardDescNamespace.Validators[0].(func(string) error)
 	// subscriptionaddonratecardDescCreatedAt is the schema descriptor for created_at field.
-	subscriptionaddonratecardDescCreatedAt := subscriptionaddonratecardMixinFields0[3].Descriptor()
+	subscriptionaddonratecardDescCreatedAt := subscriptionaddonratecardMixinFields2[0].Descriptor()
 	// subscriptionaddonratecard.DefaultCreatedAt holds the default value on creation for the created_at field.
 	subscriptionaddonratecard.DefaultCreatedAt = subscriptionaddonratecardDescCreatedAt.Default.(func() time.Time)
 	// subscriptionaddonratecardDescUpdatedAt is the schema descriptor for updated_at field.
-	subscriptionaddonratecardDescUpdatedAt := subscriptionaddonratecardMixinFields0[4].Descriptor()
+	subscriptionaddonratecardDescUpdatedAt := subscriptionaddonratecardMixinFields2[1].Descriptor()
 	// subscriptionaddonratecard.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	subscriptionaddonratecard.DefaultUpdatedAt = subscriptionaddonratecardDescUpdatedAt.Default.(func() time.Time)
 	// subscriptionaddonratecard.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	subscriptionaddonratecard.UpdateDefaultUpdatedAt = subscriptionaddonratecardDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// subscriptionaddonratecardDescKey is the schema descriptor for key field.
-	subscriptionaddonratecardDescKey := subscriptionaddonratecardMixinFields0[8].Descriptor()
-	// subscriptionaddonratecard.KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	subscriptionaddonratecard.KeyValidator = subscriptionaddonratecardDescKey.Validators[0].(func(string) error)
 	// subscriptionaddonratecardDescSubscriptionAddonID is the schema descriptor for subscription_addon_id field.
 	subscriptionaddonratecardDescSubscriptionAddonID := subscriptionaddonratecardFields[0].Descriptor()
 	// subscriptionaddonratecard.SubscriptionAddonIDValidator is a validator for the "subscription_addon_id" field. It is called by the builders before save.

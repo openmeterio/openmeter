@@ -43474,13 +43474,10 @@ type SubscriptionAddonRateCardMutation struct {
 	typ                       string
 	id                        *string
 	namespace                 *string
-	metadata                  *map[string]string
 	created_at                *time.Time
 	updated_at                *time.Time
 	deleted_at                *time.Time
-	name                      *string
-	description               *string
-	key                       *string
+	metadata                  *map[string]string
 	clearedFields             map[string]struct{}
 	subscription_addon        *string
 	clearedsubscription_addon bool
@@ -43634,55 +43631,6 @@ func (m *SubscriptionAddonRateCardMutation) ResetNamespace() {
 	m.namespace = nil
 }
 
-// SetMetadata sets the "metadata" field.
-func (m *SubscriptionAddonRateCardMutation) SetMetadata(value map[string]string) {
-	m.metadata = &value
-}
-
-// Metadata returns the value of the "metadata" field in the mutation.
-func (m *SubscriptionAddonRateCardMutation) Metadata() (r map[string]string, exists bool) {
-	v := m.metadata
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldMetadata returns the old "metadata" field's value of the SubscriptionAddonRateCard entity.
-// If the SubscriptionAddonRateCard object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionAddonRateCardMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldMetadata requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
-	}
-	return oldValue.Metadata, nil
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (m *SubscriptionAddonRateCardMutation) ClearMetadata() {
-	m.metadata = nil
-	m.clearedFields[subscriptionaddonratecard.FieldMetadata] = struct{}{}
-}
-
-// MetadataCleared returns if the "metadata" field was cleared in this mutation.
-func (m *SubscriptionAddonRateCardMutation) MetadataCleared() bool {
-	_, ok := m.clearedFields[subscriptionaddonratecard.FieldMetadata]
-	return ok
-}
-
-// ResetMetadata resets all changes to the "metadata" field.
-func (m *SubscriptionAddonRateCardMutation) ResetMetadata() {
-	m.metadata = nil
-	delete(m.clearedFields, subscriptionaddonratecard.FieldMetadata)
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (m *SubscriptionAddonRateCardMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -43804,125 +43752,53 @@ func (m *SubscriptionAddonRateCardMutation) ResetDeletedAt() {
 	delete(m.clearedFields, subscriptionaddonratecard.FieldDeletedAt)
 }
 
-// SetName sets the "name" field.
-func (m *SubscriptionAddonRateCardMutation) SetName(s string) {
-	m.name = &s
+// SetMetadata sets the "metadata" field.
+func (m *SubscriptionAddonRateCardMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
 }
 
-// Name returns the value of the "name" field in the mutation.
-func (m *SubscriptionAddonRateCardMutation) Name() (r string, exists bool) {
-	v := m.name
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *SubscriptionAddonRateCardMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldName returns the old "name" field's value of the SubscriptionAddonRateCard entity.
+// OldMetadata returns the old "metadata" field's value of the SubscriptionAddonRateCard entity.
 // If the SubscriptionAddonRateCard object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionAddonRateCardMutation) OldName(ctx context.Context) (v string, err error) {
+func (m *SubscriptionAddonRateCardMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
 	}
-	return oldValue.Name, nil
+	return oldValue.Metadata, nil
 }
 
-// ResetName resets all changes to the "name" field.
-func (m *SubscriptionAddonRateCardMutation) ResetName() {
-	m.name = nil
+// ClearMetadata clears the value of the "metadata" field.
+func (m *SubscriptionAddonRateCardMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[subscriptionaddonratecard.FieldMetadata] = struct{}{}
 }
 
-// SetDescription sets the "description" field.
-func (m *SubscriptionAddonRateCardMutation) SetDescription(s string) {
-	m.description = &s
-}
-
-// Description returns the value of the "description" field in the mutation.
-func (m *SubscriptionAddonRateCardMutation) Description() (r string, exists bool) {
-	v := m.description
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDescription returns the old "description" field's value of the SubscriptionAddonRateCard entity.
-// If the SubscriptionAddonRateCard object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionAddonRateCardMutation) OldDescription(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
-	}
-	return oldValue.Description, nil
-}
-
-// ClearDescription clears the value of the "description" field.
-func (m *SubscriptionAddonRateCardMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[subscriptionaddonratecard.FieldDescription] = struct{}{}
-}
-
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *SubscriptionAddonRateCardMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[subscriptionaddonratecard.FieldDescription]
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *SubscriptionAddonRateCardMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[subscriptionaddonratecard.FieldMetadata]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *SubscriptionAddonRateCardMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, subscriptionaddonratecard.FieldDescription)
-}
-
-// SetKey sets the "key" field.
-func (m *SubscriptionAddonRateCardMutation) SetKey(s string) {
-	m.key = &s
-}
-
-// Key returns the value of the "key" field in the mutation.
-func (m *SubscriptionAddonRateCardMutation) Key() (r string, exists bool) {
-	v := m.key
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldKey returns the old "key" field's value of the SubscriptionAddonRateCard entity.
-// If the SubscriptionAddonRateCard object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionAddonRateCardMutation) OldKey(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldKey is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldKey requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldKey: %w", err)
-	}
-	return oldValue.Key, nil
-}
-
-// ResetKey resets all changes to the "key" field.
-func (m *SubscriptionAddonRateCardMutation) ResetKey() {
-	m.key = nil
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *SubscriptionAddonRateCardMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, subscriptionaddonratecard.FieldMetadata)
 }
 
 // SetSubscriptionAddonID sets the "subscription_addon_id" field.
@@ -44139,12 +44015,9 @@ func (m *SubscriptionAddonRateCardMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionAddonRateCardMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 7)
 	if m.namespace != nil {
 		fields = append(fields, subscriptionaddonratecard.FieldNamespace)
-	}
-	if m.metadata != nil {
-		fields = append(fields, subscriptionaddonratecard.FieldMetadata)
 	}
 	if m.created_at != nil {
 		fields = append(fields, subscriptionaddonratecard.FieldCreatedAt)
@@ -44155,14 +44028,8 @@ func (m *SubscriptionAddonRateCardMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, subscriptionaddonratecard.FieldDeletedAt)
 	}
-	if m.name != nil {
-		fields = append(fields, subscriptionaddonratecard.FieldName)
-	}
-	if m.description != nil {
-		fields = append(fields, subscriptionaddonratecard.FieldDescription)
-	}
-	if m.key != nil {
-		fields = append(fields, subscriptionaddonratecard.FieldKey)
+	if m.metadata != nil {
+		fields = append(fields, subscriptionaddonratecard.FieldMetadata)
 	}
 	if m.subscription_addon != nil {
 		fields = append(fields, subscriptionaddonratecard.FieldSubscriptionAddonID)
@@ -44180,20 +44047,14 @@ func (m *SubscriptionAddonRateCardMutation) Field(name string) (ent.Value, bool)
 	switch name {
 	case subscriptionaddonratecard.FieldNamespace:
 		return m.Namespace()
-	case subscriptionaddonratecard.FieldMetadata:
-		return m.Metadata()
 	case subscriptionaddonratecard.FieldCreatedAt:
 		return m.CreatedAt()
 	case subscriptionaddonratecard.FieldUpdatedAt:
 		return m.UpdatedAt()
 	case subscriptionaddonratecard.FieldDeletedAt:
 		return m.DeletedAt()
-	case subscriptionaddonratecard.FieldName:
-		return m.Name()
-	case subscriptionaddonratecard.FieldDescription:
-		return m.Description()
-	case subscriptionaddonratecard.FieldKey:
-		return m.Key()
+	case subscriptionaddonratecard.FieldMetadata:
+		return m.Metadata()
 	case subscriptionaddonratecard.FieldSubscriptionAddonID:
 		return m.SubscriptionAddonID()
 	case subscriptionaddonratecard.FieldAddonRatecardID:
@@ -44209,20 +44070,14 @@ func (m *SubscriptionAddonRateCardMutation) OldField(ctx context.Context, name s
 	switch name {
 	case subscriptionaddonratecard.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case subscriptionaddonratecard.FieldMetadata:
-		return m.OldMetadata(ctx)
 	case subscriptionaddonratecard.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case subscriptionaddonratecard.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
 	case subscriptionaddonratecard.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case subscriptionaddonratecard.FieldName:
-		return m.OldName(ctx)
-	case subscriptionaddonratecard.FieldDescription:
-		return m.OldDescription(ctx)
-	case subscriptionaddonratecard.FieldKey:
-		return m.OldKey(ctx)
+	case subscriptionaddonratecard.FieldMetadata:
+		return m.OldMetadata(ctx)
 	case subscriptionaddonratecard.FieldSubscriptionAddonID:
 		return m.OldSubscriptionAddonID(ctx)
 	case subscriptionaddonratecard.FieldAddonRatecardID:
@@ -44242,13 +44097,6 @@ func (m *SubscriptionAddonRateCardMutation) SetField(name string, value ent.Valu
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
-		return nil
-	case subscriptionaddonratecard.FieldMetadata:
-		v, ok := value.(map[string]string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetMetadata(v)
 		return nil
 	case subscriptionaddonratecard.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -44271,26 +44119,12 @@ func (m *SubscriptionAddonRateCardMutation) SetField(name string, value ent.Valu
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case subscriptionaddonratecard.FieldName:
-		v, ok := value.(string)
+	case subscriptionaddonratecard.FieldMetadata:
+		v, ok := value.(map[string]string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetName(v)
-		return nil
-	case subscriptionaddonratecard.FieldDescription:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDescription(v)
-		return nil
-	case subscriptionaddonratecard.FieldKey:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetKey(v)
+		m.SetMetadata(v)
 		return nil
 	case subscriptionaddonratecard.FieldSubscriptionAddonID:
 		v, ok := value.(string)
@@ -44336,14 +44170,11 @@ func (m *SubscriptionAddonRateCardMutation) AddField(name string, value ent.Valu
 // mutation.
 func (m *SubscriptionAddonRateCardMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(subscriptionaddonratecard.FieldMetadata) {
-		fields = append(fields, subscriptionaddonratecard.FieldMetadata)
-	}
 	if m.FieldCleared(subscriptionaddonratecard.FieldDeletedAt) {
 		fields = append(fields, subscriptionaddonratecard.FieldDeletedAt)
 	}
-	if m.FieldCleared(subscriptionaddonratecard.FieldDescription) {
-		fields = append(fields, subscriptionaddonratecard.FieldDescription)
+	if m.FieldCleared(subscriptionaddonratecard.FieldMetadata) {
+		fields = append(fields, subscriptionaddonratecard.FieldMetadata)
 	}
 	return fields
 }
@@ -44359,14 +44190,11 @@ func (m *SubscriptionAddonRateCardMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *SubscriptionAddonRateCardMutation) ClearField(name string) error {
 	switch name {
-	case subscriptionaddonratecard.FieldMetadata:
-		m.ClearMetadata()
-		return nil
 	case subscriptionaddonratecard.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
-	case subscriptionaddonratecard.FieldDescription:
-		m.ClearDescription()
+	case subscriptionaddonratecard.FieldMetadata:
+		m.ClearMetadata()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionAddonRateCard nullable field %s", name)
@@ -44379,9 +44207,6 @@ func (m *SubscriptionAddonRateCardMutation) ResetField(name string) error {
 	case subscriptionaddonratecard.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case subscriptionaddonratecard.FieldMetadata:
-		m.ResetMetadata()
-		return nil
 	case subscriptionaddonratecard.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
@@ -44391,14 +44216,8 @@ func (m *SubscriptionAddonRateCardMutation) ResetField(name string) error {
 	case subscriptionaddonratecard.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case subscriptionaddonratecard.FieldName:
-		m.ResetName()
-		return nil
-	case subscriptionaddonratecard.FieldDescription:
-		m.ResetDescription()
-		return nil
-	case subscriptionaddonratecard.FieldKey:
-		m.ResetKey()
+	case subscriptionaddonratecard.FieldMetadata:
+		m.ResetMetadata()
 		return nil
 	case subscriptionaddonratecard.FieldSubscriptionAddonID:
 		m.ResetSubscriptionAddonID()

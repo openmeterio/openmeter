@@ -16,20 +16,14 @@ const (
 	FieldID = "id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
-	// FieldMetadata holds the string denoting the metadata field in the database.
-	FieldMetadata = "metadata"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
-	// FieldDescription holds the string denoting the description field in the database.
-	FieldDescription = "description"
-	// FieldKey holds the string denoting the key field in the database.
-	FieldKey = "key"
+	// FieldMetadata holds the string denoting the metadata field in the database.
+	FieldMetadata = "metadata"
 	// FieldSubscriptionAddonID holds the string denoting the subscription_addon_id field in the database.
 	FieldSubscriptionAddonID = "subscription_addon_id"
 	// FieldAddonRatecardID holds the string denoting the addon_ratecard_id field in the database.
@@ -69,13 +63,10 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldNamespace,
-	FieldMetadata,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldName,
-	FieldDescription,
-	FieldKey,
+	FieldMetadata,
 	FieldSubscriptionAddonID,
 	FieldAddonRatecardID,
 }
@@ -99,8 +90,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	KeyValidator func(string) error
 	// SubscriptionAddonIDValidator is a validator for the "subscription_addon_id" field. It is called by the builders before save.
 	SubscriptionAddonIDValidator func(string) error
 	// AddonRatecardIDValidator is a validator for the "addon_ratecard_id" field. It is called by the builders before save.
@@ -135,21 +124,6 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
-}
-
-// ByName orders the results by the name field.
-func ByName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldName, opts...).ToFunc()
-}
-
-// ByDescription orders the results by the description field.
-func ByDescription(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDescription, opts...).ToFunc()
-}
-
-// ByKey orders the results by the key field.
-func ByKey(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldKey, opts...).ToFunc()
 }
 
 // BySubscriptionAddonID orders the results by the subscription_addon_id field.

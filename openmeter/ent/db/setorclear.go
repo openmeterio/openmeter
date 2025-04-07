@@ -2463,20 +2463,6 @@ func (u *SubscriptionAddonQuantityUpdateOne) SetOrClearDeletedAt(value *time.Tim
 	return u.SetDeletedAt(*value)
 }
 
-func (u *SubscriptionAddonRateCardUpdate) SetOrClearMetadata(value *map[string]string) *SubscriptionAddonRateCardUpdate {
-	if value == nil {
-		return u.ClearMetadata()
-	}
-	return u.SetMetadata(*value)
-}
-
-func (u *SubscriptionAddonRateCardUpdateOne) SetOrClearMetadata(value *map[string]string) *SubscriptionAddonRateCardUpdateOne {
-	if value == nil {
-		return u.ClearMetadata()
-	}
-	return u.SetMetadata(*value)
-}
-
 func (u *SubscriptionAddonRateCardUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionAddonRateCardUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -2491,18 +2477,18 @@ func (u *SubscriptionAddonRateCardUpdateOne) SetOrClearDeletedAt(value *time.Tim
 	return u.SetDeletedAt(*value)
 }
 
-func (u *SubscriptionAddonRateCardUpdate) SetOrClearDescription(value *string) *SubscriptionAddonRateCardUpdate {
+func (u *SubscriptionAddonRateCardUpdate) SetOrClearMetadata(value *map[string]string) *SubscriptionAddonRateCardUpdate {
 	if value == nil {
-		return u.ClearDescription()
+		return u.ClearMetadata()
 	}
-	return u.SetDescription(*value)
+	return u.SetMetadata(*value)
 }
 
-func (u *SubscriptionAddonRateCardUpdateOne) SetOrClearDescription(value *string) *SubscriptionAddonRateCardUpdateOne {
+func (u *SubscriptionAddonRateCardUpdateOne) SetOrClearMetadata(value *map[string]string) *SubscriptionAddonRateCardUpdateOne {
 	if value == nil {
-		return u.ClearDescription()
+		return u.ClearMetadata()
 	}
-	return u.SetDescription(*value)
+	return u.SetMetadata(*value)
 }
 
 func (u *SubscriptionAddonRateCardItemLinkUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionAddonRateCardItemLinkUpdate {

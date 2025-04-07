@@ -85,21 +85,6 @@ func DeletedAt(v time.Time) predicate.SubscriptionAddonRateCard {
 	return predicate.SubscriptionAddonRateCard(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
-func Name(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldEQ(FieldName, v))
-}
-
-// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
-func Description(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldEQ(FieldDescription, v))
-}
-
-// Key applies equality check predicate on the "key" field. It's identical to KeyEQ.
-func Key(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldEQ(FieldKey, v))
-}
-
 // SubscriptionAddonID applies equality check predicate on the "subscription_addon_id" field. It's identical to SubscriptionAddonIDEQ.
 func SubscriptionAddonID(v string) predicate.SubscriptionAddonRateCard {
 	return predicate.SubscriptionAddonRateCard(sql.FieldEQ(FieldSubscriptionAddonID, v))
@@ -173,16 +158,6 @@ func NamespaceEqualFold(v string) predicate.SubscriptionAddonRateCard {
 // NamespaceContainsFold applies the ContainsFold predicate on the "namespace" field.
 func NamespaceContainsFold(v string) predicate.SubscriptionAddonRateCard {
 	return predicate.SubscriptionAddonRateCard(sql.FieldContainsFold(FieldNamespace, v))
-}
-
-// MetadataIsNil applies the IsNil predicate on the "metadata" field.
-func MetadataIsNil() predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldIsNull(FieldMetadata))
-}
-
-// MetadataNotNil applies the NotNil predicate on the "metadata" field.
-func MetadataNotNil() predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldNotNull(FieldMetadata))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -315,209 +290,14 @@ func DeletedAtNotNil() predicate.SubscriptionAddonRateCard {
 	return predicate.SubscriptionAddonRateCard(sql.FieldNotNull(FieldDeletedAt))
 }
 
-// NameEQ applies the EQ predicate on the "name" field.
-func NameEQ(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldEQ(FieldName, v))
+// MetadataIsNil applies the IsNil predicate on the "metadata" field.
+func MetadataIsNil() predicate.SubscriptionAddonRateCard {
+	return predicate.SubscriptionAddonRateCard(sql.FieldIsNull(FieldMetadata))
 }
 
-// NameNEQ applies the NEQ predicate on the "name" field.
-func NameNEQ(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldNEQ(FieldName, v))
-}
-
-// NameIn applies the In predicate on the "name" field.
-func NameIn(vs ...string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldIn(FieldName, vs...))
-}
-
-// NameNotIn applies the NotIn predicate on the "name" field.
-func NameNotIn(vs ...string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldNotIn(FieldName, vs...))
-}
-
-// NameGT applies the GT predicate on the "name" field.
-func NameGT(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldGT(FieldName, v))
-}
-
-// NameGTE applies the GTE predicate on the "name" field.
-func NameGTE(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldGTE(FieldName, v))
-}
-
-// NameLT applies the LT predicate on the "name" field.
-func NameLT(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldLT(FieldName, v))
-}
-
-// NameLTE applies the LTE predicate on the "name" field.
-func NameLTE(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldLTE(FieldName, v))
-}
-
-// NameContains applies the Contains predicate on the "name" field.
-func NameContains(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldContains(FieldName, v))
-}
-
-// NameHasPrefix applies the HasPrefix predicate on the "name" field.
-func NameHasPrefix(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldHasPrefix(FieldName, v))
-}
-
-// NameHasSuffix applies the HasSuffix predicate on the "name" field.
-func NameHasSuffix(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldHasSuffix(FieldName, v))
-}
-
-// NameEqualFold applies the EqualFold predicate on the "name" field.
-func NameEqualFold(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldEqualFold(FieldName, v))
-}
-
-// NameContainsFold applies the ContainsFold predicate on the "name" field.
-func NameContainsFold(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldContainsFold(FieldName, v))
-}
-
-// DescriptionEQ applies the EQ predicate on the "description" field.
-func DescriptionEQ(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldEQ(FieldDescription, v))
-}
-
-// DescriptionNEQ applies the NEQ predicate on the "description" field.
-func DescriptionNEQ(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldNEQ(FieldDescription, v))
-}
-
-// DescriptionIn applies the In predicate on the "description" field.
-func DescriptionIn(vs ...string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldIn(FieldDescription, vs...))
-}
-
-// DescriptionNotIn applies the NotIn predicate on the "description" field.
-func DescriptionNotIn(vs ...string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldNotIn(FieldDescription, vs...))
-}
-
-// DescriptionGT applies the GT predicate on the "description" field.
-func DescriptionGT(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldGT(FieldDescription, v))
-}
-
-// DescriptionGTE applies the GTE predicate on the "description" field.
-func DescriptionGTE(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldGTE(FieldDescription, v))
-}
-
-// DescriptionLT applies the LT predicate on the "description" field.
-func DescriptionLT(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldLT(FieldDescription, v))
-}
-
-// DescriptionLTE applies the LTE predicate on the "description" field.
-func DescriptionLTE(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldLTE(FieldDescription, v))
-}
-
-// DescriptionContains applies the Contains predicate on the "description" field.
-func DescriptionContains(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldContains(FieldDescription, v))
-}
-
-// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
-func DescriptionHasPrefix(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldHasPrefix(FieldDescription, v))
-}
-
-// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
-func DescriptionHasSuffix(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldHasSuffix(FieldDescription, v))
-}
-
-// DescriptionIsNil applies the IsNil predicate on the "description" field.
-func DescriptionIsNil() predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldIsNull(FieldDescription))
-}
-
-// DescriptionNotNil applies the NotNil predicate on the "description" field.
-func DescriptionNotNil() predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldNotNull(FieldDescription))
-}
-
-// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
-func DescriptionEqualFold(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldEqualFold(FieldDescription, v))
-}
-
-// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
-func DescriptionContainsFold(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldContainsFold(FieldDescription, v))
-}
-
-// KeyEQ applies the EQ predicate on the "key" field.
-func KeyEQ(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldEQ(FieldKey, v))
-}
-
-// KeyNEQ applies the NEQ predicate on the "key" field.
-func KeyNEQ(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldNEQ(FieldKey, v))
-}
-
-// KeyIn applies the In predicate on the "key" field.
-func KeyIn(vs ...string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldIn(FieldKey, vs...))
-}
-
-// KeyNotIn applies the NotIn predicate on the "key" field.
-func KeyNotIn(vs ...string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldNotIn(FieldKey, vs...))
-}
-
-// KeyGT applies the GT predicate on the "key" field.
-func KeyGT(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldGT(FieldKey, v))
-}
-
-// KeyGTE applies the GTE predicate on the "key" field.
-func KeyGTE(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldGTE(FieldKey, v))
-}
-
-// KeyLT applies the LT predicate on the "key" field.
-func KeyLT(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldLT(FieldKey, v))
-}
-
-// KeyLTE applies the LTE predicate on the "key" field.
-func KeyLTE(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldLTE(FieldKey, v))
-}
-
-// KeyContains applies the Contains predicate on the "key" field.
-func KeyContains(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldContains(FieldKey, v))
-}
-
-// KeyHasPrefix applies the HasPrefix predicate on the "key" field.
-func KeyHasPrefix(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldHasPrefix(FieldKey, v))
-}
-
-// KeyHasSuffix applies the HasSuffix predicate on the "key" field.
-func KeyHasSuffix(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldHasSuffix(FieldKey, v))
-}
-
-// KeyEqualFold applies the EqualFold predicate on the "key" field.
-func KeyEqualFold(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldEqualFold(FieldKey, v))
-}
-
-// KeyContainsFold applies the ContainsFold predicate on the "key" field.
-func KeyContainsFold(v string) predicate.SubscriptionAddonRateCard {
-	return predicate.SubscriptionAddonRateCard(sql.FieldContainsFold(FieldKey, v))
+// MetadataNotNil applies the NotNil predicate on the "metadata" field.
+func MetadataNotNil() predicate.SubscriptionAddonRateCard {
+	return predicate.SubscriptionAddonRateCard(sql.FieldNotNull(FieldMetadata))
 }
 
 // SubscriptionAddonIDEQ applies the EQ predicate on the "subscription_addon_id" field.
