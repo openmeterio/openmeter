@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -147,4 +148,84 @@ func (r *RateCard) UnmarshalJSON(b []byte) error {
 	r.RateCard = serde.RateCard
 
 	return nil
+}
+
+type RateCards []RateCard
+
+func (c RateCards) At(idx int) RateCard {
+	return c[idx]
+}
+
+func (c RateCards) AsProductCatalogRateCards() productcatalog.RateCards {
+	var rcs productcatalog.RateCards
+
+	for _, rc := range c {
+		rcs = append(rcs, rc.RateCard)
+	}
+
+	return rcs
+}
+
+func (c RateCards) IsAligned() bool {
+	periods := make(map[isodate.String]struct{})
+
+	for _, rc := range c {
+		// An effective price of 0 is still counted as a billable item
+		if rc.AsMeta().Price != nil {
+			// One time prices are excluded
+			if d := rc.GetBillingCadence(); d != nil {
+				periods[d.Normalise(true).ISOString()] = struct{}{}
+			}
+		}
+	}
+
+	return len(periods) <= 1
+}
+
+func (c RateCards) Equal(v RateCards) bool {
+	if len(c) != len(v) {
+		return false
+	}
+
+	leftSet := make(map[string]RateCard)
+	for _, rc := range c {
+		leftSet[rc.Key()] = rc
+	}
+
+	rightSet := make(map[string]RateCard)
+	for _, rc := range v {
+		rightSet[rc.Key()] = rc
+	}
+
+	if len(leftSet) != len(rightSet) {
+		return false
+	}
+
+	var visited int
+	for key, left := range leftSet {
+		right, ok := rightSet[key]
+		if !ok {
+			return false
+		}
+
+		if !left.Equal(&right) {
+			return false
+		}
+
+		visited++
+	}
+
+	return visited == len(rightSet)
+}
+
+func (c RateCards) Validate() error {
+	var errs []error
+
+	for _, rc := range c {
+		if err := rc.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

@@ -21,7 +21,7 @@ func AssertAddonCreateInputEqual(t *testing.T, i CreateAddonInput, a Addon) {
 	assert.Equalf(t, i.Metadata, a.Metadata, "metadata mismatch")
 	assert.Equalf(t, i.Annotations, a.Annotations, "annotations mismatch")
 
-	AssertAddonRateCardsEqual(t, i.RateCards, a.RateCards)
+	AssertAddonRateCardsEqual(t, i.RateCards, a.RateCards.AsProductCatalogRateCards())
 }
 
 func AssertAddonUpdateInputEqual(t *testing.T, i UpdateAddonInput, a Addon) {
@@ -46,7 +46,7 @@ func AssertAddonUpdateInputEqual(t *testing.T, i UpdateAddonInput, a Addon) {
 	}
 
 	if i.RateCards != nil {
-		AssertAddonRateCardsEqual(t, *i.RateCards, a.RateCards)
+		AssertAddonRateCardsEqual(t, *i.RateCards, a.RateCards.AsProductCatalogRateCards())
 	}
 }
 
@@ -60,7 +60,7 @@ func AssertAddonEqual(t *testing.T, expected, actual Addon) {
 	assert.Equalf(t, expected.Metadata, actual.Metadata, "metadata mismatch")
 	assert.Equalf(t, expected.Annotations, actual.Annotations, "annotations mismatch")
 
-	AssertAddonRateCardsEqual(t, expected.RateCards, actual.RateCards)
+	AssertAddonRateCardsEqual(t, expected.RateCards.AsProductCatalogRateCards(), actual.RateCards.AsProductCatalogRateCards())
 }
 
 func AssertAddonRateCardsEqual(t *testing.T, r1, r2 productcatalog.RateCards) {

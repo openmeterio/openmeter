@@ -223,7 +223,7 @@ func TestAddonService(t *testing.T) {
 					// Let's update the plan to fix the alignment issue
 					_, err = env.Addon.UpdateAddon(ctx, addon.UpdateAddonInput{
 						NamespacedID: nextAddon.NamespacedID,
-						RateCards:    &publishedAddon.RateCards,
+						RateCards:    lo.ToPtr(publishedAddon.RateCards.AsProductCatalogRateCards()),
 					})
 					require.NoError(t, err)
 				})

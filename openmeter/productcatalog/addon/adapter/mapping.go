@@ -43,7 +43,7 @@ func fromAddonRow(a entdb.Addon) (*addon.Addon, error) {
 	// Set Rate Cards
 
 	if len(a.Edges.Ratecards) > 0 {
-		aa.RateCards = make([]productcatalog.RateCard, 0, len(a.Edges.Ratecards))
+		aa.RateCards = make(addon.RateCards, 0, len(a.Edges.Ratecards))
 		for _, edge := range a.Edges.Ratecards {
 			if edge == nil {
 				continue
@@ -54,7 +54,7 @@ func fromAddonRow(a entdb.Addon) (*addon.Addon, error) {
 				return nil, fmt.Errorf("invalid ratecard [namespace=%s key=%s]: %w", aa.Namespace, edge.Key, err)
 			}
 
-			aa.RateCards = append(aa.RateCards, ratecard)
+			aa.RateCards = append(aa.RateCards, *ratecard)
 		}
 	}
 
@@ -65,7 +65,7 @@ func fromAddonRow(a entdb.Addon) (*addon.Addon, error) {
 	return aa, nil
 }
 
-func fromAddonRateCardRow(r entdb.AddonRateCard) (productcatalog.RateCard, error) {
+func fromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 	meta := productcatalog.RateCardMeta{
 		Key:                 r.Key,
 		Name:                r.Name,
@@ -116,7 +116,7 @@ func fromAddonRateCardRow(r entdb.AddonRateCard) (productcatalog.RateCard, error
 		AddonID: r.AddonID,
 	}
 
-	var ratecard productcatalog.RateCard
+	var ratecard *addon.RateCard
 
 	switch r.Type {
 	case productcatalog.FlatFeeRateCardType:
