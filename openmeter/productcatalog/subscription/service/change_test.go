@@ -26,7 +26,7 @@ func TestChange(t *testing.T) {
 	examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
 
 	type tDeps struct {
-		subDeps subscriptiontestutils.ExposedServiceDeps
+		subDeps subscriptiontestutils.SubscriptionDependencies
 		subSvc  subscription.Service
 		wfSvc   subscriptionworkflow.Service
 	}
@@ -36,12 +36,12 @@ func TestChange(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		svc, exposedDeps := subscriptiontestutils.NewService(t, dbDeps)
+		deps := subscriptiontestutils.NewService(t, dbDeps)
 
 		f(t, tDeps{
-			subDeps: exposedDeps,
-			subSvc:  svc.Service,
-			wfSvc:   svc.WorkflowService,
+			subDeps: deps,
+			subSvc:  deps.SubscriptionService,
+			wfSvc:   deps.WorkflowService,
 		})
 	}
 

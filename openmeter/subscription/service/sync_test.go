@@ -21,7 +21,7 @@ func TestEdit(t *testing.T) {
 		CurrentTime time.Time
 		Customer    customer.Customer
 		ExamplePlan subscription.Plan
-		ServiceDeps subscriptiontestutils.ExposedServiceDeps
+		ServiceDeps subscriptiontestutils.SubscriptionDependencies
 		Service     subscription.Service
 	}
 
@@ -348,8 +348,8 @@ func TestEdit(t *testing.T) {
 			dbDeps := subscriptiontestutils.SetupDBDeps(t)
 			defer dbDeps.Cleanup(t)
 
-			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			service := services.Service
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			service := deps.SubscriptionService
 
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)

@@ -28,8 +28,8 @@ func TestCreation(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		services, deps := subscriptiontestutils.NewService(t, dbDeps)
-		service := services.Service
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t)
@@ -93,8 +93,8 @@ func TestCreation(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		services, deps := subscriptiontestutils.NewService(t, dbDeps)
-		service := services.Service
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_, err := deps.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
@@ -137,8 +137,8 @@ func TestCreation(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		services, deps := subscriptiontestutils.NewService(t, dbDeps)
-		service := services.Service
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_, err := deps.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
@@ -192,8 +192,8 @@ func TestCancellation(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		services, deps := subscriptiontestutils.NewService(t, dbDeps)
-		service := services.Service
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t)
@@ -308,8 +308,8 @@ func TestContinuing(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		services, deps := subscriptiontestutils.NewService(t, dbDeps)
-		service := services.Service
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t)
@@ -395,8 +395,8 @@ func TestContinuing(t *testing.T) {
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
 		defer dbDeps.Cleanup(t)
 
-		services, deps := subscriptiontestutils.NewService(t, dbDeps)
-		service := services.Service
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t)

@@ -30,7 +30,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type ExposedServiceDeps struct {
+type SubscriptionDependencies struct {
 	ItemRepo            subscription.SubscriptionItemRepository
 	CustomerAdapter     *testCustomerRepo
 	CustomerService     customer.Service
@@ -40,14 +40,11 @@ type ExposedServiceDeps struct {
 	PlanService         plan.Service
 	DBDeps              *DBDeps
 	EntitlementRegistry *registry.Entitlement
+	SubscriptionService subscription.Service
+	WorkflowService     subscriptionworkflow.Service
 }
 
-type services struct {
-	Service         subscription.Service
-	WorkflowService subscriptionworkflow.Service
-}
-
-func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
+func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	t.Helper()
 	logger := testutils.NewLogger(t)
 	subRepo := NewSubscriptionRepo(t, dbDeps)
@@ -129,18 +126,17 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 		TransactionManager: subItemRepo,
 	})
 
-	return services{
-			Service:         svc,
-			WorkflowService: workflowSvc,
-		}, ExposedServiceDeps{
-			CustomerAdapter:     customerAdapter,
-			CustomerService:     customer,
-			FeatureConnector:    NewTestFeatureConnector(entitlementRegistry.Feature),
-			EntitlementAdapter:  entitlementAdapter,
-			DBDeps:              dbDeps,
-			PlanHelper:          planHelper,
-			PlanService:         planService,
-			ItemRepo:            subItemRepo,
-			EntitlementRegistry: entitlementRegistry,
-		}
+	return SubscriptionDependencies{
+		WorkflowService:     workflowSvc,
+		SubscriptionService: svc,
+		CustomerAdapter:     customerAdapter,
+		CustomerService:     customer,
+		FeatureConnector:    NewTestFeatureConnector(entitlementRegistry.Feature),
+		EntitlementAdapter:  entitlementAdapter,
+		DBDeps:              dbDeps,
+		PlanHelper:          planHelper,
+		PlanService:         planService,
+		ItemRepo:            subItemRepo,
+		EntitlementRegistry: entitlementRegistry,
+	}
 }
