@@ -136,7 +136,7 @@ func (s *Service) ListAllWorkloads(ctx context.Context) ([]Workload, error) {
 
 	for {
 		resp, err := s.ListWorkloads(ctx, ListWorkloadParams{
-			Limit:  500,
+			Limit:  s.pageSize,
 			Offset: len(workloads),
 		})
 		if err != nil {

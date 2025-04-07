@@ -24,6 +24,7 @@ const (
 	fieldMetrics              = "metrics"
 	fieldSchedule             = "schedule"
 	fieldMetricsOffset        = "metrics_offset"
+	fieldPageSize             = "page_size"
 	fieldHTTPConfig           = "http"
 	fieldHTTPTimeout          = "timeout"
 	fieldHTTPRetryCount       = "retry_count"
@@ -45,6 +46,9 @@ func runAIInputConfig() *service.ConfigSpec {
 			service.NewStringEnumField(fieldResourceType, resourceTypes...).
 				Default("workload").
 				Description("Run AI resource to collect metrics from."),
+			service.NewIntField(fieldPageSize).
+				Description("Run AI page size.").
+				Default(500),
 			service.NewStringListField(fieldMetrics).
 				Description("Run AI metrics to collect.").
 				Default(lo.Map([]runai.MetricType{
@@ -93,6 +97,7 @@ input:
     schedule: "${RUNAI_SCRAPE_SCHEDULE:*/30 * * * * *}"
     metrics_scrape_offset: "${RUNAI_METRICS_SCRAPE_OFFSET:30s}"
     resource_type: "${RUNAI_RESOURCE_TYPE:workload}"
+    page_size: "${RUNAI_PAGE_SIZE:500}"
     metrics:
       - CPU_LIMIT_CORES
       - CPU_MEMORY_LIMIT_BYTES
@@ -184,6 +189,11 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger, httpMetri
 		return nil, err
 	}
 
+	pageSize, err := conf.FieldInt(fieldPageSize)
+	if err != nil {
+		return nil, err
+	}
+
 	var interval time.Duration
 	{
 		// Create a cron scheduler
@@ -230,6 +240,7 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger, httpMetri
 		RetryWaitTime:    retryWaitTime,
 		RetryMaxWaitTime: retryMaxWaitTime,
 		TimingMetrics:    httpMetrics,
+		PageSize:         pageSize,
 	})
 	if err != nil {
 		return nil, err

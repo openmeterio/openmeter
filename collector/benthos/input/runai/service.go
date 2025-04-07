@@ -15,6 +15,7 @@ type Service struct {
 	appID     string
 	appSecret string
 	token     string
+	pageSize  int
 }
 
 type HTTPRequestConfig struct {
@@ -22,6 +23,7 @@ type HTTPRequestConfig struct {
 	RetryWaitTime    time.Duration
 	RetryMaxWaitTime time.Duration
 	RetryCount       int
+	PageSize         int
 	TimingMetrics    *service.MetricTimer
 }
 
@@ -30,6 +32,7 @@ func NewService(baseURL, appID, appSecret string, logger *service.Logger, reques
 		logger:    logger,
 		appID:     appID,
 		appSecret: appSecret,
+		pageSize:  requestConfig.PageSize,
 	}
 
 	client := resty.New().
