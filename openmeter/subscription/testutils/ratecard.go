@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	ExampleRateCard1 productcatalog.UsageBasedRateCard = productcatalog.UsageBasedRateCard{
+	ExamplePriceAmount int64                             = 100
+	ExampleRateCard1   productcatalog.UsageBasedRateCard = productcatalog.UsageBasedRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:         ExampleFeatureKey,
 			Name:        "Rate Card 1",
@@ -32,7 +33,7 @@ var (
 				},
 			},
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromInt(int64(ExamplePriceAmount)),
+				Amount: alpacadecimal.NewFromInt(ExamplePriceAmount),
 			}),
 		},
 		BillingCadence: ISOMonth,
@@ -50,8 +51,30 @@ var (
 		},
 		BillingCadence: &ISOMonth,
 	}
-	ExamplePriceAmount int = 100
-
+	ExampleRateCard3ForAddons productcatalog.FlatFeeRateCard = productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:         ExampleFeatureKey2,
+			Name:        "Rate Card 3 for Addons",
+			Description: lo.ToPtr("Rate Card 3 Description"),
+			Feature: &feature.Feature{
+				Key: ExampleFeatureKey2,
+			},
+			EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
+				IssueAfterReset: lo.ToPtr(100.0),
+				UsagePeriod:     ISOMonth,
+			}),
+			TaxConfig: &productcatalog.TaxConfig{
+				Stripe: &productcatalog.StripeTaxConfig{
+					Code: "txcd_10000000",
+				},
+			},
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromInt(ExamplePriceAmount),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+		BillingCadence: &ISOMonth,
+	}
 	ExampleRateCardWithDiscounts productcatalog.FlatFeeRateCard = productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:         ExampleFeatureKey,
@@ -70,7 +93,7 @@ var (
 				},
 			},
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromInt(int64(ExamplePriceAmount)),
+				Amount: alpacadecimal.NewFromInt(ExamplePriceAmount),
 			}),
 			Discounts: productcatalog.Discounts{
 				productcatalog.NewDiscountFrom(productcatalog.PercentageDiscount{

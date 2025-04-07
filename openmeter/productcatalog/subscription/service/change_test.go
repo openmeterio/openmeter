@@ -63,7 +63,7 @@ func TestChange(t *testing.T) {
 
 			// Let's set up the feature & customer
 			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
-			deps.subDeps.FeatureConnector.CreateExampleFeature(t)
+			deps.subDeps.FeatureConnector.CreateExampleFeatures(t)
 
 			// Let's create the plan
 			plan1 := deps.subDeps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -167,7 +167,7 @@ func TestChange(t *testing.T) {
 
 			// Let's set up the feature & customer
 			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
-			deps.subDeps.FeatureConnector.CreateExampleFeature(t)
+			deps.subDeps.FeatureConnector.CreateExampleFeatures(t)
 
 			// Let's create the plan
 			plan1 := deps.subDeps.PlanHelper.CreatePlan(t, examplePlanInput1)

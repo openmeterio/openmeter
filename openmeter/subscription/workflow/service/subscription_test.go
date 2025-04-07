@@ -74,7 +74,7 @@ func TestCreateFromPlan(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
@@ -269,7 +269,7 @@ func TestEditRunning(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
@@ -462,7 +462,7 @@ func TestEditingCurrentPhase(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
@@ -705,7 +705,7 @@ func TestEditingWithTiming(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 			planInput := subscriptiontestutils.GetExamplePlanInput(t)
 
 			if tc.IsAligned {
@@ -861,7 +861,7 @@ func TestChangeToPlan(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 
 			// Let's create the two plans
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -964,7 +964,7 @@ func TestEditCombinations(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 
 			// Let's create the plan
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -1090,7 +1090,7 @@ func TestRestore(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeature(t)
+			deps.FeatureConnector.CreateExampleFeatures(t)
 
 			// Let's create the plan
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)

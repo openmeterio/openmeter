@@ -354,7 +354,7 @@ func TestEdit(t *testing.T) {
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
 
-			_ = deps.FeatureConnector.CreateExampleFeature(t)
+			_ = deps.FeatureConnector.CreateExampleFeatures(t)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 			tc.Handler(t, TDeps{
