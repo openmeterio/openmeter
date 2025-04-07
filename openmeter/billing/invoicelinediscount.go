@@ -735,6 +735,23 @@ func (d LineDiscounts) GetAmountDiscountsByID() (map[string]AmountLineDiscountMa
 	return amountDiscountsByID, nil
 }
 
+// GetUsageDiscounts returns all usage discounts in the list.
+func (d LineDiscounts) GetUsageDiscounts() []UsageLineDiscountManaged {
+	usageDiscounts := []UsageLineDiscountManaged{}
+
+	for _, discount := range d {
+		if discount.Type() != LineDiscountTypeAmount {
+			continue
+		}
+
+		if usage, err := discount.AsUsage(); err == nil {
+			usageDiscounts = append(usageDiscounts, usage)
+		}
+	}
+
+	return usageDiscounts
+}
+
 // DiscountsByID returns a map of discounts by their ID, the map's items are never
 // nil. Items with an empty ID are not included in the map.
 func (d LineDiscounts) DiscountsByID() (map[string]LineDiscount, error) {
