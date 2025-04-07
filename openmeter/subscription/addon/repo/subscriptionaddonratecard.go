@@ -2,6 +2,7 @@ package subscriptionaddonrepo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -35,7 +36,9 @@ func (r *subscriptionAddonRateCardRepo) CreateMany(ctx context.Context, subscrip
 			for _, input := range inputs {
 				// Create the rate card
 				rateCard, err := repo.db.SubscriptionAddonRateCard.Create().
+					SetNamespace(subscriptionAddonID.Namespace).
 					SetSubscriptionAddonID(subscriptionAddonID.ID).
+					SetAddonRatecardID(input.AddonRateCardID).
 					Save(ctx)
 				if err != nil {
 					return nil, err
@@ -50,6 +53,13 @@ func (r *subscriptionAddonRateCardRepo) CreateMany(ctx context.Context, subscrip
 					})...,
 				).Save(ctx)
 				if err != nil {
+					// For magical reasons, the constraint error looks like this:
+					// failed to create subscription addon rate cards: failed to create links to subscription items: db: constraint failed: insert nodes to table \"subscription_addon_rate_card_item_links\": ERROR: insert or update on table \"subscription_addon_rate_card_item_links\" violates foreign key constraint \"subscription_addon_rate_card_i_5443b55d7e58df21cd89a6726b500989\" (SQLSTATE 23503)"
+					// So we cannot assert for the specific type of constraint we're violating
+					if db.IsConstraintError(err) {
+						return nil, models.NewGenericNotFoundError(errors.New("constraint failed, resource not found"))
+					}
+
 					return nil, fmt.Errorf("failed to create links to subscription items: %w", err)
 				}
 

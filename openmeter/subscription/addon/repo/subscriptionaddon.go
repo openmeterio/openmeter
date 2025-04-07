@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbsubscriptionaddon "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
+	dbsubscriptionaddonquantity "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -89,7 +90,12 @@ func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filt
 				dbsubscriptionaddon.Namespace(namespace),
 				dbsubscriptionaddon.SubscriptionID(filter.SubscriptionID),
 			).
-			WithQuantities().
+			WithQuantities(func(saqq *db.SubscriptionAddonQuantityQuery) {
+				saqq.Order(
+					db.Asc(dbsubscriptionaddonquantity.FieldActiveFrom),
+					db.Asc(dbsubscriptionaddonquantity.FieldCreatedAt),
+				)
+			}).
 			WithRateCards(func(sarcq *db.SubscriptionAddonRateCardQuery) {
 				sarcq.WithItems()
 			})
