@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	ExampleRateCard1 productcatalog.FlatFeeRateCard = productcatalog.FlatFeeRateCard{
+	ExampleRateCard1 productcatalog.UsageBasedRateCard = productcatalog.UsageBasedRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:         ExampleFeatureKey,
 			Name:        "Rate Card 1",
@@ -35,7 +35,7 @@ var (
 				Amount: alpacadecimal.NewFromInt(int64(ExamplePriceAmount)),
 			}),
 		},
-		BillingCadence: &ISOMonth,
+		BillingCadence: ISOMonth,
 	}
 	ExampleRateCard2 productcatalog.FlatFeeRateCard = productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
