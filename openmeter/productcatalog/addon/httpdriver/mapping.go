@@ -19,7 +19,7 @@ func FromAddon(a addon.Addon) (api.Addon, error) {
 		Currency:      a.Currency.String(),
 		DeletedAt:     a.DeletedAt,
 		Description:   a.Description,
-		InstanceType:  api.AddonInstanceType(string(a.InstanceType)),
+		InstanceType:  api.AddonInstanceType(a.InstanceType),
 		EffectiveFrom: a.EffectiveFrom,
 		EffectiveTo:   a.EffectiveTo,
 		Id:            a.ID,

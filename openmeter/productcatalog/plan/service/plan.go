@@ -210,7 +210,7 @@ func (s service) DeletePlan(ctx context.Context, params plan.DeletePlanInput) er
 
 		// Emit plan deleted event
 		event := plan.NewPlanDeleteEvent(ctx, deletedPlan)
-		if err := s.publisher.Publish(ctx, event); err != nil {
+		if err = s.publisher.Publish(ctx, event); err != nil {
 			return nil, fmt.Errorf("failed to publish plan deleted event: %w", err)
 		}
 

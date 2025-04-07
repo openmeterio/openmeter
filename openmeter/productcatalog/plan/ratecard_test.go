@@ -24,7 +24,7 @@ func TestRateCard_JSON(t *testing.T) {
 	}{
 		{
 			Name: "FlatFee",
-			RateCard: &FlatFeeRateCard{
+			RateCard: &RateCard{
 				RateCardManagedFields: RateCardManagedFields{
 					ManagedModel: models.ManagedModel{
 						CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
@@ -37,7 +37,7 @@ func TestRateCard_JSON(t *testing.T) {
 					},
 					PhaseID: "01JDPHJMKKT1S3XF47V2AGMA6J",
 				},
-				FlatFeeRateCard: productcatalog.FlatFeeRateCard{
+				RateCard: &productcatalog.FlatFeeRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
 						Key:         "feature-1",
 						Name:        "RateCard 1",
@@ -83,7 +83,7 @@ func TestRateCard_JSON(t *testing.T) {
 		},
 		{
 			Name: "UsageBased",
-			RateCard: &UsageBasedRateCard{
+			RateCard: &RateCard{
 				RateCardManagedFields: RateCardManagedFields{
 					ManagedModel: models.ManagedModel{
 						CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
@@ -96,7 +96,7 @@ func TestRateCard_JSON(t *testing.T) {
 					},
 					PhaseID: "01JDPHJMKKH4YDJTQY5F3EAHCF",
 				},
-				UsageBasedRateCard: productcatalog.UsageBasedRateCard{
+				RateCard: &productcatalog.UsageBasedRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
 						Key:         "feature-2",
 						Name:        "RateCard 2",
@@ -165,7 +165,8 @@ func TestRateCard_JSON(t *testing.T) {
 
 			t.Logf("Serialized RateCard: %s", string(b))
 
-			rc, err := NewRateCardFrom(b)
+			var rc *RateCard
+			err = json.Unmarshal(b, &rc)
 			require.NoErrorf(t, err, "deserializing RateCard must not fail")
 
 			assert.Equal(t, test.RateCard, rc)
@@ -177,12 +178,12 @@ func TestFlatFeeRateCard(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
 		tests := []struct {
 			Name          string
-			RateCard      FlatFeeRateCard
+			RateCard      RateCard
 			ExpectedError bool
 		}{
 			{
 				Name: "valid",
-				RateCard: FlatFeeRateCard{
+				RateCard: RateCard{
 					RateCardManagedFields: RateCardManagedFields{
 						ManagedModel: models.ManagedModel{
 							CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
@@ -195,7 +196,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 						},
 						PhaseID: "01JDPHJMKK2WFF1D8AD5SYB2P1",
 					},
-					FlatFeeRateCard: productcatalog.FlatFeeRateCard{
+					RateCard: &productcatalog.FlatFeeRateCard{
 						RateCardMeta: productcatalog.RateCardMeta{
 							Key:         "feat-1",
 							Name:        "Flat 1",
@@ -241,7 +242,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 			},
 			{
 				Name: "invalid",
-				RateCard: FlatFeeRateCard{
+				RateCard: RateCard{
 					RateCardManagedFields: RateCardManagedFields{
 						ManagedModel: models.ManagedModel{
 							CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
@@ -254,7 +255,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 						},
 						PhaseID: "01JDPHJMKKZCTPZMD5SYDJENP3",
 					},
-					FlatFeeRateCard: productcatalog.FlatFeeRateCard{
+					RateCard: &productcatalog.FlatFeeRateCard{
 						RateCardMeta: productcatalog.RateCardMeta{
 							Key:         "feat-2",
 							Name:        "Flat 2",
@@ -319,12 +320,12 @@ func TestUsageBasedRateCard(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
 		tests := []struct {
 			Name          string
-			RateCard      UsageBasedRateCard
+			RateCard      RateCard
 			ExpectedError bool
 		}{
 			{
 				Name: "valid",
-				RateCard: UsageBasedRateCard{
+				RateCard: RateCard{
 					RateCardManagedFields: RateCardManagedFields{
 						ManagedModel: models.ManagedModel{
 							CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
@@ -337,7 +338,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 						},
 						PhaseID: "01JDPHJMKK9J7Z45XRM4J3DS72",
 					},
-					UsageBasedRateCard: productcatalog.UsageBasedRateCard{
+					RateCard: &productcatalog.UsageBasedRateCard{
 						RateCardMeta: productcatalog.RateCardMeta{
 							Key:         "feat-1",
 							Name:        "Usage 1",
@@ -391,7 +392,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 			},
 			{
 				Name: "invalid",
-				RateCard: UsageBasedRateCard{
+				RateCard: RateCard{
 					RateCardManagedFields: RateCardManagedFields{
 						ManagedModel: models.ManagedModel{
 							CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
@@ -404,7 +405,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 						},
 						PhaseID: "01JDPHJMKKBZFWS90VX5BFFKPE",
 					},
-					UsageBasedRateCard: productcatalog.UsageBasedRateCard{
+					RateCard: &productcatalog.UsageBasedRateCard{
 						RateCardMeta: productcatalog.RateCardMeta{
 							Key:         "feat-2",
 							Name:        "Usage 2",
