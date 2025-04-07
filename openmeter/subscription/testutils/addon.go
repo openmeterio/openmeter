@@ -66,5 +66,13 @@ func (s *testAddonService) CreateExampleAddon(t *testing.T, period productcatalo
 		t.Fatalf("failed to create addon: %v", err)
 	}
 
+	add, err = s.PublishAddon(context.Background(), addon.PublishAddonInput{
+		NamespacedID:    add.NamespacedID,
+		EffectivePeriod: period,
+	})
+	if err != nil {
+		t.Fatalf("failed to publish addon: %v", err)
+	}
+
 	return *add
 }

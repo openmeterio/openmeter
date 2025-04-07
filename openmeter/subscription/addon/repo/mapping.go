@@ -29,11 +29,14 @@ func MapSubscriptionAddon(
 		MetadataModel: models.MetadataModel{
 			Metadata: entity.Metadata,
 		},
-		// Name and Description should be populated but don't exist in the schema yet
-		Name:           "",
-		Description:    nil,
 		AddonID:        entity.AddonID,
 		SubscriptionID: entity.SubscriptionID,
+	}
+
+	if entity.Edges.Addon != nil {
+		add := entity.Edges.Addon
+		base.Name = add.Name
+		base.Description = add.Description
 	}
 
 	if len(entity.Edges.Quantities) > 0 {
