@@ -31,6 +31,17 @@ configFile: ""
 # Note: Read the documentation for the specific preset (example) to learn about configuration via env vars.
 preset: ""
 
+# -- Service configuration
+service:
+  # -- Specifies whether a service should be created
+  enabled: false
+  # -- Service type
+  type: ClusterIP
+  # -- Service port
+  port: 80
+  # -- Annotations to add to the service
+  annotations: {}
+
 # -- Reference to one or more secrets to be used when [pulling images](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-pod-that-uses-your-secret) (from private registries).
 imagePullSecrets: []
 
