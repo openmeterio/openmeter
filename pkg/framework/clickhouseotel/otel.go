@@ -70,30 +70,24 @@ func (c *ClickHouseTracer) Query(ctx context.Context, query string, args ...any)
 		span.SetStatus(codes.Error, err.Error())
 	}
 
-	if rows != nil && rows.Err() != nil {
-		err = rows.Err()
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-	}
-
 	return rows, err
 }
 
-func (c *ClickHouseTracer) QueryRow(ctx context.Context, query string, args ...any) (rows driver.Row) {
+func (c *ClickHouseTracer) QueryRow(ctx context.Context, query string, args ...any) driver.Row {
 	ctx, span := c.Tracer.Start(ctx, "clickhouse.QueryRow", trace.WithAttributes(
 		attribute.String("query", query),
 		attribute.StringSlice("args", anyToStrings(args...)),
 	))
 	defer span.End()
 
-	rows = c.Conn.QueryRow(ctx, query, args...)
-	if rows != nil && rows.Err() != nil {
-		err := rows.Err()
+	row := c.Conn.QueryRow(ctx, query, args...)
+	if row != nil && row.Err() != nil {
+		err := row.Err()
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 	}
 
-	return rows
+	return row
 }
 
 func (c *ClickHouseTracer) Exec(ctx context.Context, query string, args ...any) error {
