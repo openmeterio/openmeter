@@ -37,7 +37,7 @@ require (
 	github.com/huandu/go-sqlbuilder v1.35.0
 	github.com/invopop/gobl v0.213.2
 	github.com/jackc/pgx/v5 v5.7.4
-	github.com/jmattheis/goverter v1.8.1
+	github.com/jmattheis/goverter v1.8.2
 	github.com/lmittmann/tint v1.0.7
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.2
@@ -472,7 +472,7 @@ require (
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/oauth2 v0.28.0 // indirect
-	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sync v0.12.0
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/term v0.30.0 // indirect
 	golang.org/x/text v0.23.0
