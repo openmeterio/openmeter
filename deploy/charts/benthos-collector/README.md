@@ -30,6 +30,11 @@ helm install --generate-name --wait oci://ghcr.io/openmeterio/helm-charts/bentho
 | config | object | `{}` | Benthos configuration Takes precedence over `configFile` and `preset`. |
 | configFile | string | `""` | Use an existing config file mounted via `volumes` and `volumeMounts`. Takes precedence over `preset`. |
 | preset | string | `""` | Use one of the predefined presets. Note: Read the documentation for the specific preset (example) to learn about configuration via env vars. |
+| service | object | `{"annotations":{},"enabled":false,"port":80,"type":"ClusterIP"}` | Service configuration |
+| service.enabled | bool | `false` | Specifies whether a service should be created |
+| service.type | string | `"ClusterIP"` | Service type |
+| service.port | int | `80` | Service port |
+| service.annotations | object | `{}` | Annotations to add to the service |
 | imagePullSecrets | list | `[]` | Reference to one or more secrets to be used when [pulling images](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-pod-that-uses-your-secret) (from private registries). |
 | nameOverride | string | `""` | A name in place of the chart name for `app:` labels. |
 | fullnameOverride | string | `""` | A name to substitute for the full names of resources. |
