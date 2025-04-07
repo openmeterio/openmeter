@@ -1189,6 +1189,76 @@ func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearDescription(value *strin
 	return u.SetDescription(*value)
 }
 
+func (u *BillingInvoiceLineDiscountUpdate) SetOrClearAmount(value *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
+	if value == nil {
+		return u.ClearAmount()
+	}
+	return u.SetAmount(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearAmount(value *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
+	if value == nil {
+		return u.ClearAmount()
+	}
+	return u.SetAmount(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdate) SetOrClearRoundingAmount(value *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
+	if value == nil {
+		return u.ClearRoundingAmount()
+	}
+	return u.SetRoundingAmount(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearRoundingAmount(value *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
+	if value == nil {
+		return u.ClearRoundingAmount()
+	}
+	return u.SetRoundingAmount(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdate) SetOrClearQuantity(value *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
+	if value == nil {
+		return u.ClearQuantity()
+	}
+	return u.SetQuantity(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearQuantity(value *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
+	if value == nil {
+		return u.ClearQuantity()
+	}
+	return u.SetQuantity(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdate) SetOrClearPreLinePeriodQuantity(value *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
+	if value == nil {
+		return u.ClearPreLinePeriodQuantity()
+	}
+	return u.SetPreLinePeriodQuantity(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearPreLinePeriodQuantity(value *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
+	if value == nil {
+		return u.ClearPreLinePeriodQuantity()
+	}
+	return u.SetPreLinePeriodQuantity(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdate) SetOrClearSourceDiscount(value **productcatalog.Discount) *BillingInvoiceLineDiscountUpdate {
+	if value == nil {
+		return u.ClearSourceDiscount()
+	}
+	return u.SetSourceDiscount(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearSourceDiscount(value **productcatalog.Discount) *BillingInvoiceLineDiscountUpdateOne {
+	if value == nil {
+		return u.ClearSourceDiscount()
+	}
+	return u.SetSourceDiscount(*value)
+}
+
 func (u *BillingInvoiceLineDiscountUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineDiscountUpdate {
 	if value == nil {
 		return u.ClearInvoicingAppExternalID()

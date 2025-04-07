@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -98,11 +99,6 @@ func Description(v string) predicate.BillingInvoiceDiscount {
 // InvoiceID applies equality check predicate on the "invoice_id" field. It's identical to InvoiceIDEQ.
 func InvoiceID(v string) predicate.BillingInvoiceDiscount {
 	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldInvoiceID, v))
-}
-
-// Type applies equality check predicate on the "type" field. It's identical to TypeEQ.
-func Type(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldType, v))
 }
 
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
@@ -521,68 +517,33 @@ func InvoiceIDContainsFold(v string) predicate.BillingInvoiceDiscount {
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldType, v))
+func TypeEQ(v billing.LineDiscountType) predicate.BillingInvoiceDiscount {
+	vc := v
+	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldType, vc))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldNEQ(FieldType, v))
+func TypeNEQ(v billing.LineDiscountType) predicate.BillingInvoiceDiscount {
+	vc := v
+	return predicate.BillingInvoiceDiscount(sql.FieldNEQ(FieldType, vc))
 }
 
 // TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldIn(FieldType, vs...))
+func TypeIn(vs ...billing.LineDiscountType) predicate.BillingInvoiceDiscount {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceDiscount(sql.FieldIn(FieldType, v...))
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldNotIn(FieldType, vs...))
-}
-
-// TypeGT applies the GT predicate on the "type" field.
-func TypeGT(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldGT(FieldType, v))
-}
-
-// TypeGTE applies the GTE predicate on the "type" field.
-func TypeGTE(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldGTE(FieldType, v))
-}
-
-// TypeLT applies the LT predicate on the "type" field.
-func TypeLT(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldLT(FieldType, v))
-}
-
-// TypeLTE applies the LTE predicate on the "type" field.
-func TypeLTE(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldLTE(FieldType, v))
-}
-
-// TypeContains applies the Contains predicate on the "type" field.
-func TypeContains(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldContains(FieldType, v))
-}
-
-// TypeHasPrefix applies the HasPrefix predicate on the "type" field.
-func TypeHasPrefix(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldHasPrefix(FieldType, v))
-}
-
-// TypeHasSuffix applies the HasSuffix predicate on the "type" field.
-func TypeHasSuffix(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldHasSuffix(FieldType, v))
-}
-
-// TypeEqualFold applies the EqualFold predicate on the "type" field.
-func TypeEqualFold(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldEqualFold(FieldType, v))
-}
-
-// TypeContainsFold applies the ContainsFold predicate on the "type" field.
-func TypeContainsFold(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldContainsFold(FieldType, v))
+func TypeNotIn(vs ...billing.LineDiscountType) predicate.BillingInvoiceDiscount {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceDiscount(sql.FieldNotIn(FieldType, v...))
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.

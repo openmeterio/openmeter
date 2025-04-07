@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // BillingInvoiceLineDiscount is the model entity for the BillingInvoiceLineDiscount schema.
@@ -28,16 +29,26 @@ type BillingInvoiceLineDiscount struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// LineID holds the value of the "line_id" field.
-	LineID string `json:"line_id,omitempty"`
+	// Type holds the value of the "type" field.
+	Type billing.LineDiscountType `json:"type,omitempty"`
 	// Reason holds the value of the "reason" field.
 	Reason billing.LineDiscountReason `json:"reason,omitempty"`
+	// LineID holds the value of the "line_id" field.
+	LineID string `json:"line_id,omitempty"`
 	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
 	ChildUniqueReferenceID *string `json:"child_unique_reference_id,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
 	// Amount holds the value of the "amount" field.
-	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
+	Amount *alpacadecimal.Decimal `json:"amount,omitempty"`
+	// RoundingAmount holds the value of the "rounding_amount" field.
+	RoundingAmount *alpacadecimal.Decimal `json:"rounding_amount,omitempty"`
+	// Quantity holds the value of the "quantity" field.
+	Quantity *alpacadecimal.Decimal `json:"quantity,omitempty"`
+	// PreLinePeriodQuantity holds the value of the "pre_line_period_quantity" field.
+	PreLinePeriodQuantity *alpacadecimal.Decimal `json:"pre_line_period_quantity,omitempty"`
+	// SourceDiscount holds the value of the "source_discount" field.
+	SourceDiscount *productcatalog.Discount `json:"source_discount,omitempty"`
 	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
 	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -71,12 +82,14 @@ func (*BillingInvoiceLineDiscount) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoicelinediscount.FieldAmount:
-			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoicelinediscount.FieldID, billinginvoicelinediscount.FieldNamespace, billinginvoicelinediscount.FieldLineID, billinginvoicelinediscount.FieldReason, billinginvoicelinediscount.FieldChildUniqueReferenceID, billinginvoicelinediscount.FieldDescription, billinginvoicelinediscount.FieldInvoicingAppExternalID:
+		case billinginvoicelinediscount.FieldAmount, billinginvoicelinediscount.FieldRoundingAmount, billinginvoicelinediscount.FieldQuantity, billinginvoicelinediscount.FieldPreLinePeriodQuantity:
+			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
+		case billinginvoicelinediscount.FieldID, billinginvoicelinediscount.FieldNamespace, billinginvoicelinediscount.FieldType, billinginvoicelinediscount.FieldReason, billinginvoicelinediscount.FieldLineID, billinginvoicelinediscount.FieldChildUniqueReferenceID, billinginvoicelinediscount.FieldDescription, billinginvoicelinediscount.FieldInvoicingAppExternalID:
 			values[i] = new(sql.NullString)
 		case billinginvoicelinediscount.FieldCreatedAt, billinginvoicelinediscount.FieldUpdatedAt, billinginvoicelinediscount.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
+		case billinginvoicelinediscount.FieldSourceDiscount:
+			values[i] = billinginvoicelinediscount.ValueScanner.SourceDiscount.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -123,17 +136,23 @@ func (bild *BillingInvoiceLineDiscount) assignValues(columns []string, values []
 				bild.DeletedAt = new(time.Time)
 				*bild.DeletedAt = value.Time
 			}
-		case billinginvoicelinediscount.FieldLineID:
+		case billinginvoicelinediscount.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field line_id", values[i])
+				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				bild.LineID = value.String
+				bild.Type = billing.LineDiscountType(value.String)
 			}
 		case billinginvoicelinediscount.FieldReason:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field reason", values[i])
 			} else if value.Valid {
 				bild.Reason = billing.LineDiscountReason(value.String)
+			}
+		case billinginvoicelinediscount.FieldLineID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field line_id", values[i])
+			} else if value.Valid {
+				bild.LineID = value.String
 			}
 		case billinginvoicelinediscount.FieldChildUniqueReferenceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -150,10 +169,38 @@ func (bild *BillingInvoiceLineDiscount) assignValues(columns []string, values []
 				*bild.Description = value.String
 			}
 		case billinginvoicelinediscount.FieldAmount:
-			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
-			} else if value != nil {
-				bild.Amount = *value
+			} else if value.Valid {
+				bild.Amount = new(alpacadecimal.Decimal)
+				*bild.Amount = *value.S.(*alpacadecimal.Decimal)
+			}
+		case billinginvoicelinediscount.FieldRoundingAmount:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field rounding_amount", values[i])
+			} else if value.Valid {
+				bild.RoundingAmount = new(alpacadecimal.Decimal)
+				*bild.RoundingAmount = *value.S.(*alpacadecimal.Decimal)
+			}
+		case billinginvoicelinediscount.FieldQuantity:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field quantity", values[i])
+			} else if value.Valid {
+				bild.Quantity = new(alpacadecimal.Decimal)
+				*bild.Quantity = *value.S.(*alpacadecimal.Decimal)
+			}
+		case billinginvoicelinediscount.FieldPreLinePeriodQuantity:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field pre_line_period_quantity", values[i])
+			} else if value.Valid {
+				bild.PreLinePeriodQuantity = new(alpacadecimal.Decimal)
+				*bild.PreLinePeriodQuantity = *value.S.(*alpacadecimal.Decimal)
+			}
+		case billinginvoicelinediscount.FieldSourceDiscount:
+			if value, err := billinginvoicelinediscount.ValueScanner.SourceDiscount.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				bild.SourceDiscount = value
 			}
 		case billinginvoicelinediscount.FieldInvoicingAppExternalID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -217,11 +264,14 @@ func (bild *BillingInvoiceLineDiscount) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("line_id=")
-	builder.WriteString(bild.LineID)
+	builder.WriteString("type=")
+	builder.WriteString(fmt.Sprintf("%v", bild.Type))
 	builder.WriteString(", ")
 	builder.WriteString("reason=")
 	builder.WriteString(fmt.Sprintf("%v", bild.Reason))
+	builder.WriteString(", ")
+	builder.WriteString("line_id=")
+	builder.WriteString(bild.LineID)
 	builder.WriteString(", ")
 	if v := bild.ChildUniqueReferenceID; v != nil {
 		builder.WriteString("child_unique_reference_id=")
@@ -233,8 +283,30 @@ func (bild *BillingInvoiceLineDiscount) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("amount=")
-	builder.WriteString(fmt.Sprintf("%v", bild.Amount))
+	if v := bild.Amount; v != nil {
+		builder.WriteString("amount=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := bild.RoundingAmount; v != nil {
+		builder.WriteString("rounding_amount=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := bild.Quantity; v != nil {
+		builder.WriteString("quantity=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := bild.PreLinePeriodQuantity; v != nil {
+		builder.WriteString("pre_line_period_quantity=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := bild.SourceDiscount; v != nil {
+		builder.WriteString("source_discount=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := bild.InvoicingAppExternalID; v != nil {
 		builder.WriteString("invoicing_app_external_id=")

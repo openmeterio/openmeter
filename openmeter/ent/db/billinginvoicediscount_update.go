@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -117,15 +118,15 @@ func (bidu *BillingInvoiceDiscountUpdate) SetNillableInvoiceID(s *string) *Billi
 }
 
 // SetType sets the "type" field.
-func (bidu *BillingInvoiceDiscountUpdate) SetType(s string) *BillingInvoiceDiscountUpdate {
-	bidu.mutation.SetType(s)
+func (bidu *BillingInvoiceDiscountUpdate) SetType(bdt billing.LineDiscountType) *BillingInvoiceDiscountUpdate {
+	bidu.mutation.SetType(bdt)
 	return bidu
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (bidu *BillingInvoiceDiscountUpdate) SetNillableType(s *string) *BillingInvoiceDiscountUpdate {
-	if s != nil {
-		bidu.SetType(*s)
+func (bidu *BillingInvoiceDiscountUpdate) SetNillableType(bdt *billing.LineDiscountType) *BillingInvoiceDiscountUpdate {
+	if bdt != nil {
+		bidu.SetType(*bdt)
 	}
 	return bidu
 }
@@ -203,7 +204,20 @@ func (bidu *BillingInvoiceDiscountUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (bidu *BillingInvoiceDiscountUpdate) check() error {
+	if v, ok := bidu.mutation.GetType(); ok {
+		if err := billinginvoicediscount.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceDiscount.type": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (bidu *BillingInvoiceDiscountUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := bidu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoicediscount.Table, billinginvoicediscount.Columns, sqlgraph.NewFieldSpec(billinginvoicediscount.FieldID, field.TypeString))
 	if ps := bidu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -240,7 +254,7 @@ func (bidu *BillingInvoiceDiscountUpdate) sqlSave(ctx context.Context) (n int, e
 		_spec.SetField(billinginvoicediscount.FieldInvoiceID, field.TypeString, value)
 	}
 	if value, ok := bidu.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicediscount.FieldType, field.TypeString, value)
+		_spec.SetField(billinginvoicediscount.FieldType, field.TypeEnum, value)
 	}
 	if value, ok := bidu.mutation.Amount(); ok {
 		_spec.SetField(billinginvoicediscount.FieldAmount, field.TypeOther, value)
@@ -363,15 +377,15 @@ func (biduo *BillingInvoiceDiscountUpdateOne) SetNillableInvoiceID(s *string) *B
 }
 
 // SetType sets the "type" field.
-func (biduo *BillingInvoiceDiscountUpdateOne) SetType(s string) *BillingInvoiceDiscountUpdateOne {
-	biduo.mutation.SetType(s)
+func (biduo *BillingInvoiceDiscountUpdateOne) SetType(bdt billing.LineDiscountType) *BillingInvoiceDiscountUpdateOne {
+	biduo.mutation.SetType(bdt)
 	return biduo
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (biduo *BillingInvoiceDiscountUpdateOne) SetNillableType(s *string) *BillingInvoiceDiscountUpdateOne {
-	if s != nil {
-		biduo.SetType(*s)
+func (biduo *BillingInvoiceDiscountUpdateOne) SetNillableType(bdt *billing.LineDiscountType) *BillingInvoiceDiscountUpdateOne {
+	if bdt != nil {
+		biduo.SetType(*bdt)
 	}
 	return biduo
 }
@@ -462,7 +476,20 @@ func (biduo *BillingInvoiceDiscountUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (biduo *BillingInvoiceDiscountUpdateOne) check() error {
+	if v, ok := biduo.mutation.GetType(); ok {
+		if err := billinginvoicediscount.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceDiscount.type": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (biduo *BillingInvoiceDiscountUpdateOne) sqlSave(ctx context.Context) (_node *BillingInvoiceDiscount, err error) {
+	if err := biduo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoicediscount.Table, billinginvoicediscount.Columns, sqlgraph.NewFieldSpec(billinginvoicediscount.FieldID, field.TypeString))
 	id, ok := biduo.mutation.ID()
 	if !ok {
@@ -516,7 +543,7 @@ func (biduo *BillingInvoiceDiscountUpdateOne) sqlSave(ctx context.Context) (_nod
 		_spec.SetField(billinginvoicediscount.FieldInvoiceID, field.TypeString, value)
 	}
 	if value, ok := biduo.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicediscount.FieldType, field.TypeString, value)
+		_spec.SetField(billinginvoicediscount.FieldType, field.TypeEnum, value)
 	}
 	if value, ok := biduo.mutation.Amount(); ok {
 		_spec.SetField(billinginvoicediscount.FieldAmount, field.TypeOther, value)

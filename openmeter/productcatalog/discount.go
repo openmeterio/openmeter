@@ -7,6 +7,7 @@ import (
 
 	decimal "github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/hasher"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -215,6 +216,21 @@ func (d *Discount) FromUsage(discount UsageDiscount) {
 	d.t = UsageDiscountType
 }
 
+func (d Discount) Equal(other Discount) bool {
+	if d.t != other.t {
+		return false
+	}
+
+	switch d.t {
+	case PercentageDiscountType:
+		return equal.HasherPtrEqual(d.percentage, other.percentage)
+	case UsageDiscountType:
+		return equal.HasherPtrEqual(d.usage, other.usage)
+	default:
+		return false
+	}
+}
+
 func NewDiscountFrom[T PercentageDiscount | UsageDiscount](v T) Discount {
 	d := Discount{}
 
@@ -349,12 +365,12 @@ func (d Discounts) Equal(v Discounts) bool {
 		return false
 	}
 
-	leftSet := make(map[uint64]struct{})
+	leftSet := make(map[hasher.Hash]struct{})
 	for _, discount := range d {
 		leftSet[discount.Hash()] = struct{}{}
 	}
 
-	rightSet := make(map[uint64]struct{})
+	rightSet := make(map[hasher.Hash]struct{})
 	for _, discount := range v {
 		rightSet[discount.Hash()] = struct{}{}
 	}

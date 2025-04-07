@@ -13,6 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type mapInvoiceLineFromDBInput struct {
@@ -208,23 +210,70 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 	}
 
 	if len(dbLine.Edges.LineDiscounts) > 0 {
-		invoiceLine.Discounts = lo.Map(dbLine.Edges.LineDiscounts, func(discount *db.BillingInvoiceLineDiscount, _ int) billing.LineDiscount {
-			return billing.LineDiscount{
-				ID:        discount.ID,
-				CreatedAt: discount.CreatedAt.In(time.UTC),
-				UpdatedAt: discount.UpdatedAt.In(time.UTC),
-				DeletedAt: convert.TimePtrIn(discount.DeletedAt, time.UTC),
+		var err error
 
-				Reason:                 discount.Reason,
-				Amount:                 discount.Amount,
-				Description:            discount.Description,
-				ChildUniqueReferenceID: discount.ChildUniqueReferenceID,
-				ExternalIDs: billing.LineExternalIDs{
-					Invoicing: lo.FromPtrOr(discount.InvoicingAppExternalID, ""),
-				},
-			}
+		invoiceLine.Discounts, err = slicesx.MapWithErr(dbLine.Edges.LineDiscounts, func(discount *db.BillingInvoiceLineDiscount) (billing.LineDiscount, error) {
+			return a.mapInvoiceLineDiscountFromDB(discount)
 		})
+		if err != nil {
+			return invoiceLine, fmt.Errorf("mapping invoice line discount[%s] failed: %w", dbLine.ID, err)
+		}
 	}
 
 	return invoiceLine, nil
+}
+
+func (a *adapter) mapInvoiceLineDiscountFromDB(dbDiscount *db.BillingInvoiceLineDiscount) (billing.LineDiscount, error) {
+	base := billing.LineDiscountBase{
+		Description:            dbDiscount.Description,
+		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
+		Reason:                 dbDiscount.Reason,
+		SourceDiscount:         dbDiscount.SourceDiscount,
+		ExternalIDs: billing.LineExternalIDs{
+			Invoicing: lo.FromPtrOr(dbDiscount.InvoicingAppExternalID, ""),
+		},
+	}
+
+	managed := billing.LineSetDiscountMangedFields{
+		ID: dbDiscount.ID,
+		ManagedModel: models.ManagedModel{
+			CreatedAt: dbDiscount.CreatedAt.In(time.UTC),
+			UpdatedAt: dbDiscount.UpdatedAt.In(time.UTC),
+			DeletedAt: convert.TimePtrIn(dbDiscount.DeletedAt, time.UTC),
+		},
+	}
+	switch dbDiscount.Type {
+	case billing.LineDiscountTypeAmount:
+		if dbDiscount.Amount == nil {
+			return nil, fmt.Errorf("mapping invoice line discount[%s] failed: amount is nil", dbDiscount.ID)
+		}
+
+		return billing.NewLineDiscountFrom(billing.AmountLineDiscountManaged{
+			LineSetDiscountMangedFields: managed,
+			AmountLineDiscount: billing.AmountLineDiscount{
+				LineDiscountBase: base,
+				Amount:           *dbDiscount.Amount,
+				RoundingAmount:   lo.FromPtrOr(dbDiscount.RoundingAmount, alpacadecimal.Zero),
+			},
+		}), nil
+	case billing.LineDiscountTypeUsage:
+		if dbDiscount.Quantity == nil {
+			return nil, fmt.Errorf("mapping invoice line discount[%s] failed: quantity is nil", dbDiscount.ID)
+		}
+
+		if dbDiscount.PreLinePeriodQuantity != nil {
+			return nil, fmt.Errorf("mapping invoice line discount[%s] failed: preLinePeriodQuantity is not nil", dbDiscount.ID)
+		}
+
+		return billing.NewLineDiscountFrom(billing.UsageLineDiscountManaged{
+			LineSetDiscountMangedFields: managed,
+			UsageLineDiscount: billing.UsageLineDiscount{
+				LineDiscountBase:      base,
+				Quantity:              *dbDiscount.Quantity,
+				PreLinePeriodQuantity: dbDiscount.PreLinePeriodQuantity,
+			},
+		}), nil
+	default:
+		return nil, fmt.Errorf("unsupported line discount type[%s]: %s", dbDiscount.ID, dbDiscount.Type)
+	}
 }

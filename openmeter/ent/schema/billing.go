@@ -511,13 +511,16 @@ func (BillingInvoiceLineDiscount) Mixin() []ent.Mixin {
 
 func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 	return []ent.Field{
+		field.Enum("type").
+			GoType(billing.LineDiscountType("")),
+
+		field.Enum("reason").
+			GoType(billing.LineDiscountReason("")),
+
 		field.String("line_id").
 			SchemaType(map[string]string{
 				"postgres": "char(26)",
 			}),
-
-		field.Enum("reason").
-			GoType(billing.LineDiscountReason("")),
 
 		field.String("child_unique_reference_id").
 			Optional().
@@ -530,7 +533,39 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 		field.Other("amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				"postgres": "numeric",
+			}).
+			Optional().
+			Nillable(),
+
+		field.Other("rounding_amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}).
+			Optional().
+			Nillable(),
+
+		field.Other("quantity", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}).
+			Optional().
+			Nillable(),
+
+		field.Other("pre_line_period_quantity", alpacadecimal.Decimal{}).
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				"postgres": "numeric",
 			}),
+
+		field.String("source_discount").
+			GoType(&productcatalog.Discount{}).
+			ValueScanner(DiscountValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
 
 		// ID of the line discount in the external invoicing app
 		// For example, Stripe invoice line item ID
@@ -579,7 +614,8 @@ func (BillingInvoiceDiscount) Fields() []ent.Field {
 				"postgres": "char(26)",
 			}),
 
-		field.String("type"),
+		field.Enum("type").
+			GoType(billing.LineDiscountType("")),
 
 		field.Other("amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{

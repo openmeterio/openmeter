@@ -231,7 +231,12 @@ func (l *usageBasedLine) CalculateDetailedLines() error {
 		return fmt.Errorf("detailed lines: %w", err)
 	}
 
-	l.line.Children = l.line.ChildrenWithIDReuse(detailedLines)
+	childrenWithIDReuse, err := l.line.ChildrenWithIDReuse(detailedLines)
+	if err != nil {
+		return fmt.Errorf("failed to reuse child IDs: %w", err)
+	}
+
+	l.line.Children = childrenWithIDReuse
 
 	return nil
 }
@@ -918,7 +923,7 @@ type newDetailedLineInput struct {
 	PaymentTerm productcatalog.PaymentTermType `json:"paymentTerm,omitempty"`
 	Category    billing.FlatFeeCategory        `json:"category,omitempty"`
 
-	Discounts []billing.LineDiscount `json:"discounts,omitempty"`
+	Discounts billing.LineDiscounts `json:"discounts,omitempty"`
 }
 
 func (i newDetailedLineInput) Validate() error {
@@ -944,9 +949,7 @@ func (i newDetailedLineInput) Validate() error {
 func (i newDetailedLineInput) TotalAmount(currency currencyx.Calculator) alpacadecimal.Decimal {
 	total := currency.RoundToPrecision(i.PerUnitAmount.Mul(i.Quantity))
 
-	for _, discount := range i.Discounts {
-		total = total.Sub(currency.RoundToPrecision(discount.Amount))
-	}
+	total = total.Sub(i.Discounts.SumAmount(currency))
 
 	return total
 }
@@ -973,22 +976,26 @@ func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDeta
 
 	if totalBillableAmount.GreaterThanOrEqual(normalizedMaxSpend) && in.BilledAmountBeforeLine.GreaterThanOrEqual(normalizedMaxSpend) {
 		// 100% discount
-		i.Discounts = append(i.Discounts, billing.LineDiscount{
-			Amount:                 lineTotal,
-			Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
-			ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-			Reason:                 billing.LineDiscountReasonMaximumSpend,
-		})
+		i.Discounts = append(i.Discounts, billing.NewLineDiscountFrom(billing.AmountLineDiscount{
+			Amount: lineTotal,
+			LineDiscountBase: billing.LineDiscountBase{
+				Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
+				ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+				Reason:                 billing.LineDiscountReasonMaximumSpend,
+			},
+		}))
 		return i
 	}
 
 	discountAmount := totalBillableAmount.Sub(normalizedMaxSpend)
-	i.Discounts = append(i.Discounts, billing.LineDiscount{
-		Amount:                 discountAmount,
-		Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
-		ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-		Reason:                 billing.LineDiscountReasonMaximumSpend,
-	})
+	i.Discounts = append(i.Discounts, billing.NewLineDiscountFrom(billing.AmountLineDiscount{
+		Amount: discountAmount,
+		LineDiscountBase: billing.LineDiscountBase{
+			Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
+			ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+			Reason:                 billing.LineDiscountReasonMaximumSpend,
+		},
+	}))
 
 	return i
 }

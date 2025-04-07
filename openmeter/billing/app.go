@@ -212,21 +212,21 @@ func MergeUpsertInvoiceResult(invoice *Invoice, result *UpsertInvoiceResult) err
 			}
 		}
 
-		// Build a map of line discounts
-		discountMap := map[string]*LineDiscount{}
+		// Let's merge the line discount IDs
+		dicountIDToExternalID := result.GetLineDiscountExternalIDs()
 
 		for _, line := range flattenedLines {
 			for idx, discount := range line.Discounts {
-				discountMap[discount.ID] = &line.Discounts[idx]
-			}
-		}
+				discountID := discount.GetID()
 
-		// Merge the line discount IDs
-		for lineDiscountID, externalID := range result.GetLineDiscountExternalIDs() {
-			if lineDiscount, ok := discountMap[lineDiscountID]; ok {
-				lineDiscount.ExternalIDs.Invoicing = externalID
-			} else {
-				outErr = errors.Join(outErr, fmt.Errorf("line discount not found in invoice: %s", lineDiscountID))
+				if externalID, ok := dicountIDToExternalID[discountID]; ok {
+					updatedDiscount, err := discount.Mutate(SetDiscountInvoicingExternalID(externalID))
+					if err != nil {
+						outErr = errors.Join(outErr, fmt.Errorf("failed to set invoicing external ID for line discount %s: %w", discountID, err))
+					}
+
+					line.Discounts[idx] = updatedDiscount
+				}
 			}
 		}
 	}

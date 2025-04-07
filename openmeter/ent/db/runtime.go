@@ -512,6 +512,9 @@ func init() {
 	billinginvoicelinediscount.DefaultUpdatedAt = billinginvoicelinediscountDescUpdatedAt.Default.(func() time.Time)
 	// billinginvoicelinediscount.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	billinginvoicelinediscount.UpdateDefaultUpdatedAt = billinginvoicelinediscountDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billinginvoicelinediscountDescSourceDiscount is the schema descriptor for source_discount field.
+	billinginvoicelinediscountDescSourceDiscount := billinginvoicelinediscountFields[9].Descriptor()
+	billinginvoicelinediscount.ValueScanner.SourceDiscount = billinginvoicelinediscountDescSourceDiscount.ValueScanner.(field.TypeValueScanner[*productcatalog.Discount])
 	// billinginvoicelinediscountDescID is the schema descriptor for id field.
 	billinginvoicelinediscountDescID := billinginvoicelinediscountMixinFields0[0].Descriptor()
 	// billinginvoicelinediscount.DefaultID holds the default value on creation for the id field.
