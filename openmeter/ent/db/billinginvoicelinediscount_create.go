@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 )
@@ -76,6 +77,12 @@ func (bildc *BillingInvoiceLineDiscountCreate) SetNillableDeletedAt(t *time.Time
 // SetLineID sets the "line_id" field.
 func (bildc *BillingInvoiceLineDiscountCreate) SetLineID(s string) *BillingInvoiceLineDiscountCreate {
 	bildc.mutation.SetLineID(s)
+	return bildc
+}
+
+// SetReason sets the "reason" field.
+func (bildc *BillingInvoiceLineDiscountCreate) SetReason(bdr billing.LineDiscountReason) *BillingInvoiceLineDiscountCreate {
+	bildc.mutation.SetReason(bdr)
 	return bildc
 }
 
@@ -220,6 +227,14 @@ func (bildc *BillingInvoiceLineDiscountCreate) check() error {
 	if _, ok := bildc.mutation.LineID(); !ok {
 		return &ValidationError{Name: "line_id", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.line_id"`)}
 	}
+	if _, ok := bildc.mutation.Reason(); !ok {
+		return &ValidationError{Name: "reason", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.reason"`)}
+	}
+	if v, ok := bildc.mutation.Reason(); ok {
+		if err := billinginvoicelinediscount.ReasonValidator(v); err != nil {
+			return &ValidationError{Name: "reason", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.reason": %w`, err)}
+		}
+	}
 	if _, ok := bildc.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.amount"`)}
 	}
@@ -277,6 +292,10 @@ func (bildc *BillingInvoiceLineDiscountCreate) createSpec() (*BillingInvoiceLine
 	if value, ok := bildc.mutation.DeletedAt(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if value, ok := bildc.mutation.Reason(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldReason, field.TypeEnum, value)
+		_node.Reason = value
 	}
 	if value, ok := bildc.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString, value)
@@ -402,6 +421,18 @@ func (u *BillingInvoiceLineDiscountUpsert) SetLineID(v string) *BillingInvoiceLi
 // UpdateLineID sets the "line_id" field to the value that was provided on create.
 func (u *BillingInvoiceLineDiscountUpsert) UpdateLineID() *BillingInvoiceLineDiscountUpsert {
 	u.SetExcluded(billinginvoicelinediscount.FieldLineID)
+	return u
+}
+
+// SetReason sets the "reason" field.
+func (u *BillingInvoiceLineDiscountUpsert) SetReason(v billing.LineDiscountReason) *BillingInvoiceLineDiscountUpsert {
+	u.Set(billinginvoicelinediscount.FieldReason, v)
+	return u
+}
+
+// UpdateReason sets the "reason" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsert) UpdateReason() *BillingInvoiceLineDiscountUpsert {
+	u.SetExcluded(billinginvoicelinediscount.FieldReason)
 	return u
 }
 
@@ -571,6 +602,20 @@ func (u *BillingInvoiceLineDiscountUpsertOne) SetLineID(v string) *BillingInvoic
 func (u *BillingInvoiceLineDiscountUpsertOne) UpdateLineID() *BillingInvoiceLineDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
 		s.UpdateLineID()
+	})
+}
+
+// SetReason sets the "reason" field.
+func (u *BillingInvoiceLineDiscountUpsertOne) SetReason(v billing.LineDiscountReason) *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.SetReason(v)
+	})
+}
+
+// UpdateReason sets the "reason" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsertOne) UpdateReason() *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.UpdateReason()
 	})
 }
 
@@ -918,6 +963,20 @@ func (u *BillingInvoiceLineDiscountUpsertBulk) SetLineID(v string) *BillingInvoi
 func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateLineID() *BillingInvoiceLineDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
 		s.UpdateLineID()
+	})
+}
+
+// SetReason sets the "reason" field.
+func (u *BillingInvoiceLineDiscountUpsertBulk) SetReason(v billing.LineDiscountReason) *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.SetReason(v)
+	})
+}
+
+// UpdateReason sets the "reason" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateReason() *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.UpdateReason()
 	})
 }
 

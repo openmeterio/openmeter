@@ -4752,6 +4752,11 @@ export interface components {
       /** @description Invoice a gathering invoice */
       readonly invoice?: components['schemas']['InvoiceAvailableActionInvoiceDetails']
     }
+    /**
+     * @description Reason code.
+     * @enum {string}
+     */
+    InvoiceDiscountReason: 'maximum_spend' | 'ratecard_discount'
     /** @description InvoiceDocumentRef is used to describe a reference to an existing document (invoice). */
     InvoiceDocumentRef: components['schemas']['CreditNoteOriginalInvoiceRef']
     /**
@@ -5108,9 +5113,13 @@ export interface components {
        */
       readonly id: string
       /** @description Reason code. */
-      readonly code?: string
+      readonly reason: components['schemas']['InvoiceDiscountReason']
       /** @description Text description as to why the discount was applied. */
       readonly description?: string
+      /** @description External IDs of the invoice in other apps such as Stripe. */
+      readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
+      /** @description The discount from the rate card this discount is based on. */
+      readonly rateCardDiscount?: components['schemas']['Discount']
       /**
        * Amount in the currency of the invoice
        * @description Fixed discount amount to apply (calculated if percent present).
@@ -5121,10 +5130,6 @@ export interface components {
        * @enum {string}
        */
       type: 'amount'
-      /** @description The discount from the rate card this discount is based on. */
-      readonly rateCardDiscount?: components['schemas']['Discount']
-      /** @description External IDs of the invoice in other apps such as Stripe. */
-      readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
     }
     /** @description InvoiceLineDiscountUsage represents an usage-based discount applied to the line.
      *
@@ -5157,9 +5162,13 @@ export interface components {
        */
       readonly id: string
       /** @description Reason code. */
-      readonly code?: string
+      readonly reason: components['schemas']['InvoiceDiscountReason']
       /** @description Text description as to why the discount was applied. */
       readonly description?: string
+      /** @description External IDs of the invoice in other apps such as Stripe. */
+      readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
+      /** @description The discount from the rate card this discount is based on. */
+      readonly rateCardDiscount?: components['schemas']['Discount']
       /**
        * Usage quantity in the unit of the underlying meter
        * @description The usage to apply.
@@ -5177,8 +5186,6 @@ export interface components {
        * @enum {string}
        */
       type: 'usage'
-      /** @description The discount from the rate card this discount is based on. */
-      readonly rateCardDiscount?: components['schemas']['Discount']
     }
     /**
      * @description InvoiceLineManagedBy specifies who manages the line.
@@ -9030,6 +9037,8 @@ export type InvoiceAvailableActionInvoiceDetails =
   components['schemas']['InvoiceAvailableActionInvoiceDetails']
 export type InvoiceAvailableActions =
   components['schemas']['InvoiceAvailableActions']
+export type InvoiceDiscountReason =
+  components['schemas']['InvoiceDiscountReason']
 export type InvoiceDocumentRef = components['schemas']['InvoiceDocumentRef']
 export type InvoiceDocumentRefType =
   components['schemas']['InvoiceDocumentRefType']

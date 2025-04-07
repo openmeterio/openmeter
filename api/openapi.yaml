@@ -13887,6 +13887,12 @@ components:
           description: Invoice a gathering invoice
           readOnly: true
       description: InvoiceAvailableActions represents the actions that can be performed on the invoice.
+    InvoiceDiscountReason:
+      type: string
+      enum:
+        - maximum_spend
+        - ratecard_discount
+      description: Reason code.
     InvoiceDocumentRef:
       type: object
       allOf:
@@ -14350,6 +14356,7 @@ components:
         - createdAt
         - updatedAt
         - id
+        - reason
         - amount
         - type
       properties:
@@ -14380,13 +14387,24 @@ components:
           description: ID of the charge or discount.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
-        code:
-          type: string
+        reason:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceDiscountReason'
           description: Reason code.
           readOnly: true
         description:
           type: string
           description: Text description as to why the discount was applied.
+          readOnly: true
+        externalIds:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+        rateCardDiscount:
+          allOf:
+            - $ref: '#/components/schemas/Discount'
+          description: The discount from the rate card this discount is based on.
           readOnly: true
         amount:
           allOf:
@@ -14400,16 +14418,6 @@ components:
             - amount
           description: The type of the discount.
           readOnly: true
-        rateCardDiscount:
-          allOf:
-            - $ref: '#/components/schemas/Discount'
-          description: The discount from the rate card this discount is based on.
-          readOnly: true
-        externalIds:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
-          description: External IDs of the invoice in other apps such as Stripe.
-          readOnly: true
       description: InvoiceLineDiscountAmount represents an amount deducted from the line, and will be applied before taxes.
     InvoiceLineDiscountUsage:
       type: object
@@ -14417,6 +14425,7 @@ components:
         - createdAt
         - updatedAt
         - id
+        - reason
         - quantity
         - type
       properties:
@@ -14447,13 +14456,24 @@ components:
           description: ID of the charge or discount.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
-        code:
-          type: string
+        reason:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceDiscountReason'
           description: Reason code.
           readOnly: true
         description:
           type: string
           description: Text description as to why the discount was applied.
+          readOnly: true
+        externalIds:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+        rateCardDiscount:
+          allOf:
+            - $ref: '#/components/schemas/Discount'
+          description: The discount from the rate card this discount is based on.
           readOnly: true
         quantity:
           allOf:
@@ -14475,11 +14495,6 @@ components:
           enum:
             - usage
           description: The type of the discount.
-          readOnly: true
-        rateCardDiscount:
-          allOf:
-            - $ref: '#/components/schemas/Discount'
-          description: The discount from the rate card this discount is based on.
           readOnly: true
       description: |-
         InvoiceLineDiscountUsage represents an usage-based discount applied to the line.

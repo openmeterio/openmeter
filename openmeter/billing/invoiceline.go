@@ -726,6 +726,20 @@ func (i UsageBasedLine) Validate() error {
 	return errors.Join(errs...)
 }
 
+type LineDiscountReason string
+
+const (
+	LineDiscountReasonMaximumSpend     LineDiscountReason = "maximum_spend"
+	LineDiscountReasonRatecardDiscount LineDiscountReason = "ratecard_discount"
+)
+
+func (LineDiscountReason) Values() []string {
+	return []string{
+		string(LineDiscountReasonMaximumSpend),
+		string(LineDiscountReasonRatecardDiscount),
+	}
+}
+
 const (
 	// LineMaximumSpendReferenceID is a discount applied due to maximum spend.
 	LineMaximumSpendReferenceID = "line_maximum_spend"
@@ -737,6 +751,7 @@ type LineDiscount struct {
 	UpdatedAt time.Time  `json:"updatedAt"`
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
+	Reason                 LineDiscountReason    `json:"reason"`
 	Amount                 alpacadecimal.Decimal `json:"amount"`
 	Description            *string               `json:"description,omitempty"`
 	ChildUniqueReferenceID *string               `json:"childUniqueReferenceId,omitempty"`
