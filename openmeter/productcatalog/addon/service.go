@@ -173,7 +173,7 @@ func (i UpdateAddonInput) Equal(p Addon) bool {
 		return false
 	}
 
-	if i.RateCards != nil && !i.RateCards.Equal(p.RateCards) {
+	if i.RateCards != nil && !i.RateCards.Equal(p.RateCards.AsProductCatalogRateCards()) {
 		return false
 	}
 

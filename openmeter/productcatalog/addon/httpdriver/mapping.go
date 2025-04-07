@@ -32,7 +32,7 @@ func FromAddon(a addon.Addon) (api.Addon, error) {
 	}
 
 	resp.RateCards = make([]api.RateCard, 0, len(a.RateCards))
-	for _, rateCard := range a.RateCards {
+	for _, rateCard := range a.RateCards.AsProductCatalogRateCards() {
 		rc, err := http.FromRateCard(rateCard)
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast ratecard: %w", err)

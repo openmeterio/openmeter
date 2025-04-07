@@ -587,7 +587,7 @@ func (s service) NextAddon(ctx context.Context, params addon.NextAddonInput) (*a
 					Description: sourceAddon.Description,
 					Currency:    sourceAddon.Currency,
 				},
-				RateCards: sourceAddon.RateCards,
+				RateCards: sourceAddon.RateCards.AsProductCatalogRateCards(),
 			},
 		})
 		if err != nil {
