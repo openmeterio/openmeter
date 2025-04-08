@@ -180,7 +180,7 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 }
 
 func SubscriptionAddonsEqual(t *testing.T, a1, a2 subscriptionaddon.SubscriptionAddon) {
-	assert.Equal(t, a1.AddonID, a2.AddonID)
+	assert.Equal(t, a1.Addon.ID, a2.Addon.ID) // TODO: check all fields?
 	assert.Equal(t, a1.SubscriptionID, a2.SubscriptionID)
 	assert.Equal(t, a1.Metadata, a2.Metadata)
 	assert.Equal(t, a1.RateCards, a2.RateCards)

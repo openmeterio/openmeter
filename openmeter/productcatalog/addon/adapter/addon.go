@@ -138,7 +138,7 @@ func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) 
 				continue
 			}
 
-			p, err := fromAddonRow(*item)
+			p, err := FromAddonRow(*item)
 			if err != nil {
 				return response, fmt.Errorf("failed to cast add-on: %w", err)
 			}
@@ -209,7 +209,7 @@ func (a *adapter) CreateAddon(ctx context.Context, params addon.CreateAddonInput
 			return nil, fmt.Errorf("failed to create add-on [namespace=%s]: %w", params.Namespace, err)
 		}
 
-		add, err := fromAddonRow(*addonRow)
+		add, err := FromAddonRow(*addonRow)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast add-on [namespace=%s id:%s]: %w", params.Namespace, addonRow.ID, err)
 		}
@@ -392,7 +392,7 @@ func (a *adapter) GetAddon(ctx context.Context, params addon.GetAddonInput) (*ad
 			return nil, fmt.Errorf("invalid query result: nil add-on received")
 		}
 
-		add, err := fromAddonRow(*addonRow)
+		add, err := FromAddonRow(*addonRow)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast add-on: %w", err)
 		}
@@ -501,7 +501,7 @@ func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput
 			return nil, fmt.Errorf("failed to update add-on [namespace=%s]: %w", params.Namespace, err)
 		}
 
-		add, err = fromAddonRow(*addonRow)
+		add, err = FromAddonRow(*addonRow)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast updated add-on [namespace=%s id:%s]: %w", params.Namespace, addonRow.ID, err)
 		}

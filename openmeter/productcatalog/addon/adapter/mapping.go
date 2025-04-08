@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func fromAddonRow(a entdb.Addon) (*addon.Addon, error) {
+func FromAddonRow(a entdb.Addon) (*addon.Addon, error) {
 	aa := &addon.Addon{
 		NamespacedID: models.NamespacedID{
 			Namespace: a.Namespace,

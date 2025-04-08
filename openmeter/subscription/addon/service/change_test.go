@@ -49,7 +49,7 @@ func TestAddonServiceChangeQuantity(t *testing.T) {
 			add, err := deps.AddonService.GetAddon(context.Background(), addon.GetAddonInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: subAdd.Namespace,
-					ID:        subAdd.AddonID,
+					ID:        subAdd.Addon.ID,
 				},
 			})
 			require.NoError(t, err)

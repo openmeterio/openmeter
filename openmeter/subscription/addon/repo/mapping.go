@@ -29,14 +29,19 @@ func MapSubscriptionAddon(
 		MetadataModel: models.MetadataModel{
 			Metadata: entity.Metadata,
 		},
-		AddonID:        entity.AddonID,
 		SubscriptionID: entity.SubscriptionID,
 	}
 
 	if entity.Edges.Addon != nil {
-		add := entity.Edges.Addon
-		base.Name = add.Name
-		base.Description = add.Description
+		dbAdd := entity.Edges.Addon
+		base.Name = dbAdd.Name
+		base.Description = dbAdd.Description
+
+		add, err := addonrepo.FromAddonRow(*dbAdd)
+		if err != nil {
+			return subscriptionaddon.SubscriptionAddon{}, err
+		}
+		base.Addon = *add
 	}
 
 	if len(entity.Edges.Quantities) > 0 {

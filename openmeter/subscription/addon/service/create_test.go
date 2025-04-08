@@ -359,7 +359,7 @@ func TestAddonServiceCreate(t *testing.T) {
 			require.Nil(t, err)
 
 			t.Run("Should create addon as specified", func(t *testing.T) {
-				require.Equal(t, subAddonInp.AddonID, subAdd1.AddonID)
+				require.Equal(t, subAddonInp.AddonID, subAdd1.Addon.ID)
 				require.Equal(t, subAddonInp.SubscriptionID, subAdd1.SubscriptionID)
 				require.Len(t, subAdd1.RateCards, 1)
 				require.Equal(t, subAddonInp.RateCards[0].AddonRateCardID, subAdd1.RateCards[0].AddonRateCard.ID)
