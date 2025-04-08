@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 

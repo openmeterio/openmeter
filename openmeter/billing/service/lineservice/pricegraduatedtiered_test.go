@@ -5,12 +5,13 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
-	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func TestTieredGraduatedCalculation(t *testing.T) {

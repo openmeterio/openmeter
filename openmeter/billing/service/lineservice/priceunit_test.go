@@ -4,9 +4,10 @@ import (
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/samber/lo"
 )
 
 func TestUnitPriceCalculation(t *testing.T) {

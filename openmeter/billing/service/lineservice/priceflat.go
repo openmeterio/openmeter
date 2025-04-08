@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -31,7 +33,7 @@ func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 				PaymentTerm:            productcatalog.InAdvancePaymentTerm,
 			},
 		}, nil
-	case flatPrice.PaymentTerm != productcatalog.InAdvancePaymentTerm && l.IsLastInPeriod():
+	case flatPrice.PaymentTerm == productcatalog.InArrearsPaymentTerm && l.IsLastInPeriod():
 		return newDetailedLinesInput{
 			{
 				Name:                   l.line.Name,
@@ -41,7 +43,9 @@ func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			},
 		}, nil
+	default:
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("flat price payment term %s is not supported", flatPrice.PaymentTerm),
+		}
 	}
-
-	return nil, nil
 }

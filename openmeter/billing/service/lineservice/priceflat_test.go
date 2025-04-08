@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 

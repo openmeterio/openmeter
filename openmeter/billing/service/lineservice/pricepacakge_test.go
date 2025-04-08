@@ -4,10 +4,11 @@ import (
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 func TestPackagePriceCalculation(t *testing.T) {
