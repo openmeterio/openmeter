@@ -24,7 +24,7 @@ func (s service) ListAddons(ctx context.Context, params addon.ListAddonsInput) (
 		return s.adapter.ListAddons(ctx, params)
 	}
 
-	return transaction.Run(ctx, s.adapter, fn)
+	return fn(ctx)
 }
 
 func (s service) expandFeatures(ctx context.Context, namespace string, rateCards *productcatalog.RateCards) error {
@@ -246,7 +246,7 @@ func (s service) GetAddon(ctx context.Context, params addon.GetAddonInput) (*add
 		return aa, nil
 	}
 
-	return transaction.Run(ctx, s.adapter, fn)
+	return fn(ctx)
 }
 
 func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput) (*addon.Addon, error) {
