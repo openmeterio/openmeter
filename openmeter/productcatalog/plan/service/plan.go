@@ -91,10 +91,6 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 
 		// Check if there is already a Plan with the same Key
 		allVersions, err := s.adapter.ListPlans(ctx, plan.ListPlansInput{
-			Page: pagination.Page{
-				PageSize:   1000,
-				PageNumber: 1,
-			},
 			OrderBy:        plan.OrderByVersion,
 			Order:          plan.OrderAsc,
 			Namespaces:     []string{params.Namespace},
