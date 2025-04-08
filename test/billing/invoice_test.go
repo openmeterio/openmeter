@@ -1808,20 +1808,19 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.Len(s.T(), invoice.ValidationIssues, 0)
 
 		invoiceLines := invoice.Lines.MustGet()
-		require.Len(s.T(), invoiceLines, 3)
+		require.Len(s.T(), invoiceLines, 2)
 
 		// Let's resolve the lines by parent
 		flatPerUnit := s.lineWithParent(invoiceLines, lines.flatPerUnit.ID)
-		flatPerUsage := s.lineWithParent(invoiceLines, lines.flatPerUsage.ID)
 		tieredGraduated := s.lineWithParent(invoiceLines, lines.tieredGraduated.ID)
 
 		// The invoice should not have:
 		// - the volume item as that must be invoiced in arreas
-		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billing.Line, _ int) string {
+		// - the flat per usage item as that is invoiced in arreas (no pro-rating)
+		require.ElementsMatch(s.T(), lo.Map(invoiceLines, func(l *billing.Line, _ int) string {
 			return l.ID
 		}), []string{
 			flatPerUnit.ID,
-			flatPerUsage.ID,
 			tieredGraduated.ID,
 		})
 
@@ -1949,7 +1948,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 			require.Error(s.T(), err)
 			require.ErrorAs(s.T(), err, &billing.ValidationError{})
-			require.ErrorIs(s.T(), err, billing.ErrInvoiceLinesNotBillable)
+			require.ErrorIs(s.T(), err, billing.ErrInvoiceProgressiveBillingNotSupported)
 		})
 
 		s.Run("deleting a valid line item worked", func() {
@@ -1968,7 +1967,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			})
 			require.NoError(s.T(), err)
 
-			require.Len(s.T(), updatedInvoice.Lines.MustGet(), 3)
+			require.Len(s.T(), updatedInvoice.Lines.MustGet(), 2)
 
 			deletedLine := updatedInvoice.Lines.GetByID(flatPerUnit.ID)
 			require.NotNil(s.T(), deletedLine)
@@ -2106,20 +2105,19 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		invoiceLines := out[0].Lines.MustGet()
 
-		require.Len(s.T(), invoiceLines, 3)
+		require.Len(s.T(), invoiceLines, 2)
 
 		// Let's resolve the lines by parent
 		flatPerUnit := s.lineWithParent(invoiceLines, lines.flatPerUnit.ID)
-		flatPerUsage := s.lineWithParent(invoiceLines, lines.flatPerUsage.ID)
 		tieredGraduated := s.lineWithParent(invoiceLines, lines.tieredGraduated.ID)
 
 		// The invoice should not have:
 		// - the volume item as that must be invoiced in arreas
-		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billing.Line, _ int) string {
+		// - the flat per usage item as that is invoiced in arreas (no pro-rating)
+		require.ElementsMatch(s.T(), lo.Map(invoiceLines, func(l *billing.Line, _ int) string {
 			return l.ID
 		}), []string{
 			flatPerUnit.ID,
-			flatPerUsage.ID,
 			tieredGraduated.ID,
 		})
 
@@ -2289,17 +2287,22 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		invoiceLines := out[0].Lines.MustGet()
 
+		s.DebugDumpInvoice("end of period invoice", out[0])
+
 		require.Len(s.T(), invoiceLines, 4)
 
 		// Let's resolve the lines by parent
 		flatPerUnit := s.lineWithParent(invoiceLines, lines.flatPerUnit.ID)
-		flatPerUsage := s.lineWithParent(invoiceLines, lines.flatPerUsage.ID)
 		tieredGraduated := s.lineWithParent(invoiceLines, lines.tieredGraduated.ID)
 		tieredVolume, tieredVolumeFound := lo.Find(invoiceLines, func(l *billing.Line) bool {
 			return l.ID == lines.tieredVolume.ID
 		})
 		require.True(s.T(), tieredVolumeFound, "tiered volume line should be present")
 		require.Equal(s.T(), tieredVolume.ID, lines.tieredVolume.ID, "tiered volume line should be the same (no split occurred)")
+
+		// Flat prices are not yet pro-rated, thus there will be no parent, the original line will be
+		// reused
+		flatPerUsage := s.lineByID(invoiceLines, lines.flatPerUsage.ID)
 
 		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billing.Line, _ int) string {
 			return l.ID
@@ -2314,10 +2317,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			Start: periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}
-		for _, line := range []*billing.Line{flatPerUnit, flatPerUsage, tieredGraduated} {
+		for _, line := range []*billing.Line{flatPerUnit, tieredGraduated} {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
 		require.True(s.T(), tieredVolume.Period.Equal(lines.tieredVolume.Period), "period should be unchanged for the tiered volume line")
+		require.True(s.T(), flatPerUsage.Period.Equal(lines.flatPerUsage.Period), "period should be unchanged for the flat line")
 
 		// Let's validate the output of the split itself: no new split should have occurred
 		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, lines.tieredGraduated.ID)
