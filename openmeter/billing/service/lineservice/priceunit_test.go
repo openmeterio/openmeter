@@ -42,7 +42,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					Name:                   "feature: minimum spend",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
-					ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
+					ChildUniqueReferenceID: MinSpendChildUniqueReferenceID,
 					Period:                 &ubpTestFullPeriod,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billing.FlatFeeCategoryCommitment,
@@ -86,7 +86,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					Name:                   "feature: minimum spend",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
-					ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
+					ChildUniqueReferenceID: MinSpendChildUniqueReferenceID,
 					Period:                 &ubpTestFullPeriod,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billing.FlatFeeCategoryCommitment,
@@ -176,6 +176,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 				LinePeriodQty:    alpacadecimal.NewFromFloat(5),
 				PreLinePeriodQty: alpacadecimal.NewFromFloat(7),
 			},
+			previousBilledAmount: alpacadecimal.NewFromFloat(7 * 10),
 			expect: newDetailedLinesInput{
 				{
 					Name:                   "feature: usage in period",

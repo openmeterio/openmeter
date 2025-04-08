@@ -232,6 +232,7 @@ func TestPackagePriceCalculation(t *testing.T) {
 				PreLinePeriodQty: alpacadecimal.NewFromFloat(60), // 6 * 15 = 90
 				// Total: 165
 			},
+			previousBilledAmount: alpacadecimal.NewFromFloat(90),
 			expect: newDetailedLinesInput{
 				{
 					Name:                   "feature: usage in period",

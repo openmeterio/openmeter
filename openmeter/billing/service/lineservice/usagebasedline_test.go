@@ -29,10 +29,11 @@ var ubpTestFullPeriod = billing.Period{
 }
 
 type ubpCalculationTestCase struct {
-	price    productcatalog.Price
-	lineMode testLineMode
-	usage    featureUsageResponse
-	expect   newDetailedLinesInput
+	price                productcatalog.Price
+	lineMode             testLineMode
+	usage                featureUsageResponse
+	expect               newDetailedLinesInput
+	previousBilledAmount alpacadecimal.Decimal
 }
 
 func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
@@ -67,6 +68,24 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 		},
 	}
 
+	fakeHierarchy := billing.InvoiceLineProgressiveHierarchy{
+		Root: billing.InvoiceLineWithInvoiceBase{
+			Line: &fakeParentLine,
+		},
+		Children: []billing.InvoiceLineWithInvoiceBase{
+			{
+				Line: &billing.Line{
+					LineBase: billing.LineBase{
+						// Period is unset, so this fake line is always in scope for NetAmount calculations
+						Totals: billing.Totals{
+							Amount: tc.previousBilledAmount,
+						},
+					},
+				},
+			},
+		},
+	}
+
 	switch tc.lineMode {
 	case singlePerPeriodLineMode:
 		l.line.Period = ubpTestFullPeriod
@@ -77,6 +96,7 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 		}
 		l.line.ParentLine = &fakeParentLine
 		l.line.ParentLineID = &fakeParentLine.ID
+		l.line.ProgressiveLineHierarchy = &fakeHierarchy
 
 	case lastInPeriodSplitLineMode:
 		l.line.Period = billing.Period{
@@ -86,6 +106,7 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 
 		l.line.ParentLine = &fakeParentLine
 		l.line.ParentLineID = &fakeParentLine.ID
+		l.line.ProgressiveLineHierarchy = &fakeHierarchy
 	}
 
 	// Let's set the usage on the line

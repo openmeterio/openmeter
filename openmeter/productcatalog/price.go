@@ -73,6 +73,10 @@ type pricer interface {
 	FromTiered(TieredPrice)
 	FromDynamic(DynamicPrice)
 	FromPackage(PackagePrice)
+
+	// Common field accessors
+	// GetCommitments returns the commitments for the price, or an empty Commitments if the price type does not support commitments.
+	GetCommitments() Commitments
 }
 
 var _ pricer = (*Price)(nil)
@@ -357,6 +361,23 @@ func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice | DynamicPrice | Package
 	}
 
 	return p
+}
+
+func (p *Price) GetCommitments() Commitments {
+	switch p.t {
+	case FlatPriceType:
+		return Commitments{}
+	case UnitPriceType:
+		return p.unit.Commitments
+	case TieredPriceType:
+		return p.tiered.Commitments
+	case DynamicPriceType:
+		return p.dynamic.Commitments
+	case PackagePriceType:
+		return p.packagePrice.Commitments
+	default:
+		return Commitments{}
+	}
 }
 
 type FlatPrice struct {

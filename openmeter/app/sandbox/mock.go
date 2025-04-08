@@ -17,7 +17,7 @@ type AppFactory interface {
 	NewApp(ctx context.Context, appBase app.AppBase) (app.App, error)
 }
 
-type InvoiceUpsertCallback func(billing.Invoice) *billing.UpsertInvoiceResult
+type InvoiceUpsertCallback func(billing.Invoice) (*billing.UpsertInvoiceResult, error)
 
 type MockApp struct {
 	validateCustomerResponse mo.Option[error]
@@ -76,7 +76,7 @@ func (m *MockApp) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*
 	m.upsertInvoiceCalled = true
 
 	if m.upsertInvoiceCallback.IsPresent() && m.upsertInvoiceCallback.MustGet() != nil {
-		return m.upsertInvoiceCallback.MustGet()(invoice), nil
+		return m.upsertInvoiceCallback.MustGet()(invoice)
 	}
 
 	return billing.NewUpsertInvoiceResult(), nil

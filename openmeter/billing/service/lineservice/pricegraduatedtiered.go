@@ -5,7 +5,6 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -34,8 +33,6 @@ func (p graduatedTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLin
 		ToQty:       l.linePeriodQty.Add(l.preLinePeriodQty),
 		Currency:    l.currency,
 		TierCallbackFn: func(in tierCallbackInput) error {
-			billedAmount := in.PreviousTotalAmount
-
 			tierIndex := in.TierIndex + 1
 
 			if in.Tier.UnitPrice != nil && in.Quantity.IsPositive() {
@@ -46,16 +43,6 @@ func (p graduatedTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLin
 					ChildUniqueReferenceID: fmt.Sprintf(GraduatedTieredPriceUsageChildUniqueReferenceID, tierIndex),
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				}
-
-				if price.MaximumAmount != nil {
-					newLine = newLine.AddDiscountForOverage(addDiscountInput{
-						BilledAmountBeforeLine: billedAmount,
-						MaxSpend:               *price.MaximumAmount,
-						Currency:               l.currency,
-					})
-				}
-
-				billedAmount = billedAmount.Add(in.Quantity.Mul(in.Tier.UnitPrice.Amount))
 
 				out = append(out, newLine)
 			}
@@ -73,34 +60,8 @@ func (p graduatedTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLin
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				}
 
-				if price.MaximumAmount != nil {
-					newLine = newLine.AddDiscountForOverage(addDiscountInput{
-						BilledAmountBeforeLine: billedAmount,
-						MaxSpend:               *price.MaximumAmount,
-						Currency:               l.currency,
-					})
-				}
-
 				out = append(out, newLine)
 			}
-			return nil
-		},
-		FinalizerFn: func(periodTotal alpacadecimal.Decimal) error {
-			if l.IsLastInPeriod() && price.MinimumAmount != nil {
-				normalizedMinimumAmount := l.currency.RoundToPrecision(*price.MinimumAmount)
-
-				if periodTotal.LessThan(normalizedMinimumAmount) {
-					out = append(out, newDetailedLineInput{
-						Name:                   fmt.Sprintf("%s: minimum spend", l.line.Name),
-						Quantity:               alpacadecimal.NewFromFloat(1),
-						PerUnitAmount:          normalizedMinimumAmount.Sub(periodTotal),
-						ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
-						PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-						Category:               billing.FlatFeeCategoryCommitment,
-					})
-				}
-			}
-
 			return nil
 		},
 	})

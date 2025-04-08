@@ -1,4 +1,4 @@
-h1:KsyQaWwxH1x/GUxdkCClkGEPz432NIsYrZrDlp8iVig=
+h1:WD5euCENdo984UJkgMDTPUt3KhAiiysP110MaAFFJqA=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -159,3 +159,5 @@ h1:KsyQaWwxH1x/GUxdkCClkGEPz432NIsYrZrDlp8iVig=
 20250406215430_billing-line-discount-reason.up.sql h1:E2/fFyfuMJyYx1bv/yA3HG+iZQ7c9GlmwnnNDQ+2V4Q=
 20250407191828_billing-line-discount-unit-support.down.sql h1:L2kR0v0WGd0jkFyx2zCGb9M7+RvOWM/fNoeNVIyHfIc=
 20250407191828_billing-line-discount-unit-support.up.sql h1:RyFdJJl1BxQonfhIRQWRa4X6t0GFkRe3SxjNpqFSU/U=
+20250408162413_child-uniq-id-rename.down.sql h1:dikjPV8QFiwqnLgeYikagdb7AoEVGX2RdU+qlWj/bas=
+20250408162413_child-uniq-id-rename.up.sql h1:M3NmXCEiBCQmF/zxQm5U7yZhMi6nIJpQAmz749proQM=

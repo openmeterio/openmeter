@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -290,6 +291,8 @@ type LineDiscount interface {
 	models.Equaler[LineDiscount]
 	models.Validator
 	models.Clonable[LineDiscount]
+	json.Marshaler
+	json.Unmarshaler
 
 	Type() LineDiscountType
 
@@ -331,6 +334,71 @@ type lineDiscount struct {
 	usage  *UsageLineDiscountManaged
 }
 
+func (i lineDiscount) MarshalJSON() ([]byte, error) {
+	var serde interface{}
+
+	switch i.t {
+	case LineDiscountTypeAmount:
+		serde = &struct {
+			Type LineDiscountType `json:"type"`
+			*AmountLineDiscountManaged
+		}{
+			Type:                      i.t,
+			AmountLineDiscountManaged: i.amount,
+		}
+	case LineDiscountTypeUsage:
+		serde = &struct {
+			Type LineDiscountType `json:"type"`
+			*UsageLineDiscountManaged
+		}{
+			Type:                     i.t,
+			UsageLineDiscountManaged: i.usage,
+		}
+	default:
+		return nil, fmt.Errorf("unknown discount type: %s", i.t)
+	}
+
+	b, err := json.Marshal(serde)
+	if err != nil {
+		return nil, fmt.Errorf("failed to JSON serialize LineDiscount: %w", err)
+	}
+
+	return b, nil
+}
+
+func (i *lineDiscount) UnmarshalJSON(b []byte) error {
+	serde := &struct {
+		Type LineDiscountType `json:"type"`
+	}{}
+
+	if err := json.Unmarshal(b, serde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize LineDiscount: %w", err)
+	}
+
+	switch serde.Type {
+	case LineDiscountTypeAmount:
+		v := &AmountLineDiscountManaged{}
+		if err := json.Unmarshal(b, v); err != nil {
+			return fmt.Errorf("failed to JSON deserialize AmountLineDiscountManaged: %w", err)
+		}
+
+		i.t = LineDiscountTypeAmount
+		i.amount = v
+	case LineDiscountTypeUsage:
+		v := &UsageLineDiscountManaged{}
+		if err := json.Unmarshal(b, v); err != nil {
+			return fmt.Errorf("failed to JSON deserialize UsageLineDiscountManaged: %w", err)
+		}
+
+		i.t = LineDiscountTypeUsage
+		i.usage = v
+	default:
+		return fmt.Errorf("unknown discount type: %s", serde.Type)
+	}
+
+	return nil
+}
+
 func NewLineDiscountFrom[T AmountLineDiscountManaged | AmountLineDiscount | UsageLineDiscountManaged | UsageLineDiscount](discount T) LineDiscount {
 	switch any(discount).(type) {
 	// Allow provisioning an AmountLineDiscountManaged without the managed fields: given we are calculating the expected state then merge
@@ -338,26 +406,26 @@ func NewLineDiscountFrom[T AmountLineDiscountManaged | AmountLineDiscount | Usag
 	case AmountLineDiscount:
 		amount := any(discount).(AmountLineDiscount)
 
-		return lineDiscount{t: LineDiscountTypeAmount, amount: &AmountLineDiscountManaged{
+		return &lineDiscount{t: LineDiscountTypeAmount, amount: &AmountLineDiscountManaged{
 			AmountLineDiscount: amount,
 		}}
 	case AmountLineDiscountManaged:
 		amount := any(discount).(AmountLineDiscountManaged)
 
-		return lineDiscount{t: LineDiscountTypeAmount, amount: &amount}
+		return &lineDiscount{t: LineDiscountTypeAmount, amount: &amount}
 	case UsageLineDiscountManaged:
 		usage := any(discount).(UsageLineDiscountManaged)
 
-		return lineDiscount{t: LineDiscountTypeUsage, usage: &usage}
+		return &lineDiscount{t: LineDiscountTypeUsage, usage: &usage}
 	case UsageLineDiscount:
 		usage := any(discount).(UsageLineDiscount)
 
-		return lineDiscount{t: LineDiscountTypeUsage, usage: &UsageLineDiscountManaged{
+		return &lineDiscount{t: LineDiscountTypeUsage, usage: &UsageLineDiscountManaged{
 			UsageLineDiscount: usage,
 		}}
 	}
 
-	return lineDiscount{}
+	return &lineDiscount{}
 }
 
 func (i lineDiscount) Type() LineDiscountType {
@@ -467,7 +535,7 @@ func (i lineDiscount) ContentsEqual(other LineDiscount) bool {
 	}
 }
 
-func (i lineDiscount) Mutate(mutators ...LineDiscountMutator) (LineDiscount, error) {
+func (i *lineDiscount) Mutate(mutators ...LineDiscountMutator) (LineDiscount, error) {
 	out := LineDiscount(i)
 	for _, mutator := range mutators {
 		newValue, err := mutator(out)

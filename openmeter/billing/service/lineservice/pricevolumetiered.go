@@ -35,7 +35,7 @@ func (p volumeTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLinesI
 		return nil, billing.ErrInvoiceLineVolumeSplitNotSupported
 	}
 
-	out := make(newDetailedLinesInput, 0, 4)
+	out := make(newDetailedLinesInput, 0, 2)
 
 	findTierRes, err := p.findTierForQuantity(price, l.linePeriodQty)
 	if err != nil {
@@ -54,13 +54,6 @@ func (p volumeTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLinesI
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 		}
 
-		if price.MaximumAmount != nil {
-			line = line.AddDiscountForOverage(addDiscountInput{
-				BilledAmountBeforeLine: out.Sum(l.currency),
-				MaxSpend:               *price.MaximumAmount,
-				Currency:               l.currency,
-			})
-		}
 		out = append(out, line)
 	}
 
@@ -73,32 +66,7 @@ func (p volumeTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLinesI
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 		}
 
-		if price.MaximumAmount != nil {
-			line = line.AddDiscountForOverage(addDiscountInput{
-				BilledAmountBeforeLine: out.Sum(l.currency),
-				MaxSpend:               *price.MaximumAmount,
-				Currency:               l.currency,
-			})
-		}
-
 		out = append(out, line)
-	}
-
-	total := out.Sum(l.currency)
-
-	if price.MinimumAmount != nil {
-		normalizedMinimumAmount := l.currency.RoundToPrecision(*price.MinimumAmount)
-
-		if total.LessThan(normalizedMinimumAmount) {
-			out = append(out, newDetailedLineInput{
-				Name:                   fmt.Sprintf("%s: minimum spend", l.line.Name),
-				Quantity:               alpacadecimal.NewFromFloat(1),
-				PerUnitAmount:          normalizedMinimumAmount.Sub(total),
-				ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
-				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-				Category:               billing.FlatFeeCategoryCommitment,
-			})
-		}
 	}
 
 	return out, nil
