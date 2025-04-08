@@ -10,7 +10,7 @@ func (p PatchUnscheduleEdit) Op() subscription.PatchOperation {
 	return subscription.PatchOperationUnschedule
 }
 
-func (p PatchUnscheduleEdit) Path() subscription.PatchPath {
+func (p PatchUnscheduleEdit) Path() subscription.SpecPath {
 	return subscription.NewPhasePath("")
 }
 

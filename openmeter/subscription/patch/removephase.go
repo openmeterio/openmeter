@@ -16,7 +16,7 @@ func (r PatchRemovePhase) Op() subscription.PatchOperation {
 	return subscription.PatchOperationRemove
 }
 
-func (r PatchRemovePhase) Path() subscription.PatchPath {
+func (r PatchRemovePhase) Path() subscription.SpecPath {
 	return subscription.NewPhasePath(r.PhaseKey)
 }
 
