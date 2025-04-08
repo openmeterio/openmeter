@@ -18659,14 +18659,12 @@ components:
         - name
         - createdAt
         - updatedAt
-        - key
         - activeFrom
-        - version
+        - addon
         - addonId
         - quantityAt
         - quantity
         - timeline
-        - instanceType
         - subscriptionId
         - rateCards
       properties:
@@ -18716,13 +18714,6 @@ components:
           example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
-        key:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: A semi-unique identifier for the resource.
-          title: Key
         activeFrom:
           type: string
           format: date-time
@@ -18733,13 +18724,43 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
-        version:
-          type: integer
-          minimum: 1
-          description: The version of the Addon which templates this instance.
-          title: Version
-          default: 1
-          readOnly: true
+        addon:
+          type: object
+          properties:
+            id:
+              type: string
+              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: The ID of the addon.
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
+              title: ID
+            key:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A semi-unique identifier for the resource.
+              title: Key
+              readOnly: true
+            version:
+              type: integer
+              minimum: 1
+              description: The version of the Addon which templates this instance.
+              title: Version
+              default: 1
+              readOnly: true
+            instanceType:
+              allOf:
+                - $ref: '#/components/schemas/AddonInstanceType'
+              description: The instanceType of the addon. Can be "single" or "multiple".
+              title: InstanceType
+              readOnly: true
+          required:
+            - id
+            - key
+            - version
+            - instanceType
+          description: Partially populated addon properties.
+          title: Addon
         addonId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
@@ -18775,12 +18796,6 @@ components:
             - quantity: 1
               activeFrom: '2025-01-03T00:00:00Z'
           readOnly: true
-        instanceType:
-          allOf:
-            - $ref: '#/components/schemas/AddonInstanceType'
-          description: The instanceType of the addon. Can be "single" or "multiple".
-          title: InstanceType
-          readOnly: true
         subscriptionId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
@@ -18800,8 +18815,8 @@ components:
       type: object
       required:
         - name
-        - key
         - activeFrom
+        - addon
         - quantity
         - timing
       properties:
@@ -18823,13 +18838,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        key:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: A semi-unique identifier for the resource.
-          title: Key
         activeFrom:
           type: string
           format: date-time
@@ -18840,6 +18848,43 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
+        addon:
+          type: object
+          properties:
+            id:
+              type: string
+              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: The ID of the addon.
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
+              title: ID
+            key:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A semi-unique identifier for the resource.
+              title: Key
+              readOnly: true
+            version:
+              type: integer
+              minimum: 1
+              description: The version of the Addon which templates this instance.
+              title: Version
+              default: 1
+              readOnly: true
+            instanceType:
+              allOf:
+                - $ref: '#/components/schemas/AddonInstanceType'
+              description: The instanceType of the addon. Can be "single" or "multiple".
+              title: InstanceType
+              readOnly: true
+          required:
+            - id
+            - key
+            - version
+            - instanceType
+          description: Partially populated addon properties.
+          title: Addon
         quantity:
           type: integer
           description: The quantity of the addon. Always 1 for single instance add-ons.
@@ -18926,6 +18971,10 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
+        addon:
+          type: object
+          description: Partially populated addon properties.
+          title: Addon
         quantity:
           type: integer
           description: The quantity of the addon. Always 1 for single instance add-ons.

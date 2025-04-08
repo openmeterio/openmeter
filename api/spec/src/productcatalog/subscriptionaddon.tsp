@@ -9,16 +9,43 @@ namespace OpenMeter.ProductCatalog;
  */
 @friendlyName("SubscriptionAddon")
 model SubscriptionAddon {
-  ...UniqueResource;
+  ...Resource;
   ...global.CadencedResource;
 
   /**
-   * The version of the Addon which templates this instance.
+   * Partially populated addon properties.
    */
-  @summary("Version")
-  @minValue(1)
-  @visibility(Lifecycle.Read)
-  version: integer = 1;
+  @summary("Addon")
+  addon: {
+    /**
+     * The ID of the addon.
+     */
+    @summary("ID")
+    @visibility(Lifecycle.Read, Lifecycle.Create)
+    id: ULID;
+
+    /**
+     * A semi-unique identifier for the resource.
+     */
+    @visibility(Lifecycle.Read)
+    @summary("Key")
+    key: Key;
+
+    /**
+     * The version of the Addon which templates this instance.
+     */
+    @summary("Version")
+    @minValue(1)
+    @visibility(Lifecycle.Read)
+    version: integer = 1;
+
+    /**
+     * The instanceType of the addon. Can be "single" or "multiple".
+     */
+    @visibility(Lifecycle.Read)
+    @summary("InstanceType")
+    instanceType: AddonInstanceType;
+  };
 
   /**
    * The ID of the addon.
@@ -69,13 +96,6 @@ model SubscriptionAddon {
     #{ quantity: 1, activeFrom: DateTime.fromISO("2025-01-03T00:00:00Z") }
   ])
   timeline: SubscriptionAddonTimelineSegment[];
-
-  /**
-   * The instanceType of the addon. Can be "single" or "multiple".
-   */
-  @visibility(Lifecycle.Read)
-  @summary("InstanceType")
-  instanceType: AddonInstanceType;
 
   /**
    * The ID of the subscription.

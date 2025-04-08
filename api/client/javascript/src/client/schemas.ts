@@ -8057,11 +8057,6 @@ export interface components {
        */
       readonly deletedAt?: Date
       /**
-       * Key
-       * @description A semi-unique identifier for the resource.
-       */
-      key: string
-      /**
        * Format: date-time
        * @description The cadence start of the resource.
        * @example 2023-01-01T01:01:01.001Z
@@ -8074,11 +8069,33 @@ export interface components {
        */
       activeTo?: Date
       /**
-       * Version
-       * @description The version of the Addon which templates this instance.
-       * @default 1
+       * Addon
+       * @description Partially populated addon properties.
        */
-      readonly version: number
+      addon: {
+        /**
+         * ID
+         * @description The ID of the addon.
+         * @example 01G65Z755AFWAKHE12NY0CQ9FH
+         */
+        id: string
+        /**
+         * Key
+         * @description A semi-unique identifier for the resource.
+         */
+        readonly key: string
+        /**
+         * Version
+         * @description The version of the Addon which templates this instance.
+         * @default 1
+         */
+        readonly version: number
+        /**
+         * InstanceType
+         * @description The instanceType of the addon. Can be "single" or "multiple".
+         */
+        readonly instanceType: components['schemas']['AddonInstanceType']
+      }
       /**
        * AddonID
        * @description The ID of the addon.
@@ -8120,11 +8137,6 @@ export interface components {
        */
       readonly timeline: components['schemas']['SubscriptionAddonTimelineSegment'][]
       /**
-       * InstanceType
-       * @description The instanceType of the addon. Can be "single" or "multiple".
-       */
-      readonly instanceType: components['schemas']['AddonInstanceType']
-      /**
        * SubscriptionID
        * @description The ID of the subscription.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
@@ -8154,11 +8166,6 @@ export interface components {
        */
       metadata?: components['schemas']['Metadata'] | null
       /**
-       * Key
-       * @description A semi-unique identifier for the resource.
-       */
-      key: string
-      /**
        * Format: date-time
        * @description The cadence start of the resource.
        * @example 2023-01-01T01:01:01.001Z
@@ -8170,6 +8177,34 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
+      /**
+       * Addon
+       * @description Partially populated addon properties.
+       */
+      addon: {
+        /**
+         * ID
+         * @description The ID of the addon.
+         * @example 01G65Z755AFWAKHE12NY0CQ9FH
+         */
+        id: string
+        /**
+         * Key
+         * @description A semi-unique identifier for the resource.
+         */
+        readonly key: string
+        /**
+         * Version
+         * @description The version of the Addon which templates this instance.
+         * @default 1
+         */
+        readonly version: number
+        /**
+         * InstanceType
+         * @description The instanceType of the addon. Can be "single" or "multiple".
+         */
+        readonly instanceType: components['schemas']['AddonInstanceType']
+      }
       /**
        * Quantity
        * @description The quantity of the addon. Always 1 for single instance add-ons.
@@ -8244,6 +8279,11 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
+      /**
+       * Addon
+       * @description Partially populated addon properties.
+       */
+      addon?: Record<string, never>
       /**
        * Quantity
        * @description The quantity of the addon. Always 1 for single instance add-ons.
