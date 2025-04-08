@@ -5,7 +5,7 @@ import "./ratecards.tsp";
 namespace OpenMeter.ProductCatalog;
 
 /**
- * A subscription addon, represents concrete instances of an addon for a given subscription.
+ * A subscription add-on, represents concrete instances of an add-on for a given subscription.
  */
 @friendlyName("SubscriptionAddon")
 model SubscriptionAddon {
@@ -13,12 +13,12 @@ model SubscriptionAddon {
   ...global.CadencedResource;
 
   /**
-   * Partially populated addon properties.
+   * Partially populated add-on properties.
    */
   @summary("Addon")
   addon: {
     /**
-     * The ID of the addon.
+     * The ID of the add-on.
      */
     @summary("ID")
     @visibility(Lifecycle.Read, Lifecycle.Create)
@@ -32,7 +32,7 @@ model SubscriptionAddon {
     key: Key;
 
     /**
-     * The version of the Addon which templates this instance.
+     * The version of the Add-on which templates this instance.
      */
     @summary("Version")
     @minValue(1)
@@ -40,19 +40,12 @@ model SubscriptionAddon {
     version: integer = 1;
 
     /**
-     * The instanceType of the addon. Can be "single" or "multiple".
+     * The instance type of the add-on.
      */
     @visibility(Lifecycle.Read)
     @summary("InstanceType")
     instanceType: AddonInstanceType;
   };
-
-  /**
-   * The ID of the addon.
-   */
-  @summary("AddonID")
-  @visibility(Lifecycle.Read)
-  addonId: ULID;
 
   /**
    * For which point in time the quantity was resolved to.
@@ -63,11 +56,12 @@ model SubscriptionAddon {
   quantityAt: DateTime;
 
   /**
-   * The quantity of the addon. Always 1 for single instance add-ons.
+   * The quantity of the add-on. Always 1 for single instance add-ons.
    */
   @summary("Quantity")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @example(1)
+  @minValue(0)
   quantity: integer;
 
   /**
@@ -78,7 +72,7 @@ model SubscriptionAddon {
   timing: SubscriptionTiming;
 
   /**
-   * The timeline of the addon. The returned periods are sorted and continuous.
+   * The timeline of the add-on. The returned periods are sorted and continuous.
    */
   @visibility(Lifecycle.Read)
   @summary("Timeline")
@@ -105,7 +99,7 @@ model SubscriptionAddon {
   subscriptionId: ULID;
 
   /**
-   * The rate cards of the addon.
+   * The rate cards of the add-on.
    */
   @visibility(Lifecycle.Read)
   @summary("Rate cards")
@@ -113,7 +107,7 @@ model SubscriptionAddon {
 }
 
 /**
- * A rate card for a subscription addon.
+ * A rate card for a subscription add-on.
  */
 @friendlyName("SubscriptionAddonRateCard")
 model SubscriptionAddonRateCard {
@@ -132,16 +126,18 @@ model SubscriptionAddonRateCard {
 }
 
 /**
- * A subscription addon event.
+ * A subscription add-on event.
  */
 @friendlyName("SubscriptionAddonTimelineSegment")
 model SubscriptionAddonTimelineSegment {
   ...global.CadencedResource;
 
   /**
-   * The quantity of the addon for the given period.
+   * The quantity of the add-on for the given period.
    */
   @summary("Quantity")
   @visibility(Lifecycle.Read)
+  @example(1)
+  @minValue(0)
   quantity: integer;
 }

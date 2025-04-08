@@ -18661,7 +18661,6 @@ components:
         - updatedAt
         - activeFrom
         - addon
-        - addonId
         - quantityAt
         - quantity
         - timeline
@@ -18730,7 +18729,7 @@ components:
             id:
               type: string
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: The ID of the addon.
+              description: The ID of the add-on.
               example: 01G65Z755AFWAKHE12NY0CQ9FH
               title: ID
             key:
@@ -18744,14 +18743,14 @@ components:
             version:
               type: integer
               minimum: 1
-              description: The version of the Addon which templates this instance.
+              description: The version of the Add-on which templates this instance.
               title: Version
               default: 1
               readOnly: true
             instanceType:
               allOf:
                 - $ref: '#/components/schemas/AddonInstanceType'
-              description: The instanceType of the addon. Can be "single" or "multiple".
+              description: The instance type of the add-on.
               title: InstanceType
               readOnly: true
           required:
@@ -18759,15 +18758,8 @@ components:
             - key
             - version
             - instanceType
-          description: Partially populated addon properties.
+          description: Partially populated add-on properties.
           title: Addon
-        addonId:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: The ID of the addon.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          title: AddonID
-          readOnly: true
         quantityAt:
           type: string
           format: date-time
@@ -18777,14 +18769,15 @@ components:
           readOnly: true
         quantity:
           type: integer
-          description: The quantity of the addon. Always 1 for single instance add-ons.
+          minimum: 0
+          description: The quantity of the add-on. Always 1 for single instance add-ons.
           title: Quantity
           example: 1
         timeline:
           type: array
           items:
             $ref: '#/components/schemas/SubscriptionAddonTimelineSegment'
-          description: The timeline of the addon. The returned periods are sorted and continuous.
+          description: The timeline of the add-on. The returned periods are sorted and continuous.
           title: Timeline
           example:
             - quantity: 1
@@ -18807,10 +18800,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SubscriptionAddonRateCard'
-          description: The rate cards of the addon.
+          description: The rate cards of the add-on.
           title: Rate cards
           readOnly: true
-      description: A subscription addon, represents concrete instances of an addon for a given subscription.
+      description: A subscription add-on, represents concrete instances of an add-on for a given subscription.
     SubscriptionAddonCreate:
       type: object
       required:
@@ -18854,7 +18847,7 @@ components:
             id:
               type: string
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: The ID of the addon.
+              description: The ID of the add-on.
               example: 01G65Z755AFWAKHE12NY0CQ9FH
               title: ID
             key:
@@ -18868,14 +18861,14 @@ components:
             version:
               type: integer
               minimum: 1
-              description: The version of the Addon which templates this instance.
+              description: The version of the Add-on which templates this instance.
               title: Version
               default: 1
               readOnly: true
             instanceType:
               allOf:
                 - $ref: '#/components/schemas/AddonInstanceType'
-              description: The instanceType of the addon. Can be "single" or "multiple".
+              description: The instance type of the add-on.
               title: InstanceType
               readOnly: true
           required:
@@ -18883,11 +18876,12 @@ components:
             - key
             - version
             - instanceType
-          description: Partially populated addon properties.
+          description: Partially populated add-on properties.
           title: Addon
         quantity:
           type: integer
-          description: The quantity of the addon. Always 1 for single instance add-ons.
+          minimum: 0
+          description: The quantity of the add-on. Always 1 for single instance add-ons.
           title: Quantity
           example: 1
         timing:
@@ -18917,7 +18911,7 @@ components:
           description: The IDs of the subscription items that this rate card belongs to.
           title: Affected subscription item IDs
           readOnly: true
-      description: A rate card for a subscription addon.
+      description: A rate card for a subscription add-on.
     SubscriptionAddonTimelineSegment:
       type: object
       required:
@@ -18936,10 +18930,12 @@ components:
           example: '2023-01-01T01:01:01.001Z'
         quantity:
           type: integer
-          description: The quantity of the addon for the given period.
+          minimum: 0
+          description: The quantity of the add-on for the given period.
           title: Quantity
+          example: 1
           readOnly: true
-      description: A subscription addon event.
+      description: A subscription add-on event.
     SubscriptionAddonUpdate:
       type: object
       properties:
@@ -18973,11 +18969,12 @@ components:
           example: '2023-01-01T01:01:01.001Z'
         addon:
           type: object
-          description: Partially populated addon properties.
+          description: Partially populated add-on properties.
           title: Addon
         quantity:
           type: integer
-          description: The quantity of the addon. Always 1 for single instance add-ons.
+          minimum: 0
+          description: The quantity of the add-on. Always 1 for single instance add-ons.
           title: Quantity
           example: 1
         timing:

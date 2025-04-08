@@ -8012,7 +8012,7 @@ export interface components {
        */
       currency: components['schemas']['CurrencyCode']
     }
-    /** @description A subscription addon, represents concrete instances of an addon for a given subscription. */
+    /** @description A subscription add-on, represents concrete instances of an add-on for a given subscription. */
     SubscriptionAddon: {
       /**
        * ID
@@ -8070,12 +8070,12 @@ export interface components {
       activeTo?: Date
       /**
        * Addon
-       * @description Partially populated addon properties.
+       * @description Partially populated add-on properties.
        */
       addon: {
         /**
          * ID
-         * @description The ID of the addon.
+         * @description The ID of the add-on.
          * @example 01G65Z755AFWAKHE12NY0CQ9FH
          */
         id: string
@@ -8086,22 +8086,16 @@ export interface components {
         readonly key: string
         /**
          * Version
-         * @description The version of the Addon which templates this instance.
+         * @description The version of the Add-on which templates this instance.
          * @default 1
          */
         readonly version: number
         /**
          * InstanceType
-         * @description The instanceType of the addon. Can be "single" or "multiple".
+         * @description The instance type of the add-on.
          */
         readonly instanceType: components['schemas']['AddonInstanceType']
       }
-      /**
-       * AddonID
-       * @description The ID of the addon.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      readonly addonId: string
       /**
        * QuantityAt
        * Format: date-time
@@ -8111,13 +8105,13 @@ export interface components {
       readonly quantityAt: Date
       /**
        * Quantity
-       * @description The quantity of the addon. Always 1 for single instance add-ons.
+       * @description The quantity of the add-on. Always 1 for single instance add-ons.
        * @example 1
        */
       quantity: number
       /**
        * Timeline
-       * @description The timeline of the addon. The returned periods are sorted and continuous.
+       * @description The timeline of the add-on. The returned periods are sorted and continuous.
        * @example [
        *       {
        *         "quantity": 1,
@@ -8144,7 +8138,7 @@ export interface components {
       readonly subscriptionId: string
       /**
        * Rate cards
-       * @description The rate cards of the addon.
+       * @description The rate cards of the add-on.
        */
       readonly rateCards: components['schemas']['SubscriptionAddonRateCard'][]
     }
@@ -8179,12 +8173,12 @@ export interface components {
       activeTo?: Date
       /**
        * Addon
-       * @description Partially populated addon properties.
+       * @description Partially populated add-on properties.
        */
       addon: {
         /**
          * ID
-         * @description The ID of the addon.
+         * @description The ID of the add-on.
          * @example 01G65Z755AFWAKHE12NY0CQ9FH
          */
         id: string
@@ -8195,19 +8189,19 @@ export interface components {
         readonly key: string
         /**
          * Version
-         * @description The version of the Addon which templates this instance.
+         * @description The version of the Add-on which templates this instance.
          * @default 1
          */
         readonly version: number
         /**
          * InstanceType
-         * @description The instanceType of the addon. Can be "single" or "multiple".
+         * @description The instance type of the add-on.
          */
         readonly instanceType: components['schemas']['AddonInstanceType']
       }
       /**
        * Quantity
-       * @description The quantity of the addon. Always 1 for single instance add-ons.
+       * @description The quantity of the add-on. Always 1 for single instance add-ons.
        * @example 1
        */
       quantity: number
@@ -8217,7 +8211,7 @@ export interface components {
        */
       timing: components['schemas']['SubscriptionTiming']
     }
-    /** @description A rate card for a subscription addon. */
+    /** @description A rate card for a subscription add-on. */
     SubscriptionAddonRateCard: {
       /**
        * Rate card
@@ -8230,7 +8224,7 @@ export interface components {
        */
       readonly affectedSubscriptionItemIds: string[]
     }
-    /** @description A subscription addon event. */
+    /** @description A subscription add-on event. */
     SubscriptionAddonTimelineSegment: {
       /**
        * Format: date-time
@@ -8246,7 +8240,8 @@ export interface components {
       activeTo?: Date
       /**
        * Quantity
-       * @description The quantity of the addon for the given period.
+       * @description The quantity of the add-on for the given period.
+       * @example 1
        */
       readonly quantity: number
     }
@@ -8281,12 +8276,12 @@ export interface components {
       activeTo?: Date
       /**
        * Addon
-       * @description Partially populated addon properties.
+       * @description Partially populated add-on properties.
        */
       addon?: Record<string, never>
       /**
        * Quantity
-       * @description The quantity of the addon. Always 1 for single instance add-ons.
+       * @description The quantity of the add-on. Always 1 for single instance add-ons.
        * @example 1
        */
       quantity?: number
