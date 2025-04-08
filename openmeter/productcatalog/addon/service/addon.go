@@ -205,7 +205,7 @@ func (s service) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput)
 		logger.Debug("deleting add-on")
 
 		// Get the add-on to check if it can be deleted
-		aa, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{
+		add, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
 				ID:        params.ID,
@@ -215,16 +215,11 @@ func (s service) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput)
 			return nil, fmt.Errorf("failed to get add-on: %w", err)
 		}
 
-		allowedStatuses := []productcatalog.AddonStatus{
-			productcatalog.AddonStatusArchived,
-			productcatalog.AddonStatusDraft,
-		}
-
-		status := aa.Status()
-		if !lo.Contains(allowedStatuses, status) {
-			return nil, models.NewGenericValidationError(
-				fmt.Errorf("only add-ons in %+v can be deleted, but it has %s state", allowedStatuses, status),
-			)
+		// Run validations prior deleting add-on.
+		if err = validateAddon(add,
+			withAllowedStatus(productcatalog.AddonStatusDraft, productcatalog.AddonStatusArchived),
+		); err != nil {
+			return nil, err
 		}
 
 		// Delete the add-on
@@ -236,7 +231,7 @@ func (s service) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput)
 		logger.Debug("add-on deleted")
 
 		// Get the deleted add-on to emit the event
-		aa, err = s.adapter.GetAddon(ctx, addon.GetAddonInput{
+		add, err = s.adapter.GetAddon(ctx, addon.GetAddonInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
 				ID:        params.ID,
@@ -247,7 +242,7 @@ func (s service) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput)
 		}
 
 		// Emit add-on deleted event
-		event := addon.NewAddonDeleteEvent(ctx, aa)
+		event := addon.NewAddonDeleteEvent(ctx, add)
 		if err = s.publisher.Publish(ctx, event); err != nil {
 			return nil, fmt.Errorf("failed to publish add-on deleted event: %w", err)
 		}
@@ -309,7 +304,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 			}
 		}
 
-		aa, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{
+		add, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
 				ID:        params.ID,
@@ -319,15 +314,11 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 			return nil, fmt.Errorf("failed to get add-on: %w", err)
 		}
 
-		allowedStatuses := []productcatalog.AddonStatus{
-			productcatalog.AddonStatusDraft,
-		}
-
-		status := aa.Status()
-		if !lo.Contains(allowedStatuses, status) {
-			return nil, models.NewGenericValidationError(
-				fmt.Errorf("only add-ons in %+v can be updated, but it has %s state", allowedStatuses, status),
-			)
+		// Run validations prior updating add-on.
+		if err = validateAddon(add,
+			withAllowedStatus(productcatalog.AddonStatusDraft),
+		); err != nil {
+			return nil, err
 		}
 
 		logger.Debug("updating add-on")
@@ -336,7 +327,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 		// therefore the EffectivePeriod attribute must be zeroed before updating the add-on.
 		params.EffectivePeriod = productcatalog.EffectivePeriod{}
 
-		aa, err = s.adapter.UpdateAddon(ctx, params)
+		add, err = s.adapter.UpdateAddon(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to udpate add-on: %w", err)
 		}
@@ -344,12 +335,12 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 		logger.Debug("add-on updated")
 
 		// Emit add-on updated event
-		event := addon.NewAddonUpdateEvent(ctx, aa)
+		event := addon.NewAddonUpdateEvent(ctx, add)
 		if err = s.publisher.Publish(ctx, event); err != nil {
 			return nil, fmt.Errorf("failed to publish add-on updated event: %w", err)
 		}
 
-		return aa, nil
+		return add, nil
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)
@@ -369,7 +360,7 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 
 		logger.Debug("publishing add-on")
 
-		aa, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{
+		add, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
 				ID:        params.ID,
@@ -379,32 +370,24 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 			return nil, fmt.Errorf("failed to get add-on: %w", err)
 		}
 
-		allowedStatuses := []productcatalog.AddonStatus{
-			productcatalog.AddonStatusDraft,
-		}
-
-		status := aa.Status()
-		if !lo.Contains(allowedStatuses, status) {
-			return nil, models.NewGenericValidationError(
-				fmt.Errorf("only add-on in %+v can be published, but it has %s state", allowedStatuses, status),
-			)
-		}
-
-		if !aa.RateCards.BillingCadenceAligned() {
-			return nil, models.NewGenericValidationError(
-				errors.New("the billing cadence of the ratecards in add-on must be aligned"),
-			)
+		// Run validations prior publishing add-on.
+		if err = validateAddon(add,
+			withAllowedStatus(productcatalog.AddonStatusDraft),
+			withBillingCadenceAligned(),
+			withMultipleTypeAndNoUsageBasedRateCards(),
+		); err != nil {
+			return nil, err
 		}
 
 		// Find and archive add-on version with addon.AddonStatusActive if there is one. Only perform lookup if
 		// the add-on to be published has higher version then 1 meaning that it has previous versions,
 		// otherwise skip this step.
-		if aa.Version > 1 {
+		if add.Version > 1 {
 			activeAddon, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: params.Namespace,
 				},
-				Key: aa.Key,
+				Key: add.Key,
 			})
 			if err != nil {
 				if !addon.IsNotFound(err) {
@@ -440,7 +423,7 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 			input.EffectiveTo = lo.ToPtr(params.EffectiveTo.UTC())
 		}
 
-		aa, err = s.adapter.UpdateAddon(ctx, input)
+		add, err = s.adapter.UpdateAddon(ctx, input)
 		if err != nil {
 			return nil, fmt.Errorf("failed to publish add-on: %w", err)
 		}
@@ -448,12 +431,12 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 		logger.Debug("add-on published")
 
 		// Emit add-on published event
-		event := addon.NewAddonPublishEvent(ctx, aa)
+		event := addon.NewAddonPublishEvent(ctx, add)
 		if err := s.publisher.Publish(ctx, event); err != nil {
 			return nil, fmt.Errorf("failed to publish add-on published event: %w", err)
 		}
 
-		return aa, nil
+		return add, nil
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)
@@ -473,7 +456,7 @@ func (s service) ArchiveAddon(ctx context.Context, params addon.ArchiveAddonInpu
 
 		logger.Debug("archiving add-on")
 
-		aa, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{
+		add, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
 				ID:        params.ID,
@@ -483,23 +466,20 @@ func (s service) ArchiveAddon(ctx context.Context, params addon.ArchiveAddonInpu
 			return nil, fmt.Errorf("failed to get add-on: %w", err)
 		}
 
-		allowedStatuses := []productcatalog.AddonStatus{productcatalog.AddonStatusActive}
-
-		status := aa.Status()
-
-		if !lo.Contains(allowedStatuses, status) {
-			return nil, models.NewGenericValidationError(
-				fmt.Errorf("only add-ons in %+v can be archived, but it is in %s state", allowedStatuses, status),
-			)
+		// Run validations prior archiving add-on.
+		if err = validateAddon(add,
+			withAllowedStatus(productcatalog.AddonStatusActive),
+		); err != nil {
+			return nil, err
 		}
 
-		aa, err = s.adapter.UpdateAddon(ctx, addon.UpdateAddonInput{
+		add, err = s.adapter.UpdateAddon(ctx, addon.UpdateAddonInput{
 			NamespacedID: models.NamespacedID{
-				Namespace: aa.Namespace,
-				ID:        aa.ID,
+				Namespace: add.Namespace,
+				ID:        add.ID,
 			},
 			EffectivePeriod: productcatalog.EffectivePeriod{
-				EffectiveFrom: aa.EffectiveFrom,
+				EffectiveFrom: add.EffectiveFrom,
 				EffectiveTo:   lo.ToPtr(params.EffectiveTo.UTC()),
 			},
 		})
@@ -510,12 +490,12 @@ func (s service) ArchiveAddon(ctx context.Context, params addon.ArchiveAddonInpu
 		logger.Debug("add-on archived")
 
 		// Emit add-on archived event
-		event := addon.NewAddonArchiveEvent(ctx, aa)
+		event := addon.NewAddonArchiveEvent(ctx, add)
 		if err := s.publisher.Publish(ctx, event); err != nil {
 			return nil, fmt.Errorf("failed to publish add-on archived event: %w", err)
 		}
 
-		return aa, nil
+		return add, nil
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)
@@ -632,4 +612,66 @@ func (s service) NextAddon(ctx context.Context, params addon.NextAddonInput) (*a
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)
+}
+
+func validateAddon(a *addon.Addon, validators ...validatorFunc) error {
+	var errs []error
+
+	for _, validator := range validators {
+		if err := validator(a); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type validatorFunc func(a *addon.Addon) error
+
+func withAllowedStatus(allowed ...productcatalog.AddonStatus) validatorFunc {
+	return func(a *addon.Addon) error {
+		if a.DeletedAt != nil {
+			return nil
+		}
+
+		status := a.Status()
+		if lo.Contains(allowed, status) {
+			return nil
+		}
+
+		return fmt.Errorf("addon status %s is not valid, must be one of %+v", status, allowed)
+	}
+}
+
+func withBillingCadenceAligned() validatorFunc {
+	return func(a *addon.Addon) error {
+		if a.RateCards.BillingCadenceAligned() {
+			return nil
+		}
+
+		return errors.New("the billing cadence of the ratecards in add-on must be aligned")
+	}
+}
+
+func withMultipleTypeAndNoUsageBasedRateCards() validatorFunc {
+	return func(a *addon.Addon) error {
+		if a.DeletedAt != nil {
+			return nil
+		}
+
+		switch a.InstanceType {
+		case productcatalog.AddonInstanceTypeSingle:
+			return nil
+		case productcatalog.AddonInstanceTypeMultiple:
+			for _, rc := range a.RateCards {
+				if rc.Type() == productcatalog.UsageBasedRateCardType {
+					return fmt.Errorf("multiple instance type add-on cannot have usage based rate cards")
+				}
+			}
+
+			return nil
+		default:
+			return fmt.Errorf("invalid add-on: invalid instance type: %s", a.InstanceType)
+		}
+	}
 }
