@@ -348,7 +348,7 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 			)
 		}
 
-		if !aa.RateCards.IsAligned() {
+		if !aa.RateCards.BillingCadenceAligned() {
 			return nil, models.NewGenericValidationError(
 				errors.New("the billing cadence of the ratecards in add-on must be aligned"),
 			)

@@ -733,3 +733,196 @@ func TestRateCardsEqual(t *testing.T) {
 		}
 	})
 }
+
+func TestRateCards_BillingCadenceAligned(t *testing.T) {
+	p1m := isodate.MustParse(t, "P1M")
+	p3m := isodate.MustParse(t, "P3M")
+	p1y := isodate.MustParse(t, "P1Y")
+
+	// Helper for creating price
+	price := func() *Price {
+		return NewPriceFrom(FlatPrice{
+			Amount:      decimal.NewFromInt(1000),
+			PaymentTerm: InAdvancePaymentTerm,
+		})
+	}
+
+	tests := []struct {
+		name      string
+		rateCards RateCards
+		want      bool
+	}{
+		{
+			name:      "Empty rate cards",
+			rateCards: RateCards{},
+			want:      true,
+		},
+		{
+			name: "Single rate card",
+			rateCards: RateCards{
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: lo.ToPtr(p1m),
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Multiple rate cards with same billing cadence",
+			rateCards: RateCards{
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: lo.ToPtr(p1m),
+				},
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: lo.ToPtr(p1m),
+				},
+				&UsageBasedRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: p1m,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Multiple rate cards with different billing cadences",
+			rateCards: RateCards{
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: lo.ToPtr(p1m),
+				},
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: lo.ToPtr(p3m),
+				},
+			},
+			want: false,
+		},
+		{
+			name: "Multiple rate cards with some nil billing cadences",
+			rateCards: RateCards{
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: lo.ToPtr(p1m),
+				},
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: nil,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Multiple rate cards with all nil billing cadences",
+			rateCards: RateCards{
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: nil,
+				},
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: nil,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Mix of different rate card types with same billing cadence",
+			rateCards: RateCards{
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: lo.ToPtr(p1y),
+				},
+				&UsageBasedRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: p1y,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Rate cards with no price are ignored",
+			rateCards: RateCards{
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(), // This one has a price
+					},
+					BillingCadence: lo.ToPtr(p1m),
+				},
+				&FlatFeeRateCard{
+					// No price set
+					BillingCadence: lo.ToPtr(p3m),
+				},
+			},
+			want: true, // Only the first rate card with price is considered
+		},
+		{
+			name: "All rate cards with no price",
+			rateCards: RateCards{
+				&FlatFeeRateCard{
+					// No price set
+					BillingCadence: lo.ToPtr(p1m),
+				},
+				&FlatFeeRateCard{
+					// No price set
+					BillingCadence: lo.ToPtr(p3m),
+				},
+			},
+			want: true, // No rate cards with price, so alignment check passes
+		},
+		{
+			name: "Multiple rate cards with price, but different cadences",
+			rateCards: RateCards{
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: lo.ToPtr(p1m),
+				},
+				&FlatFeeRateCard{
+					// No price, should be ignored
+					BillingCadence: lo.ToPtr(p3m),
+				},
+				&FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Price: price(),
+					},
+					BillingCadence: lo.ToPtr(p1y), // Different from first card
+				},
+			},
+			want: false, // Two cards with price but different cadences
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.rateCards.BillingCadenceAligned()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
