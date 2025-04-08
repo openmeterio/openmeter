@@ -106,9 +106,9 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 		}
 
 		// If there are add-on versions with the same key do:
-		// * check their statuses to ensure that new plan with the same key is created only
+		// * check their statuses to ensure that new add-on with the same key is created only
 		//   if there is no version in draft status
-		// * calculate the version number for the new Plan based by incrementing the last version
+		// * calculate the version number for the new add-on based by incrementing the last version
 		for _, aa := range allVersions.Items {
 			if aa.DeletedAt == nil && aa.Status() == productcatalog.AddonStatusDraft {
 				return nil, models.NewGenericValidationError(
@@ -160,7 +160,7 @@ func (s service) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput)
 			"addon.id", params.ID,
 		)
 
-		logger.Debug("deleting Plan")
+		logger.Debug("deleting add-on")
 
 		// Get the add-on to check if it can be deleted
 		aa, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{
@@ -186,7 +186,6 @@ func (s service) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput)
 		}
 
 		// Delete the add-on
-		// FIXME: make delete endpoint to return deleted addon
 		err = s.adapter.DeleteAddon(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete add-on: %w", err)
@@ -292,7 +291,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 		logger.Debug("updating add-on")
 
 		// NOTE(chrisgacsal): we only allow updating the state of the add-on via Publish/Archive,
-		// therefore the AddonEffectivePeriod attribute must be zeroed before updating the add-on.
+		// therefore the EffectivePeriod attribute must be zeroed before updating the add-on.
 		params.EffectivePeriod = productcatalog.EffectivePeriod{}
 
 		aa, err = s.adapter.UpdateAddon(ctx, params)
