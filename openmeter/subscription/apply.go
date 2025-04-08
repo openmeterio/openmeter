@@ -29,3 +29,19 @@ func (e *AllowedDuringApplyingToSpecError) Error() string {
 func (e *AllowedDuringApplyingToSpecError) Unwrap() error {
 	return e.Inner
 }
+
+func NewAppliesToSpec(fn func(spec *SubscriptionSpec, actx ApplyContext) error) AppliesToSpec {
+	return &someAppliesToSpec{
+		Fn: fn,
+	}
+}
+
+var _ AppliesToSpec = &someAppliesToSpec{}
+
+type someAppliesToSpec struct {
+	Fn func(spec *SubscriptionSpec, actx ApplyContext) error
+}
+
+func (s *someAppliesToSpec) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error {
+	return s.Fn(spec, actx)
+}

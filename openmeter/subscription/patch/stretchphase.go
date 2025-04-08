@@ -17,7 +17,7 @@ func (p PatchStretchPhase) Op() subscription.PatchOperation {
 	return subscription.PatchOperationStretch
 }
 
-func (p PatchStretchPhase) Path() subscription.PatchPath {
+func (p PatchStretchPhase) Path() subscription.SpecPath {
 	return subscription.NewPhasePath(p.PhaseKey)
 }
 
