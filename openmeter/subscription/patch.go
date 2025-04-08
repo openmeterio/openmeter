@@ -162,7 +162,7 @@ func NewItemPath(phaseKey, itemKey string) PatchPath {
 }
 
 type Patch interface {
-	Applies
+	AppliesToSpec
 	Validate() error
 	Op() PatchOperation
 	Path() PatchPath
@@ -178,6 +178,6 @@ type ValuePatch[T any] interface {
 	AnyValuePatch
 }
 
-func ToApplies(p Patch, _ int) Applies {
+func ToApplies(p Patch, _ int) AppliesToSpec {
 	return p
 }
