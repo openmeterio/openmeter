@@ -18,7 +18,7 @@ import (
 func (s service) ListAddons(ctx context.Context, params addon.ListAddonsInput) (pagination.PagedResponse[addon.Addon], error) {
 	fn := func(ctx context.Context) (pagination.PagedResponse[addon.Addon], error) {
 		if err := params.Validate(); err != nil {
-			return pagination.PagedResponse[addon.Addon]{}, fmt.Errorf("invalid list Plans params: %w", err)
+			return pagination.PagedResponse[addon.Addon]{}, fmt.Errorf("invalid list add-ons params: %w", err)
 		}
 
 		return s.adapter.ListAddons(ctx, params)
@@ -139,7 +139,7 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 		// Emit add-on created event
 		event := addon.NewAddonCreateEvent(ctx, aa)
 		if err = s.publisher.Publish(ctx, event); err != nil {
-			return nil, fmt.Errorf("failed to publish plan created event: %w", err)
+			return nil, fmt.Errorf("failed to publish add-on created event: %w", err)
 		}
 
 		return aa, nil
@@ -296,7 +296,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 
 		aa, err = s.adapter.UpdateAddon(ctx, params)
 		if err != nil {
-			return nil, fmt.Errorf("failed to udpate aa-on: %w", err)
+			return nil, fmt.Errorf("failed to udpate add-on: %w", err)
 		}
 
 		logger.Debug("add-on updated")
