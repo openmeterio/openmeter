@@ -651,62 +651,68 @@ func (a *adapter) GetInvoiceOwnership(ctx context.Context, in billing.GetInvoice
 	})
 }
 
-func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.InvoiceExpand) (billing.Invoice, error) {
-	res := billing.Invoice{
-		InvoiceBase: billing.InvoiceBase{
-			ID:               invoice.ID,
-			Namespace:        invoice.Namespace,
-			Metadata:         invoice.Metadata,
-			Currency:         invoice.Currency,
-			Status:           invoice.Status,
-			StatusDetails:    invoice.StatusDetailsCache,
-			Type:             invoice.Type,
-			Number:           invoice.Number,
-			Description:      invoice.Description,
-			DueAt:            convert.TimePtrIn(invoice.DueAt, time.UTC),
-			DraftUntil:       convert.TimePtrIn(invoice.DraftUntil, time.UTC),
-			SentToCustomerAt: convert.TimePtrIn(invoice.SentToCustomerAt, time.UTC),
-			Supplier: billing.SupplierContact{
-				Name: invoice.SupplierName,
-				Address: models.Address{
-					Country:     invoice.SupplierAddressCountry,
-					PostalCode:  invoice.SupplierAddressPostalCode,
-					City:        invoice.SupplierAddressCity,
-					State:       invoice.SupplierAddressState,
-					Line1:       invoice.SupplierAddressLine1,
-					Line2:       invoice.SupplierAddressLine2,
-					PhoneNumber: invoice.SupplierAddressPhoneNumber,
-				},
-				TaxCode: invoice.SupplierTaxCode,
+func (a *adapter) mapInvoiceBaseFromDB(ctx context.Context, invoice *db.BillingInvoice) billing.InvoiceBase {
+	return billing.InvoiceBase{
+		ID:               invoice.ID,
+		Namespace:        invoice.Namespace,
+		Metadata:         invoice.Metadata,
+		Currency:         invoice.Currency,
+		Status:           invoice.Status,
+		StatusDetails:    invoice.StatusDetailsCache,
+		Type:             invoice.Type,
+		Number:           invoice.Number,
+		Description:      invoice.Description,
+		DueAt:            convert.TimePtrIn(invoice.DueAt, time.UTC),
+		DraftUntil:       convert.TimePtrIn(invoice.DraftUntil, time.UTC),
+		SentToCustomerAt: convert.TimePtrIn(invoice.SentToCustomerAt, time.UTC),
+		Supplier: billing.SupplierContact{
+			Name: invoice.SupplierName,
+			Address: models.Address{
+				Country:     invoice.SupplierAddressCountry,
+				PostalCode:  invoice.SupplierAddressPostalCode,
+				City:        invoice.SupplierAddressCity,
+				State:       invoice.SupplierAddressState,
+				Line1:       invoice.SupplierAddressLine1,
+				Line2:       invoice.SupplierAddressLine2,
+				PhoneNumber: invoice.SupplierAddressPhoneNumber,
 			},
-
-			Customer: billing.InvoiceCustomer{
-				CustomerID: invoice.CustomerID,
-				Name:       invoice.CustomerName,
-				BillingAddress: &models.Address{
-					Country:     invoice.CustomerAddressCountry,
-					PostalCode:  invoice.CustomerAddressPostalCode,
-					City:        invoice.CustomerAddressCity,
-					State:       invoice.CustomerAddressState,
-					Line1:       invoice.CustomerAddressLine1,
-					Line2:       invoice.CustomerAddressLine2,
-					PhoneNumber: invoice.CustomerAddressPhoneNumber,
-				},
-				UsageAttribution: invoice.CustomerUsageAttribution.CustomerUsageAttribution,
-			},
-			Period:    mapPeriodFromDB(invoice.PeriodStart, invoice.PeriodEnd),
-			IssuedAt:  convert.TimePtrIn(invoice.IssuedAt, time.UTC),
-			CreatedAt: invoice.CreatedAt.In(time.UTC),
-			UpdatedAt: invoice.UpdatedAt.In(time.UTC),
-			DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
-
-			CollectionAt: lo.ToPtr(invoice.CollectionAt.In(time.UTC)),
-
-			ExternalIDs: billing.InvoiceExternalIDs{
-				Invoicing: lo.FromPtrOr(invoice.InvoicingAppExternalID, ""),
-				Payment:   lo.FromPtrOr(invoice.PaymentAppExternalID, ""),
-			},
+			TaxCode: invoice.SupplierTaxCode,
 		},
+
+		Customer: billing.InvoiceCustomer{
+			CustomerID: invoice.CustomerID,
+			Name:       invoice.CustomerName,
+			BillingAddress: &models.Address{
+				Country:     invoice.CustomerAddressCountry,
+				PostalCode:  invoice.CustomerAddressPostalCode,
+				City:        invoice.CustomerAddressCity,
+				State:       invoice.CustomerAddressState,
+				Line1:       invoice.CustomerAddressLine1,
+				Line2:       invoice.CustomerAddressLine2,
+				PhoneNumber: invoice.CustomerAddressPhoneNumber,
+			},
+			UsageAttribution: invoice.CustomerUsageAttribution.CustomerUsageAttribution,
+		},
+		Period:    mapPeriodFromDB(invoice.PeriodStart, invoice.PeriodEnd),
+		IssuedAt:  convert.TimePtrIn(invoice.IssuedAt, time.UTC),
+		CreatedAt: invoice.CreatedAt.In(time.UTC),
+		UpdatedAt: invoice.UpdatedAt.In(time.UTC),
+		DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
+
+		CollectionAt: lo.ToPtr(invoice.CollectionAt.In(time.UTC)),
+
+		ExternalIDs: billing.InvoiceExternalIDs{
+			Invoicing: lo.FromPtrOr(invoice.InvoicingAppExternalID, ""),
+			Payment:   lo.FromPtrOr(invoice.PaymentAppExternalID, ""),
+		},
+	}
+}
+
+func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.InvoiceExpand) (billing.Invoice, error) {
+	base := a.mapInvoiceBaseFromDB(ctx, invoice)
+
+	res := billing.Invoice{
+		InvoiceBase: base,
 
 		Totals: billing.Totals{
 			Amount:              invoice.Amount,
@@ -748,6 +754,11 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 			lines:          invoice.Edges.BillingInvoiceLines,
 			includeDeleted: expand.DeletedLines,
 		})
+		if err != nil {
+			return billing.Invoice{}, err
+		}
+
+		mappedLines, err = a.expandProgressiveLineHierarchy(ctx, invoice.Namespace, mappedLines)
 		if err != nil {
 			return billing.Invoice{}, err
 		}

@@ -2067,26 +2067,25 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		defer s.SandboxApp.DisableMock()
 
 		mockApp.OnValidateInvoice(nil)
-		mockApp.OnUpsertInvoice(func(i billing.Invoice) *billing.UpsertInvoiceResult {
+		mockApp.OnUpsertInvoice(func(i billing.Invoice) (*billing.UpsertInvoiceResult, error) {
 			lines := i.FlattenLinesByID()
 
 			out := billing.NewUpsertInvoiceResult()
 
 			for _, line := range lines {
+				if line.ID == "" {
+					return nil, fmt.Errorf("line id is empty")
+				}
+
 				if line.Type == billing.InvoiceLineTypeFee {
 					// We set the external id the same as the line id to make it easier to test the output.
 					out.AddLineExternalID(line.ID, line.ID)
-				}
-
-				// We set the external id the same as the discount id to make it easier to test the output.
-				for _, discount := range line.Discounts {
-					out.AddLineDiscountExternalID(discount.GetID(), discount.GetID())
 				}
 			}
 
 			out.SetInvoiceNumber("INV-123")
 
-			return out
+			return out, nil
 		})
 
 		// Usage
@@ -2101,7 +2100,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		require.NoError(s.T(), err)
 		require.Len(s.T(), out, 1)
-		require.Len(s.T(), out[0].ValidationIssues, 0)
+		require.Len(s.T(), out[0].ValidationIssues, 0, "invoice should not have validation issues [id=%s]", out[0].ID)
 
 		invoiceLines := out[0].Lines.MustGet()
 
@@ -2154,9 +2153,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				lineservice.UnitPriceUsageChildUniqueReferenceID: {
 					Quantity:      20,
 					PerUnitAmount: 100,
-					Discounts: map[string]float64{
-						billing.LineMaximumSpendReferenceID: 1000,
-					},
+					// Given the previously invoiced line has been deleted, we should not have any discounts as the
+					// previously invoiced amount is 0.
 				},
 			},
 		})
@@ -2177,8 +2175,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		// Let's validate the totals
 		requireTotals(s.T(), expectedTotals{
 			Amount:         2000,
-			DiscountsTotal: 1000,
-			Total:          1000,
+			DiscountsTotal: 0,
+			Total:          2000,
 		}, flatPerUnit.Totals)
 
 		requireTotals(s.T(), expectedTotals{
@@ -2187,9 +2185,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		}, tieredGraduated.Totals)
 
 		requireTotals(s.T(), expectedTotals{
-			Amount:         3450,
-			DiscountsTotal: 1000,
-			Total:          2450,
+			Amount: 3450,
+			Total:  3450,
 		}, out[0].Totals)
 
 		// Invoice app testing
@@ -2205,20 +2202,12 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			default:
 				s.T().Errorf("unexpected line type: %s", line.Type)
 			}
-
-			// Test discounts
-			for _, discount := range line.Discounts {
-				base, err := discount.AsDiscountBase()
-				require.NoError(s.T(), err)
-
-				require.Equal(s.T(), discount.GetID(), base.ExternalIDs.Invoicing)
-			}
 		}
 
 		mockApp.AssertExpectations(s.T())
 
 		s.Run("validate invoice finalization", func() {
-			mockApp.OnUpsertInvoice(func(i billing.Invoice) *billing.UpsertInvoiceResult {
+			mockApp.OnUpsertInvoice(func(i billing.Invoice) (*billing.UpsertInvoiceResult, error) {
 				lines := i.FlattenLinesByID()
 
 				out := billing.NewUpsertInvoiceResult()
@@ -2233,7 +2222,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 					}
 				}
 
-				return out
+				return out, nil
 			})
 
 			finalizedInvoiceResult := billing.NewFinalizeInvoiceResult()
@@ -2271,10 +2260,37 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 	})
 
 	s.Run("create end of period invoice", func() {
+		mockApp := s.SandboxApp.EnableMock(s.T())
+		defer s.SandboxApp.DisableMock()
+
+		mockApp.OnValidateInvoice(nil)
+		mockApp.OnUpsertInvoice(func(i billing.Invoice) (*billing.UpsertInvoiceResult, error) {
+			lines := i.FlattenLinesByID()
+
+			out := billing.NewUpsertInvoiceResult()
+
+			for _, line := range lines {
+				if line.Type == billing.InvoiceLineTypeFee {
+					// We set the external id the same as the line id to make it easier to test the output.
+					out.AddLineExternalID(line.ID, line.ID)
+				}
+
+				// We set the external id the same as the discount id to make it easier to test the output.
+				for _, discount := range line.Discounts {
+					out.AddLineDiscountExternalID(discount.GetID(), discount.GetID())
+				}
+			}
+
+			out.SetInvoiceNumber("INV-124")
+
+			return out, nil
+		})
+
 		// Usage
 		afterPreviousTest := periodStart.Add(3 * time.Hour)
 		s.MockStreamingConnector.AddSimpleEvent("tiered-volume", 25, afterPreviousTest)
 		s.MockStreamingConnector.AddSimpleEvent("tiered-graduated", 15, afterPreviousTest)
+		s.MockStreamingConnector.AddSimpleEvent("flat-per-unit", 30, afterPreviousTest)
 
 		asOf := periodEnd
 		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -2342,6 +2358,29 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			End:   periodEnd.Truncate(time.Minute),
 		}), "third child period should be until the end of parent's period")
 
+		// Invoice app testing: discounts
+
+		require.Equal(s.T(), "INV-124", out[0].Number)
+
+		for _, line := range out[0].FlattenLinesByID() {
+			switch line.Type {
+			case billing.InvoiceLineTypeFee:
+				require.Equal(s.T(), line.ID, line.ExternalIDs.Invoicing)
+			case billing.InvoiceLineTypeUsageBased:
+				require.Empty(s.T(), line.ExternalIDs.Invoicing)
+			default:
+				s.T().Errorf("unexpected line type: %s", line.Type)
+			}
+
+			// Test discounts
+			for _, discount := range line.Discounts {
+				base, err := discount.AsDiscountBase()
+				require.NoError(s.T(), err)
+
+				require.Equal(s.T(), discount.GetID(), base.ExternalIDs.Invoicing)
+			}
+		}
+
 		// Details
 		requireDetailedLines(s.T(), flatPerUsage, lineExpectations{
 			Details: map[string]feeLineExpect{
@@ -2363,7 +2402,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 					Quantity:      25,
 					PerUnitAmount: 80,
 				},
-				lineservice.VolumeMinSpendChildUniqueReferenceID: {
+				lineservice.MinSpendChildUniqueReferenceID: {
 					Quantity:      1,
 					PerUnitAmount: 1000,
 				},
@@ -2389,6 +2428,18 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			},
 		})
 
+		requireDetailedLines(s.T(), flatPerUnit, lineExpectations{
+			Details: map[string]feeLineExpect{
+				lineservice.UnitPriceUsageChildUniqueReferenceID: {
+					Quantity:      30,
+					PerUnitAmount: 100,
+					Discounts: map[string]float64{
+						billing.LineMaximumSpendReferenceID: 3000,
+					},
+				},
+			},
+		})
+
 		requireTotals(s.T(), expectedTotals{
 			Amount: 1250,
 			Total:  1250,
@@ -2396,9 +2447,10 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		// invoice totals
 		requireTotals(s.T(), expectedTotals{
-			Amount:       3350,
-			ChargesTotal: 1000,
-			Total:        4350,
+			Amount:         6350,
+			ChargesTotal:   1000,
+			DiscountsTotal: 3000,
+			Total:          4350,
 		}, out[0].Totals)
 	})
 }
@@ -3065,7 +3117,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 					Quantity:      25,
 					PerUnitAmount: 80,
 				},
-				lineservice.VolumeMinSpendChildUniqueReferenceID: {
+				lineservice.MinSpendChildUniqueReferenceID: {
 					Quantity:      1,
 					PerUnitAmount: 1000,
 				},

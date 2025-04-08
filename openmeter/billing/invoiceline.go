@@ -282,8 +282,9 @@ type Line struct {
 	FlatFee    *FlatFeeLine    `json:"flatFee,omitempty"`
 	UsageBased *UsageBasedLine `json:"usageBased,omitempty"`
 
-	Children   LineChildren `json:"children,omitempty"`
-	ParentLine *Line        `json:"parent,omitempty"`
+	Children                 LineChildren                     `json:"children,omitempty"`
+	ParentLine               *Line                            `json:"parent,omitempty"`
+	ProgressiveLineHierarchy *InvoiceLineProgressiveHierarchy `json:"progressiveLineHierarchy,omitempty"`
 
 	Discounts LineDiscounts `json:"discounts,omitempty"`
 
@@ -309,6 +310,7 @@ func (i Line) CloneWithoutDependencies() *Line {
 	clone.ID = ""
 	clone.ParentLineID = nil
 	clone.ParentLine = nil
+	clone.ProgressiveLineHierarchy = nil
 
 	if clone.FlatFee != nil {
 		clone.FlatFee.ConfigID = ""
@@ -400,6 +402,10 @@ func (i Line) clone(opts cloneOptions) *Line {
 
 	if !opts.skipDiscounts {
 		res.Discounts = i.Discounts.Clone()
+	}
+
+	if i.ProgressiveLineHierarchy != nil {
+		res.ProgressiveLineHierarchy = lo.ToPtr(i.ProgressiveLineHierarchy.Clone())
 	}
 
 	return res

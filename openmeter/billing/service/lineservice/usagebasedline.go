@@ -25,18 +25,17 @@ const (
 	FlatPriceChildUniqueReferenceID = "flat-price"
 
 	UnitPriceUsageChildUniqueReferenceID    = "unit-price-usage"
-	UnitPriceMinSpendChildUniqueReferenceID = "unit-price-min-spend"
 	UnitPriceMaxSpendChildUniqueReferenceID = "unit-price-max-spend"
 
 	DynamicPriceUsageChildUniqueReferenceID = "dynamic-price-usage"
 
 	VolumeFlatPriceChildUniqueReferenceID = "volume-flat-price"
 	VolumeUnitPriceChildUniqueReferenceID = "volume-tiered-price"
-	VolumeMinSpendChildUniqueReferenceID  = "volume-min-spend"
 
 	GraduatedTieredPriceUsageChildUniqueReferenceID = "graduated-tiered-%d-price-usage"
 	GraduatedTieredFlatPriceChildUniqueReferenceID  = "graduated-tiered-%d-flat-price"
-	GraduatedMinSpendChildUniqueReferenceID         = "graduated-tiered-min-spend"
+
+	// TODO: Let's add migrations to fix the child uniqe reference ids
 )
 
 var DecimalOne = alpacadecimal.NewFromInt(1)
@@ -245,24 +244,31 @@ func (l usageBasedLine) asPricerCalculateInput() (PricerCalculateInput, error) {
 }
 
 func (l usageBasedLine) getPricer() (Pricer, error) {
-	var pricer Pricer
+	var basePricer Pricer
 
 	switch l.line.UsageBased.Price.Type() {
 	case productcatalog.FlatPriceType:
-		pricer = flatPricer{}
+		basePricer = flatPricer{}
 	case productcatalog.UnitPriceType:
-		pricer = unitPricer{}
+		basePricer = unitPricer{}
 	case productcatalog.TieredPriceType:
-		pricer = tieredPricer{}
+		basePricer = tieredPricer{}
 	case productcatalog.PackagePriceType:
-		pricer = packagePricer{}
+		basePricer = packagePricer{}
 	case productcatalog.DynamicPriceType:
-		pricer = dynamicPricer{}
+		basePricer = dynamicPricer{}
 	default:
 		return nil, fmt.Errorf("unsupported price type: %s", l.line.UsageBased.Price.Type())
 	}
 
-	return pricer, nil
+	// This priceMutator captures the calculation flow for discounts and commitments:
+	return &priceMutator{
+		Pricer: basePricer,
+		PostCalculation: []PostCalculationMutator{
+			&maxAmountCommitmentMutator{},
+			&minAmountCommitmentMutator{},
+		},
+	}, nil
 }
 
 func (l usageBasedLine) calculateDetailedLines() (newDetailedLinesInput, error) {
@@ -277,79 +283,6 @@ func (l usageBasedLine) calculateDetailedLines() (newDetailedLinesInput, error) 
 	}
 
 	return pricer.Calculate(pricerInput)
-}
-
-type applyCommitmentsInput struct {
-	Commitments productcatalog.Commitments
-
-	DetailedLines newDetailedLinesInput
-
-	AmountBilledInPreviousPeriods alpacadecimal.Decimal
-
-	MinimumSpendReferenceID string
-}
-
-func (i applyCommitmentsInput) Validate() error {
-	if i.MinimumSpendReferenceID == "" {
-		return fmt.Errorf("minimum spend reference ID is required")
-	}
-
-	return nil
-}
-
-func (l usageBasedLine) applyCommitments(in applyCommitmentsInput) (newDetailedLinesInput, error) {
-	if err := in.Validate(); err != nil {
-		return nil, err
-	}
-
-	// let's add maximum spend discounts if needed
-
-	if in.Commitments.MaximumAmount != nil {
-		currentSpendAmount := in.AmountBilledInPreviousPeriods
-		maxSpend := l.currency.RoundToPrecision(*in.Commitments.MaximumAmount)
-
-		for idx, line := range in.DetailedLines {
-			// Total spends after adding the line's amount
-			in.DetailedLines[idx] = line.AddDiscountForOverage(addDiscountInput{
-				BilledAmountBeforeLine: currentSpendAmount,
-				MaxSpend:               maxSpend,
-				Currency:               l.currency,
-			})
-
-			currentSpendAmount = currentSpendAmount.Add(line.TotalAmount(l.currency))
-		}
-	}
-
-	if l.IsLastInPeriod() && in.Commitments.MinimumAmount != nil {
-		toBeBilledAmount := in.AmountBilledInPreviousPeriods.Add(
-			in.DetailedLines.Sum(l.currency),
-		)
-
-		if toBeBilledAmount.LessThan(*in.Commitments.MinimumAmount) {
-			period := l.line.Period
-			if l.line.ParentLine != nil {
-				period = l.line.ParentLine.Period
-			}
-
-			minSpendAmount := l.currency.RoundToPrecision(in.Commitments.MinimumAmount.Sub(toBeBilledAmount))
-
-			if minSpendAmount.IsPositive() {
-				in.DetailedLines = append(in.DetailedLines, newDetailedLineInput{
-					Name:          fmt.Sprintf("%s: minimum spend", l.line.Name),
-					Quantity:      alpacadecimal.NewFromFloat(1),
-					PerUnitAmount: minSpendAmount,
-					// Minimum spend is always billed for the whole period
-					Period: &period,
-
-					ChildUniqueReferenceID: in.MinimumSpendReferenceID,
-					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billing.FlatFeeCategoryCommitment,
-				})
-			}
-		}
-	}
-
-	return in.DetailedLines, nil
 }
 
 type newDetailedLinesInput []newDetailedLineInput

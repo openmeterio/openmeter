@@ -292,6 +292,8 @@ type InvoiceBase struct {
 	Workflow InvoiceWorkflow `json:"workflow,omitempty"`
 
 	ExternalIDs InvoiceExternalIDs `json:"externalIds,omitempty"`
+
+	// TODO[later]: Let's also include the totals here, as that's part of the invoice db table
 }
 
 func (i InvoiceBase) Validate() error {

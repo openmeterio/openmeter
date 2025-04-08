@@ -15,8 +15,6 @@ type packagePricer struct {
 var _ Pricer = (*packagePricer)(nil)
 
 func (p packagePricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, error) {
-	var out newDetailedLinesInput
-
 	packagePrice, err := l.line.UsageBased.Price.AsPackage()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to package price: %w", err)
@@ -34,7 +32,7 @@ func (p packagePricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput,
 	toBeBilledPackages := postLinePeriodPackages.Sub(preLinePeriodPackages)
 
 	if !toBeBilledPackages.IsZero() {
-		out = newDetailedLinesInput{
+		return newDetailedLinesInput{
 			{
 				Name:                   fmt.Sprintf("%s: usage in period", l.line.Name),
 				Quantity:               toBeBilledPackages,
@@ -42,20 +40,10 @@ func (p packagePricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput,
 				ChildUniqueReferenceID: UsageChildUniqueReferenceID,
 				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			},
-		}
+		}, nil
 	}
 
-	detailedLines, err := l.applyCommitments(applyCommitmentsInput{
-		Commitments:                   packagePrice.Commitments,
-		DetailedLines:                 out,
-		AmountBilledInPreviousPeriods: l.currency.RoundToPrecision(preLinePeriodPackages.Mul(packagePrice.Amount)),
-		MinimumSpendReferenceID:       MinSpendChildUniqueReferenceID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return detailedLines, nil
+	return nil, nil
 }
 
 func (p packagePricer) getNumberOfPackages(qty alpacadecimal.Decimal, packageSize alpacadecimal.Decimal) alpacadecimal.Decimal {

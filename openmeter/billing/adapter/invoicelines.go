@@ -436,7 +436,18 @@ func (a *adapter) AssociateLinesToInvoice(ctx context.Context, input billing.Ass
 			return nil, fmt.Errorf("not all lines were associated")
 		}
 
-		return tx.fetchLines(ctx, input.Invoice.Namespace, input.LineIDs)
+		invoiceLines, err := tx.fetchLines(ctx, input.Invoice.Namespace, input.LineIDs)
+		if err != nil {
+			return nil, fmt.Errorf("fetching lines: %w", err)
+		}
+
+		// Let's expand the line hierarchy so that we can have a full view of the invoice during the upcoming calculations
+		invoiceLines, err = a.expandProgressiveLineHierarchy(ctx, input.Invoice.Namespace, invoiceLines)
+		if err != nil {
+			return nil, err
+		}
+
+		return invoiceLines, nil
 	})
 }
 

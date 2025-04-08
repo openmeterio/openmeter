@@ -161,6 +161,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 				PreLinePeriodQty: alpacadecimal.NewFromFloat(0),
 				LinePeriodQty:    alpacadecimal.NewFromFloat(0),
 			},
+			previousBilledAmount: alpacadecimal.NewFromFloat(100), // Due to flat fee of 100 for tier 1
 			expect: newDetailedLinesInput{
 				{
 					Name: "feature: minimum spend",
@@ -168,7 +169,8 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					// that from the charge.
 					PerUnitAmount:          alpacadecimal.NewFromFloat(900),
 					Quantity:               alpacadecimal.NewFromFloat(1),
-					ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
+					Period:                 &ubpTestFullPeriod,
+					ChildUniqueReferenceID: MinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billing.FlatFeeCategoryCommitment,
 				},
@@ -190,12 +192,14 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 				PreLinePeriodQty: alpacadecimal.NewFromFloat(2),
 				LinePeriodQty:    alpacadecimal.NewFromFloat(0),
 			},
+			previousBilledAmount: alpacadecimal.NewFromFloat(100), // Due to flat fee of 100 for tier 1
 			expect: newDetailedLinesInput{
 				{
 					Name:                   "feature: minimum spend",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(900),
 					Quantity:               alpacadecimal.NewFromFloat(1),
-					ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
+					Period:                 &ubpTestFullPeriod,
+					ChildUniqueReferenceID: MinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billing.FlatFeeCategoryCommitment,
 				},
@@ -231,7 +235,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(170)),
 				},
 			}),
-			lineMode: singlePerPeriodLineMode,
+			lineMode: midPeriodSplitLineMode,
 			usage: featureUsageResponse{
 				PreLinePeriodQty: alpacadecimal.NewFromFloat(12),
 				LinePeriodQty:    alpacadecimal.NewFromFloat(10), // total usage is at 22
@@ -242,6 +246,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 			// tier 2: $50 flat
 			// tier 3: 2*$5 = $10 usage
 			// total: $160
+			previousBilledAmount: alpacadecimal.NewFromFloat(160),
 
 			expect: newDetailedLinesInput{
 				{

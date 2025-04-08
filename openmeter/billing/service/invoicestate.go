@@ -67,6 +67,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	stateMachine.Configure(billing.InvoiceStatusDraftCreated).
 		Permit(billing.TriggerNext, billing.InvoiceStatusDraftValidating).
+		Permit(billing.TriggerFailed, billing.InvoiceStatusDraftInvalid).
 		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerUpdated, billing.InvoiceStatusDraftUpdating).
 		OnActive(out.calculateInvoice)
@@ -373,6 +374,19 @@ func (m *InvoiceStateMachine) CanFire(ctx context.Context, trigger billing.Invoi
 	return m.StateMachine.CanFireCtx(ctx, trigger)
 }
 
+func (m *InvoiceStateMachine) TriggerFailed(ctx context.Context) error {
+	if err := m.StateMachine.FireCtx(ctx, billing.TriggerFailed); err != nil {
+		return err
+	}
+
+	activationError := m.StateMachine.ActivateCtx(ctx)
+	if activationError != nil {
+		return activationError
+	}
+
+	return nil
+}
+
 // FireAndActivate fires the trigger and activates the new state, if activation fails it automatically
 // transitions to the failed state and activates that.
 // In addition to the activation a calculation is always performed to ensure that the invoice is up to date.
@@ -506,6 +520,7 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 
 // syncDraftInvoice syncs the draft invoice with the external system.
 func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
+	// Let's save the invoice so that we are sure that all the IDs are available for downstream apps
 	return m.withInvoicingApp(billing.InvoiceOpSync, func(app billing.InvoicingApp) (*billing.InvoiceOperation, error) {
 		results, err := app.UpsertInvoice(ctx, m.Invoice.Clone())
 		if err != nil {

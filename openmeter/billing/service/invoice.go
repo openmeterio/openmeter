@@ -290,7 +290,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			// Note: Stripe uses seconds precision, so let's truncate for easier testing
 			dueAt = dueAt.Truncate(time.Second)
 
-			createdInvoices := make([]billing.InvoiceID, 0, len(linesByCurrency))
+			createdInvoices := make([]billing.Invoice, 0, len(linesByCurrency))
 
 			for currency, lines := range linesByCurrency {
 				invoiceNumber, err := s.GenerateInvoiceSequenceNumber(ctx,
@@ -322,11 +322,6 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 					return nil, fmt.Errorf("creating invoice: %w", err)
 				}
 
-				createdInvoices = append(createdInvoices, billing.InvoiceID{
-					Namespace: invoice.Namespace,
-					ID:        invoice.ID,
-				})
-
 				// let's associate the invoice lines to the invoice
 				invoice, err = s.associateLinesToInvoice(ctx, invoice, lines)
 				if err != nil {
@@ -336,10 +331,12 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				// TODO[later]: we are saving here, and the state machine advancement will do a load/save later
 				// this is something we could optimize in the future by adding the option to withLockedInvoiceStateMachine
 				// to either pass in the invoice or the ID
-				_, err = s.updateInvoice(ctx, invoice)
+				savedInvoice, err := s.updateInvoice(ctx, invoice)
 				if err != nil {
 					return nil, fmt.Errorf("updating invoice: %w", err)
 				}
+
+				createdInvoices = append(createdInvoices, savedInvoice)
 			}
 
 			// Let's check if we need to remove any empty gathering invoices (e.g. if they don't have any line items)
@@ -428,9 +425,26 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			// Assemble output: we need to refetch as the association call will have side-effects of updating
 			// invoice objects (e.g. totals, period, etc.)
 			out := make([]billing.Invoice, 0, len(createdInvoices))
-			for _, invoiceID := range createdInvoices {
+			for _, invoice := range createdInvoices {
+				// Let's check if the invoice has any validation issues due to the recalculation and make sure we are not executing the
+				// state machine on top of the failed invoice.
+				if invoice.HasCriticalValidationIssues() {
+					invoice, err := s.withLockedInvoiceStateMachine(ctx, withLockedStateMachineInput{
+						InvoiceID: invoice.InvoiceID(),
+						Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
+							return sm.TriggerFailed(ctx)
+						},
+					})
+					if err != nil {
+						return nil, fmt.Errorf("activating invoice: %w", err)
+					}
+
+					out = append(out, invoice)
+					continue
+				}
+
 				invoice, err := s.withLockedInvoiceStateMachine(ctx, withLockedStateMachineInput{
-					InvoiceID: invoiceID,
+					InvoiceID: invoice.InvoiceID(),
 					Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
 						if err := s.advanceUntilStateStable(ctx, sm); err != nil {
 							return fmt.Errorf("activating invoice: %w", err)

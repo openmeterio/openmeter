@@ -177,6 +177,7 @@ func TestDynamicPriceCalculation(t *testing.T) {
 				PreLinePeriodQty: alpacadecimal.NewFromFloat(70), // 70 * 1.33333 = 93.33
 				// Total: 160
 			},
+			previousBilledAmount: alpacadecimal.NewFromFloat(93.33),
 			expect: newDetailedLinesInput{
 				{
 					Name:                   "feature: usage in period",

@@ -15,8 +15,6 @@ type dynamicPricer struct {
 var _ Pricer = (*dynamicPricer)(nil)
 
 func (p dynamicPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, error) {
-	var out newDetailedLinesInput
-
 	dynamicPrice, err := l.line.UsageBased.Price.AsDynamic()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to dynamic price: %w", err)
@@ -27,7 +25,7 @@ func (p dynamicPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput,
 			l.linePeriodQty.Mul(dynamicPrice.Multiplier),
 		)
 
-		out = newDetailedLinesInput{
+		return newDetailedLinesInput{
 			{
 				Name:                   fmt.Sprintf("%s: usage in period", l.line.Name),
 				Quantity:               alpacadecimal.NewFromInt(1),
@@ -35,20 +33,8 @@ func (p dynamicPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput,
 				ChildUniqueReferenceID: UsageChildUniqueReferenceID,
 				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			},
-		}
+		}, nil
 	}
 
-	amountBilledInPreviousPeriods := l.currency.RoundToPrecision(l.preLinePeriodQty.Mul(dynamicPrice.Multiplier))
-
-	detailedLines, err := l.applyCommitments(applyCommitmentsInput{
-		Commitments:                   dynamicPrice.Commitments,
-		DetailedLines:                 out,
-		AmountBilledInPreviousPeriods: amountBilledInPreviousPeriods,
-		MinimumSpendReferenceID:       MinSpendChildUniqueReferenceID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return detailedLines, nil
+	return nil, nil
 }
