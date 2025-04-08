@@ -1773,6 +1773,54 @@ export interface paths {
     patch: operations['editSubscription']
     trace?: never
   }
+  '/api/v1/subscriptions/{subscriptionId}/addons': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List subscription addons
+     * @description List all addons of a subscription. In the returned list will match to a set unique by addonId.
+     */
+    get: operations['listSubscriptionAddons']
+    put?: never
+    /**
+     * Create subscription addon
+     * @description Create a new subscription addon, either providing the key or the id of the addon.
+     */
+    post: operations['createSubscriptionAddon']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get subscription addon
+     * @description Get a subscription addon by id.
+     */
+    get: operations['getSubscriptionAddon']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    /**
+     * Update subscription addon
+     * @description Updates a subscription addon (allows changing the quantity: purchasing more instances or cancelling the current instances)
+     */
+    patch: operations['updateSubscriptionAddon']
+    trace?: never
+  }
   '/api/v1/subscriptions/{subscriptionId}/cancel': {
     parameters: {
       query?: never
@@ -7964,6 +8012,290 @@ export interface components {
        */
       currency: components['schemas']['CurrencyCode']
     }
+    /** @description A subscription addon, represents concrete instances of an addon for a given subscription. */
+    SubscriptionAddon: {
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly id: string
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /**
+       * Format: date-time
+       * @description The cadence start of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeFrom: Date
+      /**
+       * Format: date-time
+       * @description The cadence end of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeTo?: Date
+      /**
+       * Addon
+       * @description Partially populated addon properties.
+       */
+      addon: {
+        /**
+         * ID
+         * @description The ID of the addon.
+         * @example 01G65Z755AFWAKHE12NY0CQ9FH
+         */
+        id: string
+        /**
+         * Key
+         * @description A semi-unique identifier for the resource.
+         */
+        readonly key: string
+        /**
+         * Version
+         * @description The version of the Addon which templates this instance.
+         * @default 1
+         */
+        readonly version: number
+        /**
+         * InstanceType
+         * @description The instanceType of the addon. Can be "single" or "multiple".
+         */
+        readonly instanceType: components['schemas']['AddonInstanceType']
+      }
+      /**
+       * AddonID
+       * @description The ID of the addon.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly addonId: string
+      /**
+       * QuantityAt
+       * Format: date-time
+       * @description For which point in time the quantity was resolved to.
+       * @example 2025-01-05T00:00:00Z
+       */
+      readonly quantityAt: Date
+      /**
+       * Quantity
+       * @description The quantity of the addon. Always 1 for single instance add-ons.
+       * @example 1
+       */
+      quantity: number
+      /**
+       * Timeline
+       * @description The timeline of the addon. The returned periods are sorted and continuous.
+       * @example [
+       *       {
+       *         "quantity": 1,
+       *         "activeFrom": "2025-01-01T00:00:00Z",
+       *         "activeTo": "2025-01-02T00:00:00Z"
+       *       },
+       *       {
+       *         "quantity": 0,
+       *         "activeFrom": "2025-01-02T00:00:00Z",
+       *         "activeTo": "2025-01-03T00:00:00Z"
+       *       },
+       *       {
+       *         "quantity": 1,
+       *         "activeFrom": "2025-01-03T00:00:00Z"
+       *       }
+       *     ]
+       */
+      readonly timeline: components['schemas']['SubscriptionAddonTimelineSegment'][]
+      /**
+       * SubscriptionID
+       * @description The ID of the subscription.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly subscriptionId: string
+      /**
+       * Rate cards
+       * @description The rate cards of the addon.
+       */
+      readonly rateCards: components['schemas']['SubscriptionAddonRateCard'][]
+    }
+    /** @description Resource create operation model. */
+    SubscriptionAddonCreate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Format: date-time
+       * @description The cadence start of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeFrom: Date
+      /**
+       * Format: date-time
+       * @description The cadence end of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeTo?: Date
+      /**
+       * Addon
+       * @description Partially populated addon properties.
+       */
+      addon: {
+        /**
+         * ID
+         * @description The ID of the addon.
+         * @example 01G65Z755AFWAKHE12NY0CQ9FH
+         */
+        id: string
+        /**
+         * Key
+         * @description A semi-unique identifier for the resource.
+         */
+        readonly key: string
+        /**
+         * Version
+         * @description The version of the Addon which templates this instance.
+         * @default 1
+         */
+        readonly version: number
+        /**
+         * InstanceType
+         * @description The instanceType of the addon. Can be "single" or "multiple".
+         */
+        readonly instanceType: components['schemas']['AddonInstanceType']
+      }
+      /**
+       * Quantity
+       * @description The quantity of the addon. Always 1 for single instance add-ons.
+       * @example 1
+       */
+      quantity: number
+      /**
+       * Timing
+       * @description The timing of the operation. After the create or update, a new entry will be created in the timeline.
+       */
+      timing: components['schemas']['SubscriptionTiming']
+    }
+    /** @description A rate card for a subscription addon. */
+    SubscriptionAddonRateCard: {
+      /**
+       * Rate card
+       * @description The rate card.
+       */
+      rateCard: components['schemas']['RateCard']
+      /**
+       * Affected subscription item IDs
+       * @description The IDs of the subscription items that this rate card belongs to.
+       */
+      readonly affectedSubscriptionItemIds: string[]
+    }
+    /** @description A subscription addon event. */
+    SubscriptionAddonTimelineSegment: {
+      /**
+       * Format: date-time
+       * @description The cadence start of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeFrom: Date
+      /**
+       * Format: date-time
+       * @description The cadence end of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeTo?: Date
+      /**
+       * Quantity
+       * @description The quantity of the addon for the given period.
+       */
+      readonly quantity: number
+    }
+    /** @description Resource create or update operation model. */
+    SubscriptionAddonUpdate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name?: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Format: date-time
+       * @description The cadence start of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeFrom?: Date
+      /**
+       * Format: date-time
+       * @description The cadence end of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeTo?: Date
+      /**
+       * Addon
+       * @description Partially populated addon properties.
+       */
+      addon?: Record<string, never>
+      /**
+       * Quantity
+       * @description The quantity of the addon. Always 1 for single instance add-ons.
+       * @example 1
+       */
+      quantity?: number
+      /**
+       * Timing
+       * @description The timing of the operation. After the create or update, a new entry will be created in the timeline.
+       */
+      timing?: components['schemas']['SubscriptionTiming']
+    }
     /** @description Alignment details enriched with the current billing period. */
     SubscriptionAlignment: {
       /** @description Whether all Billable items and RateCards must align.
@@ -9255,6 +9587,15 @@ export type StripeWebhookResponse =
 export type Subject = components['schemas']['Subject']
 export type SubjectUpsert = components['schemas']['SubjectUpsert']
 export type Subscription = components['schemas']['Subscription']
+export type SubscriptionAddon = components['schemas']['SubscriptionAddon']
+export type SubscriptionAddonCreate =
+  components['schemas']['SubscriptionAddonCreate']
+export type SubscriptionAddonRateCard =
+  components['schemas']['SubscriptionAddonRateCard']
+export type SubscriptionAddonTimelineSegment =
+  components['schemas']['SubscriptionAddonTimelineSegment']
+export type SubscriptionAddonUpdate =
+  components['schemas']['SubscriptionAddonUpdate']
 export type SubscriptionAlignment =
   components['schemas']['SubscriptionAlignment']
 export type SubscriptionChange = components['schemas']['SubscriptionChange']
@@ -20456,6 +20797,401 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  listSubscriptionAddons: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        subscriptionId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SubscriptionAddon'][]
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  createSubscriptionAddon: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        subscriptionId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SubscriptionAddonCreate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SubscriptionAddon']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The request could not be completed due to a conflict with the current state of the target resource. */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ConflictProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  getSubscriptionAddon: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        subscriptionId: string
+        subscriptionAddonId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SubscriptionAddon']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  updateSubscriptionAddon: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        subscriptionId: string
+        subscriptionAddonId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SubscriptionAddonUpdate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SubscriptionAddon']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */

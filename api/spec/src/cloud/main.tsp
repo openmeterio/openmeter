@@ -220,6 +220,11 @@ namespace OpenMeterCloud.ProductCatalog {
   @route("/api/v1/subscriptions")
   @tag("Subscriptions")
   interface Subscriptions extends OpenMeter.ProductCatalog.Subscriptions {}
+
+  @route("/api/v1/subscriptions/{subscriptionId}/addons")
+  @tag("Subscriptions")
+  interface SubscriptionAddons
+    extends OpenMeter.ProductCatalog.SubscriptionAddons {}
 }
 
 namespace OpenMeterCloud.Info {
