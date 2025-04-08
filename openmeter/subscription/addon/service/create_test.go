@@ -307,7 +307,7 @@ func TestAddonServiceCreate(t *testing.T) {
 			}
 			_, err := deps.SubscriptionAddonService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, subAddonInp)
 			require.Error(t, err)
-			require.ErrorAs(t, err, lo.ToPtr(&models.GenericForbiddenError{}))
+			require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
 		})
 	})
 

@@ -66,7 +66,7 @@ func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon
 	}
 
 	if addon.InstanceType == productcatalog.AddonInstanceTypeSingle && input.InitialQuantity.Quantity != 1 {
-		return nil, models.NewGenericForbiddenError(errors.New("invalid input: single instance addon must have initial quantity of 1"))
+		return nil, models.NewGenericValidationError(errors.New("invalid input: single instance addon must have initial quantity of 1"))
 	}
 
 	subView, err := s.cfg.SubService.GetView(ctx, models.NamespacedID{
@@ -154,6 +154,33 @@ func (s *service) List(ctx context.Context, ns string, input subscriptionaddon.L
 func (s *service) ChangeQuantity(ctx context.Context, id models.NamespacedID, input subscriptionaddon.CreateSubscriptionAddonQuantityInput) (*subscriptionaddon.SubscriptionAddon, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
+	}
+
+	subAdd, err := s.cfg.SubAddRepo.Get(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get subscription addon: %w", err)
+	}
+
+	if subAdd == nil {
+		return nil, fmt.Errorf("subscription addon not found")
+	}
+
+	add, err := s.cfg.AddonService.GetAddon(ctx, addon.GetAddonInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: subAdd.Namespace,
+			ID:        subAdd.AddonID,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get addon: %w", err)
+	}
+
+	if add == nil {
+		return nil, fmt.Errorf("inconsitency error: nil addon received")
+	}
+
+	if add.InstanceType == productcatalog.AddonInstanceTypeSingle && input.Quantity > 1 {
+		return nil, models.NewGenericValidationError(errors.New("invalid input: single instance addon must have quantity of 1"))
 	}
 
 	return transaction.Run(ctx, s.cfg.TxManager, func(ctx context.Context) (*subscriptionaddon.SubscriptionAddon, error) {
