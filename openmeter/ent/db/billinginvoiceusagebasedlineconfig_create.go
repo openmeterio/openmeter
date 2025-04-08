@@ -62,6 +62,20 @@ func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetNillablePreLinePerio
 	return biublcc
 }
 
+// SetMeteredQuantity sets the "metered_quantity" field.
+func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetMeteredQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
+	biublcc.mutation.SetMeteredQuantity(a)
+	return biublcc
+}
+
+// SetNillableMeteredQuantity sets the "metered_quantity" field if the given value is not nil.
+func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetNillableMeteredQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
+	if a != nil {
+		biublcc.SetMeteredQuantity(*a)
+	}
+	return biublcc
+}
+
 // SetID sets the "id" field.
 func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetID(s string) *BillingInvoiceUsageBasedLineConfigCreate {
 	biublcc.mutation.SetID(s)
@@ -214,6 +228,10 @@ func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) createSpec() (*BillingI
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther, value)
 		_node.PreLinePeriodQuantity = &value
 	}
+	if value, ok := biublcc.mutation.MeteredQuantity(); ok {
+		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther, value)
+		_node.MeteredQuantity = &value
+	}
 	return _node, _spec, nil
 }
 
@@ -305,6 +323,24 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsert) UpdatePreLinePeriodQuantity()
 // ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
 func (u *BillingInvoiceUsageBasedLineConfigUpsert) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpsert {
 	u.SetNull(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity)
+	return u
+}
+
+// SetMeteredQuantity sets the "metered_quantity" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) SetMeteredQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpsert {
+	u.Set(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, v)
+	return u
+}
+
+// UpdateMeteredQuantity sets the "metered_quantity" field to the value that was provided on create.
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) UpdateMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpsert {
+	u.SetExcluded(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity)
+	return u
+}
+
+// ClearMeteredQuantity clears the value of the "metered_quantity" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpsert {
+	u.SetNull(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity)
 	return u
 }
 
@@ -408,6 +444,27 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) UpdatePreLinePeriodQuantit
 func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpsertOne {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.ClearPreLinePeriodQuantity()
+	})
+}
+
+// SetMeteredQuantity sets the "metered_quantity" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) SetMeteredQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.SetMeteredQuantity(v)
+	})
+}
+
+// UpdateMeteredQuantity sets the "metered_quantity" field to the value that was provided on create.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) UpdateMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.UpdateMeteredQuantity()
+	})
+}
+
+// ClearMeteredQuantity clears the value of the "metered_quantity" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.ClearMeteredQuantity()
 	})
 }
 
@@ -681,6 +738,27 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) UpdatePreLinePeriodQuanti
 func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.ClearPreLinePeriodQuantity()
+	})
+}
+
+// SetMeteredQuantity sets the "metered_quantity" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) SetMeteredQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.SetMeteredQuantity(v)
+	})
+}
+
+// UpdateMeteredQuantity sets the "metered_quantity" field to the value that was provided on create.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) UpdateMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.UpdateMeteredQuantity()
+	})
+}
+
+// ClearMeteredQuantity clears the value of the "metered_quantity" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.ClearMeteredQuantity()
 	})
 }
 

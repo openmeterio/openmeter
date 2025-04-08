@@ -28,7 +28,9 @@ type BillingInvoiceUsageBasedLineConfig struct {
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// PreLinePeriodQuantity holds the value of the "pre_line_period_quantity" field.
 	PreLinePeriodQuantity *alpacadecimal.Decimal `json:"pre_line_period_quantity,omitempty"`
-	selectValues          sql.SelectValues
+	// MeteredQuantity holds the value of the "metered_quantity" field.
+	MeteredQuantity *alpacadecimal.Decimal `json:"metered_quantity,omitempty"`
+	selectValues    sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -36,7 +38,7 @@ func (*BillingInvoiceUsageBasedLineConfig) scanValues(columns []string) ([]any, 
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
+		case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case billinginvoiceusagebasedlineconfig.FieldID, billinginvoiceusagebasedlineconfig.FieldNamespace, billinginvoiceusagebasedlineconfig.FieldPriceType, billinginvoiceusagebasedlineconfig.FieldFeatureKey:
 			values[i] = new(sql.NullString)
@@ -94,6 +96,13 @@ func (biublc *BillingInvoiceUsageBasedLineConfig) assignValues(columns []string,
 				biublc.PreLinePeriodQuantity = new(alpacadecimal.Decimal)
 				*biublc.PreLinePeriodQuantity = *value.S.(*alpacadecimal.Decimal)
 			}
+		case billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field metered_quantity", values[i])
+			} else if value.Valid {
+				biublc.MeteredQuantity = new(alpacadecimal.Decimal)
+				*biublc.MeteredQuantity = *value.S.(*alpacadecimal.Decimal)
+			}
 		default:
 			biublc.selectValues.Set(columns[i], values[i])
 		}
@@ -144,6 +153,11 @@ func (biublc *BillingInvoiceUsageBasedLineConfig) String() string {
 	builder.WriteString(", ")
 	if v := biublc.PreLinePeriodQuantity; v != nil {
 		builder.WriteString("pre_line_period_quantity=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := biublc.MeteredQuantity; v != nil {
+		builder.WriteString("metered_quantity=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')

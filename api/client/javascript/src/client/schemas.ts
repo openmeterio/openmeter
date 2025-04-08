@@ -5703,6 +5703,8 @@ export interface components {
       rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
       /** @description The quantity of the item being sold. */
       readonly quantity?: components['schemas']['Numeric']
+      /** @description The quantity of the item that has been metered for the period before any discounts were applied. */
+      readonly meteredQuantity?: components['schemas']['Numeric']
       /** @description The quantity of the item used in before this line's period.
        *
        *     It is non-zero in case of progressive billing, when this shows how much of the usage was already billed. */

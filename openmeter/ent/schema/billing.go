@@ -494,6 +494,12 @@ func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				"postgres": "numeric",
 			}),
+		field.Other("metered_quantity", alpacadecimal.Decimal{}).
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
 	}
 }
 

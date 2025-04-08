@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -702,6 +703,7 @@ type UsageBasedLine struct {
 	Price                 *Price                 `json:"price"`
 	FeatureKey            string                 `json:"featureKey"`
 	Quantity              *alpacadecimal.Decimal `json:"quantity"`
+	MeteredQuantity       *alpacadecimal.Decimal `json:"meteredQuantity,omitempty"`
 	PreLinePeriodQuantity *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
 }
 
@@ -710,7 +712,27 @@ func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {
 		return false
 	}
 
-	return reflect.DeepEqual(i, *other)
+	if !i.Price.Equal(other.Price) {
+		return false
+	}
+
+	if i.FeatureKey != other.FeatureKey {
+		return false
+	}
+
+	if !equal.PtrEqual(i.Quantity, other.Quantity) {
+		return false
+	}
+
+	if !equal.PtrEqual(i.MeteredQuantity, other.MeteredQuantity) {
+		return false
+	}
+
+	if !equal.PtrEqual(i.PreLinePeriodQuantity, other.PreLinePeriodQuantity) {
+		return false
+	}
+
+	return true
 }
 
 func (i UsageBasedLine) Clone() *UsageBasedLine {
