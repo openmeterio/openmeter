@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	dbaddonratecard "github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -36,17 +34,19 @@ func TestAddonServiceCreate(t *testing.T) {
 			// Let's create a subscription
 			sub := createExampleSubscription(t, deps, now)
 
-			// Let's create an addon
-			addon := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			// Let's create an add
+			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 			})
 
-			aRCIDs := getRateCardsOfAddon(t, deps, addon)
+			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
 			require.Len(t, aRCIDs, 1)
 
 			// Now, let's create a SubscriptionAddon
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-				AddonID:        addon.ID,
+				AddonID:        add.ID,
 				SubscriptionID: sub.Subscription.ID,
 				RateCards:      []subscriptionaddon.CreateSubscriptionAddonRateCardInput{},
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
@@ -92,8 +92,7 @@ func TestAddonServiceCreate(t *testing.T) {
 
 			_, err := deps.SubscriptionAddonService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, subAddonInp)
 			require.Error(t, err)
-			// TODO: fix this once Addon Service returns the correct error
-			// require.True(t, models.IsGenericNotFoundError(err))
+			require.True(t, models.IsGenericNotFoundError(err))
 		})
 	})
 
@@ -105,17 +104,19 @@ func TestAddonServiceCreate(t *testing.T) {
 			// Let's NOT create a subscription
 			_ = deps.FeatureConnector.CreateExampleFeatures(t)
 
-			// Let's create an addon
-			addon := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			// Let's create an add
+			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 			})
 
-			aRCIDs := getRateCardsOfAddon(t, deps, addon)
+			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
 			require.Len(t, aRCIDs, 1)
 
 			// Now, let's create a SubscriptionAddon
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-				AddonID:        addon.ID,
+				AddonID:        add.ID,
 				SubscriptionID: ulid.Make().String(),
 				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
 					{
@@ -136,12 +137,44 @@ func TestAddonServiceCreate(t *testing.T) {
 		})
 	})
 
-	t.Run("Should error if referenced AddonRateCards don't exist", func(t *testing.T) {
-		t.Skip("TODO: implement once AddonRateCard is of proper type")
-	})
-
 	t.Run("Should error if referenced AddonRateCards don't belong to provided Addon", func(t *testing.T) {
-		t.Skip("TODO: implement once AddonRateCard is of proper type")
+		withDeps(t, func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+			clock.SetTime(now)
+			defer clock.ResetTime()
+
+			// Let's create a subscription
+			sub := createExampleSubscription(t, deps, now)
+
+			// Let's create an add-on
+			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+				EffectiveFrom: lo.ToPtr(now),
+			})
+
+			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
+			require.Len(t, aRCIDs, 1)
+
+			// Now, let's create a SubscriptionAddon
+			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
+				AddonID:        add.ID,
+				SubscriptionID: sub.Subscription.ID,
+				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
+					{
+						AddonRateCardID: ulid.Make().String(), // invalid AddonRateCardID
+
+						AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
+					},
+				},
+				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
+					ActiveFrom: now,
+					Quantity:   1,
+				},
+			}
+			_, err := deps.SubscriptionAddonService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, subAddonInp)
+			require.Error(t, err)
+			require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
+		})
 	})
 
 	t.Run("Should error if referenced SubscriptionItems don't exist", func(t *testing.T) {
@@ -154,17 +187,19 @@ func TestAddonServiceCreate(t *testing.T) {
 			// Let's create a subscription
 			sub := createExampleSubscription(t, deps, now)
 
-			// Let's create an addon
-			addon := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			// Let's create an add
+			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 			})
 
-			aRCIDs := getRateCardsOfAddon(t, deps, addon)
+			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
 			require.Len(t, aRCIDs, 1)
 
 			// Now, let's create a SubscriptionAddon
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-				AddonID:        addon.ID,
+				AddonID:        add.ID,
 				SubscriptionID: sub.Subscription.ID,
 				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
 					{
@@ -240,17 +275,19 @@ func TestAddonServiceCreate(t *testing.T) {
 			view, err := deps.SubscriptionService.GetView(context.Background(), sub2.NamespacedID)
 			require.Nil(t, err)
 
-			// Let's create an addon
-			addon := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			// Let's create an add
+			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 			})
 
-			aRCIDs := getRateCardsOfAddon(t, deps, addon)
+			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
 			require.Len(t, aRCIDs, 1)
 
 			// Now, let's create a SubscriptionAddon
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-				AddonID:        addon.ID,
+				AddonID:        add.ID,
 				SubscriptionID: sub.Subscription.ID,
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 					ActiveFrom: now,
@@ -279,19 +316,21 @@ func TestAddonServiceCreate(t *testing.T) {
 			sub := createExampleSubscription(t, deps, now)
 
 			// Let's create an addon
-			addon := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 			})
 
-			aRCIDs := getRateCardsOfAddon(t, deps, addon)
+			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
 			require.Len(t, aRCIDs, 1)
 
 			// Let's assert that its a single instance addon
-			require.Equal(t, addon.InstanceType, productcatalog.AddonInstanceTypeSingle)
+			require.Equal(t, add.InstanceType, productcatalog.AddonInstanceTypeSingle)
 
 			// Now, let's create a SubscriptionAddon
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-				AddonID:        addon.ID,
+				AddonID:        add.ID,
 				SubscriptionID: sub.Subscription.ID,
 				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
 					{
@@ -328,16 +367,18 @@ func TestAddonServiceCreate(t *testing.T) {
 			sub := createExampleSubscription(t, deps, now)
 
 			// Let's create an addon
-			addon := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 			})
 
-			aRCIDs := getRateCardsOfAddon(t, deps, addon)
+			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
 			require.Len(t, aRCIDs, 1)
 
 			// Now, let's create a SubscriptionAddon
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-				AddonID:        addon.ID,
+				AddonID:        add.ID,
 				SubscriptionID: sub.Subscription.ID,
 				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
 					{
@@ -370,16 +411,6 @@ func TestAddonServiceCreate(t *testing.T) {
 				subscriptiontestutils.SubscriptionAddonsEqual(t, *subAdd1, *subAdd2)
 			})
 		})
-	})
-}
-
-// TODO: remove this once Addon types are fixed
-func getRateCardsOfAddon(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies, addon addon.Addon) []string {
-	adds, err := deps.DBDeps.DBClient.AddonRateCard.Query().Where(dbaddonratecard.AddonID(addon.ID)).All(context.Background())
-	require.Nil(t, err)
-
-	return lo.Map(adds, func(add *db.AddonRateCard, _ int) string {
-		return add.ID
 	})
 }
 

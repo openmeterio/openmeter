@@ -1,10 +1,11 @@
 package subscriptionaddonrepo
 
 import (
+	"errors"
+
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -88,28 +89,15 @@ func MapSubscriptionAddonRateCard(entity *db.SubscriptionAddonRateCard) (subscri
 		})
 	}
 
-	// TODO: This mapping should happen in addon repo...
 	if entity.Edges.AddonRatecard != nil {
-		arc := entity.Edges.AddonRatecard
-		pcRC, err := addonrepo.FromAddonRateCardRow(*arc)
+		arc, err := addonrepo.FromAddonRateCardRow(*entity.Edges.AddonRatecard)
 		if err != nil {
 			return subscriptionaddon.SubscriptionAddonRateCard{}, err
 		}
-		base.AddonRateCard = addon.RateCard{
-			RateCard: pcRC,
-			RateCardManagedFields: addon.RateCardManagedFields{
-				AddonID: arc.AddonID,
-				NamespacedID: models.NamespacedID{
-					Namespace: arc.Namespace,
-					ID:        arc.ID,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: arc.CreatedAt,
-					UpdatedAt: arc.UpdatedAt,
-					DeletedAt: arc.DeletedAt,
-				},
-			},
+		if arc == nil {
+			return subscriptionaddon.SubscriptionAddonRateCard{}, errors.New("invalid addon rate card")
 		}
+		base.AddonRateCard = *arc
 	}
 
 	return base, nil

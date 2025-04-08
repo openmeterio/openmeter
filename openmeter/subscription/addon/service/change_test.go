@@ -98,17 +98,19 @@ func createExampleSubscriptionAddon(t *testing.T, deps subscriptiontestutils.Sub
 	// Let's create a subscription
 	sub := createExampleSubscription(t, deps, now)
 
-	// Let's create an addon
-	addon := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+	// Let's create an add
+	add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
 		EffectiveFrom: lo.ToPtr(now),
 	})
 
-	aRCIDs := getRateCardsOfAddon(t, deps, addon)
+	aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
+		return rc.ID
+	})
 	require.Len(t, aRCIDs, 1)
 
 	// Now, let's create a SubscriptionAddon
 	subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-		AddonID:        addon.ID,
+		AddonID:        add.ID,
 		SubscriptionID: sub.Subscription.ID,
 		RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
 			{

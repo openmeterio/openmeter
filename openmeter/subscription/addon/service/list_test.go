@@ -26,17 +26,19 @@ func TestAddonServiceGet(t *testing.T) {
 			// Let's create a subscription
 			sub := createExampleSubscription(t, deps, now)
 
-			// Let's create an addon
-			addon := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			// Let's create an add
+			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 			})
 
-			aRCIDs := getRateCardsOfAddon(t, deps, addon)
+			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
 			require.Len(t, aRCIDs, 1)
 
 			// Now, let's create a SubscriptionAddon
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-				AddonID:        addon.ID,
+				AddonID:        add.ID,
 				SubscriptionID: sub.Subscription.ID,
 				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
 					{
@@ -53,8 +55,8 @@ func TestAddonServiceGet(t *testing.T) {
 			subAdd, err := deps.SubscriptionAddonService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, subAddonInp)
 			require.Nil(t, err)
 
-			require.Equal(t, addon.Name, subAdd.Name)
-			require.Equal(t, addon.Description, subAdd.Description)
+			require.Equal(t, add.Name, subAdd.Name)
+			require.Equal(t, add.Description, subAdd.Description)
 		})
 	})
 }
@@ -89,9 +91,11 @@ func TestAddonServiceList(t *testing.T) {
 			per := productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 			}
-			addon1 := deps.AddonService.CreateExampleAddon(t, per)
+			add1 := deps.AddonService.CreateExampleAddon(t, per)
 
-			aRCIDs1 := getRateCardsOfAddon(t, deps, addon1)
+			aRCIDs1 := lo.Map(add1.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
 			require.Len(t, aRCIDs1, 1)
 
 			addInp := subscriptiontestutils.GetExampleAddonInput(t, per)
@@ -106,12 +110,14 @@ func TestAddonServiceList(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			aRCIDs2 := getRateCardsOfAddon(t, deps, *addon2)
+			aRCIDs2 := lo.Map(addon2.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
 			require.Len(t, aRCIDs2, 1)
 
 			// Let's create a SubscriptionAddon for the first addon
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-				AddonID:        addon1.ID,
+				AddonID:        add1.ID,
 				SubscriptionID: sub.Subscription.ID,
 				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
 					{
