@@ -34,8 +34,8 @@ func (i CreateSubscriptionAddonQuantityInput) Validate() error {
 		errs = append(errs, errors.New("activeFrom is required"))
 	}
 
-	if i.Quantity <= 0 {
-		errs = append(errs, errors.New("quantity has to be greater or equal to 0"))
+	if i.Quantity < 0 {
+		errs = append(errs, errors.New("quantity has to be at least 0"))
 	}
 
 	return errors.Join(errs...)

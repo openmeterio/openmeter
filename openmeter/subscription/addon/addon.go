@@ -2,6 +2,7 @@ package subscriptionaddon
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -47,12 +48,12 @@ func (i CreateSubscriptionAddonInput) Validate() error {
 		errs = append(errs, errors.New("rateCards weren't provided"))
 	}
 
-	if i.InitialQuantity.ActiveFrom.IsZero() {
-		errs = append(errs, errors.New("initialQuantity.activeFrom is required"))
+	if err := i.InitialQuantity.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("initialQuantity: %w", err))
 	}
 
-	if i.InitialQuantity.Quantity <= 0 {
-		errs = append(errs, errors.New("initialQuantity.quantity must be provided"))
+	if i.InitialQuantity.Quantity == 0 {
+		errs = append(errs, errors.New("initialQuantity.quantity cannot be 0"))
 	}
 
 	return errors.Join(errs...)
