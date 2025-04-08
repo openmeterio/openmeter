@@ -130,20 +130,12 @@ docker compose --profile seed down -v
 
 ## Advanced configuration
 
-For this example to work, Benthos needs to be run in [streams mode](https://www.benthos.dev/docs/guides/streams_mode/about).
-
-_(The reason is that the strong delivery guarantees currently do not permit the HTTP server to reply before events are forwarded to OpenMeter, which may lead to timeouts.
-To learn more, watch [this discussion](https://github.com/benthosdev/benthos/discussions/2324).)_
-
-As a result, this example requires two configuration files:
-
-- [input.yaml](/collector/benthos/presets/http-server/input.yaml) contains the configuration of the HTTP server and validation of incoming events.
-- [output.yaml](/collector/benthos/presets/http-server/output.yaml) contains the configuration of the OpenMeter output.
+- [config.yaml](/collector/benthos/presets/http-server/config.yaml) contains the configuration of the HTTP server, validation of incoming events and the configuration of the OpenMeter output.
 
 Run Benthos with these configuration files:
 
 ```shell
-benthos streams input.yaml output.yaml
+benthos -c config.yaml
 ```
 
 Check out the configuration files and the [Benthos documentation](https://www.benthos.dev/docs/about) for more details.
@@ -151,6 +143,6 @@ Check out the configuration files and the [Benthos documentation](https://www.be
 ## Production use
 
 We are actively working on improving the documentation and the examples.
-In the meantime, feel free to contact us [in email](https://us10.list-manage.com/contact-form?u=c7d6a96403a0e5e19032ee885&form_id=fe04a7fc4851f8547cfee56763850e95) or [on Discord](https://discord.gg/nYH3ZQ3Xzq).
+In the meantime, feel free to contact us [in email](https://us10.list-manage.com/contact-form?u=c7d6a96403a0e5e19032ee885&form_id=fe04a7fc4851f8547cfee56763850e95).
 
 We are more than happy to help you set up OpenMeter in your production environment.

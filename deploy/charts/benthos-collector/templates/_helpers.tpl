@@ -101,7 +101,7 @@ Create args for the deployment
 ["-c", "{{ .Values.configFile }}"]
 {{- else if .Values.preset }}
 {{- if eq .Values.preset "http-server" -}}
-["streams", "--no-api", "/etc/benthos/presets/http-server/input.yaml", "/etc/benthos/presets/http-server/output.yaml"]
+["-c", "/etc/benthos/presets/http-server/config.yaml"]
 {{- else if eq .Values.preset "kubernetes-pod-exec-time" -}}
 ["-c", "/etc/benthos/presets/kubernetes-pod-exec-time/config.yaml"]
 {{- else }}
