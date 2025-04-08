@@ -2,6 +2,7 @@ package lineservice
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -20,6 +21,14 @@ func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 	flatPrice, err := l.line.UsageBased.Price.AsFlat()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to flat price: %w", err)
+	}
+
+	if !slices.Contains(
+		[]productcatalog.PaymentTermType{productcatalog.InAdvancePaymentTerm, productcatalog.InArrearsPaymentTerm},
+		flatPrice.PaymentTerm) {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("flat price payment term %s is not supported", flatPrice.PaymentTerm),
+		}
 	}
 
 	switch {
@@ -43,9 +52,7 @@ func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			},
 		}, nil
-	default:
-		return nil, billing.ValidationError{
-			Err: fmt.Errorf("flat price payment term %s is not supported", flatPrice.PaymentTerm),
-		}
 	}
+
+	return nil, nil
 }
