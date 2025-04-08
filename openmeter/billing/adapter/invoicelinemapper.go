@@ -203,6 +203,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			FeatureKey:            ubpLine.FeatureKey,
 			Price:                 ubpLine.Price,
 			Quantity:              dbLine.Quantity,
+			MeteredQuantity:       ubpLine.MeteredQuantity,
 			PreLinePeriodQuantity: ubpLine.PreLinePeriodQuantity,
 		}
 	default:

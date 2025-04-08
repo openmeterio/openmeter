@@ -316,7 +316,8 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs diff[*bi
 				SetPrice(line.UsageBased.Price).
 				SetFeatureKey(line.UsageBased.FeatureKey).
 				SetID(line.UsageBased.ConfigID).
-				SetNillablePreLinePeriodQuantity(line.UsageBased.PreLinePeriodQuantity)
+				SetNillablePreLinePeriodQuantity(line.UsageBased.PreLinePeriodQuantity).
+				SetNillableMeteredQuantity(line.UsageBased.MeteredQuantity)
 
 			return create, nil
 		},

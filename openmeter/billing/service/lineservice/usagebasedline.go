@@ -199,6 +199,8 @@ func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billing.
 		return err
 	}
 
+	// MeteredQuantity is not mutable by the price mutators, that's why we have this redundancy
+	l.line.UsageBased.MeteredQuantity = lo.ToPtr(usage.LinePeriodQty)
 	l.line.UsageBased.Quantity = lo.ToPtr(usage.LinePeriodQty)
 	l.line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQty)
 

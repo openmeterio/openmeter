@@ -19415,6 +19415,7 @@ type BillingInvoiceUsageBasedLineConfigMutation struct {
 	feature_key              *string
 	price                    **productcatalog.Price
 	pre_line_period_quantity *alpacadecimal.Decimal
+	metered_quantity         *alpacadecimal.Decimal
 	clearedFields            map[string]struct{}
 	done                     bool
 	oldValue                 func(context.Context) (*BillingInvoiceUsageBasedLineConfig, error)
@@ -19718,6 +19719,55 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetPreLinePeriodQuantity(
 	delete(m.clearedFields, billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity)
 }
 
+// SetMeteredQuantity sets the "metered_quantity" field.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) SetMeteredQuantity(a alpacadecimal.Decimal) {
+	m.metered_quantity = &a
+}
+
+// MeteredQuantity returns the value of the "metered_quantity" field in the mutation.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) MeteredQuantity() (r alpacadecimal.Decimal, exists bool) {
+	v := m.metered_quantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMeteredQuantity returns the old "metered_quantity" field's value of the BillingInvoiceUsageBasedLineConfig entity.
+// If the BillingInvoiceUsageBasedLineConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) OldMeteredQuantity(ctx context.Context) (v *alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMeteredQuantity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMeteredQuantity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMeteredQuantity: %w", err)
+	}
+	return oldValue.MeteredQuantity, nil
+}
+
+// ClearMeteredQuantity clears the value of the "metered_quantity" field.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) ClearMeteredQuantity() {
+	m.metered_quantity = nil
+	m.clearedFields[billinginvoiceusagebasedlineconfig.FieldMeteredQuantity] = struct{}{}
+}
+
+// MeteredQuantityCleared returns if the "metered_quantity" field was cleared in this mutation.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) MeteredQuantityCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceusagebasedlineconfig.FieldMeteredQuantity]
+	return ok
+}
+
+// ResetMeteredQuantity resets all changes to the "metered_quantity" field.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetMeteredQuantity() {
+	m.metered_quantity = nil
+	delete(m.clearedFields, billinginvoiceusagebasedlineconfig.FieldMeteredQuantity)
+}
+
 // Where appends a list predicates to the BillingInvoiceUsageBasedLineConfigMutation builder.
 func (m *BillingInvoiceUsageBasedLineConfigMutation) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) {
 	m.predicates = append(m.predicates, ps...)
@@ -19752,7 +19802,7 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceUsageBasedLineConfigMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldNamespace)
 	}
@@ -19767,6 +19817,9 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) Fields() []string {
 	}
 	if m.pre_line_period_quantity != nil {
 		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity)
+	}
+	if m.metered_quantity != nil {
+		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldMeteredQuantity)
 	}
 	return fields
 }
@@ -19786,6 +19839,8 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) Field(name string) (ent.Val
 		return m.Price()
 	case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
 		return m.PreLinePeriodQuantity()
+	case billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
+		return m.MeteredQuantity()
 	}
 	return nil, false
 }
@@ -19805,6 +19860,8 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) OldField(ctx context.Contex
 		return m.OldPrice(ctx)
 	case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
 		return m.OldPreLinePeriodQuantity(ctx)
+	case billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
+		return m.OldMeteredQuantity(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingInvoiceUsageBasedLineConfig field %s", name)
 }
@@ -19849,6 +19906,13 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) SetField(name string, value
 		}
 		m.SetPreLinePeriodQuantity(v)
 		return nil
+	case billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMeteredQuantity(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceUsageBasedLineConfig field %s", name)
 }
@@ -19882,6 +19946,9 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity) {
 		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity)
 	}
+	if m.FieldCleared(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity) {
+		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldMeteredQuantity)
+	}
 	return fields
 }
 
@@ -19898,6 +19965,9 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ClearField(name string) err
 	switch name {
 	case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
 		m.ClearPreLinePeriodQuantity()
+		return nil
+	case billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
+		m.ClearMeteredQuantity()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceUsageBasedLineConfig nullable field %s", name)
@@ -19921,6 +19991,9 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetField(name string) err
 		return nil
 	case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
 		m.ResetPreLinePeriodQuantity()
+		return nil
+	case billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
+		m.ResetMeteredQuantity()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceUsageBasedLineConfig field %s", name)

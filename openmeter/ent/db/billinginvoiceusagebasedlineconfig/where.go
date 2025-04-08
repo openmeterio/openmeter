@@ -79,6 +79,11 @@ func PreLinePeriodQuantity(v alpacadecimal.Decimal) predicate.BillingInvoiceUsag
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldPreLinePeriodQuantity, v))
 }
 
+// MeteredQuantity applies equality check predicate on the "metered_quantity" field. It's identical to MeteredQuantityEQ.
+func MeteredQuantity(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldMeteredQuantity, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.BillingInvoiceUsageBasedLineConfig {
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldNamespace, v))
@@ -287,6 +292,56 @@ func PreLinePeriodQuantityIsNil() predicate.BillingInvoiceUsageBasedLineConfig {
 // PreLinePeriodQuantityNotNil applies the NotNil predicate on the "pre_line_period_quantity" field.
 func PreLinePeriodQuantityNotNil() predicate.BillingInvoiceUsageBasedLineConfig {
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotNull(FieldPreLinePeriodQuantity))
+}
+
+// MeteredQuantityEQ applies the EQ predicate on the "metered_quantity" field.
+func MeteredQuantityEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldMeteredQuantity, v))
+}
+
+// MeteredQuantityNEQ applies the NEQ predicate on the "metered_quantity" field.
+func MeteredQuantityNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNEQ(FieldMeteredQuantity, v))
+}
+
+// MeteredQuantityIn applies the In predicate on the "metered_quantity" field.
+func MeteredQuantityIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldIn(FieldMeteredQuantity, vs...))
+}
+
+// MeteredQuantityNotIn applies the NotIn predicate on the "metered_quantity" field.
+func MeteredQuantityNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotIn(FieldMeteredQuantity, vs...))
+}
+
+// MeteredQuantityGT applies the GT predicate on the "metered_quantity" field.
+func MeteredQuantityGT(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldGT(FieldMeteredQuantity, v))
+}
+
+// MeteredQuantityGTE applies the GTE predicate on the "metered_quantity" field.
+func MeteredQuantityGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldGTE(FieldMeteredQuantity, v))
+}
+
+// MeteredQuantityLT applies the LT predicate on the "metered_quantity" field.
+func MeteredQuantityLT(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldLT(FieldMeteredQuantity, v))
+}
+
+// MeteredQuantityLTE applies the LTE predicate on the "metered_quantity" field.
+func MeteredQuantityLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldLTE(FieldMeteredQuantity, v))
+}
+
+// MeteredQuantityIsNil applies the IsNil predicate on the "metered_quantity" field.
+func MeteredQuantityIsNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldIsNull(FieldMeteredQuantity))
+}
+
+// MeteredQuantityNotNil applies the NotNil predicate on the "metered_quantity" field.
+func MeteredQuantityNotNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotNull(FieldMeteredQuantity))
 }
 
 // And groups predicates with the AND operator between them.

@@ -15466,6 +15466,11 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: The quantity of the item being sold.
           readOnly: true
+        meteredQuantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The quantity of the item that has been metered for the period before any discounts were applied.
+          readOnly: true
         preLinePeriodQuantity:
           allOf:
             - $ref: '#/components/schemas/Numeric'

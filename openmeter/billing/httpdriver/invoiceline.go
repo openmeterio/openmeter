@@ -377,6 +377,7 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
 
 		FeatureKey:            lo.ToPtr(line.UsageBased.FeatureKey),
+		MeteredQuantity:       decimalPtrToStringPtr(line.UsageBased.MeteredQuantity),
 		Quantity:              decimalPtrToStringPtr(line.UsageBased.Quantity),
 		PreLinePeriodQuantity: decimalPtrToStringPtr(line.UsageBased.PreLinePeriodQuantity),
 		Price:                 lo.ToPtr(price),

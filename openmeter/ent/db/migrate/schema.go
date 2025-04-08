@@ -874,6 +874,7 @@ var (
 		{Name: "feature_key", Type: field.TypeString},
 		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "pre_line_period_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "metered_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 	}
 	// BillingInvoiceUsageBasedLineConfigsTable holds the schema information for the "billing_invoice_usage_based_line_configs" table.
 	BillingInvoiceUsageBasedLineConfigsTable = &schema.Table{
