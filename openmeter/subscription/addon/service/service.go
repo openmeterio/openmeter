@@ -168,7 +168,7 @@ func (s *service) ChangeQuantity(ctx context.Context, id models.NamespacedID, in
 	add, err := s.cfg.AddonService.GetAddon(ctx, addon.GetAddonInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: subAdd.Namespace,
-			ID:        subAdd.AddonID,
+			ID:        subAdd.Addon.ID,
 		},
 	})
 	if err != nil {

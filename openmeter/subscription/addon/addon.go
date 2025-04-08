@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -16,8 +17,9 @@ type SubscriptionAddon struct {
 	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
 
-	AddonID        string `json:"addonID"`
-	SubscriptionID string `json:"subscriptionID"`
+	// AddonID        string `json:"addonID"`
+	Addon          addon.Addon `json:"addon"`
+	SubscriptionID string      `json:"subscriptionID"`
 
 	RateCards  []SubscriptionAddonRateCard                  `json:"rateCards"`
 	Quantities timeutil.Timeline[SubscriptionAddonQuantity] `json:"quantities"`
