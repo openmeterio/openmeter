@@ -18,13 +18,13 @@ import (
 func (s service) ListAddons(ctx context.Context, params addon.ListAddonsInput) (pagination.PagedResponse[addon.Addon], error) {
 	fn := func(ctx context.Context) (pagination.PagedResponse[addon.Addon], error) {
 		if err := params.Validate(); err != nil {
-			return pagination.PagedResponse[addon.Addon]{}, fmt.Errorf("invalid list Plans params: %w", err)
+			return pagination.PagedResponse[addon.Addon]{}, fmt.Errorf("invalid list add-ons params: %w", err)
 		}
 
 		return s.adapter.ListAddons(ctx, params)
 	}
 
-	return transaction.Run(ctx, s.adapter, fn)
+	return fn(ctx)
 }
 
 func (s service) expandFeatures(ctx context.Context, namespace string, rateCards *productcatalog.RateCards) error {
@@ -106,9 +106,9 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 		}
 
 		// If there are add-on versions with the same key do:
-		// * check their statuses to ensure that new plan with the same key is created only
+		// * check their statuses to ensure that new add-on with the same key is created only
 		//   if there is no version in draft status
-		// * calculate the version number for the new Plan based by incrementing the last version
+		// * calculate the version number for the new add-on based by incrementing the last version
 		for _, aa := range allVersions.Items {
 			if aa.DeletedAt == nil && aa.Status() == productcatalog.AddonStatusDraft {
 				return nil, models.NewGenericValidationError(
@@ -139,7 +139,7 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 		// Emit add-on created event
 		event := addon.NewAddonCreateEvent(ctx, aa)
 		if err = s.publisher.Publish(ctx, event); err != nil {
-			return nil, fmt.Errorf("failed to publish plan created event: %w", err)
+			return nil, fmt.Errorf("failed to publish add-on created event: %w", err)
 		}
 
 		return aa, nil
@@ -160,7 +160,7 @@ func (s service) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput)
 			"addon.id", params.ID,
 		)
 
-		logger.Debug("deleting Plan")
+		logger.Debug("deleting add-on")
 
 		// Get the add-on to check if it can be deleted
 		aa, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{
@@ -186,7 +186,6 @@ func (s service) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput)
 		}
 
 		// Delete the add-on
-		// FIXME: make delete endpoint to return deleted addon
 		err = s.adapter.DeleteAddon(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete add-on: %w", err)
@@ -246,7 +245,7 @@ func (s service) GetAddon(ctx context.Context, params addon.GetAddonInput) (*add
 		return aa, nil
 	}
 
-	return transaction.Run(ctx, s.adapter, fn)
+	return fn(ctx)
 }
 
 func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput) (*addon.Addon, error) {
@@ -292,12 +291,12 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 		logger.Debug("updating add-on")
 
 		// NOTE(chrisgacsal): we only allow updating the state of the add-on via Publish/Archive,
-		// therefore the AddonEffectivePeriod attribute must be zeroed before updating the add-on.
+		// therefore the EffectivePeriod attribute must be zeroed before updating the add-on.
 		params.EffectivePeriod = productcatalog.EffectivePeriod{}
 
 		aa, err = s.adapter.UpdateAddon(ctx, params)
 		if err != nil {
-			return nil, fmt.Errorf("failed to udpate aa-on: %w", err)
+			return nil, fmt.Errorf("failed to udpate add-on: %w", err)
 		}
 
 		logger.Debug("add-on updated")
@@ -349,7 +348,7 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 			)
 		}
 
-		if !aa.RateCards.IsAligned() {
+		if !aa.RateCards.BillingCadenceAligned() {
 			return nil, models.NewGenericValidationError(
 				errors.New("the billing cadence of the ratecards in add-on must be aligned"),
 			)

@@ -24,7 +24,7 @@ func (s service) ListPlans(ctx context.Context, params plan.ListPlansInput) (pag
 		return s.adapter.ListPlans(ctx, params)
 	}
 
-	return transaction.Run(ctx, s.adapter, fn)
+	return fn(ctx)
 }
 
 func (s service) expandFeatures(ctx context.Context, namespace string, rateCards *productcatalog.RateCards) error {
@@ -248,7 +248,7 @@ func (s service) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.P
 		return p, nil
 	}
 
-	return transaction.Run(ctx, s.adapter, fn)
+	return fn(ctx)
 }
 
 func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*plan.Plan, error) {

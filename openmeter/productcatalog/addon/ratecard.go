@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -166,20 +165,8 @@ func (c RateCards) AsProductCatalogRateCards() productcatalog.RateCards {
 	return rcs
 }
 
-func (c RateCards) IsAligned() bool {
-	periods := make(map[isodate.String]struct{})
-
-	for _, rc := range c {
-		// An effective price of 0 is still counted as a billable item
-		if rc.AsMeta().Price != nil {
-			// One time prices are excluded
-			if d := rc.GetBillingCadence(); d != nil {
-				periods[d.Normalise(true).ISOString()] = struct{}{}
-			}
-		}
-	}
-
-	return len(periods) <= 1
+func (c RateCards) BillingCadenceAligned() bool {
+	return c.AsProductCatalogRateCards().BillingCadenceAligned()
 }
 
 func (c RateCards) Equal(v RateCards) bool {
