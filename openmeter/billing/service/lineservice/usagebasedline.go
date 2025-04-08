@@ -35,7 +35,7 @@ const (
 	GraduatedTieredPriceUsageChildUniqueReferenceID = "graduated-tiered-%d-price-usage"
 	GraduatedTieredFlatPriceChildUniqueReferenceID  = "graduated-tiered-%d-flat-price"
 
-	// TODO: Let's add migrations to fix the child uniqe reference ids
+	RateCardDiscountChildUniqueReferenceID = "rateCardDiscount/%d"
 )
 
 var DecimalOne = alpacadecimal.NewFromInt(1)
@@ -267,6 +267,7 @@ func (l usageBasedLine) getPricer() (Pricer, error) {
 	return &priceMutator{
 		Pricer: basePricer,
 		PostCalculation: []PostCalculationMutator{
+			&discountPercentageMutator{},
 			&maxAmountCommitmentMutator{},
 			&minAmountCommitmentMutator{},
 		},
@@ -333,9 +334,25 @@ func (i newDetailedLineInput) Validate() error {
 }
 
 func (i newDetailedLineInput) TotalAmount(currency currencyx.Calculator) alpacadecimal.Decimal {
-	total := currency.RoundToPrecision(i.PerUnitAmount.Mul(i.Quantity))
+	return TotalAmount(getTotalAmountInput{
+		Currency:      currency,
+		PerUnitAmount: i.PerUnitAmount,
+		Quantity:      i.Quantity,
+		Discounts:     i.Discounts,
+	})
+}
 
-	total = total.Sub(i.Discounts.SumAmount(currency))
+type getTotalAmountInput struct {
+	Currency      currencyx.Calculator
+	PerUnitAmount alpacadecimal.Decimal
+	Quantity      alpacadecimal.Decimal
+	Discounts     billing.LineDiscounts
+}
+
+func TotalAmount(in getTotalAmountInput) alpacadecimal.Decimal {
+	total := in.Currency.RoundToPrecision(in.PerUnitAmount.Mul(in.Quantity))
+
+	total = total.Sub(in.Discounts.SumAmount(in.Currency))
 
 	return total
 }
