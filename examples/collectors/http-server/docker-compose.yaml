@@ -4,14 +4,13 @@ services:
   forwarder:
     image: ghcr.io/openmeterio/benthos-collector
     pull_policy: always
-    command: streams --no-api /etc/benthos/input.yaml /etc/benthos/output.yaml
+    command: -c /etc/benthos/config.yaml
     env_file:
       - .env
     ports:
       - 127.0.0.1:4196:4196
     volumes:
-      - ../../../collector/benthos/presets/http-server/input.yaml:/etc/benthos/input.yaml:ro
-      - ../../../collector/benthos/presets/http-server/output.yaml:/etc/benthos/output.yaml:ro
+      - ../../../collector/benthos/presets/http-server/config.yaml:/etc/benthos/config.yaml:ro
 
   seeder:
     profiles:
