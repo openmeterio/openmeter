@@ -108,15 +108,18 @@ func (r RateCardMeta) Clone() RateCardMeta {
 	}
 
 	if r.EntitlementTemplate != nil {
-		clone.EntitlementTemplate = r.EntitlementTemplate
+		entTmp := *r.EntitlementTemplate
+		clone.EntitlementTemplate = &entTmp
 	}
 
 	if r.TaxConfig != nil {
-		clone.TaxConfig = r.TaxConfig
+		taxCfg := *r.TaxConfig
+		clone.TaxConfig = &taxCfg
 	}
 
 	if r.Price != nil {
-		clone.Price = r.Price
+		price := *r.Price
+		clone.Price = &price
 	}
 
 	if len(r.Discounts) > 0 {
@@ -139,11 +142,11 @@ func (r RateCardMeta) Equal(v RateCardMeta) bool {
 		return false
 	}
 
-	if r.FeatureKey != v.FeatureKey {
+	if lo.FromPtr(r.FeatureKey) != lo.FromPtr(v.FeatureKey) {
 		return false
 	}
 
-	if r.FeatureID != v.FeatureID {
+	if lo.FromPtr(r.FeatureID) != lo.FromPtr(v.FeatureID) {
 		return false
 	}
 
