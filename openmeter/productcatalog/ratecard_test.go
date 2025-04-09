@@ -836,3 +836,348 @@ func TestRateCards_BillingCadenceAligned(t *testing.T) {
 		})
 	}
 }
+
+func TestRateCardsCompatible(t *testing.T) {
+	tests := []struct {
+		name    string
+		rCard   RateCard
+		vCard   RateCard
+		wantErr bool
+	}{
+		{
+			name: "Compatible",
+			rCard: &UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             false,
+							IssueAfterReset:         lo.ToPtr(500.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](1),
+							PreserveOverageAtReset:  lo.ToPtr(false),
+							UsagePeriod:             isodate.MustParse(t, "P1M"),
+						}),
+				},
+				BillingCadence: isodate.MustParse(t, "P1M"),
+			},
+			vCard: &UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(1000.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](3),
+							PreserveOverageAtReset:  lo.ToPtr(true),
+							UsagePeriod:             isodate.MustParse(t, "P1M"),
+						}),
+				},
+				BillingCadence: isodate.MustParse(t, "P1M"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "Incompatible Price Type",
+			rCard: &UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             false,
+							IssueAfterReset:         lo.ToPtr(500.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](1),
+							PreserveOverageAtReset:  lo.ToPtr(false),
+							UsagePeriod:             isodate.MustParse(t, "P1M"),
+						}),
+				},
+				BillingCadence: isodate.MustParse(t, "P1M"),
+			},
+			vCard: &UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(UnitPrice{
+						Commitments: Commitments{
+							MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+						},
+						Amount: decimal.NewFromInt(10),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(1000.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](3),
+							PreserveOverageAtReset:  lo.ToPtr(true),
+							UsagePeriod:             isodate.MustParse(t, "P1M"),
+						}),
+				},
+				BillingCadence: isodate.MustParse(t, "P1M"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "Mismatched Feature Key",
+			rCard: &FlatFeeRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(1000.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](3),
+							PreserveOverageAtReset:  lo.ToPtr(true),
+							UsagePeriod:             isodate.MustParse(t, "P1M"),
+						}),
+				},
+				BillingCadence: lo.ToPtr(isodate.MustParse(t, "P1M")),
+			},
+			vCard: &UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature2"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(1000.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](3),
+							PreserveOverageAtReset:  lo.ToPtr(true),
+							UsagePeriod:             isodate.MustParse(t, "P1M"),
+						}),
+				},
+				BillingCadence: isodate.MustParse(t, "P1M"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "Mismatched Feature ID",
+			rCard: &FlatFeeRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(1000.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](3),
+							PreserveOverageAtReset:  lo.ToPtr(true),
+							UsagePeriod:             isodate.MustParse(t, "P1M"),
+						}),
+				},
+				BillingCadence: lo.ToPtr(isodate.MustParse(t, "P1M")),
+			},
+			vCard: &UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id2"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(1000.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](3),
+							PreserveOverageAtReset:  lo.ToPtr(true),
+							UsagePeriod:             isodate.MustParse(t, "P1M"),
+						}),
+				},
+				BillingCadence: isodate.MustParse(t, "P1M"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "Incompatible Billing Cadence",
+			rCard: &FlatFeeRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(1000.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](3),
+							PreserveOverageAtReset:  lo.ToPtr(true),
+							UsagePeriod:             isodate.MustParse(t, "P1M"),
+						}),
+				},
+				BillingCadence: lo.ToPtr(isodate.MustParse(t, "P3M")),
+			},
+			vCard: &UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(1000.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](3),
+							PreserveOverageAtReset:  lo.ToPtr(true),
+							UsagePeriod:             isodate.MustParse(t, "P1M"),
+						}),
+				},
+				BillingCadence: isodate.MustParse(t, "P1M"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "Incompatible Entitlement Template Type",
+			rCard: &FlatFeeRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(1000.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](3),
+							PreserveOverageAtReset:  lo.ToPtr(true),
+							UsagePeriod:             isodate.MustParse(t, "P1M"),
+						}),
+				},
+				BillingCadence: lo.ToPtr(isodate.MustParse(t, "P1M")),
+			},
+			vCard: &UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						BooleanEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+						}),
+				},
+				BillingCadence: isodate.MustParse(t, "P1M"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "Incompatible Usage Period",
+			rCard: &FlatFeeRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(1000.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](3),
+							PreserveOverageAtReset:  lo.ToPtr(true),
+							UsagePeriod:             isodate.MustParse(t, "P1M"),
+						}),
+				},
+				BillingCadence: lo.ToPtr(isodate.MustParse(t, "P1M")),
+			},
+			vCard: &UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{
+					Price: NewPriceFrom(FlatPrice{
+						Amount: decimal.NewFromInt(1000),
+					}),
+					FeatureKey: lo.ToPtr("feature1"),
+					FeatureID:  lo.ToPtr("id1"),
+					EntitlementTemplate: NewEntitlementTemplateFrom(
+						MeteredEntitlementTemplate{
+							Metadata: map[string]string{
+								"name": "metered-1",
+							},
+							IsSoftLimit:             true,
+							IssueAfterReset:         lo.ToPtr(1000.0),
+							IssueAfterResetPriority: lo.ToPtr[uint8](3),
+							PreserveOverageAtReset:  lo.ToPtr(true),
+							UsagePeriod:             isodate.MustParse(t, "P3M"),
+						}),
+				},
+				BillingCadence: isodate.MustParse(t, "P1M"),
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := rateCardsCompatible(test.rCard, test.vCard)
+			if test.wantErr {
+				assert.Error(t, err)
+				t.Logf("Expected error: %v", err)
+
+				var expectedErr *models.GenericValidationError
+				assert.ErrorAs(t, err, &expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

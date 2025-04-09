@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -34,6 +35,7 @@ type RateCard interface {
 	Merge(RateCard) error
 	ChangeMeta(func(m RateCardMeta) RateCardMeta) error
 	Clone() RateCard
+	Compatible(RateCard) error
 	GetBillingCadence() *isodate.Period
 }
 
@@ -218,6 +220,10 @@ type FlatFeeRateCard struct {
 	BillingCadence *isodate.Period `json:"billingCadence"`
 }
 
+func (r *FlatFeeRateCard) Compatible(v RateCard) error {
+	return rateCardsCompatible(r, v)
+}
+
 func (r *FlatFeeRateCard) GetBillingCadence() *isodate.Period {
 	return r.BillingCadence
 }
@@ -325,6 +331,10 @@ type UsageBasedRateCard struct {
 	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
 	// Example: "P1D12H"
 	BillingCadence isodate.Period `json:"billingCadence"`
+}
+
+func (r *UsageBasedRateCard) Compatible(v RateCard) error {
+	return rateCardsCompatible(r, v)
 }
 
 func (r *UsageBasedRateCard) GetBillingCadence() *isodate.Period {
@@ -507,6 +517,151 @@ func (c RateCards) Validate() error {
 	for _, rc := range c {
 		if err := rc.Validate(); err != nil {
 			errs = append(errs, err)
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (c RateCards) Compatible(overlays RateCards) error {
+	if err := c.Validate(); err != nil {
+		return err
+	}
+
+	if err := overlays.Validate(); err != nil {
+		return err
+	}
+
+	var errs []error
+
+	m := make(map[string]rateCardWithOverlays)
+
+	// Collect ratecards by their keys
+	for _, rc := range lo.Union(c, overlays) {
+		_, ok := m[rc.Key()]
+		if !ok {
+			m[rc.Key()] = rateCardWithOverlays{base: rc}
+		}
+
+		m[rc.Key()] = rateCardWithOverlays{
+			base:     m[rc.Key()].base,
+			overlays: append(m[rc.Key()].overlays, rc),
+		}
+	}
+
+	for key, rc := range m {
+		// Skip compatibility check
+		if len(rc.overlays) == 0 {
+			continue
+		}
+
+		if err := rc.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("incompatible ratecards [key=%s]: %w", key, err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type rateCardWithOverlays struct {
+	base     RateCard
+	overlays []RateCard
+}
+
+func (r rateCardWithOverlays) Validate() error {
+	if len(r.overlays) == 0 {
+		return nil
+	}
+
+	for _, rc := range r.overlays {
+		if err := r.base.Compatible(rc); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func rateCardsCompatible(r, v RateCard) error {
+	var errs []error
+
+	rMeta, vMeta := r.AsMeta(), v.AsMeta()
+
+	// Validate Price
+
+	if rMeta.Price != nil && vMeta.Price != nil && rMeta.Price.Type() != vMeta.Price.Type() {
+		errs = append(errs, errors.New("incompatible price types"))
+	}
+
+	// Validate Feature
+
+	if rMeta.FeatureKey != nil {
+		if vMeta.FeatureKey == nil || *rMeta.FeatureKey != *vMeta.FeatureKey {
+			errs = append(errs, errors.New("feature key mismatch"))
+		}
+	}
+
+	if rMeta.FeatureID != nil {
+		if vMeta.FeatureID == nil || *rMeta.FeatureID != *vMeta.FeatureID {
+			errs = append(errs, errors.New("feature id mismatch"))
+		}
+	}
+
+	// Validate Billing Cadence
+
+	rBillingCadence, vBillingCadence := r.GetBillingCadence(), v.GetBillingCadence()
+
+	if rBillingCadence != nil {
+		if vBillingCadence == nil {
+			errs = append(errs, fmt.Errorf("billing cadence must be equal [%s, %s]",
+				rBillingCadence.ISOString(), "nil"),
+			)
+		}
+
+		if vBillingCadence != nil && !rBillingCadence.Equal(vBillingCadence) {
+			errs = append(errs, fmt.Errorf("billing cadence must be equal [%s, %s]",
+				rBillingCadence.ISOString(), vBillingCadence.ISOString()),
+			)
+		}
+	}
+
+	if rBillingCadence == nil && vBillingCadence != nil {
+		errs = append(errs, fmt.Errorf("billing cadence mismatch [%s, %s]", "nil",
+			vBillingCadence.ISOString()),
+		)
+	}
+
+	// Validate  Entitlement
+
+	if rMeta.EntitlementTemplate != nil {
+		if vMeta.EntitlementTemplate == nil || rMeta.EntitlementTemplate.Type() != vMeta.EntitlementTemplate.Type() {
+			errs = append(errs, errors.New("incompatible entitlement template type"))
+		} else {
+			switch rMeta.EntitlementTemplate.Type() {
+			case entitlement.EntitlementTypeStatic:
+				errs = append(errs, errors.New("static entitlement are not allowed"))
+			case entitlement.EntitlementTypeMetered:
+				rMetered, err := rMeta.EntitlementTemplate.AsMetered()
+				if err != nil {
+					return err
+				}
+
+				vMetered, err := vMeta.EntitlementTemplate.AsMetered()
+				if err != nil {
+					return err
+				}
+
+				if !rMetered.UsagePeriod.Equal(&vMetered.UsagePeriod) {
+					errs = append(errs, fmt.Errorf("incompatible usage period for metered entitlement [%s, %s]",
+						rMetered.UsagePeriod.ISOString(), vMetered.UsagePeriod.ISOString()),
+					)
+				}
+
+				if lo.FromPtr(rMetered.IssueAfterReset) > lo.FromPtr(vMetered.IssueAfterReset) {
+					errs = append(errs, errors.New("incompatible issue after reset for metered entitlement"))
+				}
+			case entitlement.EntitlementTypeBoolean:
+			}
 		}
 	}
 
