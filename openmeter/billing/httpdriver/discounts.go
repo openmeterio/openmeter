@@ -19,18 +19,18 @@ func AsPercentageDiscount(d api.BillingDiscountPercentage) billing.PercentageDis
 	}
 }
 
-func AsUsageDiscount(d api.BillingDiscountUsage) billing.UsageDiscount {
+func AsUsageDiscount(d api.BillingDiscountUsage) (billing.UsageDiscount, error) {
 	pcUsageDiscount := api.FromBillingDiscountUsageToDiscountUsage(d)
 
 	usageDiscount, err := productcataloghttp.AsUsageDiscount(pcUsageDiscount)
 	if err != nil {
-		return billing.UsageDiscount{}
+		return billing.UsageDiscount{}, err
 	}
 
 	return billing.UsageDiscount{
 		UsageDiscount: usageDiscount,
 		CorrelationID: lo.FromPtrOr(d.CorrelationId, ""),
-	}
+	}, nil
 }
 
 func AsDiscounts(discounts []api.BillingDiscount) (billing.Discounts, error) {
@@ -50,12 +50,17 @@ func AsDiscounts(discounts []api.BillingDiscount) (billing.Discounts, error) {
 
 			out = append(out, billing.NewDiscountFrom(AsPercentageDiscount(pctDiscount)))
 		case string(api.BillingDiscountUsageTypeUsage):
-			usageDiscount, err := d.AsBillingDiscountUsage()
+			usageDiscountAPI, err := d.AsBillingDiscountUsage()
 			if err != nil {
 				return nil, err
 			}
 
-			out = append(out, billing.NewDiscountFrom(AsUsageDiscount(usageDiscount)))
+			usageDiscount, err := AsUsageDiscount(usageDiscountAPI)
+			if err != nil {
+				return nil, err
+			}
+
+			out = append(out, billing.NewDiscountFrom(usageDiscount))
 		default:
 			return nil, fmt.Errorf("invalid discount type: %s", disc)
 		}
