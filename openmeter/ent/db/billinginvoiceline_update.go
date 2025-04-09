@@ -353,8 +353,8 @@ func (bilu *BillingInvoiceLineUpdate) ClearTaxConfig() *BillingInvoiceLineUpdate
 }
 
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
-func (bilu *BillingInvoiceLineUpdate) SetRatecardDiscounts(pr *productcatalog.Discounts) *BillingInvoiceLineUpdate {
-	bilu.mutation.SetRatecardDiscounts(pr)
+func (bilu *BillingInvoiceLineUpdate) SetRatecardDiscounts(b *billing.Discounts) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetRatecardDiscounts(b)
 	return bilu
 }
 
@@ -1471,8 +1471,8 @@ func (biluo *BillingInvoiceLineUpdateOne) ClearTaxConfig() *BillingInvoiceLineUp
 }
 
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
-func (biluo *BillingInvoiceLineUpdateOne) SetRatecardDiscounts(pr *productcatalog.Discounts) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.SetRatecardDiscounts(pr)
+func (biluo *BillingInvoiceLineUpdateOne) SetRatecardDiscounts(b *billing.Discounts) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetRatecardDiscounts(b)
 	return biluo
 }
 

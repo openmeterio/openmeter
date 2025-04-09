@@ -30,7 +30,7 @@ var ubpTestFullPeriod = billing.Period{
 
 type ubpCalculationTestCase struct {
 	price                productcatalog.Price
-	discounts            []productcatalog.Discount
+	discounts            []billing.Discount
 	lineMode             testLineMode
 	usage                featureUsageResponse
 	expect               newDetailedLinesInput

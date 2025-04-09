@@ -2315,6 +2315,57 @@ export interface components {
        *     Expand settings govern if this includes the whole app object or just the ID references. */
       readonly apps: components['schemas']['BillingProfileAppsOrReference']
     }
+    /** @description A discount on a price. This extends the productcatalog.Discount union to include the
+     *     billing specific extra fields required. */
+    BillingDiscount:
+      | components['schemas']['BillingDiscountPercentage']
+      | components['schemas']['BillingDiscountUsage']
+    /** @description A percentage discount. */
+    BillingDiscountPercentage: {
+      /**
+       * @description The type of the discount. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'percentage'
+      /**
+       * Percentage
+       * @description The percentage of the discount.
+       */
+      percentage: components['schemas']['Percentage']
+      /**
+       * @description Correlation ID for the discount.
+       *
+       *     This is used to link discounts across different invoices (progressive billing use case).
+       *
+       *     If not provided, the invoicing engine will auto-generate one.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      correlationId?: string
+    }
+    /** @description A usage discount. */
+    BillingDiscountUsage: {
+      /**
+       * @description The type of the discount. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'usage'
+      /**
+       * Usage
+       * @description The quantity of the usage discount.
+       *
+       *     Must be positive.
+       */
+      quantity: components['schemas']['Numeric']
+      /**
+       * @description Correlation ID for the discount.
+       *
+       *     This is used to link discounts across different invoices (progressive billing use case).
+       *
+       *     If not provided, the invoicing engine will auto-generate one.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      correlationId?: string
+    }
     /** @description Party represents a person or business entity. */
     BillingParty: {
       /** @description Unique identifier for the party (if available) */
@@ -5091,16 +5142,12 @@ export interface components {
        *     }
        */
       price: components['schemas']['FlatPriceWithPaymentTerm'] | null
-      /**
-       * Discounts
-       * @description The discount of the rate card. For flat fee rate cards only percentage discounts are supported.
-       *     Only available when price is set.
-       */
-      discounts?: components['schemas']['DiscountPercentage'][]
       /** @description Quantity of the item being sold.
        *
        *     Default: 1 */
       quantity?: components['schemas']['Numeric']
+      /** @description The discounts that are applied to the line. */
+      discounts?: components['schemas']['BillingDiscountPercentage'][]
     }
     /**
      * InvoiceGenericDocumentRef is used to describe an existing document or a specific part of it's contents.
@@ -5844,13 +5891,8 @@ export interface components {
       /** @description The price of the rate card.
        *     When null, the feature or service is free. */
       price: components['schemas']['RateCardUsageBasedPrice'] | null
-      /**
-       * Discounts
-       * @description The discounts of the rate card.
-       *
-       *     Flat fee rate cards only support percentage discounts.
-       */
-      discounts?: components['schemas']['Discount'][]
+      /** @description The discounts that are applied to the line. */
+      discounts?: components['schemas']['BillingDiscount'][]
     }
     /** @description InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow. */
     InvoiceWorkflowInvoicingSettingsReplaceUpdate: {
@@ -9177,6 +9219,10 @@ export type BadRequestProblemResponse =
 export type BalanceHistoryWindow = components['schemas']['BalanceHistoryWindow']
 export type BillingCustomerProfile =
   components['schemas']['BillingCustomerProfile']
+export type BillingDiscount = components['schemas']['BillingDiscount']
+export type BillingDiscountPercentage =
+  components['schemas']['BillingDiscountPercentage']
+export type BillingDiscountUsage = components['schemas']['BillingDiscountUsage']
 export type BillingParty = components['schemas']['BillingParty']
 export type BillingPartyReplaceUpdate =
   components['schemas']['BillingPartyReplaceUpdate']

@@ -442,12 +442,6 @@ func (a *adapter) AssociateLinesToInvoice(ctx context.Context, input billing.Ass
 			return nil, fmt.Errorf("fetching lines: %w", err)
 		}
 
-		// Let's expand the line hierarchy so that we can have a full view of the invoice during the upcoming calculations
-		invoiceLines, err = a.expandProgressiveLineHierarchy(ctx, input.Invoice.Namespace, invoiceLines)
-		if err != nil {
-			return nil, err
-		}
-
 		return invoiceLines, nil
 	})
 }
@@ -484,9 +478,20 @@ func (a *adapter) fetchLines(ctx context.Context, ns string, lineIDs []string) (
 		return nil, err
 	}
 
-	return a.mapInvoiceLineFromDB(ctx, mapInvoiceLineFromDBInput{
+	lines, err := a.mapInvoiceLineFromDB(ctx, mapInvoiceLineFromDBInput{
 		lines: dbLinesInSameOrder,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Let's expand the line hierarchy so that we can have a full view of the invoice during the upcoming calculations
+	linesWithHierarchy, err := a.expandProgressiveLineHierarchy(ctx, ns, lines)
+	if err != nil {
+		return nil, err
+	}
+
+	return linesWithHierarchy, nil
 }
 
 func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLinesForSubscriptionInput) ([]*billing.Line, error) {

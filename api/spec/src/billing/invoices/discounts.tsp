@@ -122,3 +122,49 @@ model InvoiceLineDiscountAmount {
   @visibility(Lifecycle.Read)
   type: InvoiceLineDiscountType.amount;
 }
+
+/**
+ * A discount on a price. This extends the productcatalog.Discount union to include the
+ * billing specific extra fields required.
+ */
+@friendlyName("BillingDiscount")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+union BillingDiscount {
+  percentage: BillingDiscountPercentage,
+  usage: BillingDiscountUsage,
+}
+
+/**
+ * Billing specific fields for product catalog discounts.
+ */
+@friendlyName("BillingDiscountMetadata")
+model BillingDiscountMetadata {
+  /**
+   * Correlation ID for the discount.
+   *
+   * This is used to link discounts across different invoices (progressive billing use case).
+   *
+   * If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
+   * please make sure to keep the same correlation ID of the discount or in progressive billing
+   * setups the discount amounts might be incorrect.
+   */
+  correlationId?: ULID;
+}
+
+/**
+ * A percentage discount.
+ */
+@friendlyName("BillingDiscountPercentage")
+model BillingDiscountPercentage {
+  ...OpenMeter.ProductCatalog.DiscountPercentage;
+  ...BillingDiscountMetadata;
+}
+
+/**
+ * A usage discount.
+ */
+@friendlyName("BillingDiscountUsage")
+model BillingDiscountUsage {
+  ...OpenMeter.ProductCatalog.DiscountUsage;
+  ...BillingDiscountMetadata;
+}

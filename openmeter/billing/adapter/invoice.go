@@ -606,6 +606,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			updatedInvoice.Lines = updatedLines
 			// Let's make sure that subsequent calls preserve the same expansion settings
 			updatedInvoice.ExpandedFields = in.ExpandedFields
+
 			return updatedInvoice, nil
 		}
 

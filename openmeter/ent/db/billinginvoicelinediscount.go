@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // BillingInvoiceLineDiscount is the model entity for the BillingInvoiceLineDiscount schema.
@@ -48,7 +47,7 @@ type BillingInvoiceLineDiscount struct {
 	// PreLinePeriodQuantity holds the value of the "pre_line_period_quantity" field.
 	PreLinePeriodQuantity *alpacadecimal.Decimal `json:"pre_line_period_quantity,omitempty"`
 	// SourceDiscount holds the value of the "source_discount" field.
-	SourceDiscount *productcatalog.Discount `json:"source_discount,omitempty"`
+	SourceDiscount *billing.Discount `json:"source_discount,omitempty"`
 	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
 	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.

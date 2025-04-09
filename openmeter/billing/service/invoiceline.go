@@ -113,6 +113,11 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 					for i, lineSvc := range lineServices {
 						line := lineSvc.ToEntity()
 
+						line.RateCardDiscounts, err = s.generateDiscountCorrelationIDs(line.RateCardDiscounts)
+						if err != nil {
+							return nil, fmt.Errorf("generating discount correlation IDs: %w", err)
+						}
+
 						targetInvoice := invoicesByCurrency[line.Currency]
 
 						if targetInvoice.Invoice == nil {

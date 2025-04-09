@@ -98,7 +98,7 @@ type flatFeeRateCardParsed struct {
 	PaymentTerm   productcatalog.PaymentTermType
 	Quantity      alpacadecimal.Decimal
 	TaxConfig     *billing.TaxConfig
-	Discounts     productcatalog.Discounts
+	Discounts     billing.Discounts
 }
 
 func mapAndValidateFlatFeeRateCardDeprecatedFields(in flatFeeRateCardItems) (*flatFeeRateCardParsed, error) {
@@ -166,10 +166,10 @@ func mapAndValidateFlatFeeRateCardDeprecatedFields(in flatFeeRateCardItems) (*fl
 		}
 	}
 
-	var discounts productcatalog.Discounts
+	var discounts billing.Discounts
 	if in.RateCard.Discounts != nil {
-		discounts = lo.Map(*in.RateCard.Discounts, func(d api.DiscountPercentage, _ int) productcatalog.Discount {
-			return productcatalog.NewDiscountFrom(productcataloghttp.AsPercentageDiscount(d))
+		discounts = lo.Map(*in.RateCard.Discounts, func(d api.BillingDiscountPercentage, _ int) billing.Discount {
+			return billing.NewDiscountFrom(AsPercentageDiscount(d))
 		})
 	}
 
@@ -253,7 +253,7 @@ type usageBasedRateCardParsed struct {
 	Price      *productcatalog.Price
 	TaxConfig  *billing.TaxConfig
 	FeatureKey string
-	Discounts  productcatalog.Discounts
+	Discounts  billing.Discounts
 }
 
 func mapAndValidateUsageBasedRateCardDeprecatedFields(in usageBasedRateCardItems) (*usageBasedRateCardParsed, error) {
@@ -295,9 +295,9 @@ func mapAndValidateUsageBasedRateCardDeprecatedFields(in usageBasedRateCardItems
 		}
 	}
 
-	var discounts productcatalog.Discounts
+	var discounts billing.Discounts
 	if in.RateCard.Discounts != nil {
-		discounts, err = productcataloghttp.AsDiscounts(*in.RateCard.Discounts)
+		discounts, err = AsDiscounts(*in.RateCard.Discounts)
 		if err != nil {
 			return nil, billing.ValidationError{
 				Err: fmt.Errorf("failed to parse discounts: %w", err),

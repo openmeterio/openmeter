@@ -705,8 +705,14 @@ model InvoiceUsageBasedRateCard {
   // TODO: Once the deprecation is done, let's make featureKey and price required
   ...PickProperties<
     OpenMeter.ProductCatalog.RateCardUsageBased,
-    "discounts" | "taxConfig" | "featureKey" | "price"
+    "taxConfig" | "featureKey" | "price"
   >;
+
+  /**
+   * The discounts that are applied to the line.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  discounts?: BillingDiscount[];
 }
 
 /**
@@ -771,7 +777,7 @@ model InvoiceFlatFeeRateCard {
   // TODO: Once the deprecation is done, let's make price required
   ...PickProperties<
     OpenMeter.ProductCatalog.RateCardFlatFee,
-    "discounts" | "taxConfig" | "price"
+    "taxConfig" | "price"
   >;
 
   /**
@@ -781,6 +787,12 @@ model InvoiceFlatFeeRateCard {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   quantity?: Numeric;
+
+  /**
+   * The discounts that are applied to the line.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  discounts?: BillingDiscountPercentage[];
 }
 
 /**

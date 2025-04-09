@@ -10,7 +10,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -104,7 +103,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all BillingInvoiceLineDiscount fields.
 	ValueScanner struct {
-		SourceDiscount field.TypeValueScanner[*productcatalog.Discount]
+		SourceDiscount field.TypeValueScanner[*billing.Discount]
 	}
 )
 

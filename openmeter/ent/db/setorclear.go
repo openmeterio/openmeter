@@ -1049,14 +1049,14 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.
 	return u.SetTaxConfig(*value)
 }
 
-func (u *BillingInvoiceLineUpdate) SetOrClearRatecardDiscounts(value **productcatalog.Discounts) *BillingInvoiceLineUpdate {
+func (u *BillingInvoiceLineUpdate) SetOrClearRatecardDiscounts(value **billing.Discounts) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearRatecardDiscounts()
 	}
 	return u.SetRatecardDiscounts(*value)
 }
 
-func (u *BillingInvoiceLineUpdateOne) SetOrClearRatecardDiscounts(value **productcatalog.Discounts) *BillingInvoiceLineUpdateOne {
+func (u *BillingInvoiceLineUpdateOne) SetOrClearRatecardDiscounts(value **billing.Discounts) *BillingInvoiceLineUpdateOne {
 	if value == nil {
 		return u.ClearRatecardDiscounts()
 	}
@@ -1245,14 +1245,14 @@ func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearPreLinePeriodQuantity(va
 	return u.SetPreLinePeriodQuantity(*value)
 }
 
-func (u *BillingInvoiceLineDiscountUpdate) SetOrClearSourceDiscount(value **productcatalog.Discount) *BillingInvoiceLineDiscountUpdate {
+func (u *BillingInvoiceLineDiscountUpdate) SetOrClearSourceDiscount(value **billing.Discount) *BillingInvoiceLineDiscountUpdate {
 	if value == nil {
 		return u.ClearSourceDiscount()
 	}
 	return u.SetSourceDiscount(*value)
 }
 
-func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearSourceDiscount(value **productcatalog.Discount) *BillingInvoiceLineDiscountUpdateOne {
+func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearSourceDiscount(value **billing.Discount) *BillingInvoiceLineDiscountUpdateOne {
 	if value == nil {
 		return u.ClearSourceDiscount()
 	}

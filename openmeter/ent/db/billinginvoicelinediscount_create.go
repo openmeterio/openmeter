@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // BillingInvoiceLineDiscountCreate is the builder for creating a BillingInvoiceLineDiscount entity.
@@ -178,8 +177,8 @@ func (bildc *BillingInvoiceLineDiscountCreate) SetNillablePreLinePeriodQuantity(
 }
 
 // SetSourceDiscount sets the "source_discount" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetSourceDiscount(pr *productcatalog.Discount) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetSourceDiscount(pr)
+func (bildc *BillingInvoiceLineDiscountCreate) SetSourceDiscount(b *billing.Discount) *BillingInvoiceLineDiscountCreate {
+	bildc.mutation.SetSourceDiscount(b)
 	return bildc
 }
 
@@ -657,7 +656,7 @@ func (u *BillingInvoiceLineDiscountUpsert) ClearPreLinePeriodQuantity() *Billing
 }
 
 // SetSourceDiscount sets the "source_discount" field.
-func (u *BillingInvoiceLineDiscountUpsert) SetSourceDiscount(v *productcatalog.Discount) *BillingInvoiceLineDiscountUpsert {
+func (u *BillingInvoiceLineDiscountUpsert) SetSourceDiscount(v *billing.Discount) *BillingInvoiceLineDiscountUpsert {
 	u.Set(billinginvoicelinediscount.FieldSourceDiscount, v)
 	return u
 }
@@ -950,7 +949,7 @@ func (u *BillingInvoiceLineDiscountUpsertOne) ClearPreLinePeriodQuantity() *Bill
 }
 
 // SetSourceDiscount sets the "source_discount" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) SetSourceDiscount(v *productcatalog.Discount) *BillingInvoiceLineDiscountUpsertOne {
+func (u *BillingInvoiceLineDiscountUpsertOne) SetSourceDiscount(v *billing.Discount) *BillingInvoiceLineDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
 		s.SetSourceDiscount(v)
 	})
@@ -1419,7 +1418,7 @@ func (u *BillingInvoiceLineDiscountUpsertBulk) ClearPreLinePeriodQuantity() *Bil
 }
 
 // SetSourceDiscount sets the "source_discount" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) SetSourceDiscount(v *productcatalog.Discount) *BillingInvoiceLineDiscountUpsertBulk {
+func (u *BillingInvoiceLineDiscountUpsertBulk) SetSourceDiscount(v *billing.Discount) *BillingInvoiceLineDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
 		s.SetSourceDiscount(v)
 	})

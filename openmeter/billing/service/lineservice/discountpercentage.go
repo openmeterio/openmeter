@@ -50,13 +50,13 @@ func (m *discountPercentageMutator) Mutate(i PricerCalculateInput, pricerResult 
 }
 
 type discountWithChildReferenceID struct {
-	productcatalog.PercentageDiscount
+	billing.PercentageDiscount
 	ChildUniqueReferenceID string
 }
 
-func (m *discountPercentageMutator) getDiscounts(discounts productcatalog.Discounts) ([]discountWithChildReferenceID, error) {
+func (m *discountPercentageMutator) getDiscounts(discounts billing.Discounts) ([]discountWithChildReferenceID, error) {
 	percentageDiscounts := []discountWithChildReferenceID{}
-	for idx, discount := range discounts {
+	for _, discount := range discounts {
 		if discount.Type() != productcatalog.PercentageDiscountType {
 			continue
 		}
@@ -66,9 +66,13 @@ func (m *discountPercentageMutator) getDiscounts(discounts productcatalog.Discou
 			return nil, err
 		}
 
+		if percentage.CorrelationID == "" {
+			return nil, errors.New("correlation ID is required for rate card discounts")
+		}
+
 		percentageDiscounts = append(percentageDiscounts, discountWithChildReferenceID{
 			PercentageDiscount:     percentage,
-			ChildUniqueReferenceID: fmt.Sprintf(RateCardDiscountChildUniqueReferenceID, idx),
+			ChildUniqueReferenceID: fmt.Sprintf(RateCardDiscountChildUniqueReferenceID, percentage.CorrelationID),
 		})
 	}
 
@@ -94,7 +98,7 @@ func (m *discountPercentageMutator) getLineDiscounts(lineTotal alpacadecimal.Dec
 			LineDiscountBase: billing.LineDiscountBase{
 				ChildUniqueReferenceID: &discount.ChildUniqueReferenceID,
 				Reason:                 billing.LineDiscountReasonRatecardDiscount,
-				SourceDiscount:         lo.ToPtr(productcatalog.NewDiscountFrom(discount.PercentageDiscount)),
+				SourceDiscount:         lo.ToPtr(billing.NewDiscountFrom(discount.PercentageDiscount)),
 			},
 			Amount: amount,
 		})
