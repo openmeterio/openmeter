@@ -5,6 +5,7 @@ package db
 import (
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
@@ -488,7 +489,7 @@ func init() {
 	billinginvoiceline.CurrencyValidator = billinginvoicelineDescCurrency.Validators[0].(func(string) error)
 	// billinginvoicelineDescRatecardDiscounts is the schema descriptor for ratecard_discounts field.
 	billinginvoicelineDescRatecardDiscounts := billinginvoicelineFields[11].Descriptor()
-	billinginvoiceline.ValueScanner.RatecardDiscounts = billinginvoicelineDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	billinginvoiceline.ValueScanner.RatecardDiscounts = billinginvoicelineDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
 	// billinginvoicelineDescID is the schema descriptor for id field.
 	billinginvoicelineDescID := billinginvoicelineMixinFields0[0].Descriptor()
 	// billinginvoiceline.DefaultID holds the default value on creation for the id field.
@@ -518,7 +519,7 @@ func init() {
 	billinginvoicelinediscount.UpdateDefaultUpdatedAt = billinginvoicelinediscountDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// billinginvoicelinediscountDescSourceDiscount is the schema descriptor for source_discount field.
 	billinginvoicelinediscountDescSourceDiscount := billinginvoicelinediscountFields[9].Descriptor()
-	billinginvoicelinediscount.ValueScanner.SourceDiscount = billinginvoicelinediscountDescSourceDiscount.ValueScanner.(field.TypeValueScanner[*productcatalog.Discount])
+	billinginvoicelinediscount.ValueScanner.SourceDiscount = billinginvoicelinediscountDescSourceDiscount.ValueScanner.(field.TypeValueScanner[*billing.Discount])
 	// billinginvoicelinediscountDescID is the schema descriptor for id field.
 	billinginvoicelinediscountDescID := billinginvoicelinediscountMixinFields0[0].Descriptor()
 	// billinginvoicelinediscount.DefaultID holds the default value on creation for the id field.

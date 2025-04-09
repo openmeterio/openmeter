@@ -241,8 +241,8 @@ func (bilc *BillingInvoiceLineCreate) SetNillableTaxConfig(pc *productcatalog.Ta
 }
 
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
-func (bilc *BillingInvoiceLineCreate) SetRatecardDiscounts(pr *productcatalog.Discounts) *BillingInvoiceLineCreate {
-	bilc.mutation.SetRatecardDiscounts(pr)
+func (bilc *BillingInvoiceLineCreate) SetRatecardDiscounts(b *billing.Discounts) *BillingInvoiceLineCreate {
+	bilc.mutation.SetRatecardDiscounts(b)
 	return bilc
 }
 
@@ -1227,7 +1227,7 @@ func (u *BillingInvoiceLineUpsert) ClearTaxConfig() *BillingInvoiceLineUpsert {
 }
 
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
-func (u *BillingInvoiceLineUpsert) SetRatecardDiscounts(v *productcatalog.Discounts) *BillingInvoiceLineUpsert {
+func (u *BillingInvoiceLineUpsert) SetRatecardDiscounts(v *billing.Discounts) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldRatecardDiscounts, v)
 	return u
 }
@@ -1749,7 +1749,7 @@ func (u *BillingInvoiceLineUpsertOne) ClearTaxConfig() *BillingInvoiceLineUpsert
 }
 
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
-func (u *BillingInvoiceLineUpsertOne) SetRatecardDiscounts(v *productcatalog.Discounts) *BillingInvoiceLineUpsertOne {
+func (u *BillingInvoiceLineUpsertOne) SetRatecardDiscounts(v *billing.Discounts) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetRatecardDiscounts(v)
 	})
@@ -2462,7 +2462,7 @@ func (u *BillingInvoiceLineUpsertBulk) ClearTaxConfig() *BillingInvoiceLineUpser
 }
 
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
-func (u *BillingInvoiceLineUpsertBulk) SetRatecardDiscounts(v *productcatalog.Discounts) *BillingInvoiceLineUpsertBulk {
+func (u *BillingInvoiceLineUpsertBulk) SetRatecardDiscounts(v *billing.Discounts) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetRatecardDiscounts(v)
 	})

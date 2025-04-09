@@ -10565,6 +10565,80 @@ components:
         This profile is calculated from the customer override and the billing profile it references or the default.
 
         Thus this does not have any kind of resource fields, only the calculated values.
+    BillingDiscount:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingDiscountPercentage'
+        - $ref: '#/components/schemas/BillingDiscountUsage'
+      discriminator:
+        propertyName: type
+        mapping:
+          percentage: '#/components/schemas/BillingDiscountPercentage'
+          usage: '#/components/schemas/BillingDiscountUsage'
+      description: |-
+        A discount on a price. This extends the productcatalog.Discount union to include the
+        billing specific extra fields required.
+    BillingDiscountPercentage:
+      type: object
+      required:
+        - type
+        - percentage
+      properties:
+        type:
+          type: string
+          enum:
+            - percentage
+          description: The type of the discount.
+          title: Type
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/Percentage'
+          minimum: 0
+          maximum: 100
+          description: The percentage of the discount.
+          title: Percentage
+        correlationId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            Correlation ID for the discount.
+
+            This is used to link discounts across different invoices (progressive billing use case).
+
+            If not provided, the invoicing engine will auto-generate one.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+      description: A percentage discount.
+    BillingDiscountUsage:
+      type: object
+      required:
+        - type
+        - quantity
+      properties:
+        type:
+          type: string
+          enum:
+            - usage
+          description: The type of the discount.
+          title: Type
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The quantity of the usage discount.
+
+            Must be positive.
+          title: Usage
+        correlationId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            Correlation ID for the discount.
+
+            This is used to link discounts across different invoices (progressive billing use case).
+
+            If not provided, the invoicing engine will auto-generate one.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+      description: A usage discount.
     BillingParty:
       type: object
       properties:
@@ -14592,14 +14666,6 @@ components:
             type: flat
             amount: '100'
             paymentTerm: in_arrears
-        discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/DiscountPercentage'
-          description: |-
-            The discount of the rate card. For flat fee rate cards only percentage discounts are supported.
-            Only available when price is set.
-          title: Discounts
         quantity:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -14607,6 +14673,11 @@ components:
             Quantity of the item being sold.
 
             Default: 1
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingDiscountPercentage'
+          description: The discounts that are applied to the line.
       description: InvoiceFlatFeeRateCard represents the rate card (intent) for a flat fee line.
     InvoiceGenericDocumentRef:
       type: object
@@ -15738,12 +15809,8 @@ components:
         discounts:
           type: array
           items:
-            $ref: '#/components/schemas/Discount'
-          description: |-
-            The discounts of the rate card.
-
-            Flat fee rate cards only support percentage discounts.
-          title: Discounts
+            $ref: '#/components/schemas/BillingDiscount'
+          description: The discounts that are applied to the line.
       description: InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line.
     InvoiceWorkflowInvoicingSettingsReplaceUpdate:
       type: object

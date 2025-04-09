@@ -152,8 +152,8 @@ type LineBase struct {
 	Status                 InvoiceLineStatus `json:"status"`
 	ChildUniqueReferenceID *string           `json:"childUniqueReferenceID,omitempty"`
 
-	TaxConfig         *TaxConfig               `json:"taxOverrides,omitempty"`
-	RateCardDiscounts productcatalog.Discounts `json:"rateCardDiscounts,omitempty"`
+	TaxConfig         *TaxConfig `json:"taxOverrides,omitempty"`
+	RateCardDiscounts Discounts  `json:"rateCardDiscounts,omitempty"`
 
 	ExternalIDs  LineExternalIDs        `json:"externalIDs,omitempty"`
 	Subscription *SubscriptionReference `json:"subscription,omitempty"`
@@ -326,6 +326,11 @@ func (i Line) CloneWithoutDependencies() *Line {
 
 func (i Line) WithoutDBState() *Line {
 	i.DBState = nil
+	return &i
+}
+
+func (i Line) WithoutProgressiveLineHierarchy() *Line {
+	i.ProgressiveLineHierarchy = nil
 	return &i
 }
 

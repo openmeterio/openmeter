@@ -79,7 +79,7 @@ type BillingInvoiceLine struct {
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// RatecardDiscounts holds the value of the "ratecard_discounts" field.
-	RatecardDiscounts *productcatalog.Discounts `json:"ratecard_discounts,omitempty"`
+	RatecardDiscounts *billing.Discounts `json:"ratecard_discounts,omitempty"`
 	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
 	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.

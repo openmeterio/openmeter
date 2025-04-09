@@ -35,7 +35,7 @@ const (
 	GraduatedTieredPriceUsageChildUniqueReferenceID = "graduated-tiered-%d-price-usage"
 	GraduatedTieredFlatPriceChildUniqueReferenceID  = "graduated-tiered-%d-flat-price"
 
-	RateCardDiscountChildUniqueReferenceID = "rateCardDiscount/%d"
+	RateCardDiscountChildUniqueReferenceID = "rateCardDiscount/correlationID=%s"
 )
 
 var DecimalOne = alpacadecimal.NewFromInt(1)

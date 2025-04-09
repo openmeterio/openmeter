@@ -15487,7 +15487,7 @@ type BillingInvoiceLineMutation struct {
 	currency                  *currencyx.Code
 	quantity                  *alpacadecimal.Decimal
 	tax_config                *productcatalog.TaxConfig
-	ratecard_discounts        **productcatalog.Discounts
+	ratecard_discounts        **billing.Discounts
 	invoicing_app_external_id *string
 	child_unique_reference_id *string
 	line_ids                  *string
@@ -16600,12 +16600,12 @@ func (m *BillingInvoiceLineMutation) ResetTaxConfig() {
 }
 
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
-func (m *BillingInvoiceLineMutation) SetRatecardDiscounts(pr *productcatalog.Discounts) {
-	m.ratecard_discounts = &pr
+func (m *BillingInvoiceLineMutation) SetRatecardDiscounts(b *billing.Discounts) {
+	m.ratecard_discounts = &b
 }
 
 // RatecardDiscounts returns the value of the "ratecard_discounts" field in the mutation.
-func (m *BillingInvoiceLineMutation) RatecardDiscounts() (r *productcatalog.Discounts, exists bool) {
+func (m *BillingInvoiceLineMutation) RatecardDiscounts() (r *billing.Discounts, exists bool) {
 	v := m.ratecard_discounts
 	if v == nil {
 		return
@@ -16616,7 +16616,7 @@ func (m *BillingInvoiceLineMutation) RatecardDiscounts() (r *productcatalog.Disc
 // OldRatecardDiscounts returns the old "ratecard_discounts" field's value of the BillingInvoiceLine entity.
 // If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldRatecardDiscounts(ctx context.Context) (v *productcatalog.Discounts, err error) {
+func (m *BillingInvoiceLineMutation) OldRatecardDiscounts(ctx context.Context) (v *billing.Discounts, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldRatecardDiscounts is only allowed on UpdateOne operations")
 	}
@@ -17737,7 +17737,7 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		m.SetTaxConfig(v)
 		return nil
 	case billinginvoiceline.FieldRatecardDiscounts:
-		v, ok := value.(*productcatalog.Discounts)
+		v, ok := value.(*billing.Discounts)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -18269,7 +18269,7 @@ type BillingInvoiceLineDiscountMutation struct {
 	rounding_amount             *alpacadecimal.Decimal
 	quantity                    *alpacadecimal.Decimal
 	pre_line_period_quantity    *alpacadecimal.Decimal
-	source_discount             **productcatalog.Discount
+	source_discount             **billing.Discount
 	invoicing_app_external_id   *string
 	clearedFields               map[string]struct{}
 	billing_invoice_line        *string
@@ -18943,12 +18943,12 @@ func (m *BillingInvoiceLineDiscountMutation) ResetPreLinePeriodQuantity() {
 }
 
 // SetSourceDiscount sets the "source_discount" field.
-func (m *BillingInvoiceLineDiscountMutation) SetSourceDiscount(pr *productcatalog.Discount) {
-	m.source_discount = &pr
+func (m *BillingInvoiceLineDiscountMutation) SetSourceDiscount(b *billing.Discount) {
+	m.source_discount = &b
 }
 
 // SourceDiscount returns the value of the "source_discount" field in the mutation.
-func (m *BillingInvoiceLineDiscountMutation) SourceDiscount() (r *productcatalog.Discount, exists bool) {
+func (m *BillingInvoiceLineDiscountMutation) SourceDiscount() (r *billing.Discount, exists bool) {
 	v := m.source_discount
 	if v == nil {
 		return
@@ -18959,7 +18959,7 @@ func (m *BillingInvoiceLineDiscountMutation) SourceDiscount() (r *productcatalog
 // OldSourceDiscount returns the old "source_discount" field's value of the BillingInvoiceLineDiscount entity.
 // If the BillingInvoiceLineDiscount object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineDiscountMutation) OldSourceDiscount(ctx context.Context) (v *productcatalog.Discount, err error) {
+func (m *BillingInvoiceLineDiscountMutation) OldSourceDiscount(ctx context.Context) (v *billing.Discount, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldSourceDiscount is only allowed on UpdateOne operations")
 	}
@@ -19338,7 +19338,7 @@ func (m *BillingInvoiceLineDiscountMutation) SetField(name string, value ent.Val
 		m.SetPreLinePeriodQuantity(v)
 		return nil
 	case billinginvoicelinediscount.FieldSourceDiscount:
-		v, ok := value.(*productcatalog.Discount)
+		v, ok := value.(*billing.Discount)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

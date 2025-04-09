@@ -19,9 +19,12 @@ func TestFeeLine(t *testing.T) {
 		line := generateFeeLine(t, generateFeeLineInput{
 			Quantity: 1,
 			Amount:   100,
-			RateCardDiscounts: []productcatalog.PercentageDiscount{
+			RateCardDiscounts: []billing.PercentageDiscount{
 				{
-					Percentage: models.NewPercentage(50),
+					PercentageDiscount: productcatalog.PercentageDiscount{
+						Percentage: models.NewPercentage(50),
+					},
+					CorrelationID: "example-correlation-id",
 				},
 			},
 		})
@@ -33,10 +36,13 @@ func TestFeeLine(t *testing.T) {
 				Amount: alpacadecimal.NewFromFloat(50),
 				LineDiscountBase: billing.LineDiscountBase{
 					Reason: billing.LineDiscountReasonRatecardDiscount,
-					SourceDiscount: lo.ToPtr(productcatalog.NewDiscountFrom(productcatalog.PercentageDiscount{
-						Percentage: models.NewPercentage(50),
+					SourceDiscount: lo.ToPtr(billing.NewDiscountFrom(billing.PercentageDiscount{
+						PercentageDiscount: productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(50),
+						},
+						CorrelationID: "example-correlation-id",
 					})),
-					ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/0"),
+					ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/correlationID=example-correlation-id"),
 				},
 			}),
 		}, line.line.Discounts)
@@ -46,7 +52,7 @@ func TestFeeLine(t *testing.T) {
 type generateFeeLineInput struct {
 	Quantity          float64
 	Amount            float64
-	RateCardDiscounts []productcatalog.PercentageDiscount
+	RateCardDiscounts []billing.PercentageDiscount
 }
 
 func generateFeeLine(t *testing.T, in generateFeeLineInput) *feeLine {
@@ -59,8 +65,8 @@ func generateFeeLine(t *testing.T, in generateFeeLineInput) *feeLine {
 						Start: time.Now(),
 						End:   time.Now().Add(time.Hour * 24),
 					},
-					RateCardDiscounts: lo.Map(in.RateCardDiscounts, func(d productcatalog.PercentageDiscount, _ int) productcatalog.Discount {
-						return productcatalog.NewDiscountFrom(d)
+					RateCardDiscounts: lo.Map(in.RateCardDiscounts, func(d billing.PercentageDiscount, _ int) billing.Discount {
+						return billing.NewDiscountFrom(d)
 					}),
 				},
 				FlatFee: &billing.FlatFeeLine{

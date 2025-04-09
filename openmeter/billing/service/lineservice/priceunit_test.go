@@ -203,9 +203,9 @@ func TestUnitPriceCalculation(t *testing.T) {
 
 	// Discount + max spend
 	t.Run("usage present, 50% discount +max spend set and hit", func(t *testing.T) {
-		discount50pct := productcatalog.NewDiscountFrom(productcatalog.PercentageDiscount{
+		discount50pct := billing.NewDiscountFrom(productcatalog.PercentageDiscount{
 			Percentage: models.NewPercentage(50),
-		})
+		}).WithCorrelationID("discount-50pct")
 		// PreLineUsage
 		// 10*7*0.3 = 35
 		// Current line usage:
@@ -224,7 +224,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 				},
 			}),
-			discounts: []productcatalog.Discount{
+			discounts: []billing.Discount{
 				discount50pct,
 			},
 			lineMode: midPeriodSplitLineMode,
@@ -244,7 +244,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 						billing.NewLineDiscountFrom(billing.AmountLineDiscount{
 							Amount: alpacadecimal.NewFromFloat(100),
 							LineDiscountBase: billing.LineDiscountBase{
-								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/0"),
+								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/correlationID=discount-50pct"),
 								Reason:                 billing.LineDiscountReasonRatecardDiscount,
 								SourceDiscount:         lo.ToPtr(discount50pct),
 							},
@@ -265,12 +265,14 @@ func TestUnitPriceCalculation(t *testing.T) {
 	})
 
 	t.Run("usage present, 33%+33%+34% discount, should yield 0", func(t *testing.T) {
-		discount33pct := productcatalog.NewDiscountFrom(productcatalog.PercentageDiscount{
+		discount33pct := billing.NewDiscountFrom(productcatalog.PercentageDiscount{
 			Percentage: models.NewPercentage(33),
 		})
-		discount34pct := productcatalog.NewDiscountFrom(productcatalog.PercentageDiscount{
+		discount33pctV1 := discount33pct.WithCorrelationID("discount-33pct-1")
+		discount33pctV2 := discount33pct.WithCorrelationID("discount-33pct-2")
+		discount34pct := billing.NewDiscountFrom(productcatalog.PercentageDiscount{
 			Percentage: models.NewPercentage(34),
-		})
+		}).WithCorrelationID("discount-34pct")
 		// Current line usage:
 		//   Amount: 0.01*1 = 0.01
 		//   	Discount: 0.1*0.33 = 0.0
@@ -282,9 +284,9 @@ func TestUnitPriceCalculation(t *testing.T) {
 			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(0.01),
 			}),
-			discounts: []productcatalog.Discount{
-				discount33pct,
-				discount33pct,
+			discounts: []billing.Discount{
+				discount33pctV1,
+				discount33pctV2,
 				discount34pct,
 			},
 			lineMode: singlePerPeriodLineMode,
@@ -302,24 +304,24 @@ func TestUnitPriceCalculation(t *testing.T) {
 						billing.NewLineDiscountFrom(billing.AmountLineDiscount{
 							Amount: alpacadecimal.NewFromFloat(0),
 							LineDiscountBase: billing.LineDiscountBase{
-								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/0"),
+								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/correlationID=discount-33pct-1"),
 								Reason:                 billing.LineDiscountReasonRatecardDiscount,
-								SourceDiscount:         lo.ToPtr(discount33pct),
+								SourceDiscount:         lo.ToPtr(discount33pctV1),
 							},
 						}),
 						billing.NewLineDiscountFrom(billing.AmountLineDiscount{
 							Amount: alpacadecimal.NewFromFloat(0),
 							LineDiscountBase: billing.LineDiscountBase{
-								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/1"),
+								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/correlationID=discount-33pct-2"),
 								Reason:                 billing.LineDiscountReasonRatecardDiscount,
-								SourceDiscount:         lo.ToPtr(discount33pct),
+								SourceDiscount:         lo.ToPtr(discount33pctV2),
 							},
 						}),
 						billing.NewLineDiscountFrom(billing.AmountLineDiscount{
 							Amount:         alpacadecimal.NewFromFloat(0.0),
 							RoundingAmount: alpacadecimal.NewFromFloat(0.01),
 							LineDiscountBase: billing.LineDiscountBase{
-								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/2"),
+								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/correlationID=discount-34pct"),
 								Reason:                 billing.LineDiscountReasonRatecardDiscount,
 								SourceDiscount:         lo.ToPtr(discount34pct),
 							},

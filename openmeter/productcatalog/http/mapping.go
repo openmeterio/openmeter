@@ -610,16 +610,12 @@ func AsDiscounts(discounts []api.Discount) (productcatalog.Discounts, error) {
 				return nil, fmt.Errorf("failed to cast DiscountUsage: %w", err)
 			}
 
-			quantity, err := decimal.NewFromString(discount.Quantity)
+			usageDiscount, err := AsUsageDiscount(discount)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse Quantity of DiscountUsage: %w", err)
+				return nil, fmt.Errorf("failed to cast UsageDiscount: %w", err)
 			}
 
-			out = append(out, productcatalog.NewDiscountFrom(
-				productcatalog.UsageDiscount{
-					Quantity: quantity,
-				},
-			))
+			out = append(out, productcatalog.NewDiscountFrom(usageDiscount))
 		case string(api.DiscountPercentageTypePercentage):
 			discount, err := d.AsDiscountPercentage()
 			if err != nil {
@@ -633,6 +629,17 @@ func AsDiscounts(discounts []api.Discount) (productcatalog.Discounts, error) {
 	}
 
 	return out, nil
+}
+
+func AsUsageDiscount(d api.DiscountUsage) (productcatalog.UsageDiscount, error) {
+	quantity, err := decimal.NewFromString(d.Quantity)
+	if err != nil {
+		return productcatalog.UsageDiscount{}, fmt.Errorf("failed to parse Quantity of DiscountUsage: %w", err)
+	}
+
+	return productcatalog.UsageDiscount{
+		Quantity: quantity,
+	}, nil
 }
 
 func AsPercentageDiscount(d api.DiscountPercentage) productcatalog.PercentageDiscount {

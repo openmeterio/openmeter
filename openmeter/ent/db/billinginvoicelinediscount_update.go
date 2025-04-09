@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // BillingInvoiceLineDiscountUpdate is the builder for updating BillingInvoiceLineDiscount entities.
@@ -221,8 +220,8 @@ func (bildu *BillingInvoiceLineDiscountUpdate) ClearPreLinePeriodQuantity() *Bil
 }
 
 // SetSourceDiscount sets the "source_discount" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetSourceDiscount(pr *productcatalog.Discount) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetSourceDiscount(pr)
+func (bildu *BillingInvoiceLineDiscountUpdate) SetSourceDiscount(b *billing.Discount) *BillingInvoiceLineDiscountUpdate {
+	bildu.mutation.SetSourceDiscount(b)
 	return bildu
 }
 
@@ -650,8 +649,8 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearPreLinePeriodQuantity() 
 }
 
 // SetSourceDiscount sets the "source_discount" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetSourceDiscount(pr *productcatalog.Discount) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetSourceDiscount(pr)
+func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetSourceDiscount(b *billing.Discount) *BillingInvoiceLineDiscountUpdateOne {
+	bilduo.mutation.SetSourceDiscount(b)
 	return bilduo
 }
 

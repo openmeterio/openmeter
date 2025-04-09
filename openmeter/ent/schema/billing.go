@@ -18,6 +18,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
+var (
+	BillingDiscountsValueScanner = entutils.JSONStringValueScanner[*billing.Discounts]()
+	BillingDiscountValueScanner  = entutils.JSONStringValueScanner[*billing.Discount]()
+)
+
 type BillingProfile struct {
 	ent.Schema
 }
@@ -344,8 +349,8 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			Optional(),
 
 		field.String("ratecard_discounts").
-			GoType(&productcatalog.Discounts{}).
-			ValueScanner(DiscountsValueScanner).
+			GoType(&billing.Discounts{}).
+			ValueScanner(BillingDiscountsValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
@@ -565,8 +570,8 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 			}),
 
 		field.String("source_discount").
-			GoType(&productcatalog.Discount{}).
-			ValueScanner(DiscountValueScanner).
+			GoType(&billing.Discount{}).
+			ValueScanner(BillingDiscountValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).

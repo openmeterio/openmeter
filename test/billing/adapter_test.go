@@ -210,14 +210,12 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		splitPre = mergeDBFields(splitPre, lines[0])
 		splitPre.ParentLine = lines[0].ParentLine
 		splitPre.Children = billing.NewLineChildren(nil)
-		splitPre.Discounts = nil
-		require.Equal(s.T(), splitPre, lines[0].WithoutDBState(), "preMatches")
+		require.Equal(s.T(), splitPre, lines[0].WithoutDBState().WithoutProgressiveLineHierarchy(), "preMatches")
 
 		splitPost = mergeDBFields(splitPost, lines[1])
 		splitPost.ParentLine = lines[1].ParentLine
 		splitPost.Children = billing.NewLineChildren(nil)
-		splitPost.Discounts = nil
-		require.Equal(s.T(), splitPost, lines[1].WithoutDBState(), "postMatches")
+		require.Equal(s.T(), splitPost, lines[1].WithoutDBState().WithoutProgressiveLineHierarchy(), "postMatches")
 
 		splitPost = lines[1]
 	})
@@ -262,14 +260,18 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		splitPost.ParentLine.CreatedAt = lines[0].ParentLine.CreatedAt
 		splitPost.ParentLine.UpdatedAt = lines[0].ParentLine.UpdatedAt
 
-		require.Equal(s.T(), splitPost.WithoutDBState(), lines[0].WithoutDBState())
+		require.Equal(s.T(),
+			splitPost.WithoutDBState().WithoutProgressiveLineHierarchy(),
+			lines[0].WithoutDBState().WithoutProgressiveLineHierarchy())
 
 		newLastLine = mergeDBFields(newLastLine, lines[1])
 		newLastLine.ParentLine = nil
 		newLastLine.Children = billing.NewLineChildren(nil)
 		newLastLine.Discounts = nil
 		lines[1].ParentLine = nil
-		require.Equal(s.T(), newLastLine.WithoutDBState(), lines[1].WithoutDBState())
+		require.Equal(s.T(),
+			newLastLine.WithoutDBState().WithoutProgressiveLineHierarchy(),
+			lines[1].WithoutDBState().WithoutProgressiveLineHierarchy())
 	})
 }
 

@@ -10,7 +10,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -66,7 +65,7 @@ type LineDiscountBase struct {
 	ExternalIDs            LineExternalIDs    `json:"externalIDs,omitempty"`
 	Reason                 LineDiscountReason `json:"reason"`
 
-	SourceDiscount *productcatalog.Discount `json:"rateCardDiscount,omitempty"`
+	SourceDiscount *Discount `json:"rateCardDiscount,omitempty"`
 }
 
 func (i LineDiscountBase) Validate() error {
