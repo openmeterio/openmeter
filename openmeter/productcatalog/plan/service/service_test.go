@@ -138,10 +138,8 @@ func TestPlanService(t *testing.T) {
 									Name:        "Pro-2 RateCard 1",
 									Description: lo.ToPtr("Pro-2 RateCard 1"),
 									Metadata:    models.Metadata{"name": "pro-2-ratecard-1"},
-									Feature: &feature.Feature{
-										Namespace: namespace,
-										Key:       "api_requests_total",
-									},
+									FeatureKey:  lo.ToPtr("api_requests_total"),
+									FeatureID:   lo.ToPtr(features["api_requests_total"].ID),
 									EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 										productcatalog.MeteredEntitlementTemplate{
 											Metadata:                nil,
@@ -255,7 +253,8 @@ func TestPlanService(t *testing.T) {
 											Name:                "Pro-2 RateCard 1",
 											Description:         lo.ToPtr("Pro-2 RateCard 1"),
 											Metadata:            models.Metadata{"name": "pro-ratecard-1"},
-											Feature:             nil,
+											FeatureKey:          nil,
+											FeatureID:           nil,
 											EntitlementTemplate: nil,
 											TaxConfig: &productcatalog.TaxConfig{
 												Stripe: &productcatalog.StripeTaxConfig{
@@ -657,7 +656,8 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 								Name:                "Trial RateCard 1",
 								Description:         lo.ToPtr("Trial RateCard 1"),
 								Metadata:            models.Metadata{"name": "trial-ratecard-1"},
-								Feature:             nil,
+								FeatureKey:          nil,
+								FeatureID:           nil,
 								EntitlementTemplate: nil,
 								TaxConfig: &productcatalog.TaxConfig{
 									Stripe: &productcatalog.StripeTaxConfig{
@@ -688,7 +688,8 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 								Name:                "Pro RateCard 1",
 								Description:         lo.ToPtr("Pro RateCard 1"),
 								Metadata:            models.Metadata{"name": "pro-ratecard-1"},
-								Feature:             nil,
+								FeatureKey:          nil,
+								FeatureID:           nil,
 								EntitlementTemplate: nil,
 								TaxConfig: &productcatalog.TaxConfig{
 									Stripe: &productcatalog.StripeTaxConfig{

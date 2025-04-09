@@ -100,7 +100,8 @@ func TestPostgresAdapter(t *testing.T) {
 					Name:                feature1.Name,
 					Description:         lo.ToPtr(feature1.Name),
 					Metadata:            models.Metadata{"name": feature1.Name},
-					Feature:             &feature1,
+					FeatureKey:          lo.ToPtr(feature1.Key),
+					FeatureID:           lo.ToPtr(feature1.ID),
 					EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 					TaxConfig: &productcatalog.TaxConfig{
 						Stripe: &productcatalog.StripeTaxConfig{
@@ -257,7 +258,8 @@ func TestPostgresAdapter(t *testing.T) {
 							Name:                "RateCard 2",
 							Description:         lo.ToPtr("RateCard 2"),
 							Metadata:            models.Metadata{"name": "ratecard-2"},
-							Feature:             nil,
+							FeatureKey:          nil,
+							FeatureID:           nil,
 							EntitlementTemplate: nil,
 							TaxConfig: &productcatalog.TaxConfig{
 								Stripe: &productcatalog.StripeTaxConfig{

@@ -15,7 +15,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -262,6 +261,7 @@ func TestEditRunning(t *testing.T) {
 			}
 
 			clock.SetTime(tcDeps.CurrentTime)
+			defer clock.ResetTime()
 
 			// Let's build the dependencies
 			dbDeps := subscriptiontestutils.SetupDBDeps(t)
@@ -752,9 +752,8 @@ func TestChangeToPlan(t *testing.T) {
 			Key:         subscriptiontestutils.ExampleFeatureKey,
 			Name:        "Rate Card 1",
 			Description: lo.ToPtr("Rate Card 1 Description"),
-			Feature: &feature.Feature{
-				Key: subscriptiontestutils.ExampleFeatureKey,
-			},
+			FeatureKey:  lo.ToPtr(subscriptiontestutils.ExampleFeatureKey),
+			FeatureID:   nil,
 			EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 				IssueAfterReset: lo.ToPtr(111.0),
 				UsagePeriod:     subscriptiontestutils.ISOMonth,
@@ -938,8 +937,6 @@ func TestChangeToPlan(t *testing.T) {
 }
 
 func TestEditCombinations(t *testing.T) {
-	examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
-
 	// Let's define what deps a test case needs
 	type testCaseDeps struct {
 		CurrentTime     time.Time
@@ -952,6 +949,8 @@ func TestEditCombinations(t *testing.T) {
 
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
 		return func(fn func(t *testing.T, deps testCaseDeps)) {
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
 			tcDeps := testCaseDeps{
 				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 			}
@@ -1064,8 +1063,6 @@ func TestEditCombinations(t *testing.T) {
 }
 
 func TestRestore(t *testing.T) {
-	examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
-
 	// Let's define what deps a test case needs
 	type testCaseDeps struct {
 		CurrentTime     time.Time
@@ -1078,6 +1075,8 @@ func TestRestore(t *testing.T) {
 
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
 		return func(fn func(t *testing.T, deps testCaseDeps)) {
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
 			tcDeps := testCaseDeps{
 				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 			}

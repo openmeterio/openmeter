@@ -30,20 +30,8 @@ func TestFlatFeeRateCard(t *testing.T) {
 						Metadata: map[string]string{
 							"name": "Flat 1",
 						},
-						Feature: &feature.Feature{
-							Namespace:           "namespace-1",
-							ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
-							Name:                "Feature 1",
-							Key:                 "feat-1",
-							MeterSlug:           lo.ToPtr("meter-1"),
-							MeterGroupByFilters: nil,
-							Metadata: map[string]string{
-								"name": "Feature 1",
-							},
-							ArchivedAt: &time.Time{},
-							CreatedAt:  time.Time{},
-							UpdatedAt:  time.Time{},
-						},
+						FeatureKey: lo.ToPtr("feat-1"),
+						FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
 						EntitlementTemplate: NewEntitlementTemplateFrom(
 							StaticEntitlementTemplate{
 								Metadata: map[string]string{
@@ -75,20 +63,8 @@ func TestFlatFeeRateCard(t *testing.T) {
 						Metadata: map[string]string{
 							"name": "Flat 2",
 						},
-						Feature: &feature.Feature{
-							Namespace:           "namespace-2",
-							ID:                  "01JBP3SGZ2YTM6DVH2W318TPNH",
-							Name:                "Feature 2",
-							Key:                 "feat-2",
-							MeterSlug:           lo.ToPtr("meter-2"),
-							MeterGroupByFilters: nil,
-							Metadata: map[string]string{
-								"name": "Feature 2",
-							},
-							ArchivedAt: &time.Time{},
-							CreatedAt:  time.Time{},
-							UpdatedAt:  time.Time{},
-						},
+						FeatureKey: lo.ToPtr("feat-2"),
+						FeatureID:  lo.ToPtr("01JBP3SGZ2YTM6DVH2W318TPNH"),
 						EntitlementTemplate: NewEntitlementTemplateFrom(
 							StaticEntitlementTemplate{
 								Metadata: map[string]string{
@@ -201,20 +177,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 						Metadata: map[string]string{
 							"name": "usage-1",
 						},
-						Feature: &feature.Feature{
-							Namespace:           "namespace-1",
-							ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
-							Name:                "Feature 1",
-							Key:                 "feat-1",
-							MeterSlug:           lo.ToPtr("meter-1"),
-							MeterGroupByFilters: nil,
-							Metadata: map[string]string{
-								"name": "Feature 1",
-							},
-							ArchivedAt: &time.Time{},
-							CreatedAt:  time.Time{},
-							UpdatedAt:  time.Time{},
-						},
+						FeatureKey: lo.ToPtr("feat-1"),
+						FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
 						EntitlementTemplate: NewEntitlementTemplateFrom(
 							MeteredEntitlementTemplate{
 								Metadata: map[string]string{
@@ -254,20 +218,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 						Metadata: map[string]string{
 							"name": "usage-2",
 						},
-						Feature: &feature.Feature{
-							Namespace:           "namespace-2",
-							ID:                  "01JBWYR0G2PYB9DVADKQXF8E0P",
-							Name:                "Feature 2",
-							Key:                 "feat-2",
-							MeterSlug:           lo.ToPtr("meter-2"),
-							MeterGroupByFilters: nil,
-							Metadata: map[string]string{
-								"name": "Feature 2",
-							},
-							ArchivedAt: &time.Time{},
-							CreatedAt:  time.Time{},
-							UpdatedAt:  time.Time{},
-						},
+						FeatureKey: lo.ToPtr("feat-2"),
+						FeatureID:  lo.ToPtr("01JBWYR0G2PYB9DVADKQXF8E0P"),
 						EntitlementTemplate: NewEntitlementTemplateFrom(
 							MeteredEntitlementTemplate{
 								Metadata: map[string]string{
@@ -301,9 +253,10 @@ func TestUsageBasedRateCard(t *testing.T) {
 				Name: "valid, mixed discounts",
 				RateCard: UsageBasedRateCard{
 					RateCardMeta: RateCardMeta{
-						Key:     "feat-1",
-						Name:    "Usage 1",
-						Feature: feat1,
+						Key:        "feat-1",
+						Name:       "Usage 1",
+						FeatureKey: lo.ToPtr(feat1.Key),
+						FeatureID:  lo.ToPtr(feat1.ID),
 						Price: NewPriceFrom(
 							UnitPrice{
 								Amount: decimal.NewFromInt(1000),
@@ -329,9 +282,10 @@ func TestUsageBasedRateCard(t *testing.T) {
 				Name: "invalid, usage discount for flat price",
 				RateCard: UsageBasedRateCard{
 					RateCardMeta: RateCardMeta{
-						Key:     "feat-1",
-						Name:    "Usage 1",
-						Feature: feat1,
+						Key:        "feat-1",
+						Name:       "Usage 1",
+						FeatureKey: lo.ToPtr(feat1.Key),
+						FeatureID:  lo.ToPtr(feat1.ID),
 						Price: NewPriceFrom(
 							FlatPrice{
 								Amount: decimal.NewFromInt(1000),
@@ -353,9 +307,10 @@ func TestUsageBasedRateCard(t *testing.T) {
 				Name: "invalid, usage discount for dynamic price",
 				RateCard: UsageBasedRateCard{
 					RateCardMeta: RateCardMeta{
-						Key:     "feat-1",
-						Name:    "Usage 1",
-						Feature: feat1,
+						Key:        "feat-1",
+						Name:       "Usage 1",
+						FeatureKey: lo.ToPtr(feat1.Key),
+						FeatureID:  lo.ToPtr(feat1.ID),
 						Price: NewPriceFrom(
 							DynamicPrice{
 								Multiplier: decimal.NewFromInt(1),
@@ -377,9 +332,10 @@ func TestUsageBasedRateCard(t *testing.T) {
 				Name: "invalid, usage discount without price",
 				RateCard: UsageBasedRateCard{
 					RateCardMeta: RateCardMeta{
-						Key:     "feat-1",
-						Name:    "Usage 1",
-						Feature: feat1,
+						Key:        "feat-1",
+						Name:       "Usage 1",
+						FeatureKey: lo.ToPtr(feat1.Key),
+						FeatureID:  lo.ToPtr(feat1.ID),
 						Discounts: Discounts{
 							NewDiscountFrom(PercentageDiscount{
 								Percentage: models.NewPercentage(10),
@@ -443,20 +399,8 @@ func TestRateCardsEqual(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-1",
 							},
-							Feature: &feature.Feature{
-								Namespace:           "namespace-1",
-								ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
-								Name:                "Feature 1",
-								Key:                 "feat-1",
-								MeterSlug:           lo.ToPtr("meter-1"),
-								MeterGroupByFilters: nil,
-								Metadata: map[string]string{
-									"name": "Feature 1",
-								},
-								ArchivedAt: &time.Time{},
-								CreatedAt:  time.Time{},
-								UpdatedAt:  time.Time{},
-							},
+							FeatureKey: lo.ToPtr("feat-1"),
+							FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
 							EntitlementTemplate: NewEntitlementTemplateFrom(
 								MeteredEntitlementTemplate{
 									Metadata: map[string]string{
@@ -502,20 +446,8 @@ func TestRateCardsEqual(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-1",
 							},
-							Feature: &feature.Feature{
-								Namespace:           "namespace-1",
-								ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
-								Name:                "Feature 1",
-								Key:                 "feat-1",
-								MeterSlug:           lo.ToPtr("meter-1"),
-								MeterGroupByFilters: nil,
-								Metadata: map[string]string{
-									"name": "Feature 1",
-								},
-								ArchivedAt: &time.Time{},
-								CreatedAt:  time.Time{},
-								UpdatedAt:  time.Time{},
-							},
+							FeatureKey: lo.ToPtr("feat-1"),
+							FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
 							EntitlementTemplate: NewEntitlementTemplateFrom(
 								MeteredEntitlementTemplate{
 									Metadata: map[string]string{
@@ -565,20 +497,8 @@ func TestRateCardsEqual(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-1",
 							},
-							Feature: &feature.Feature{
-								Namespace:           "namespace-1",
-								ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
-								Name:                "Feature 1",
-								Key:                 "feat-1",
-								MeterSlug:           lo.ToPtr("meter-1"),
-								MeterGroupByFilters: nil,
-								Metadata: map[string]string{
-									"name": "Feature 1",
-								},
-								ArchivedAt: &time.Time{},
-								CreatedAt:  time.Time{},
-								UpdatedAt:  time.Time{},
-							},
+							FeatureKey: lo.ToPtr("feat-1"),
+							FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
 							EntitlementTemplate: NewEntitlementTemplateFrom(
 								MeteredEntitlementTemplate{
 									Metadata: map[string]string{
@@ -616,20 +536,8 @@ func TestRateCardsEqual(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "Flat 1",
 							},
-							Feature: &feature.Feature{
-								Namespace:           "namespace-1",
-								ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
-								Name:                "Feature 1",
-								Key:                 "feat-1",
-								MeterSlug:           lo.ToPtr("meter-1"),
-								MeterGroupByFilters: nil,
-								Metadata: map[string]string{
-									"name": "Feature 1",
-								},
-								ArchivedAt: &time.Time{},
-								CreatedAt:  time.Time{},
-								UpdatedAt:  time.Time{},
-							},
+							FeatureKey: lo.ToPtr("feat-1"),
+							FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
 							EntitlementTemplate: NewEntitlementTemplateFrom(
 								StaticEntitlementTemplate{
 									Metadata: map[string]string{
@@ -665,7 +573,8 @@ func TestRateCardsEqual(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-1",
 							},
-							Feature: feat1,
+							FeatureKey: lo.ToPtr(feat1.Key),
+							FeatureID:  lo.ToPtr(feat1.ID),
 							Price: NewPriceFrom(
 								UnitPrice{
 									Amount: decimal.NewFromInt(1000),
@@ -695,7 +604,8 @@ func TestRateCardsEqual(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-1",
 							},
-							Feature: feat1,
+							FeatureKey: lo.ToPtr(feat1.Key),
+							FeatureID:  lo.ToPtr(feat1.ID),
 							Price: NewPriceFrom(
 								UnitPrice{
 									Amount: decimal.NewFromInt(1000),

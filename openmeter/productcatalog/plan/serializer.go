@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
@@ -20,7 +19,8 @@ type rateCardAlias struct {
 	Name                string                      `json:"name"`
 	Description         *string                     `json:"description,omitempty"`
 	Metadata            map[string]string           `json:"metadata,omitempty"`
-	Feature             json.RawMessage             `json:"feature,omitempty"`
+	FeatureKey          *string                     `json:"featureKey,omitempty"`
+	FeatureID           *string                     `json:"featureID,omitempty"`
 	BillingCadence      *string                     `json:"billingCadence,omitempty"`
 	Price               json.RawMessage             `json:"price,omitempty"`
 	EntitlementTemplate json.RawMessage             `json:"entitlementTemplate,omitempty"`
@@ -41,16 +41,6 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 		rateCards := make([]rateCardAlias, len(phase.RateCards))
 		for j, rc := range phase.RateCards {
 			meta := rc.AsMeta()
-
-			// Marshal feature to raw JSON if present
-			var featureJSON json.RawMessage
-			if meta.Feature != nil {
-				featureBytes, err := json.Marshal(meta.Feature)
-				if err != nil {
-					return nil, fmt.Errorf("failed to marshal feature: %w", err)
-				}
-				featureJSON = featureBytes
-			}
 
 			// Marshal price to raw JSON if present
 			var priceJSON json.RawMessage
@@ -79,7 +69,8 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 				Name:                meta.Name,
 				Description:         meta.Description,
 				Metadata:            meta.Metadata,
-				Feature:             featureJSON,
+				FeatureKey:          meta.FeatureKey,
+				FeatureID:           meta.FeatureID,
 				Price:               priceJSON,
 				EntitlementTemplate: entitlementTemplateJSON,
 			}
@@ -127,7 +118,8 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 		Name                string                      `json:"name"`
 		Description         *string                     `json:"description,omitempty"`
 		Metadata            map[string]string           `json:"metadata,omitempty"`
-		Feature             json.RawMessage             `json:"feature,omitempty"`
+		FeatureKey          *string                     `json:"featureKey,omitempty"`
+		FeatureID           *string                     `json:"featureID,omitempty"`
 		BillingCadence      *string                     `json:"billingCadence,omitempty"`
 		Price               json.RawMessage             `json:"price,omitempty"`
 		EntitlementTemplate json.RawMessage             `json:"entitlementTemplate,omitempty"`
@@ -165,14 +157,6 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 		// Unmarshal rate cards
 		phase.RateCards = make([]productcatalog.RateCard, len(phaseWithRateCards.RateCards))
 		for j, rcData := range phaseWithRateCards.RateCards {
-			var f *feature.Feature
-			if len(rcData.Feature) > 0 {
-				f = &feature.Feature{}
-				if err := json.Unmarshal(rcData.Feature, f); err != nil {
-					return fmt.Errorf("failed to unmarshal feature: %w", err)
-				}
-			}
-
 			var price *productcatalog.Price
 			if len(rcData.Price) > 0 {
 				price = &productcatalog.Price{}
@@ -194,7 +178,8 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 				Name:                rcData.Name,
 				Description:         rcData.Description,
 				Metadata:            rcData.Metadata,
-				Feature:             f,
+				FeatureKey:          rcData.FeatureKey,
+				FeatureID:           rcData.FeatureID,
 				Price:               price,
 				EntitlementTemplate: entitlementTemplate,
 			}

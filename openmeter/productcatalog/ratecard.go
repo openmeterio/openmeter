@@ -6,7 +6,6 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -31,9 +30,9 @@ type RateCard interface {
 
 	Type() RateCardType
 	AsMeta() RateCardMeta
-	Feature() *feature.Feature
 	Key() string
 	Merge(RateCard) error
+	Clone() RateCard
 	GetBillingCadence() *isodate.Period
 }
 
@@ -59,8 +58,11 @@ type RateCardMeta struct {
 	// Metadata a set of key/value pairs describing metadata for the RateCard
 	Metadata models.Metadata `json:"metadata,omitempty"`
 
-	// Feature defines optional Feature assigned to RateCard
-	Feature *feature.Feature `json:"feature,omitempty"`
+	// FeatureKey is the key of the feature assigned to the RateCard
+	FeatureKey *string `json:"featureKey,omitempty"`
+
+	// FeatureID is the ID of the feature assigned to the RateCard
+	FeatureID *string `json:"featureID,omitempty"`
 
 	// EntitlementTemplate defines the template used for instantiating entitlement.Entitlement.
 	// If Feature is set then template must be provided as well.
@@ -76,6 +78,57 @@ type RateCardMeta struct {
 	Discounts Discounts `json:"discounts,omitempty"`
 }
 
+func (r RateCardMeta) Clone() RateCardMeta {
+	clone := RateCardMeta{
+		Key:  r.Key,
+		Name: r.Name,
+	}
+
+	if r.Description != nil {
+		desc := *r.Description
+		clone.Description = &desc
+	}
+
+	// Deep copy metadata map
+	if len(r.Metadata) > 0 {
+		clone.Metadata = make(map[string]string, len(r.Metadata))
+		for k, v := range r.Metadata {
+			clone.Metadata[k] = v
+		}
+	}
+
+	if r.FeatureKey != nil {
+		key := *r.FeatureKey
+		clone.FeatureKey = &key
+	}
+
+	if r.FeatureID != nil {
+		id := *r.FeatureID
+		clone.FeatureID = &id
+	}
+
+	if r.EntitlementTemplate != nil {
+		entTmp := *r.EntitlementTemplate
+		clone.EntitlementTemplate = &entTmp
+	}
+
+	if r.TaxConfig != nil {
+		taxCfg := *r.TaxConfig
+		clone.TaxConfig = &taxCfg
+	}
+
+	if r.Price != nil {
+		price := *r.Price
+		clone.Price = &price
+	}
+
+	if len(r.Discounts) > 0 {
+		clone.Discounts = r.Discounts.Clone()
+	}
+
+	return clone
+}
+
 func (r RateCardMeta) Equal(v RateCardMeta) bool {
 	if r.Key != v.Key {
 		return false
@@ -89,14 +142,11 @@ func (r RateCardMeta) Equal(v RateCardMeta) bool {
 		return false
 	}
 
-	rf := lo.FromPtr(r.Feature)
-	vf := lo.FromPtr(v.Feature)
-
-	if rf.ID != vf.ID {
+	if lo.FromPtr(r.FeatureKey) != lo.FromPtr(v.FeatureKey) {
 		return false
 	}
 
-	if rf.Key != vf.Key {
+	if lo.FromPtr(r.FeatureID) != lo.FromPtr(v.FeatureID) {
 		return false
 	}
 
@@ -141,8 +191,8 @@ func (r RateCardMeta) Validate() error {
 		}
 	}
 
-	if r.Feature != nil {
-		if r.Key != r.Feature.Key {
+	if r.FeatureKey != nil {
+		if r.Key != *r.FeatureKey {
 			errs = append(errs, errors.New("invalid Feature: key mismatch"))
 		}
 	}
@@ -185,10 +235,6 @@ func (r *FlatFeeRateCard) Merge(v RateCard) error {
 	r.BillingCadence = vv.BillingCadence
 
 	return nil
-}
-
-func (r *FlatFeeRateCard) Feature() *feature.Feature {
-	return r.RateCardMeta.Feature
 }
 
 func (r *FlatFeeRateCard) Type() RateCardType {
@@ -251,6 +297,19 @@ func (r *FlatFeeRateCard) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+func (r *FlatFeeRateCard) Clone() RateCard {
+	clone := &FlatFeeRateCard{
+		RateCardMeta: r.RateCardMeta.Clone(),
+	}
+
+	if r.BillingCadence != nil {
+		bc := *r.BillingCadence
+		clone.BillingCadence = &bc
+	}
+
+	return clone
+}
+
 var _ RateCard = (*UsageBasedRateCard)(nil)
 
 type UsageBasedRateCard struct {
@@ -263,6 +322,13 @@ type UsageBasedRateCard struct {
 
 func (r *UsageBasedRateCard) GetBillingCadence() *isodate.Period {
 	return &r.BillingCadence
+}
+
+func (r *UsageBasedRateCard) Clone() RateCard {
+	return &UsageBasedRateCard{
+		RateCardMeta:   r.RateCardMeta.Clone(),
+		BillingCadence: r.BillingCadence,
+	}
 }
 
 func (r *UsageBasedRateCard) Merge(v RateCard) error {
@@ -279,10 +345,6 @@ func (r *UsageBasedRateCard) Merge(v RateCard) error {
 	r.BillingCadence = vv.BillingCadence
 
 	return nil
-}
-
-func (r *UsageBasedRateCard) Feature() *feature.Feature {
-	return r.RateCardMeta.Feature
 }
 
 func (r *UsageBasedRateCard) Type() RateCardType {
@@ -348,6 +410,14 @@ func (r *UsageBasedRateCard) Validate() error {
 var _ models.Equaler[RateCards] = (*RateCards)(nil)
 
 type RateCards []RateCard
+
+func (c RateCards) Clone() RateCards {
+	clone := make(RateCards, len(c))
+	for i, rc := range c {
+		clone[i] = rc.Clone()
+	}
+	return clone
+}
 
 func (c RateCards) At(idx int) RateCard {
 	return c[idx]
