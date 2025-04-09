@@ -89,6 +89,7 @@ func (s *Service) ListWorkloads(ctx context.Context, params ListWorkloadParams) 
 		"Updating",
 		"Stopped",
 		"Stopping",
+		"Completed",
 		// "Degraded",
 		"Failed",
 	}
