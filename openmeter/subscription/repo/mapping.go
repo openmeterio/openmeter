@@ -111,6 +111,40 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		return subscription.SubscriptionItem{}, fmt.Errorf("failed to parse billing cadence: %w", err)
 	}
 
+	var rc productcatalog.RateCard
+	rcMeta := productcatalog.RateCardMeta{
+		Name:                item.Name,
+		Description:         item.Description,
+		FeatureKey:          item.FeatureKey,
+		EntitlementTemplate: item.EntitlementTemplate,
+		TaxConfig:           item.TaxConfig,
+		Price:               item.Price,
+		Discounts:           lo.FromPtrOr(item.Discounts, nil),
+		Key:                 item.Key,
+		FeatureID:           nil, // FIXME: is this an issue?
+	}
+
+	switch {
+	case item.Price == nil:
+		rc = &productcatalog.FlatFeeRateCard{
+			BillingCadence: cadence,
+			RateCardMeta:   rcMeta,
+		}
+	case item.Price.Type() == productcatalog.FlatPriceType:
+		rc = &productcatalog.FlatFeeRateCard{
+			BillingCadence: cadence,
+			RateCardMeta:   rcMeta,
+		}
+	default:
+		if cadence == nil {
+			return subscription.SubscriptionItem{}, fmt.Errorf("billing cadence is required for usage based rate cards")
+		}
+		rc = &productcatalog.UsageBasedRateCard{
+			BillingCadence: *cadence,
+			RateCardMeta:   rcMeta,
+		}
+	}
+
 	return subscription.SubscriptionItem{
 		NamespacedID: models.NamespacedID{
 			ID:        item.ID,
@@ -139,15 +173,6 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		PhaseId:                                item.PhaseID,
 		Key:                                    item.Key,
 		EntitlementID:                          item.EntitlementID,
-		RateCard: subscription.RateCard{
-			Name:                item.Name,
-			Description:         item.Description,
-			FeatureKey:          item.FeatureKey,
-			EntitlementTemplate: item.EntitlementTemplate,
-			TaxConfig:           item.TaxConfig,
-			Price:               item.Price,
-			Discounts:           lo.FromPtrOr(item.Discounts, nil),
-			BillingCadence:      cadence,
-		},
+		RateCard:                               rc,
 	}, nil
 }

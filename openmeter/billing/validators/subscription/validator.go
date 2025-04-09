@@ -87,7 +87,7 @@ func (v Validator) hasBillableItems(view subscription.SubscriptionView) bool {
 	for _, phase := range view.Phases {
 		for _, items := range phase.ItemsByKey {
 			for _, item := range items {
-				if item.SubscriptionItem.RateCard.Price != nil {
+				if item.SubscriptionItem.RateCard.AsMeta().Price != nil {
 					return true
 				}
 			}

@@ -500,34 +500,54 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				view := subscription.SubscriptionItemView{}
 
 				var pp *productcatalog.Price
+				var rc productcatalog.RateCard
+				var bc *isodate.Period
+
+				if item.Cadence != "" {
+					bc = lo.ToPtr(isodate.MustParse(s.T(), item.Cadence))
+				}
 
 				switch item.Type {
 				case productcatalog.UnitPriceType:
 					pp = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromInt(1),
 					})
+					rc = &productcatalog.UsageBasedRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Price: pp,
+						},
+						BillingCadence: *bc,
+					}
 				case productcatalog.FlatPriceType:
 					pp = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 						Amount:      alpacadecimal.NewFromInt(1),
 						PaymentTerm: productcatalog.InAdvancePaymentTerm,
 					})
+					rc = &productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Price: pp,
+						},
+						BillingCadence: bc,
+					}
 				case NoPriceType:
 					pp = nil
+					rc = &productcatalog.FlatFeeRateCard{
+						BillingCadence: bc,
+					}
 				default:
 					pp = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromInt(1),
 					})
+					rc = &productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Price: pp,
+						},
+						BillingCadence: bc,
+					}
 				}
 
-				spec.RateCard.Price = pp
-				view.SubscriptionItem.RateCard.Price = pp
-
-				if item.Cadence != "" {
-					bc := lo.ToPtr(isodate.MustParse(s.T(), item.Cadence))
-
-					spec.RateCard.BillingCadence = bc
-					view.SubscriptionItem.RateCard.BillingCadence = bc
-				}
+				spec.RateCard = rc
+				view.SubscriptionItem.RateCard = rc
 
 				if item.StartAfter != nil {
 					af, _ := item.StartAfter.AddTo(phase.SubscriptionPhase.ActiveFrom)

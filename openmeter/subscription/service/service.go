@@ -383,9 +383,9 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 	})
 
 	itemFeatureKeys := lo.Map(lo.Filter(items, func(i subscription.SubscriptionItem, _ int) bool {
-		return i.RateCard.FeatureKey != nil
+		return i.RateCard.AsMeta().FeatureKey != nil
 	}), func(item subscription.SubscriptionItem, _ int) string {
-		return *item.RateCard.FeatureKey
+		return *item.RateCard.AsMeta().FeatureKey
 	})
 
 	featsOfEntsPaged, err := s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{

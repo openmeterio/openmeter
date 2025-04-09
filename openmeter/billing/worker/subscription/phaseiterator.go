@@ -107,11 +107,11 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 	minTime := timeInfinity
 	for _, itemsByKey := range it.phase.ItemsByKey {
 		for _, item := range itemsByKey {
-			if item.Spec.RateCard.Price == nil {
+			if item.Spec.RateCard.AsMeta().Price == nil {
 				continue
 			}
 
-			if item.SubscriptionItem.RateCard.Price.Type() == productcatalog.FlatPriceType {
+			if item.SubscriptionItem.RateCard.AsMeta().Price.Type() == productcatalog.FlatPriceType {
 				if item.SubscriptionItem.ActiveFrom.Before(minTime) {
 					minTime = item.SubscriptionItem.ActiveFrom
 				}
@@ -163,11 +163,11 @@ func (it *PhaseIterator) generateAligned(iterationEnd time.Time) ([]subscription
 	for _, itemsByKey := range it.phase.ItemsByKey {
 		for version, item := range itemsByKey {
 			// Let's drop non-billable items
-			if item.Spec.RateCard.Price == nil {
+			if item.Spec.RateCard.AsMeta().Price == nil {
 				continue
 			}
 
-			if item.Spec.RateCard.BillingCadence == nil {
+			if item.Spec.RateCard.GetBillingCadence() == nil {
 				generatedItem, err := it.generateOneTimeAlignedItem(item, version)
 				if err != nil {
 					return nil, err
@@ -271,11 +271,11 @@ func (it *PhaseIterator) generate(iterationEnd time.Time) ([]subscriptionItemWit
 
 		for versionID, item := range itemsByKey {
 			// Let's drop non-billable items
-			if item.Spec.RateCard.Price == nil {
+			if item.Spec.RateCard.AsMeta().Price == nil {
 				continue
 			}
 
-			if item.Spec.RateCard.BillingCadence == nil {
+			if item.Spec.RateCard.GetBillingCadence() == nil {
 				generatedItem, err := it.generateOneTimeItem(item, versionID)
 				if err != nil {
 					return nil, err
@@ -294,7 +294,13 @@ func (it *PhaseIterator) generate(iterationEnd time.Time) ([]subscriptionItemWit
 			periodID := 0
 
 			for {
-				end, _ := item.Spec.RateCard.BillingCadence.AddTo(start)
+				// Should not happen here
+				bCad := item.Spec.RateCard.GetBillingCadence()
+				if bCad == nil {
+					return nil, fmt.Errorf("no billing cadence found for item %s", item.Spec.ItemKey)
+				}
+
+				end, _ := bCad.AddTo(start)
 
 				nonTruncatedPeriod := billing.Period{
 					Start: start,
@@ -359,7 +365,7 @@ func (it *PhaseIterator) truncateItemsIfNeeded(in []subscriptionItemWithPeriod) 
 	// We need to sanitize the output to compensate for the 1min resolution of meters
 	for _, item := range in {
 		// We only need to sanitize the items that are not flat priced, flat prices can be handled in any resolution
-		if item.Spec.RateCard.Price != nil && item.Spec.RateCard.Price.Type() == productcatalog.FlatPriceType {
+		if item.Spec.RateCard.AsMeta().Price != nil && item.Spec.RateCard.AsMeta().Price.Type() == productcatalog.FlatPriceType {
 			out = append(out, item)
 			continue
 		}
@@ -378,7 +384,7 @@ func (it *PhaseIterator) truncateItemsIfNeeded(in []subscriptionItemWithPeriod) 
 }
 
 func (it *PhaseIterator) generateOneTimeAlignedItem(item subscription.SubscriptionItemView, versionID int) (*subscriptionItemWithPeriod, error) {
-	if item.Spec.RateCard.Price == nil {
+	if item.Spec.RateCard.AsMeta().Price == nil {
 		return nil, nil
 	}
 
@@ -400,7 +406,7 @@ func (it *PhaseIterator) generateOneTimeAlignedItem(item subscription.Subscripti
 	end := lo.CoalesceOrEmpty(item.SubscriptionItem.ActiveTo, it.phaseCadence.ActiveTo)
 	if end == nil {
 		// One time items are not usage based, so the price object will be a flat price
-		price := item.SubscriptionItem.RateCard.Price
+		price := item.SubscriptionItem.RateCard.AsMeta().Price
 
 		if price == nil {
 			// If an item has no price it is not in scope for line generation
@@ -411,7 +417,7 @@ func (it *PhaseIterator) generateOneTimeAlignedItem(item subscription.Subscripti
 			return nil, fmt.Errorf("cannot determine period end for one-time item %s", item.Spec.ItemKey)
 		}
 
-		flatFee, err := item.SubscriptionItem.RateCard.Price.AsFlat()
+		flatFee, err := price.AsFlat()
 		if err != nil {
 			return nil, err
 		}
@@ -451,7 +457,7 @@ func (it *PhaseIterator) generateOneTimeItem(item subscription.SubscriptionItemV
 	end := lo.CoalesceOrEmpty(item.SubscriptionItem.ActiveTo, it.phaseCadence.ActiveTo)
 	if end == nil {
 		// One time items are not usage based, so the price object will be a flat price
-		price := item.SubscriptionItem.RateCard.Price
+		price := item.SubscriptionItem.RateCard.AsMeta().Price
 
 		if price == nil {
 			// If an item has no price it is not in scope for line generation
@@ -462,7 +468,7 @@ func (it *PhaseIterator) generateOneTimeItem(item subscription.SubscriptionItemV
 			return nil, fmt.Errorf("cannot determine period end for one-time item %s", item.Spec.ItemKey)
 		}
 
-		flatFee, err := item.SubscriptionItem.RateCard.Price.AsFlat()
+		flatFee, err := price.AsFlat()
 		if err != nil {
 			return nil, err
 		}

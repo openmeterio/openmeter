@@ -32,6 +32,7 @@ type RateCard interface {
 	AsMeta() RateCardMeta
 	Key() string
 	Merge(RateCard) error
+	ChangeMeta(func(m RateCardMeta) RateCardMeta) error
 	Clone() RateCard
 	GetBillingCadence() *isodate.Period
 }
@@ -221,6 +222,12 @@ func (r *FlatFeeRateCard) GetBillingCadence() *isodate.Period {
 	return r.BillingCadence
 }
 
+func (r *FlatFeeRateCard) ChangeMeta(fn func(m RateCardMeta) RateCardMeta) error {
+	r.RateCardMeta = fn(r.RateCardMeta)
+
+	return r.Validate()
+}
+
 func (r *FlatFeeRateCard) Merge(v RateCard) error {
 	if r.Type() != v.Type() {
 		return errors.New("type mismatch")
@@ -329,6 +336,12 @@ func (r *UsageBasedRateCard) Clone() RateCard {
 		RateCardMeta:   r.RateCardMeta.Clone(),
 		BillingCadence: r.BillingCadence,
 	}
+}
+
+func (r *UsageBasedRateCard) ChangeMeta(fn func(m RateCardMeta) RateCardMeta) error {
+	r.RateCardMeta = fn(r.RateCardMeta)
+
+	return r.Validate()
 }
 
 func (r *UsageBasedRateCard) Merge(v RateCard) error {

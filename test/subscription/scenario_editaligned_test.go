@@ -162,22 +162,25 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 					CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 						PhaseKey: "default",
 						ItemKey:  "test_feature_1",
-						RateCard: subscription.RateCard{
-							Name:       "Test Rate Card",
-							FeatureKey: lo.ToPtr("test_feature_1"),
-							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
-								UsagePeriod:     testutils.GetISODuration(t, "P1M"),
-								IssueAfterReset: lo.ToPtr(100.0), // So we have an update on the entitlement
-							}),
-							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-								Amount: alpacadecimal.NewFromInt(101),
-							}),
-							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "txcd_10000000",
+						RateCard: &productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name:       "Test Rate Card",
+								FeatureKey: lo.ToPtr("test_feature_1"),
+								Key:        "test_feature_1",
+								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
+									UsagePeriod:     testutils.GetISODuration(t, "P1M"),
+									IssueAfterReset: lo.ToPtr(100.0), // So we have an update on the entitlement
+								}),
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount: alpacadecimal.NewFromInt(101),
+								}),
+								TaxConfig: &productcatalog.TaxConfig{
+									Stripe: &productcatalog.StripeTaxConfig{
+										Code: "txcd_10000000",
+									},
 								},
 							},
-							BillingCadence: lo.ToPtr(testutils.GetISODuration(t, "P1M")),
+							BillingCadence: testutils.GetISODuration(t, "P1M"),
 						},
 					},
 					CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{},
@@ -335,22 +338,25 @@ func TestEditingEntitlementOfUnalignedSub(t *testing.T) {
 					CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 						PhaseKey: "default",
 						ItemKey:  "test_feature_1",
-						RateCard: subscription.RateCard{
-							Name:       "Test Rate Card",
-							FeatureKey: lo.ToPtr("test_feature_1"),
-							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
-								UsagePeriod:     testutils.GetISODuration(t, "P1M"),
-								IssueAfterReset: lo.ToPtr(100.0), // So we have an update on the entitlement
-							}),
-							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-								Amount: alpacadecimal.NewFromInt(101),
-							}),
-							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "txcd_10000000",
+						RateCard: &productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name:       "Test Rate Card",
+								FeatureKey: lo.ToPtr("test_feature_1"),
+								Key:        "test_feature_1",
+								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
+									UsagePeriod:     testutils.GetISODuration(t, "P1M"),
+									IssueAfterReset: lo.ToPtr(100.0), // So we have an update on the entitlement
+								}),
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount: alpacadecimal.NewFromInt(101),
+								}),
+								TaxConfig: &productcatalog.TaxConfig{
+									Stripe: &productcatalog.StripeTaxConfig{
+										Code: "txcd_10000000",
+									},
 								},
 							},
-							BillingCadence: lo.ToPtr(testutils.GetISODuration(t, "P1M")),
+							BillingCadence: testutils.GetISODuration(t, "P1M"),
 						},
 					},
 					CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{},

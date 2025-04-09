@@ -1,6 +1,7 @@
 package subscriptiontestutils
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -70,13 +71,16 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 				assert.Equal(t, foundPhase.SubscriptionPhase.ID, foundItem.SubscriptionItem.PhaseId)
 
 				// Let's validate the RateCard is equal
-				assert.True(t, specItem.RateCard.Equal(foundItem.SubscriptionItem.RateCard), "rate card mismatch for item %s in phase %s: \nspec: %+v\n\nview: %+v", specItem.ItemKey, specPhase.PhaseKey, specItem.RateCard, foundItem.SubscriptionItem.RateCard)
+				rc1JSON, _ := json.Marshal(specItem.RateCard)
+				rc2JSON, _ := json.Marshal(foundItem.SubscriptionItem.RateCard)
+
+				assert.True(t, specItem.RateCard.Equal(foundItem.SubscriptionItem.RateCard), "rate card mismatch for item %s in phase %s: \nspec: %s \n\nview: %s", specItem.ItemKey, specPhase.PhaseKey, rc1JSON, rc2JSON)
 
 				// Let's validate the Feature linking
-				pFeatureKey := specItem.RateCard.FeatureKey
-				if foundItem.SubscriptionItem.RateCard.FeatureKey != nil {
+				pFeatureKey := specItem.RateCard.AsMeta().FeatureKey
+				if foundItem.SubscriptionItem.RateCard.AsMeta().FeatureKey != nil {
 					require.NotNil(t, pFeatureKey)
-					assert.Equal(t, pFeatureKey, foundItem.SubscriptionItem.RateCard.FeatureKey)
+					assert.Equal(t, pFeatureKey, foundItem.SubscriptionItem.RateCard.AsMeta().FeatureKey)
 				} else {
 					assert.Empty(t, pFeatureKey)
 				}
@@ -84,7 +88,7 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 				rcInp := specItem.CreateSubscriptionItemPlanInput
 
 				// Let's validate the Entitlement
-				if rcEnt := rcInp.RateCard.EntitlementTemplate; rcEnt != nil {
+				if rcEnt := rcInp.RateCard.AsMeta().EntitlementTemplate; rcEnt != nil {
 					ent := foundItem.Entitlement
 					exists := ent != nil
 					require.True(t, exists)
@@ -95,8 +99,7 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 					assert.Equal(t, foundItem.Entitlement.Entitlement.Annotations[subscription.AnnotationSubscriptionID], found.Subscription.NamespacedID.ID)
 
 					// Let's validate that the UsagePeriod is aligned
-					require.NotNil(t, specItem.RateCard.EntitlementTemplate)
-					period := GetEntitlementTemplateUsagePeriod(t, *specItem.RateCard.EntitlementTemplate)
+					period := GetEntitlementTemplateUsagePeriod(t, *specItem.RateCard.AsMeta().EntitlementTemplate)
 					require.NotNil(t, period)
 
 					// Unfortunately entitlements has minute precision so it can only be aligned to the truncated minute

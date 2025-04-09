@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -27,7 +28,7 @@ type SubscriptionItem struct {
 	// Key is the unique key of the item in the phase.
 	Key string `json:"itemKey"`
 
-	RateCard RateCard `json:"rateCard"`
+	RateCard productcatalog.RateCard `json:"rateCard"`
 
 	EntitlementID *string `json:"entitlementId,omitempty"`
 	// Name

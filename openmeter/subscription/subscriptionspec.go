@@ -204,7 +204,7 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 
 	faltBillables := lo.Flatten(lo.Values(billables))
 	recurringFlatBillables := lo.Filter(faltBillables, func(i *SubscriptionItemSpec, _ int) bool {
-		return i.RateCard.BillingCadence != nil
+		return i.RateCard.GetBillingCadence() != nil
 	})
 
 	if len(recurringFlatBillables) == 0 {
@@ -377,7 +377,7 @@ func (s SubscriptionPhaseSpec) GetBillableItemsByKey() map[string][]*Subscriptio
 	res := make(map[string][]*SubscriptionItemSpec)
 	for key, items := range s.ItemsByKey {
 		for _, item := range items {
-			if item.RateCard.Price != nil {
+			if item.RateCard.AsMeta().Price != nil {
 				if res[key] == nil {
 					res[key] = make([]*SubscriptionItemSpec, 0)
 				}
@@ -390,13 +390,13 @@ func (s SubscriptionPhaseSpec) GetBillableItemsByKey() map[string][]*Subscriptio
 
 func (s SubscriptionPhaseSpec) HasEntitlements() bool {
 	return lo.SomeBy(lo.Flatten(lo.Values(s.ItemsByKey)), func(item *SubscriptionItemSpec) bool {
-		return item.RateCard.EntitlementTemplate != nil
+		return item.RateCard.AsMeta().EntitlementTemplate != nil
 	})
 }
 
 func (s SubscriptionPhaseSpec) HasMeteredBillables() bool {
 	return lo.SomeBy(lo.Flatten(lo.Values(s.ItemsByKey)), func(item *SubscriptionItemSpec) bool {
-		return item.RateCard.Price != nil && item.RateCard.Price.Type() != productcatalog.FlatPriceType
+		return item.RateCard.AsMeta().Price != nil && item.RateCard.AsMeta().Price.Type() != productcatalog.FlatPriceType
 	})
 }
 
@@ -411,7 +411,7 @@ func (s SubscriptionPhaseSpec) GetBillingCadence() (isodate.Period, error) {
 
 	faltBillables := lo.Flatten(lo.Values(billables))
 	recurringFlatBillables := lo.Filter(faltBillables, func(i *SubscriptionItemSpec, _ int) bool {
-		return i.RateCard.BillingCadence != nil
+		return i.RateCard.GetBillingCadence() != nil
 	})
 
 	if len(recurringFlatBillables) == 0 {
@@ -419,7 +419,7 @@ func (s SubscriptionPhaseSpec) GetBillingCadence() (isodate.Period, error) {
 	}
 
 	durs := lo.Map(recurringFlatBillables, func(i *SubscriptionItemSpec, _ int) isodate.Period {
-		return *i.RateCard.BillingCadence
+		return *i.RateCard.GetBillingCadence()
 	})
 
 	if len(lo.Uniq(durs)) > 1 {
@@ -522,16 +522,16 @@ func (s SubscriptionPhaseSpec) Validate(
 		billables := make([]SubscriptionItemSpec, 0)
 		for _, items := range s.ItemsByKey {
 			for _, item := range items {
-				if item.RateCard.Price != nil {
+				if item.RateCard.AsMeta().Price != nil {
 					billables = append(billables, *item)
 				}
 			}
 		}
 
 		cadences := lo.UniqBy(lo.Filter(billables, func(i SubscriptionItemSpec, _ int) bool {
-			return i.RateCard.BillingCadence != nil
+			return i.RateCard.GetBillingCadence() != nil
 		}), func(i SubscriptionItemSpec) isodate.Period {
-			return *i.RateCard.BillingCadence
+			return *i.RateCard.GetBillingCadence()
 		})
 
 		if len(cadences) > 1 {
@@ -550,9 +550,9 @@ func (s SubscriptionPhaseSpec) Validate(
 }
 
 type CreateSubscriptionItemPlanInput struct {
-	PhaseKey string   `json:"phaseKey"`
-	ItemKey  string   `json:"itemKey"`
-	RateCard RateCard `json:"rateCard"`
+	PhaseKey string                  `json:"phaseKey"`
+	ItemKey  string                  `json:"itemKey"`
+	RateCard productcatalog.RateCard `json:"rateCard"`
 }
 
 type CreateSubscriptionItemCustomerInput struct {
@@ -623,8 +623,8 @@ func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
 		PhaseID:                                phaseID.ID,
 		Key:                                    s.ItemKey,
 		RateCard:                               s.CreateSubscriptionItemPlanInput.RateCard,
-		Name:                                   s.RateCard.Name,
-		Description:                            s.RateCard.Description,
+		Name:                                   s.RateCard.AsMeta().Name,
+		Description:                            s.RateCard.AsMeta().Description,
 		BillingBehaviorOverride:                s.BillingBehaviorOverride,
 	}
 
@@ -647,7 +647,7 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 ) (ScheduleSubscriptionEntitlementInput, bool, error) {
 	var def ScheduleSubscriptionEntitlementInput
 
-	meta := s.RateCard
+	meta := s.RateCard.AsMeta()
 
 	if meta.EntitlementTemplate == nil {
 		return def, false, nil
@@ -736,8 +736,8 @@ func (s *SubscriptionItemSpec) Validate() error {
 	// TODO: if the entitlement is metered, we have to validate that the feature is metered
 
 	// Let's validate the key
-	if s.RateCard.FeatureKey != nil {
-		if s.ItemKey != *s.RateCard.FeatureKey {
+	if s.RateCard.AsMeta().FeatureKey != nil {
+		if s.ItemKey != *s.RateCard.AsMeta().FeatureKey {
 			return fmt.Errorf("feature key must match item key when a feature is defined, to avoid duplicate feature assignment")
 		}
 	}
@@ -759,7 +759,7 @@ func (s *SubscriptionItemSpec) Validate() error {
 	}
 
 	// Billing behavior should only be present for billable items
-	if s.BillingBehaviorOverride.RestartBillingPeriod != nil && s.RateCard.Price == nil {
+	if s.BillingBehaviorOverride.RestartBillingPeriod != nil && s.RateCard.AsMeta().Price == nil {
 		errs = append(errs, fmt.Errorf("billing behavior override is only allowed for billable items"))
 	}
 

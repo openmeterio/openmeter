@@ -253,7 +253,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 	s.NotNil(subsView)
 
 	freeTierPhase := getPhaseByKey(s.T(), subsView, "free-trial")
-	s.Equal(lo.ToPtr(isodate.MustParse(s.T(), "P1M")), freeTierPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].Spec.RateCard.BillingCadence)
+	s.Equal(lo.ToPtr(isodate.MustParse(s.T(), "P1M")), freeTierPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].Spec.RateCard.GetBillingCadence())
 
 	discountedPhase := getPhaseByKey(s.T(), subsView, "discounted-phase")
 	var gatheringInvoiceID billing.InvoiceID
@@ -1429,12 +1429,15 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 					CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 						PhaseKey: "first-phase",
 						ItemKey:  "in-advance",
-						RateCard: subscription.RateCard{
-							Name: "in-advance",
-							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-								Amount:      alpacadecimal.NewFromFloat(8), // changed price 5 -> 8
-								PaymentTerm: productcatalog.InAdvancePaymentTerm,
-							}),
+						RateCard: &productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name: "in-advance",
+								Key:  "in-advance",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(8), // changed price 5 -> 8
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
 							BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1W")),
 						},
 					},
@@ -1454,12 +1457,15 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 					CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 						PhaseKey: "first-phase",
 						ItemKey:  "in-arrears",
-						RateCard: subscription.RateCard{
-							Name: "in-arrears",
-							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-								Amount:      alpacadecimal.NewFromFloat(7), // changed price 5 -> 7
-								PaymentTerm: productcatalog.InArrearsPaymentTerm,
-							}),
+						RateCard: &productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name: "in-arrears",
+								Key:  "in-arrears",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(7), // changed price 5 -> 7
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+							},
 							BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1W")),
 						},
 					},
@@ -3192,6 +3198,34 @@ type subscriptionAddItem struct {
 }
 
 func (i subscriptionAddItem) AsPatch() subscription.Patch {
+	var rc productcatalog.RateCard
+
+	meta := productcatalog.RateCardMeta{
+		Name:       i.ItemKey,
+		Key:        i.ItemKey,
+		Price:      i.Price,
+		FeatureKey: lo.EmptyableToPtr(i.FeatureKey),
+		TaxConfig:  i.TaxConfig,
+	}
+
+	switch {
+	case i.Price == nil:
+		rc = &productcatalog.FlatFeeRateCard{
+			RateCardMeta:   meta,
+			BillingCadence: i.BillingCadence,
+		}
+	case i.Price.Type() == productcatalog.FlatPriceType:
+		rc = &productcatalog.FlatFeeRateCard{
+			RateCardMeta:   meta,
+			BillingCadence: i.BillingCadence,
+		}
+	default:
+		rc = &productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta,
+			BillingCadence: *i.BillingCadence,
+		}
+	}
+
 	return patch.PatchAddItem{
 		PhaseKey: i.PhaseKey,
 		ItemKey:  i.ItemKey,
@@ -3200,13 +3234,7 @@ func (i subscriptionAddItem) AsPatch() subscription.Patch {
 				CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 					PhaseKey: i.PhaseKey,
 					ItemKey:  i.ItemKey,
-					RateCard: subscription.RateCard{
-						Name:           i.ItemKey,
-						Price:          i.Price,
-						BillingCadence: i.BillingCadence,
-						FeatureKey:     lo.EmptyableToPtr(i.FeatureKey),
-						TaxConfig:      i.TaxConfig,
-					},
+					RateCard: rc,
 				},
 			},
 		},

@@ -100,28 +100,28 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 			SetNillableDescription(input.Description).
 			SetPhaseID(input.PhaseID).
 			SetKey(input.Key).
-			SetName(input.RateCard.Name).
-			SetNillableDescription(input.RateCard.Description).
-			SetNillableFeatureKey(input.RateCard.FeatureKey).
+			SetName(input.RateCard.AsMeta().Name).
+			SetNillableDescription(input.RateCard.AsMeta().Description).
+			SetNillableFeatureKey(input.RateCard.AsMeta().FeatureKey).
 			SetNillableEntitlementID(input.EntitlementID).
-			SetNillableBillingCadence(input.RateCard.BillingCadence.ISOStringPtrOrNil()).
+			SetNillableBillingCadence(input.RateCard.GetBillingCadence().ISOStringPtrOrNil()).
 			SetNillableRestartsBillingPeriod(input.BillingBehaviorOverride.RestartBillingPeriod)
 
 		// Due to the custom value scanner, these fields don't have Nillable setters generated, and the normal setters panic when trying to call .Validate() on nil
-		if input.RateCard.EntitlementTemplate != nil {
-			cmd.SetEntitlementTemplate(input.RateCard.EntitlementTemplate)
+		if input.RateCard.AsMeta().EntitlementTemplate != nil {
+			cmd.SetEntitlementTemplate(input.RateCard.AsMeta().EntitlementTemplate)
 		}
 
-		if input.RateCard.TaxConfig != nil {
-			cmd.SetTaxConfig(input.RateCard.TaxConfig)
+		if input.RateCard.AsMeta().TaxConfig != nil {
+			cmd.SetTaxConfig(input.RateCard.AsMeta().TaxConfig)
 		}
 
-		if input.RateCard.Price != nil {
-			cmd.SetPrice(input.RateCard.Price)
+		if input.RateCard.AsMeta().Price != nil {
+			cmd.SetPrice(input.RateCard.AsMeta().Price)
 		}
 
-		if input.RateCard.Discounts != nil {
-			cmd.SetDiscounts(lo.EmptyableToPtr(input.RateCard.Discounts))
+		if input.RateCard.AsMeta().Discounts != nil {
+			cmd.SetDiscounts(lo.EmptyableToPtr(input.RateCard.AsMeta().Discounts))
 		}
 
 		i, err := cmd.Save(ctx)
