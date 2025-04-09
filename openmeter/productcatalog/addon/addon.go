@@ -42,3 +42,10 @@ func (a Addon) Validate() error {
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
+
+func (a Addon) AsProductCatalogAddon() productcatalog.Addon {
+	return productcatalog.Addon{
+		AddonMeta: a.AddonMeta,
+		RateCards: a.RateCards.AsProductCatalogRateCards(),
+	}
+}
