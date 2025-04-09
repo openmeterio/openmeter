@@ -137,18 +137,13 @@ var _ subscription.PlanRateCard = &RateCard{}
 func (r *RateCard) ToCreateSubscriptionItemPlanInput() subscription.CreateSubscriptionItemPlanInput {
 	m := r.RateCard.AsMeta()
 
-	var fk *string
-	if m.Feature != nil {
-		fk = &m.Feature.Key
-	}
-
 	return subscription.CreateSubscriptionItemPlanInput{
 		PhaseKey: r.PhaseKey,
 		ItemKey:  r.Key(),
 		RateCard: subscription.RateCard{
 			Name:                m.Name,
 			Description:         m.Description,
-			FeatureKey:          fk,
+			FeatureKey:          m.FeatureKey,
 			EntitlementTemplate: m.EntitlementTemplate,
 			TaxConfig:           m.TaxConfig,
 			Price:               m.Price,

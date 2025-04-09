@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -45,21 +44,8 @@ func TestRateCard_JSON(t *testing.T) {
 						Metadata: map[string]string{
 							"key": "value",
 						},
-						Feature: &feature.Feature{
-							ID:        "01JBP3SGZ20Y7VRVC351TDFXYZ",
-							Name:      "Feature 1",
-							Key:       "feature-1",
-							MeterSlug: lo.ToPtr("meter-1"),
-							MeterGroupByFilters: map[string]string{
-								"key": "value",
-							},
-							Metadata: map[string]string{
-								"key": "value",
-							},
-							CreatedAt:  time.Now().Add(-3 * time.Hour).UTC(),
-							UpdatedAt:  time.Now().Add(-2 * time.Hour).UTC(),
-							ArchivedAt: lo.ToPtr(time.Now().UTC()),
-						},
+						FeatureKey: lo.ToPtr("feature-1"),
+						FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 							productcatalog.StaticEntitlementTemplate{
 								Metadata: map[string]string{
@@ -104,21 +90,8 @@ func TestRateCard_JSON(t *testing.T) {
 						Metadata: map[string]string{
 							"key": "value",
 						},
-						Feature: &feature.Feature{
-							ID:        "01JBP3SGZ20Y7VRVC351TDFXYZ",
-							Name:      "Feature 2",
-							Key:       "feature-2",
-							MeterSlug: lo.ToPtr("meter-2"),
-							MeterGroupByFilters: map[string]string{
-								"key": "value",
-							},
-							Metadata: map[string]string{
-								"key": "value",
-							},
-							CreatedAt:  time.Now().Add(-3 * time.Hour).UTC(),
-							UpdatedAt:  time.Now().Add(-2 * time.Hour).UTC(),
-							ArchivedAt: lo.ToPtr(time.Now().UTC()),
-						},
+						FeatureKey: lo.ToPtr("feature-2"),
+						FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 							productcatalog.MeteredEntitlementTemplate{
 								Metadata: map[string]string{
@@ -204,20 +177,8 @@ func TestFlatFeeRateCard(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "Flat 1",
 							},
-							Feature: &feature.Feature{
-								Namespace:           "namespace-1",
-								ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
-								Name:                "Feature 1",
-								Key:                 "feat-1",
-								MeterSlug:           lo.ToPtr("meter-1"),
-								MeterGroupByFilters: nil,
-								Metadata: map[string]string{
-									"name": "Feature 1",
-								},
-								ArchivedAt: &time.Time{},
-								CreatedAt:  time.Time{},
-								UpdatedAt:  time.Time{},
-							},
+							FeatureKey: lo.ToPtr("feat-1"),
+							FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
 							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 								productcatalog.StaticEntitlementTemplate{
 									Metadata: map[string]string{
@@ -263,20 +224,8 @@ func TestFlatFeeRateCard(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "Flat 2",
 							},
-							Feature: &feature.Feature{
-								Namespace:           "namespace-2",
-								ID:                  "01JBP3SGZ2YTM6DVH2W318TPNH",
-								Name:                "Feature 2",
-								Key:                 "feat-2",
-								MeterSlug:           lo.ToPtr("meter-2"),
-								MeterGroupByFilters: nil,
-								Metadata: map[string]string{
-									"name": "Feature 2",
-								},
-								ArchivedAt: &time.Time{},
-								CreatedAt:  time.Time{},
-								UpdatedAt:  time.Time{},
-							},
+							FeatureKey: lo.ToPtr("feat-2"),
+							FeatureID:  lo.ToPtr("01JBP3SGZ2YTM6DVH2W318TPNH"),
 							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 								productcatalog.StaticEntitlementTemplate{
 									Metadata: map[string]string{
@@ -346,20 +295,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-1",
 							},
-							Feature: &feature.Feature{
-								Namespace:           "namespace-1",
-								ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
-								Name:                "Feature 1",
-								Key:                 "feat-1",
-								MeterSlug:           lo.ToPtr("meter-1"),
-								MeterGroupByFilters: nil,
-								Metadata: map[string]string{
-									"name": "Feature 1",
-								},
-								ArchivedAt: &time.Time{},
-								CreatedAt:  time.Time{},
-								UpdatedAt:  time.Time{},
-							},
+							FeatureKey: lo.ToPtr("feat-1"),
+							FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
 							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 								productcatalog.MeteredEntitlementTemplate{
 									Metadata: map[string]string{
@@ -413,20 +350,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-2",
 							},
-							Feature: &feature.Feature{
-								Namespace:           "namespace-2",
-								ID:                  "01JBWYR0G2PYB9DVADKQXF8E0P",
-								Name:                "Feature 2",
-								Key:                 "feat-2",
-								MeterSlug:           lo.ToPtr("meter-2"),
-								MeterGroupByFilters: nil,
-								Metadata: map[string]string{
-									"name": "Feature 2",
-								},
-								ArchivedAt: &time.Time{},
-								CreatedAt:  time.Time{},
-								UpdatedAt:  time.Time{},
-							},
+							FeatureKey: lo.ToPtr("feat-2"),
+							FeatureID:  lo.ToPtr("01JBWYR0G2PYB9DVADKQXF8E0P"),
 							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 								productcatalog.MeteredEntitlementTemplate{
 									Metadata: map[string]string{

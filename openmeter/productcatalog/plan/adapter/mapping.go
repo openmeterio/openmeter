@@ -8,7 +8,6 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -132,27 +131,12 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		Name:                r.Name,
 		Description:         r.Description,
 		Metadata:            r.Metadata,
+		FeatureID:           r.FeatureID,
+		FeatureKey:          r.FeatureKey,
 		EntitlementTemplate: r.EntitlementTemplate,
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
 		Discounts:           lo.FromPtrOr(r.Discounts, productcatalog.Discounts{}),
-	}
-
-	// Resolve feature
-
-	if r.Edges.Features != nil {
-		meta.Feature = &feature.Feature{
-			Namespace:           r.Edges.Features.Namespace,
-			ID:                  r.Edges.Features.ID,
-			Name:                r.Edges.Features.Name,
-			Key:                 r.Edges.Features.Key,
-			MeterSlug:           r.Edges.Features.MeterSlug,
-			MeterGroupByFilters: r.Edges.Features.MeterGroupByFilters,
-			Metadata:            r.Edges.Features.Metadata,
-			ArchivedAt:          r.Edges.Features.ArchivedAt,
-			CreatedAt:           r.Edges.Features.CreatedAt,
-			UpdatedAt:           r.Edges.Features.UpdatedAt,
-		}
 	}
 
 	// Get billing cadence
@@ -229,10 +213,8 @@ func asPlanRateCardRow(r productcatalog.RateCard) (entdb.PlanRateCard, error) {
 		ratecard.PhaseID = managedFields.PhaseID
 	}
 
-	if meta.Feature != nil {
-		ratecard.FeatureKey = &meta.Feature.Key
-		ratecard.FeatureID = &meta.Feature.ID
-	}
+	ratecard.FeatureKey = meta.FeatureKey
+	ratecard.FeatureID = meta.FeatureID
 
 	ratecard.BillingCadence = r.GetBillingCadence().ISOStringPtrOrNil()
 

@@ -55,7 +55,8 @@ var planV1Input = plan.CreatePlanInput{
 							Name:                "Trial RateCard 1",
 							Description:         lo.ToPtr("Trial RateCard 1"),
 							Metadata:            models.Metadata{"name": "trial-ratecard-1"},
-							Feature:             nil,
+							FeatureKey:          nil,
+							FeatureID:           nil,
 							EntitlementTemplate: nil,
 							TaxConfig: &productcatalog.TaxConfig{
 								Stripe: &productcatalog.StripeTaxConfig{
@@ -86,7 +87,8 @@ var planV1Input = plan.CreatePlanInput{
 							Name:                "Pro RateCard 1",
 							Description:         lo.ToPtr("Pro RateCard 1"),
 							Metadata:            models.Metadata{"name": "pro-ratecard-1"},
-							Feature:             nil,
+							FeatureKey:          nil,
+							FeatureID:           nil,
 							EntitlementTemplate: nil,
 							TaxConfig: &productcatalog.TaxConfig{
 								Stripe: &productcatalog.StripeTaxConfig{

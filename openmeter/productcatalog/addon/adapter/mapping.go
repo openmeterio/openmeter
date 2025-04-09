@@ -9,7 +9,6 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -72,26 +71,11 @@ func fromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		Description:         r.Description,
 		Metadata:            r.Metadata,
 		EntitlementTemplate: r.EntitlementTemplate,
+		FeatureKey:          r.FeatureKey,
+		FeatureID:           r.FeatureID,
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
 		Discounts:           lo.FromPtrOr(r.Discounts, productcatalog.Discounts{}),
-	}
-
-	// Resolve feature
-
-	if r.Edges.Features != nil {
-		meta.Feature = &feature.Feature{
-			Namespace:           r.Edges.Features.Namespace,
-			ID:                  r.Edges.Features.ID,
-			Name:                r.Edges.Features.Name,
-			Key:                 r.Edges.Features.Key,
-			MeterSlug:           r.Edges.Features.MeterSlug,
-			MeterGroupByFilters: r.Edges.Features.MeterGroupByFilters,
-			Metadata:            r.Edges.Features.Metadata,
-			ArchivedAt:          r.Edges.Features.ArchivedAt,
-			CreatedAt:           r.Edges.Features.CreatedAt,
-			UpdatedAt:           r.Edges.Features.UpdatedAt,
-		}
 	}
 
 	// Get billing cadence
@@ -156,6 +140,8 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 		Description:         meta.Description,
 		EntitlementTemplate: meta.EntitlementTemplate,
 		TaxConfig:           meta.TaxConfig,
+		FeatureKey:          meta.FeatureKey,
+		FeatureID:           meta.FeatureID,
 		Price:               meta.Price,
 		Type:                r.Type(),
 		Discounts:           lo.EmptyableToPtr(meta.Discounts),
@@ -165,11 +151,6 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 		managedFields := managed.ManagedFields()
 		ratecard.Namespace = managedFields.Namespace
 		ratecard.ID = managedFields.ID
-	}
-
-	if meta.Feature != nil {
-		ratecard.FeatureKey = &meta.Feature.Key
-		ratecard.FeatureID = &meta.Feature.ID
 	}
 
 	switch v := r.(type) {

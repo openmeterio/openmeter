@@ -68,9 +68,10 @@ func TestEditingAndCanceling(t *testing.T) {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:     "test_feature_1",
-								Name:    "Test Rate Card",
-								Feature: &f,
+								Key:        "test_feature_1",
+								Name:       "Test Rate Card",
+								FeatureKey: lo.ToPtr(f.Key),
+								FeatureID:  lo.ToPtr(f.ID),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(100),
 								}),

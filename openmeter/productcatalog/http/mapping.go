@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -25,8 +24,8 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 	meta := r.AsMeta()
 
 	var featureKey *string
-	if meta.Feature != nil {
-		featureKey = &meta.Feature.Key
+	if meta.FeatureKey != nil {
+		featureKey = meta.FeatureKey
 	}
 
 	var tmpl api.RateCardEntitlement
@@ -484,9 +483,7 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard
 	}
 
 	if flat.FeatureKey != nil {
-		rc.RateCardMeta.Feature = &feature.Feature{
-			Key: *flat.FeatureKey,
-		}
+		rc.RateCardMeta.FeatureKey = flat.FeatureKey
 	}
 
 	if flat.EntitlementTemplate != nil {
@@ -560,9 +557,7 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBas
 	}
 
 	if usage.FeatureKey != nil {
-		rc.RateCardMeta.Feature = &feature.Feature{
-			Key: *usage.FeatureKey,
-		}
+		rc.RateCardMeta.FeatureKey = usage.FeatureKey
 	}
 
 	if usage.EntitlementTemplate != nil {

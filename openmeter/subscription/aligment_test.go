@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	pcsubscriptionservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -49,15 +48,8 @@ func TestAlignedBillingPeriodCalculation(t *testing.T) {
 								Key:  subscriptiontestutils.ExampleFeature.Key,
 								Name: subscriptiontestutils.ExampleFeature.Name,
 								// feature doesn't have to exist, we never call out to DB
-								Feature: &feature.Feature{
-									Namespace: subscriptiontestutils.ExampleFeature.Namespace,
-									Key:       subscriptiontestutils.ExampleFeature.Key,
-									ID:        "test-feature-id",
-									Name:      subscriptiontestutils.ExampleFeature.Name,
-									MeterSlug: subscriptiontestutils.ExampleFeature.MeterSlug,
-									CreatedAt: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"),
-									UpdatedAt: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"),
-								},
+								FeatureID:  lo.ToPtr("test-feature-id"),
+								FeatureKey: lo.ToPtr(subscriptiontestutils.ExampleFeature.Key),
 							},
 							BillingCadence: isodate.MustParse(t, "P1M"),
 						},
@@ -73,17 +65,10 @@ func TestAlignedBillingPeriodCalculation(t *testing.T) {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:  subscriptiontestutils.ExampleFeature.Key,
-								Name: subscriptiontestutils.ExampleFeature.Name,
-								Feature: &feature.Feature{
-									Namespace: subscriptiontestutils.ExampleFeature.Namespace,
-									Key:       subscriptiontestutils.ExampleFeature.Key,
-									ID:        "test-feature-id",
-									Name:      subscriptiontestutils.ExampleFeature.Name,
-									MeterSlug: subscriptiontestutils.ExampleFeature.MeterSlug,
-									CreatedAt: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"),
-									UpdatedAt: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"),
-								},
+								Key:        subscriptiontestutils.ExampleFeature.Key,
+								Name:       subscriptiontestutils.ExampleFeature.Name,
+								FeatureKey: lo.ToPtr(subscriptiontestutils.ExampleFeature.Key),
+								FeatureID:  lo.ToPtr("test-feature-id"),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(5),
 								}),

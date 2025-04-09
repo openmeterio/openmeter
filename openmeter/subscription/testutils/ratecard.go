@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -19,9 +18,8 @@ var (
 			Key:         ExampleFeatureKey,
 			Name:        "Rate Card 1",
 			Description: lo.ToPtr("Rate Card 1 Description"),
-			Feature: &feature.Feature{
-				Key: ExampleFeatureKey,
-			},
+			FeatureKey:  lo.ToPtr(ExampleFeatureKey),
+			FeatureID:   nil,
 			EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 				IssueAfterReset: lo.ToPtr(100.0),
 				UsagePeriod:     ISOMonth,
@@ -42,7 +40,8 @@ var (
 			Key:         "rate-card-2",
 			Name:        "Rate Card 2",
 			Description: lo.ToPtr("Rate Card 2 Description"),
-			Feature:     nil,
+			FeatureKey:  nil,
+			FeatureID:   nil,
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromInt(int64(0)),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -57,9 +56,8 @@ var (
 			Key:         ExampleFeatureKey,
 			Name:        "Rate Card 1",
 			Description: lo.ToPtr("Rate Card 1 Description"),
-			Feature: &feature.Feature{
-				Key: ExampleFeatureKey,
-			},
+			FeatureKey:  lo.ToPtr(ExampleFeatureKey),
+			FeatureID:   nil,
 			EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 				IssueAfterReset: lo.ToPtr(100.0),
 				UsagePeriod:     ISOMonth,

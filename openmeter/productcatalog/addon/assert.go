@@ -116,11 +116,8 @@ func AssertRateCardEqual(t *testing.T, r1, r2 productcatalog.RateCard) {
 
 	assert.Truef(t, m1.Metadata.Equal(m2.Metadata), "metadata mismatch")
 
-	f1 := lo.FromPtr(m1.Feature)
-	f2 := lo.FromPtr(m2.Feature)
-
-	assert.Equalf(t, f1.Key, f2.Key, "feature key mismatch")
-	assert.Equalf(t, f1.Namespace, f2.Namespace, "feature namespace mismatch")
+	assert.Equalf(t, m1.FeatureKey, m2.FeatureKey, "feature key mismatch")
+	assert.Equalf(t, m1.FeatureID, m2.FeatureID, "feature id mismatch")
 
 	assert.Truef(t, m1.EntitlementTemplate.Equal(m2.EntitlementTemplate), "entitlement template mismatch")
 

@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -68,17 +67,8 @@ func TestPlanSerialization(t *testing.T) {
 								Metadata: models.Metadata{
 									"key3": "value3",
 								},
-								Feature: &feature.Feature{
-									Namespace: "test",
-									ID:        "feature-1",
-									Name:      "Test Feature",
-									Key:       "feature-1",
-									Metadata: map[string]string{
-										"key4": "value4",
-									},
-									CreatedAt: now,
-									UpdatedAt: now,
-								},
+								FeatureKey: lo.ToPtr("feature-1"),
+								FeatureID:  lo.ToPtr("feature-1"),
 								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 									Amount:      decimal.NewFromInt(1000),
 									PaymentTerm: productcatalog.InAdvancePaymentTerm,
