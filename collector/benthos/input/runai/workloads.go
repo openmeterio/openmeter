@@ -89,9 +89,11 @@ func (s *Service) ListWorkloads(ctx context.Context, params ListWorkloadParams) 
 		"Updating",
 		"Stopped",
 		"Stopping",
-		"Completed",
 		// "Degraded",
 		"Failed",
+		"Completed",
+		"Terminating",
+		"Unknown",
 	}
 
 	filterBy := strings.Join(lo.Map(filteredOutPhases, func(p string, _ int) string {
