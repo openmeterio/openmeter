@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/samber/lo"
 
@@ -77,6 +77,64 @@ func (s service) expandFeatures(ctx context.Context, namespace string, rateCards
 	return nil
 }
 
+// addonVersions is a collection of add-ons versions (all of them have the same namespace key pair).
+type addonVersions []addon.Addon
+
+func (a addonVersions) Len() int {
+	return len(a)
+}
+
+func (a addonVersions) Less(i, j int) bool {
+	return a[i].Version < a[j].Version
+}
+
+func (a addonVersions) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+
+// Sort sorts the add-ons by their versions.
+func (a addonVersions) Sort() {
+	sort.Sort(a)
+}
+
+// Latest returns add-on with the latest version regardless of its deleted status.
+func (a addonVersions) Latest() *addon.Addon {
+	if len(a) == 0 {
+		return nil
+	}
+
+	// Ensure the collection is sorted
+	a.Sort()
+
+	return &a[len(a)-1]
+}
+
+// HasDraft returns true if there is an active (non-deleted) add-on with draft status.
+func (a addonVersions) HasDraft() bool {
+	for _, aa := range a {
+		if aa.DeletedAt == nil && aa.Status() == productcatalog.AddonStatusDraft {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (s service) getAddonVersions(ctx context.Context, namespace, key string) (addonVersions, error) {
+	versions, err := s.adapter.ListAddons(ctx, addon.ListAddonsInput{
+		OrderBy:        addon.OrderByVersion,
+		Order:          addon.OrderAsc,
+		Namespaces:     []string{namespace},
+		Keys:           []string{key},
+		IncludeDeleted: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list versions of the add-on: %w", err)
+	}
+
+	return versions.Items, nil
+}
+
 func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput) (*addon.Addon, error) {
 	fn := func(ctx context.Context) (*addon.Addon, error) {
 		if err := params.Validate(); err != nil {
@@ -90,36 +148,21 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 		)
 
 		// Check if there is already an Add-on with the same Key
-		allVersions, err := s.adapter.ListAddons(ctx, addon.ListAddonsInput{
-			Page: pagination.Page{
-				PageSize:   1000,
-				PageNumber: 1,
-			},
-			OrderBy:        addon.OrderByVersion,
-			Order:          addon.OrderAsc,
-			Namespaces:     []string{params.Namespace},
-			Keys:           []string{params.Key},
-			IncludeDeleted: true,
-		})
+		versions, err := s.getAddonVersions(ctx, params.Namespace, params.Key)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list all versions of the add-on: %w", err)
+			return nil, fmt.Errorf("failed to get add-on generation: %w", err)
 		}
 
-		// If there are add-on versions with the same key do:
-		// * check their statuses to ensure that new add-on with the same key is created only
-		//   if there is no version in draft status
-		// * calculate the version number for the new add-on based by incrementing the last version
-		for _, aa := range allVersions.Items {
-			if aa.DeletedAt == nil && aa.Status() == productcatalog.AddonStatusDraft {
-				return nil, models.NewGenericValidationError(
-					fmt.Errorf("only a single draft version is allowed for add-on"),
-				)
-			}
-
-			if aa.Version >= params.Version {
-				params.Version = aa.Version + 1
-			}
+		// Return error if the add-on generation already has an active (non-deleted) add-on with draft status
+		// as there can only be single draft add-on at a time.
+		if versions.HasDraft() {
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("only a single draft version is allowed for add-on"),
+			)
 		}
+
+		// Override the version parameter with the next version calculated from the last available version.
+		params.Version = lo.FromPtr(versions.Latest()).Version + 1
 
 		logger.Debug("creating add-on")
 
@@ -496,19 +539,12 @@ func (s service) NextAddon(ctx context.Context, params addon.NextAddonInput) (*a
 		logger.Debug("creating new version of an add-on")
 
 		// Fetch all version of an add-on to find the one to be used as source and also to calculate the next version number.
-		allVersions, err := s.adapter.ListAddons(ctx, addon.ListAddonsInput{
-			OrderBy:        addon.OrderByVersion,
-			Order:          addon.OrderAsc,
-			Namespaces:     []string{params.Namespace},
-			IDs:            []string{params.ID},
-			Keys:           []string{params.Key},
-			IncludeDeleted: true,
-		})
+		versions, err := s.getAddonVersions(ctx, params.Namespace, params.Key)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list all versions of the add-on: %w", err)
+			return nil, fmt.Errorf("failed to get add-on generation: %w", err)
 		}
 
-		if len(allVersions.Items) == 0 {
+		if versions.Len() == 0 {
 			return nil, models.NewGenericValidationError(
 				fmt.Errorf("no versions available for this add-on"),
 			)
@@ -549,7 +585,7 @@ func (s service) NextAddon(ctx context.Context, params addon.NextAddonInput) (*a
 
 		nextVersion := 1
 		var match, stop bool
-		for _, addonItem := range allVersions.Items {
+		for _, addonItem := range versions {
 			if addonItem.DeletedAt == nil && addonItem.Status() == productcatalog.AddonStatusDraft {
 				return nil, models.NewGenericValidationError(
 					fmt.Errorf("only a single draft version is allowed for add-on"),
