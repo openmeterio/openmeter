@@ -101,16 +101,16 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 		if fID != nil && fK != nil {
 			// We need to check that the two match (ID takes precedence)
 			if !featureByIDOk {
-				return fmt.Errorf("feature with ID %s not found", *fID)
+				return models.NewGenericNotFoundError(fmt.Errorf("feature with ID %s not found", *fID))
 			}
 
 			if featureByID.Key != *fK {
-				return fmt.Errorf("feature with ID %s has key %s, but expected %s", *fID, featureByID.Key, *fK)
+				return models.NewGenericNotFoundError(fmt.Errorf("feature with ID %s has key %s, but expected %s", *fID, featureByID.Key, *fK))
 			}
 		} else if fID != nil && fK == nil {
 			// We need to populate FeatureKey
 			if !featureByIDOk {
-				return fmt.Errorf("feature with ID %s not found", *fID)
+				return models.NewGenericNotFoundError(fmt.Errorf("feature with ID %s not found", *fID))
 			}
 
 			// FIXME: merging like this is a pain, we should just use pointers...
