@@ -129,14 +129,14 @@ func (m AddonMeta) Equal(v AddonMeta) bool {
 }
 
 // Status returns the current status of the Addons
-func (a AddonMeta) Status() AddonStatus {
-	return a.StatusAt(time.Now())
+func (m AddonMeta) Status() AddonStatus {
+	return m.StatusAt(time.Now())
 }
 
 // StatusAt returns the Addon status relative to time t.
-func (a AddonMeta) StatusAt(t time.Time) AddonStatus {
-	from := lo.FromPtrOr(a.EffectiveFrom, time.Time{})
-	to := lo.FromPtrOr(a.EffectiveTo, time.Time{})
+func (m AddonMeta) StatusAt(t time.Time) AddonStatus {
+	from := lo.FromPtrOr(m.EffectiveFrom, time.Time{})
+	to := lo.FromPtrOr(m.EffectiveTo, time.Time{})
 
 	// Add-on has DraftStatus if neither the EffectiveFrom nor EffectiveTo are set
 	if from.IsZero() && to.IsZero() {
@@ -157,11 +157,21 @@ func (a AddonMeta) StatusAt(t time.Time) AddonStatus {
 	return AddonStatusInvalid
 }
 
+var (
+	_ models.Validator              = (*Addon)(nil)
+	_ models.CustomValidator[Addon] = (*Addon)(nil)
+	_ models.Equaler[Addon]         = (*Addon)(nil)
+)
+
 type Addon struct {
 	AddonMeta
 
 	// RateCards
 	RateCards RateCards `json:"rateCards"`
+}
+
+func (a Addon) ValidateWith(validators ...models.ValidatorFunc[Addon]) error {
+	return models.Validate(a, validators...)
 }
 
 func (a Addon) Validate() error {
@@ -189,6 +199,17 @@ func (a Addon) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// Publishable validates the Addon to ensure that it meets all requirements needed for being published.
+// It is a stricter version of Validate. It is the caller responsibility to handle managed resource specific parameters
+// to ensure the Addon is eligible for publishing. E.g. checking the DeletedAt attribute of the addon.Addon.
+func (a Addon) Publishable() error {
+	return a.ValidateWith(
+		AddonWithAllowedStatus(AddonStatusDraft),
+		AddonWithBillingCadenceAligned(),
+		AddonWithCompatiblePrices(),
+	)
 }
 
 func (a Addon) Equal(v Addon) bool {
@@ -219,5 +240,47 @@ func (a AddonInstanceType) Values() []string {
 	return []string{
 		string(AddonInstanceTypeSingle),
 		string(AddonInstanceTypeMultiple),
+	}
+}
+
+func AddonWithAllowedStatus(allowed ...AddonStatus) models.ValidatorFunc[Addon] {
+	return func(a Addon) error {
+		status := a.Status()
+		if lo.Contains(allowed, status) {
+			return nil
+		}
+
+		return fmt.Errorf("addon status %s is not valid, must be one of %+v", status, allowed)
+	}
+}
+
+func AddonWithBillingCadenceAligned() models.ValidatorFunc[Addon] {
+	return func(a Addon) error {
+		if a.RateCards.BillingCadenceAligned() {
+			return nil
+		}
+
+		return errors.New("the billing cadence of the ratecards in add-on must be aligned")
+	}
+}
+
+func AddonWithCompatiblePrices() models.ValidatorFunc[Addon] {
+	return func(a Addon) error {
+		switch a.InstanceType {
+		case AddonInstanceTypeSingle:
+			return nil
+		case AddonInstanceTypeMultiple:
+			for _, rc := range a.RateCards {
+				if price := rc.AsMeta().Price; price != nil && price.Type() != FlatPriceType {
+					return fmt.Errorf(
+						"invalid ratecard for add-on with multiple instance type [ratecard.key=%s]: no price or flat price are allowed, got: %s",
+						rc.Key(), price.Type())
+				}
+			}
+
+			return nil
+		default:
+			return fmt.Errorf("invalid add-on instance type: %s", a.InstanceType)
+		}
 	}
 }
