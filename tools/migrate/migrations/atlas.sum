@@ -1,4 +1,4 @@
-h1:mj/eUzXiA2iKwPLFMDTXUY6IIpU9aLXHQ9k3DInm1k8=
+h1:8DX7gyVgvTkdLbSZFlqx++LwwraJRyOMcBzD2bfp/Kk=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -163,3 +163,5 @@ h1:mj/eUzXiA2iKwPLFMDTXUY6IIpU9aLXHQ9k3DInm1k8=
 20250408162413_child-uniq-id-rename.up.sql h1:M3NmXCEiBCQmF/zxQm5U7yZhMi6nIJpQAmz749proQM=
 20250408170934_billing-persist-original-qty.down.sql h1:15mNgO1woFz+dKjJqFsCN05z/sgaos5SSvPHGG27Ud4=
 20250408170934_billing-persist-original-qty.up.sql h1:lxXbTV4Js0MqwnGAri2nKJ1865gbSkaqHKq1O6D/Gts=
+20250409142535_subscriptionaddon.down.sql h1:c4tOsJCltP0ba65SNNAT14wV66tFZo6SAKVnKkHloKs=
+20250409142535_subscriptionaddon.up.sql h1:lWEw+ISxYNLEvvTrvVSuWbZKhCYcdtmgcqBroo56Smc=

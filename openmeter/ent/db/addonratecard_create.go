@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
@@ -159,6 +160,12 @@ func (arcc *AddonRateCardCreate) SetPrice(pr *productcatalog.Price) *AddonRateCa
 	return arcc
 }
 
+// SetDiscounts sets the "discounts" field.
+func (arcc *AddonRateCardCreate) SetDiscounts(pr *productcatalog.Discounts) *AddonRateCardCreate {
+	arcc.mutation.SetDiscounts(pr)
+	return arcc
+}
+
 // SetAddonID sets the "addon_id" field.
 func (arcc *AddonRateCardCreate) SetAddonID(s string) *AddonRateCardCreate {
 	arcc.mutation.SetAddonID(s)
@@ -176,12 +183,6 @@ func (arcc *AddonRateCardCreate) SetNillableFeatureID(s *string) *AddonRateCardC
 	if s != nil {
 		arcc.SetFeatureID(*s)
 	}
-	return arcc
-}
-
-// SetDiscounts sets the "discounts" field.
-func (arcc *AddonRateCardCreate) SetDiscounts(pr *productcatalog.Discounts) *AddonRateCardCreate {
-	arcc.mutation.SetDiscounts(pr)
 	return arcc
 }
 
@@ -221,6 +222,21 @@ func (arcc *AddonRateCardCreate) SetNillableFeaturesID(id *string) *AddonRateCar
 // SetFeatures sets the "features" edge to the Feature entity.
 func (arcc *AddonRateCardCreate) SetFeatures(f *Feature) *AddonRateCardCreate {
 	return arcc.SetFeaturesID(f.ID)
+}
+
+// AddSubscriptionAddonRateCardIDs adds the "subscription_addon_rate_cards" edge to the SubscriptionAddonRateCard entity by IDs.
+func (arcc *AddonRateCardCreate) AddSubscriptionAddonRateCardIDs(ids ...string) *AddonRateCardCreate {
+	arcc.mutation.AddSubscriptionAddonRateCardIDs(ids...)
+	return arcc
+}
+
+// AddSubscriptionAddonRateCards adds the "subscription_addon_rate_cards" edges to the SubscriptionAddonRateCard entity.
+func (arcc *AddonRateCardCreate) AddSubscriptionAddonRateCards(s ...*SubscriptionAddonRateCard) *AddonRateCardCreate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return arcc.AddSubscriptionAddonRateCardIDs(ids...)
 }
 
 // Mutation returns the AddonRateCardMutation object of the builder.
@@ -482,6 +498,22 @@ func (arcc *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateS
 		_node.FeatureID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := arcc.mutation.SubscriptionAddonRateCardsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addonratecard.SubscriptionAddonRateCardsTable,
+			Columns: []string{addonratecard.SubscriptionAddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec, nil
 }
 
@@ -702,6 +734,24 @@ func (u *AddonRateCardUpsert) ClearPrice() *AddonRateCardUpsert {
 	return u
 }
 
+// SetDiscounts sets the "discounts" field.
+func (u *AddonRateCardUpsert) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardUpsert {
+	u.Set(addonratecard.FieldDiscounts, v)
+	return u
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *AddonRateCardUpsert) UpdateDiscounts() *AddonRateCardUpsert {
+	u.SetExcluded(addonratecard.FieldDiscounts)
+	return u
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *AddonRateCardUpsert) ClearDiscounts() *AddonRateCardUpsert {
+	u.SetNull(addonratecard.FieldDiscounts)
+	return u
+}
+
 // SetAddonID sets the "addon_id" field.
 func (u *AddonRateCardUpsert) SetAddonID(v string) *AddonRateCardUpsert {
 	u.Set(addonratecard.FieldAddonID, v)
@@ -729,24 +779,6 @@ func (u *AddonRateCardUpsert) UpdateFeatureID() *AddonRateCardUpsert {
 // ClearFeatureID clears the value of the "feature_id" field.
 func (u *AddonRateCardUpsert) ClearFeatureID() *AddonRateCardUpsert {
 	u.SetNull(addonratecard.FieldFeatureID)
-	return u
-}
-
-// SetDiscounts sets the "discounts" field.
-func (u *AddonRateCardUpsert) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardUpsert {
-	u.Set(addonratecard.FieldDiscounts, v)
-	return u
-}
-
-// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
-func (u *AddonRateCardUpsert) UpdateDiscounts() *AddonRateCardUpsert {
-	u.SetExcluded(addonratecard.FieldDiscounts)
-	return u
-}
-
-// ClearDiscounts clears the value of the "discounts" field.
-func (u *AddonRateCardUpsert) ClearDiscounts() *AddonRateCardUpsert {
-	u.SetNull(addonratecard.FieldDiscounts)
 	return u
 }
 
@@ -1006,6 +1038,27 @@ func (u *AddonRateCardUpsertOne) ClearPrice() *AddonRateCardUpsertOne {
 	})
 }
 
+// SetDiscounts sets the "discounts" field.
+func (u *AddonRateCardUpsertOne) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetDiscounts(v)
+	})
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *AddonRateCardUpsertOne) UpdateDiscounts() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateDiscounts()
+	})
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *AddonRateCardUpsertOne) ClearDiscounts() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearDiscounts()
+	})
+}
+
 // SetAddonID sets the "addon_id" field.
 func (u *AddonRateCardUpsertOne) SetAddonID(v string) *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
@@ -1038,27 +1091,6 @@ func (u *AddonRateCardUpsertOne) UpdateFeatureID() *AddonRateCardUpsertOne {
 func (u *AddonRateCardUpsertOne) ClearFeatureID() *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearFeatureID()
-	})
-}
-
-// SetDiscounts sets the "discounts" field.
-func (u *AddonRateCardUpsertOne) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardUpsertOne {
-	return u.Update(func(s *AddonRateCardUpsert) {
-		s.SetDiscounts(v)
-	})
-}
-
-// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
-func (u *AddonRateCardUpsertOne) UpdateDiscounts() *AddonRateCardUpsertOne {
-	return u.Update(func(s *AddonRateCardUpsert) {
-		s.UpdateDiscounts()
-	})
-}
-
-// ClearDiscounts clears the value of the "discounts" field.
-func (u *AddonRateCardUpsertOne) ClearDiscounts() *AddonRateCardUpsertOne {
-	return u.Update(func(s *AddonRateCardUpsert) {
-		s.ClearDiscounts()
 	})
 }
 
@@ -1488,6 +1520,27 @@ func (u *AddonRateCardUpsertBulk) ClearPrice() *AddonRateCardUpsertBulk {
 	})
 }
 
+// SetDiscounts sets the "discounts" field.
+func (u *AddonRateCardUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetDiscounts(v)
+	})
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *AddonRateCardUpsertBulk) UpdateDiscounts() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateDiscounts()
+	})
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *AddonRateCardUpsertBulk) ClearDiscounts() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearDiscounts()
+	})
+}
+
 // SetAddonID sets the "addon_id" field.
 func (u *AddonRateCardUpsertBulk) SetAddonID(v string) *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
@@ -1520,27 +1573,6 @@ func (u *AddonRateCardUpsertBulk) UpdateFeatureID() *AddonRateCardUpsertBulk {
 func (u *AddonRateCardUpsertBulk) ClearFeatureID() *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearFeatureID()
-	})
-}
-
-// SetDiscounts sets the "discounts" field.
-func (u *AddonRateCardUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardUpsertBulk {
-	return u.Update(func(s *AddonRateCardUpsert) {
-		s.SetDiscounts(v)
-	})
-}
-
-// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
-func (u *AddonRateCardUpsertBulk) UpdateDiscounts() *AddonRateCardUpsertBulk {
-	return u.Update(func(s *AddonRateCardUpsert) {
-		s.UpdateDiscounts()
-	})
-}
-
-// ClearDiscounts clears the value of the "discounts" field.
-func (u *AddonRateCardUpsertBulk) ClearDiscounts() *AddonRateCardUpsertBulk {
-	return u.Update(func(s *AddonRateCardUpsert) {
-		s.ClearDiscounts()
 	})
 }
 

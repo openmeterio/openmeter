@@ -50,12 +50,12 @@ type AddonRateCard struct {
 	BillingCadence *isodate.String `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
+	// Discounts holds the value of the "discounts" field.
+	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// The add-on identifier the ratecard is assigned to.
 	AddonID string `json:"addon_id,omitempty"`
 	// The feature identifier the ratecard is related to.
 	FeatureID *string `json:"feature_id,omitempty"`
-	// Discounts holds the value of the "discounts" field.
-	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AddonRateCardQuery when eager-loading is set.
 	Edges        AddonRateCardEdges `json:"edges"`
@@ -68,9 +68,11 @@ type AddonRateCardEdges struct {
 	Addon *Addon `json:"addon,omitempty"`
 	// Features holds the value of the features edge.
 	Features *Feature `json:"features,omitempty"`
+	// SubscriptionAddonRateCards holds the value of the subscription_addon_rate_cards edge.
+	SubscriptionAddonRateCards []*SubscriptionAddonRateCard `json:"subscription_addon_rate_cards,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // AddonOrErr returns the Addon value or an error if the edge
@@ -93,6 +95,15 @@ func (e AddonRateCardEdges) FeaturesOrErr() (*Feature, error) {
 		return nil, &NotFoundError{label: feature.Label}
 	}
 	return nil, &NotLoadedError{edge: "features"}
+}
+
+// SubscriptionAddonRateCardsOrErr returns the SubscriptionAddonRateCards value or an error if the edge
+// was not loaded in eager-loading.
+func (e AddonRateCardEdges) SubscriptionAddonRateCardsOrErr() ([]*SubscriptionAddonRateCard, error) {
+	if e.loadedTypes[2] {
+		return e.SubscriptionAddonRateCards, nil
+	}
+	return nil, &NotLoadedError{edge: "subscription_addon_rate_cards"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -225,6 +236,12 @@ func (arc *AddonRateCard) assignValues(columns []string, values []any) error {
 			} else {
 				arc.Price = value
 			}
+		case addonratecard.FieldDiscounts:
+			if value, err := addonratecard.ValueScanner.Discounts.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				arc.Discounts = value
+			}
 		case addonratecard.FieldAddonID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field addon_id", values[i])
@@ -237,12 +254,6 @@ func (arc *AddonRateCard) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				arc.FeatureID = new(string)
 				*arc.FeatureID = value.String
-			}
-		case addonratecard.FieldDiscounts:
-			if value, err := addonratecard.ValueScanner.Discounts.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				arc.Discounts = value
 			}
 		default:
 			arc.selectValues.Set(columns[i], values[i])
@@ -265,6 +276,11 @@ func (arc *AddonRateCard) QueryAddon() *AddonQuery {
 // QueryFeatures queries the "features" edge of the AddonRateCard entity.
 func (arc *AddonRateCard) QueryFeatures() *FeatureQuery {
 	return NewAddonRateCardClient(arc.config).QueryFeatures(arc)
+}
+
+// QuerySubscriptionAddonRateCards queries the "subscription_addon_rate_cards" edge of the AddonRateCard entity.
+func (arc *AddonRateCard) QuerySubscriptionAddonRateCards() *SubscriptionAddonRateCardQuery {
+	return NewAddonRateCardClient(arc.config).QuerySubscriptionAddonRateCards(arc)
 }
 
 // Update returns a builder for updating this AddonRateCard.
@@ -346,17 +362,17 @@ func (arc *AddonRateCard) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
+	if v := arc.Discounts; v != nil {
+		builder.WriteString("discounts=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
 	builder.WriteString("addon_id=")
 	builder.WriteString(arc.AddonID)
 	builder.WriteString(", ")
 	if v := arc.FeatureID; v != nil {
 		builder.WriteString("feature_id=")
 		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := arc.Discounts; v != nil {
-		builder.WriteString("discounts=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')
 	return builder.String()

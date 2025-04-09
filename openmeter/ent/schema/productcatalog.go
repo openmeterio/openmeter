@@ -2,7 +2,6 @@ package schema
 
 import (
 	"entgo.io/ent"
-	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -128,41 +127,9 @@ func (PlanRateCard) Mixin() []ent.Mixin {
 }
 
 func (PlanRateCard) Fields() []ent.Field {
-	return []ent.Field{
-		field.Enum("type").
-			GoType(productcatalog.RateCardType("")).
-			Immutable(),
-		field.String("feature_key").
-			Optional().
-			Nillable(),
-		field.String("entitlement_template").
-			GoType(&productcatalog.EntitlementTemplate{}).
-			ValueScanner(EntitlementTemplateValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Nillable(),
-		field.String("tax_config").
-			GoType(&productcatalog.TaxConfig{}).
-			ValueScanner(TaxConfigValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Nillable(),
-		field.String("billing_cadence").
-			GoType(isodate.String("")).
-			Optional().
-			Nillable(),
-		field.String("price").
-			GoType(&productcatalog.Price{}).
-			ValueScanner(PriceValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Nillable(),
+	fields := RateCard{}.Fields() // We have to use it like so due to some ent/runtime.go bug
+
+	fields = append(fields,
 		field.String("phase_id").
 			NotEmpty().
 			Comment("The phase identifier the ratecard is assigned to."),
@@ -170,15 +137,9 @@ func (PlanRateCard) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("The feature identifier the ratecard is related to."),
-		field.String("discounts").
-			GoType(&productcatalog.Discounts{}).
-			ValueScanner(DiscountsValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Nillable(),
-	}
+	)
+
+	return fields
 }
 
 func (PlanRateCard) Edges() []ent.Edge {

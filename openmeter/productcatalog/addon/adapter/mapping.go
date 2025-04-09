@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func fromAddonRow(a entdb.Addon) (*addon.Addon, error) {
+func FromAddonRow(a entdb.Addon) (*addon.Addon, error) {
 	aa := &addon.Addon{
 		NamespacedID: models.NamespacedID{
 			Namespace: a.Namespace,
@@ -48,7 +48,7 @@ func fromAddonRow(a entdb.Addon) (*addon.Addon, error) {
 				continue
 			}
 
-			ratecard, err := fromAddonRateCardRow(*edge)
+			ratecard, err := FromAddonRateCardRow(*edge)
 			if err != nil {
 				return nil, fmt.Errorf("invalid ratecard [namespace=%s key=%s]: %w", aa.Namespace, edge.Key, err)
 			}
@@ -64,7 +64,7 @@ func fromAddonRow(a entdb.Addon) (*addon.Addon, error) {
 	return aa, nil
 }
 
-func fromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
+func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 	meta := productcatalog.RateCardMeta{
 		Key:                 r.Key,
 		Name:                r.Name,

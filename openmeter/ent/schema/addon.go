@@ -10,7 +10,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -57,6 +56,10 @@ func (Addon) Edges() []ent.Edge {
 			Annotations(entsql.Annotation{
 				OnDelete: entsql.Cascade,
 			}),
+		edge.To("subscription_addons", SubscriptionAddon.Type).
+			Annotations(entsql.Annotation{
+				OnDelete: entsql.Cascade,
+			}),
 	}
 }
 
@@ -88,41 +91,9 @@ func (AddonRateCard) Mixin() []ent.Mixin {
 }
 
 func (AddonRateCard) Fields() []ent.Field {
-	return []ent.Field{
-		field.Enum("type").
-			GoType(productcatalog.RateCardType("")).
-			Immutable(),
-		field.String("feature_key").
-			Optional().
-			Nillable(),
-		field.String("entitlement_template").
-			GoType(&productcatalog.EntitlementTemplate{}).
-			ValueScanner(EntitlementTemplateValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Nillable(),
-		field.String("tax_config").
-			GoType(&productcatalog.TaxConfig{}).
-			ValueScanner(TaxConfigValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Nillable(),
-		field.String("billing_cadence").
-			GoType(isodate.String("")).
-			Optional().
-			Nillable(),
-		field.String("price").
-			GoType(&productcatalog.Price{}).
-			ValueScanner(PriceValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Nillable(),
+	fields := RateCard{}.Fields() // We have to use it like so due to some ent/runtime.go bug
+
+	fields = append(fields,
 		field.String("addon_id").
 			NotEmpty().
 			Comment("The add-on identifier the ratecard is assigned to."),
@@ -130,15 +101,9 @@ func (AddonRateCard) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("The feature identifier the ratecard is related to."),
-		field.String("discounts").
-			GoType(&productcatalog.Discounts{}).
-			ValueScanner(DiscountsValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Nillable(),
-	}
+	)
+
+	return fields
 }
 
 func (AddonRateCard) Edges() []ent.Edge {
@@ -152,6 +117,10 @@ func (AddonRateCard) Edges() []ent.Edge {
 			Ref("addon_ratecard").
 			Field("feature_id").
 			Unique(),
+		edge.To("subscription_addon_rate_cards", SubscriptionAddonRateCard.Type).
+			Annotations(entsql.Annotation{
+				OnDelete: entsql.Cascade,
+			}),
 	}
 }
 

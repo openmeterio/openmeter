@@ -51,6 +51,7 @@ func GetExamplePlanInput(t *testing.T) plan.CreatePlanInput {
 					RateCards: productcatalog.RateCards{
 						&ExampleRateCard1,
 						&ExampleRateCard2,
+						&ExampleRateCard3ForAddons,
 					},
 				},
 				{
@@ -62,6 +63,7 @@ func GetExamplePlanInput(t *testing.T) plan.CreatePlanInput {
 					},
 					RateCards: productcatalog.RateCards{
 						&ExampleRateCard1,
+						&ExampleRateCard3ForAddons,
 					},
 				},
 			},
