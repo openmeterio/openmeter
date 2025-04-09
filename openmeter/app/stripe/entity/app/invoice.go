@@ -443,7 +443,7 @@ func getDiscountStripeInvoiceItemParams(calculator StripeCalculator, line *billi
 
 	addParams := &stripe.InvoiceItemParams{
 		Description: lo.ToPtr(name),
-		Amount:      lo.ToPtr(-calculator.RoundToAmount(discount.Amount)),
+		Amount:      lo.ToPtr(-calculator.RoundToAmount(discount.Amount.Add(discount.RoundingAmount))),
 		Period:      period,
 		Metadata: map[string]string{
 			invoiceLineMetadataID:   discount.ID,

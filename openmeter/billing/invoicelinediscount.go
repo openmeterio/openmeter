@@ -105,7 +105,7 @@ type AmountLineDiscount struct {
 
 	// RoundingAmount is a correction value, to ensure that if multiple discounts are applied,
 	// then sum of discount amounts equals the total * sum(discount percentages).
-	RoundingAmount alpacadecimal.Decimal `json:"rounding"`
+	RoundingAmount alpacadecimal.Decimal `json:"roundingAmount"`
 }
 
 func (i AmountLineDiscount) Validate() error {

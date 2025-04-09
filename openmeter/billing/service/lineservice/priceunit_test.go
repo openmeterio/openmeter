@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestUnitPriceCalculation(t *testing.T) {
@@ -194,6 +195,135 @@ func TestUnitPriceCalculation(t *testing.T) {
 							},
 						},
 						),
+					),
+				},
+			},
+		})
+	})
+
+	// Discount + max spend
+	t.Run("usage present, 50% discount +max spend set and hit", func(t *testing.T) {
+		discount50pct := productcatalog.NewDiscountFrom(productcatalog.PercentageDiscount{
+			Percentage: models.NewPercentage(50),
+		})
+		// PreLineUsage
+		// 10*7*0.3 = 35
+		// Current line usage:
+		//   Amount: 10*20 = 200
+		//   	Discount: 200*0.5 = -100
+		//   Line total: 200-100 = 100
+		//
+		//   Total spend: 35+100 = 135
+		//     Maximum spend: 100
+		//
+		//   Max spend discount: 135-100 = 35
+		runUBPTest(t, ubpCalculationTestCase{
+			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
+				Commitments: productcatalog.Commitments{
+					MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				},
+			}),
+			discounts: []productcatalog.Discount{
+				discount50pct,
+			},
+			lineMode: midPeriodSplitLineMode,
+			usage: featureUsageResponse{
+				LinePeriodQty:    alpacadecimal.NewFromFloat(20),
+				PreLinePeriodQty: alpacadecimal.NewFromFloat(7),
+			},
+			previousBilledAmount: alpacadecimal.NewFromFloat(3.5 * 10),
+			expect: newDetailedLinesInput{
+				{
+					Name:                   "feature: usage in period",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(10),
+					Quantity:               alpacadecimal.NewFromFloat(20), // 200
+					ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+					Discounts: billing.NewLineDiscounts(
+						billing.NewLineDiscountFrom(billing.AmountLineDiscount{
+							Amount: alpacadecimal.NewFromFloat(100),
+							LineDiscountBase: billing.LineDiscountBase{
+								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/0"),
+								Reason:                 billing.LineDiscountReasonRatecardDiscount,
+								SourceDiscount:         lo.ToPtr(discount50pct),
+							},
+						}),
+						billing.NewLineDiscountFrom(billing.AmountLineDiscount{
+							Amount: alpacadecimal.NewFromFloat(35),
+							LineDiscountBase: billing.LineDiscountBase{
+								Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
+								ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+								Reason:                 billing.LineDiscountReasonMaximumSpend,
+							},
+						},
+						),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("usage present, 33%+33%+34% discount, should yield 0", func(t *testing.T) {
+		discount33pct := productcatalog.NewDiscountFrom(productcatalog.PercentageDiscount{
+			Percentage: models.NewPercentage(33),
+		})
+		discount34pct := productcatalog.NewDiscountFrom(productcatalog.PercentageDiscount{
+			Percentage: models.NewPercentage(34),
+		})
+		// Current line usage:
+		//   Amount: 0.01*1 = 0.01
+		//   	Discount: 0.1*0.33 = 0.0
+		// 	 	Discount: 0.1*0.33 = 0.0
+		// 	 	Discount: 0.1*0.34 = 0.1 (rounding)
+		//   Line total: 0.01-0.01*0.33-0.01*0.33-0.01*0.34 = 0
+		//
+		runUBPTest(t, ubpCalculationTestCase{
+			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(0.01),
+			}),
+			discounts: []productcatalog.Discount{
+				discount33pct,
+				discount33pct,
+				discount34pct,
+			},
+			lineMode: singlePerPeriodLineMode,
+			usage: featureUsageResponse{
+				LinePeriodQty: alpacadecimal.NewFromFloat(1),
+			},
+			expect: newDetailedLinesInput{
+				{
+					Name:                   "feature: usage in period",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(0.01),
+					Quantity:               alpacadecimal.NewFromFloat(1),
+					ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+					Discounts: billing.NewLineDiscounts(
+						billing.NewLineDiscountFrom(billing.AmountLineDiscount{
+							Amount: alpacadecimal.NewFromFloat(0),
+							LineDiscountBase: billing.LineDiscountBase{
+								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/0"),
+								Reason:                 billing.LineDiscountReasonRatecardDiscount,
+								SourceDiscount:         lo.ToPtr(discount33pct),
+							},
+						}),
+						billing.NewLineDiscountFrom(billing.AmountLineDiscount{
+							Amount: alpacadecimal.NewFromFloat(0),
+							LineDiscountBase: billing.LineDiscountBase{
+								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/1"),
+								Reason:                 billing.LineDiscountReasonRatecardDiscount,
+								SourceDiscount:         lo.ToPtr(discount33pct),
+							},
+						}),
+						billing.NewLineDiscountFrom(billing.AmountLineDiscount{
+							Amount:         alpacadecimal.NewFromFloat(0.0),
+							RoundingAmount: alpacadecimal.NewFromFloat(0.01),
+							LineDiscountBase: billing.LineDiscountBase{
+								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/2"),
+								Reason:                 billing.LineDiscountReasonRatecardDiscount,
+								SourceDiscount:         lo.ToPtr(discount34pct),
+							},
+						}),
 					),
 				},
 			},

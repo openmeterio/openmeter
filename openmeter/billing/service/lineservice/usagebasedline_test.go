@@ -30,6 +30,7 @@ var ubpTestFullPeriod = billing.Period{
 
 type ubpCalculationTestCase struct {
 	price                productcatalog.Price
+	discounts            []productcatalog.Discount
 	lineMode             testLineMode
 	usage                featureUsageResponse
 	expect               newDetailedLinesInput
@@ -46,11 +47,12 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 		lineBase: lineBase{
 			line: &billing.Line{
 				LineBase: billing.LineBase{
-					Currency: "USD",
-					ID:       "fake-line",
-					Type:     billing.InvoiceLineTypeUsageBased,
-					Status:   billing.InvoiceLineStatusValid,
-					Name:     "feature",
+					Currency:          "USD",
+					ID:                "fake-line",
+					Type:              billing.InvoiceLineTypeUsageBased,
+					Status:            billing.InvoiceLineStatusValid,
+					Name:              "feature",
+					RateCardDiscounts: tc.discounts,
 				},
 				UsageBased: &billing.UsageBasedLine{
 					Price: lo.ToPtr(tc.price),

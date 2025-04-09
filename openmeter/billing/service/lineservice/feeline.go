@@ -33,6 +33,42 @@ func (l feeLine) SnapshotQuantity(context.Context, *billing.Invoice) error {
 }
 
 func (l feeLine) CalculateDetailedLines() error {
+	// Fee lines only have percentage discounts, but no commitments, so it's fine to not to reuse the whole
+	// middleware line for now.
+	return l.applyPercentageDiscounts()
+}
+
+func (l feeLine) applyPercentageDiscounts() error {
+	discountPercentageMutator := discountPercentageMutator{}
+
+	discounts, err := discountPercentageMutator.getDiscounts(l.line.RateCardDiscounts)
+	if err != nil {
+		return err
+	}
+
+	if len(discounts) == 0 {
+		return nil
+	}
+
+	currencyCalc, err := l.line.Currency.Calculator()
+	if err != nil {
+		return err
+	}
+
+	amount := TotalAmount(getTotalAmountInput{
+		Currency:      currencyCalc,
+		PerUnitAmount: l.line.FlatFee.PerUnitAmount,
+		Quantity:      l.line.FlatFee.Quantity,
+		Discounts:     l.line.Discounts,
+	})
+
+	lineDiscounts, err := discountPercentageMutator.getLineDiscounts(amount, currencyCalc, discounts)
+	if err != nil {
+		return err
+	}
+
+	l.line.Discounts = append(l.line.Discounts, lineDiscounts...)
+
 	return nil
 }
 
