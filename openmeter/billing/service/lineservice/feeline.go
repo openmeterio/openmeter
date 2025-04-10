@@ -41,12 +41,12 @@ func (l feeLine) CalculateDetailedLines() error {
 func (l feeLine) applyPercentageDiscounts() error {
 	discountPercentageMutator := discountPercentageMutator{}
 
-	discounts, err := discountPercentageMutator.getDiscounts(l.line.RateCardDiscounts)
+	discount, err := discountPercentageMutator.getDiscount(l.line.RateCardDiscounts)
 	if err != nil {
 		return err
 	}
 
-	if len(discounts) == 0 {
+	if discount == nil {
 		return nil
 	}
 
@@ -62,12 +62,12 @@ func (l feeLine) applyPercentageDiscounts() error {
 		Discounts:     l.line.Discounts,
 	})
 
-	lineDiscounts, err := discountPercentageMutator.getLineDiscounts(amount, currencyCalc, discounts)
+	lineDiscount, err := discountPercentageMutator.getLineDiscount(amount, currencyCalc, *discount)
 	if err != nil {
 		return err
 	}
 
-	l.line.Discounts = append(l.line.Discounts, lineDiscounts...)
+	l.line.Discounts.Amount = append(l.line.Discounts.Amount, lineDiscount)
 
 	return nil
 }
@@ -81,7 +81,7 @@ func (l *feeLine) UpdateTotals() error {
 
 	// Calculate the line totals
 	totals := billing.Totals{
-		DiscountsTotal: l.line.Discounts.SumAmount(calc),
+		DiscountsTotal: l.line.Discounts.Amount.SumAmount(calc),
 
 		// TODO[OM-979]: implement taxes
 		TaxesInclusiveTotal: alpacadecimal.Zero,

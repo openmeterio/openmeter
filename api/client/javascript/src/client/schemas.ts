@@ -2315,18 +2315,8 @@ export interface components {
        *     Expand settings govern if this includes the whole app object or just the ID references. */
       readonly apps: components['schemas']['BillingProfileAppsOrReference']
     }
-    /** @description A discount on a price. This extends the productcatalog.Discount union to include the
-     *     billing specific extra fields required. */
-    BillingDiscount:
-      | components['schemas']['BillingDiscountPercentage']
-      | components['schemas']['BillingDiscountUsage']
     /** @description A percentage discount. */
     BillingDiscountPercentage: {
-      /**
-       * @description The type of the discount. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'percentage'
       /**
        * Percentage
        * @description The percentage of the discount.
@@ -2337,18 +2327,20 @@ export interface components {
        *
        *     This is used to link discounts across different invoices (progressive billing use case).
        *
-       *     If not provided, the invoicing engine will auto-generate one.
+       *     If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
+       *     please make sure to keep the same correlation ID of the discount or in progressive billing
+       *     setups the discount amounts might be incorrect.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       correlationId?: string
     }
+    /** @description The reason for the discount. */
+    BillingDiscountReason:
+      | components['schemas']['DiscountReasonMaximumSpend']
+      | components['schemas']['DiscountReasonRatecardPercentage']
+      | components['schemas']['DiscountReasonRatecardUsage']
     /** @description A usage discount. */
     BillingDiscountUsage: {
-      /**
-       * @description The type of the discount. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'usage'
       /**
        * Usage
        * @description The quantity of the usage discount.
@@ -2361,10 +2353,19 @@ export interface components {
        *
        *     This is used to link discounts across different invoices (progressive billing use case).
        *
-       *     If not provided, the invoicing engine will auto-generate one.
+       *     If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
+       *     please make sure to keep the same correlation ID of the discount or in progressive billing
+       *     setups the discount amounts might be incorrect.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       correlationId?: string
+    }
+    /** @description A discount by type. */
+    BillingDiscounts: {
+      /** @description The percentage discount. */
+      percentage?: components['schemas']['BillingDiscountPercentage']
+      /** @description The usage discount. */
+      usage?: components['schemas']['BillingDiscountUsage']
     }
     /** @description Party represents a person or business entity. */
     BillingParty: {
@@ -3394,22 +3395,71 @@ export interface components {
        */
       subjectKeys: string[]
     }
-    /** @description A discount on a price. */
-    Discount:
-      | components['schemas']['DiscountPercentage']
-      | components['schemas']['DiscountUsage']
     /** @description Percentage discount. */
     DiscountPercentage: {
-      /**
-       * @description The type of the discount. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'percentage'
       /**
        * Percentage
        * @description The percentage of the discount.
        */
       percentage: components['schemas']['Percentage']
+    }
+    /** @description The reason for the discount is a maximum spend. */
+    DiscountReasonMaximumSpend: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'maximum_spend'
+    }
+    /** @description The reason for the discount is a ratecard percentage. */
+    DiscountReasonRatecardPercentage: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'ratecard_percentage'
+      /**
+       * Percentage
+       * @description The percentage of the discount.
+       */
+      percentage: components['schemas']['Percentage']
+      /**
+       * @description Correlation ID for the discount.
+       *
+       *     This is used to link discounts across different invoices (progressive billing use case).
+       *
+       *     If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
+       *     please make sure to keep the same correlation ID of the discount or in progressive billing
+       *     setups the discount amounts might be incorrect.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      correlationId?: string
+    }
+    /** @description The reason for the discount is a ratecard usage. */
+    DiscountReasonRatecardUsage: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'ratecard_usage'
+      /**
+       * Usage
+       * @description The quantity of the usage discount.
+       *
+       *     Must be positive.
+       */
+      quantity: components['schemas']['Numeric']
+      /**
+       * @description Correlation ID for the discount.
+       *
+       *     This is used to link discounts across different invoices (progressive billing use case).
+       *
+       *     If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
+       *     please make sure to keep the same correlation ID of the discount or in progressive billing
+       *     setups the discount amounts might be incorrect.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      correlationId?: string
     }
     /** @description Usage discount.
      *
@@ -3418,17 +3468,19 @@ export interface components {
      *     is exhausted. */
     DiscountUsage: {
       /**
-       * @description The type of the discount. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'usage'
-      /**
        * Usage
        * @description The quantity of the usage discount.
        *
        *     Must be positive.
        */
       quantity: components['schemas']['Numeric']
+    }
+    /** @description Discount by type on a price */
+    Discounts: {
+      /** @description The percentage discount. */
+      percentage?: components['schemas']['DiscountPercentage']
+      /** @description The usage discount. */
+      usage?: components['schemas']['DiscountUsage']
     }
     /** @description Dynamic price with spend commitments. */
     DynamicPriceWithCommitments: {
@@ -4851,11 +4903,6 @@ export interface components {
       /** @description Invoice a gathering invoice */
       readonly invoice?: components['schemas']['InvoiceAvailableActionInvoiceDetails']
     }
-    /**
-     * @description Reason code.
-     * @enum {string}
-     */
-    InvoiceDiscountReason: 'maximum_spend' | 'ratecard_discount'
     /** @description InvoiceDocumentRef is used to describe a reference to an existing document (invoice). */
     InvoiceDocumentRef: components['schemas']['CreditNoteOriginalInvoiceRef']
     /**
@@ -4928,7 +4975,7 @@ export interface components {
        *
        *     New discounts can be added via the invoice's discounts API, to facilitate
        *     discounts that are affecting multiple lines. */
-      readonly discounts?: components['schemas']['InvoiceLineDiscount'][]
+      readonly discounts?: components['schemas']['InvoiceLineDiscounts']
       /** @description The invoice this item belongs to. */
       invoice?: components['schemas']['InvoiceReference']
       /** @description The currency of this line. */
@@ -5147,7 +5194,7 @@ export interface components {
        *     Default: 1 */
       quantity?: components['schemas']['Numeric']
       /** @description The discounts that are applied to the line. */
-      discounts?: components['schemas']['BillingDiscountPercentage'][]
+      discounts?: components['schemas']['BillingDiscounts']
     }
     /**
      * InvoiceGenericDocumentRef is used to describe an existing document or a specific part of it's contents.
@@ -5168,6 +5215,46 @@ export interface components {
     InvoiceLine:
       | components['schemas']['InvoiceUsageBasedLine']
       | components['schemas']['InvoiceFlatFeeLine']
+    /** @description InvoiceLineAmountDiscount represents an amount deducted from the line, and will be applied before taxes. */
+    InvoiceLineAmountDiscount: {
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /**
+       * @description ID of the charge or discount.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly id: string
+      /** @description Reason code. */
+      readonly reason: components['schemas']['BillingDiscountReason']
+      /** @description Text description as to why the discount was applied. */
+      readonly description?: string
+      /** @description External IDs of the invoice in other apps such as Stripe. */
+      readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
+      /**
+       * Amount in the currency of the invoice
+       * @description Fixed discount amount to apply (calculated if percent present).
+       */
+      readonly amount: components['schemas']['Numeric']
+    }
     /** @description InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps such as Stripe. */
     InvoiceLineAppExternalIds: {
       /** @description The external ID of the invoice in the invoicing app if available. */
@@ -5175,112 +5262,16 @@ export interface components {
       /** @description The external ID of the invoice in the tax app if available. */
       readonly tax?: string
     }
-    /** @description InvoiceLineDiscount represents the actual discount applied to the invoice line. */
-    InvoiceLineDiscount:
-      | components['schemas']['InvoiceLineDiscountAmount']
-      | components['schemas']['InvoiceLineDiscountUsage']
-    /** @description InvoiceLineDiscountAmount represents an amount deducted from the line, and will be applied before taxes. */
-    InvoiceLineDiscountAmount: {
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: Date
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: Date
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: Date
-      /**
-       * @description ID of the charge or discount.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      readonly id: string
-      /** @description Reason code. */
-      readonly reason: components['schemas']['InvoiceDiscountReason']
-      /** @description Text description as to why the discount was applied. */
-      readonly description?: string
-      /** @description External IDs of the invoice in other apps such as Stripe. */
-      readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
-      /** @description The discount from the rate card this discount is based on. */
-      readonly rateCardDiscount?: components['schemas']['Discount']
-      /**
-       * Amount in the currency of the invoice
-       * @description Fixed discount amount to apply (calculated if percent present).
-       */
-      readonly amount: components['schemas']['Numeric']
-      /**
-       * @description The type of the discount. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'amount'
-    }
-    /** @description InvoiceLineDiscountUsage represents an usage-based discount applied to the line.
-     *
-     *     The deduction is done before the pricing algorithm is applied. */
-    InvoiceLineDiscountUsage: {
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: Date
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: Date
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: Date
-      /**
-       * @description ID of the charge or discount.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      readonly id: string
-      /** @description Reason code. */
-      readonly reason: components['schemas']['InvoiceDiscountReason']
-      /** @description Text description as to why the discount was applied. */
-      readonly description?: string
-      /** @description External IDs of the invoice in other apps such as Stripe. */
-      readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
-      /** @description The discount from the rate card this discount is based on. */
-      readonly rateCardDiscount?: components['schemas']['Discount']
-      /**
-       * Usage quantity in the unit of the underlying meter
-       * @description The usage to apply.
-       */
-      readonly quantity: components['schemas']['Numeric']
-      /**
-       * Usage quantity in the unit of the underlying meter
-       * @description The usage discount already applied to the previous split lines.
+    /** @description InvoiceLineDiscounts represents the discounts applied to the invoice line by type. */
+    InvoiceLineDiscounts: {
+      /** @description Amount based discounts applied to the line.
        *
-       *     Only set if progressive billing is enabled and the line is a split line.
-       */
-      readonly preLinePeriodQuantity?: components['schemas']['Numeric']
-      /**
-       * @description The type of the discount. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'usage'
+       *     Amount based discounts are deduced from the total price of the line. */
+      amount?: components['schemas']['InvoiceLineAmountDiscount'][]
+      /** @description Usage based discounts applied to the line.
+       *
+       *     Usage based discounts are deduced from the usage of the line before price calculations are applied. */
+      usage?: components['schemas']['InvoiceLineUsageDiscount'][]
     }
     /**
      * @description InvoiceLineManagedBy specifies who manages the line.
@@ -5325,6 +5316,55 @@ export interface components {
       readonly surcharge?: components['schemas']['Numeric']
       /** @description Is the tax item inclusive or exclusive of the base amount. */
       readonly behavior?: components['schemas']['InvoiceLineTaxBehavior']
+    }
+    /** @description InvoiceLineUsageDiscount represents an usage-based discount applied to the line.
+     *
+     *     The deduction is done before the pricing algorithm is applied. */
+    InvoiceLineUsageDiscount: {
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /**
+       * @description ID of the charge or discount.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly id: string
+      /** @description Reason code. */
+      readonly reason: components['schemas']['BillingDiscountReason']
+      /** @description Text description as to why the discount was applied. */
+      readonly description?: string
+      /** @description External IDs of the invoice in other apps such as Stripe. */
+      readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
+      /**
+       * Usage quantity in the unit of the underlying meter
+       * @description The usage to apply.
+       */
+      readonly quantity: components['schemas']['Numeric']
+      /**
+       * Usage quantity in the unit of the underlying meter
+       * @description The usage discount already applied to the previous split lines.
+       *
+       *     Only set if progressive billing is enabled and the line is a split line.
+       */
+      readonly preLinePeriodQuantity?: components['schemas']['Numeric']
     }
     /**
      * @description InvoiceNumber is a unique identifier for the invoice, generated by the
@@ -5699,7 +5739,7 @@ export interface components {
        *
        *     New discounts can be added via the invoice's discounts API, to facilitate
        *     discounts that are affecting multiple lines. */
-      readonly discounts?: components['schemas']['InvoiceLineDiscount'][]
+      readonly discounts?: components['schemas']['InvoiceLineDiscounts']
       /** @description The invoice this item belongs to. */
       invoice?: components['schemas']['InvoiceReference']
       /** @description The currency of this line. */
@@ -5892,7 +5932,7 @@ export interface components {
        *     When null, the feature or service is free. */
       price: components['schemas']['RateCardUsageBasedPrice'] | null
       /** @description The discounts that are applied to the line. */
-      discounts?: components['schemas']['BillingDiscount'][]
+      discounts?: components['schemas']['BillingDiscounts']
     }
     /** @description InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow. */
     InvoiceWorkflowInvoicingSettingsReplaceUpdate: {
@@ -7405,7 +7445,7 @@ export interface components {
        * @description The discount of the rate card. For flat fee rate cards only percentage discounts are supported.
        *     Only available when price is set.
        */
-      discounts?: components['schemas']['DiscountPercentage'][]
+      discounts?: components['schemas']['Discounts']
     }
     /** @description The entitlement template with a metered entitlement. */
     RateCardMeteredEntitlement: {
@@ -7524,7 +7564,7 @@ export interface components {
        *
        *     Flat fee rate cards only support percentage discounts.
        */
-      discounts?: components['schemas']['Discount'][]
+      discounts?: components['schemas']['Discounts']
     }
     /** @description The price of the usage based rate card. */
     RateCardUsageBasedPrice:
@@ -8544,7 +8584,7 @@ export interface components {
        * Discounts
        * @description The discounts applied to the rate card.
        */
-      discounts?: components['schemas']['Discount'][]
+      discounts?: components['schemas']['Discounts']
       /** @description Describes what access is gained via the SubscriptionItem */
       included?: components['schemas']['SubscriptionItemIncluded']
       /**
@@ -8603,7 +8643,7 @@ export interface components {
        * Discounts
        * @description The discounts on the plan.
        */
-      discounts?: components['schemas']['Discount'][]
+      discounts?: components['schemas']['Discounts']
       /** @description A locally unique identifier for the phase. */
       key: string
       /** @description The name of the phase. */
@@ -8661,7 +8701,7 @@ export interface components {
        * Discounts
        * @description The discounts on the plan.
        */
-      discounts?: components['schemas']['Discount'][]
+      discounts?: components['schemas']['Discounts']
       /**
        * Format: date-time
        * @description The time from which the phase is active.
@@ -9219,10 +9259,12 @@ export type BadRequestProblemResponse =
 export type BalanceHistoryWindow = components['schemas']['BalanceHistoryWindow']
 export type BillingCustomerProfile =
   components['schemas']['BillingCustomerProfile']
-export type BillingDiscount = components['schemas']['BillingDiscount']
 export type BillingDiscountPercentage =
   components['schemas']['BillingDiscountPercentage']
+export type BillingDiscountReason =
+  components['schemas']['BillingDiscountReason']
 export type BillingDiscountUsage = components['schemas']['BillingDiscountUsage']
+export type BillingDiscounts = components['schemas']['BillingDiscounts']
 export type BillingParty = components['schemas']['BillingParty']
 export type BillingPartyReplaceUpdate =
   components['schemas']['BillingPartyReplaceUpdate']
@@ -9333,9 +9375,15 @@ export type CustomerReplaceUpdate =
   components['schemas']['CustomerReplaceUpdate']
 export type CustomerUsageAttribution =
   components['schemas']['CustomerUsageAttribution']
-export type Discount = components['schemas']['Discount']
 export type DiscountPercentage = components['schemas']['DiscountPercentage']
+export type DiscountReasonMaximumSpend =
+  components['schemas']['DiscountReasonMaximumSpend']
+export type DiscountReasonRatecardPercentage =
+  components['schemas']['DiscountReasonRatecardPercentage']
+export type DiscountReasonRatecardUsage =
+  components['schemas']['DiscountReasonRatecardUsage']
 export type DiscountUsage = components['schemas']['DiscountUsage']
+export type Discounts = components['schemas']['Discounts']
 export type DynamicPriceWithCommitments =
   components['schemas']['DynamicPriceWithCommitments']
 export type EditSubscriptionAddItem =
@@ -9412,8 +9460,6 @@ export type InvoiceAvailableActionInvoiceDetails =
   components['schemas']['InvoiceAvailableActionInvoiceDetails']
 export type InvoiceAvailableActions =
   components['schemas']['InvoiceAvailableActions']
-export type InvoiceDiscountReason =
-  components['schemas']['InvoiceDiscountReason']
 export type InvoiceDocumentRef = components['schemas']['InvoiceDocumentRef']
 export type InvoiceDocumentRefType =
   components['schemas']['InvoiceDocumentRefType']
@@ -9430,13 +9476,11 @@ export type InvoiceFlatFeeRateCard =
 export type InvoiceGenericDocumentRef =
   components['schemas']['InvoiceGenericDocumentRef']
 export type InvoiceLine = components['schemas']['InvoiceLine']
+export type InvoiceLineAmountDiscount =
+  components['schemas']['InvoiceLineAmountDiscount']
 export type InvoiceLineAppExternalIds =
   components['schemas']['InvoiceLineAppExternalIds']
-export type InvoiceLineDiscount = components['schemas']['InvoiceLineDiscount']
-export type InvoiceLineDiscountAmount =
-  components['schemas']['InvoiceLineDiscountAmount']
-export type InvoiceLineDiscountUsage =
-  components['schemas']['InvoiceLineDiscountUsage']
+export type InvoiceLineDiscounts = components['schemas']['InvoiceLineDiscounts']
 export type InvoiceLineManagedBy = components['schemas']['InvoiceLineManagedBy']
 export type InvoiceLineReplaceUpdate =
   components['schemas']['InvoiceLineReplaceUpdate']
@@ -9446,6 +9490,8 @@ export type InvoiceLineSubscriptionReference =
 export type InvoiceLineTaxBehavior =
   components['schemas']['InvoiceLineTaxBehavior']
 export type InvoiceLineTaxItem = components['schemas']['InvoiceLineTaxItem']
+export type InvoiceLineUsageDiscount =
+  components['schemas']['InvoiceLineUsageDiscount']
 export type InvoiceNumber = components['schemas']['InvoiceNumber']
 export type InvoiceOrderBy = components['schemas']['InvoiceOrderBy']
 export type InvoicePaginatedResponse =

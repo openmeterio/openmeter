@@ -9,6 +9,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -87,7 +89,12 @@ func (a *adapter) fetchAllLinesForParentIDs(ctx context.Context, namespace strin
 		).
 		WithFlatFeeLine().
 		WithUsageBasedLine().
-		WithLineDiscounts().
+		WithLineAmountDiscounts(func(q *db.BillingInvoiceLineDiscountQuery) {
+			q.Where(billinginvoicelinediscount.DeletedAtIsNil())
+		}).
+		WithLineUsageDiscounts(func(q *db.BillingInvoiceLineUsageDiscountQuery) {
+			q.Where(billinginvoicelineusagediscount.DeletedAtIsNil())
+		}).
 		WithBillingInvoice() // TODO[later]: we can consider loading this in a separate query, might be more efficient
 
 	dbLines, err := query.All(ctx)

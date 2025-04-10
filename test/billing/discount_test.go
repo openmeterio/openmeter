@@ -108,11 +108,11 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 								Name:     "Test item1",
 								Currency: currencyx.Code(currency.USD),
 								RateCardDiscounts: billing.Discounts{
-									billing.NewDiscountFrom(billing.PercentageDiscount{
+									Percentage: &billing.PercentageDiscount{
 										PercentageDiscount: productcatalog.PercentageDiscount{
 											Percentage: models.NewPercentage(10),
 										},
-									}),
+									},
 								},
 							},
 							UsageBased: &billing.UsageBasedLine{
@@ -130,7 +130,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.Len(res, 1)
 
 		// Then the freshly created line has a correlation ID set
-		percentageDiscount := lo.Must(res[0].RateCardDiscounts[0].AsPercentage())
+		percentageDiscount := res[0].RateCardDiscounts.Percentage
 		s.NotEmpty(percentageDiscount.CorrelationID)
 		discountCorrelationID = percentageDiscount.CorrelationID
 
@@ -153,22 +153,26 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.NotNil(invoiceLine.ProgressiveLineHierarchy)
 
 		// Root line has the same correlation ID for the discount
-		s.Equal(discountCorrelationID, getDiscountCorrelationID(invoiceLine.RateCardDiscounts[0]))
+		s.Equal(discountCorrelationID, invoiceLine.RateCardDiscounts.Percentage.CorrelationID)
 
 		// Split lines have the same correlation ID for the discount
 		s.Len(invoiceLine.ProgressiveLineHierarchy.Children, 2)
 		for _, child := range invoiceLine.ProgressiveLineHierarchy.Children {
-			s.Equal(discountCorrelationID, getDiscountCorrelationID(child.Line.RateCardDiscounts[0]))
+			s.Equal(discountCorrelationID, child.Line.RateCardDiscounts.Percentage.CorrelationID)
 		}
 
 		// An amount discount is also created, and it retains the same correlation ID
 		s.Len(invoiceLine.Children.OrEmpty(), 1)
 		detailedLine := invoiceLine.Children.OrEmpty()[0]
 
-		amountDiscount := lo.Must(detailedLine.Discounts[0].AsAmount())
-		s.Equal(billing.LineDiscountReasonRatecardDiscount, amountDiscount.Reason)
-		s.NotNil(amountDiscount.SourceDiscount)
-		s.Equal(discountCorrelationID, getDiscountCorrelationID(*amountDiscount.SourceDiscount))
+		require.Len(s.T(), detailedLine.Discounts.Amount, 1)
+
+		amountDiscount := detailedLine.Discounts.Amount[0]
+
+		s.Equal(billing.RatecardPercentageDiscountReason, amountDiscount.Reason.Type())
+		pctDiscount, err := amountDiscount.Reason.AsRatecardPercentage()
+		s.NoError(err)
+		s.Equal(discountCorrelationID, pctDiscount.CorrelationID)
 
 		// Output
 		draftInvoiceID = invoices[0].InvoiceID()
@@ -179,12 +183,11 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 			Invoice: draftInvoiceID,
 			EditFn: func(invoice *billing.Invoice) error {
 				line := invoice.Lines.OrEmpty()[0]
-				line.RateCardDiscounts = append(line.RateCardDiscounts, billing.NewDiscountFrom(billing.PercentageDiscount{
-					PercentageDiscount: productcatalog.PercentageDiscount{
-						Percentage: models.NewPercentage(20),
+				line.RateCardDiscounts.Usage = &billing.UsageDiscount{
+					UsageDiscount: productcatalog.UsageDiscount{
+						Quantity: alpacadecimal.NewFromFloat(10),
 					},
-				}))
-
+				}
 				return nil
 			},
 		})
@@ -192,20 +195,9 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.NotNil(editedInvoice)
 
 		rcDiscounts := editedInvoice.Lines.OrEmpty()[0].RateCardDiscounts
-		s.Len(rcDiscounts, 2)
+		s.NotNil(rcDiscounts)
 
-		s.Equal(discountCorrelationID, getDiscountCorrelationID(rcDiscounts[0]))
-		s.NotEqual(discountCorrelationID, getDiscountCorrelationID(rcDiscounts[1]))
+		s.Equal(discountCorrelationID, rcDiscounts.Percentage.CorrelationID)
+		s.NotEqual(discountCorrelationID, rcDiscounts.Usage.CorrelationID)
 	})
-}
-
-func getDiscountCorrelationID(discount billing.Discount) string {
-	switch discount.Type() {
-	case productcatalog.PercentageDiscountType:
-		return lo.Must(discount.AsPercentage()).CorrelationID
-	case productcatalog.UsageDiscountType:
-		return lo.Must(discount.AsUsage()).CorrelationID
-	default:
-		return ""
-	}
 }

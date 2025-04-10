@@ -168,9 +168,12 @@ func mapAndValidateFlatFeeRateCardDeprecatedFields(in flatFeeRateCardItems) (*fl
 
 	var discounts billing.Discounts
 	if in.RateCard.Discounts != nil {
-		discounts = lo.Map(*in.RateCard.Discounts, func(d api.BillingDiscountPercentage, _ int) billing.Discount {
-			return billing.NewDiscountFrom(AsPercentageDiscount(d))
-		})
+		discounts, err = AsDiscounts(in.RateCard.Discounts)
+		if err != nil {
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("failed to parse discounts: %w", err),
+			}
+		}
 	}
 
 	return &flatFeeRateCardParsed{
@@ -297,7 +300,7 @@ func mapAndValidateUsageBasedRateCardDeprecatedFields(in usageBasedRateCardItems
 
 	var discounts billing.Discounts
 	if in.RateCard.Discounts != nil {
-		discounts, err = AsDiscounts(*in.RateCard.Discounts)
+		discounts, err = AsDiscounts(in.RateCard.Discounts)
 		if err != nil {
 			return nil, billing.ValidationError{
 				Err: fmt.Errorf("failed to parse discounts: %w", err),

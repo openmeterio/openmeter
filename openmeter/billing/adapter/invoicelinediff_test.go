@@ -1,6 +1,7 @@
 package billingadapter
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type idDiff = diff[string]
@@ -18,7 +20,7 @@ type lineDiffExpectation struct {
 	FlatFee    idDiff
 	UsageBased idDiff
 
-	Discounts idDiff
+	AmountDiscounts idDiff
 
 	AffectedLineIDs []string
 	ChildrenDiff    *lineDiffExpectation
@@ -46,7 +48,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 						Type: billing.InvoiceLineTypeFee,
 					},
 					FlatFee:   &billing.FlatFeeLine{},
-					Discounts: newDiscountsWithIDs("D2.1.1"),
+					Discounts: newAmountDiscountsWithIDs("D2.1.1"),
 				},
 				{
 					LineBase: billing.LineBase{
@@ -82,7 +84,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 				FlatFee: idDiff{
 					ToCreate: []string{"2.1", "2.2"},
 				},
-				Discounts: idDiff{
+				AmountDiscounts: idDiff{
 					ToCreate: []string{"D2.1.1"},
 				},
 			},
@@ -116,7 +118,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 				},
 				// Flat fee is not deleted as it does not have soft delete, so it's enough to mark the line as deleted
 				FlatFee: idDiff{},
-				Discounts: idDiff{
+				AmountDiscounts: idDiff{
 					// Discounts also get deleted
 					ToDelete: []string{"D2.1.1"},
 				},
@@ -174,9 +176,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		changedLine.ID = ""
 		changedLine.Description = lo.ToPtr("2.3")
 
-		changedLine.Discounts[0] = lo.Must(changedLine.Discounts[0].Mutate(billing.SetDiscountMangedFields(billing.LineSetDiscountMangedFields{
-			ID: "D2.1.3",
-		})))
+		changedLine.Discounts.Amount[0].ID = "D2.1.3"
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -191,7 +191,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 				FlatFee: idDiff{
 					ToCreate: []string{"2.3"},
 				},
-				Discounts: idDiff{
+				AmountDiscounts: idDiff{
 					// The discount gets deleted + created
 					ToCreate: []string{"D2.1.3"},
 					ToDelete: []string{"D2.1.1"},
@@ -205,7 +205,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		base[1].Children.GetByID("2.1").Discounts = nil
+		base[1].Children.GetByID("2.1").Discounts.Amount = nil
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -213,7 +213,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		requireDiff(t, lineDiffExpectation{
 			AffectedLineIDs: []string{"2", "2.1"},
 			ChildrenDiff: &lineDiffExpectation{
-				Discounts: idDiff{
+				AmountDiscounts: idDiff{
 					ToDelete: []string{"D2.1.1"},
 				},
 			},
@@ -224,12 +224,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		base[1].Children.GetByID("2.1").Discounts[0] = lo.Must(base[1].Children.GetByID("2.1").Discounts[0].Mutate(
-			billing.EditAmountDiscount(func(amount billing.AmountLineDiscountManaged) (billing.AmountLineDiscountManaged, error) {
-				amount.Amount = alpacadecimal.NewFromFloat(20)
-				return amount, nil
-			}),
-		))
+		base[1].Children.GetByID("2.1").Discounts.Amount[0].Amount = alpacadecimal.NewFromFloat(20)
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -237,7 +232,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		requireDiff(t, lineDiffExpectation{
 			AffectedLineIDs: []string{"2", "2.1"},
 			ChildrenDiff: &lineDiffExpectation{
-				Discounts: idDiff{
+				AmountDiscounts: idDiff{
 					ToUpdate: []string{"D2.1.1"},
 				},
 			},
@@ -248,16 +243,10 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		discounts := base[1].Children.GetByID("2.1").Discounts
+		discounts := base[1].Children.GetByID("2.1").Discounts.Amount
 
-		discounts[0] = lo.Must(discounts[0].Mutate(billing.EditAmountDiscount(
-			func(aldm billing.AmountLineDiscountManaged) (billing.AmountLineDiscountManaged, error) {
-				aldm.ID = ""
-				aldm.Description = lo.ToPtr("D2.1.2")
-
-				return aldm, nil
-			},
-		)))
+		discounts[0].ID = ""
+		discounts[0].Description = lo.ToPtr("D2.1.2")
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -265,7 +254,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		requireDiff(t, lineDiffExpectation{
 			AffectedLineIDs: []string{"2", "2.1"},
 			ChildrenDiff: &lineDiffExpectation{
-				Discounts: idDiff{
+				AmountDiscounts: idDiff{
 					ToCreate: []string{"D2.1.2"},
 					ToDelete: []string{"D2.1.1"},
 				},
@@ -289,7 +278,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 				LineBase: idDiff{
 					ToDelete: []string{"2.1"},
 				},
-				Discounts: idDiff{
+				AmountDiscounts: idDiff{
 					ToDelete: []string{"D2.1.1"},
 				},
 			},
@@ -313,7 +302,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 				LineBase: idDiff{
 					ToDelete: []string{"2.1", "2.2"},
 				},
-				Discounts: idDiff{
+				AmountDiscounts: idDiff{
 					ToDelete: []string{"D2.1.1"},
 				},
 			},
@@ -392,20 +381,17 @@ func mapLineDiffToIDs(in diff[*billing.Line]) idDiff {
 	}
 }
 
-func mapLineDiscountsToIDs(t *testing.T, discounts []discountWithLine) []string {
-	return lo.Map(discounts, func(d discountWithLine, _ int) string {
-		discount, err := d.Discount.AsDiscountBase()
-		require.NoError(t, err)
-
-		if discount.Description != nil {
-			return *discount.Description
+func mapLineDiscountsToIDs(t *testing.T, discounts []withLine[billing.AmountLineDiscountManaged]) []string {
+	return lo.Map(discounts, func(d withLine[billing.AmountLineDiscountManaged], _ int) string {
+		if d.Discount.Description != nil {
+			return *d.Discount.Description
 		}
 
-		return discount.ID
+		return d.Discount.GetID()
 	})
 }
 
-func mapLineDiscountDiffToIDs(t *testing.T, in diff[discountWithLine]) idDiff {
+func mapLineDiscountDiffToIDs(t *testing.T, in diff[withLine[billing.AmountLineDiscountManaged]]) idDiff {
 	return idDiff{
 		ToCreate: mapLineDiscountsToIDs(t, in.ToCreate),
 		ToUpdate: mapLineDiscountsToIDs(t, in.ToUpdate),
@@ -413,12 +399,25 @@ func mapLineDiscountDiffToIDs(t *testing.T, in diff[discountWithLine]) idDiff {
 	}
 }
 
+func msgPrefix(prefix string, in ...interface{}) []interface{} {
+	if len(in) == 0 {
+		return []interface{}{prefix}
+	}
+
+	if formatString, ok := in[0].(string); ok {
+		formatString = fmt.Sprintf("%s: %s", prefix, formatString)
+		return append([]interface{}{formatString}, in[1:]...)
+	}
+
+	return in
+}
+
 func requireIdDiffMatches(t *testing.T, a, b idDiff, msgAndArgs ...interface{}) {
 	t.Helper()
 
-	require.ElementsMatch(t, a.ToCreate, b.ToCreate, msgAndArgs...)
-	require.ElementsMatch(t, a.ToUpdate, b.ToUpdate, msgAndArgs...)
-	require.ElementsMatch(t, a.ToDelete, b.ToDelete, msgAndArgs...)
+	require.ElementsMatch(t, a.ToCreate, b.ToCreate, msgPrefix("ToCreate", msgAndArgs...))
+	require.ElementsMatch(t, a.ToUpdate, b.ToUpdate, msgPrefix("ToUpdate", msgAndArgs...))
+	require.ElementsMatch(t, a.ToDelete, b.ToDelete, msgPrefix("ToDelete", msgAndArgs...))
 }
 
 func requireDiffWithoutChildren(t *testing.T, expected lineDiffExpectation, actual *invoiceLineDiff, prefix string) {
@@ -428,7 +427,7 @@ func requireDiffWithoutChildren(t *testing.T, expected lineDiffExpectation, actu
 	requireIdDiffMatches(t, expected.FlatFee, mapLineDiffToIDs(actual.FlatFee), prefix+": FlatFee")
 	requireIdDiffMatches(t, expected.UsageBased, mapLineDiffToIDs(actual.UsageBased), prefix+": UsageBased")
 
-	requireIdDiffMatches(t, expected.Discounts, mapLineDiscountDiffToIDs(t, actual.Discounts), prefix+": Discounts")
+	requireIdDiffMatches(t, expected.AmountDiscounts, mapLineDiscountDiffToIDs(t, actual.AmountDiscounts), prefix+": AmountDiscounts")
 }
 
 func requireDiff(t *testing.T, expected lineDiffExpectation, actual *invoiceLineDiff) {
@@ -470,15 +469,17 @@ func snapshotAsDBState(lines []*billing.Line) {
 	}
 }
 
-func newDiscountsWithIDs(ids ...string) billing.LineDiscounts {
-	return billing.NewLineDiscounts(lo.Map(ids, func(id string, _ int) billing.LineDiscount {
-		return billing.NewLineDiscountFrom(billing.AmountLineDiscountManaged{
-			LineSetDiscountMangedFields: billing.LineSetDiscountMangedFields{
-				ID: id,
-			},
-			AmountLineDiscount: billing.AmountLineDiscount{
-				Amount: alpacadecimal.NewFromFloat(10),
-			},
-		})
-	})...)
+func newAmountDiscountsWithIDs(ids ...string) billing.LineDiscounts {
+	return billing.LineDiscounts{
+		Amount: lo.Map(ids, func(id string, _ int) billing.AmountLineDiscountManaged {
+			return billing.AmountLineDiscountManaged{
+				ManagedModelWithID: models.ManagedModelWithID{
+					ID: id,
+				},
+				AmountLineDiscount: billing.AmountLineDiscount{
+					Amount: alpacadecimal.NewFromFloat(10),
+				},
+			}
+		}),
+	}
 }

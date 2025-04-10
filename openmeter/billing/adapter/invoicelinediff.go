@@ -57,10 +57,19 @@ func unionOfDiffs[T any](a, b diff[T]) diff[T] {
 	return out
 }
 
-type discountWithLine struct {
-	Discount billing.LineDiscount // Note: no pointer here, as we are referencing the object at the end and there are no dependencies
+func (d *diff[T]) IsEmpty() bool {
+	return len(d.ToDelete) == 0 && len(d.ToUpdate) == 0 && len(d.ToCreate) == 0
+}
+
+type withLine[T any] struct {
+	Discount T
 	Line     *billing.Line
 }
+
+type (
+	usageLineDiscountMangedWithLine  = withLine[billing.UsageLineDiscountManaged]
+	amountLineDiscountMangedWithLine = withLine[billing.AmountLineDiscountManaged]
+)
 
 type invoiceLineDiff struct {
 	LineBase   diff[*billing.Line]
@@ -68,7 +77,8 @@ type invoiceLineDiff struct {
 	UsageBased diff[*billing.Line]
 
 	// Dependant entities
-	Discounts diff[discountWithLine]
+	UsageDiscounts  diff[usageLineDiscountMangedWithLine]
+	AmountDiscounts diff[amountLineDiscountMangedWithLine]
 
 	// AffectedLineIDs contains the list of line IDs that are affected by the diff, even if they
 	// are not updated. We can use this to update the UpdatedAt of the lines if any of the dependant
@@ -338,85 +348,131 @@ func deleteLineChildren(line *billing.Line, out *invoiceLineDiff) error {
 }
 
 func handleLineDependantEntities(line *billing.Line, lineOperation operation, out *invoiceLineDiff) error {
-	return handleLineDiscounts(line, lineOperation, out)
+	// If we don't have a DB state, we need to have an empty dbState to compare to
+	dbStateDiscounts := billing.LineDiscounts{}
+	if line.DBState != nil {
+		dbStateDiscounts = line.DBState.Discounts
+	}
+
+	// Usage discounts
+	usageDiscountDiff, err := handleLineDiscounts(line.Discounts.Usage, dbStateDiscounts.Usage, lineOperation, line)
+	if err != nil {
+		return err
+	}
+
+	out.AffectedLineIDs.Add(usageDiscountDiff.affectedLineIDs...)
+	out.UsageDiscounts = unionOfDiffs(out.UsageDiscounts, usageDiscountDiff.diff)
+
+	// Amount discounts
+	amountDiscountDiff, err := handleLineDiscounts(line.Discounts.Amount, dbStateDiscounts.Amount, lineOperation, line)
+	if err != nil {
+		return err
+	}
+
+	out.AffectedLineIDs.Add(amountDiscountDiff.affectedLineIDs...)
+	out.AmountDiscounts = unionOfDiffs(out.AmountDiscounts, amountDiscountDiff.diff)
+
+	return nil
 }
 
-func handleLineDiscounts(line *billing.Line, lineOperation operation, out *invoiceLineDiff) error {
+type diffable[T any] interface {
+	GetID() string
+	ContentsEqual(other T) bool
+}
+
+type handleLineDiscountsResult[T diffable[T]] struct {
+	diff            diff[withLine[T]]
+	affectedLineIDs []string
+}
+
+func handleLineDiscounts[T diffable[T]](items []T, dbItems []T, lineOperation operation, line *billing.Line) (handleLineDiscountsResult[T], error) {
+	out := handleLineDiscountsResult[T]{
+		diff: diff[withLine[T]]{},
+	}
+
 	switch lineOperation {
 	case operationCreate:
-		for _, discount := range line.Discounts {
-			out.Discounts.NeedsCreate(discountWithLine{
+		for _, discount := range items {
+			out.diff.NeedsCreate(withLine[T]{
 				Discount: discount,
 				Line:     line,
 			})
 		}
 	case operationDelete:
-		for _, discount := range line.Discounts {
-			out.Discounts.NeedsDelete(discountWithLine{
+		for _, discount := range items {
+			out.diff.NeedsDelete(withLine[T]{
 				Discount: discount,
 				Line:     line,
 			})
 		}
 	case operationUpdate:
-		return handleLineDiscountUpdate(line, out)
+		updateDiffs, err := handleLineDiscountUpdate(items, dbItems, line)
+		if err != nil {
+			return out, err
+		}
+
+		out.diff = updateDiffs
+		if !updateDiffs.IsEmpty() {
+			out.affectedLineIDs = lineParentIDs(line, lineIDIncludeSelf)
+		}
 	}
 
-	return nil
+	return out, nil
 }
 
-func handleLineDiscountUpdate(line *billing.Line, out *invoiceLineDiff) error {
+func handleLineDiscountUpdate[T diffable[T]](items []T, dbItems []T, line *billing.Line) (diff[withLine[T]], error) {
+	out := diff[withLine[T]]{}
+
 	// We need to figure out what we need to update
-	currentDiscountIDs, err := line.Discounts.DiscountsByID()
-	if err != nil {
-		return fmt.Errorf("failed to get line discounts by ID: %w", err)
+	currentDiscountIDs := map[string]T{}
+	for _, discount := range items {
+		if discount.GetID() == "" {
+			continue
+		}
+
+		currentDiscountIDs[discount.GetID()] = discount
 	}
 
-	dbDiscountIDs, err := line.DBState.Discounts.DiscountsByID()
-	if err != nil {
-		return fmt.Errorf("failed to get line discounts by ID: %w", err)
+	dbDiscountIDs := map[string]T{}
+	for _, discount := range dbItems {
+		dbDiscountIDs[discount.GetID()] = discount
 	}
 
 	for _, dbDiscount := range dbDiscountIDs {
 		if _, ok := currentDiscountIDs[dbDiscount.GetID()]; !ok {
 			// We need to delete this discount
-			out.Discounts.NeedsDelete(discountWithLine{
+			out.NeedsDelete(withLine[T]{
 				Discount: dbDiscount,
 				Line:     line,
 			})
-
-			out.AffectedLineIDs.Add(lineParentIDs(line, lineIDIncludeSelf)...)
 		}
 	}
 
-	for _, currentDiscount := range line.Discounts {
+	for _, currentDiscount := range items {
 		if currentDiscount.GetID() == "" {
 			// We need to create this discount
-			out.Discounts.NeedsCreate(discountWithLine{
+			out.NeedsCreate(withLine[T]{
 				Discount: currentDiscount,
 				Line:     line,
 			})
-
-			out.AffectedLineIDs.Add(lineParentIDs(line, lineIDIncludeSelf)...)
 
 			continue
 		}
 
 		dbDiscount, ok := dbDiscountIDs[currentDiscount.GetID()]
 		if !ok {
-			return fmt.Errorf("discount[%s]: not found in DB", currentDiscount.GetID())
+			return out, fmt.Errorf("discount[%s]: not found in DB", currentDiscount.GetID())
 		}
 
 		if !dbDiscount.ContentsEqual(currentDiscount) {
-			out.Discounts.NeedsUpdate(discountWithLine{
+			out.NeedsUpdate(withLine[T]{
 				Discount: currentDiscount,
 				Line:     line,
 			})
-
-			out.AffectedLineIDs.Add(lineParentIDs(line, lineIDIncludeSelf)...)
 		}
 	}
 
-	return nil
+	return out, nil
 }
 
 type lineIDIncludeFlag int

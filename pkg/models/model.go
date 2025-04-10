@@ -152,6 +152,31 @@ func (m ManagedModel) Equal(other ManagedModel) bool {
 	return true
 }
 
+type ManagedModelWithID struct {
+	ManagedModel `json:",inline" mapstructure:",squash"`
+	ID           string `json:"id"`
+}
+
+func (m ManagedModelWithID) GetID() string {
+	return m.ID
+}
+
+func (m ManagedModelWithID) Equal(other ManagedModelWithID) bool {
+	if m.ID != other.ID {
+		return false
+	}
+
+	return m.ManagedModel.Equal(other.ManagedModel)
+}
+
+func (m ManagedModelWithID) Validate() error {
+	if m.ID == "" {
+		return errors.New("id is required")
+	}
+
+	return nil
+}
+
 type NamespacedModel struct {
 	Namespace string `json:"namespace"`
 }

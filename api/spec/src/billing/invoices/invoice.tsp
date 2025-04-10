@@ -613,7 +613,7 @@ model InvoiceLineBase {
    * discounts that are affecting multiple lines.
    */
   @visibility(Lifecycle.Read)
-  discounts?: InvoiceLineDiscount[];
+  discounts?: InvoiceLineDiscounts;
 
   /**
    * The invoice this item belongs to.
@@ -712,7 +712,7 @@ model InvoiceUsageBasedRateCard {
    * The discounts that are applied to the line.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  discounts?: BillingDiscount[];
+  discounts?: BillingDiscounts;
 }
 
 /**
@@ -792,7 +792,7 @@ model InvoiceFlatFeeRateCard {
    * The discounts that are applied to the line.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  discounts?: BillingDiscountPercentage[];
+  discounts?: BillingDiscounts;
 }
 
 /**

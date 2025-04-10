@@ -74,18 +74,6 @@ func (bildc *BillingInvoiceLineDiscountCreate) SetNillableDeletedAt(t *time.Time
 	return bildc
 }
 
-// SetType sets the "type" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetType(bdt billing.LineDiscountType) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetType(bdt)
-	return bildc
-}
-
-// SetReason sets the "reason" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetReason(bdr billing.LineDiscountReason) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetReason(bdr)
-	return bildc
-}
-
 // SetLineID sets the "line_id" field.
 func (bildc *BillingInvoiceLineDiscountCreate) SetLineID(s string) *BillingInvoiceLineDiscountCreate {
 	bildc.mutation.SetLineID(s)
@@ -120,17 +108,29 @@ func (bildc *BillingInvoiceLineDiscountCreate) SetNillableDescription(s *string)
 	return bildc
 }
 
-// SetAmount sets the "amount" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetAmount(a)
+// SetReason sets the "reason" field.
+func (bildc *BillingInvoiceLineDiscountCreate) SetReason(brt billing.DiscountReasonType) *BillingInvoiceLineDiscountCreate {
+	bildc.mutation.SetReason(brt)
 	return bildc
 }
 
-// SetNillableAmount sets the "amount" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableAmount(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	if a != nil {
-		bildc.SetAmount(*a)
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (bildc *BillingInvoiceLineDiscountCreate) SetInvoicingAppExternalID(s string) *BillingInvoiceLineDiscountCreate {
+	bildc.mutation.SetInvoicingAppExternalID(s)
+	return bildc
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (bildc *BillingInvoiceLineDiscountCreate) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineDiscountCreate {
+	if s != nil {
+		bildc.SetInvoicingAppExternalID(*s)
 	}
+	return bildc
+}
+
+// SetAmount sets the "amount" field.
+func (bildc *BillingInvoiceLineDiscountCreate) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
+	bildc.mutation.SetAmount(a)
 	return bildc
 }
 
@@ -144,6 +144,26 @@ func (bildc *BillingInvoiceLineDiscountCreate) SetRoundingAmount(a alpacadecimal
 func (bildc *BillingInvoiceLineDiscountCreate) SetNillableRoundingAmount(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
 	if a != nil {
 		bildc.SetRoundingAmount(*a)
+	}
+	return bildc
+}
+
+// SetSourceDiscount sets the "source_discount" field.
+func (bildc *BillingInvoiceLineDiscountCreate) SetSourceDiscount(br *billing.DiscountReason) *BillingInvoiceLineDiscountCreate {
+	bildc.mutation.SetSourceDiscount(br)
+	return bildc
+}
+
+// SetType sets the "type" field.
+func (bildc *BillingInvoiceLineDiscountCreate) SetType(s string) *BillingInvoiceLineDiscountCreate {
+	bildc.mutation.SetType(s)
+	return bildc
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (bildc *BillingInvoiceLineDiscountCreate) SetNillableType(s *string) *BillingInvoiceLineDiscountCreate {
+	if s != nil {
+		bildc.SetType(*s)
 	}
 	return bildc
 }
@@ -172,26 +192,6 @@ func (bildc *BillingInvoiceLineDiscountCreate) SetPreLinePeriodQuantity(a alpaca
 func (bildc *BillingInvoiceLineDiscountCreate) SetNillablePreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
 	if a != nil {
 		bildc.SetPreLinePeriodQuantity(*a)
-	}
-	return bildc
-}
-
-// SetSourceDiscount sets the "source_discount" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetSourceDiscount(b *billing.Discount) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetSourceDiscount(b)
-	return bildc
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetInvoicingAppExternalID(s string) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetInvoicingAppExternalID(s)
-	return bildc
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineDiscountCreate {
-	if s != nil {
-		bildc.SetInvoicingAppExternalID(*s)
 	}
 	return bildc
 }
@@ -286,13 +286,8 @@ func (bildc *BillingInvoiceLineDiscountCreate) check() error {
 	if _, ok := bildc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.updated_at"`)}
 	}
-	if _, ok := bildc.mutation.GetType(); !ok {
-		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.type"`)}
-	}
-	if v, ok := bildc.mutation.GetType(); ok {
-		if err := billinginvoicelinediscount.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.type": %w`, err)}
-		}
+	if _, ok := bildc.mutation.LineID(); !ok {
+		return &ValidationError{Name: "line_id", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.line_id"`)}
 	}
 	if _, ok := bildc.mutation.Reason(); !ok {
 		return &ValidationError{Name: "reason", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.reason"`)}
@@ -302,8 +297,8 @@ func (bildc *BillingInvoiceLineDiscountCreate) check() error {
 			return &ValidationError{Name: "reason", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.reason": %w`, err)}
 		}
 	}
-	if _, ok := bildc.mutation.LineID(); !ok {
-		return &ValidationError{Name: "line_id", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.line_id"`)}
+	if _, ok := bildc.mutation.Amount(); !ok {
+		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.amount"`)}
 	}
 	if v, ok := bildc.mutation.SourceDiscount(); ok {
 		if err := v.Validate(); err != nil {
@@ -368,14 +363,6 @@ func (bildc *BillingInvoiceLineDiscountCreate) createSpec() (*BillingInvoiceLine
 		_spec.SetField(billinginvoicelinediscount.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := bildc.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldType, field.TypeEnum, value)
-		_node.Type = value
-	}
-	if value, ok := bildc.mutation.Reason(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldReason, field.TypeEnum, value)
-		_node.Reason = value
-	}
 	if value, ok := bildc.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString, value)
 		_node.ChildUniqueReferenceID = &value
@@ -384,21 +371,21 @@ func (bildc *BillingInvoiceLineDiscountCreate) createSpec() (*BillingInvoiceLine
 		_spec.SetField(billinginvoicelinediscount.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
+	if value, ok := bildc.mutation.Reason(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldReason, field.TypeEnum, value)
+		_node.Reason = value
+	}
+	if value, ok := bildc.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldInvoicingAppExternalID, field.TypeString, value)
+		_node.InvoicingAppExternalID = &value
+	}
 	if value, ok := bildc.mutation.Amount(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldAmount, field.TypeOther, value)
-		_node.Amount = &value
+		_node.Amount = value
 	}
 	if value, ok := bildc.mutation.RoundingAmount(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldRoundingAmount, field.TypeOther, value)
 		_node.RoundingAmount = &value
-	}
-	if value, ok := bildc.mutation.Quantity(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldQuantity, field.TypeOther, value)
-		_node.Quantity = &value
-	}
-	if value, ok := bildc.mutation.PreLinePeriodQuantity(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldPreLinePeriodQuantity, field.TypeOther, value)
-		_node.PreLinePeriodQuantity = &value
 	}
 	if value, ok := bildc.mutation.SourceDiscount(); ok {
 		vv, err := billinginvoicelinediscount.ValueScanner.SourceDiscount.Value(value)
@@ -408,9 +395,17 @@ func (bildc *BillingInvoiceLineDiscountCreate) createSpec() (*BillingInvoiceLine
 		_spec.SetField(billinginvoicelinediscount.FieldSourceDiscount, field.TypeString, vv)
 		_node.SourceDiscount = value
 	}
-	if value, ok := bildc.mutation.InvoicingAppExternalID(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldInvoicingAppExternalID, field.TypeString, value)
-		_node.InvoicingAppExternalID = &value
+	if value, ok := bildc.mutation.GetType(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldType, field.TypeString, value)
+		_node.Type = &value
+	}
+	if value, ok := bildc.mutation.Quantity(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldQuantity, field.TypeOther, value)
+		_node.Quantity = &value
+	}
+	if value, ok := bildc.mutation.PreLinePeriodQuantity(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldPreLinePeriodQuantity, field.TypeOther, value)
+		_node.PreLinePeriodQuantity = &value
 	}
 	if nodes := bildc.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -511,30 +506,6 @@ func (u *BillingInvoiceLineDiscountUpsert) ClearDeletedAt() *BillingInvoiceLineD
 	return u
 }
 
-// SetType sets the "type" field.
-func (u *BillingInvoiceLineDiscountUpsert) SetType(v billing.LineDiscountType) *BillingInvoiceLineDiscountUpsert {
-	u.Set(billinginvoicelinediscount.FieldType, v)
-	return u
-}
-
-// UpdateType sets the "type" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsert) UpdateType() *BillingInvoiceLineDiscountUpsert {
-	u.SetExcluded(billinginvoicelinediscount.FieldType)
-	return u
-}
-
-// SetReason sets the "reason" field.
-func (u *BillingInvoiceLineDiscountUpsert) SetReason(v billing.LineDiscountReason) *BillingInvoiceLineDiscountUpsert {
-	u.Set(billinginvoicelinediscount.FieldReason, v)
-	return u
-}
-
-// UpdateReason sets the "reason" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsert) UpdateReason() *BillingInvoiceLineDiscountUpsert {
-	u.SetExcluded(billinginvoicelinediscount.FieldReason)
-	return u
-}
-
 // SetLineID sets the "line_id" field.
 func (u *BillingInvoiceLineDiscountUpsert) SetLineID(v string) *BillingInvoiceLineDiscountUpsert {
 	u.Set(billinginvoicelinediscount.FieldLineID, v)
@@ -583,6 +554,36 @@ func (u *BillingInvoiceLineDiscountUpsert) ClearDescription() *BillingInvoiceLin
 	return u
 }
 
+// SetReason sets the "reason" field.
+func (u *BillingInvoiceLineDiscountUpsert) SetReason(v billing.DiscountReasonType) *BillingInvoiceLineDiscountUpsert {
+	u.Set(billinginvoicelinediscount.FieldReason, v)
+	return u
+}
+
+// UpdateReason sets the "reason" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsert) UpdateReason() *BillingInvoiceLineDiscountUpsert {
+	u.SetExcluded(billinginvoicelinediscount.FieldReason)
+	return u
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineDiscountUpsert) SetInvoicingAppExternalID(v string) *BillingInvoiceLineDiscountUpsert {
+	u.Set(billinginvoicelinediscount.FieldInvoicingAppExternalID, v)
+	return u
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsert) UpdateInvoicingAppExternalID() *BillingInvoiceLineDiscountUpsert {
+	u.SetExcluded(billinginvoicelinediscount.FieldInvoicingAppExternalID)
+	return u
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineDiscountUpsert) ClearInvoicingAppExternalID() *BillingInvoiceLineDiscountUpsert {
+	u.SetNull(billinginvoicelinediscount.FieldInvoicingAppExternalID)
+	return u
+}
+
 // SetAmount sets the "amount" field.
 func (u *BillingInvoiceLineDiscountUpsert) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpsert {
 	u.Set(billinginvoicelinediscount.FieldAmount, v)
@@ -592,12 +593,6 @@ func (u *BillingInvoiceLineDiscountUpsert) SetAmount(v alpacadecimal.Decimal) *B
 // UpdateAmount sets the "amount" field to the value that was provided on create.
 func (u *BillingInvoiceLineDiscountUpsert) UpdateAmount() *BillingInvoiceLineDiscountUpsert {
 	u.SetExcluded(billinginvoicelinediscount.FieldAmount)
-	return u
-}
-
-// ClearAmount clears the value of the "amount" field.
-func (u *BillingInvoiceLineDiscountUpsert) ClearAmount() *BillingInvoiceLineDiscountUpsert {
-	u.SetNull(billinginvoicelinediscount.FieldAmount)
 	return u
 }
 
@@ -616,6 +611,42 @@ func (u *BillingInvoiceLineDiscountUpsert) UpdateRoundingAmount() *BillingInvoic
 // ClearRoundingAmount clears the value of the "rounding_amount" field.
 func (u *BillingInvoiceLineDiscountUpsert) ClearRoundingAmount() *BillingInvoiceLineDiscountUpsert {
 	u.SetNull(billinginvoicelinediscount.FieldRoundingAmount)
+	return u
+}
+
+// SetSourceDiscount sets the "source_discount" field.
+func (u *BillingInvoiceLineDiscountUpsert) SetSourceDiscount(v *billing.DiscountReason) *BillingInvoiceLineDiscountUpsert {
+	u.Set(billinginvoicelinediscount.FieldSourceDiscount, v)
+	return u
+}
+
+// UpdateSourceDiscount sets the "source_discount" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsert) UpdateSourceDiscount() *BillingInvoiceLineDiscountUpsert {
+	u.SetExcluded(billinginvoicelinediscount.FieldSourceDiscount)
+	return u
+}
+
+// ClearSourceDiscount clears the value of the "source_discount" field.
+func (u *BillingInvoiceLineDiscountUpsert) ClearSourceDiscount() *BillingInvoiceLineDiscountUpsert {
+	u.SetNull(billinginvoicelinediscount.FieldSourceDiscount)
+	return u
+}
+
+// SetType sets the "type" field.
+func (u *BillingInvoiceLineDiscountUpsert) SetType(v string) *BillingInvoiceLineDiscountUpsert {
+	u.Set(billinginvoicelinediscount.FieldType, v)
+	return u
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsert) UpdateType() *BillingInvoiceLineDiscountUpsert {
+	u.SetExcluded(billinginvoicelinediscount.FieldType)
+	return u
+}
+
+// ClearType clears the value of the "type" field.
+func (u *BillingInvoiceLineDiscountUpsert) ClearType() *BillingInvoiceLineDiscountUpsert {
+	u.SetNull(billinginvoicelinediscount.FieldType)
 	return u
 }
 
@@ -652,42 +683,6 @@ func (u *BillingInvoiceLineDiscountUpsert) UpdatePreLinePeriodQuantity() *Billin
 // ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
 func (u *BillingInvoiceLineDiscountUpsert) ClearPreLinePeriodQuantity() *BillingInvoiceLineDiscountUpsert {
 	u.SetNull(billinginvoicelinediscount.FieldPreLinePeriodQuantity)
-	return u
-}
-
-// SetSourceDiscount sets the "source_discount" field.
-func (u *BillingInvoiceLineDiscountUpsert) SetSourceDiscount(v *billing.Discount) *BillingInvoiceLineDiscountUpsert {
-	u.Set(billinginvoicelinediscount.FieldSourceDiscount, v)
-	return u
-}
-
-// UpdateSourceDiscount sets the "source_discount" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsert) UpdateSourceDiscount() *BillingInvoiceLineDiscountUpsert {
-	u.SetExcluded(billinginvoicelinediscount.FieldSourceDiscount)
-	return u
-}
-
-// ClearSourceDiscount clears the value of the "source_discount" field.
-func (u *BillingInvoiceLineDiscountUpsert) ClearSourceDiscount() *BillingInvoiceLineDiscountUpsert {
-	u.SetNull(billinginvoicelinediscount.FieldSourceDiscount)
-	return u
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineDiscountUpsert) SetInvoicingAppExternalID(v string) *BillingInvoiceLineDiscountUpsert {
-	u.Set(billinginvoicelinediscount.FieldInvoicingAppExternalID, v)
-	return u
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsert) UpdateInvoicingAppExternalID() *BillingInvoiceLineDiscountUpsert {
-	u.SetExcluded(billinginvoicelinediscount.FieldInvoicingAppExternalID)
-	return u
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineDiscountUpsert) ClearInvoicingAppExternalID() *BillingInvoiceLineDiscountUpsert {
-	u.SetNull(billinginvoicelinediscount.FieldInvoicingAppExternalID)
 	return u
 }
 
@@ -780,34 +775,6 @@ func (u *BillingInvoiceLineDiscountUpsertOne) ClearDeletedAt() *BillingInvoiceLi
 	})
 }
 
-// SetType sets the "type" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) SetType(v billing.LineDiscountType) *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetType(v)
-	})
-}
-
-// UpdateType sets the "type" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertOne) UpdateType() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateType()
-	})
-}
-
-// SetReason sets the "reason" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) SetReason(v billing.LineDiscountReason) *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetReason(v)
-	})
-}
-
-// UpdateReason sets the "reason" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertOne) UpdateReason() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateReason()
-	})
-}
-
 // SetLineID sets the "line_id" field.
 func (u *BillingInvoiceLineDiscountUpsertOne) SetLineID(v string) *BillingInvoiceLineDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
@@ -864,6 +831,41 @@ func (u *BillingInvoiceLineDiscountUpsertOne) ClearDescription() *BillingInvoice
 	})
 }
 
+// SetReason sets the "reason" field.
+func (u *BillingInvoiceLineDiscountUpsertOne) SetReason(v billing.DiscountReasonType) *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.SetReason(v)
+	})
+}
+
+// UpdateReason sets the "reason" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsertOne) UpdateReason() *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.UpdateReason()
+	})
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineDiscountUpsertOne) SetInvoicingAppExternalID(v string) *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.SetInvoicingAppExternalID(v)
+	})
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsertOne) UpdateInvoicingAppExternalID() *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.UpdateInvoicingAppExternalID()
+	})
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineDiscountUpsertOne) ClearInvoicingAppExternalID() *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.ClearInvoicingAppExternalID()
+	})
+}
+
 // SetAmount sets the "amount" field.
 func (u *BillingInvoiceLineDiscountUpsertOne) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
@@ -875,13 +877,6 @@ func (u *BillingInvoiceLineDiscountUpsertOne) SetAmount(v alpacadecimal.Decimal)
 func (u *BillingInvoiceLineDiscountUpsertOne) UpdateAmount() *BillingInvoiceLineDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
 		s.UpdateAmount()
-	})
-}
-
-// ClearAmount clears the value of the "amount" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) ClearAmount() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearAmount()
 	})
 }
 
@@ -903,6 +898,48 @@ func (u *BillingInvoiceLineDiscountUpsertOne) UpdateRoundingAmount() *BillingInv
 func (u *BillingInvoiceLineDiscountUpsertOne) ClearRoundingAmount() *BillingInvoiceLineDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
 		s.ClearRoundingAmount()
+	})
+}
+
+// SetSourceDiscount sets the "source_discount" field.
+func (u *BillingInvoiceLineDiscountUpsertOne) SetSourceDiscount(v *billing.DiscountReason) *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.SetSourceDiscount(v)
+	})
+}
+
+// UpdateSourceDiscount sets the "source_discount" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsertOne) UpdateSourceDiscount() *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.UpdateSourceDiscount()
+	})
+}
+
+// ClearSourceDiscount clears the value of the "source_discount" field.
+func (u *BillingInvoiceLineDiscountUpsertOne) ClearSourceDiscount() *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.ClearSourceDiscount()
+	})
+}
+
+// SetType sets the "type" field.
+func (u *BillingInvoiceLineDiscountUpsertOne) SetType(v string) *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsertOne) UpdateType() *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.UpdateType()
+	})
+}
+
+// ClearType clears the value of the "type" field.
+func (u *BillingInvoiceLineDiscountUpsertOne) ClearType() *BillingInvoiceLineDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.ClearType()
 	})
 }
 
@@ -945,48 +982,6 @@ func (u *BillingInvoiceLineDiscountUpsertOne) UpdatePreLinePeriodQuantity() *Bil
 func (u *BillingInvoiceLineDiscountUpsertOne) ClearPreLinePeriodQuantity() *BillingInvoiceLineDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
 		s.ClearPreLinePeriodQuantity()
-	})
-}
-
-// SetSourceDiscount sets the "source_discount" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) SetSourceDiscount(v *billing.Discount) *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetSourceDiscount(v)
-	})
-}
-
-// UpdateSourceDiscount sets the "source_discount" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertOne) UpdateSourceDiscount() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateSourceDiscount()
-	})
-}
-
-// ClearSourceDiscount clears the value of the "source_discount" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) ClearSourceDiscount() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearSourceDiscount()
-	})
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) SetInvoicingAppExternalID(v string) *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetInvoicingAppExternalID(v)
-	})
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertOne) UpdateInvoicingAppExternalID() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateInvoicingAppExternalID()
-	})
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) ClearInvoicingAppExternalID() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearInvoicingAppExternalID()
 	})
 }
 
@@ -1249,34 +1244,6 @@ func (u *BillingInvoiceLineDiscountUpsertBulk) ClearDeletedAt() *BillingInvoiceL
 	})
 }
 
-// SetType sets the "type" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) SetType(v billing.LineDiscountType) *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetType(v)
-	})
-}
-
-// UpdateType sets the "type" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateType() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateType()
-	})
-}
-
-// SetReason sets the "reason" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) SetReason(v billing.LineDiscountReason) *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetReason(v)
-	})
-}
-
-// UpdateReason sets the "reason" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateReason() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateReason()
-	})
-}
-
 // SetLineID sets the "line_id" field.
 func (u *BillingInvoiceLineDiscountUpsertBulk) SetLineID(v string) *BillingInvoiceLineDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
@@ -1333,6 +1300,41 @@ func (u *BillingInvoiceLineDiscountUpsertBulk) ClearDescription() *BillingInvoic
 	})
 }
 
+// SetReason sets the "reason" field.
+func (u *BillingInvoiceLineDiscountUpsertBulk) SetReason(v billing.DiscountReasonType) *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.SetReason(v)
+	})
+}
+
+// UpdateReason sets the "reason" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateReason() *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.UpdateReason()
+	})
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineDiscountUpsertBulk) SetInvoicingAppExternalID(v string) *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.SetInvoicingAppExternalID(v)
+	})
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateInvoicingAppExternalID() *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.UpdateInvoicingAppExternalID()
+	})
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineDiscountUpsertBulk) ClearInvoicingAppExternalID() *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.ClearInvoicingAppExternalID()
+	})
+}
+
 // SetAmount sets the "amount" field.
 func (u *BillingInvoiceLineDiscountUpsertBulk) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
@@ -1344,13 +1346,6 @@ func (u *BillingInvoiceLineDiscountUpsertBulk) SetAmount(v alpacadecimal.Decimal
 func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateAmount() *BillingInvoiceLineDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
 		s.UpdateAmount()
-	})
-}
-
-// ClearAmount clears the value of the "amount" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) ClearAmount() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearAmount()
 	})
 }
 
@@ -1372,6 +1367,48 @@ func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateRoundingAmount() *BillingIn
 func (u *BillingInvoiceLineDiscountUpsertBulk) ClearRoundingAmount() *BillingInvoiceLineDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
 		s.ClearRoundingAmount()
+	})
+}
+
+// SetSourceDiscount sets the "source_discount" field.
+func (u *BillingInvoiceLineDiscountUpsertBulk) SetSourceDiscount(v *billing.DiscountReason) *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.SetSourceDiscount(v)
+	})
+}
+
+// UpdateSourceDiscount sets the "source_discount" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateSourceDiscount() *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.UpdateSourceDiscount()
+	})
+}
+
+// ClearSourceDiscount clears the value of the "source_discount" field.
+func (u *BillingInvoiceLineDiscountUpsertBulk) ClearSourceDiscount() *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.ClearSourceDiscount()
+	})
+}
+
+// SetType sets the "type" field.
+func (u *BillingInvoiceLineDiscountUpsertBulk) SetType(v string) *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateType() *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.UpdateType()
+	})
+}
+
+// ClearType clears the value of the "type" field.
+func (u *BillingInvoiceLineDiscountUpsertBulk) ClearType() *BillingInvoiceLineDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
+		s.ClearType()
 	})
 }
 
@@ -1414,48 +1451,6 @@ func (u *BillingInvoiceLineDiscountUpsertBulk) UpdatePreLinePeriodQuantity() *Bi
 func (u *BillingInvoiceLineDiscountUpsertBulk) ClearPreLinePeriodQuantity() *BillingInvoiceLineDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
 		s.ClearPreLinePeriodQuantity()
-	})
-}
-
-// SetSourceDiscount sets the "source_discount" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) SetSourceDiscount(v *billing.Discount) *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetSourceDiscount(v)
-	})
-}
-
-// UpdateSourceDiscount sets the "source_discount" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateSourceDiscount() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateSourceDiscount()
-	})
-}
-
-// ClearSourceDiscount clears the value of the "source_discount" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) ClearSourceDiscount() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearSourceDiscount()
-	})
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) SetInvoicingAppExternalID(v string) *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetInvoicingAppExternalID(v)
-	})
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateInvoicingAppExternalID() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateInvoicingAppExternalID()
-	})
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) ClearInvoicingAppExternalID() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearInvoicingAppExternalID()
 	})
 }
 

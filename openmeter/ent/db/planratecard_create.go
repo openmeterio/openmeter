@@ -322,6 +322,11 @@ func (prcc *PlanRateCardCreate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.price": %w`, err)}
 		}
 	}
+	if v, ok := prcc.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.discounts": %w`, err)}
+		}
+	}
 	if _, ok := prcc.mutation.PhaseID(); !ok {
 		return &ValidationError{Name: "phase_id", err: errors.New(`db: missing required field "PlanRateCard.phase_id"`)}
 	}

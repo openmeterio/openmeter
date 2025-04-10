@@ -352,7 +352,7 @@ type getTotalAmountInput struct {
 func TotalAmount(in getTotalAmountInput) alpacadecimal.Decimal {
 	total := in.Currency.RoundToPrecision(in.PerUnitAmount.Mul(in.Quantity))
 
-	total = total.Sub(in.Discounts.SumAmount(in.Currency))
+	total = total.Sub(in.Discounts.Amount.SumAmount(in.Currency))
 
 	return total
 }
@@ -379,26 +379,30 @@ func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDeta
 
 	if totalBillableAmount.GreaterThanOrEqual(normalizedMaxSpend) && in.BilledAmountBeforeLine.GreaterThanOrEqual(normalizedMaxSpend) {
 		// 100% discount
-		i.Discounts = append(i.Discounts, billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-			Amount: lineTotal,
-			LineDiscountBase: billing.LineDiscountBase{
-				Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
-				ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-				Reason:                 billing.LineDiscountReasonMaximumSpend,
+		i.Discounts.Amount = append(i.Discounts.Amount, billing.AmountLineDiscountManaged{
+			AmountLineDiscount: billing.AmountLineDiscount{
+				Amount: lineTotal,
+				LineDiscountBase: billing.LineDiscountBase{
+					Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
+					ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+					Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+				},
 			},
-		}))
+		})
 		return i
 	}
 
 	discountAmount := totalBillableAmount.Sub(normalizedMaxSpend)
-	i.Discounts = append(i.Discounts, billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-		Amount: discountAmount,
-		LineDiscountBase: billing.LineDiscountBase{
-			Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
-			ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-			Reason:                 billing.LineDiscountReasonMaximumSpend,
+	i.Discounts.Amount = append(i.Discounts.Amount, billing.AmountLineDiscountManaged{
+		AmountLineDiscount: billing.AmountLineDiscount{
+			Amount: discountAmount,
+			LineDiscountBase: billing.LineDiscountBase{
+				Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
+				ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+				Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+			},
 		},
-	}))
+	})
 
 	return i
 }

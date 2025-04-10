@@ -3,8 +3,6 @@
 package httpdriver
 
 import (
-	"fmt"
-
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
@@ -33,37 +31,34 @@ func AsUsageDiscount(d api.BillingDiscountUsage) (billing.UsageDiscount, error) 
 	}, nil
 }
 
-func AsDiscounts(discounts []api.BillingDiscount) (billing.Discounts, error) {
-	out := make(billing.Discounts, 0, len(discounts))
-	for _, d := range discounts {
-		disc, err := d.Discriminator()
-		if err != nil {
-			return nil, err
-		}
+func AsDiscounts(discounts *api.BillingDiscounts) (billing.Discounts, error) {
+	out := billing.Discounts{}
+	if discounts == nil {
+		return out, nil
+	}
 
-		switch disc {
-		case string(api.BillingDiscountPercentageTypePercentage):
-			pctDiscount, err := d.AsBillingDiscountPercentage()
-			if err != nil {
-				return nil, err
-			}
+	if discounts.Percentage != nil {
+		pctDiscount := api.FromBillingDiscountPercentageToDiscountPercentage(*discounts.Percentage)
 
-			out = append(out, billing.NewDiscountFrom(AsPercentageDiscount(pctDiscount)))
-		case string(api.BillingDiscountUsageTypeUsage):
-			usageDiscountAPI, err := d.AsBillingDiscountUsage()
-			if err != nil {
-				return nil, err
-			}
-
-			usageDiscount, err := AsUsageDiscount(usageDiscountAPI)
-			if err != nil {
-				return nil, err
-			}
-
-			out = append(out, billing.NewDiscountFrom(usageDiscount))
-		default:
-			return nil, fmt.Errorf("invalid discount type: %s", disc)
+		out.Percentage = &billing.PercentageDiscount{
+			PercentageDiscount: productcataloghttp.AsPercentageDiscount(pctDiscount),
+			CorrelationID:      lo.FromPtrOr(discounts.Percentage.CorrelationId, ""),
 		}
 	}
+
+	if discounts.Usage != nil {
+		uDiscount := api.FromBillingDiscountUsageToDiscountUsage(*discounts.Usage)
+
+		usageDiscount, err := productcataloghttp.AsUsageDiscount(uDiscount)
+		if err != nil {
+			return billing.Discounts{}, err
+		}
+
+		out.Usage = &billing.UsageDiscount{
+			UsageDiscount: usageDiscount,
+			CorrelationID: lo.FromPtrOr(discounts.Usage.CorrelationId, ""),
+		}
+	}
+
 	return out, nil
 }

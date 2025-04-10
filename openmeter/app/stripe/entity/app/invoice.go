@@ -184,7 +184,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Iterate over the leaf lines
 	for _, line := range leafLines {
 		// Add discounts for line if any
-		for _, discount := range line.Discounts.GetAmountDiscounts() {
+		for _, discount := range line.Discounts.Amount {
 			stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddInvoiceItemParams(calculator, line, discount, stripeCustomerData.StripeCustomerID))
 		}
 
@@ -293,7 +293,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Iterate over the leaf lines
 	for _, line := range leafLines {
-		amountDiscountsById, err := line.Discounts.GetAmountDiscountsByID()
+		amountDiscountsById, err := line.Discounts.Amount.GetByID()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get amount discounts by ID: %w", err)
 		}

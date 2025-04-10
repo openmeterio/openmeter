@@ -19,8 +19,8 @@ import (
 )
 
 var (
-	BillingDiscountsValueScanner = entutils.JSONStringValueScanner[*billing.Discounts]()
-	BillingDiscountValueScanner  = entutils.JSONStringValueScanner[*billing.Discount]()
+	BillingDiscountsValueScanner      = entutils.JSONStringValueScanner[*billing.Discounts]()
+	BillingDiscountReasonValueScanner = entutils.JSONStringValueScanner[*billing.DiscountReason]()
 )
 
 type BillingProfile struct {
@@ -426,7 +426,9 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Field("parent_line_id").
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("line_discounts", BillingInvoiceLineDiscount.Type).
+		edge.To("line_usage_discounts", BillingInvoiceLineUsageDiscount.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("line_amount_discounts", BillingInvoiceLineDiscount.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("subscription", Subscription.Type).
 			Ref("billing_lines").
@@ -508,26 +510,12 @@ func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 	}
 }
 
-type BillingInvoiceLineDiscount struct {
-	ent.Schema
+type BillingInvoiceLineDiscountBase struct {
+	mixin.Schema
 }
 
-func (BillingInvoiceLineDiscount) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		entutils.IDMixin{},
-		entutils.NamespaceMixin{},
-		entutils.TimeMixin{},
-	}
-}
-
-func (BillingInvoiceLineDiscount) Fields() []ent.Field {
+func (BillingInvoiceLineDiscountBase) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("type").
-			GoType(billing.LineDiscountType("")),
-
-		field.Enum("reason").
-			GoType(billing.LineDiscountReason("")),
-
 		field.String("line_id").
 			SchemaType(map[string]string{
 				"postgres": "char(26)",
@@ -541,12 +529,37 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.Enum("reason").
+			GoType(billing.DiscountReasonType("")),
+
+		// ID of the line discount in the external invoicing app
+		// For example, Stripe invoice line item ID
+		field.String("invoicing_app_external_id").
+			Optional().
+			Nillable(),
+	}
+}
+
+// TODO[later]: Rename to BillingInvoiceLineUsageDiscount
+type BillingInvoiceLineDiscount struct {
+	ent.Schema
+}
+
+func (BillingInvoiceLineDiscount) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+		BillingInvoiceLineDiscountBase{},
+	}
+}
+
+func (BillingInvoiceLineDiscount) Fields() []ent.Field {
+	return []ent.Field{
 		field.Other("amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				"postgres": "numeric",
-			}).
-			Optional().
-			Nillable(),
+			}),
 
 		field.Other("rounding_amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
@@ -555,34 +568,38 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
-		field.Other("quantity", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				"postgres": "numeric",
-			}).
-			Optional().
-			Nillable(),
-
-		field.Other("pre_line_period_quantity", alpacadecimal.Decimal{}).
-			Optional().
-			Nillable().
-			SchemaType(map[string]string{
-				"postgres": "numeric",
-			}),
-
+		// TODO: Ent has issues with custom value scanners from mixins, so this is a duplicate
+		// TODO[later]: Rename to reason_details (same time as the DB table rename, as this is breaking either ways)
 		field.String("source_discount").
-			GoType(&billing.Discount{}).
-			ValueScanner(BillingDiscountValueScanner).
+			GoType(&billing.DiscountReason{}).
+			ValueScanner(BillingDiscountReasonValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
 			Optional().
 			Nillable(),
 
-		// ID of the line discount in the external invoicing app
-		// For example, Stripe invoice line item ID
-		field.String("invoicing_app_external_id").
+		// Deprecated fields
+		field.String("type").
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("due to split of amount and usage discount tables"),
+
+		field.Other("quantity", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}).
+			Optional().
+			Nillable().
+			Deprecated("due to split of amount and usage discount tables"),
+
+		field.Other("pre_line_period_quantity", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}).
+			Optional().
+			Nillable().
+			Deprecated("due to split of amount and usage discount tables"),
 	}
 }
 
@@ -600,47 +617,70 @@ func (BillingInvoiceLineDiscount) Indexes() []ent.Index {
 func (BillingInvoiceLineDiscount) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
-			Ref("line_discounts").
+			Ref("line_amount_discounts").
 			Field("line_id").
 			Unique().
 			Required(),
 	}
 }
 
-// TODO: remove this later (first we need to deploy a version that doesn't reference this)
-type BillingInvoiceDiscount struct {
+type BillingInvoiceLineUsageDiscount struct {
 	ent.Schema
 }
 
-func (BillingInvoiceDiscount) Mixin() []ent.Mixin {
+func (BillingInvoiceLineUsageDiscount) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.ResourceMixin{},
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+		BillingInvoiceLineDiscountBase{},
 	}
 }
 
-func (BillingInvoiceDiscount) Fields() []ent.Field {
+func (BillingInvoiceLineUsageDiscount) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("invoice_id").
-			SchemaType(map[string]string{
-				"postgres": "char(26)",
-			}),
-
-		field.Enum("type").
-			GoType(billing.LineDiscountType("")),
-
-		field.Other("amount", alpacadecimal.Decimal{}).
+		field.Other("quantity", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				"postgres": "numeric",
 			}),
 
-		field.Strings("line_ids").
-			Optional(),
+		field.Other("pre_line_period_quantity", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}).
+			Optional().
+			Nillable(),
+
+		// TODO: Ent has issues with custom value scanners from mixins, so this is a duplicate
+		field.String("reason_details").
+			GoType(&billing.DiscountReason{}).
+			ValueScanner(BillingDiscountReasonValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
 	}
 }
 
-func (BillingInvoiceDiscount) Indexes() []ent.Index {
+func (BillingInvoiceLineUsageDiscount) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "invoice_id"),
+		index.Fields("namespace", "line_id"),
+		index.Fields("namespace", "line_id", "child_unique_reference_id").
+			Annotations(
+				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+			).
+			Unique(),
+	}
+}
+
+func (BillingInvoiceLineUsageDiscount) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
+			Ref("line_usage_discounts").
+			Field("line_id").
+			Unique().
+			Required(),
 	}
 }
 

@@ -115,7 +115,7 @@ model RateCardFlatFee {
    * Only available when price is set.
    */
   @summary("Discounts")
-  discounts?: DiscountPercentage[];
+  discounts?: Discounts;
 }
 
 /**
@@ -159,7 +159,7 @@ model RateCardUsageBased {
    * Flat fee rate cards only support percentage discounts.
    */
   @summary("Discounts")
-  discounts?: Discount[];
+  discounts?: Discounts;
 }
 
 /**

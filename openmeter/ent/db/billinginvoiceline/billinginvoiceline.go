@@ -91,8 +91,10 @@ const (
 	EdgeParentLine = "parent_line"
 	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
 	EdgeDetailedLines = "detailed_lines"
-	// EdgeLineDiscounts holds the string denoting the line_discounts edge name in mutations.
-	EdgeLineDiscounts = "line_discounts"
+	// EdgeLineUsageDiscounts holds the string denoting the line_usage_discounts edge name in mutations.
+	EdgeLineUsageDiscounts = "line_usage_discounts"
+	// EdgeLineAmountDiscounts holds the string denoting the line_amount_discounts edge name in mutations.
+	EdgeLineAmountDiscounts = "line_amount_discounts"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
 	EdgeSubscription = "subscription"
 	// EdgeSubscriptionPhase holds the string denoting the subscription_phase edge name in mutations.
@@ -130,13 +132,20 @@ const (
 	DetailedLinesTable = "billing_invoice_lines"
 	// DetailedLinesColumn is the table column denoting the detailed_lines relation/edge.
 	DetailedLinesColumn = "parent_line_id"
-	// LineDiscountsTable is the table that holds the line_discounts relation/edge.
-	LineDiscountsTable = "billing_invoice_line_discounts"
-	// LineDiscountsInverseTable is the table name for the BillingInvoiceLineDiscount entity.
+	// LineUsageDiscountsTable is the table that holds the line_usage_discounts relation/edge.
+	LineUsageDiscountsTable = "billing_invoice_line_usage_discounts"
+	// LineUsageDiscountsInverseTable is the table name for the BillingInvoiceLineUsageDiscount entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoicelineusagediscount" package.
+	LineUsageDiscountsInverseTable = "billing_invoice_line_usage_discounts"
+	// LineUsageDiscountsColumn is the table column denoting the line_usage_discounts relation/edge.
+	LineUsageDiscountsColumn = "line_id"
+	// LineAmountDiscountsTable is the table that holds the line_amount_discounts relation/edge.
+	LineAmountDiscountsTable = "billing_invoice_line_discounts"
+	// LineAmountDiscountsInverseTable is the table name for the BillingInvoiceLineDiscount entity.
 	// It exists in this package in order to avoid circular dependency with the "billinginvoicelinediscount" package.
-	LineDiscountsInverseTable = "billing_invoice_line_discounts"
-	// LineDiscountsColumn is the table column denoting the line_discounts relation/edge.
-	LineDiscountsColumn = "line_id"
+	LineAmountDiscountsInverseTable = "billing_invoice_line_discounts"
+	// LineAmountDiscountsColumn is the table column denoting the line_amount_discounts relation/edge.
+	LineAmountDiscountsColumn = "line_id"
 	// SubscriptionTable is the table that holds the subscription relation/edge.
 	SubscriptionTable = "billing_invoice_lines"
 	// SubscriptionInverseTable is the table name for the Subscription entity.
@@ -472,17 +481,31 @@ func ByDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByLineDiscountsCount orders the results by line_discounts count.
-func ByLineDiscountsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByLineUsageDiscountsCount orders the results by line_usage_discounts count.
+func ByLineUsageDiscountsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newLineDiscountsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newLineUsageDiscountsStep(), opts...)
 	}
 }
 
-// ByLineDiscounts orders the results by line_discounts terms.
-func ByLineDiscounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByLineUsageDiscounts orders the results by line_usage_discounts terms.
+func ByLineUsageDiscounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newLineDiscountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newLineUsageDiscountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByLineAmountDiscountsCount orders the results by line_amount_discounts count.
+func ByLineAmountDiscountsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newLineAmountDiscountsStep(), opts...)
+	}
+}
+
+// ByLineAmountDiscounts orders the results by line_amount_discounts terms.
+func ByLineAmountDiscounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newLineAmountDiscountsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -541,11 +564,18 @@ func newDetailedLinesStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesTable, DetailedLinesColumn),
 	)
 }
-func newLineDiscountsStep() *sqlgraph.Step {
+func newLineUsageDiscountsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(LineDiscountsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, LineDiscountsTable, LineDiscountsColumn),
+		sqlgraph.To(LineUsageDiscountsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, LineUsageDiscountsTable, LineUsageDiscountsColumn),
+	)
+}
+func newLineAmountDiscountsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(LineAmountDiscountsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, LineAmountDiscountsTable, LineAmountDiscountsColumn),
 	)
 }
 func newSubscriptionStep() *sqlgraph.Step {

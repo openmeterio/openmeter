@@ -14,35 +14,39 @@ import (
 func TestDiscount_JSON(t *testing.T) {
 	tests := []struct {
 		Name          string
-		Discount      Discount
+		Discounts     Discounts
 		ExpectedError bool
 	}{
 		{
 			Name: "Valid - percentage",
-			Discount: NewDiscountFrom(PercentageDiscount{
-				Percentage: models.NewPercentage(99.9),
-			}),
+			Discounts: Discounts{
+				Percentage: &PercentageDiscount{
+					Percentage: models.NewPercentage(99.9),
+				},
+			},
 		},
 		{
 			Name: "Valid - usage",
-			Discount: NewDiscountFrom(UsageDiscount{
-				Quantity: decimal.NewFromInt(100),
-			}),
+			Discounts: Discounts{
+				Usage: &UsageDiscount{
+					Quantity: decimal.NewFromInt(100),
+				},
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			b, err := json.Marshal(&test.Discount)
+			b, err := json.Marshal(&test.Discounts)
 			require.NoError(t, err)
 
 			t.Logf("Serialized Discount: %s", string(b))
 
-			d := Discount{}
+			d := Discounts{}
 			err = json.Unmarshal(b, &d)
 			require.NoError(t, err)
 
-			assert.Equal(t, test.Discount, d)
+			assert.Equal(t, test.Discounts, d)
 		})
 	}
 }
@@ -58,75 +62,29 @@ func TestDiscountsEqual(t *testing.T) {
 	}{
 		{
 			Name: "Equal",
-			Left: []Discount{
-				NewDiscountFrom(PercentageDiscount{
+			Left: Discounts{
+				Percentage: &PercentageDiscount{
 					Percentage: models.NewPercentage(100),
-				}),
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(200),
-				}),
+				},
 			},
-			Right: []Discount{
-				NewDiscountFrom(PercentageDiscount{
+			Right: Discounts{
+				Percentage: &PercentageDiscount{
 					Percentage: models.NewPercentage(100),
-				}),
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(200),
-				}),
+				},
 			},
 			ExpectedResult: true,
 		},
 		{
-			Name: "Left diff",
-			Left: []Discount{
-				NewDiscountFrom(PercentageDiscount{
+			Name: "Diff",
+			Left: Discounts{
+				Percentage: &PercentageDiscount{
 					Percentage: models.NewPercentage(100),
-				}),
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(200),
-				}),
+				},
 			},
-			Right: []Discount{
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(100),
-				}),
-			},
-			ExpectedResult: false,
-		},
-		{
-			Name: "Right diff",
-			Left: []Discount{
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(100),
-				}),
-			},
-			Right: []Discount{
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(100),
-				}),
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(200),
-				}),
-			},
-			ExpectedResult: false,
-		},
-		{
-			Name: "Complete diff",
-			Left: []Discount{
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(100),
-				}),
-				NewDiscountFrom(UsageDiscount{
+			Right: Discounts{
+				Usage: &UsageDiscount{
 					Quantity: decimal.NewFromInt(100),
-				}),
-			},
-			Right: []Discount{
-				NewDiscountFrom(UsageDiscount{
-					Quantity: decimal.NewFromInt(200),
-				}),
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(200),
-				}),
+				},
 			},
 			ExpectedResult: false,
 		},
@@ -151,24 +109,36 @@ func TestDiscountsValidateForPrice(t *testing.T) {
 		{
 			Name: "Valid",
 			Discounts: Discounts{
-				NewDiscountFrom(PercentageDiscount{
+				Percentage: &PercentageDiscount{
 					Percentage: models.NewPercentage(50),
-				}),
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(50),
-				}),
+				},
 			},
 			ExpectedError: false,
 		},
 		{
 			Name: "Invalid - more than 100% percentage discount",
 			Discounts: Discounts{
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(100),
-				}),
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(100),
-				}),
+				Percentage: &PercentageDiscount{
+					Percentage: models.NewPercentage(110),
+				},
+			},
+			ExpectedError: true,
+		},
+		{
+			Name: "Valid - usage",
+			Discounts: Discounts{
+				Usage: &UsageDiscount{
+					Quantity: decimal.NewFromInt(100),
+				},
+			},
+			ExpectedError: false,
+		},
+		{
+			Name: "Invalid - usage - negative",
+			Discounts: Discounts{
+				Usage: &UsageDiscount{
+					Quantity: decimal.NewFromInt(-100),
+				},
 			},
 			ExpectedError: true,
 		},

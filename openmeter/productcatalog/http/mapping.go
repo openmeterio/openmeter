@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
@@ -62,14 +61,6 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			}
 		}
 
-		var discountPercentages []api.DiscountPercentage
-		if len(meta.Discounts) > 0 {
-			discountPercentages, err = FromDiscountPercentages(meta.Discounts)
-			if err != nil {
-				return resp, fmt.Errorf("failed to cast Discounts: %w", err)
-			}
-		}
-
 		err = resp.FromRateCardFlatFee(api.RateCardFlatFee{
 			BillingCadence:      billingCadence,
 			Description:         meta.Description,
@@ -81,7 +72,7 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			Price:               price,
 			TaxConfig:           taxConfig,
 			Type:                api.RateCardFlatFeeTypeFlatFee,
-			Discounts:           lo.EmptyableToPtr(discountPercentages),
+			Discounts:           FromDiscounts(meta.Discounts),
 		})
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast FlatPriceRateCard: %w", err)
@@ -95,14 +86,6 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			}
 
 			price = &ubpPrice
-		}
-
-		var discounts []api.Discount
-		if len(meta.Discounts) > 0 {
-			discounts, err = FromDiscounts(meta.Discounts)
-			if err != nil {
-				return resp, fmt.Errorf("failed to cast Discounts: %w", err)
-			}
 		}
 
 		billingCadence := r.GetBillingCadence()
@@ -121,7 +104,7 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			Name:                meta.Name,
 			Price:               price,
 			TaxConfig:           taxConfig,
-			Discounts:           lo.EmptyableToPtr(discounts),
+			Discounts:           FromDiscounts(meta.Discounts),
 		})
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast UsageBasedRateCard: %w", err)
@@ -334,77 +317,25 @@ func FromEntitlementTemplate(t productcatalog.EntitlementTemplate) (api.RateCard
 	return result, nil
 }
 
-func FromDiscounts(discounts productcatalog.Discounts) ([]api.Discount, error) {
-	if len(discounts) == 0 {
-		return nil, nil
+func FromDiscounts(discounts productcatalog.Discounts) *api.Discounts {
+	if discounts.IsEmpty() {
+		return nil
 	}
 
-	out, err := slicesx.MapWithErr(discounts, func(d productcatalog.Discount) (api.Discount, error) {
-		discount := api.Discount{}
-
-		switch d.Type() {
-		case productcatalog.UsageDiscountType:
-			usage, err := d.AsUsage()
-			if err != nil {
-				return api.Discount{}, fmt.Errorf("failed to cast Usage Discount: %w", err)
-			}
-
-			err = discount.FromDiscountUsage(api.DiscountUsage{
-				Type:     api.DiscountUsageTypeUsage,
-				Quantity: usage.Quantity.String(),
-			})
-			if err != nil {
-				return api.Discount{}, fmt.Errorf("failed to cast Usage Discount: %w", err)
-			}
-
-		case productcatalog.PercentageDiscountType:
-			percentage, err := d.AsPercentage()
-			if err != nil {
-				return api.Discount{}, fmt.Errorf("failed to cast Percentage Discount: %w", err)
-			}
-
-			err = discount.FromDiscountPercentage(api.DiscountPercentage{
-				Type:       api.DiscountPercentageTypePercentage,
-				Percentage: percentage.Percentage,
-			})
-			if err != nil {
-				return api.Discount{}, fmt.Errorf("failed to cast Percentage Discount: %w", err)
-			}
-		default:
-			return api.Discount{}, fmt.Errorf("invalid Discount type: %s", d.Type())
+	discountsAPI := api.Discounts{}
+	if discounts.Usage != nil {
+		discountsAPI.Usage = &api.DiscountUsage{
+			Quantity: discounts.Usage.Quantity.String(),
 		}
-
-		return discount, nil
-	})
-	if err != nil {
-		return nil, models.NewGenericValidationError(err)
 	}
 
-	return out, nil
-}
-
-func FromDiscountPercentages(discounts productcatalog.Discounts) ([]api.DiscountPercentage, error) {
-	if len(discounts) == 0 {
-		return nil, nil
-	}
-
-	res, err := FromDiscounts(discounts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to cast Discounts: %w", err)
-	}
-
-	return slicesx.MapWithErr(res, func(d api.Discount) (api.DiscountPercentage, error) {
-		discountType, err := d.Discriminator()
-		if err != nil {
-			return api.DiscountPercentage{}, fmt.Errorf("failed to cast Discount type: %w", err)
+	if discounts.Percentage != nil {
+		discountsAPI.Percentage = &api.DiscountPercentage{
+			Percentage: discounts.Percentage.Percentage,
 		}
+	}
 
-		if discountType != string(api.DiscountTypePercentage) {
-			return api.DiscountPercentage{}, fmt.Errorf("invalid Discount type, only percentages are supported for flat fee rate cards: %s", discountType)
-		}
-
-		return d.AsDiscountPercentage()
-	})
+	return &discountsAPI
 }
 
 func AsRateCards(rcs []api.RateCard) (productcatalog.RateCards, error) {
@@ -525,15 +456,12 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard
 		})
 	}
 
-	if flat.Discounts != nil {
-		discounts := lo.Map(*flat.Discounts, func(d api.DiscountPercentage, _ int) productcatalog.Discount {
-			return productcatalog.NewDiscountFrom(productcatalog.PercentageDiscount{
-				Percentage: d.Percentage,
-			})
-		})
-
-		rc.Discounts = discounts
+	discounts, err := AsDiscounts(flat.Discounts)
+	if err != nil {
+		return rc, fmt.Errorf("failed to cast Discounts: %w", err)
 	}
+
+	rc.Discounts = discounts
 
 	return rc, nil
 }
@@ -582,50 +510,35 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBas
 		rc.Price = price
 	}
 
-	if usage.Discounts != nil {
-		discounts, err := AsDiscounts(*usage.Discounts)
-		if err != nil {
-			return rc, fmt.Errorf("failed to cast Discounts: %w", err)
-		}
-
-		rc.Discounts = discounts
+	discounts, err := AsDiscounts(usage.Discounts)
+	if err != nil {
+		return rc, fmt.Errorf("failed to cast Discounts: %w", err)
 	}
+
+	rc.Discounts = discounts
 
 	return rc, nil
 }
 
-func AsDiscounts(discounts []api.Discount) (productcatalog.Discounts, error) {
-	out := make(productcatalog.Discounts, 0, len(discounts))
+func AsDiscounts(discounts *api.Discounts) (productcatalog.Discounts, error) {
+	out := productcatalog.Discounts{}
 
-	for _, d := range discounts {
-		discountType, err := d.Discriminator()
+	if discounts == nil {
+		return out, nil
+	}
+
+	if discounts.Usage != nil {
+		usageDiscount, err := AsUsageDiscount(*discounts.Usage)
 		if err != nil {
-			return nil, fmt.Errorf("failed to cast Discount type: %w", err)
+			return out, fmt.Errorf("failed to cast UsageDiscount: %w", err)
 		}
 
-		switch discountType {
-		case string(api.DiscountUsageTypeUsage):
-			discount, err := d.AsDiscountUsage()
-			if err != nil {
-				return nil, fmt.Errorf("failed to cast DiscountUsage: %w", err)
-			}
+		out.Usage = &usageDiscount
+	}
 
-			usageDiscount, err := AsUsageDiscount(discount)
-			if err != nil {
-				return nil, fmt.Errorf("failed to cast UsageDiscount: %w", err)
-			}
-
-			out = append(out, productcatalog.NewDiscountFrom(usageDiscount))
-		case string(api.DiscountPercentageTypePercentage):
-			discount, err := d.AsDiscountPercentage()
-			if err != nil {
-				return nil, fmt.Errorf("failed to cast DiscountPercentage: %w", err)
-			}
-
-			out = append(out, productcatalog.NewDiscountFrom(AsPercentageDiscount(discount)))
-		default:
-			return nil, fmt.Errorf("invalid Discount type: %s", discountType)
-		}
+	if discounts.Percentage != nil {
+		percentageDiscount := AsPercentageDiscount(*discounts.Percentage)
+		out.Percentage = &percentageDiscount
 	}
 
 	return out, nil

@@ -30,7 +30,7 @@ var ubpTestFullPeriod = billing.Period{
 
 type ubpCalculationTestCase struct {
 	price                productcatalog.Price
-	discounts            []billing.Discount
+	discounts            billing.Discounts
 	lineMode             testLineMode
 	usage                featureUsageResponse
 	expect               newDetailedLinesInput
@@ -177,17 +177,20 @@ func TestAddDiscountForOverage(t *testing.T) {
 		require.Equal(t, newDetailedLineInput{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(10),
-			Discounts: billing.NewLineDiscounts(
-				billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-					Amount: alpacadecimal.NewFromFloat(0.01),
-					LineDiscountBase: billing.LineDiscountBase{
-						Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
-						ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-						Reason:                 billing.LineDiscountReasonMaximumSpend,
+			Discounts: billing.LineDiscounts{
+				Amount: []billing.AmountLineDiscountManaged{
+					{
+						AmountLineDiscount: billing.AmountLineDiscount{
+							Amount: alpacadecimal.NewFromFloat(0.01),
+							LineDiscountBase: billing.LineDiscountBase{
+								Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
+								ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+								Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+							},
+						},
 					},
 				},
-				),
-			),
+			},
 		}, lineWithDiscount)
 	})
 
@@ -202,17 +205,20 @@ func TestAddDiscountForOverage(t *testing.T) {
 		require.Equal(t, newDetailedLineInput{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(10),
-			Discounts: billing.NewLineDiscounts(
-				billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-					Amount: alpacadecimal.NewFromFloat(600),
-					LineDiscountBase: billing.LineDiscountBase{
-						Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
-						ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-						Reason:                 billing.LineDiscountReasonMaximumSpend,
+			Discounts: billing.LineDiscounts{
+				Amount: []billing.AmountLineDiscountManaged{
+					{
+						AmountLineDiscount: billing.AmountLineDiscount{
+							Amount: alpacadecimal.NewFromFloat(600),
+							LineDiscountBase: billing.LineDiscountBase{
+								Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
+								ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+								Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+							},
+						},
 					},
 				},
-				),
-			),
+			},
 		}, lineWithDiscount)
 	})
 
@@ -227,17 +233,20 @@ func TestAddDiscountForOverage(t *testing.T) {
 		require.Equal(t, newDetailedLineInput{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(10),
-			Discounts: billing.NewLineDiscounts(
-				billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-					Amount: alpacadecimal.NewFromFloat(1000),
-					LineDiscountBase: billing.LineDiscountBase{
-						Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
-						ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-						Reason:                 billing.LineDiscountReasonMaximumSpend,
+			Discounts: billing.LineDiscounts{
+				Amount: []billing.AmountLineDiscountManaged{
+					{
+						AmountLineDiscount: billing.AmountLineDiscount{
+							Amount: alpacadecimal.NewFromFloat(1000),
+							LineDiscountBase: billing.LineDiscountBase{
+								Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
+								ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+								Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+							},
+						},
 					},
 				},
-				),
-			),
+			},
 		}, lineWithDiscount)
 	})
 
@@ -252,16 +261,20 @@ func TestAddDiscountForOverage(t *testing.T) {
 		require.Equal(t, newDetailedLineInput{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(10),
-			Discounts: billing.NewLineDiscounts(
-				billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-					Amount: alpacadecimal.NewFromFloat(1000),
-					LineDiscountBase: billing.LineDiscountBase{
-						Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
-						ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-						Reason:                 billing.LineDiscountReasonMaximumSpend,
+			Discounts: billing.LineDiscounts{
+				Amount: []billing.AmountLineDiscountManaged{
+					{
+						AmountLineDiscount: billing.AmountLineDiscount{
+							Amount: alpacadecimal.NewFromFloat(1000),
+							LineDiscountBase: billing.LineDiscountBase{
+								Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
+								ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+								Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+							},
+						},
 					},
-				}),
-			),
+				},
+			},
 		}, lineWithDiscount)
 	})
 }

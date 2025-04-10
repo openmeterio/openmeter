@@ -320,6 +320,11 @@ func (prcu *PlanRateCardUpdate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.price": %w`, err)}
 		}
 	}
+	if v, ok := prcu.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.discounts": %w`, err)}
+		}
+	}
 	if v, ok := prcu.mutation.PhaseID(); ok {
 		if err := planratecard.PhaseIDValidator(v); err != nil {
 			return &ValidationError{Name: "phase_id", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.phase_id": %w`, err)}
@@ -796,6 +801,11 @@ func (prcuo *PlanRateCardUpdateOne) check() error {
 	if v, ok := prcuo.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.price": %w`, err)}
+		}
+	}
+	if v, ok := prcuo.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.discounts": %w`, err)}
 		}
 	}
 	if v, ok := prcuo.mutation.PhaseID(); ok {

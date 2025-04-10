@@ -1,38 +1,10 @@
 namespace OpenMeter.ProductCatalog;
 
 /**
- * The type of the discount.
- */
-@friendlyName("DiscountType")
-enum DiscountType {
-  percentage: "percentage",
-  usage: "usage",
-  // amount: "amount",
-}
-
-/**
- * A discount on a price.
- */
-@friendlyName("Discount")
-@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
-union Discount {
-  percentage: DiscountPercentage,
-  usage: DiscountUsage,
-  // amount: DiscountAmount,
-}
-
-/**
  * Percentage discount.
  */
 @friendlyName("DiscountPercentage")
 model DiscountPercentage {
-  /**
-   * The type of the discount.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
-  @summary("Type")
-  type: DiscountType.percentage;
-
   /**
    * The percentage of the discount.
    */
@@ -72,16 +44,28 @@ model DiscountPercentage {
 @friendlyName("DiscountUsage")
 model DiscountUsage {
   /**
-   * The type of the discount.
-   */
-  @summary("Type")
-  type: DiscountType.usage;
-
-  /**
    * The quantity of the usage discount.
    *
    * Must be positive.
    */
   @summary("Usage")
   quantity: Numeric;
+}
+
+/**
+ * Discount by type on a price
+ */
+@friendlyName("Discounts")
+model Discounts {
+  /**
+   * The percentage discount.
+   */
+  percentage?: DiscountPercentage;
+
+  /**
+   * The usage discount.
+   */
+  usage?: DiscountUsage;
+
+  // amount?: DiscountAmount,
 }

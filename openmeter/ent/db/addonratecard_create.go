@@ -338,6 +338,11 @@ func (arcc *AddonRateCardCreate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
 		}
 	}
+	if v, ok := arcc.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.discounts": %w`, err)}
+		}
+	}
 	if _, ok := arcc.mutation.AddonID(); !ok {
 		return &ValidationError{Name: "addon_id", err: errors.New(`db: missing required field "AddonRateCard.addon_id"`)}
 	}
