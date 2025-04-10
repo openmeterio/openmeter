@@ -73,6 +73,9 @@ export class Meters {
     options?: RequestOptions
   ) {
     const resp = await this.client.GET('/api/v1/meters/{meterIdOrSlug}/query', {
+      headers: {
+        Accept: 'application/json',
+      },
       params: {
         path: {
           meterIdOrSlug: idOrSlug,
@@ -82,7 +85,9 @@ export class Meters {
       ...options,
     })
 
-    return transformResponse(resp)
+    return transformResponse(
+      resp
+    ) as operations['queryMeter']['responses']['200']['content']['application/json']
   }
 
   /**

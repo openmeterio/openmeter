@@ -2,7 +2,7 @@ import createClient from 'openapi-fetch'
 import { createQuerySerializer } from 'openapi-fetch/dist/cjs/index.cjs'
 import { encodeDates, transformResponse } from '../client/utils.js'
 import type { RequestOptions } from '../client/common.js'
-import type { paths } from '../client/schemas.js'
+import type { operations, paths } from '../client/schemas.js'
 import type { Client, ClientOptions } from 'openapi-fetch'
 
 /**
@@ -72,6 +72,9 @@ export class OpenMeter {
     const resp = await this.client.GET(
       '/api/v1/portal/meters/{meterSlug}/query',
       {
+        headers: {
+          Accept: 'application/json',
+        },
         params: {
           path: {
             meterSlug,
@@ -82,6 +85,8 @@ export class OpenMeter {
       }
     )
 
-    return transformResponse(resp)
+    return transformResponse(
+      resp
+    ) as operations['queryPortalMeter']['responses']['200']['content']['application/json']
   }
 }
