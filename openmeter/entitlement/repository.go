@@ -11,7 +11,7 @@ import (
 )
 
 type UpdateEntitlementUsagePeriodParams struct {
-	CurrentUsagePeriod timeutil.Period
+	CurrentUsagePeriod timeutil.ClosedPeriod
 }
 
 type ListExpiredEntitlementsParams struct {
@@ -25,7 +25,7 @@ type ListExpiredEntitlementsParams struct {
 
 type UpsertEntitlementCurrentPeriodElement struct {
 	models.NamespacedID
-	CurrentUsagePeriod timeutil.Period
+	CurrentUsagePeriod timeutil.ClosedPeriod
 }
 
 type EntitlementRepo interface {
@@ -89,12 +89,12 @@ type CreateEntitlementRepoInputs struct {
 
 	Annotations models.Annotations `json:"annotations,omitempty"`
 
-	MeasureUsageFrom        *time.Time       `json:"measureUsageFrom,omitempty"`
-	IssueAfterReset         *float64         `json:"issueAfterReset,omitempty"`
-	IssueAfterResetPriority *uint8           `json:"issueAfterResetPriority,omitempty"`
-	IsSoftLimit             *bool            `json:"isSoftLimit,omitempty"`
-	Config                  []byte           `json:"config,omitempty"`
-	UsagePeriod             *UsagePeriod     `json:"usagePeriod,omitempty"`
-	CurrentUsagePeriod      *timeutil.Period `json:"currentUsagePeriod,omitempty"`
-	PreserveOverageAtReset  *bool            `json:"preserveOverageAtReset,omitempty"`
+	MeasureUsageFrom        *time.Time             `json:"measureUsageFrom,omitempty"`
+	IssueAfterReset         *float64               `json:"issueAfterReset,omitempty"`
+	IssueAfterResetPriority *uint8                 `json:"issueAfterResetPriority,omitempty"`
+	IsSoftLimit             *bool                  `json:"isSoftLimit,omitempty"`
+	Config                  []byte                 `json:"config,omitempty"`
+	UsagePeriod             *UsagePeriod           `json:"usagePeriod,omitempty"`
+	CurrentUsagePeriod      *timeutil.ClosedPeriod `json:"currentUsagePeriod,omitempty"`
+	PreserveOverageAtReset  *bool                  `json:"preserveOverageAtReset,omitempty"`
 }

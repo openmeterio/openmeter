@@ -193,7 +193,7 @@ func (it *PhaseIterator) generateAligned(iterationEnd time.Time) ([]subscription
 				}
 
 				// Period otherwise is truncated by activeFrom and activeTo times
-				period := timeutil.Period{
+				period := timeutil.ClosedPeriod{
 					From: nonTruncatedPeriod.From,
 					To:   nonTruncatedPeriod.To,
 				}

@@ -64,7 +64,7 @@ type buildEngineForOwnerParams struct {
 	// The owner that will be queried
 	owner grant.Owner
 	// A limit to that period that can be queried
-	queryBounds timeutil.Period
+	queryBounds timeutil.ClosedPeriod
 	// A timeline of all reset events that have happened inside query bounds
 	inbetweenPeriodStarts timeutil.SimpleTimeline
 }
@@ -94,7 +94,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, params buildEngineF
 
 	if len(periodCache) == 0 {
 		// If we didn't have at least 2 different timestamps, we need to create a period from the first start time and the bound
-		periodCache = []timeutil.Period{{From: firstPeriodStart, To: params.queryBounds.To}}
+		periodCache = []timeutil.ClosedPeriod{{From: firstPeriodStart, To: params.queryBounds.To}}
 	}
 
 	// We build a custom UsageQuerier for our usecase here. The engine should only every query the one owner we fetched above.
@@ -140,7 +140,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, params buildEngineF
 			}
 
 			// If we're inside the period cache, we can just use the UsageQuerier
-			return usageQuerier.QueryUsage(ctx, params.owner.NamespacedID, timeutil.Period{From: from, To: to})
+			return usageQuerier.QueryUsage(ctx, params.owner.NamespacedID, timeutil.ClosedPeriod{From: from, To: to})
 		},
 	})
 	return eng, nil
@@ -245,7 +245,7 @@ func (m *connector) removeInactiveGrantsFromSnapshotAt(snapshot *balance.Snapsho
 }
 
 // Returns a list of non-overlapping periods between the sorted times.
-func SortedPeriodsFromDedupedTimes(ts []time.Time) []timeutil.Period {
+func SortedPeriodsFromDedupedTimes(ts []time.Time) []timeutil.ClosedPeriod {
 	times := lo.UniqBy(ts, func(t time.Time) int64 {
 		// We unique by unixnano because time.Time == time.Time comparison is finicky
 		return t.UnixNano()
@@ -260,9 +260,9 @@ func SortedPeriodsFromDedupedTimes(ts []time.Time) []timeutil.Period {
 		return times[i].Before(times[j])
 	})
 
-	periods := make([]timeutil.Period, 0, len(times)-1)
+	periods := make([]timeutil.ClosedPeriod, 0, len(times)-1)
 	for i := 1; i < len(times); i++ {
-		periods = append(periods, timeutil.Period{From: times[i-1], To: times[i]})
+		periods = append(periods, timeutil.ClosedPeriod{From: times[i-1], To: times[i]})
 	}
 
 	return periods
