@@ -168,27 +168,48 @@ func (e *EntitlementTemplate) Type() entitlement.EntitlementType {
 }
 
 func (e *EntitlementTemplate) AsMetered() (MeteredEntitlementTemplate, error) {
-	if e.t == "" || e.metered == nil {
+	switch e.t {
+	case entitlement.EntitlementTypeMetered:
+		if e.metered == nil {
+			return MeteredEntitlementTemplate{}, errors.New("invalid metered entitlement template: not initialized")
+		}
+
+		return *e.metered, nil
+	case entitlement.EntitlementTypeBoolean, entitlement.EntitlementTypeStatic:
+		return MeteredEntitlementTemplate{}, fmt.Errorf("invalid entitlement template: type mismatch: %s", e.t)
+	default:
 		return MeteredEntitlementTemplate{}, errors.New("invalid entitlement template: not initialized")
 	}
-
-	return *e.metered, nil
 }
 
 func (e *EntitlementTemplate) AsStatic() (StaticEntitlementTemplate, error) {
-	if e.t == "" || e.static == nil {
+	switch e.t {
+	case entitlement.EntitlementTypeStatic:
+		if e.static == nil {
+			return StaticEntitlementTemplate{}, errors.New("invalid static entitlement template: not initialized")
+		}
+
+		return *e.static, nil
+	case entitlement.EntitlementTypeBoolean, entitlement.EntitlementTypeMetered:
+		return StaticEntitlementTemplate{}, fmt.Errorf("invalid entitlement template: type mismatch: %s", e.t)
+	default:
 		return StaticEntitlementTemplate{}, errors.New("invalid entitlement template: not initialized")
 	}
-
-	return *e.static, nil
 }
 
 func (e *EntitlementTemplate) AsBoolean() (BooleanEntitlementTemplate, error) {
-	if e.t == "" || e.boolean == nil {
+	switch e.t {
+	case entitlement.EntitlementTypeBoolean:
+		if e.boolean == nil {
+			return BooleanEntitlementTemplate{}, errors.New("invalid boolean entitlement template: not initialized")
+		}
+
+		return *e.boolean, nil
+	case entitlement.EntitlementTypeStatic, entitlement.EntitlementTypeMetered:
+		return BooleanEntitlementTemplate{}, fmt.Errorf("invalid entitlement template: type mismatch: %s", e.t)
+	default:
 		return BooleanEntitlementTemplate{}, errors.New("invalid entitlement template: not initialized")
 	}
-
-	return *e.boolean, nil
 }
 
 func (e *EntitlementTemplate) FromMetered(t MeteredEntitlementTemplate) {
