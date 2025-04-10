@@ -25,21 +25,21 @@
     },
     "./portal": {
       "import": {
-        "types": "./dist/portal/index.d.ts",
-        "default": "./dist/portal/index.js"
+        "types": "./dist/src/portal/index.d.ts",
+        "default": "./dist/src/portal/index.js"
       },
       "require": {
-        "types": "./dist/cjs/portal/index.d.cts",
-        "default": "./dist/cjs/portal/index.cjs"
+        "types": "./dist/cjs/src/portal/index.d.cts",
+        "default": "./dist/cjs/src/portal/index.cjs"
       },
-      "default": "./dist/portal/index.js"
+      "default": "./dist/src/portal/index.js"
     },
     "./react": {
       "import": {
-        "types": "./dist/react/context.d.ts",
-        "default": "./dist/react/context.js"
+        "types": "./dist/src/react/context.d.ts",
+        "default": "./dist/src/react/context.js"
       },
-      "default": "./dist/react/context.js"
+      "default": "./dist/src/react/context.js"
     }
   },
   "type": "module",
