@@ -3,6 +3,8 @@ package subscription
 import (
 	"fmt"
 	"time"
+
+	"github.com/samber/lo"
 )
 
 // The spec is the core object of Subscriptions being manipulated.
@@ -44,4 +46,32 @@ type someAppliesToSpec struct {
 
 func (s *someAppliesToSpec) ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error {
 	return s.Fn(spec, actx)
+}
+
+// NewAggregateAppliesToSpec aggregates multiple applies to spec into a single applies to spec, and also validates the spec after applying all the patches
+func NewAggregateAppliesToSpec(applieses []AppliesToSpec) AppliesToSpec {
+	return NewAppliesToSpec(func(spec *SubscriptionSpec, actx ApplyContext) error {
+		for i, applies := range applieses {
+			if err := spec.Apply(applies, actx); err != nil {
+				if uw, ok := err.(interface{ Unwrap() []error }); ok {
+					// If all returned errors are allowed during applying patches, we can continue
+					if lo.EveryBy(uw.Unwrap(), func(e error) bool {
+						_, ok := lo.ErrorsAs[*AllowedDuringApplyingToSpecError](e)
+						return ok
+					}) {
+						continue
+					}
+				} else if uw, ok := err.(interface{ Unwrap() error }); ok {
+					if _, ok := lo.ErrorsAs[*AllowedDuringApplyingToSpecError](uw.Unwrap()); ok {
+						continue
+					}
+				}
+
+				// Otherwise we return with the error
+				return fmt.Errorf("patch %d failed during validation: %w", i, err)
+			}
+		}
+
+		return nil
+	})
 }

@@ -908,20 +908,8 @@ func (s *SubscriptionSpec) Apply(applies AppliesToSpec, context ApplyContext) er
 }
 
 func (s *SubscriptionSpec) ApplyMany(applieses []AppliesToSpec, aCtx ApplyContext) error {
-	for i, applies := range applieses {
-		if err := s.Apply(applies, aCtx); err != nil {
-			if uw, ok := err.(interface{ Unwrap() []error }); ok {
-				// If all returned errors are allowed during applying patches, we can continue
-				if lo.EveryBy(uw.Unwrap(), func(e error) bool {
-					_, ok := lo.ErrorsAs[*AllowedDuringApplyingToSpecError](e)
-					return ok
-				}) {
-					continue
-				}
-			}
-			// Otherwise we return with the error
-			return fmt.Errorf("patch %d failed during validation: %w", i, err)
-		}
+	if err := NewAggregateAppliesToSpec(applieses).ApplyTo(s, aCtx); err != nil {
+		return fmt.Errorf("apply failed: %w", err)
 	}
 
 	if err := s.Validate(); err != nil {
