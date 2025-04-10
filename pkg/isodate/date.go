@@ -148,6 +148,21 @@ func (p *Period) Equal(v *Period) bool {
 	return p.String() == v.String()
 }
 
+func (p Period) Mul(i int) Period {
+	// TODO: Negative value copying!
+	return Period{
+		Period: period.New(
+			p.Years()*i,
+			p.Months()*i,
+			p.Weeks()*i,
+			p.Days()*i,
+			p.Hours()*i,
+			p.Minutes()*i,
+			p.Seconds()*i,
+		),
+	}
+}
+
 func MustParse(t *testing.T, s string) Period {
 	res, err := period.Parse(s)
 	if err != nil {
