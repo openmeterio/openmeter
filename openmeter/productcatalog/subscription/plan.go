@@ -135,21 +135,10 @@ type RateCard struct {
 var _ subscription.PlanRateCard = &RateCard{}
 
 func (r *RateCard) ToCreateSubscriptionItemPlanInput() subscription.CreateSubscriptionItemPlanInput {
-	m := r.RateCard.AsMeta()
-
 	return subscription.CreateSubscriptionItemPlanInput{
 		PhaseKey: r.PhaseKey,
 		ItemKey:  r.Key(),
-		RateCard: subscription.RateCard{
-			Name:                m.Name,
-			Description:         m.Description,
-			FeatureKey:          m.FeatureKey,
-			EntitlementTemplate: m.EntitlementTemplate,
-			TaxConfig:           m.TaxConfig,
-			Price:               m.Price,
-			Discounts:           m.Discounts,
-			BillingCadence:      r.GetBillingCadence(),
-		},
+		RateCard: r.RateCard.Clone(),
 	}
 }
 

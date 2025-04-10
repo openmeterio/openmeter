@@ -115,12 +115,12 @@ func (s *SubscriptionItemView) Validate() error {
 	}
 
 	// Let's validate whether it should have an entitlement
-	if (s.Entitlement == nil) != (s.SubscriptionItem.RateCard.EntitlementTemplate == nil) {
-		return fmt.Errorf("item %s should have an entitlement: %v", s.Spec.ItemKey, s.SubscriptionItem.RateCard.EntitlementTemplate)
+	if (s.Entitlement == nil) != (s.SubscriptionItem.RateCard.AsMeta().EntitlementTemplate == nil) {
+		return fmt.Errorf("item %s should have an entitlement: %v", s.Spec.ItemKey, s.SubscriptionItem.RateCard.AsMeta().EntitlementTemplate)
 	}
 
 	// Let's validate the Entitlement looks as it should
-	if s.Entitlement != nil && s.SubscriptionItem.RateCard.EntitlementTemplate != nil {
+	if s.Entitlement != nil && s.SubscriptionItem.RateCard.AsMeta().EntitlementTemplate != nil {
 		// First, lets validate the nested model
 		if err := s.Entitlement.Validate(); err != nil {
 			return fmt.Errorf("entitlement for item %s is invalid: %w", s.Spec.ItemKey, err)
@@ -132,7 +132,7 @@ func (s *SubscriptionItemView) Validate() error {
 		}
 
 		// Third, let's validate it looks according to the Template
-		tpl := s.SubscriptionItem.RateCard.EntitlementTemplate
+		tpl := s.SubscriptionItem.RateCard.AsMeta().EntitlementTemplate
 		ent := s.Entitlement.Entitlement
 
 		switch tpl.Type() {
@@ -203,13 +203,13 @@ func (s *SubscriptionItemView) Validate() error {
 			}
 
 		default:
-			return fmt.Errorf("entitlement type %s is not supported", s.SubscriptionItem.RateCard.EntitlementTemplate.Type())
+			return fmt.Errorf("entitlement type %s is not supported", s.SubscriptionItem.RateCard.AsMeta().EntitlementTemplate.Type())
 		}
 	}
 
 	// Let's validate the Feature
 	if s.Feature != nil {
-		if s.SubscriptionItem.RateCard.FeatureKey == nil {
+		if s.SubscriptionItem.RateCard.AsMeta().FeatureKey == nil {
 			return fmt.Errorf("item %s has a feature, but no feature key", s.Spec.ItemKey)
 		}
 
@@ -219,8 +219,8 @@ func (s *SubscriptionItemView) Validate() error {
 				return fmt.Errorf("entitlement %s feature id %s does not match item %s feature id %s", s.Entitlement.Entitlement.ID, s.Entitlement.Entitlement.FeatureID, s.Spec.ItemKey, s.Feature.ID)
 			}
 		} else {
-			if *s.SubscriptionItem.RateCard.FeatureKey != s.Feature.Key {
-				return fmt.Errorf("item %s feature key %s does not match feature key %s", s.Spec.ItemKey, *s.SubscriptionItem.RateCard.FeatureKey, s.Feature.Key)
+			if *s.SubscriptionItem.RateCard.AsMeta().FeatureKey != s.Feature.Key {
+				return fmt.Errorf("item %s feature key %s does not match feature key %s", s.Spec.ItemKey, *s.SubscriptionItem.RateCard.AsMeta().FeatureKey, s.Feature.Key)
 			}
 		}
 	}
@@ -388,9 +388,9 @@ func NewSubscriptionView(
 					}); ok {
 						itemFeat = &feat
 					}
-				} else if item.RateCard.FeatureKey != nil {
+				} else if item.RateCard.AsMeta().FeatureKey != nil {
 					if feat, ok := lo.Find(itemFeats, func(i feature.Feature) bool {
-						return i.Key == *item.RateCard.FeatureKey
+						return i.Key == *item.RateCard.AsMeta().FeatureKey
 					}); ok {
 						itemFeat = &feat
 					}

@@ -372,13 +372,13 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 	line := &billing.Line{
 		LineBase: billing.LineBase{
 			Namespace:              subs.Subscription.Namespace,
-			Name:                   item.Spec.RateCard.Name,
-			Description:            item.Spec.RateCard.Description,
+			Name:                   item.Spec.RateCard.AsMeta().Name,
+			Description:            item.Spec.RateCard.AsMeta().Description,
 			ManagedBy:              billing.SubscriptionManagedLine,
 			Currency:               subs.Spec.Currency,
 			Status:                 billing.InvoiceLineStatusValid,
 			ChildUniqueReferenceID: &item.UniqueID,
-			TaxConfig:              item.Spec.RateCard.TaxConfig,
+			TaxConfig:              item.Spec.RateCard.AsMeta().TaxConfig,
 			Period:                 item.Period,
 
 			Subscription: &billing.SubscriptionReference{
@@ -397,9 +397,9 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		inArrearsInvoiceAt = item.NonTruncatedPeriod.End
 	}
 
-	switch item.SubscriptionItem.RateCard.Price.Type() {
+	switch item.SubscriptionItem.RateCard.AsMeta().Price.Type() {
 	case productcatalog.FlatPriceType:
-		price, err := item.SubscriptionItem.RateCard.Price.AsFlat()
+		price, err := item.SubscriptionItem.RateCard.AsMeta().Price.AsFlat()
 		if err != nil {
 			return nil, fmt.Errorf("converting price to flat: %w", err)
 		}
@@ -440,15 +440,15 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		}
 
 	default:
-		if item.SubscriptionItem.RateCard.Price == nil {
+		if item.SubscriptionItem.RateCard.AsMeta().Price == nil {
 			return nil, fmt.Errorf("price must be defined for usage based price")
 		}
 
 		line.Type = billing.InvoiceLineTypeUsageBased
 		line.InvoiceAt = inArrearsInvoiceAt
 		line.UsageBased = &billing.UsageBasedLine{
-			Price:      item.SubscriptionItem.RateCard.Price,
-			FeatureKey: *item.SubscriptionItem.RateCard.FeatureKey,
+			Price:      item.SubscriptionItem.RateCard.AsMeta().Price,
+			FeatureKey: *item.SubscriptionItem.RateCard.AsMeta().FeatureKey,
 		}
 	}
 

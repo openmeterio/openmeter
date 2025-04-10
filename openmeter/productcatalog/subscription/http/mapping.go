@@ -217,15 +217,15 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 
 	var tx *api.TaxConfig
 
-	if item.SubscriptionItem.RateCard.TaxConfig != nil {
-		txv := productcataloghttp.FromTaxConfig(*item.SubscriptionItem.RateCard.TaxConfig)
+	if item.SubscriptionItem.RateCard.AsMeta().TaxConfig != nil {
+		txv := productcataloghttp.FromTaxConfig(*item.SubscriptionItem.RateCard.AsMeta().TaxConfig)
 		tx = &txv
 	}
 
 	var pr *api.RateCardUsageBasedPrice
 
-	if item.SubscriptionItem.RateCard.Price != nil {
-		prc, err := productcataloghttp.FromRateCardUsageBasedPrice(*item.SubscriptionItem.RateCard.Price)
+	if item.SubscriptionItem.RateCard.AsMeta().Price != nil {
+		prc, err := productcataloghttp.FromRateCardUsageBasedPrice(*item.SubscriptionItem.RateCard.AsMeta().Price)
 		if err != nil {
 			return api.SubscriptionItem{}, err
 		}
@@ -235,8 +235,8 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 
 	var di *[]api.Discount
 
-	if len(item.SubscriptionItem.RateCard.Discounts) > 0 {
-		disc, err := productcataloghttp.FromDiscounts(item.SubscriptionItem.RateCard.Discounts)
+	if len(item.SubscriptionItem.RateCard.AsMeta().Discounts) > 0 {
+		disc, err := productcataloghttp.FromDiscounts(item.SubscriptionItem.RateCard.AsMeta().Discounts)
 		if err != nil {
 			return api.SubscriptionItem{}, err
 		}
@@ -247,14 +247,14 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 	return api.SubscriptionItem{
 		ActiveFrom:     item.SubscriptionItem.ActiveFrom,
 		ActiveTo:       item.SubscriptionItem.ActiveTo,
-		BillingCadence: (*string)(item.SubscriptionItem.RateCard.BillingCadence.ISOStringPtrOrNil()),
+		BillingCadence: (*string)(item.SubscriptionItem.RateCard.GetBillingCadence().ISOStringPtrOrNil()),
 		CreatedAt:      item.SubscriptionItem.CreatedAt,
 		DeletedAt:      item.SubscriptionItem.DeletedAt,
 		Description:    item.SubscriptionItem.Description,
 		Id:             item.SubscriptionItem.ID,
 		Included:       included,
 		Key:            item.SubscriptionItem.Key,
-		FeatureKey:     item.SubscriptionItem.RateCard.FeatureKey,
+		FeatureKey:     item.SubscriptionItem.RateCard.AsMeta().FeatureKey,
 		Metadata:       lo.EmptyableToPtr(api.Metadata(item.SubscriptionItem.Metadata)),
 		Name:           item.SubscriptionItem.Name,
 		Price:          pr,

@@ -1,7 +1,6 @@
 package subscription
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -163,7 +162,6 @@ func NewItemPath(phaseKey, itemKey string) PatchPath {
 }
 
 type Patch interface {
-	json.Marshaler
 	Applies
 	Validate() error
 	Op() PatchOperation

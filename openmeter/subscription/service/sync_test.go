@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -260,14 +261,7 @@ func TestEdit(t *testing.T) {
 							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 								PhaseKey: pKey,
 								ItemKey:  iKey,
-								RateCard: subscription.RateCard{
-									Name:                rc.Name,
-									Description:         rc.Description,
-									EntitlementTemplate: rc.EntitlementTemplate,
-									TaxConfig:           rc.TaxConfig,
-									Price:               rc.Price,
-									BillingCadence:      rc.GetBillingCadence(),
-								},
+								RateCard: &rc,
 							},
 							CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{},
 						},
@@ -321,7 +315,10 @@ func TestEdit(t *testing.T) {
 				item := v[0]
 
 				// Let's unset the entitlement template
-				item.RateCard.EntitlementTemplate = nil
+				require.NoError(t, item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) productcatalog.RateCardMeta {
+					m.EntitlementTemplate = nil
+					return m
+				}))
 
 				// Let's add the item
 				spec.Phases[pKey].ItemsByKey[iKey] = []*subscription.SubscriptionItemSpec{

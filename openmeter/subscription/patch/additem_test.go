@@ -134,12 +134,15 @@ func TestAddItem(t *testing.T) {
 							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 								ItemKey:  "new_item_key",
 								PhaseKey: "test_phase_3",
-								RateCard: subscription.RateCard{
-									Name: "New Rate Card",
-									Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-										Amount:      alpacadecimal.NewFromInt(100),
-										PaymentTerm: productcatalog.InAdvancePaymentTerm,
-									}),
+								RateCard: &productcatalog.FlatFeeRateCard{
+									RateCardMeta: productcatalog.RateCardMeta{
+										Name: "New Rate Card",
+										Key:  "new_item_key",
+										Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+											Amount:      alpacadecimal.NewFromInt(100),
+											PaymentTerm: productcatalog.InAdvancePaymentTerm,
+										}),
+									},
 								},
 							},
 						},
@@ -170,12 +173,15 @@ func TestAddItem(t *testing.T) {
 								CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 									ItemKey:  "new_item_key",
 									PhaseKey: "test_phase_3",
-									RateCard: subscription.RateCard{
-										Name: "New Rate Card",
-										Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-											Amount:      alpacadecimal.NewFromInt(100),
-											PaymentTerm: productcatalog.InAdvancePaymentTerm,
-										}),
+									RateCard: &productcatalog.FlatFeeRateCard{
+										RateCardMeta: productcatalog.RateCardMeta{
+											Name: "New Rate Card",
+											Key:  "new_item_key",
+											Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+												Amount:      alpacadecimal.NewFromInt(100),
+												PaymentTerm: productcatalog.InAdvancePaymentTerm,
+											}),
+										},
 									},
 								},
 							},
@@ -196,12 +202,15 @@ func TestAddItem(t *testing.T) {
 							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 								ItemKey:  "new_item_key",
 								PhaseKey: "rate-card-2",
-								RateCard: subscription.RateCard{
-									Name: "New Rate Card",
-									Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-										Amount:      alpacadecimal.NewFromInt(100),
-										PaymentTerm: productcatalog.InAdvancePaymentTerm,
-									}),
+								RateCard: &productcatalog.FlatFeeRateCard{
+									RateCardMeta: productcatalog.RateCardMeta{
+										Name: "New Rate Card",
+										Key:  "new_item_key",
+										Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+											Amount:      alpacadecimal.NewFromInt(100),
+											PaymentTerm: productcatalog.InAdvancePaymentTerm,
+										}),
+									},
 								},
 							},
 						},
@@ -250,12 +259,15 @@ func TestAddItem(t *testing.T) {
 								CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 									ItemKey:  "new_item_key",
 									PhaseKey: "rate-card-2",
-									RateCard: subscription.RateCard{
-										Name: "New Rate Card",
-										Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-											Amount:      alpacadecimal.NewFromInt(100),
-											PaymentTerm: productcatalog.InAdvancePaymentTerm,
-										}),
+									RateCard: &productcatalog.FlatFeeRateCard{
+										RateCardMeta: productcatalog.RateCardMeta{
+											Name: "New Rate Card",
+											Key:  "new_item_key",
+											Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+												Amount:      alpacadecimal.NewFromInt(100),
+												PaymentTerm: productcatalog.InAdvancePaymentTerm,
+											}),
+										},
 									},
 								},
 								CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{

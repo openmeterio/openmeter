@@ -747,7 +747,7 @@ func TestChangeToPlan(t *testing.T) {
 	// Let's define two plans. One is the example plan, and the second is a slightly modified version of that
 	examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
 
-	rc1 := productcatalog.FlatFeeRateCard{
+	rc1 := productcatalog.UsageBasedRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:         subscriptiontestutils.ExampleFeatureKey,
 			Name:        "Rate Card 1",
@@ -767,7 +767,7 @@ func TestChangeToPlan(t *testing.T) {
 				Amount: alpacadecimal.NewFromInt(int64(1)),
 			}),
 		},
-		BillingCadence: &subscriptiontestutils.ISOMonth,
+		BillingCadence: subscriptiontestutils.ISOMonth,
 	}
 
 	rc2 := productcatalog.FlatFeeRateCard{
@@ -1008,6 +1008,12 @@ func TestEditCombinations(t *testing.T) {
 			require.Equal(t, 1, len(values))
 			val := values[0]
 
+			rc := val.Spec.RateCard
+			require.NoError(t, rc.ChangeMeta(func(m productcatalog.RateCardMeta) productcatalog.RateCardMeta {
+				m.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(19)})
+				return m
+			}))
+
 			// Let's edit the subscription
 			edits := []subscription.Patch{
 				// Let's edit an Item that has an Entitlement Associated
@@ -1023,15 +1029,7 @@ func TestEditCombinations(t *testing.T) {
 							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 								PhaseKey: "test_phase_1",
 								ItemKey:  subscriptiontestutils.ExampleFeatureKey,
-								RateCard: subscription.RateCard{
-									Name:                val.Spec.RateCard.Name,
-									Description:         val.Spec.RateCard.Description,
-									FeatureKey:          val.Spec.RateCard.FeatureKey,
-									EntitlementTemplate: val.Spec.RateCard.EntitlementTemplate,
-									TaxConfig:           val.Spec.RateCard.TaxConfig,
-									Price:               productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(19)}),
-									BillingCadence:      val.Spec.RateCard.BillingCadence,
-								},
+								RateCard: rc,
 							},
 							CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{},
 						},

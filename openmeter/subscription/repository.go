@@ -104,7 +104,7 @@ type CreateSubscriptionItemEntityInput struct {
 	// Key is the unique key of the item in the phase.
 	Key string
 
-	RateCard RateCard
+	RateCard productcatalog.RateCard
 
 	EntitlementID *string
 	Name          string  `json:"name,omitempty"`

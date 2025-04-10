@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	psubs "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
@@ -46,9 +47,13 @@ func TestRemoveAdd(t *testing.T) {
 
 		// Then add it back with changes
 		nSpec := *v[0]
-		nSpec.CreateSubscriptionItemPlanInput.RateCard.Name = "new_name"
+		nSpec.RateCard = nSpec.RateCard.Clone()
+		require.NoError(t, nSpec.CreateSubscriptionItemPlanInput.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) productcatalog.RateCardMeta {
+			m.Name = "new_name"
+			return m
+		}))
 
-		assert.NotEqual(t, "new_name", s.Phases["test_phase_3"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].RateCard.Name)
+		assert.NotEqual(t, "new_name", s.Phases["test_phase_3"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].RateCard.AsMeta().Name)
 
 		addP := &patch.PatchAddItem{
 			PhaseKey:    "test_phase_3",
@@ -64,7 +69,7 @@ func TestRemoveAdd(t *testing.T) {
 		// Let's validate that the new version of the item is present
 		found := s.Phases["test_phase_3"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0]
 
-		assert.Equal(t, "new_name", found.RateCard.Name)
+		assert.Equal(t, "new_name", found.RateCard.AsMeta().Name)
 	})
 
 	t.Run("Can remove then add an item in the current phase", func(t *testing.T) {
@@ -103,9 +108,13 @@ func TestRemoveAdd(t *testing.T) {
 
 		// Then add it back with changes
 		nSpec := *v[0]
-		nSpec.CreateSubscriptionItemPlanInput.RateCard.Name = "new_name"
+		nSpec.RateCard = nSpec.RateCard.Clone()
+		require.NoError(t, nSpec.CreateSubscriptionItemPlanInput.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) productcatalog.RateCardMeta {
+			m.Name = "new_name"
+			return m
+		}))
 
-		assert.NotEqual(t, "new_name", s.Phases["test_phase_2"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].RateCard.Name)
+		assert.NotEqual(t, "new_name", s.Phases["test_phase_2"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].RateCard.AsMeta().Name)
 
 		addP := &patch.PatchAddItem{
 			PhaseKey:    "test_phase_2",
