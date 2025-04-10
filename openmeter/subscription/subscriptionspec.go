@@ -171,8 +171,8 @@ func (s *SubscriptionSpec) HasMeteredBillables() bool {
 
 // For a phase in an Aligned subscription, there's a single aligned BillingPeriod for all items in that phase.
 // The period starts with the phase and iterates every BillingCadence duration, but can be reanchored to the time of an edit.
-func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Time) (timeutil.Period, error) {
-	var def timeutil.Period
+func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Time) (timeutil.ClosedPeriod, error) {
+	var def timeutil.ClosedPeriod
 
 	phase, exists := s.Phases[phaseKey]
 	if !exists {

@@ -17,8 +17,8 @@ type Recurrence struct {
 }
 
 // Returns a period where p.ContainsInclusive(t) is true
-func (r Recurrence) GetPeriodAt(t time.Time) (Period, error) {
-	var def Period
+func (r Recurrence) GetPeriodAt(t time.Time) (ClosedPeriod, error) {
+	var def ClosedPeriod
 
 	next, err := r.NextAfter(t)
 	if err != nil {
@@ -33,7 +33,7 @@ func (r Recurrence) GetPeriodAt(t time.Time) (Period, error) {
 			return def, err
 		}
 
-		return Period{start, end}, nil
+		return ClosedPeriod{start, end}, nil
 	}
 
 	// Otherwise the next time will be the end
@@ -42,7 +42,7 @@ func (r Recurrence) GetPeriodAt(t time.Time) (Period, error) {
 		return def, err
 	}
 
-	return Period{prev, next}, nil
+	return ClosedPeriod{prev, next}, nil
 }
 
 // NextAfter returns the next time after t that the recurrence should occur.

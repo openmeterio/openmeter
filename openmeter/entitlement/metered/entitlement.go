@@ -37,7 +37,7 @@ type Entitlement struct {
 	UsagePeriod entitlement.UsagePeriod `json:"usagePeriod,omitempty"`
 
 	// CurrentPeriod defines the current period for usage calculations.
-	CurrentUsagePeriod timeutil.Period `json:"currentUsagePeriod,omitempty"`
+	CurrentUsagePeriod timeutil.ClosedPeriod `json:"currentUsagePeriod,omitempty"`
 
 	// OriginalUsagePeriodAnchor defines the original anchor of the current usage period.
 	OriginalUsagePeriodAnchor time.Time `json:"originalUsagePeriodAnchor,omitempty"`

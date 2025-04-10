@@ -118,7 +118,7 @@ func TestEngine(t *testing.T) {
 					{
 						BalanceAtStart: balance.Map{},
 						GrantUsages:    []engine.GrantUsage{},
-						Period: timeutil.Period{
+						ClosedPeriod: timeutil.ClosedPeriod{
 							From: t1,
 							To:   t1.AddDate(0, 0, 30),
 						},
@@ -873,16 +873,16 @@ func TestEngine(t *testing.T) {
 
 				assert.NotEmpty(t, res.History)
 				assert.Equal(t, 5, len(res.History.Segments()))
-				assert.Equal(t, start.In(time.UTC), res.History.Segments()[0].Period.From)
-				assert.Equal(t, t1.In(time.UTC), res.History.Segments()[0].Period.To)
-				assert.Equal(t, t1.In(time.UTC), res.History.Segments()[1].Period.From)
-				assert.Equal(t, t2.In(time.UTC), res.History.Segments()[1].Period.To)
-				assert.Equal(t, t2.In(time.UTC), res.History.Segments()[2].Period.From)
-				assert.Equal(t, t3.In(time.UTC), res.History.Segments()[2].Period.To)
-				assert.Equal(t, t3.In(time.UTC), res.History.Segments()[3].Period.From)
-				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), res.History.Segments()[3].Period.To)
-				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), res.History.Segments()[4].Period.From)
-				assert.Equal(t, end.In(time.UTC), res.History.Segments()[4].Period.To)
+				assert.Equal(t, start.In(time.UTC), res.History.Segments()[0].ClosedPeriod.From)
+				assert.Equal(t, t1.In(time.UTC), res.History.Segments()[0].ClosedPeriod.To)
+				assert.Equal(t, t1.In(time.UTC), res.History.Segments()[1].ClosedPeriod.From)
+				assert.Equal(t, t2.In(time.UTC), res.History.Segments()[1].ClosedPeriod.To)
+				assert.Equal(t, t2.In(time.UTC), res.History.Segments()[2].ClosedPeriod.From)
+				assert.Equal(t, t3.In(time.UTC), res.History.Segments()[2].ClosedPeriod.To)
+				assert.Equal(t, t3.In(time.UTC), res.History.Segments()[3].ClosedPeriod.From)
+				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), res.History.Segments()[3].ClosedPeriod.To)
+				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), res.History.Segments()[4].ClosedPeriod.From)
+				assert.Equal(t, end.In(time.UTC), res.History.Segments()[4].ClosedPeriod.To)
 			},
 		},
 	}

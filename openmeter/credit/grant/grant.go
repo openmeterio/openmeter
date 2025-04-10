@@ -60,8 +60,8 @@ func (g Grant) GetExpiration() time.Time {
 	return g.Expiration.GetExpiration(g.EffectiveAt)
 }
 
-func (g Grant) GetEffectivePeriod() timeutil.Period {
-	p := timeutil.Period{
+func (g Grant) GetEffectivePeriod() timeutil.ClosedPeriod {
+	p := timeutil.ClosedPeriod{
 		From: g.EffectiveAt,
 		To:   g.ExpiresAt,
 	}
