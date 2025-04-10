@@ -44,7 +44,12 @@ func TestAddonServiceGet(t *testing.T) {
 					{
 						AddonRateCardID: aRCIDs[0],
 
-						AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
+						AffectedSubscriptionItems: []subscriptionaddon.SubscriptionAddonRateCardItemRef{
+							{
+								SubscriptionItemID:        sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID,
+								SubscriptionItemThroughID: "og-id",
+							},
+						},
 					},
 				},
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
@@ -123,7 +128,12 @@ func TestAddonServiceList(t *testing.T) {
 					{
 						AddonRateCardID: aRCIDs1[0],
 
-						AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
+						AffectedSubscriptionItems: []subscriptionaddon.SubscriptionAddonRateCardItemRef{
+							{
+								SubscriptionItemID:        sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID,
+								SubscriptionItemThroughID: "og-id",
+							},
+						},
 					},
 				},
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
@@ -142,7 +152,12 @@ func TestAddonServiceList(t *testing.T) {
 					{
 						AddonRateCardID: aRCIDs2[0],
 
-						AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
+						AffectedSubscriptionItems: []subscriptionaddon.SubscriptionAddonRateCardItemRef{
+							{
+								SubscriptionItemID:        sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID,
+								SubscriptionItemThroughID: "og-id",
+							},
+						},
 					},
 				},
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{

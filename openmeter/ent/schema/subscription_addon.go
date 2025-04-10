@@ -158,6 +158,9 @@ func (SubscriptionAddonRateCardItemLink) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("subscription_addon_rate_card_id").NotEmpty().Immutable(),
 		field.String("subscription_item_id").NotEmpty().Immutable(),
+		// Through ID is not a FK as we want the referenced (since soft-deleted) SubscriptionItem to be deletable without
+		// cascading to this
+		field.String("subscription_item_through_id").Optional().Immutable(),
 	}
 }
 
@@ -165,6 +168,7 @@ func (SubscriptionAddonRateCardItemLink) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("subscription_addon_rate_card_id"),
 		index.Fields("subscription_item_id"),
+		index.Fields("subscription_item_through_id"),
 		index.Fields("subscription_item_id", "subscription_addon_rate_card_id").
 			Annotations(entsql.IndexWhere("deleted_at IS NULL")).
 			Unique(), // To avoid duplicates

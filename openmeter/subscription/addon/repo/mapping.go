@@ -84,8 +84,11 @@ func MapSubscriptionAddonRateCard(entity *db.SubscriptionAddonRateCard) (subscri
 		},
 	}
 	if len(entity.Edges.Items) > 0 {
-		base.AffectedSubscriptionItemIDs = lo.Map(entity.Edges.Items, func(item *db.SubscriptionAddonRateCardItemLink, _ int) string {
-			return item.SubscriptionItemID
+		base.AffectedSubscriptionItems = lo.Map(entity.Edges.Items, func(item *db.SubscriptionAddonRateCardItemLink, _ int) subscriptionaddon.SubscriptionAddonRateCardItemRef {
+			return subscriptionaddon.SubscriptionAddonRateCardItemRef{
+				SubscriptionItemID:        item.SubscriptionItemID,
+				SubscriptionItemThroughID: item.SubscriptionItemThroughID,
+			}
 		})
 	}
 

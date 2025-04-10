@@ -44656,6 +44656,7 @@ type SubscriptionAddonRateCardItemLinkMutation struct {
 	created_at                          *time.Time
 	updated_at                          *time.Time
 	deleted_at                          *time.Time
+	subscription_item_through_id        *string
 	clearedFields                       map[string]struct{}
 	subscription_addon_rate_card        *string
 	clearedsubscription_addon_rate_card bool
@@ -44963,6 +44964,55 @@ func (m *SubscriptionAddonRateCardItemLinkMutation) ResetSubscriptionItemID() {
 	m.subscription_item = nil
 }
 
+// SetSubscriptionItemThroughID sets the "subscription_item_through_id" field.
+func (m *SubscriptionAddonRateCardItemLinkMutation) SetSubscriptionItemThroughID(s string) {
+	m.subscription_item_through_id = &s
+}
+
+// SubscriptionItemThroughID returns the value of the "subscription_item_through_id" field in the mutation.
+func (m *SubscriptionAddonRateCardItemLinkMutation) SubscriptionItemThroughID() (r string, exists bool) {
+	v := m.subscription_item_through_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionItemThroughID returns the old "subscription_item_through_id" field's value of the SubscriptionAddonRateCardItemLink entity.
+// If the SubscriptionAddonRateCardItemLink object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionAddonRateCardItemLinkMutation) OldSubscriptionItemThroughID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionItemThroughID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionItemThroughID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionItemThroughID: %w", err)
+	}
+	return oldValue.SubscriptionItemThroughID, nil
+}
+
+// ClearSubscriptionItemThroughID clears the value of the "subscription_item_through_id" field.
+func (m *SubscriptionAddonRateCardItemLinkMutation) ClearSubscriptionItemThroughID() {
+	m.subscription_item_through_id = nil
+	m.clearedFields[subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID] = struct{}{}
+}
+
+// SubscriptionItemThroughIDCleared returns if the "subscription_item_through_id" field was cleared in this mutation.
+func (m *SubscriptionAddonRateCardItemLinkMutation) SubscriptionItemThroughIDCleared() bool {
+	_, ok := m.clearedFields[subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID]
+	return ok
+}
+
+// ResetSubscriptionItemThroughID resets all changes to the "subscription_item_through_id" field.
+func (m *SubscriptionAddonRateCardItemLinkMutation) ResetSubscriptionItemThroughID() {
+	m.subscription_item_through_id = nil
+	delete(m.clearedFields, subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID)
+}
+
 // ClearSubscriptionAddonRateCard clears the "subscription_addon_rate_card" edge to the SubscriptionAddonRateCard entity.
 func (m *SubscriptionAddonRateCardItemLinkMutation) ClearSubscriptionAddonRateCard() {
 	m.clearedsubscription_addon_rate_card = true
@@ -45051,7 +45101,7 @@ func (m *SubscriptionAddonRateCardItemLinkMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionAddonRateCardItemLinkMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.created_at != nil {
 		fields = append(fields, subscriptionaddonratecarditemlink.FieldCreatedAt)
 	}
@@ -45066,6 +45116,9 @@ func (m *SubscriptionAddonRateCardItemLinkMutation) Fields() []string {
 	}
 	if m.subscription_item != nil {
 		fields = append(fields, subscriptionaddonratecarditemlink.FieldSubscriptionItemID)
+	}
+	if m.subscription_item_through_id != nil {
+		fields = append(fields, subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID)
 	}
 	return fields
 }
@@ -45085,6 +45138,8 @@ func (m *SubscriptionAddonRateCardItemLinkMutation) Field(name string) (ent.Valu
 		return m.SubscriptionAddonRateCardID()
 	case subscriptionaddonratecarditemlink.FieldSubscriptionItemID:
 		return m.SubscriptionItemID()
+	case subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID:
+		return m.SubscriptionItemThroughID()
 	}
 	return nil, false
 }
@@ -45104,6 +45159,8 @@ func (m *SubscriptionAddonRateCardItemLinkMutation) OldField(ctx context.Context
 		return m.OldSubscriptionAddonRateCardID(ctx)
 	case subscriptionaddonratecarditemlink.FieldSubscriptionItemID:
 		return m.OldSubscriptionItemID(ctx)
+	case subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID:
+		return m.OldSubscriptionItemThroughID(ctx)
 	}
 	return nil, fmt.Errorf("unknown SubscriptionAddonRateCardItemLink field %s", name)
 }
@@ -45148,6 +45205,13 @@ func (m *SubscriptionAddonRateCardItemLinkMutation) SetField(name string, value 
 		}
 		m.SetSubscriptionItemID(v)
 		return nil
+	case subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionItemThroughID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionAddonRateCardItemLink field %s", name)
 }
@@ -45181,6 +45245,9 @@ func (m *SubscriptionAddonRateCardItemLinkMutation) ClearedFields() []string {
 	if m.FieldCleared(subscriptionaddonratecarditemlink.FieldDeletedAt) {
 		fields = append(fields, subscriptionaddonratecarditemlink.FieldDeletedAt)
 	}
+	if m.FieldCleared(subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID) {
+		fields = append(fields, subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID)
+	}
 	return fields
 }
 
@@ -45197,6 +45264,9 @@ func (m *SubscriptionAddonRateCardItemLinkMutation) ClearField(name string) erro
 	switch name {
 	case subscriptionaddonratecarditemlink.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID:
+		m.ClearSubscriptionItemThroughID()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionAddonRateCardItemLink nullable field %s", name)
@@ -45220,6 +45290,9 @@ func (m *SubscriptionAddonRateCardItemLinkMutation) ResetField(name string) erro
 		return nil
 	case subscriptionaddonratecarditemlink.FieldSubscriptionItemID:
 		m.ResetSubscriptionItemID()
+		return nil
+	case subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID:
+		m.ResetSubscriptionItemThroughID()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionAddonRateCardItemLink field %s", name)

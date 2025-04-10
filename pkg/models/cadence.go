@@ -67,6 +67,20 @@ func (c CadencedModel) IsZero() bool {
 	return c.ActiveFrom.IsZero() && c.ActiveTo == nil
 }
 
+func (c CadencedModel) Overlaps(other CadencedModel) bool {
+	// If either end time is before the other's start time, they don't overlap
+	if c.ActiveTo != nil && c.ActiveTo.Before(other.ActiveFrom) {
+		return false
+	}
+
+	if other.ActiveTo != nil && other.ActiveTo.Before(c.ActiveFrom) {
+		return false
+	}
+
+	// Otherwise they overlap
+	return true
+}
+
 // CadenceList is a simple abstraction for a list of cadenced models.
 // It is useful to validate the relationship between the cadences of the models, like their ordering, overlaps, continuity, etc.
 type CadenceList[T Cadenced] []T

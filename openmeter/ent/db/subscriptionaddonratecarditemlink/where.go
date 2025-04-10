@@ -90,6 +90,11 @@ func SubscriptionItemID(v string) predicate.SubscriptionAddonRateCardItemLink {
 	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldEQ(FieldSubscriptionItemID, v))
 }
 
+// SubscriptionItemThroughID applies equality check predicate on the "subscription_item_through_id" field. It's identical to SubscriptionItemThroughIDEQ.
+func SubscriptionItemThroughID(v string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldEQ(FieldSubscriptionItemThroughID, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.SubscriptionAddonRateCardItemLink {
 	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldEQ(FieldCreatedAt, v))
@@ -348,6 +353,81 @@ func SubscriptionItemIDEqualFold(v string) predicate.SubscriptionAddonRateCardIt
 // SubscriptionItemIDContainsFold applies the ContainsFold predicate on the "subscription_item_id" field.
 func SubscriptionItemIDContainsFold(v string) predicate.SubscriptionAddonRateCardItemLink {
 	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldContainsFold(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemThroughIDEQ applies the EQ predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDEQ(v string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldEQ(FieldSubscriptionItemThroughID, v))
+}
+
+// SubscriptionItemThroughIDNEQ applies the NEQ predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDNEQ(v string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldNEQ(FieldSubscriptionItemThroughID, v))
+}
+
+// SubscriptionItemThroughIDIn applies the In predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDIn(vs ...string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldIn(FieldSubscriptionItemThroughID, vs...))
+}
+
+// SubscriptionItemThroughIDNotIn applies the NotIn predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDNotIn(vs ...string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldNotIn(FieldSubscriptionItemThroughID, vs...))
+}
+
+// SubscriptionItemThroughIDGT applies the GT predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDGT(v string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldGT(FieldSubscriptionItemThroughID, v))
+}
+
+// SubscriptionItemThroughIDGTE applies the GTE predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDGTE(v string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldGTE(FieldSubscriptionItemThroughID, v))
+}
+
+// SubscriptionItemThroughIDLT applies the LT predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDLT(v string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldLT(FieldSubscriptionItemThroughID, v))
+}
+
+// SubscriptionItemThroughIDLTE applies the LTE predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDLTE(v string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldLTE(FieldSubscriptionItemThroughID, v))
+}
+
+// SubscriptionItemThroughIDContains applies the Contains predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDContains(v string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldContains(FieldSubscriptionItemThroughID, v))
+}
+
+// SubscriptionItemThroughIDHasPrefix applies the HasPrefix predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDHasPrefix(v string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldHasPrefix(FieldSubscriptionItemThroughID, v))
+}
+
+// SubscriptionItemThroughIDHasSuffix applies the HasSuffix predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDHasSuffix(v string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldHasSuffix(FieldSubscriptionItemThroughID, v))
+}
+
+// SubscriptionItemThroughIDIsNil applies the IsNil predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDIsNil() predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldIsNull(FieldSubscriptionItemThroughID))
+}
+
+// SubscriptionItemThroughIDNotNil applies the NotNil predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDNotNil() predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldNotNull(FieldSubscriptionItemThroughID))
+}
+
+// SubscriptionItemThroughIDEqualFold applies the EqualFold predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDEqualFold(v string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldEqualFold(FieldSubscriptionItemThroughID, v))
+}
+
+// SubscriptionItemThroughIDContainsFold applies the ContainsFold predicate on the "subscription_item_through_id" field.
+func SubscriptionItemThroughIDContainsFold(v string) predicate.SubscriptionAddonRateCardItemLink {
+	return predicate.SubscriptionAddonRateCardItemLink(sql.FieldContainsFold(FieldSubscriptionItemThroughID, v))
 }
 
 // HasSubscriptionAddonRateCard applies the HasEdge predicate on the "subscription_addon_rate_card" edge.

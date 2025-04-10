@@ -116,7 +116,12 @@ func createExampleSubscriptionAddon(t *testing.T, deps subscriptiontestutils.Sub
 			{
 				AddonRateCardID: aRCIDs[0],
 
-				AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
+				AffectedSubscriptionItems: []subscriptionaddon.SubscriptionAddonRateCardItemRef{
+					{
+						SubscriptionItemID:        sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID,
+						SubscriptionItemThroughID: "og-id",
+					},
+				},
 			},
 		},
 		InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{

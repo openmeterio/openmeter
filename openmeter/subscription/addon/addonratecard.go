@@ -11,11 +11,16 @@ type SubscriptionAddonRateCard struct {
 
 	AddonRateCard addon.RateCard `json:"addonRateCard"`
 
-	AffectedSubscriptionItemIDs []string `json:"affectedSubscriptionItemIDs"`
+	AffectedSubscriptionItems []SubscriptionAddonRateCardItemRef `json:"affectedSubscriptionItems"`
 }
 
 type CreateSubscriptionAddonRateCardInput struct {
 	AddonRateCardID string `json:"addonRateCardID"`
 
-	AffectedSubscriptionItemIDs []string `json:"affectedSubscriptionItemIDs"`
+	AffectedSubscriptionItems []SubscriptionAddonRateCardItemRef `json:"affectedSubscriptionItems"`
+}
+
+type SubscriptionAddonRateCardItemRef struct {
+	SubscriptionItemID        string `json:"subscriptionItemID"`
+	SubscriptionItemThroughID string `json:"subscriptionItemThroughID"`
 }
