@@ -43,6 +43,10 @@ type Plan struct {
 	Phases []Phase `json:"phases"`
 }
 
+func (p Plan) ValidateWith(validators ...models.ValidatorFunc[Plan]) error {
+	return models.Validate(p, validators...)
+}
+
 func (p Plan) Validate() error {
 	var errs []error
 
@@ -59,6 +63,7 @@ func (p Plan) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// FIXME: rename to publishable
 // ValidForCreatingSubscriptions checks if the Plan is valid for creating Subscriptions, a stricter version of Validate
 func (p Plan) ValidForCreatingSubscriptions() error {
 	var errs []error
@@ -66,6 +71,8 @@ func (p Plan) ValidForCreatingSubscriptions() error {
 	if err := p.Validate(); err != nil {
 		errs = append(errs, err)
 	}
+
+	// FIXME:
 
 	if len(p.Phases) == 0 {
 		return models.NewGenericValidationError(errors.New("invalid Plan: at least one PlanPhase is required"))
@@ -136,8 +143,9 @@ func (p Plan) Equal(o Plan) bool {
 }
 
 var (
-	_ models.Validator         = (*PlanMeta)(nil)
-	_ models.Equaler[PlanMeta] = (*PlanMeta)(nil)
+	_ models.Validator             = (*PlanMeta)(nil)
+	_ models.CustomValidator[Plan] = (*Plan)(nil)
+	_ models.Equaler[PlanMeta]     = (*PlanMeta)(nil)
 )
 
 type PlanMeta struct {
@@ -252,4 +260,15 @@ func (p PlanMeta) StatusAt(t time.Time) PlanStatus {
 	}
 
 	return PlanStatusInvalid
+}
+
+func PlanWithAllowedStatus(allowed ...PlanStatus) models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		status := p.Status()
+		if lo.Contains(allowed, status) {
+			return nil
+		}
+
+		return fmt.Errorf("plan status %s is not valid, must be one of %+v", status, allowed)
+	}
 }
