@@ -117,3 +117,92 @@ func (p OpenPeriod) Intersection(other OpenPeriod) *OpenPeriod {
 		To:   newTo,
 	}
 }
+
+func (p OpenPeriod) Union(other OpenPeriod) OpenPeriod {
+	// If either period is empty, return an empty period
+	if (p.From == nil && p.To == nil) || (other.From == nil && other.To == nil) {
+		return OpenPeriod{}
+	}
+
+	// Calculate the earliest From date
+	var newFrom *time.Time
+	switch {
+	case p.From == nil || other.From == nil:
+		newFrom = nil
+	default:
+		// Both From are not nil, take the earlier one
+		if p.From.Before(*other.From) {
+			tmp := *p.From
+			newFrom = &tmp
+		} else {
+			tmp := *other.From
+			newFrom = &tmp
+		}
+	}
+
+	// Calculate the latest To date
+	var newTo *time.Time
+	switch {
+	case p.To == nil || other.To == nil:
+		newTo = nil
+	default:
+		// Both To are not nil, take the later one
+		if p.To.After(*other.To) {
+			tmp := *p.To
+			newTo = &tmp
+		} else {
+			tmp := *other.To
+			newTo = &tmp
+		}
+	}
+
+	return OpenPeriod{
+		From: newFrom,
+		To:   newTo,
+	}
+}
+
+// contains / bounds in other words (both ends inclusive)
+func (p OpenPeriod) IsSupersetOf(other OpenPeriod) bool {
+	// Empty period is a superset of everything
+	if p.From == nil && p.To == nil {
+		return true
+	}
+
+	// Non-empty period is not a superset of empty period
+	if other.From == nil && other.To == nil {
+		return false
+	}
+
+	// Check From boundary
+	if p.From != nil {
+		// If p has a From but other doesn't, p is not a superset
+		if other.From == nil {
+			return false
+		}
+		// If p starts after other, p is not a superset
+		if p.From.After(*other.From) {
+			return false
+		}
+	}
+
+	// Check To boundary
+	if p.To != nil {
+		// If p has a To but other doesn't, p is not a superset
+		if other.To == nil {
+			return false
+		}
+		// If p ends before other, p is not a superset
+		if p.To.Before(*other.To) {
+			return false
+		}
+	}
+
+	// Check for touching periods - they are not considered supersets
+	if (p.To != nil && other.From != nil && p.To.Equal(*other.From)) ||
+		(p.From != nil && other.To != nil && p.From.Equal(*other.To)) {
+		return false
+	}
+
+	return true
+}

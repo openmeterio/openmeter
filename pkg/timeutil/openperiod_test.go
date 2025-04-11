@@ -382,4 +382,197 @@ func TestOpenPeriod(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("Union", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			period1  OpenPeriod
+			period2  OpenPeriod
+			expected OpenPeriod
+		}{
+			{
+				name:     "both periods empty",
+				period1:  OpenPeriod{},
+				period2:  OpenPeriod{},
+				expected: OpenPeriod{},
+			},
+			{
+				name:     "first period empty",
+				period1:  OpenPeriod{},
+				period2:  OpenPeriod{From: &before, To: &after},
+				expected: OpenPeriod{},
+			},
+			{
+				name:     "second period empty",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{},
+				expected: OpenPeriod{},
+			},
+			{
+				name:     "overlapping periods",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{From: &now, To: nil},
+				expected: OpenPeriod{From: &before, To: nil},
+			},
+			{
+				name:     "non-overlapping periods",
+				period1:  OpenPeriod{From: &before, To: &now},
+				period2:  OpenPeriod{From: &after, To: nil},
+				expected: OpenPeriod{From: &before, To: nil},
+			},
+			{
+				name:     "period1 contains period2",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{From: &now, To: &thirtyMinLater},
+				expected: OpenPeriod{From: &before, To: &after},
+			},
+			{
+				name:     "period2 contains period1",
+				period1:  OpenPeriod{From: &now, To: &thirtyMinLater},
+				period2:  OpenPeriod{From: &before, To: &after},
+				expected: OpenPeriod{From: &before, To: &after},
+			},
+			{
+				name:     "touching periods",
+				period1:  OpenPeriod{From: &before, To: &now},
+				period2:  OpenPeriod{From: &now, To: &after},
+				expected: OpenPeriod{From: &before, To: &after},
+			},
+			{
+				name:     "both periods open-ended in same direction",
+				period1:  OpenPeriod{From: &before, To: nil},
+				period2:  OpenPeriod{From: &now, To: nil},
+				expected: OpenPeriod{From: &before, To: nil},
+			},
+			{
+				name:     "both periods open-ended in opposite directions",
+				period1:  OpenPeriod{From: nil, To: &now},
+				period2:  OpenPeriod{From: &now, To: nil},
+				expected: OpenPeriod{From: nil, To: nil},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				result := tt.period1.Union(tt.period2)
+
+				// Check From value
+				if (tt.expected.From == nil) != (result.From == nil) {
+					t.Errorf("Incorrect From nil status, expected %v, got %v", tt.expected.From == nil, result.From == nil)
+				} else if tt.expected.From != nil && result.From != nil && !tt.expected.From.Equal(*result.From) {
+					t.Errorf("Incorrect From value, expected %v, got %v", *tt.expected.From, *result.From)
+				}
+
+				// Check To value
+				if (tt.expected.To == nil) != (result.To == nil) {
+					t.Errorf("Incorrect To nil status, expected %v, got %v", tt.expected.To == nil, result.To == nil)
+				} else if tt.expected.To != nil && result.To != nil && !tt.expected.To.Equal(*result.To) {
+					t.Errorf("Incorrect To value, expected %v, got %v", *tt.expected.To, *result.To)
+				}
+			})
+		}
+	})
+
+	t.Run("IsSupersetOf", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			period1  OpenPeriod
+			period2  OpenPeriod
+			expected bool
+		}{
+			{
+				name:     "empty period is superset of empty period",
+				period1:  OpenPeriod{},
+				period2:  OpenPeriod{},
+				expected: true,
+			},
+			{
+				name:     "empty period is superset of non-empty period",
+				period1:  OpenPeriod{},
+				period2:  OpenPeriod{From: &before, To: &after},
+				expected: true,
+			},
+			{
+				name:     "non-empty period is not superset of empty period",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{},
+				expected: false,
+			},
+			{
+				name:     "period contains other period",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{From: &now, To: &thirtyMinLater},
+				expected: true,
+			},
+			{
+				name:     "period does not contain other period (starts after)",
+				period1:  OpenPeriod{From: &now, To: &after},
+				period2:  OpenPeriod{From: &before, To: &after},
+				expected: false,
+			},
+			{
+				name:     "period does not contain other period (ends before)",
+				period1:  OpenPeriod{From: &before, To: &now},
+				period2:  OpenPeriod{From: &before, To: &after},
+				expected: false,
+			},
+			{
+				name:     "period with open end contains period with closed end",
+				period1:  OpenPeriod{From: &before, To: nil},
+				period2:  OpenPeriod{From: &now, To: &after},
+				expected: true,
+			},
+			{
+				name:     "period with open end contains period with closed end (same time)",
+				period1:  OpenPeriod{From: &now, To: nil},
+				period2:  OpenPeriod{From: &now, To: &after},
+				expected: true,
+			},
+			{
+				name:     "period with open start contains period with closed start",
+				period1:  OpenPeriod{From: nil, To: &after},
+				period2:  OpenPeriod{From: &before, To: &now},
+				expected: true,
+			},
+			{
+				name:     "period with open start contains period with closed start (same time)",
+				period1:  OpenPeriod{From: nil, To: &after},
+				period2:  OpenPeriod{From: &before, To: &after},
+				expected: true,
+			},
+			{
+				name:     "period does not contains touching period",
+				period1:  OpenPeriod{From: &before, To: &now},
+				period2:  OpenPeriod{From: &now, To: &after},
+				expected: false,
+			},
+			{
+				name:     "identical period contains itself",
+				period1:  OpenPeriod{From: &before, To: &now},
+				period2:  OpenPeriod{From: &before, To: &now},
+				expected: true,
+			},
+			{
+				name:     "period with closed end does not contain period with open end",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{From: &now, To: nil},
+				expected: false,
+			},
+			{
+				name:     "period with closed start does not contain period with open start",
+				period1:  OpenPeriod{From: &now, To: &after},
+				period2:  OpenPeriod{From: nil, To: &now},
+				expected: false,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				result := tt.period1.IsSupersetOf(tt.period2)
+				if result != tt.expected {
+					t.Errorf("IsSupersetOf() = %v, want %v", result, tt.expected)
+				}
+			})
+		}
+	})
 }
