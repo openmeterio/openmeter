@@ -380,6 +380,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			ChildUniqueReferenceID: &item.UniqueID,
 			TaxConfig:              item.Spec.RateCard.AsMeta().TaxConfig,
 			Period:                 item.Period,
+			RateCardDiscounts:      h.discountsToBillingDiscounts(item.Spec.RateCard.AsMeta().Discounts),
 
 			Subscription: &billing.SubscriptionReference{
 				SubscriptionID: subs.Subscription.ID,
@@ -453,6 +454,24 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 	}
 
 	return line, nil
+}
+
+func (h *Handler) discountsToBillingDiscounts(discounts productcatalog.Discounts) billing.Discounts {
+	out := billing.Discounts{}
+
+	if discounts.Usage != nil {
+		out.Usage = &billing.UsageDiscount{
+			UsageDiscount: *discounts.Usage,
+		}
+	}
+
+	if discounts.Percentage != nil {
+		out.Percentage = &billing.PercentageDiscount{
+			PercentageDiscount: *discounts.Percentage,
+		}
+	}
+
+	return out
 }
 
 func (h *Handler) shouldProrateFlatFee(price productcatalog.FlatPrice) bool {
