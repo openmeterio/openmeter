@@ -216,16 +216,15 @@ func MergeUpsertInvoiceResult(invoice *Invoice, result *UpsertInvoiceResult) err
 		dicountIDToExternalID := result.GetLineDiscountExternalIDs()
 
 		for _, line := range flattenedLines {
-			for idx, discount := range line.Discounts {
-				discountID := discount.GetID()
+			for idx, discount := range line.Discounts.Amount {
+				if externalID, ok := dicountIDToExternalID[discount.ID]; ok {
+					line.Discounts.Amount[idx].ExternalIDs.Invoicing = externalID
+				}
+			}
 
-				if externalID, ok := dicountIDToExternalID[discountID]; ok {
-					updatedDiscount, err := discount.Mutate(SetDiscountInvoicingExternalID(externalID))
-					if err != nil {
-						outErr = errors.Join(outErr, fmt.Errorf("failed to set invoicing external ID for line discount %s: %w", discountID, err))
-					}
-
-					line.Discounts[idx] = updatedDiscount
+			for idx, discount := range line.Discounts.Usage {
+				if externalID, ok := dicountIDToExternalID[discount.ID]; ok {
+					line.Discounts.Usage[idx].ExternalIDs.Invoicing = externalID
 				}
 			}
 		}

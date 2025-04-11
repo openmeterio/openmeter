@@ -176,7 +176,6 @@ var (
 	TaxConfigValueScanner           = entutils.JSONStringValueScanner[*productcatalog.TaxConfig]()
 	PriceValueScanner               = entutils.JSONStringValueScanner[*productcatalog.Price]()
 	DiscountsValueScanner           = entutils.JSONStringValueScanner[*productcatalog.Discounts]()
-	DiscountValueScanner            = entutils.JSONStringValueScanner[*productcatalog.Discount]()
 )
 
 // AlignmentMixin for Alignment config

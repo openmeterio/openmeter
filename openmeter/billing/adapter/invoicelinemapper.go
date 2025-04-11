@@ -160,7 +160,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			Currency: dbLine.Currency,
 
 			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
-			RateCardDiscounts: lo.FromPtrOr(dbLine.RatecardDiscounts, nil),
+			RateCardDiscounts: lo.FromPtrOr(dbLine.RatecardDiscounts, billing.Discounts{}),
 			Totals: billing.Totals{
 				Amount:              dbLine.Amount,
 				ChargesTotal:        dbLine.ChargesTotal,
@@ -210,32 +210,46 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 		return invoiceLine, fmt.Errorf("unsupported line type[%s]: %s", dbLine.ID, dbLine.Type)
 	}
 
-	if len(dbLine.Edges.LineDiscounts) > 0 {
-		var err error
-
-		invoiceLine.Discounts, err = slicesx.MapWithErr(dbLine.Edges.LineDiscounts, func(discount *db.BillingInvoiceLineDiscount) (billing.LineDiscount, error) {
-			return a.mapInvoiceLineDiscountFromDB(discount)
-		})
+	if len(dbLine.Edges.LineUsageDiscounts) > 0 {
+		discounts, err := slicesx.MapWithErr(dbLine.Edges.LineUsageDiscounts, a.mapInvoiceLineUsageDiscountFromDB)
 		if err != nil {
-			return invoiceLine, fmt.Errorf("mapping invoice line discount[%s] failed: %w", dbLine.ID, err)
+			return invoiceLine, fmt.Errorf("mapping invoice line usage discounts[%s] failed: %w", dbLine.ID, err)
 		}
+
+		invoiceLine.Discounts.Usage = discounts
+	}
+
+	if len(dbLine.Edges.LineAmountDiscounts) > 0 {
+		discounts, err := slicesx.MapWithErr(dbLine.Edges.LineAmountDiscounts, a.mapInvoiceLineAmountDiscountFromDB)
+		if err != nil {
+			return invoiceLine, fmt.Errorf("mapping invoice line amount discounts[%s] failed: %w", dbLine.ID, err)
+		}
+		invoiceLine.Discounts.Amount = discounts
 	}
 
 	return invoiceLine, nil
 }
 
-func (a *adapter) mapInvoiceLineDiscountFromDB(dbDiscount *db.BillingInvoiceLineDiscount) (billing.LineDiscount, error) {
+func (a *adapter) mapInvoiceLineUsageDiscountFromDB(dbDiscount *db.BillingInvoiceLineUsageDiscount) (billing.UsageLineDiscountManaged, error) {
 	base := billing.LineDiscountBase{
 		Description:            dbDiscount.Description,
 		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
-		Reason:                 dbDiscount.Reason,
-		SourceDiscount:         dbDiscount.SourceDiscount,
 		ExternalIDs: billing.LineExternalIDs{
 			Invoicing: lo.FromPtrOr(dbDiscount.InvoicingAppExternalID, ""),
 		},
 	}
 
-	managed := billing.LineSetDiscountMangedFields{
+	if dbDiscount.Reason == billing.MaximumSpendDiscountReason && dbDiscount.ReasonDetails == nil {
+		// Old (maximum spend) discounts do not have reason details
+		base.Reason = billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{})
+	} else {
+		if dbDiscount.ReasonDetails == nil {
+			return billing.UsageLineDiscountManaged{}, fmt.Errorf("mapping invoice line discount[%s] failed: reason details is nil", dbDiscount.ID)
+		}
+		base.Reason = *dbDiscount.ReasonDetails
+	}
+
+	managed := models.ManagedModelWithID{
 		ID: dbDiscount.ID,
 		ManagedModel: models.ManagedModel{
 			CreatedAt: dbDiscount.CreatedAt.In(time.UTC),
@@ -243,38 +257,51 @@ func (a *adapter) mapInvoiceLineDiscountFromDB(dbDiscount *db.BillingInvoiceLine
 			DeletedAt: convert.TimePtrIn(dbDiscount.DeletedAt, time.UTC),
 		},
 	}
-	switch dbDiscount.Type {
-	case billing.LineDiscountTypeAmount:
-		if dbDiscount.Amount == nil {
-			return nil, fmt.Errorf("mapping invoice line discount[%s] failed: amount is nil", dbDiscount.ID)
-		}
 
-		return billing.NewLineDiscountFrom(billing.AmountLineDiscountManaged{
-			LineSetDiscountMangedFields: managed,
-			AmountLineDiscount: billing.AmountLineDiscount{
-				LineDiscountBase: base,
-				Amount:           *dbDiscount.Amount,
-				RoundingAmount:   lo.FromPtrOr(dbDiscount.RoundingAmount, alpacadecimal.Zero),
-			},
-		}), nil
-	case billing.LineDiscountTypeUsage:
-		if dbDiscount.Quantity == nil {
-			return nil, fmt.Errorf("mapping invoice line discount[%s] failed: quantity is nil", dbDiscount.ID)
-		}
+	return billing.UsageLineDiscountManaged{
+		ManagedModelWithID: managed,
+		UsageLineDiscount: billing.UsageLineDiscount{
+			LineDiscountBase:      base,
+			Quantity:              dbDiscount.Quantity,
+			PreLinePeriodQuantity: dbDiscount.PreLinePeriodQuantity,
+		},
+	}, nil
+}
 
-		if dbDiscount.PreLinePeriodQuantity != nil {
-			return nil, fmt.Errorf("mapping invoice line discount[%s] failed: preLinePeriodQuantity is not nil", dbDiscount.ID)
-		}
-
-		return billing.NewLineDiscountFrom(billing.UsageLineDiscountManaged{
-			LineSetDiscountMangedFields: managed,
-			UsageLineDiscount: billing.UsageLineDiscount{
-				LineDiscountBase:      base,
-				Quantity:              *dbDiscount.Quantity,
-				PreLinePeriodQuantity: dbDiscount.PreLinePeriodQuantity,
-			},
-		}), nil
-	default:
-		return nil, fmt.Errorf("unsupported line discount type[%s]: %s", dbDiscount.ID, dbDiscount.Type)
+func (a *adapter) mapInvoiceLineAmountDiscountFromDB(dbDiscount *db.BillingInvoiceLineDiscount) (billing.AmountLineDiscountManaged, error) {
+	base := billing.LineDiscountBase{
+		Description:            dbDiscount.Description,
+		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
+		ExternalIDs: billing.LineExternalIDs{
+			Invoicing: lo.FromPtrOr(dbDiscount.InvoicingAppExternalID, ""),
+		},
 	}
+
+	if dbDiscount.Reason == billing.MaximumSpendDiscountReason && dbDiscount.SourceDiscount == nil {
+		// Old (maximum spend) discounts do not have reason details
+		base.Reason = billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{})
+	} else {
+		if dbDiscount.SourceDiscount == nil {
+			return billing.AmountLineDiscountManaged{}, fmt.Errorf("mapping invoice line discount[%s] failed: reason details is nil", dbDiscount.ID)
+		}
+		base.Reason = *dbDiscount.SourceDiscount
+	}
+
+	managed := models.ManagedModelWithID{
+		ID: dbDiscount.ID,
+		ManagedModel: models.ManagedModel{
+			CreatedAt: dbDiscount.CreatedAt.In(time.UTC),
+			UpdatedAt: dbDiscount.UpdatedAt.In(time.UTC),
+			DeletedAt: convert.TimePtrIn(dbDiscount.DeletedAt, time.UTC),
+		},
+	}
+
+	return billing.AmountLineDiscountManaged{
+		ManagedModelWithID: managed,
+		AmountLineDiscount: billing.AmountLineDiscount{
+			LineDiscountBase: base,
+			Amount:           dbDiscount.Amount,
+			RoundingAmount:   lo.FromPtrOr(dbDiscount.RoundingAmount, alpacadecimal.Zero),
+		},
+	}, nil
 }

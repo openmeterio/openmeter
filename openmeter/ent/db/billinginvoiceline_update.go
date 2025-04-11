@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -553,19 +554,34 @@ func (bilu *BillingInvoiceLineUpdate) AddDetailedLines(b ...*BillingInvoiceLine)
 	return bilu.AddDetailedLineIDs(ids...)
 }
 
-// AddLineDiscountIDs adds the "line_discounts" edge to the BillingInvoiceLineDiscount entity by IDs.
-func (bilu *BillingInvoiceLineUpdate) AddLineDiscountIDs(ids ...string) *BillingInvoiceLineUpdate {
-	bilu.mutation.AddLineDiscountIDs(ids...)
+// AddLineUsageDiscountIDs adds the "line_usage_discounts" edge to the BillingInvoiceLineUsageDiscount entity by IDs.
+func (bilu *BillingInvoiceLineUpdate) AddLineUsageDiscountIDs(ids ...string) *BillingInvoiceLineUpdate {
+	bilu.mutation.AddLineUsageDiscountIDs(ids...)
 	return bilu
 }
 
-// AddLineDiscounts adds the "line_discounts" edges to the BillingInvoiceLineDiscount entity.
-func (bilu *BillingInvoiceLineUpdate) AddLineDiscounts(b ...*BillingInvoiceLineDiscount) *BillingInvoiceLineUpdate {
+// AddLineUsageDiscounts adds the "line_usage_discounts" edges to the BillingInvoiceLineUsageDiscount entity.
+func (bilu *BillingInvoiceLineUpdate) AddLineUsageDiscounts(b ...*BillingInvoiceLineUsageDiscount) *BillingInvoiceLineUpdate {
 	ids := make([]string, len(b))
 	for i := range b {
 		ids[i] = b[i].ID
 	}
-	return bilu.AddLineDiscountIDs(ids...)
+	return bilu.AddLineUsageDiscountIDs(ids...)
+}
+
+// AddLineAmountDiscountIDs adds the "line_amount_discounts" edge to the BillingInvoiceLineDiscount entity by IDs.
+func (bilu *BillingInvoiceLineUpdate) AddLineAmountDiscountIDs(ids ...string) *BillingInvoiceLineUpdate {
+	bilu.mutation.AddLineAmountDiscountIDs(ids...)
+	return bilu
+}
+
+// AddLineAmountDiscounts adds the "line_amount_discounts" edges to the BillingInvoiceLineDiscount entity.
+func (bilu *BillingInvoiceLineUpdate) AddLineAmountDiscounts(b ...*BillingInvoiceLineDiscount) *BillingInvoiceLineUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bilu.AddLineAmountDiscountIDs(ids...)
 }
 
 // SetSubscription sets the "subscription" edge to the Subscription entity.
@@ -633,25 +649,46 @@ func (bilu *BillingInvoiceLineUpdate) RemoveDetailedLines(b ...*BillingInvoiceLi
 	return bilu.RemoveDetailedLineIDs(ids...)
 }
 
-// ClearLineDiscounts clears all "line_discounts" edges to the BillingInvoiceLineDiscount entity.
-func (bilu *BillingInvoiceLineUpdate) ClearLineDiscounts() *BillingInvoiceLineUpdate {
-	bilu.mutation.ClearLineDiscounts()
+// ClearLineUsageDiscounts clears all "line_usage_discounts" edges to the BillingInvoiceLineUsageDiscount entity.
+func (bilu *BillingInvoiceLineUpdate) ClearLineUsageDiscounts() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearLineUsageDiscounts()
 	return bilu
 }
 
-// RemoveLineDiscountIDs removes the "line_discounts" edge to BillingInvoiceLineDiscount entities by IDs.
-func (bilu *BillingInvoiceLineUpdate) RemoveLineDiscountIDs(ids ...string) *BillingInvoiceLineUpdate {
-	bilu.mutation.RemoveLineDiscountIDs(ids...)
+// RemoveLineUsageDiscountIDs removes the "line_usage_discounts" edge to BillingInvoiceLineUsageDiscount entities by IDs.
+func (bilu *BillingInvoiceLineUpdate) RemoveLineUsageDiscountIDs(ids ...string) *BillingInvoiceLineUpdate {
+	bilu.mutation.RemoveLineUsageDiscountIDs(ids...)
 	return bilu
 }
 
-// RemoveLineDiscounts removes "line_discounts" edges to BillingInvoiceLineDiscount entities.
-func (bilu *BillingInvoiceLineUpdate) RemoveLineDiscounts(b ...*BillingInvoiceLineDiscount) *BillingInvoiceLineUpdate {
+// RemoveLineUsageDiscounts removes "line_usage_discounts" edges to BillingInvoiceLineUsageDiscount entities.
+func (bilu *BillingInvoiceLineUpdate) RemoveLineUsageDiscounts(b ...*BillingInvoiceLineUsageDiscount) *BillingInvoiceLineUpdate {
 	ids := make([]string, len(b))
 	for i := range b {
 		ids[i] = b[i].ID
 	}
-	return bilu.RemoveLineDiscountIDs(ids...)
+	return bilu.RemoveLineUsageDiscountIDs(ids...)
+}
+
+// ClearLineAmountDiscounts clears all "line_amount_discounts" edges to the BillingInvoiceLineDiscount entity.
+func (bilu *BillingInvoiceLineUpdate) ClearLineAmountDiscounts() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearLineAmountDiscounts()
+	return bilu
+}
+
+// RemoveLineAmountDiscountIDs removes the "line_amount_discounts" edge to BillingInvoiceLineDiscount entities by IDs.
+func (bilu *BillingInvoiceLineUpdate) RemoveLineAmountDiscountIDs(ids ...string) *BillingInvoiceLineUpdate {
+	bilu.mutation.RemoveLineAmountDiscountIDs(ids...)
+	return bilu
+}
+
+// RemoveLineAmountDiscounts removes "line_amount_discounts" edges to BillingInvoiceLineDiscount entities.
+func (bilu *BillingInvoiceLineUpdate) RemoveLineAmountDiscounts(b ...*BillingInvoiceLineDiscount) *BillingInvoiceLineUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bilu.RemoveLineAmountDiscountIDs(ids...)
 }
 
 // ClearSubscription clears the "subscription" edge to the Subscription entity.
@@ -1004,12 +1041,57 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if bilu.mutation.LineDiscountsCleared() {
+	if bilu.mutation.LineUsageDiscountsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.LineDiscountsTable,
-			Columns: []string{billinginvoiceline.LineDiscountsColumn},
+			Table:   billinginvoiceline.LineUsageDiscountsTable,
+			Columns: []string{billinginvoiceline.LineUsageDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelineusagediscount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bilu.mutation.RemovedLineUsageDiscountsIDs(); len(nodes) > 0 && !bilu.mutation.LineUsageDiscountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.LineUsageDiscountsTable,
+			Columns: []string{billinginvoiceline.LineUsageDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelineusagediscount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bilu.mutation.LineUsageDiscountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.LineUsageDiscountsTable,
+			Columns: []string{billinginvoiceline.LineUsageDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelineusagediscount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bilu.mutation.LineAmountDiscountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.LineAmountDiscountsTable,
+			Columns: []string{billinginvoiceline.LineAmountDiscountsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString),
@@ -1017,12 +1099,12 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bilu.mutation.RemovedLineDiscountsIDs(); len(nodes) > 0 && !bilu.mutation.LineDiscountsCleared() {
+	if nodes := bilu.mutation.RemovedLineAmountDiscountsIDs(); len(nodes) > 0 && !bilu.mutation.LineAmountDiscountsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.LineDiscountsTable,
-			Columns: []string{billinginvoiceline.LineDiscountsColumn},
+			Table:   billinginvoiceline.LineAmountDiscountsTable,
+			Columns: []string{billinginvoiceline.LineAmountDiscountsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString),
@@ -1033,12 +1115,12 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bilu.mutation.LineDiscountsIDs(); len(nodes) > 0 {
+	if nodes := bilu.mutation.LineAmountDiscountsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.LineDiscountsTable,
-			Columns: []string{billinginvoiceline.LineDiscountsColumn},
+			Table:   billinginvoiceline.LineAmountDiscountsTable,
+			Columns: []string{billinginvoiceline.LineAmountDiscountsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString),
@@ -1671,19 +1753,34 @@ func (biluo *BillingInvoiceLineUpdateOne) AddDetailedLines(b ...*BillingInvoiceL
 	return biluo.AddDetailedLineIDs(ids...)
 }
 
-// AddLineDiscountIDs adds the "line_discounts" edge to the BillingInvoiceLineDiscount entity by IDs.
-func (biluo *BillingInvoiceLineUpdateOne) AddLineDiscountIDs(ids ...string) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.AddLineDiscountIDs(ids...)
+// AddLineUsageDiscountIDs adds the "line_usage_discounts" edge to the BillingInvoiceLineUsageDiscount entity by IDs.
+func (biluo *BillingInvoiceLineUpdateOne) AddLineUsageDiscountIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.AddLineUsageDiscountIDs(ids...)
 	return biluo
 }
 
-// AddLineDiscounts adds the "line_discounts" edges to the BillingInvoiceLineDiscount entity.
-func (biluo *BillingInvoiceLineUpdateOne) AddLineDiscounts(b ...*BillingInvoiceLineDiscount) *BillingInvoiceLineUpdateOne {
+// AddLineUsageDiscounts adds the "line_usage_discounts" edges to the BillingInvoiceLineUsageDiscount entity.
+func (biluo *BillingInvoiceLineUpdateOne) AddLineUsageDiscounts(b ...*BillingInvoiceLineUsageDiscount) *BillingInvoiceLineUpdateOne {
 	ids := make([]string, len(b))
 	for i := range b {
 		ids[i] = b[i].ID
 	}
-	return biluo.AddLineDiscountIDs(ids...)
+	return biluo.AddLineUsageDiscountIDs(ids...)
+}
+
+// AddLineAmountDiscountIDs adds the "line_amount_discounts" edge to the BillingInvoiceLineDiscount entity by IDs.
+func (biluo *BillingInvoiceLineUpdateOne) AddLineAmountDiscountIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.AddLineAmountDiscountIDs(ids...)
+	return biluo
+}
+
+// AddLineAmountDiscounts adds the "line_amount_discounts" edges to the BillingInvoiceLineDiscount entity.
+func (biluo *BillingInvoiceLineUpdateOne) AddLineAmountDiscounts(b ...*BillingInvoiceLineDiscount) *BillingInvoiceLineUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biluo.AddLineAmountDiscountIDs(ids...)
 }
 
 // SetSubscription sets the "subscription" edge to the Subscription entity.
@@ -1751,25 +1848,46 @@ func (biluo *BillingInvoiceLineUpdateOne) RemoveDetailedLines(b ...*BillingInvoi
 	return biluo.RemoveDetailedLineIDs(ids...)
 }
 
-// ClearLineDiscounts clears all "line_discounts" edges to the BillingInvoiceLineDiscount entity.
-func (biluo *BillingInvoiceLineUpdateOne) ClearLineDiscounts() *BillingInvoiceLineUpdateOne {
-	biluo.mutation.ClearLineDiscounts()
+// ClearLineUsageDiscounts clears all "line_usage_discounts" edges to the BillingInvoiceLineUsageDiscount entity.
+func (biluo *BillingInvoiceLineUpdateOne) ClearLineUsageDiscounts() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearLineUsageDiscounts()
 	return biluo
 }
 
-// RemoveLineDiscountIDs removes the "line_discounts" edge to BillingInvoiceLineDiscount entities by IDs.
-func (biluo *BillingInvoiceLineUpdateOne) RemoveLineDiscountIDs(ids ...string) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.RemoveLineDiscountIDs(ids...)
+// RemoveLineUsageDiscountIDs removes the "line_usage_discounts" edge to BillingInvoiceLineUsageDiscount entities by IDs.
+func (biluo *BillingInvoiceLineUpdateOne) RemoveLineUsageDiscountIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.RemoveLineUsageDiscountIDs(ids...)
 	return biluo
 }
 
-// RemoveLineDiscounts removes "line_discounts" edges to BillingInvoiceLineDiscount entities.
-func (biluo *BillingInvoiceLineUpdateOne) RemoveLineDiscounts(b ...*BillingInvoiceLineDiscount) *BillingInvoiceLineUpdateOne {
+// RemoveLineUsageDiscounts removes "line_usage_discounts" edges to BillingInvoiceLineUsageDiscount entities.
+func (biluo *BillingInvoiceLineUpdateOne) RemoveLineUsageDiscounts(b ...*BillingInvoiceLineUsageDiscount) *BillingInvoiceLineUpdateOne {
 	ids := make([]string, len(b))
 	for i := range b {
 		ids[i] = b[i].ID
 	}
-	return biluo.RemoveLineDiscountIDs(ids...)
+	return biluo.RemoveLineUsageDiscountIDs(ids...)
+}
+
+// ClearLineAmountDiscounts clears all "line_amount_discounts" edges to the BillingInvoiceLineDiscount entity.
+func (biluo *BillingInvoiceLineUpdateOne) ClearLineAmountDiscounts() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearLineAmountDiscounts()
+	return biluo
+}
+
+// RemoveLineAmountDiscountIDs removes the "line_amount_discounts" edge to BillingInvoiceLineDiscount entities by IDs.
+func (biluo *BillingInvoiceLineUpdateOne) RemoveLineAmountDiscountIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.RemoveLineAmountDiscountIDs(ids...)
+	return biluo
+}
+
+// RemoveLineAmountDiscounts removes "line_amount_discounts" edges to BillingInvoiceLineDiscount entities.
+func (biluo *BillingInvoiceLineUpdateOne) RemoveLineAmountDiscounts(b ...*BillingInvoiceLineDiscount) *BillingInvoiceLineUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biluo.RemoveLineAmountDiscountIDs(ids...)
 }
 
 // ClearSubscription clears the "subscription" edge to the Subscription entity.
@@ -2152,12 +2270,57 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if biluo.mutation.LineDiscountsCleared() {
+	if biluo.mutation.LineUsageDiscountsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.LineDiscountsTable,
-			Columns: []string{billinginvoiceline.LineDiscountsColumn},
+			Table:   billinginvoiceline.LineUsageDiscountsTable,
+			Columns: []string{billinginvoiceline.LineUsageDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelineusagediscount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biluo.mutation.RemovedLineUsageDiscountsIDs(); len(nodes) > 0 && !biluo.mutation.LineUsageDiscountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.LineUsageDiscountsTable,
+			Columns: []string{billinginvoiceline.LineUsageDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelineusagediscount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biluo.mutation.LineUsageDiscountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.LineUsageDiscountsTable,
+			Columns: []string{billinginvoiceline.LineUsageDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelineusagediscount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if biluo.mutation.LineAmountDiscountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.LineAmountDiscountsTable,
+			Columns: []string{billinginvoiceline.LineAmountDiscountsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString),
@@ -2165,12 +2328,12 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := biluo.mutation.RemovedLineDiscountsIDs(); len(nodes) > 0 && !biluo.mutation.LineDiscountsCleared() {
+	if nodes := biluo.mutation.RemovedLineAmountDiscountsIDs(); len(nodes) > 0 && !biluo.mutation.LineAmountDiscountsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.LineDiscountsTable,
-			Columns: []string{billinginvoiceline.LineDiscountsColumn},
+			Table:   billinginvoiceline.LineAmountDiscountsTable,
+			Columns: []string{billinginvoiceline.LineAmountDiscountsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString),
@@ -2181,12 +2344,12 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := biluo.mutation.LineDiscountsIDs(); len(nodes) > 0 {
+	if nodes := biluo.mutation.LineAmountDiscountsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.LineDiscountsTable,
-			Columns: []string{billinginvoiceline.LineDiscountsColumn},
+			Table:   billinginvoiceline.LineAmountDiscountsTable,
+			Columns: []string{billinginvoiceline.LineAmountDiscountsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString),

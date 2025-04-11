@@ -558,8 +558,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				return id
 			}
 
-			for _, discount := range line.Discounts {
-				if s.getDiscountDecription(discount) != "" && group[0][2] == s.getDiscountDecription(discount) {
+			for _, discount := range line.Discounts.Amount {
+				if lo.FromPtrOr(discount.Description, "") != "" && group[0][2] == lo.FromPtrOr(discount.Description, "") {
 					return discount.GetID()
 				}
 			}
@@ -1113,17 +1113,4 @@ func mapInvoiceItemParamsToInvoiceItem(id string, i *stripe.InvoiceItemParams) s
 			Metadata: i.Metadata,
 		},
 	}
-}
-
-func (s *StripeInvoiceTestSuite) getDiscountDecription(discount billing.LineDiscount) string {
-	s.T().Helper()
-
-	base, err := discount.AsDiscountBase()
-	s.NoError(err)
-
-	if base.Description == nil {
-		return ""
-	}
-
-	return *base.Description
 }

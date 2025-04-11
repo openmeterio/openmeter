@@ -19,40 +19,41 @@ func TestFeeLine(t *testing.T) {
 		line := generateFeeLine(t, generateFeeLineInput{
 			Quantity: 1,
 			Amount:   100,
-			RateCardDiscounts: []billing.PercentageDiscount{
-				{
-					PercentageDiscount: productcatalog.PercentageDiscount{
-						Percentage: models.NewPercentage(50),
-					},
-					CorrelationID: "example-correlation-id",
+			RateCardDiscount: billing.PercentageDiscount{
+				PercentageDiscount: productcatalog.PercentageDiscount{
+					Percentage: models.NewPercentage(50),
 				},
+				CorrelationID: "example-correlation-id",
 			},
 		})
 
 		require.NoError(t, line.CalculateDetailedLines())
 
-		ExpectJSONEqual(t, []billing.LineDiscount{
-			billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-				Amount: alpacadecimal.NewFromFloat(50),
-				LineDiscountBase: billing.LineDiscountBase{
-					Reason: billing.LineDiscountReasonRatecardDiscount,
-					SourceDiscount: lo.ToPtr(billing.NewDiscountFrom(billing.PercentageDiscount{
-						PercentageDiscount: productcatalog.PercentageDiscount{
-							Percentage: models.NewPercentage(50),
+		ExpectJSONEqual(t, billing.LineDiscounts{
+			Amount: []billing.AmountLineDiscountManaged{
+				{
+					AmountLineDiscount: billing.AmountLineDiscount{
+						Amount: alpacadecimal.NewFromFloat(50),
+						LineDiscountBase: billing.LineDiscountBase{
+							Reason: billing.NewDiscountReasonFrom(billing.PercentageDiscount{
+								PercentageDiscount: productcatalog.PercentageDiscount{
+									Percentage: models.NewPercentage(50),
+								},
+								CorrelationID: "example-correlation-id",
+							}),
+							ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/correlationID=example-correlation-id"),
 						},
-						CorrelationID: "example-correlation-id",
-					})),
-					ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/correlationID=example-correlation-id"),
+					},
 				},
-			}),
+			},
 		}, line.line.Discounts)
 	})
 }
 
 type generateFeeLineInput struct {
-	Quantity          float64
-	Amount            float64
-	RateCardDiscounts []billing.PercentageDiscount
+	Quantity         float64
+	Amount           float64
+	RateCardDiscount billing.PercentageDiscount
 }
 
 func generateFeeLine(t *testing.T, in generateFeeLineInput) *feeLine {
@@ -65,9 +66,9 @@ func generateFeeLine(t *testing.T, in generateFeeLineInput) *feeLine {
 						Start: time.Now(),
 						End:   time.Now().Add(time.Hour * 24),
 					},
-					RateCardDiscounts: lo.Map(in.RateCardDiscounts, func(d billing.PercentageDiscount, _ int) billing.Discount {
-						return billing.NewDiscountFrom(d)
-					}),
+					RateCardDiscounts: billing.Discounts{
+						Percentage: lo.ToPtr(in.RateCardDiscount.Clone()),
+					},
 				},
 				FlatFee: &billing.FlatFeeLine{
 					PerUnitAmount: alpacadecimal.NewFromFloat(in.Amount),

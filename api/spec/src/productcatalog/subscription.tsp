@@ -171,7 +171,7 @@ model SubscriptionPhaseCreate {
    * The discounts on the plan.
    */
   @summary("Discounts")
-  discounts?: Discount[];
+  discounts?: Discounts;
 
   /**
    * A locally unique identifier for the phase.
@@ -236,7 +236,7 @@ model SubscriptionItem {
    * The discounts applied to the rate card.
    */
   @summary("Discounts")
-  discounts?: Discount[];
+  discounts?: Discounts;
 
   /**
    * Describes what access is gained via the SubscriptionItem

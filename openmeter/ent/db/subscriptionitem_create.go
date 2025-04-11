@@ -404,6 +404,11 @@ func (sic *SubscriptionItemCreate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
 		}
 	}
+	if v, ok := sic.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.discounts": %w`, err)}
+		}
+	}
 	if len(sic.mutation.PhaseIDs()) == 0 {
 		return &ValidationError{Name: "phase", err: errors.New(`db: missing required edge "SubscriptionItem.phase"`)}
 	}

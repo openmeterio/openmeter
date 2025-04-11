@@ -93,9 +93,9 @@ var (
 				Amount: alpacadecimal.NewFromInt(ExamplePriceAmount),
 			}),
 			Discounts: productcatalog.Discounts{
-				productcatalog.NewDiscountFrom(productcatalog.PercentageDiscount{
+				Percentage: &productcatalog.PercentageDiscount{
 					Percentage: models.NewPercentage(10),
-				}),
+				},
 			},
 		},
 		BillingCadence: &ISOMonth,

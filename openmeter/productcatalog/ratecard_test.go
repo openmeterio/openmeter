@@ -99,9 +99,9 @@ func TestFlatFeeRateCard(t *testing.T) {
 							PaymentTerm: InArrearsPaymentTerm,
 						}),
 						Discounts: Discounts{
-							NewDiscountFrom(PercentageDiscount{
+							Percentage: &PercentageDiscount{
 								Percentage: models.NewPercentage(10),
-							}),
+							},
 						},
 					},
 					BillingCadence: lo.ToPtr(isodate.MustParse(t, "P1M")),
@@ -120,9 +120,9 @@ func TestFlatFeeRateCard(t *testing.T) {
 							PaymentTerm: InArrearsPaymentTerm,
 						}),
 						Discounts: Discounts{
-							NewDiscountFrom(UsageDiscount{
+							Usage: &UsageDiscount{
 								Quantity: decimal.NewFromInt(100),
-							}),
+							},
 						},
 					},
 					BillingCadence: lo.ToPtr(isodate.MustParse(t, "P1M")),
@@ -266,12 +266,12 @@ func TestUsageBasedRateCard(t *testing.T) {
 								},
 							}),
 						Discounts: Discounts{
-							NewDiscountFrom(PercentageDiscount{
+							Percentage: &PercentageDiscount{
 								Percentage: models.NewPercentage(10),
-							}),
-							NewDiscountFrom(UsageDiscount{
+							},
+							Usage: &UsageDiscount{
 								Quantity: decimal.NewFromInt(100),
-							}),
+							},
 						},
 					},
 					BillingCadence: isodate.MustParse(t, "P1M"),
@@ -291,37 +291,12 @@ func TestUsageBasedRateCard(t *testing.T) {
 								Amount: decimal.NewFromInt(1000),
 							}),
 						Discounts: Discounts{
-							NewDiscountFrom(PercentageDiscount{
+							Percentage: &PercentageDiscount{
 								Percentage: models.NewPercentage(10),
-							}),
-							NewDiscountFrom(UsageDiscount{
+							},
+							Usage: &UsageDiscount{
 								Quantity: decimal.NewFromInt(100),
-							}),
-						},
-					},
-					BillingCadence: isodate.MustParse(t, "P1M"),
-				},
-				ExpectedError: true,
-			},
-			{
-				Name: "invalid, usage discount for dynamic price",
-				RateCard: UsageBasedRateCard{
-					RateCardMeta: RateCardMeta{
-						Key:        "feat-1",
-						Name:       "Usage 1",
-						FeatureKey: lo.ToPtr(feat1.Key),
-						FeatureID:  lo.ToPtr(feat1.ID),
-						Price: NewPriceFrom(
-							DynamicPrice{
-								Multiplier: decimal.NewFromInt(1),
-							}),
-						Discounts: Discounts{
-							NewDiscountFrom(PercentageDiscount{
-								Percentage: models.NewPercentage(10),
-							}),
-							NewDiscountFrom(UsageDiscount{
-								Quantity: decimal.NewFromInt(100),
-							}),
+							},
 						},
 					},
 					BillingCadence: isodate.MustParse(t, "P1M"),
@@ -337,12 +312,12 @@ func TestUsageBasedRateCard(t *testing.T) {
 						FeatureKey: lo.ToPtr(feat1.Key),
 						FeatureID:  lo.ToPtr(feat1.ID),
 						Discounts: Discounts{
-							NewDiscountFrom(PercentageDiscount{
+							Percentage: &PercentageDiscount{
 								Percentage: models.NewPercentage(10),
-							}),
-							NewDiscountFrom(UsageDiscount{
+							},
+							Usage: &UsageDiscount{
 								Quantity: decimal.NewFromInt(100),
-							}),
+							},
 						},
 					},
 					BillingCadence: isodate.MustParse(t, "P1M"),
@@ -426,12 +401,12 @@ func TestRateCardsEqual(t *testing.T) {
 									},
 								}),
 							Discounts: Discounts{
-								NewDiscountFrom(PercentageDiscount{
+								Percentage: &PercentageDiscount{
 									Percentage: models.NewPercentage(10),
-								}),
-								NewDiscountFrom(UsageDiscount{
+								},
+								Usage: &UsageDiscount{
 									Quantity: decimal.NewFromInt(100),
-								}),
+								},
 							},
 						},
 						BillingCadence: isodate.MustParse(t, "P1M"),
@@ -473,12 +448,12 @@ func TestRateCardsEqual(t *testing.T) {
 									},
 								}),
 							Discounts: Discounts{
-								NewDiscountFrom(PercentageDiscount{
+								Percentage: &PercentageDiscount{
 									Percentage: models.NewPercentage(10),
-								}),
-								NewDiscountFrom(UsageDiscount{
+								},
+								Usage: &UsageDiscount{
 									Quantity: decimal.NewFromInt(100),
-								}),
+								},
 							},
 						},
 						BillingCadence: isodate.MustParse(t, "P1M"),
@@ -584,12 +559,12 @@ func TestRateCardsEqual(t *testing.T) {
 									},
 								}),
 							Discounts: Discounts{
-								NewDiscountFrom(PercentageDiscount{
+								Percentage: &PercentageDiscount{
 									Percentage: models.NewPercentage(10),
-								}),
-								NewDiscountFrom(UsageDiscount{
+								},
+								Usage: &UsageDiscount{
 									Quantity: decimal.NewFromInt(100),
-								}),
+								},
 							},
 						},
 						BillingCadence: isodate.MustParse(t, "P1M"),
@@ -615,12 +590,12 @@ func TestRateCardsEqual(t *testing.T) {
 									},
 								}),
 							Discounts: Discounts{
-								NewDiscountFrom(UsageDiscount{
+								Usage: &UsageDiscount{
 									Quantity: decimal.NewFromInt(100),
-								}),
-								NewDiscountFrom(PercentageDiscount{
+								},
+								Percentage: &PercentageDiscount{
 									Percentage: models.NewPercentage(10),
-								}),
+								},
 							},
 						},
 						BillingCadence: isodate.MustParse(t, "P1M"),

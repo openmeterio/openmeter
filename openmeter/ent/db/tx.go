@@ -34,14 +34,14 @@ type Tx struct {
 	BillingCustomerOverride *BillingCustomerOverrideClient
 	// BillingInvoice is the client for interacting with the BillingInvoice builders.
 	BillingInvoice *BillingInvoiceClient
-	// BillingInvoiceDiscount is the client for interacting with the BillingInvoiceDiscount builders.
-	BillingInvoiceDiscount *BillingInvoiceDiscountClient
 	// BillingInvoiceFlatFeeLineConfig is the client for interacting with the BillingInvoiceFlatFeeLineConfig builders.
 	BillingInvoiceFlatFeeLineConfig *BillingInvoiceFlatFeeLineConfigClient
 	// BillingInvoiceLine is the client for interacting with the BillingInvoiceLine builders.
 	BillingInvoiceLine *BillingInvoiceLineClient
 	// BillingInvoiceLineDiscount is the client for interacting with the BillingInvoiceLineDiscount builders.
 	BillingInvoiceLineDiscount *BillingInvoiceLineDiscountClient
+	// BillingInvoiceLineUsageDiscount is the client for interacting with the BillingInvoiceLineUsageDiscount builders.
+	BillingInvoiceLineUsageDiscount *BillingInvoiceLineUsageDiscountClient
 	// BillingInvoiceUsageBasedLineConfig is the client for interacting with the BillingInvoiceUsageBasedLineConfig builders.
 	BillingInvoiceUsageBasedLineConfig *BillingInvoiceUsageBasedLineConfigClient
 	// BillingInvoiceValidationIssue is the client for interacting with the BillingInvoiceValidationIssue builders.
@@ -235,10 +235,10 @@ func (tx *Tx) init() {
 	tx.BillingCustomerLock = NewBillingCustomerLockClient(tx.config)
 	tx.BillingCustomerOverride = NewBillingCustomerOverrideClient(tx.config)
 	tx.BillingInvoice = NewBillingInvoiceClient(tx.config)
-	tx.BillingInvoiceDiscount = NewBillingInvoiceDiscountClient(tx.config)
 	tx.BillingInvoiceFlatFeeLineConfig = NewBillingInvoiceFlatFeeLineConfigClient(tx.config)
 	tx.BillingInvoiceLine = NewBillingInvoiceLineClient(tx.config)
 	tx.BillingInvoiceLineDiscount = NewBillingInvoiceLineDiscountClient(tx.config)
+	tx.BillingInvoiceLineUsageDiscount = NewBillingInvoiceLineUsageDiscountClient(tx.config)
 	tx.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(tx.config)
 	tx.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(tx.config)
 	tx.BillingProfile = NewBillingProfileClient(tx.config)

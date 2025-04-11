@@ -490,7 +490,7 @@ func (i Line) Validate() error {
 			errs = append(errs, err)
 		}
 
-		if err := i.LineBase.RateCardDiscounts.ValidateForPrice(i.UsageBased.Price); err != nil {
+		if err := i.RateCardDiscounts.ValidateForPrice(i.UsageBased.Price); err != nil {
 			errs = append(errs, fmt.Errorf("rateCardDiscounts: %w", err))
 		}
 

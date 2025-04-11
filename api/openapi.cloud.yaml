@@ -10738,31 +10738,11 @@ components:
         This profile is calculated from the customer override and the billing profile it references or the default.
 
         Thus this does not have any kind of resource fields, only the calculated values.
-    BillingDiscount:
-      type: object
-      oneOf:
-        - $ref: '#/components/schemas/BillingDiscountPercentage'
-        - $ref: '#/components/schemas/BillingDiscountUsage'
-      discriminator:
-        propertyName: type
-        mapping:
-          percentage: '#/components/schemas/BillingDiscountPercentage'
-          usage: '#/components/schemas/BillingDiscountUsage'
-      description: |-
-        A discount on a price. This extends the productcatalog.Discount union to include the
-        billing specific extra fields required.
     BillingDiscountPercentage:
       type: object
       required:
-        - type
         - percentage
       properties:
-        type:
-          type: string
-          enum:
-            - percentage
-          description: The type of the discount.
-          title: Type
         percentage:
           allOf:
             - $ref: '#/components/schemas/Percentage'
@@ -10778,21 +10758,29 @@ components:
 
             This is used to link discounts across different invoices (progressive billing use case).
 
-            If not provided, the invoicing engine will auto-generate one.
+            If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
+            please make sure to keep the same correlation ID of the discount or in progressive billing
+            setups the discount amounts might be incorrect.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: A percentage discount.
+    BillingDiscountReason:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/DiscountReasonMaximumSpend'
+        - $ref: '#/components/schemas/DiscountReasonRatecardPercentage'
+        - $ref: '#/components/schemas/DiscountReasonRatecardUsage'
+      discriminator:
+        propertyName: type
+        mapping:
+          maximum_spend: '#/components/schemas/DiscountReasonMaximumSpend'
+          ratecard_percentage: '#/components/schemas/DiscountReasonRatecardPercentage'
+          ratecard_usage: '#/components/schemas/DiscountReasonRatecardUsage'
+      description: The reason for the discount.
     BillingDiscountUsage:
       type: object
       required:
-        - type
         - quantity
       properties:
-        type:
-          type: string
-          enum:
-            - usage
-          description: The type of the discount.
-          title: Type
         quantity:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -10809,9 +10797,23 @@ components:
 
             This is used to link discounts across different invoices (progressive billing use case).
 
-            If not provided, the invoicing engine will auto-generate one.
+            If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
+            please make sure to keep the same correlation ID of the discount or in progressive billing
+            setups the discount amounts might be incorrect.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: A usage discount.
+    BillingDiscounts:
+      type: object
+      properties:
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/BillingDiscountPercentage'
+          description: The percentage discount.
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/BillingDiscountUsage'
+          description: The usage discount.
+      description: A discount by type.
     BillingParty:
       type: object
       properties:
@@ -12270,29 +12272,11 @@ components:
         Mapping to attribute metered usage to the customer.
         One customer can have multiple subjects,
         but one subject can only belong to one customer.
-    Discount:
-      type: object
-      oneOf:
-        - $ref: '#/components/schemas/DiscountPercentage'
-        - $ref: '#/components/schemas/DiscountUsage'
-      discriminator:
-        propertyName: type
-        mapping:
-          percentage: '#/components/schemas/DiscountPercentage'
-          usage: '#/components/schemas/DiscountUsage'
-      description: A discount on a price.
     DiscountPercentage:
       type: object
       required:
-        - type
         - percentage
       properties:
-        type:
-          type: string
-          enum:
-            - percentage
-          description: The type of the discount.
-          title: Type
         percentage:
           allOf:
             - $ref: '#/components/schemas/Percentage'
@@ -12301,7 +12285,47 @@ components:
           description: The percentage of the discount.
           title: Percentage
       description: Percentage discount.
-    DiscountUsage:
+    DiscountReasonMaximumSpend:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - maximum_spend
+      description: The reason for the discount is a maximum spend.
+    DiscountReasonRatecardPercentage:
+      type: object
+      required:
+        - type
+        - percentage
+      properties:
+        type:
+          type: string
+          enum:
+            - ratecard_percentage
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/Percentage'
+          minimum: 0
+          maximum: 100
+          description: The percentage of the discount.
+          title: Percentage
+        correlationId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            Correlation ID for the discount.
+
+            This is used to link discounts across different invoices (progressive billing use case).
+
+            If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
+            please make sure to keep the same correlation ID of the discount or in progressive billing
+            setups the discount amounts might be incorrect.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+      description: The reason for the discount is a ratecard percentage.
+    DiscountReasonRatecardUsage:
       type: object
       required:
         - type
@@ -12310,9 +12334,33 @@ components:
         type:
           type: string
           enum:
-            - usage
-          description: The type of the discount.
-          title: Type
+            - ratecard_usage
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The quantity of the usage discount.
+
+            Must be positive.
+          title: Usage
+        correlationId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            Correlation ID for the discount.
+
+            This is used to link discounts across different invoices (progressive billing use case).
+
+            If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
+            please make sure to keep the same correlation ID of the discount or in progressive billing
+            setups the discount amounts might be incorrect.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+      description: The reason for the discount is a ratecard usage.
+    DiscountUsage:
+      type: object
+      required:
+        - quantity
+      properties:
         quantity:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -12327,6 +12375,18 @@ components:
         Usage discount means that the first N items are free. From billing perspective
         this means that any usage on a specific feature is considered 0 until this discount
         is exhausted.
+    Discounts:
+      type: object
+      properties:
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/DiscountPercentage'
+          description: The percentage discount.
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/DiscountUsage'
+          description: The usage discount.
+      description: Discount by type on a price
     DynamicPriceWithCommitments:
       type: object
       required:
@@ -14203,12 +14263,6 @@ components:
           description: Invoice a gathering invoice
           readOnly: true
       description: InvoiceAvailableActions represents the actions that can be performed on the invoice.
-    InvoiceDiscountReason:
-      type: string
-      enum:
-        - maximum_spend
-        - ratecard_discount
-      description: Reason code.
     InvoiceDocumentRef:
       type: object
       allOf:
@@ -14308,9 +14362,8 @@ components:
             billing engine of OpenMeter.
           readOnly: true
         discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/InvoiceLineDiscount'
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineDiscounts'
           description: |-
             Discounts detailes applied to this line.
 
@@ -14600,9 +14653,8 @@ components:
 
             Default: 1
         discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingDiscountPercentage'
+          allOf:
+            - $ref: '#/components/schemas/BillingDiscounts'
           description: The discounts that are applied to the line.
       description: InvoiceFlatFeeRateCard represents the rate card (intent) for a flat fee line.
     InvoiceGenericDocumentRef:
@@ -14640,6 +14692,63 @@ components:
           usage_based: '#/components/schemas/InvoiceUsageBasedLine'
           flat_fee: '#/components/schemas/InvoiceFlatFeeLine'
       description: BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
+    InvoiceLineAmountDiscount:
+      type: object
+      required:
+        - createdAt
+        - updatedAt
+        - id
+        - reason
+        - amount
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ID of the charge or discount.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          readOnly: true
+        reason:
+          allOf:
+            - $ref: '#/components/schemas/BillingDiscountReason'
+          description: Reason code.
+          readOnly: true
+        description:
+          type: string
+          description: Text description as to why the discount was applied.
+          readOnly: true
+        externalIds:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Fixed discount amount to apply (calculated if percent present).
+          title: Amount in the currency of the invoice
+          readOnly: true
+      description: InvoiceLineAmountDiscount represents an amount deducted from the line, and will be applied before taxes.
     InvoiceLineAppExternalIds:
       type: object
       properties:
@@ -14652,167 +14761,26 @@ components:
           description: The external ID of the invoice in the tax app if available.
           readOnly: true
       description: InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps such as Stripe.
-    InvoiceLineDiscount:
+    InvoiceLineDiscounts:
       type: object
-      oneOf:
-        - $ref: '#/components/schemas/InvoiceLineDiscountAmount'
-        - $ref: '#/components/schemas/InvoiceLineDiscountUsage'
-      discriminator:
-        propertyName: type
-        mapping:
-          amount: '#/components/schemas/InvoiceLineDiscountAmount'
-          usage: '#/components/schemas/InvoiceLineDiscountUsage'
-      description: InvoiceLineDiscount represents the actual discount applied to the invoice line.
-    InvoiceLineDiscountAmount:
-      type: object
-      required:
-        - createdAt
-        - updatedAt
-        - id
-        - reason
-        - amount
-        - type
       properties:
-        createdAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was created.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Creation Time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was last updated.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Last Update Time
-          readOnly: true
-        deletedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was permanently deleted.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Deletion Time
-          readOnly: true
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ID of the charge or discount.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          readOnly: true
-        reason:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceDiscountReason'
-          description: Reason code.
-          readOnly: true
-        description:
-          type: string
-          description: Text description as to why the discount was applied.
-          readOnly: true
-        externalIds:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
-          description: External IDs of the invoice in other apps such as Stripe.
-          readOnly: true
-        rateCardDiscount:
-          allOf:
-            - $ref: '#/components/schemas/Discount'
-          description: The discount from the rate card this discount is based on.
-          readOnly: true
         amount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Fixed discount amount to apply (calculated if percent present).
-          title: Amount in the currency of the invoice
-          readOnly: true
-        type:
-          type: string
-          enum:
-            - amount
-          description: The type of the discount.
-          readOnly: true
-      description: InvoiceLineDiscountAmount represents an amount deducted from the line, and will be applied before taxes.
-    InvoiceLineDiscountUsage:
-      type: object
-      required:
-        - createdAt
-        - updatedAt
-        - id
-        - reason
-        - quantity
-        - type
-      properties:
-        createdAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was created.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Creation Time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was last updated.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Last Update Time
-          readOnly: true
-        deletedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was permanently deleted.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Deletion Time
-          readOnly: true
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ID of the charge or discount.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          readOnly: true
-        reason:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceDiscountReason'
-          description: Reason code.
-          readOnly: true
-        description:
-          type: string
-          description: Text description as to why the discount was applied.
-          readOnly: true
-        externalIds:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
-          description: External IDs of the invoice in other apps such as Stripe.
-          readOnly: true
-        rateCardDiscount:
-          allOf:
-            - $ref: '#/components/schemas/Discount'
-          description: The discount from the rate card this discount is based on.
-          readOnly: true
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The usage to apply.
-          title: Usage quantity in the unit of the underlying meter
-          readOnly: true
-        preLinePeriodQuantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLineAmountDiscount'
           description: |-
-            The usage discount already applied to the previous split lines.
+            Amount based discounts applied to the line.
 
-            Only set if progressive billing is enabled and the line is a split line.
-          title: Usage quantity in the unit of the underlying meter
-          readOnly: true
-        type:
-          type: string
-          enum:
-            - usage
-          description: The type of the discount.
-          readOnly: true
-      description: |-
-        InvoiceLineDiscountUsage represents an usage-based discount applied to the line.
+            Amount based discounts are deduced from the total price of the line.
+        usage:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLineUsageDiscount'
+          description: |-
+            Usage based discounts applied to the line.
 
-        The deduction is done before the pricing algorithm is applied.
+            Usage based discounts are deduced from the usage of the line before price calculations are applied.
+      description: InvoiceLineDiscounts represents the discounts applied to the invoice line by type.
     InvoiceLineManagedBy:
       type: string
       enum:
@@ -14898,6 +14866,75 @@ components:
           description: Is the tax item inclusive or exclusive of the base amount.
           readOnly: true
       description: TaxConfig stores the configuration for a tax line relative to an invoice line.
+    InvoiceLineUsageDiscount:
+      type: object
+      required:
+        - createdAt
+        - updatedAt
+        - id
+        - reason
+        - quantity
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ID of the charge or discount.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          readOnly: true
+        reason:
+          allOf:
+            - $ref: '#/components/schemas/BillingDiscountReason'
+          description: Reason code.
+          readOnly: true
+        description:
+          type: string
+          description: Text description as to why the discount was applied.
+          readOnly: true
+        externalIds:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage to apply.
+          title: Usage quantity in the unit of the underlying meter
+          readOnly: true
+        preLinePeriodQuantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The usage discount already applied to the previous split lines.
+
+            Only set if progressive billing is enabled and the line is a split line.
+          title: Usage quantity in the unit of the underlying meter
+          readOnly: true
+      description: |-
+        InvoiceLineUsageDiscount represents an usage-based discount applied to the line.
+
+        The deduction is done before the pricing algorithm is applied.
     InvoiceNumber:
       type: string
       minLength: 1
@@ -15447,9 +15484,8 @@ components:
             billing engine of OpenMeter.
           readOnly: true
         discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/InvoiceLineDiscount'
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineDiscounts'
           description: |-
             Discounts detailes applied to this line.
 
@@ -15733,9 +15769,8 @@ components:
             The price of the rate card.
             When null, the feature or service is free.
         discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingDiscount'
+          allOf:
+            - $ref: '#/components/schemas/BillingDiscounts'
           description: The discounts that are applied to the line.
       description: InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line.
     InvoiceWorkflowInvoicingSettingsReplaceUpdate:
@@ -17750,9 +17785,8 @@ components:
             amount: '100'
             paymentTerm: in_arrears
         discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/DiscountPercentage'
+          allOf:
+            - $ref: '#/components/schemas/Discounts'
           description: |-
             The discount of the rate card. For flat fee rate cards only percentage discounts are supported.
             Only available when price is set.
@@ -17900,9 +17934,8 @@ components:
             The price of the rate card.
             When null, the feature or service is free.
         discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/Discount'
+          allOf:
+            - $ref: '#/components/schemas/Discounts'
           description: |-
             The discounts of the rate card.
 
@@ -19181,9 +19214,8 @@ components:
           title: Price
           example: {}
         discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/Discount'
+          allOf:
+            - $ref: '#/components/schemas/Discounts'
           description: The discounts applied to the rate card.
           title: Discounts
         included:
@@ -19263,9 +19295,8 @@ components:
           title: Duration
           example: P1M
         discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/Discount'
+          allOf:
+            - $ref: '#/components/schemas/Discounts'
           description: The discounts on the plan.
           title: Discounts
         key:
@@ -19346,9 +19377,8 @@ components:
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: A locally unique identifier for the resource.
         discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/Discount'
+          allOf:
+            - $ref: '#/components/schemas/Discounts'
           description: The discounts on the plan.
           title: Discounts
         activeFrom:

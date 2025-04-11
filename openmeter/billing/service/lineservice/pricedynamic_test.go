@@ -185,17 +185,20 @@ func TestDynamicPriceCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: UsageChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Discounts: billing.NewLineDiscounts(
-						billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-							Amount: alpacadecimal.NewFromFloat(60),
-							LineDiscountBase: billing.LineDiscountBase{
-								Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
-								ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-								Reason:                 billing.LineDiscountReasonMaximumSpend,
+					Discounts: billing.LineDiscounts{
+						Amount: []billing.AmountLineDiscountManaged{
+							{
+								AmountLineDiscount: billing.AmountLineDiscount{
+									Amount: alpacadecimal.NewFromFloat(60),
+									LineDiscountBase: billing.LineDiscountBase{
+										Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
+										ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+										Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+									},
+								},
 							},
 						},
-						),
-					),
+					},
 				},
 			},
 		})

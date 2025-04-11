@@ -267,7 +267,6 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		newLastLine = mergeDBFields(newLastLine, lines[1])
 		newLastLine.ParentLine = nil
 		newLastLine.Children = billing.NewLineChildren(nil)
-		newLastLine.Discounts = nil
 		lines[1].ParentLine = nil
 		require.Equal(s.T(),
 			newLastLine.WithoutDBState().WithoutProgressiveLineHierarchy(),
@@ -645,31 +644,41 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 
 	manualDiscountName := "Test Discount 3 - manual"
 
-	lineIn.Children.MustGet()[0].Discounts = billing.NewLineDiscounts(
-		billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-			Amount: alpacadecimal.NewFromFloat(10),
-			LineDiscountBase: billing.LineDiscountBase{
-				Description:            lo.ToPtr("Test Discount 1"),
-				ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-				Reason:                 billing.LineDiscountReasonMaximumSpend,
+	lineIn.Children.MustGet()[0].Discounts = billing.LineDiscounts{
+		Amount: []billing.AmountLineDiscountManaged{
+			{
+				AmountLineDiscount: billing.AmountLineDiscount{
+					Amount: alpacadecimal.NewFromFloat(10),
+					LineDiscountBase: billing.LineDiscountBase{
+						Description:            lo.ToPtr("Test Discount 1"),
+						ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+						Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+					},
+				},
 			},
-		}),
-		billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-			Amount: alpacadecimal.NewFromFloat(20),
-			LineDiscountBase: billing.LineDiscountBase{
-				Description:            lo.ToPtr("Test Discount 2"),
-				ChildUniqueReferenceID: lo.ToPtr("max-spend-multiline"),
-				Reason:                 billing.LineDiscountReasonMaximumSpend,
+			{
+				AmountLineDiscount: billing.AmountLineDiscount{
+					Amount: alpacadecimal.NewFromFloat(20),
+					LineDiscountBase: billing.LineDiscountBase{
+						Description:            lo.ToPtr("Test Discount 2"),
+						ChildUniqueReferenceID: lo.ToPtr("max-spend-multiline"),
+						Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+					},
+				},
 			},
-		}),
-		billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-			Amount: alpacadecimal.NewFromFloat(30),
-			LineDiscountBase: billing.LineDiscountBase{
-				Description: lo.ToPtr(manualDiscountName),
-				Reason:      billing.LineDiscountReasonRatecardDiscount,
+			{
+				AmountLineDiscount: billing.AmountLineDiscount{
+					Amount: alpacadecimal.NewFromFloat(30),
+					LineDiscountBase: billing.LineDiscountBase{
+						Description: lo.ToPtr(manualDiscountName),
+						Reason: billing.NewDiscountReasonFrom(productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(10),
+						}),
+					},
+				},
 			},
-		}),
-	)
+		},
+	}
 
 	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 		Namespace: ns,
@@ -682,58 +691,81 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 
 	// Then the discounts are persisted as expected
 	persistedDiscounts := lines[0].Children.MustGet()[0].Discounts
-	require.Len(s.T(), persistedDiscounts, 3)
+	require.Len(s.T(), persistedDiscounts.Amount, 3)
+	require.Len(s.T(), persistedDiscounts.Usage, 0)
 
 	// Remove the managed fields
-	discountContents, err := persistedDiscounts.Mutate(billing.SetDiscountMangedFields(billing.LineSetDiscountMangedFields{}))
+	discountContents, err := persistedDiscounts.Amount.Mutate(func(discount billing.AmountLineDiscountManaged) (billing.AmountLineDiscountManaged, error) {
+		discount.ManagedModelWithID = models.ManagedModelWithID{}
+		return discount, nil
+	})
 	require.NoError(s.T(), err)
 
-	require.ElementsMatch(s.T(), discountContents, lineIn.Children.MustGet()[0].Discounts)
+	inputDiscountContents := lo.Must(lineIn.Children.MustGet()[0].Discounts.Amount.Mutate(
+		func(discount billing.AmountLineDiscountManaged) (billing.AmountLineDiscountManaged, error) {
+			discount.ManagedModelWithID = models.ManagedModelWithID{}
+			return discount, nil
+		},
+	))
+
+	require.ElementsMatch(s.T(),
+		discountContents,
+		inputDiscountContents,
+	)
 
 	// Let's update the discounts
 	childLine := lines[0].Children.MustGet()[0].Clone()
-	childLine.Discounts = billing.NewLineDiscounts(
-		billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-			Amount: alpacadecimal.NewFromFloat(30),
-			LineDiscountBase: billing.LineDiscountBase{
-				Description:            lo.ToPtr("Test Discount 1 v2"),
-				ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-				Reason:                 billing.LineDiscountReasonMaximumSpend,
-			},
-		}),
-		// Maximum spend is deleted
-		billing.NewLineDiscountFrom(billing.AmountLineDiscountManaged{
-			LineSetDiscountMangedFields: billing.LineSetDiscountMangedFields{
-				ID: func() string {
-					for _, discount := range persistedDiscounts {
-						base, err := discount.AsDiscountBase()
-						require.NoError(s.T(), err)
 
-						if *base.Description == manualDiscountName {
-							return base.ID
-						}
-					}
+	// Let's find the existing manual discount's ID
+	existingDiscountID := ""
+	for _, discount := range persistedDiscounts.Amount {
+		if discount.Description != nil && *discount.Description == manualDiscountName {
+			existingDiscountID = discount.ID
+			break
+		}
+	}
+	require.NotEmpty(s.T(), existingDiscountID)
 
-					s.T().Fatal("manual discount not found")
-					return ""
-				}(),
-			},
-			AmountLineDiscount: billing.AmountLineDiscount{
-				Amount: alpacadecimal.NewFromFloat(40),
-				LineDiscountBase: billing.LineDiscountBase{
-					Description: lo.ToPtr("Test Discount 3 - updated"),
-					Reason:      billing.LineDiscountReasonRatecardDiscount,
+	childLine.Discounts = billing.LineDiscounts{
+		Amount: []billing.AmountLineDiscountManaged{
+			{
+				AmountLineDiscount: billing.AmountLineDiscount{
+					Amount: alpacadecimal.NewFromFloat(30),
+					LineDiscountBase: billing.LineDiscountBase{
+						Description:            lo.ToPtr("Test Discount 1 v2"),
+						ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+						Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+					},
 				},
 			},
-		}),
-		billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-			Amount: alpacadecimal.NewFromFloat(50),
-			LineDiscountBase: billing.LineDiscountBase{
-				Description: lo.ToPtr("Test Discount 4 - manual"),
-				Reason:      billing.LineDiscountReasonRatecardDiscount,
+			// Maximum spend is deleted
+			{
+				ManagedModelWithID: models.ManagedModelWithID{
+					ID: existingDiscountID,
+				},
+				AmountLineDiscount: billing.AmountLineDiscount{
+					Amount: alpacadecimal.NewFromFloat(40),
+					LineDiscountBase: billing.LineDiscountBase{
+						Description: lo.ToPtr("Test Discount 3 - updated"),
+						Reason: billing.NewDiscountReasonFrom(productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(10),
+						}),
+					},
+				},
 			},
-		}),
-	)
+			{
+				AmountLineDiscount: billing.AmountLineDiscount{
+					Amount: alpacadecimal.NewFromFloat(50),
+					LineDiscountBase: billing.LineDiscountBase{
+						Description: lo.ToPtr("Test Discount 4 - manual"),
+						Reason: billing.NewDiscountReasonFrom(productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(20),
+						}),
+					},
+				},
+			},
+		},
+	}
 
 	updateLineIn := lines[0].Clone()
 	childrenWithIDReuse, err := updateLineIn.ChildrenWithIDReuse(
@@ -753,69 +785,70 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 
 	previousVersionDiscounts := persistedDiscounts
 	persistedDiscounts = updatedLines[0].Children.MustGet()[0].Discounts
-	require.Len(s.T(), persistedDiscounts, 3)
+	require.Len(s.T(), persistedDiscounts.Amount, 3)
 
 	expectedChildLineDiscounts := childLine.Discounts
 	// Line 0: we expect that the ID is set to the same value
-	previousVersion, ok := previousVersionDiscounts.GetDiscountByChildUniqueReferenceID(billing.LineMaximumSpendReferenceID)
+	previousVersion, ok := previousVersionDiscounts.Amount.GetDiscountByChildUniqueReferenceID(billing.LineMaximumSpendReferenceID)
 	require.True(s.T(), ok)
 
-	currentVersion := s.findDiscountByDescription(persistedDiscounts, "Test Discount 1 v2")
-	require.True(s.T(), expectedChildLineDiscounts[0].ContentsEqual(currentVersion))
-	require.Equal(s.T(), currentVersion.GetManagedFields(), billing.LineSetDiscountMangedFields{
+	currentVersion := s.findAmountDiscountByDescription(persistedDiscounts.Amount, "Test Discount 1 v2")
+	require.True(s.T(), expectedChildLineDiscounts.Amount[0].ContentsEqual(currentVersion))
+	require.Equal(s.T(), currentVersion.ManagedModelWithID, models.ManagedModelWithID{
 		ID: previousVersion.GetID(),
 		ManagedModel: models.ManagedModel{
 			// CreatedAt is unchanged
-			CreatedAt: previousVersion.GetManagedFields().CreatedAt,
-			UpdatedAt: currentVersion.GetManagedFields().UpdatedAt,
+			CreatedAt: previousVersion.CreatedAt,
+			UpdatedAt: currentVersion.UpdatedAt,
 		},
 	})
 
 	// Line 1: maximum spend with retained id
-	previousVersion = s.findDiscountByDescription(previousVersionDiscounts, "Test Discount 3 - manual")
-	currentVersion = s.findDiscountByDescription(persistedDiscounts, "Test Discount 3 - updated")
-	require.True(s.T(), expectedChildLineDiscounts[1].ContentsEqual(currentVersion))
-	require.Equal(s.T(), currentVersion.GetManagedFields(), billing.LineSetDiscountMangedFields{
+	previousVersion = s.findAmountDiscountByDescription(previousVersionDiscounts.Amount, "Test Discount 3 - manual")
+	currentVersion = s.findAmountDiscountByDescription(persistedDiscounts.Amount, "Test Discount 3 - updated")
+	require.True(s.T(), expectedChildLineDiscounts.Amount[1].ContentsEqual(currentVersion))
+	require.Equal(s.T(), currentVersion.ManagedModelWithID, models.ManagedModelWithID{
 		ID: previousVersion.GetID(),
 		ManagedModel: models.ManagedModel{
 			// CreatedAt is unchanged
-			CreatedAt: previousVersion.GetManagedFields().CreatedAt,
-			UpdatedAt: currentVersion.GetManagedFields().UpdatedAt,
+			CreatedAt: previousVersion.CreatedAt,
+			UpdatedAt: currentVersion.UpdatedAt,
 		},
 	})
 
 	// Line 2: new discount
-	currentVersion = s.findDiscountByDescription(persistedDiscounts, "Test Discount 4 - manual")
-	require.True(s.T(), expectedChildLineDiscounts[2].ContentsEqual(currentVersion))
+	currentVersion = s.findAmountDiscountByDescription(persistedDiscounts.Amount, "Test Discount 4 - manual")
+	require.True(s.T(), expectedChildLineDiscounts.Amount[2].ContentsEqual(currentVersion))
 
 	require.ElementsMatch(s.T(),
 		lo.Must(
-			expectedChildLineDiscounts.Mutate(
-				billing.SetDiscountMangedFields(billing.LineSetDiscountMangedFields{}),
+			expectedChildLineDiscounts.Amount.Mutate(
+				func(discount billing.AmountLineDiscountManaged) (billing.AmountLineDiscountManaged, error) {
+					discount.ManagedModelWithID = models.ManagedModelWithID{}
+					return discount, nil
+				},
 			),
 		),
 		lo.Must(
-			persistedDiscounts.Mutate(
-				billing.SetDiscountMangedFields(billing.LineSetDiscountMangedFields{}),
+			persistedDiscounts.Amount.Mutate(
+				func(discount billing.AmountLineDiscountManaged) (billing.AmountLineDiscountManaged, error) {
+					discount.ManagedModelWithID = models.ManagedModelWithID{}
+					return discount, nil
+				},
 			),
 		),
 	)
 }
 
-func (s *BillingAdapterTestSuite) findDiscountByDescription(discounts []billing.LineDiscount, description string) billing.LineDiscount {
+func (s *BillingAdapterTestSuite) findAmountDiscountByDescription(discounts []billing.AmountLineDiscountManaged, description string) billing.AmountLineDiscountManaged {
 	s.T().Helper()
 
-	return lo.FindOrElse(
-		discounts,
-		billing.NewLineDiscountFrom(billing.AmountLineDiscount{
-			LineDiscountBase: billing.LineDiscountBase{
-				Description: lo.ToPtr("notfound"),
-			},
-		}),
-		func(d billing.LineDiscount) bool {
-			base, err := d.AsDiscountBase()
-			require.NoError(s.T(), err)
+	for _, discount := range discounts {
+		if discount.Description != nil && *discount.Description == description {
+			return discount
+		}
+	}
 
-			return base.Description != nil && *base.Description == description
-		})
+	s.T().Fatalf("discount not found: %s", description)
+	return billing.AmountLineDiscountManaged{}
 }

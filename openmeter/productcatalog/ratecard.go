@@ -125,9 +125,7 @@ func (r RateCardMeta) Clone() RateCardMeta {
 		clone.Price = &price
 	}
 
-	if len(r.Discounts) > 0 {
-		clone.Discounts = r.Discounts.Clone()
-	}
+	clone.Discounts = r.Discounts.Clone()
 
 	return clone
 }
@@ -200,10 +198,8 @@ func (r RateCardMeta) Validate() error {
 		}
 	}
 
-	if len(r.Discounts) > 0 {
-		if err := r.Discounts.ValidateForPrice(r.Price); err != nil {
-			errs = append(errs, err)
-		}
+	if err := r.Discounts.ValidateForPrice(r.Price); err != nil {
+		errs = append(errs, err)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -301,10 +297,12 @@ func (r *FlatFeeRateCard) Validate() error {
 		}
 	}
 
-	if len(r.Discounts) > 0 {
-		if err := r.Discounts.ValidateForPrice(nil); err != nil {
-			errs = append(errs, err)
-		}
+	if err := r.Discounts.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if r.Discounts.Usage != nil {
+		errs = append(errs, errors.New("discounts: usage discount is not allowed for flat fee rate card"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -419,12 +417,8 @@ func (r *UsageBasedRateCard) Validate() error {
 		errs = append(errs, errors.New("invalid BillingCadence: must be at least 1 hour"))
 	}
 
-	if r.Price != nil && r.Price.Type() == FlatPriceType && len(r.Discounts) > 0 {
-		for i, discount := range r.Discounts {
-			if discount.Type() == UsageDiscountType {
-				errs = append(errs, fmt.Errorf("discounts[%d]: usage discount is not allowed for flat fee rate card", i))
-			}
-		}
+	if r.Price != nil && r.Price.Type() == FlatPriceType && r.Discounts.Usage != nil {
+		errs = append(errs, errors.New("discounts.usage: usage discount is not allowed for flat fee rate card"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

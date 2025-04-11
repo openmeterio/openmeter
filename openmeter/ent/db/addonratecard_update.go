@@ -357,6 +357,11 @@ func (arcu *AddonRateCardUpdate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
 		}
 	}
+	if v, ok := arcu.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.discounts": %w`, err)}
+		}
+	}
 	if v, ok := arcu.mutation.AddonID(); ok {
 		if err := addonratecard.AddonIDValidator(v); err != nil {
 			return &ValidationError{Name: "addon_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.addon_id": %w`, err)}
@@ -914,6 +919,11 @@ func (arcuo *AddonRateCardUpdateOne) check() error {
 	if v, ok := arcuo.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
+		}
+	}
+	if v, ok := arcuo.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.discounts": %w`, err)}
 		}
 	}
 	if v, ok := arcuo.mutation.AddonID(); ok {

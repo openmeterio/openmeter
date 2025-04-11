@@ -233,17 +233,6 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		pr = &prc
 	}
 
-	var di *[]api.Discount
-
-	if len(item.SubscriptionItem.RateCard.AsMeta().Discounts) > 0 {
-		disc, err := productcataloghttp.FromDiscounts(item.SubscriptionItem.RateCard.AsMeta().Discounts)
-		if err != nil {
-			return api.SubscriptionItem{}, err
-		}
-
-		di = lo.EmptyableToPtr(disc)
-	}
-
 	return api.SubscriptionItem{
 		ActiveFrom:     item.SubscriptionItem.ActiveFrom,
 		ActiveTo:       item.SubscriptionItem.ActiveTo,
@@ -258,7 +247,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		Metadata:       lo.EmptyableToPtr(api.Metadata(item.SubscriptionItem.Metadata)),
 		Name:           item.SubscriptionItem.Name,
 		Price:          pr,
-		Discounts:      di,
+		Discounts:      productcataloghttp.FromDiscounts(item.SubscriptionItem.RateCard.AsMeta().Discounts),
 		TaxConfig:      tx,
 		UpdatedAt:      item.SubscriptionItem.UpdatedAt,
 	}, nil

@@ -611,49 +611,6 @@ var (
 			},
 		},
 	}
-	// BillingInvoiceDiscountsColumns holds the columns for the "billing_invoice_discounts" table.
-	BillingInvoiceDiscountsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "namespace", Type: field.TypeString},
-		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "name", Type: field.TypeString},
-		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"amount", "usage"}},
-		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "line_ids", Type: field.TypeJSON, Nullable: true},
-	}
-	// BillingInvoiceDiscountsTable holds the schema information for the "billing_invoice_discounts" table.
-	BillingInvoiceDiscountsTable = &schema.Table{
-		Name:       "billing_invoice_discounts",
-		Columns:    BillingInvoiceDiscountsColumns,
-		PrimaryKey: []*schema.Column{BillingInvoiceDiscountsColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "billinginvoicediscount_id",
-				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceDiscountsColumns[0]},
-			},
-			{
-				Name:    "billinginvoicediscount_namespace",
-				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceDiscountsColumns[1]},
-			},
-			{
-				Name:    "billinginvoicediscount_namespace_id",
-				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceDiscountsColumns[1], BillingInvoiceDiscountsColumns[0]},
-			},
-			{
-				Name:    "billinginvoicediscount_namespace_invoice_id",
-				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceDiscountsColumns[1], BillingInvoiceDiscountsColumns[8]},
-			},
-		},
-	}
 	// BillingInvoiceFlatFeeLineConfigsColumns holds the columns for the "billing_invoice_flat_fee_line_configs" table.
 	BillingInvoiceFlatFeeLineConfigsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -815,16 +772,16 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"amount", "usage"}},
-		{Name: "reason", Type: field.TypeEnum, Enums: []string{"maximum_spend", "ratecard_discount"}},
 		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
 		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "amount", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "reason", Type: field.TypeEnum, Enums: []string{"maximum_spend", "ratecard_percentage", "ratecard_usage"}},
+		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "rounding_amount", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "source_discount", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "type", Type: field.TypeString, Nullable: true},
 		{Name: "quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "pre_line_period_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "source_discount", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
 		{Name: "line_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoiceLineDiscountsTable holds the schema information for the "billing_invoice_line_discounts" table.
@@ -834,7 +791,7 @@ var (
 		PrimaryKey: []*schema.Column{BillingInvoiceLineDiscountsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "billing_invoice_line_discounts_billing_invoice_lines_line_discounts",
+				Symbol:     "billing_invoice_line_discounts_billing_invoice_lines_line_amount_discounts",
 				Columns:    []*schema.Column{BillingInvoiceLineDiscountsColumns[15]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.Cascade,
@@ -859,7 +816,62 @@ var (
 			{
 				Name:    "billinginvoicelinediscount_namespace_line_id_child_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[15], BillingInvoiceLineDiscountsColumns[7]},
+				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[15], BillingInvoiceLineDiscountsColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
+				},
+			},
+		},
+	}
+	// BillingInvoiceLineUsageDiscountsColumns holds the columns for the "billing_invoice_line_usage_discounts" table.
+	BillingInvoiceLineUsageDiscountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "reason", Type: field.TypeEnum, Enums: []string{"maximum_spend", "ratecard_percentage", "ratecard_usage"}},
+		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
+		{Name: "quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "pre_line_period_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "reason_details", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "line_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingInvoiceLineUsageDiscountsTable holds the schema information for the "billing_invoice_line_usage_discounts" table.
+	BillingInvoiceLineUsageDiscountsTable = &schema.Table{
+		Name:       "billing_invoice_line_usage_discounts",
+		Columns:    BillingInvoiceLineUsageDiscountsColumns,
+		PrimaryKey: []*schema.Column{BillingInvoiceLineUsageDiscountsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_invoice_line_usage_discounts_billing_invoice_lines_line_usage_discounts",
+				Columns:    []*schema.Column{BillingInvoiceLineUsageDiscountsColumns[12]},
+				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billinginvoicelineusagediscount_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoiceLineUsageDiscountsColumns[0]},
+			},
+			{
+				Name:    "billinginvoicelineusagediscount_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceLineUsageDiscountsColumns[1]},
+			},
+			{
+				Name:    "billinginvoicelineusagediscount_namespace_line_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceLineUsageDiscountsColumns[1], BillingInvoiceLineUsageDiscountsColumns[12]},
+			},
+			{
+				Name:    "billinginvoicelineusagediscount_namespace_line_id_child_unique_reference_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoiceLineUsageDiscountsColumns[1], BillingInvoiceLineUsageDiscountsColumns[12], BillingInvoiceLineUsageDiscountsColumns[5]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -2290,10 +2302,10 @@ var (
 		BillingCustomerLocksTable,
 		BillingCustomerOverridesTable,
 		BillingInvoicesTable,
-		BillingInvoiceDiscountsTable,
 		BillingInvoiceFlatFeeLineConfigsTable,
 		BillingInvoiceLinesTable,
 		BillingInvoiceLineDiscountsTable,
+		BillingInvoiceLineUsageDiscountsTable,
 		BillingInvoiceUsageBasedLineConfigsTable,
 		BillingInvoiceValidationIssuesTable,
 		BillingProfilesTable,
@@ -2350,6 +2362,7 @@ func init() {
 	BillingInvoiceLinesTable.ForeignKeys[5].RefTable = SubscriptionItemsTable
 	BillingInvoiceLinesTable.ForeignKeys[6].RefTable = SubscriptionPhasesTable
 	BillingInvoiceLineDiscountsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
+	BillingInvoiceLineUsageDiscountsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	BillingInvoiceValidationIssuesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingProfilesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[1].RefTable = AppsTable

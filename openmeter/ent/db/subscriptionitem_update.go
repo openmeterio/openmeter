@@ -453,6 +453,11 @@ func (siu *SubscriptionItemUpdate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
 		}
 	}
+	if v, ok := siu.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.discounts": %w`, err)}
+		}
+	}
 	if siu.mutation.PhaseCleared() && len(siu.mutation.PhaseIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionItem.phase"`)
 	}
@@ -1144,6 +1149,11 @@ func (siuo *SubscriptionItemUpdateOne) check() error {
 	if v, ok := siuo.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
+		}
+	}
+	if v, ok := siuo.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.discounts": %w`, err)}
 		}
 	}
 	if siuo.mutation.PhaseCleared() && len(siuo.mutation.PhaseIDs()) > 0 {

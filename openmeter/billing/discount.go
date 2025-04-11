@@ -73,85 +73,148 @@ func (d UsageDiscount) Equal(other UsageDiscount) bool {
 	return true
 }
 
-// Discount type
-type discounter interface {
+var _ models.Clonable[Discounts] = (*Discounts)(nil)
+
+type Discounts struct {
+	Percentage *PercentageDiscount `json:"percentage"`
+	Usage      *UsageDiscount      `json:"usage"`
+}
+
+func (d Discounts) Clone() Discounts {
+	discounts := Discounts{}
+
+	if d.Percentage != nil {
+		discounts.Percentage = lo.ToPtr(d.Percentage.Clone())
+	}
+
+	if d.Usage != nil {
+		discounts.Usage = lo.ToPtr(d.Usage.Clone())
+	}
+
+	return discounts
+}
+
+func (d Discounts) IsEmpty() bool {
+	return lo.IsEmpty(d)
+}
+
+func (d Discounts) ValidateForPrice(price *Price) error {
+	if d.Percentage != nil {
+		return d.Percentage.ValidateForPrice(price)
+	}
+
+	if d.Usage != nil {
+		return d.Usage.ValidateForPrice(price)
+	}
+
+	return nil
+}
+
+// DiscountReason type
+type discountReason interface {
 	json.Marshaler
 	json.Unmarshaler
 
-	models.Clonable[Discount]
-	models.Equaler[Discount]
 	models.Validator
 
-	Type() productcatalog.DiscountType
-	AsPercentage() (PercentageDiscount, error)
-	AsUsage() (UsageDiscount, error)
-
-	ValidateForPrice(price *Price) error
+	Type() DiscountReasonType
+	AsRatecardPercentage() (PercentageDiscount, error)
+	AsRatecardUsage() (UsageDiscount, error)
+	AsMaximumSpend() (MaximumSpendDiscount, error)
 }
 
-var _ discounter = (*Discount)(nil)
+var _ discountReason = (*DiscountReason)(nil)
 
-type Discount struct {
-	t productcatalog.DiscountType
+type DiscountReasonType string
+
+const (
+	MaximumSpendDiscountReason       DiscountReasonType = "maximum_spend"
+	RatecardPercentageDiscountReason DiscountReasonType = "ratecard_percentage"
+	RatecardUsageDiscountReason      DiscountReasonType = "ratecard_usage"
+)
+
+func (DiscountReasonType) Values() []string {
+	return []string{
+		string(MaximumSpendDiscountReason),
+		string(RatecardPercentageDiscountReason),
+		string(RatecardUsageDiscountReason),
+	}
+}
+
+// MaximumSpendDiscount contains information about the maximum spend induced discounts
+type MaximumSpendDiscount struct{}
+
+type DiscountReason struct {
+	t DiscountReasonType
 
 	percentage *PercentageDiscount
 	usage      *UsageDiscount
 }
 
-func NewDiscountFrom[T PercentageDiscount | UsageDiscount | productcatalog.PercentageDiscount | productcatalog.UsageDiscount](in T) Discount {
+func NewDiscountReasonFrom[T PercentageDiscount | UsageDiscount | productcatalog.PercentageDiscount | productcatalog.UsageDiscount | MaximumSpendDiscount](in T) DiscountReason {
 	switch d := any(in).(type) {
 	case PercentageDiscount:
 		percentage := any(d).(PercentageDiscount)
-		return Discount{
-			t:          productcatalog.PercentageDiscountType,
+		return DiscountReason{
+			t:          RatecardPercentageDiscountReason,
 			percentage: &percentage,
 		}
 	case productcatalog.PercentageDiscount:
 		percentage := any(d).(productcatalog.PercentageDiscount)
-		return Discount{
-			t: productcatalog.PercentageDiscountType,
+		return DiscountReason{
+			t: RatecardPercentageDiscountReason,
 			percentage: &PercentageDiscount{
 				PercentageDiscount: percentage,
 			},
 		}
 	case UsageDiscount:
 		usage := any(d).(UsageDiscount)
-		return Discount{
-			t:     productcatalog.UsageDiscountType,
+		return DiscountReason{
+			t:     RatecardUsageDiscountReason,
 			usage: &usage,
 		}
 	case productcatalog.UsageDiscount:
 		usage := any(d).(productcatalog.UsageDiscount)
-		return Discount{
-			t: productcatalog.UsageDiscountType,
+		return DiscountReason{
+			t: RatecardUsageDiscountReason,
 			usage: &UsageDiscount{
 				UsageDiscount: usage,
 			},
 		}
+	case MaximumSpendDiscount:
+		return DiscountReason{
+			t: MaximumSpendDiscountReason,
+		}
 	}
 
-	return Discount{}
+	return DiscountReason{}
 }
 
-func (d *Discount) MarshalJSON() ([]byte, error) {
+func (d *DiscountReason) MarshalJSON() ([]byte, error) {
 	var serde interface{}
 
 	switch d.t {
-	case productcatalog.PercentageDiscountType:
+	case RatecardPercentageDiscountReason:
 		serde = struct {
-			Type productcatalog.DiscountType `json:"type"`
+			Type DiscountReasonType `json:"type"`
 			*PercentageDiscount
 		}{
-			Type:               productcatalog.PercentageDiscountType,
+			Type:               RatecardPercentageDiscountReason,
 			PercentageDiscount: d.percentage,
 		}
-	case productcatalog.UsageDiscountType:
+	case RatecardUsageDiscountReason:
 		serde = struct {
-			Type productcatalog.DiscountType `json:"type"`
+			Type DiscountReasonType `json:"type"`
 			*UsageDiscount
 		}{
-			Type:          productcatalog.UsageDiscountType,
+			Type:          RatecardUsageDiscountReason,
 			UsageDiscount: d.usage,
+		}
+	case MaximumSpendDiscountReason:
+		serde = struct {
+			Type DiscountReasonType `json:"type"`
+		}{
+			Type: MaximumSpendDiscountReason,
 		}
 	default:
 		return nil, fmt.Errorf("invalid Discount type: %s", d.t)
@@ -165,9 +228,9 @@ func (d *Discount) MarshalJSON() ([]byte, error) {
 	return b, nil
 }
 
-func (d *Discount) UnmarshalJSON(bytes []byte) error {
+func (d *DiscountReason) UnmarshalJSON(bytes []byte) error {
 	serde := &struct {
-		Type productcatalog.DiscountType `json:"type"`
+		Type DiscountReasonType `json:"type"`
 	}{}
 
 	if err := json.Unmarshal(bytes, serde); err != nil {
@@ -175,22 +238,24 @@ func (d *Discount) UnmarshalJSON(bytes []byte) error {
 	}
 
 	switch serde.Type {
-	case productcatalog.PercentageDiscountType:
+	case RatecardPercentageDiscountReason:
 		v := &PercentageDiscount{}
 		if err := json.Unmarshal(bytes, v); err != nil {
 			return fmt.Errorf("failed to JSON deserialize Discount: %w", err)
 		}
 
 		d.percentage = v
-		d.t = productcatalog.PercentageDiscountType
-	case productcatalog.UsageDiscountType:
+		d.t = RatecardPercentageDiscountReason
+	case RatecardUsageDiscountReason:
 		v := &UsageDiscount{}
 		if err := json.Unmarshal(bytes, v); err != nil {
 			return fmt.Errorf("failed to JSON deserialize Discount: %w", err)
 		}
 
 		d.usage = v
-		d.t = productcatalog.UsageDiscountType
+		d.t = RatecardUsageDiscountReason
+	case MaximumSpendDiscountReason:
+		d.t = MaximumSpendDiscountReason
 	default:
 		return fmt.Errorf("invalid Discount type: %s", serde.Type)
 	}
@@ -198,66 +263,12 @@ func (d *Discount) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-func (d *Discount) Clone() Discount {
-	switch d.t {
-	case productcatalog.PercentageDiscountType:
-		return Discount{
-			t:          d.t,
-			percentage: lo.ToPtr(d.percentage.Clone()),
-		}
-	case productcatalog.UsageDiscountType:
-		return Discount{
-			t:     d.t,
-			usage: lo.ToPtr(d.usage.Clone()),
-		}
-	}
-
-	return Discount{}
-}
-
-func (d *Discount) Equal(other Discount) bool {
-	if d.t != other.t {
-		return false
-	}
-
-	switch d.t {
-	case productcatalog.PercentageDiscountType:
-		return d.percentage.Equal(*other.percentage)
-	case productcatalog.UsageDiscountType:
-		return d.usage.Equal(*other.usage)
-	}
-
-	return false
-}
-
-func (d *Discount) Validate() error {
-	switch d.t {
-	case productcatalog.PercentageDiscountType:
-		return d.percentage.Validate()
-	case productcatalog.UsageDiscountType:
-		return d.usage.Validate()
-	}
-
-	return errors.New("invalid discount type")
-}
-
-func (d *Discount) ValidateForPrice(price *productcatalog.Price) error {
-	switch d.t {
-	case productcatalog.PercentageDiscountType:
-		return d.percentage.ValidateForPrice(price)
-	case productcatalog.UsageDiscountType:
-		return d.usage.ValidateForPrice(price)
-	}
-
-	return errors.New("invalid discount type")
-}
-
-func (d *Discount) Type() productcatalog.DiscountType {
+func (d *DiscountReason) Type() DiscountReasonType {
 	return d.t
 }
 
-func (d *Discount) AsPercentage() (PercentageDiscount, error) {
-	if d.t != productcatalog.PercentageDiscountType {
+func (d *DiscountReason) AsRatecardPercentage() (PercentageDiscount, error) {
+	if d.t != RatecardPercentageDiscountReason {
 		return PercentageDiscount{}, errors.New("invalid discount type")
 	}
 
@@ -268,8 +279,8 @@ func (d *Discount) AsPercentage() (PercentageDiscount, error) {
 	return *d.percentage, nil
 }
 
-func (d *Discount) AsUsage() (UsageDiscount, error) {
-	if d.t != productcatalog.UsageDiscountType {
+func (d *DiscountReason) AsRatecardUsage() (UsageDiscount, error) {
+	if d.t != RatecardUsageDiscountReason {
 		return UsageDiscount{}, errors.New("invalid discount type")
 	}
 
@@ -280,41 +291,23 @@ func (d *Discount) AsUsage() (UsageDiscount, error) {
 	return *d.usage, nil
 }
 
-func (d Discount) WithCorrelationID(correlationID string) Discount {
-	res := d.Clone()
+func (d *DiscountReason) AsMaximumSpend() (MaximumSpendDiscount, error) {
+	if d.t != MaximumSpendDiscountReason {
+		return MaximumSpendDiscount{}, errors.New("invalid discount type")
+	}
 
+	return MaximumSpendDiscount{}, nil
+}
+
+func (d *DiscountReason) Validate() error {
 	switch d.t {
-	case productcatalog.PercentageDiscountType:
-		res.percentage.CorrelationID = correlationID
-	case productcatalog.UsageDiscountType:
-		res.usage.CorrelationID = correlationID
-	}
-
-	return res
-}
-
-type Discounts []Discount
-
-func (d Discounts) Clone() Discounts {
-	if len(d) == 0 {
+	case RatecardPercentageDiscountReason:
+		return d.percentage.Validate()
+	case RatecardUsageDiscountReason:
+		return d.usage.Validate()
+	case MaximumSpendDiscountReason:
 		return nil
+	default:
+		return fmt.Errorf("invalid discount type: %s", d.t)
 	}
-
-	out := make(Discounts, len(d))
-	for i, discount := range d {
-		out[i] = discount.Clone()
-	}
-	return out
-}
-
-func (d Discounts) ValidateForPrice(price *productcatalog.Price) error {
-	var errs []error
-
-	for _, discount := range d {
-		if err := discount.ValidateForPrice(price); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	return errors.Join(errs...)
 }

@@ -2217,7 +2217,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 						out.AddLineExternalID(line.ID, "final_upsert_"+line.ID)
 					}
 
-					for _, discount := range line.Discounts {
+					for _, discount := range line.Discounts.Amount {
+						out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
+					}
+
+					for _, discount := range line.Discounts.Usage {
 						out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
 					}
 				}
@@ -2247,11 +2251,12 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				}
 
 				// Test discounts
-				for _, discount := range line.Discounts {
-					base, err := discount.AsDiscountBase()
-					require.NoError(s.T(), err)
+				for _, discount := range line.Discounts.Amount {
+					require.Equal(s.T(), "final_upsert_"+discount.ID, discount.ExternalIDs.Invoicing)
+				}
 
-					require.Equal(s.T(), "final_upsert_"+base.ID, base.ExternalIDs.Invoicing)
+				for _, discount := range line.Discounts.Usage {
+					require.Equal(s.T(), "final_upsert_"+discount.ID, discount.ExternalIDs.Invoicing)
 				}
 			}
 
@@ -2276,8 +2281,12 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				}
 
 				// We set the external id the same as the discount id to make it easier to test the output.
-				for _, discount := range line.Discounts {
-					out.AddLineDiscountExternalID(discount.GetID(), discount.GetID())
+				for _, discount := range line.Discounts.Amount {
+					out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
+				}
+
+				for _, discount := range line.Discounts.Usage {
+					out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
 				}
 			}
 
@@ -2373,11 +2382,12 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			}
 
 			// Test discounts
-			for _, discount := range line.Discounts {
-				base, err := discount.AsDiscountBase()
-				require.NoError(s.T(), err)
+			for _, discount := range line.Discounts.Amount {
+				require.Equal(s.T(), "final_upsert_"+discount.ID, discount.ExternalIDs.Invoicing)
+			}
 
-				require.Equal(s.T(), discount.GetID(), base.ExternalIDs.Invoicing)
+			for _, discount := range line.Discounts.Usage {
+				require.Equal(s.T(), "final_upsert_"+discount.ID, discount.ExternalIDs.Invoicing)
 			}
 		}
 
@@ -2433,7 +2443,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				lineservice.UnitPriceUsageChildUniqueReferenceID: {
 					Quantity:      30,
 					PerUnitAmount: 100,
-					Discounts: map[string]float64{
+					AmountDiscounts: map[string]float64{
 						billing.LineMaximumSpendReferenceID: 3000,
 					},
 				},
@@ -3098,7 +3108,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 				lineservice.UnitPriceUsageChildUniqueReferenceID: {
 					Quantity:      30,
 					PerUnitAmount: 100,
-					Discounts: map[string]float64{
+					AmountDiscounts: map[string]float64{
 						billing.LineMaximumSpendReferenceID: 1000,
 					},
 				},
@@ -3247,9 +3257,10 @@ type lineExpectations struct {
 }
 
 type feeLineExpect struct {
-	Quantity      float64
-	PerUnitAmount float64
-	Discounts     map[string]float64
+	Quantity        float64
+	PerUnitAmount   float64
+	AmountDiscounts map[string]float64
+	UsageDiscounts  map[string]float64
 }
 
 func requireDetailedLines(t *testing.T, line *billing.Line, expectations lineExpectations) {
@@ -3272,20 +3283,25 @@ func requireDetailedLines(t *testing.T, line *billing.Line, expectations lineExp
 		require.Equal(t, expect.PerUnitAmount, detail.FlatFee.PerUnitAmount.InexactFloat64(), "per unit amount should match")
 
 		discounts := detail.Discounts
-		require.Len(t, discounts, len(expect.Discounts), "discounts should match")
+		require.Len(t, discounts.Amount, len(expect.AmountDiscounts), "amount discounts should match")
+		require.Len(t, discounts.Usage, len(expect.UsageDiscounts), "usage discounts should match")
 
-		discountsById := lo.GroupBy(discounts, func(d billing.LineDiscount) string {
-			return *d.GetChildUniqueReferenceID()
+		amountDiscountsById := lo.GroupBy(discounts.Amount, func(d billing.AmountLineDiscountManaged) string {
+			return lo.FromPtrOr(d.ChildUniqueReferenceID, "")
 		})
 
-		for discountType, discountExpect := range expect.Discounts {
-			require.Contains(t, discountsById, discountType, "discount %s should be present", discountType)
-			discount := discountsById[discountType][0]
+		usageDiscountsById := lo.GroupBy(discounts.Usage, func(d billing.UsageLineDiscountManaged) string {
+			return lo.FromPtrOr(d.ChildUniqueReferenceID, "")
+		})
 
-			amount, err := discount.AsAmount()
-			require.NoError(t, err)
+		for discountType, discountExpect := range expect.AmountDiscounts {
+			require.Contains(t, amountDiscountsById, discountType, "discount %s should be present", discountType)
+			require.Equal(t, discountExpect, amountDiscountsById[discountType][0].Amount.InexactFloat64(), "discount amount should match")
+		}
 
-			require.Equal(t, discountExpect, amount.Amount.InexactFloat64(), "discount amount should match")
+		for discountType, discountExpect := range expect.UsageDiscounts {
+			require.Contains(t, usageDiscountsById, discountType, "discount %s should be present", discountType)
+			require.Equal(t, discountExpect, usageDiscountsById[discountType][0].Quantity.InexactFloat64(), "discount amount should match")
 		}
 	}
 }

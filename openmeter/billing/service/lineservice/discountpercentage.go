@@ -5,12 +5,9 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -19,12 +16,12 @@ type discountPercentageMutator struct{}
 var _ PostCalculationMutator = (*discountPercentageMutator)(nil)
 
 func (m *discountPercentageMutator) Mutate(i PricerCalculateInput, pricerResult newDetailedLinesInput) (newDetailedLinesInput, error) {
-	discounts, err := m.getDiscounts(i.line.RateCardDiscounts)
+	discount, err := m.getDiscount(i.line.RateCardDiscounts)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(discounts) == 0 {
+	if discount == nil {
 		return pricerResult, nil
 	}
 
@@ -34,12 +31,12 @@ func (m *discountPercentageMutator) Mutate(i PricerCalculateInput, pricerResult 
 	}
 
 	out, err := slicesx.MapWithErr(pricerResult, func(l newDetailedLineInput) (newDetailedLineInput, error) {
-		lineDiscounts, err := m.getLineDiscounts(l.TotalAmount(currencyCalc), currencyCalc, discounts)
+		lineDiscount, err := m.getLineDiscount(l.TotalAmount(currencyCalc), currencyCalc, *discount)
 		if err != nil {
 			return newDetailedLineInput{}, err
 		}
 
-		l.Discounts = append(l.Discounts, lineDiscounts...)
+		l.Discounts.Amount = append(l.Discounts.Amount, lineDiscount)
 		return l, nil
 	})
 	if err != nil {
@@ -54,81 +51,33 @@ type discountWithChildReferenceID struct {
 	ChildUniqueReferenceID string
 }
 
-func (m *discountPercentageMutator) getDiscounts(discounts billing.Discounts) ([]discountWithChildReferenceID, error) {
-	percentageDiscounts := []discountWithChildReferenceID{}
-	for _, discount := range discounts {
-		if discount.Type() != productcatalog.PercentageDiscountType {
-			continue
-		}
-
-		percentage, err := discount.AsPercentage()
-		if err != nil {
-			return nil, err
-		}
-
-		if percentage.CorrelationID == "" {
-			return nil, errors.New("correlation ID is required for rate card discounts")
-		}
-
-		percentageDiscounts = append(percentageDiscounts, discountWithChildReferenceID{
-			PercentageDiscount:     percentage,
-			ChildUniqueReferenceID: fmt.Sprintf(RateCardDiscountChildUniqueReferenceID, percentage.CorrelationID),
-		})
+func (m *discountPercentageMutator) getDiscount(discounts billing.Discounts) (*discountWithChildReferenceID, error) {
+	if discounts.Percentage == nil {
+		return nil, nil
 	}
 
-	return percentageDiscounts, nil
+	if discounts.Percentage.CorrelationID == "" {
+		return nil, errors.New("correlation ID is required for rate card discounts")
+	}
+
+	return &discountWithChildReferenceID{
+		PercentageDiscount:     *discounts.Percentage,
+		ChildUniqueReferenceID: fmt.Sprintf(RateCardDiscountChildUniqueReferenceID, discounts.Percentage.CorrelationID),
+	}, nil
 }
 
-func (m *discountPercentageMutator) getLineDiscounts(lineTotal alpacadecimal.Decimal, currency currencyx.Calculator, discounts []discountWithChildReferenceID) (billing.LineDiscounts, error) {
-	totalDiscount := models.Percentage{}
-
-	for _, discount := range discounts {
-		totalDiscount = totalDiscount.Add(discount.Percentage)
+func (m *discountPercentageMutator) getLineDiscount(lineTotal alpacadecimal.Decimal, currency currencyx.Calculator, discount discountWithChildReferenceID) (billing.AmountLineDiscountManaged, error) {
+	if discount.Percentage.GreaterThan(alpacadecimal.NewFromInt(100)) || discount.Percentage.LessThan(alpacadecimal.Zero) {
+		return billing.AmountLineDiscountManaged{}, errors.New("total discount percentage cannot be greater than 100 or less than 0")
 	}
 
-	if totalDiscount.GreaterThan(alpacadecimal.NewFromInt(100)) {
-		return nil, errors.New("total discount percentage cannot be greater than 100")
-	}
-
-	lineDiscounts := []billing.AmountLineDiscount{}
-	for _, discount := range discounts {
-		amount := currency.RoundToPrecision(discount.Percentage.ApplyTo(lineTotal))
-
-		lineDiscounts = append(lineDiscounts, billing.AmountLineDiscount{
+	return billing.AmountLineDiscountManaged{
+		AmountLineDiscount: billing.AmountLineDiscount{
 			LineDiscountBase: billing.LineDiscountBase{
 				ChildUniqueReferenceID: &discount.ChildUniqueReferenceID,
-				Reason:                 billing.LineDiscountReasonRatecardDiscount,
-				SourceDiscount:         lo.ToPtr(billing.NewDiscountFrom(discount.PercentageDiscount)),
+				Reason:                 billing.NewDiscountReasonFrom(discount.PercentageDiscount),
 			},
-			Amount: amount,
-		})
-	}
-
-	sumOfDiscounts := alpacadecimal.Zero
-	for _, discount := range lineDiscounts {
-		sumOfDiscounts = sumOfDiscounts.Add(discount.Amount)
-	}
-
-	totalDiscountAmount := currency.RoundToPrecision(totalDiscount.ApplyTo(lineTotal))
-	// Rounding support (e.g. a 100% of discount composed of 33%, 33%, 34% of 0.01$ should yield 0.0$)
-	roundingAmount := totalDiscountAmount.Sub(sumOfDiscounts)
-
-	if !roundingAmount.IsZero() {
-		for i := len(lineDiscounts) - 1; i >= 0; i-- {
-			discount := lineDiscounts[i]
-
-			if discount.Amount.Add(roundingAmount).GreaterThanOrEqual(alpacadecimal.Zero) {
-				discount.RoundingAmount = roundingAmount
-				lineDiscounts[i] = discount
-				break
-			}
-		}
-	}
-
-	out := billing.LineDiscounts{}
-	for _, discount := range lineDiscounts {
-		out = append(out, billing.NewLineDiscountFrom(discount))
-	}
-
-	return out, nil
+			Amount: currency.RoundToPrecision(discount.Percentage.ApplyTo(lineTotal)),
+		},
+	}, nil
 }

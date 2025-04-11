@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -27,21 +28,22 @@ import (
 // BillingInvoiceLineQuery is the builder for querying BillingInvoiceLine entities.
 type BillingInvoiceLineQuery struct {
 	config
-	ctx                   *QueryContext
-	order                 []billinginvoiceline.OrderOption
-	inters                []Interceptor
-	predicates            []predicate.BillingInvoiceLine
-	withBillingInvoice    *BillingInvoiceQuery
-	withFlatFeeLine       *BillingInvoiceFlatFeeLineConfigQuery
-	withUsageBasedLine    *BillingInvoiceUsageBasedLineConfigQuery
-	withParentLine        *BillingInvoiceLineQuery
-	withDetailedLines     *BillingInvoiceLineQuery
-	withLineDiscounts     *BillingInvoiceLineDiscountQuery
-	withSubscription      *SubscriptionQuery
-	withSubscriptionPhase *SubscriptionPhaseQuery
-	withSubscriptionItem  *SubscriptionItemQuery
-	withFKs               bool
-	modifiers             []func(*sql.Selector)
+	ctx                     *QueryContext
+	order                   []billinginvoiceline.OrderOption
+	inters                  []Interceptor
+	predicates              []predicate.BillingInvoiceLine
+	withBillingInvoice      *BillingInvoiceQuery
+	withFlatFeeLine         *BillingInvoiceFlatFeeLineConfigQuery
+	withUsageBasedLine      *BillingInvoiceUsageBasedLineConfigQuery
+	withParentLine          *BillingInvoiceLineQuery
+	withDetailedLines       *BillingInvoiceLineQuery
+	withLineUsageDiscounts  *BillingInvoiceLineUsageDiscountQuery
+	withLineAmountDiscounts *BillingInvoiceLineDiscountQuery
+	withSubscription        *SubscriptionQuery
+	withSubscriptionPhase   *SubscriptionPhaseQuery
+	withSubscriptionItem    *SubscriptionItemQuery
+	withFKs                 bool
+	modifiers               []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -188,8 +190,30 @@ func (bilq *BillingInvoiceLineQuery) QueryDetailedLines() *BillingInvoiceLineQue
 	return query
 }
 
-// QueryLineDiscounts chains the current query on the "line_discounts" edge.
-func (bilq *BillingInvoiceLineQuery) QueryLineDiscounts() *BillingInvoiceLineDiscountQuery {
+// QueryLineUsageDiscounts chains the current query on the "line_usage_discounts" edge.
+func (bilq *BillingInvoiceLineQuery) QueryLineUsageDiscounts() *BillingInvoiceLineUsageDiscountQuery {
+	query := (&BillingInvoiceLineUsageDiscountClient{config: bilq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := bilq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := bilq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
+			sqlgraph.To(billinginvoicelineusagediscount.Table, billinginvoicelineusagediscount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.LineUsageDiscountsTable, billinginvoiceline.LineUsageDiscountsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(bilq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryLineAmountDiscounts chains the current query on the "line_amount_discounts" edge.
+func (bilq *BillingInvoiceLineQuery) QueryLineAmountDiscounts() *BillingInvoiceLineDiscountQuery {
 	query := (&BillingInvoiceLineDiscountClient{config: bilq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := bilq.prepareQuery(ctx); err != nil {
@@ -202,7 +226,7 @@ func (bilq *BillingInvoiceLineQuery) QueryLineDiscounts() *BillingInvoiceLineDis
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
 			sqlgraph.To(billinginvoicelinediscount.Table, billinginvoicelinediscount.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.LineDiscountsTable, billinginvoiceline.LineDiscountsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.LineAmountDiscountsTable, billinginvoiceline.LineAmountDiscountsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bilq.driver.Dialect(), step)
 		return fromU, nil
@@ -463,20 +487,21 @@ func (bilq *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		return nil
 	}
 	return &BillingInvoiceLineQuery{
-		config:                bilq.config,
-		ctx:                   bilq.ctx.Clone(),
-		order:                 append([]billinginvoiceline.OrderOption{}, bilq.order...),
-		inters:                append([]Interceptor{}, bilq.inters...),
-		predicates:            append([]predicate.BillingInvoiceLine{}, bilq.predicates...),
-		withBillingInvoice:    bilq.withBillingInvoice.Clone(),
-		withFlatFeeLine:       bilq.withFlatFeeLine.Clone(),
-		withUsageBasedLine:    bilq.withUsageBasedLine.Clone(),
-		withParentLine:        bilq.withParentLine.Clone(),
-		withDetailedLines:     bilq.withDetailedLines.Clone(),
-		withLineDiscounts:     bilq.withLineDiscounts.Clone(),
-		withSubscription:      bilq.withSubscription.Clone(),
-		withSubscriptionPhase: bilq.withSubscriptionPhase.Clone(),
-		withSubscriptionItem:  bilq.withSubscriptionItem.Clone(),
+		config:                  bilq.config,
+		ctx:                     bilq.ctx.Clone(),
+		order:                   append([]billinginvoiceline.OrderOption{}, bilq.order...),
+		inters:                  append([]Interceptor{}, bilq.inters...),
+		predicates:              append([]predicate.BillingInvoiceLine{}, bilq.predicates...),
+		withBillingInvoice:      bilq.withBillingInvoice.Clone(),
+		withFlatFeeLine:         bilq.withFlatFeeLine.Clone(),
+		withUsageBasedLine:      bilq.withUsageBasedLine.Clone(),
+		withParentLine:          bilq.withParentLine.Clone(),
+		withDetailedLines:       bilq.withDetailedLines.Clone(),
+		withLineUsageDiscounts:  bilq.withLineUsageDiscounts.Clone(),
+		withLineAmountDiscounts: bilq.withLineAmountDiscounts.Clone(),
+		withSubscription:        bilq.withSubscription.Clone(),
+		withSubscriptionPhase:   bilq.withSubscriptionPhase.Clone(),
+		withSubscriptionItem:    bilq.withSubscriptionItem.Clone(),
 		// clone intermediate query.
 		sql:  bilq.sql.Clone(),
 		path: bilq.path,
@@ -538,14 +563,25 @@ func (bilq *BillingInvoiceLineQuery) WithDetailedLines(opts ...func(*BillingInvo
 	return bilq
 }
 
-// WithLineDiscounts tells the query-builder to eager-load the nodes that are connected to
-// the "line_discounts" edge. The optional arguments are used to configure the query builder of the edge.
-func (bilq *BillingInvoiceLineQuery) WithLineDiscounts(opts ...func(*BillingInvoiceLineDiscountQuery)) *BillingInvoiceLineQuery {
+// WithLineUsageDiscounts tells the query-builder to eager-load the nodes that are connected to
+// the "line_usage_discounts" edge. The optional arguments are used to configure the query builder of the edge.
+func (bilq *BillingInvoiceLineQuery) WithLineUsageDiscounts(opts ...func(*BillingInvoiceLineUsageDiscountQuery)) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineUsageDiscountClient{config: bilq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	bilq.withLineUsageDiscounts = query
+	return bilq
+}
+
+// WithLineAmountDiscounts tells the query-builder to eager-load the nodes that are connected to
+// the "line_amount_discounts" edge. The optional arguments are used to configure the query builder of the edge.
+func (bilq *BillingInvoiceLineQuery) WithLineAmountDiscounts(opts ...func(*BillingInvoiceLineDiscountQuery)) *BillingInvoiceLineQuery {
 	query := (&BillingInvoiceLineDiscountClient{config: bilq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bilq.withLineDiscounts = query
+	bilq.withLineAmountDiscounts = query
 	return bilq
 }
 
@@ -661,13 +697,14 @@ func (bilq *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryH
 		nodes       = []*BillingInvoiceLine{}
 		withFKs     = bilq.withFKs
 		_spec       = bilq.querySpec()
-		loadedTypes = [9]bool{
+		loadedTypes = [10]bool{
 			bilq.withBillingInvoice != nil,
 			bilq.withFlatFeeLine != nil,
 			bilq.withUsageBasedLine != nil,
 			bilq.withParentLine != nil,
 			bilq.withDetailedLines != nil,
-			bilq.withLineDiscounts != nil,
+			bilq.withLineUsageDiscounts != nil,
+			bilq.withLineAmountDiscounts != nil,
 			bilq.withSubscription != nil,
 			bilq.withSubscriptionPhase != nil,
 			bilq.withSubscriptionItem != nil,
@@ -733,11 +770,20 @@ func (bilq *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryH
 			return nil, err
 		}
 	}
-	if query := bilq.withLineDiscounts; query != nil {
-		if err := bilq.loadLineDiscounts(ctx, query, nodes,
-			func(n *BillingInvoiceLine) { n.Edges.LineDiscounts = []*BillingInvoiceLineDiscount{} },
+	if query := bilq.withLineUsageDiscounts; query != nil {
+		if err := bilq.loadLineUsageDiscounts(ctx, query, nodes,
+			func(n *BillingInvoiceLine) { n.Edges.LineUsageDiscounts = []*BillingInvoiceLineUsageDiscount{} },
+			func(n *BillingInvoiceLine, e *BillingInvoiceLineUsageDiscount) {
+				n.Edges.LineUsageDiscounts = append(n.Edges.LineUsageDiscounts, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := bilq.withLineAmountDiscounts; query != nil {
+		if err := bilq.loadLineAmountDiscounts(ctx, query, nodes,
+			func(n *BillingInvoiceLine) { n.Edges.LineAmountDiscounts = []*BillingInvoiceLineDiscount{} },
 			func(n *BillingInvoiceLine, e *BillingInvoiceLineDiscount) {
-				n.Edges.LineDiscounts = append(n.Edges.LineDiscounts, e)
+				n.Edges.LineAmountDiscounts = append(n.Edges.LineAmountDiscounts, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -922,7 +968,37 @@ func (bilq *BillingInvoiceLineQuery) loadDetailedLines(ctx context.Context, quer
 	}
 	return nil
 }
-func (bilq *BillingInvoiceLineQuery) loadLineDiscounts(ctx context.Context, query *BillingInvoiceLineDiscountQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceLineDiscount)) error {
+func (bilq *BillingInvoiceLineQuery) loadLineUsageDiscounts(ctx context.Context, query *BillingInvoiceLineUsageDiscountQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceLineUsageDiscount)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoiceLine)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoicelineusagediscount.FieldLineID)
+	}
+	query.Where(predicate.BillingInvoiceLineUsageDiscount(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoiceline.LineUsageDiscountsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.LineID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "line_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (bilq *BillingInvoiceLineQuery) loadLineAmountDiscounts(ctx context.Context, query *BillingInvoiceLineDiscountQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceLineDiscount)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*BillingInvoiceLine)
 	for i := range nodes {
@@ -936,7 +1012,7 @@ func (bilq *BillingInvoiceLineQuery) loadLineDiscounts(ctx context.Context, quer
 		query.ctx.AppendFieldOnce(billinginvoicelinediscount.FieldLineID)
 	}
 	query.Where(predicate.BillingInvoiceLineDiscount(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(billinginvoiceline.LineDiscountsColumn), fks...))
+		s.Where(sql.InValues(s.C(billinginvoiceline.LineAmountDiscountsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

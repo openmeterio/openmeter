@@ -12,6 +12,7 @@ import (
 	"golang.org/x/net/context"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -184,13 +185,9 @@ func TestPlan(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	p2RC2UsageDiscount := api.DiscountUsage{
-		Type:     api.DiscountUsageType("usage"),
-		Quantity: "100",
+	p2RC2UsageDiscount := api.DiscountPercentage{
+		Percentage: models.NewPercentage(10),
 	}
-	p2RC2Discount := api.Discount{}
-	err = p2RC2Discount.FromDiscountUsage(p2RC2UsageDiscount)
-	require.Nil(t, err)
 
 	p2RC2 := api.RateCard{}
 	err = p2RC2.FromRateCardUsageBased(api.RateCardUsageBased{
@@ -205,7 +202,7 @@ func TestPlan(t *testing.T) {
 		},
 		BillingCadence: "P1M",
 		Price:          &p2RC2P,
-		Discounts:      lo.ToPtr([]api.Discount{p2RC2Discount}),
+		Discounts:      &api.Discounts{Percentage: &p2RC2UsageDiscount},
 		Type:           api.RateCardUsageBasedType("usage_based"),
 	})
 	require.Nil(t, err)
@@ -284,16 +281,8 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, ubpRateCard)
 
 		require.NotNil(t, ubpRateCard.Discounts)
-		require.Len(t, *ubpRateCard.Discounts, 1)
-
-		discount := (*ubpRateCard.Discounts)[0]
-		discountType, err := discount.Discriminator()
-		require.NoError(t, err)
-		require.Equal(t, string(api.DiscountUsageTypeUsage), discountType)
-
-		usageDiscount, err := discount.AsDiscountUsage()
-		require.NoError(t, err)
-		require.Equal(t, "100", usageDiscount.Quantity)
+		require.NotNil(t, ubpRateCard.Discounts.Percentage)
+		require.Equal(t, float64(10), ubpRateCard.Discounts.Percentage.Percentage.InexactFloat64())
 	})
 
 	t.Run("Should publish the plan", func(t *testing.T) {

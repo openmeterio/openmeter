@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -413,19 +414,34 @@ func (bilc *BillingInvoiceLineCreate) AddDetailedLines(b ...*BillingInvoiceLine)
 	return bilc.AddDetailedLineIDs(ids...)
 }
 
-// AddLineDiscountIDs adds the "line_discounts" edge to the BillingInvoiceLineDiscount entity by IDs.
-func (bilc *BillingInvoiceLineCreate) AddLineDiscountIDs(ids ...string) *BillingInvoiceLineCreate {
-	bilc.mutation.AddLineDiscountIDs(ids...)
+// AddLineUsageDiscountIDs adds the "line_usage_discounts" edge to the BillingInvoiceLineUsageDiscount entity by IDs.
+func (bilc *BillingInvoiceLineCreate) AddLineUsageDiscountIDs(ids ...string) *BillingInvoiceLineCreate {
+	bilc.mutation.AddLineUsageDiscountIDs(ids...)
 	return bilc
 }
 
-// AddLineDiscounts adds the "line_discounts" edges to the BillingInvoiceLineDiscount entity.
-func (bilc *BillingInvoiceLineCreate) AddLineDiscounts(b ...*BillingInvoiceLineDiscount) *BillingInvoiceLineCreate {
+// AddLineUsageDiscounts adds the "line_usage_discounts" edges to the BillingInvoiceLineUsageDiscount entity.
+func (bilc *BillingInvoiceLineCreate) AddLineUsageDiscounts(b ...*BillingInvoiceLineUsageDiscount) *BillingInvoiceLineCreate {
 	ids := make([]string, len(b))
 	for i := range b {
 		ids[i] = b[i].ID
 	}
-	return bilc.AddLineDiscountIDs(ids...)
+	return bilc.AddLineUsageDiscountIDs(ids...)
+}
+
+// AddLineAmountDiscountIDs adds the "line_amount_discounts" edge to the BillingInvoiceLineDiscount entity by IDs.
+func (bilc *BillingInvoiceLineCreate) AddLineAmountDiscountIDs(ids ...string) *BillingInvoiceLineCreate {
+	bilc.mutation.AddLineAmountDiscountIDs(ids...)
+	return bilc
+}
+
+// AddLineAmountDiscounts adds the "line_amount_discounts" edges to the BillingInvoiceLineDiscount entity.
+func (bilc *BillingInvoiceLineCreate) AddLineAmountDiscounts(b ...*BillingInvoiceLineDiscount) *BillingInvoiceLineCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bilc.AddLineAmountDiscountIDs(ids...)
 }
 
 // SetSubscription sets the "subscription" edge to the Subscription entity.
@@ -819,12 +835,28 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bilc.mutation.LineDiscountsIDs(); len(nodes) > 0 {
+	if nodes := bilc.mutation.LineUsageDiscountsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.LineDiscountsTable,
-			Columns: []string{billinginvoiceline.LineDiscountsColumn},
+			Table:   billinginvoiceline.LineUsageDiscountsTable,
+			Columns: []string{billinginvoiceline.LineUsageDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelineusagediscount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bilc.mutation.LineAmountDiscountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.LineAmountDiscountsTable,
+			Columns: []string{billinginvoiceline.LineAmountDiscountsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString),

@@ -7,13 +7,11 @@ func init() {
 	FromBillingDiscountPercentageToDiscountPercentage = func(source BillingDiscountPercentage) DiscountPercentage {
 		var apiDiscountPercentage DiscountPercentage
 		apiDiscountPercentage.Percentage = source.Percentage
-		apiDiscountPercentage.Type = DiscountPercentageType(source.Type)
 		return apiDiscountPercentage
 	}
 	FromBillingDiscountUsageToDiscountUsage = func(source BillingDiscountUsage) DiscountUsage {
 		var apiDiscountUsage DiscountUsage
 		apiDiscountUsage.Quantity = source.Quantity
-		apiDiscountUsage.Type = DiscountUsageType(source.Type)
 		return apiDiscountUsage
 	}
 }

@@ -120,7 +120,7 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 			cmd.SetPrice(input.RateCard.AsMeta().Price)
 		}
 
-		if input.RateCard.AsMeta().Discounts != nil {
+		if !input.RateCard.AsMeta().Discounts.IsEmpty() {
 			cmd.SetDiscounts(lo.EmptyableToPtr(input.RateCard.AsMeta().Discounts))
 		}
 

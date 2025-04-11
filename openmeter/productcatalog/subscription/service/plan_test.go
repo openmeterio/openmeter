@@ -88,11 +88,9 @@ func TestDiscountPersisting(t *testing.T) {
 			require.Len(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey], 1)
 			item := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0]
 
-			require.Len(t, item.Spec.RateCard.AsMeta().Discounts, 1)
-
-			discount, err := item.Spec.RateCard.AsMeta().Discounts[0].AsPercentage()
-			require.NoError(t, err)
-			require.Equal(t, "10%", discount.Percentage.String())
+			discount := item.Spec.RateCard.AsMeta().Discounts.Percentage
+			require.NotNil(t, discount)
+			require.Equal(t, float64(10), discount.Percentage.InexactFloat64())
 		})
 	})
 }
