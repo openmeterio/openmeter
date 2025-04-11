@@ -467,7 +467,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	}
 
 	if e.CurrentUsagePeriodEnd != nil && e.CurrentUsagePeriodStart != nil {
-		ent.CurrentUsagePeriod = &timeutil.Period{
+		ent.CurrentUsagePeriod = &timeutil.ClosedPeriod{
 			From: e.CurrentUsagePeriodStart.In(time.UTC),
 			To:   e.CurrentUsagePeriodEnd.In(time.UTC),
 		}
@@ -649,7 +649,7 @@ func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx 
 
 				// Let's set back the original current usage period
 				if e.CurrentUsagePeriodStart != nil && e.CurrentUsagePeriodEnd != nil {
-					mapped.CurrentUsagePeriod = &timeutil.Period{
+					mapped.CurrentUsagePeriod = &timeutil.ClosedPeriod{
 						From: e.CurrentUsagePeriodStart.In(time.UTC),
 						To:   e.CurrentUsagePeriodEnd.In(time.UTC),
 					}

@@ -107,7 +107,7 @@ type inbetweenRunParams struct {
 // When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 // If a grant is inactive at the end of the period, it will still be in the output.
 func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams) (RunResult, error) {
-	period := timeutil.Period{From: params.StartingSnapshot.At, To: params.Until}
+	period := timeutil.ClosedPeriod{From: params.StartingSnapshot.At, To: params.Until}
 
 	if !params.StartingSnapshot.Balances.ExactlyForGrants(params.Grants) {
 		return RunResult{}, fmt.Errorf("provided grants and balances don't pair up, grants: %+v, balances: %+v", params.Grants, params.StartingSnapshot.Balances)
@@ -182,7 +182,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 		}
 
 		segment := GrantBurnDownHistorySegment{
-			Period:         timeutil.Period{From: phase.from, To: phase.to},
+			ClosedPeriod:   timeutil.ClosedPeriod{From: phase.from, To: phase.to},
 			BalanceAtStart: balancesAtPhaseStart.Clone(),
 			OverageAtStart: overage,
 			TerminationReasons: SegmentTerminationReason{

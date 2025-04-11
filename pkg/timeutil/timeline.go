@@ -76,27 +76,27 @@ func (t Timeline[T]) GetAt(idx int) Timed[T] {
 	return t.times[idx]
 }
 
-func (t Timeline[T]) GetBoundingPeriod() Period {
+func (t Timeline[T]) GetBoundingPeriod() ClosedPeriod {
 	if len(t.times) == 0 {
-		return Period{
+		return ClosedPeriod{
 			From: time.Time{},
 			To:   time.Time{},
 		}
 	}
 
-	return Period{
+	return ClosedPeriod{
 		From: t.times[0].GetTime(),
 		To:   t.times[len(t.times)-1].GetTime(),
 	}
 }
 
-func (t Timeline[T]) GetPeriods() []Period {
+func (t Timeline[T]) GetPeriods() []ClosedPeriod {
 	if len(t.times) == 0 {
-		return []Period{}
+		return []ClosedPeriod{}
 	}
 
 	if len(t.times) == 1 {
-		return []Period{
+		return []ClosedPeriod{
 			{
 				From: t.times[0].GetTime(),
 				To:   t.times[0].GetTime(),
@@ -104,9 +104,9 @@ func (t Timeline[T]) GetPeriods() []Period {
 		}
 	}
 
-	periods := make([]Period, 0, len(t.times)-1)
+	periods := make([]ClosedPeriod, 0, len(t.times)-1)
 	for i := 0; i < len(t.times)-1; i++ {
-		periods = append(periods, Period{From: t.times[i].GetTime(), To: t.times[i+1].GetTime()})
+		periods = append(periods, ClosedPeriod{From: t.times[i].GetTime(), To: t.times[i+1].GetTime()})
 	}
 	return periods
 }

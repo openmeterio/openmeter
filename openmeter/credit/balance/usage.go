@@ -16,7 +16,7 @@ import (
 
 // UsageQuerier is a helper for querying usage for a given owner and period.
 type UsageQuerier interface {
-	QueryUsage(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (float64, error)
+	QueryUsage(ctx context.Context, ownerID models.NamespacedID, period timeutil.ClosedPeriod) (float64, error)
 }
 
 type UsageQuerierConfig struct {
@@ -38,7 +38,7 @@ func NewUsageQuerier(conf UsageQuerierConfig) UsageQuerier {
 
 var _ UsageQuerier = (*usageQuerier)(nil)
 
-func (u *usageQuerier) QueryUsage(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (float64, error) {
+func (u *usageQuerier) QueryUsage(ctx context.Context, ownerID models.NamespacedID, period timeutil.ClosedPeriod) (float64, error) {
 	params, err := u.GetDefaultParams(ctx, ownerID)
 	if err != nil {
 		return 0.0, err

@@ -12,7 +12,7 @@ import (
 )
 
 // An activity change is a grant becoming active or a grant expiring.
-func (e *engine) getGrantActivityChanges(grants []grant.Grant, period timeutil.Period) []time.Time {
+func (e *engine) getGrantActivityChanges(grants []grant.Grant, period timeutil.ClosedPeriod) []time.Time {
 	activityChanges := []time.Time{}
 	for _, grant := range grants {
 		// grants that take effect in the period
@@ -57,7 +57,7 @@ func (e *engine) getGrantActivityChanges(grants []grant.Grant, period timeutil.P
 }
 
 // Get all times grants recurr in the period.
-func (e *engine) getGrantRecurrenceTimes(grants []grant.Grant, period timeutil.Period) ([]struct {
+func (e *engine) getGrantRecurrenceTimes(grants []grant.Grant, period timeutil.ClosedPeriod) ([]struct {
 	time     time.Time
 	grantIDs []string
 }, error,
@@ -123,7 +123,7 @@ func (e *engine) getGrantRecurrenceTimes(grants []grant.Grant, period timeutil.P
 
 // A grant is relevant if its active at any point during the period, both limits inclusive
 // A grant is also relevant if it is mentioned in the balance map
-func (e *engine) filterRelevantGrants(grants []grant.Grant, bm balance.Map, period timeutil.Period) []grant.Grant {
+func (e *engine) filterRelevantGrants(grants []grant.Grant, bm balance.Map, period timeutil.ClosedPeriod) []grant.Grant {
 	relevant := []grant.Grant{}
 	for _, grant := range grants {
 		if grant.GetEffectivePeriod().OverlapsInclusive(period) {

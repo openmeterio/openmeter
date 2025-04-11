@@ -48,8 +48,8 @@ type SnapshotEvent struct {
 	// in edge-worker if the store already contains the required item.
 	CalculatedAt *time.Time `json:"calculatedAt,omitempty"`
 
-	Value              *EntitlementValue `json:"value,omitempty"`
-	CurrentUsagePeriod *timeutil.Period  `json:"currentUsagePeriod,omitempty"`
+	Value              *EntitlementValue      `json:"value,omitempty"`
+	CurrentUsagePeriod *timeutil.ClosedPeriod `json:"currentUsagePeriod,omitempty"`
 }
 
 var (

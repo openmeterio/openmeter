@@ -47,7 +47,7 @@ func (c *inconsistentCreditConnector) GetBalanceAt(ctx context.Context, ownerID 
 	return res, err
 }
 
-func (c *inconsistentCreditConnector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (engine.RunResult, error) {
+func (c *inconsistentCreditConnector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.ClosedPeriod) (engine.RunResult, error) {
 	relevantTime := period.To.Add(-time.Minute)
 
 	c.AddSimpleEvent(meterSlug, 5, relevantTime)

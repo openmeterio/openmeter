@@ -238,7 +238,7 @@ func (b *BalanceThresholdEventHandler) isBalanceThresholdEvent(event snapshot.Sn
 func (b *BalanceThresholdEventHandler) getPeriodsDeduplicationHash(snapshot snapshot.SnapshotEvent, ruleID string) string {
 	// Note: this should not happen, but let's be safe here
 	currentUsagePeriod := defaultx.WithDefault(
-		snapshot.Entitlement.CurrentUsagePeriod, timeutil.Period{
+		snapshot.Entitlement.CurrentUsagePeriod, timeutil.ClosedPeriod{
 			From: time.Time{},
 			To:   time.Time{},
 		})

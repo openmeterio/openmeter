@@ -88,7 +88,7 @@ func TestUpsertEntitlementCurrentPeriods(t *testing.T) {
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			CurrentUsagePeriod: &timeutil.Period{
+			CurrentUsagePeriod: &timeutil.ClosedPeriod{
 				From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 				To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
 			},
@@ -123,7 +123,7 @@ func TestUpsertEntitlementCurrentPeriods(t *testing.T) {
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			CurrentUsagePeriod: &timeutil.Period{
+			CurrentUsagePeriod: &timeutil.ClosedPeriod{
 				From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 				To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
 			},
@@ -131,12 +131,12 @@ func TestUpsertEntitlementCurrentPeriods(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, ent3)
 
-		ent1NewPeriod := timeutil.Period{
+		ent1NewPeriod := timeutil.ClosedPeriod{
 			From: time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC),
 			To:   time.Date(2025, 4, 1, 0, 0, 0, 0, time.UTC),
 		}
 
-		ent2NewPeriod := timeutil.Period{
+		ent2NewPeriod := timeutil.ClosedPeriod{
 			From: time.Date(2025, 5, 1, 0, 0, 0, 0, time.UTC),
 			To:   time.Date(2025, 6, 1, 0, 0, 0, 0, time.UTC),
 		}
@@ -255,7 +255,7 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			CurrentUsagePeriod: &timeutil.Period{
+			CurrentUsagePeriod: &timeutil.ClosedPeriod{
 				From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 				To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
 			},
@@ -274,7 +274,7 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			CurrentUsagePeriod: &timeutil.Period{
+			CurrentUsagePeriod: &timeutil.ClosedPeriod{
 				From: time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC),
 				To:   time.Date(2025, 4, 1, 0, 0, 0, 0, time.UTC),
 			},
@@ -324,7 +324,7 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 					Interval: timeutil.RecurrencePeriodMonth,
 					Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 				},
-				CurrentUsagePeriod: &timeutil.Period{
+				CurrentUsagePeriod: &timeutil.ClosedPeriod{
 					From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
 				},

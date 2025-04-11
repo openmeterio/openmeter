@@ -12,7 +12,7 @@ import (
 type UsageResetRepo interface {
 	Save(ctx context.Context, usageResetTime UsageResetTime) error
 	GetLastAt(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (UsageResetTime, error)
-	GetBetween(ctx context.Context, entitlementID models.NamespacedID, period timeutil.Period) ([]UsageResetTime, error)
+	GetBetween(ctx context.Context, entitlementID models.NamespacedID, period timeutil.ClosedPeriod) ([]UsageResetTime, error)
 }
 
 type UsageResetNotFoundError struct {

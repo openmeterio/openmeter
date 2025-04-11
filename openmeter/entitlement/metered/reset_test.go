@@ -758,7 +758,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				anchor := startTime.Add(time.Hour)
 				inp.UsagePeriod.Anchor = anchor
 				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodDaily
-				inp.CurrentUsagePeriod = &timeutil.Period{
+				inp.CurrentUsagePeriod = &timeutil.ClosedPeriod{
 					To: anchor.AddDate(0, 0, 1),
 				}
 
@@ -797,7 +797,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodDaily
 				anchor := startTime.Add(time.Hour)
 				inp.UsagePeriod.Anchor = anchor
-				inp.CurrentUsagePeriod = &timeutil.Period{
+				inp.CurrentUsagePeriod = &timeutil.ClosedPeriod{
 					To: anchor.AddDate(0, 0, 1),
 				}
 
@@ -838,7 +838,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				anchor := startTime.Add(time.Hour)
 				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodDaily
 				inp.UsagePeriod.Anchor = anchor
-				inp.CurrentUsagePeriod = &timeutil.Period{
+				inp.CurrentUsagePeriod = &timeutil.ClosedPeriod{
 					To: anchor.AddDate(0, 0, 1),
 				}
 
