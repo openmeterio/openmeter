@@ -203,7 +203,7 @@ func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billing.
 	l.line.UsageBased.MeteredQuantity = lo.ToPtr(usage.LinePeriodQty)
 	l.line.UsageBased.Quantity = lo.ToPtr(usage.LinePeriodQty)
 	l.line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQty)
-
+	l.line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQty)
 	return nil
 }
 

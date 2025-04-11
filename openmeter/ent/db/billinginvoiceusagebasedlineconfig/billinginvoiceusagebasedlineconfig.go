@@ -25,6 +25,8 @@ const (
 	FieldPrice = "price"
 	// FieldPreLinePeriodQuantity holds the string denoting the pre_line_period_quantity field in the database.
 	FieldPreLinePeriodQuantity = "pre_line_period_quantity"
+	// FieldMeteredPreLinePeriodQuantity holds the string denoting the metered_pre_line_period_quantity field in the database.
+	FieldMeteredPreLinePeriodQuantity = "metered_pre_line_period_quantity"
 	// FieldMeteredQuantity holds the string denoting the metered_quantity field in the database.
 	FieldMeteredQuantity = "metered_quantity"
 	// Table holds the table name of the billinginvoiceusagebasedlineconfig in the database.
@@ -39,6 +41,7 @@ var Columns = []string{
 	FieldFeatureKey,
 	FieldPrice,
 	FieldPreLinePeriodQuantity,
+	FieldMeteredPreLinePeriodQuantity,
 	FieldMeteredQuantity,
 }
 
@@ -106,6 +109,11 @@ func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 // ByPreLinePeriodQuantity orders the results by the pre_line_period_quantity field.
 func ByPreLinePeriodQuantity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPreLinePeriodQuantity, opts...).ToFunc()
+}
+
+// ByMeteredPreLinePeriodQuantity orders the results by the metered_pre_line_period_quantity field.
+func ByMeteredPreLinePeriodQuantity(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMeteredPreLinePeriodQuantity, opts...).ToFunc()
 }
 
 // ByMeteredQuantity orders the results by the metered_quantity field.

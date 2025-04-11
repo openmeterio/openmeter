@@ -113,7 +113,9 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 
 	// Let's set the usage on the line
 	l.line.UsageBased.Quantity = &tc.usage.LinePeriodQty
+	l.line.UsageBased.MeteredQuantity = &tc.usage.LinePeriodQty
 	l.line.UsageBased.PreLinePeriodQuantity = &tc.usage.PreLinePeriodQty
+	l.line.UsageBased.MeteredPreLinePeriodQuantity = &tc.usage.PreLinePeriodQty
 
 	res, err := l.calculateDetailedLines()
 	if err != nil {

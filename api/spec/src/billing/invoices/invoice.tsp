@@ -750,6 +750,8 @@ model InvoiceUsageBasedLine {
 
   /**
    * The quantity of the item being sold.
+   *
+   * Any usage discounts applied previously are deducted from this quantity.
    */
   @visibility(Lifecycle.Read)
   quantity?: Numeric;
@@ -761,12 +763,22 @@ model InvoiceUsageBasedLine {
   meteredQuantity?: Numeric;
 
   /**
-   * The quantity of the item used in before this line's period.
+   * The quantity of the item used before this line's period.
+   *
+   * It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
+   *
+   * Any usage discounts applied previously are deducted from this quantity.
+   */
+  @visibility(Lifecycle.Read)
+  preLinePeriodQuantity?: Numeric;
+
+  /**
+   * The metered quantity of the item used in before this line's period without any discounts applied.
    *
    * It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
    */
   @visibility(Lifecycle.Read)
-  preLinePeriodQuantity?: Numeric;
+  meteredPreLinePeriodQuantity?: Numeric;
 }
 
 /**

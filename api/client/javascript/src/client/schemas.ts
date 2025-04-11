@@ -5788,14 +5788,22 @@ export interface components {
        *
        *     The rate card captures the intent of the price and discounts for the usage-based item. */
       rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
-      /** @description The quantity of the item being sold. */
+      /** @description The quantity of the item being sold.
+       *
+       *     Any usage discounts applied previously are deducted from this quantity. */
       readonly quantity?: components['schemas']['Numeric']
       /** @description The quantity of the item that has been metered for the period before any discounts were applied. */
       readonly meteredQuantity?: components['schemas']['Numeric']
-      /** @description The quantity of the item used in before this line's period.
+      /** @description The quantity of the item used before this line's period.
+       *
+       *     It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
+       *
+       *     Any usage discounts applied previously are deducted from this quantity. */
+      readonly preLinePeriodQuantity?: components['schemas']['Numeric']
+      /** @description The metered quantity of the item used in before this line's period without any discounts applied.
        *
        *     It is non-zero in case of progressive billing, when this shows how much of the usage was already billed. */
-      readonly preLinePeriodQuantity?: components['schemas']['Numeric']
+      readonly meteredPreLinePeriodQuantity?: components['schemas']['Numeric']
     }
     /** @description InvoiceUpdateUsageBasedLineReplaceUpdate represents the update model for an UBP invoice line.
      *

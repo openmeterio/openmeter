@@ -1315,6 +1315,20 @@ func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearPreLinePeriodQua
 	return u.SetPreLinePeriodQuantity(*value)
 }
 
+func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearMeteredPreLinePeriodQuantity(value *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
+	if value == nil {
+		return u.ClearMeteredPreLinePeriodQuantity()
+	}
+	return u.SetMeteredPreLinePeriodQuantity(*value)
+}
+
+func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearMeteredPreLinePeriodQuantity(value *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	if value == nil {
+		return u.ClearMeteredPreLinePeriodQuantity()
+	}
+	return u.SetMeteredPreLinePeriodQuantity(*value)
+}
+
 func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearMeteredQuantity(value *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
 	if value == nil {
 		return u.ClearMeteredQuantity()
