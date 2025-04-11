@@ -67,7 +67,7 @@ func (s *service) GetLatestValidAt(ctx context.Context, owner models.NamespacedI
 			return Snapshot{}, err
 		}
 
-		usage, err := s.UsageQuerier.QueryUsage(ctx, owner, timeutil.Period{
+		usage, err := s.UsageQuerier.QueryUsage(ctx, owner, timeutil.ClosedPeriod{
 			From: periodStart,
 			To:   res.At,
 		})

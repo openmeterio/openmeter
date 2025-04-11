@@ -29,6 +29,8 @@ type SubscriptionAddonRateCardItemLink struct {
 	SubscriptionAddonRateCardID string `json:"subscription_addon_rate_card_id,omitempty"`
 	// SubscriptionItemID holds the value of the "subscription_item_id" field.
 	SubscriptionItemID string `json:"subscription_item_id,omitempty"`
+	// SubscriptionItemThroughID holds the value of the "subscription_item_through_id" field.
+	SubscriptionItemThroughID string `json:"subscription_item_through_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionAddonRateCardItemLinkQuery when eager-loading is set.
 	Edges        SubscriptionAddonRateCardItemLinkEdges `json:"edges"`
@@ -73,7 +75,7 @@ func (*SubscriptionAddonRateCardItemLink) scanValues(columns []string) ([]any, e
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case subscriptionaddonratecarditemlink.FieldID, subscriptionaddonratecarditemlink.FieldSubscriptionAddonRateCardID, subscriptionaddonratecarditemlink.FieldSubscriptionItemID:
+		case subscriptionaddonratecarditemlink.FieldID, subscriptionaddonratecarditemlink.FieldSubscriptionAddonRateCardID, subscriptionaddonratecarditemlink.FieldSubscriptionItemID, subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID:
 			values[i] = new(sql.NullString)
 		case subscriptionaddonratecarditemlink.FieldCreatedAt, subscriptionaddonratecarditemlink.FieldUpdatedAt, subscriptionaddonratecarditemlink.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -128,6 +130,12 @@ func (sarcil *SubscriptionAddonRateCardItemLink) assignValues(columns []string, 
 				return fmt.Errorf("unexpected type %T for field subscription_item_id", values[i])
 			} else if value.Valid {
 				sarcil.SubscriptionItemID = value.String
+			}
+		case subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_item_through_id", values[i])
+			} else if value.Valid {
+				sarcil.SubscriptionItemThroughID = value.String
 			}
 		default:
 			sarcil.selectValues.Set(columns[i], values[i])
@@ -191,6 +199,9 @@ func (sarcil *SubscriptionAddonRateCardItemLink) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("subscription_item_id=")
 	builder.WriteString(sarcil.SubscriptionItemID)
+	builder.WriteString(", ")
+	builder.WriteString("subscription_item_through_id=")
+	builder.WriteString(sarcil.SubscriptionItemThroughID)
 	builder.WriteByte(')')
 	return builder.String()
 }

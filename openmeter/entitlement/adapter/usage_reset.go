@@ -78,7 +78,7 @@ func (a *usageResetDBAdapter) GetLastAt(ctx context.Context, entitlementID model
 	)
 }
 
-func (a *usageResetDBAdapter) GetBetween(ctx context.Context, entitlementID models.NamespacedID, period timeutil.Period) ([]meteredentitlement.UsageResetTime, error) {
+func (a *usageResetDBAdapter) GetBetween(ctx context.Context, entitlementID models.NamespacedID, period timeutil.ClosedPeriod) ([]meteredentitlement.UsageResetTime, error) {
 	res, err := entutils.TransactingRepo(
 		ctx,
 		a,

@@ -78,7 +78,7 @@ func (m *MockOwnerConnector) DescribeOwner(ctx context.Context, id models.Namesp
 	}, nil
 }
 
-func (m *MockOwnerConnector) GetResetTimelineInclusive(ctx context.Context, id models.NamespacedID, period timeutil.Period) (timeutil.SimpleTimeline, error) {
+func (m *MockOwnerConnector) GetResetTimelineInclusive(ctx context.Context, id models.NamespacedID, period timeutil.ClosedPeriod) (timeutil.SimpleTimeline, error) {
 	return timeutil.SimpleTimeline{}, nil
 }
 

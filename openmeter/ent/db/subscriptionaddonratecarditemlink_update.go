@@ -127,6 +127,9 @@ func (sarcilu *SubscriptionAddonRateCardItemLinkUpdate) sqlSave(ctx context.Cont
 	if sarcilu.mutation.DeletedAtCleared() {
 		_spec.ClearField(subscriptionaddonratecarditemlink.FieldDeletedAt, field.TypeTime)
 	}
+	if sarcilu.mutation.SubscriptionItemThroughIDCleared() {
+		_spec.ClearField(subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID, field.TypeString)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, sarcilu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscriptionaddonratecarditemlink.Label}
@@ -275,6 +278,9 @@ func (sarciluo *SubscriptionAddonRateCardItemLinkUpdateOne) sqlSave(ctx context.
 	}
 	if sarciluo.mutation.DeletedAtCleared() {
 		_spec.ClearField(subscriptionaddonratecarditemlink.FieldDeletedAt, field.TypeTime)
+	}
+	if sarciluo.mutation.SubscriptionItemThroughIDCleared() {
+		_spec.ClearField(subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID, field.TypeString)
 	}
 	_node = &SubscriptionAddonRateCardItemLink{config: sarciluo.config}
 	_spec.Assign = _node.assignValues

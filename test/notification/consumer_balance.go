@@ -36,7 +36,7 @@ type BalanceNotificaiontHandlerTestSuite struct {
 }
 
 var (
-	TestEntitlementCurrentUsagePeriod = timeutil.Period{
+	TestEntitlementCurrentUsagePeriod = timeutil.ClosedPeriod{
 		From: time.Now().Add(-time.Hour),
 		To:   time.Now().Add(24 * time.Hour),
 	}
@@ -350,7 +350,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 
 	// Step 8: The entitlement gets reset, no events should be created
 
-	newUsagePeriod := timeutil.Period{
+	newUsagePeriod := timeutil.ClosedPeriod{
 		From: TestEntitlementCurrentUsagePeriod.To,
 		To:   TestEntitlementCurrentUsagePeriod.To.Add(24 * time.Hour),
 	}

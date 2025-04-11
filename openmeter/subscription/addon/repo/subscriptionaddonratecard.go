@@ -46,10 +46,11 @@ func (r *subscriptionAddonRateCardRepo) CreateMany(ctx context.Context, subscrip
 
 				// Create links to subscription items for this rate card
 				links, err := repo.db.SubscriptionAddonRateCardItemLink.CreateBulk(
-					lo.Map(input.AffectedSubscriptionItemIDs, func(itemID string, _ int) *db.SubscriptionAddonRateCardItemLinkCreate {
+					lo.Map(input.AffectedSubscriptionItems, func(item subscriptionaddon.SubscriptionAddonRateCardItemRef, _ int) *db.SubscriptionAddonRateCardItemLinkCreate {
 						return repo.db.SubscriptionAddonRateCardItemLink.Create().
 							SetSubscriptionAddonRateCardID(rateCard.ID).
-							SetSubscriptionItemID(itemID)
+							SetSubscriptionItemID(item.SubscriptionItemID).
+							SetSubscriptionItemThroughID(item.SubscriptionItemThroughID)
 					})...,
 				).Save(ctx)
 				if err != nil {

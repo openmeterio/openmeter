@@ -293,13 +293,13 @@ func (e Entitlement) IsActive(at time.Time) bool {
 }
 
 // TODO: get rid of this calculation once it's not needed anymore
-func (e Entitlement) CalculateCurrentUsagePeriodAt(anchor, at time.Time) (timeutil.Period, bool) {
+func (e Entitlement) CalculateCurrentUsagePeriodAt(anchor, at time.Time) (timeutil.ClosedPeriod, bool) {
 	if e.UsagePeriod == nil {
-		return timeutil.Period{}, false
+		return timeutil.ClosedPeriod{}, false
 	}
 
 	if e.OriginalUsagePeriodAnchor == nil {
-		return timeutil.Period{}, false
+		return timeutil.ClosedPeriod{}, false
 	}
 
 	usagePeriod := *e.UsagePeriod
@@ -317,12 +317,12 @@ func (e Entitlement) CalculateCurrentUsagePeriodAt(anchor, at time.Time) (timeut
 
 	firstPeriod, err := originalUsagePeriod.GetCurrentPeriodAt(e.CreatedAt)
 	if err != nil {
-		return timeutil.Period{}, false
+		return timeutil.ClosedPeriod{}, false
 	}
 
 	currentPeriod, err := usagePeriod.GetCurrentPeriodAt(at)
 	if err != nil {
-		return timeutil.Period{}, false
+		return timeutil.ClosedPeriod{}, false
 	}
 
 	if firstPeriod.From.Equal(currentPeriod.From) {
@@ -381,9 +381,9 @@ type GenericProperties struct {
 	SubjectKey      string          `json:"subjectKey,omitempty"`
 	EntitlementType EntitlementType `json:"type,omitempty"`
 
-	UsagePeriod               *UsagePeriod     `json:"usagePeriod,omitempty"`
-	CurrentUsagePeriod        *timeutil.Period `json:"currentUsagePeriod,omitempty"`
-	OriginalUsagePeriodAnchor *time.Time       `json:"originalUsagePeriodAnchor,omitempty"`
+	UsagePeriod               *UsagePeriod           `json:"usagePeriod,omitempty"`
+	CurrentUsagePeriod        *timeutil.ClosedPeriod `json:"currentUsagePeriod,omitempty"`
+	OriginalUsagePeriodAnchor *time.Time             `json:"originalUsagePeriodAnchor,omitempty"`
 }
 
 // ActiveFromTime returns the time the entitlement is active from. Its either the ActiveFrom field or the CreatedAt field
@@ -430,7 +430,7 @@ func (u UsagePeriod) Equal(other UsagePeriod) bool {
 }
 
 // The returned period is exclusive at the end end inclusive in the start
-func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (timeutil.Period, error) {
+func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (timeutil.ClosedPeriod, error) {
 	rec := timeutil.Recurrence{
 		Anchor:   u.Anchor,
 		Interval: u.Interval,
@@ -438,7 +438,7 @@ func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (timeutil.Period, error) {
 
 	nextAfter, err := rec.NextAfter(at)
 	if err != nil {
-		return timeutil.Period{}, err
+		return timeutil.ClosedPeriod{}, err
 	}
 
 	// The edgecase behavior of recurrence.Period doesn't work for us here
@@ -447,9 +447,9 @@ func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (timeutil.Period, error) {
 		from := nextAfter
 		to, err := rec.Next(from)
 		if err != nil {
-			return timeutil.Period{}, err
+			return timeutil.ClosedPeriod{}, err
 		}
-		return timeutil.Period{
+		return timeutil.ClosedPeriod{
 			From: from,
 			To:   to,
 		}, nil
@@ -457,10 +457,10 @@ func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (timeutil.Period, error) {
 
 	prevBefore, err := rec.PrevBefore(at)
 	if err != nil {
-		return timeutil.Period{}, err
+		return timeutil.ClosedPeriod{}, err
 	}
 
-	return timeutil.Period{
+	return timeutil.ClosedPeriod{
 		From: prevBefore,
 		To:   nextAfter,
 	}, nil

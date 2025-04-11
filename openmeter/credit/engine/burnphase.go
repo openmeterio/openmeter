@@ -26,7 +26,7 @@ type burnPhase struct {
 //
 // Note that grant balance does not effect the burndown order if we simply ignore grants that don't
 // have balance while burning down.
-func (e *engine) getPhases(grants []grant.Grant, period timeutil.Period) ([]burnPhase, error) {
+func (e *engine) getPhases(grants []grant.Grant, period timeutil.ClosedPeriod) ([]burnPhase, error) {
 	activityChanges := e.getGrantActivityChanges(grants, period)
 	recurrenceTimes, err := e.getGrantRecurrenceTimes(grants, period)
 	if err != nil {

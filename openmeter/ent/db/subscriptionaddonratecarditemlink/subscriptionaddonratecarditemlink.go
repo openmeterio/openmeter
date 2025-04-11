@@ -24,6 +24,8 @@ const (
 	FieldSubscriptionAddonRateCardID = "subscription_addon_rate_card_id"
 	// FieldSubscriptionItemID holds the string denoting the subscription_item_id field in the database.
 	FieldSubscriptionItemID = "subscription_item_id"
+	// FieldSubscriptionItemThroughID holds the string denoting the subscription_item_through_id field in the database.
+	FieldSubscriptionItemThroughID = "subscription_item_through_id"
 	// EdgeSubscriptionAddonRateCard holds the string denoting the subscription_addon_rate_card edge name in mutations.
 	EdgeSubscriptionAddonRateCard = "subscription_addon_rate_card"
 	// EdgeSubscriptionItem holds the string denoting the subscription_item edge name in mutations.
@@ -54,6 +56,7 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldSubscriptionAddonRateCardID,
 	FieldSubscriptionItemID,
+	FieldSubscriptionItemThroughID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -112,6 +115,11 @@ func BySubscriptionAddonRateCardID(opts ...sql.OrderTermOption) OrderOption {
 // BySubscriptionItemID orders the results by the subscription_item_id field.
 func BySubscriptionItemID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubscriptionItemID, opts...).ToFunc()
+}
+
+// BySubscriptionItemThroughID orders the results by the subscription_item_through_id field.
+func BySubscriptionItemThroughID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionItemThroughID, opts...).ToFunc()
 }
 
 // BySubscriptionAddonRateCardField orders the results by subscription_addon_rate_card field.

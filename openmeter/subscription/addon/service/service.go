@@ -108,8 +108,8 @@ func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon
 			}
 
 			// Let's check that all referenced Items belong to the Subscription
-			if lo.SomeBy(rc.AffectedSubscriptionItemIDs, func(itemID string) bool {
-				return !lo.Contains(flatItemIDs, itemID)
+			if lo.SomeBy(rc.AffectedSubscriptionItems, func(item subscriptionaddon.SubscriptionAddonRateCardItemRef) bool {
+				return !lo.Contains(flatItemIDs, item.SubscriptionItemID)
 			}) {
 				return subscriptionaddon.CreateSubscriptionAddonRateCardRepositoryInput{}, models.NewGenericConflictError(fmt.Errorf("invalid input: referenced subscription item not found"))
 			}

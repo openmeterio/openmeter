@@ -16,7 +16,7 @@ func (a PatchAddPhase) Op() subscription.PatchOperation {
 	return subscription.PatchOperationAdd
 }
 
-func (a PatchAddPhase) Path() subscription.PatchPath {
+func (a PatchAddPhase) Path() subscription.SpecPath {
 	return subscription.NewPhasePath(a.PhaseKey)
 }
 

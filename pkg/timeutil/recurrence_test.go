@@ -209,7 +209,7 @@ func TestGetPeriodAt(t *testing.T) {
 		name       string
 		recurrence timeutil.Recurrence
 		time       time.Time
-		want       timeutil.Period
+		want       timeutil.ClosedPeriod
 	}{
 		{
 			name: "Should return next period if time falls on recurrence period",
@@ -218,7 +218,7 @@ func TestGetPeriodAt(t *testing.T) {
 				Anchor:   now.AddDate(0, 0, -1),
 			},
 			time: now,
-			want: timeutil.Period{
+			want: timeutil.ClosedPeriod{
 				From: now,
 				To:   now.AddDate(0, 0, 1),
 			},
@@ -230,7 +230,7 @@ func TestGetPeriodAt(t *testing.T) {
 				Anchor:   now.AddDate(0, 0, -1),
 			},
 			time: now.Add(-time.Hour),
-			want: timeutil.Period{
+			want: timeutil.ClosedPeriod{
 				From: now.AddDate(0, 0, -1),
 				To:   now,
 			},

@@ -32,7 +32,7 @@ type BalanceConnector interface {
 	GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error)
 	// GetBalanceForPeriod returns the result of the engine.Run for the provided period.
 	// The returned history will exactly match the provided period.
-	GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (engine.RunResult, error)
+	GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.ClosedPeriod) (engine.RunResult, error)
 	// ResetUsageForOwner resets the usage for an owner at a given time.
 	ResetUsageForOwner(ctx context.Context, ownerID models.NamespacedID, params ResetUsageForOwnerParams) (balanceAfterReset *balance.Snapshot, err error)
 	// GetLastValidSnapshotAt fetches the last valid snapshot for an owner.
@@ -48,7 +48,7 @@ func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.
 	var def engine.RunResult
 	m.Logger.Debug("getting balance of owner since snapshot", "owner", ownerID.ID, "since", snap.At, "at", at)
 
-	period := timeutil.Period{
+	period := timeutil.ClosedPeriod{
 		From: snap.At,
 		To:   at,
 	}
@@ -136,7 +136,7 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 	return m.GetBalanceSinceSnapshot(ctx, ownerID, snap, at)
 }
 
-func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (engine.RunResult, error) {
+func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.ClosedPeriod) (engine.RunResult, error) {
 	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceForPeriod", cTrace.WithOwner(ownerID), cTrace.WithPeriod(period))
 	defer span.End()
 
@@ -229,7 +229,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		return nil, models.NewGenericValidationError(fmt.Errorf("reset at %s is before current usage period start %s", at, periodStart))
 	}
 
-	resetsSinceTime, err := m.OwnerConnector.GetResetTimelineInclusive(ctx, ownerID, timeutil.Period{From: at, To: clock.Now()})
+	resetsSinceTime, err := m.OwnerConnector.GetResetTimelineInclusive(ctx, ownerID, timeutil.ClosedPeriod{From: at, To: clock.Now()})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get reset times since %s for owner %s: %w", at, ownerID.ID, err)
 	}
@@ -244,7 +244,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		return nil, err
 	}
 
-	period := timeutil.Period{
+	period := timeutil.ClosedPeriod{
 		From: bal.At,
 		To:   at,
 	}
@@ -270,7 +270,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&bal, grants, bal.At)
 
 	// Let's define the period the engine will be queried for
-	queriedPeriod := timeutil.Period{
+	queriedPeriod := timeutil.ClosedPeriod{
 		From: bal.At,
 		To:   at,
 	}

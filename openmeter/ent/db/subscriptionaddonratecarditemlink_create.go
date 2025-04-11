@@ -79,6 +79,20 @@ func (sarcilc *SubscriptionAddonRateCardItemLinkCreate) SetSubscriptionItemID(s 
 	return sarcilc
 }
 
+// SetSubscriptionItemThroughID sets the "subscription_item_through_id" field.
+func (sarcilc *SubscriptionAddonRateCardItemLinkCreate) SetSubscriptionItemThroughID(s string) *SubscriptionAddonRateCardItemLinkCreate {
+	sarcilc.mutation.SetSubscriptionItemThroughID(s)
+	return sarcilc
+}
+
+// SetNillableSubscriptionItemThroughID sets the "subscription_item_through_id" field if the given value is not nil.
+func (sarcilc *SubscriptionAddonRateCardItemLinkCreate) SetNillableSubscriptionItemThroughID(s *string) *SubscriptionAddonRateCardItemLinkCreate {
+	if s != nil {
+		sarcilc.SetSubscriptionItemThroughID(*s)
+	}
+	return sarcilc
+}
+
 // SetID sets the "id" field.
 func (sarcilc *SubscriptionAddonRateCardItemLinkCreate) SetID(s string) *SubscriptionAddonRateCardItemLinkCreate {
 	sarcilc.mutation.SetID(s)
@@ -230,6 +244,10 @@ func (sarcilc *SubscriptionAddonRateCardItemLinkCreate) createSpec() (*Subscript
 		_spec.SetField(subscriptionaddonratecarditemlink.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := sarcilc.mutation.SubscriptionItemThroughID(); ok {
+		_spec.SetField(subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID, field.TypeString, value)
+		_node.SubscriptionItemThroughID = value
+	}
 	if nodes := sarcilc.mutation.SubscriptionAddonRateCardIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -371,6 +389,9 @@ func (u *SubscriptionAddonRateCardItemLinkUpsertOne) UpdateNewValues() *Subscrip
 		}
 		if _, exists := u.create.mutation.SubscriptionItemID(); exists {
 			s.SetIgnore(subscriptionaddonratecarditemlink.FieldSubscriptionItemID)
+		}
+		if _, exists := u.create.mutation.SubscriptionItemThroughID(); exists {
+			s.SetIgnore(subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID)
 		}
 	}))
 	return u
@@ -629,6 +650,9 @@ func (u *SubscriptionAddonRateCardItemLinkUpsertBulk) UpdateNewValues() *Subscri
 			}
 			if _, exists := b.mutation.SubscriptionItemID(); exists {
 				s.SetIgnore(subscriptionaddonratecarditemlink.FieldSubscriptionItemID)
+			}
+			if _, exists := b.mutation.SubscriptionItemThroughID(); exists {
+				s.SetIgnore(subscriptionaddonratecarditemlink.FieldSubscriptionItemThroughID)
 			}
 		}
 	}))

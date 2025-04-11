@@ -5,7 +5,7 @@ import "github.com/openmeterio/openmeter/openmeter/subscription"
 type TestPatch struct {
 	PatchValue     any
 	PatchOperation subscription.PatchOperation
-	PatchPath      subscription.PatchPath
+	PatchPath      subscription.SpecPath
 
 	ApplyToFn  func(s *subscription.SubscriptionSpec, c subscription.ApplyContext) error
 	ValdiateFn func() error
@@ -27,7 +27,7 @@ func (p *TestPatch) Op() subscription.PatchOperation {
 	return p.PatchOperation
 }
 
-func (p *TestPatch) Path() subscription.PatchPath {
+func (p *TestPatch) Path() subscription.SpecPath {
 	return p.PatchPath
 }
 

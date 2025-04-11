@@ -176,7 +176,7 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 	return cp.From, nil
 }
 
-func (e *entitlementGrantOwner) GetResetTimelineInclusive(ctx context.Context, owner models.NamespacedID, period timeutil.Period) (timeutil.SimpleTimeline, error) {
+func (e *entitlementGrantOwner) GetResetTimelineInclusive(ctx context.Context, owner models.NamespacedID, period timeutil.ClosedPeriod) (timeutil.SimpleTimeline, error) {
 	ctx, span := e.tracer.Start(ctx, "meteredentitlement.GetResetTimelineInclusive", mTrace.WithOwner(owner), mTrace.WithPeriod(period))
 	defer span.End()
 
@@ -288,7 +288,7 @@ func (e *entitlementGrantOwner) GetResetTimelineInclusive(ctx context.Context, o
 	}
 
 	// Now we need to check the final period, which is [lastResetTime, period.To]
-	finalPeriod := timeutil.Period{
+	finalPeriod := timeutil.ClosedPeriod{
 		From: lastResetTime,
 		To:   period.To,
 	}
@@ -313,7 +313,7 @@ func (e *entitlementGrantOwner) GetResetTimelineInclusive(ctx context.Context, o
 }
 
 // Returns all programmatic reset times in the period (start inclusive end exclusive)
-func (e *entitlementGrantOwner) getProgrammaticResetTimesInPeriodExclusiveInclusive(period timeutil.Period, up entitlement.UsagePeriod) ([]time.Time, error) {
+func (e *entitlementGrantOwner) getProgrammaticResetTimesInPeriodExclusiveInclusive(period timeutil.ClosedPeriod, up entitlement.UsagePeriod) ([]time.Time, error) {
 	rts := []time.Time{}
 
 	upr := up.AsRecurrence()

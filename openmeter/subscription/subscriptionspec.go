@@ -172,8 +172,8 @@ func (s *SubscriptionSpec) HasMeteredBillables() bool {
 
 // For a phase in an Aligned subscription, there's a single aligned BillingPeriod for all items in that phase.
 // The period starts with the phase and iterates every BillingCadence duration, but can be reanchored to the time of an edit.
-func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Time) (timeutil.Period, error) {
-	var def timeutil.Period
+func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Time) (timeutil.ClosedPeriod, error) {
+	var def timeutil.ClosedPeriod
 
 	phase, exists := s.Phases[phaseKey]
 	if !exists {
@@ -444,7 +444,7 @@ func (s SubscriptionPhaseSpec) Validate(
 	// Let's validate that the phase is not empty
 	flat := lo.Flatten(lo.Values(s.ItemsByKey))
 	if len(flat) == 0 {
-		errs = append(errs, &AllowedDuringApplyingPatchesError{
+		errs = append(errs, &AllowedDuringApplyingToSpecError{
 			Inner: &SpecValidationError{
 				AffectedKeys: [][]string{
 					{
@@ -536,7 +536,7 @@ func (s SubscriptionPhaseSpec) Validate(
 		})
 
 		if len(cadences) > 1 {
-			errs = append(errs, &AllowedDuringApplyingPatchesError{Inner: &AlignmentError{Inner: fmt.Errorf("all billables must have the same billing cadence")}})
+			errs = append(errs, &AllowedDuringApplyingToSpecError{Inner: &AlignmentError{Inner: fmt.Errorf("all billables must have the same billing cadence")}})
 		}
 
 		// Some validations that might feel reasonable but are misleading:
@@ -898,34 +898,18 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 	return spec, nil
 }
 
-type ApplyContext struct {
-	CurrentTime time.Time
+func (s *SubscriptionSpec) Apply(applies AppliesToSpec, context ApplyContext) error {
+	err := applies.ApplyTo(s, context)
+	if err != nil {
+		return fmt.Errorf("apply failed: %w", err)
+	}
+
+	return s.Validate()
 }
 
-// Each Patch applies its changes to the SubscriptionSpec.
-type Applies interface {
-	ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error
-}
-
-func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext) error {
-	for i, patch := range patches {
-		err := patch.ApplyTo(s, context)
-		if err != nil {
-			return fmt.Errorf("patch %d failed: %w", i, err)
-		}
-		if err = s.Validate(); err != nil {
-			if uw, ok := err.(interface{ Unwrap() []error }); ok {
-				// If all returned errors are allowed during applying patches, we can continue
-				if lo.EveryBy(uw.Unwrap(), func(e error) bool {
-					_, ok := lo.ErrorsAs[*AllowedDuringApplyingPatchesError](e)
-					return ok
-				}) {
-					continue
-				}
-			}
-			// Otherwise we return with the error
-			return fmt.Errorf("patch %d failed during validation: %w", i, err)
-		}
+func (s *SubscriptionSpec) ApplyMany(applieses []AppliesToSpec, aCtx ApplyContext) error {
+	if err := NewAggregateAppliesToSpec(applieses).ApplyTo(s, aCtx); err != nil {
+		return fmt.Errorf("apply failed: %w", err)
 	}
 
 	if err := s.Validate(); err != nil {
@@ -933,19 +917,6 @@ func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext)
 	}
 
 	return nil
-}
-
-// Some errors are allowed during applying individual patches, but still mean the Spec as a whole is invalid
-type AllowedDuringApplyingPatchesError struct {
-	Inner error
-}
-
-func (e *AllowedDuringApplyingPatchesError) Error() string {
-	return fmt.Sprintf("allowed during incremental validation failed: %s", e.Inner)
-}
-
-func (e *AllowedDuringApplyingPatchesError) Unwrap() error {
-	return e.Inner
 }
 
 type SpecValidationError struct {

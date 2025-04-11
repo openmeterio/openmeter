@@ -39,7 +39,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 	}
 
 	var usagePeriod *entitlement.UsagePeriod
-	var currentUsagePeriod *timeutil.Period
+	var currentUsagePeriod *timeutil.ClosedPeriod
 
 	if model.UsagePeriod != nil {
 		usagePeriod = model.UsagePeriod

@@ -35,7 +35,7 @@ type SubscriptionAddonRepository interface {
 type CreateSubscriptionAddonRateCardRepositoryInput struct {
 	AddonRateCardID string `json:"addonRateCardID"`
 
-	AffectedSubscriptionItemIDs []string `json:"affectedSubscriptionItemIDs"`
+	AffectedSubscriptionItems []SubscriptionAddonRateCardItemRef `json:"affectedSubscriptionItems"`
 }
 
 type SubscriptionAddonRateCardRepository interface {

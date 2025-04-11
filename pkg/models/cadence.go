@@ -1,10 +1,13 @@
 package models
 
 import (
+	"errors"
 	"slices"
 	"time"
 
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // Cadenced represents a model with active from and to dates.
@@ -41,6 +44,24 @@ func (c CadencedModel) Equal(other CadencedModel) bool {
 	return true
 }
 
+func (c CadencedModel) AsPeriod() timeutil.OpenPeriod {
+	return timeutil.OpenPeriod{
+		From: &c.ActiveFrom,
+		To:   c.ActiveTo,
+	}
+}
+
+func NewCadencedModelFromPeriod(period timeutil.OpenPeriod) (CadencedModel, error) {
+	if period.From == nil {
+		return CadencedModel{}, errors.New("from date is required")
+	}
+
+	return CadencedModel{
+		ActiveFrom: *period.From,
+		ActiveTo:   period.To,
+	}, nil
+}
+
 var _ Cadenced = CadencedModel{}
 
 func (c CadencedModel) cadenced() cadencedMarker {
@@ -67,6 +88,20 @@ func (c CadencedModel) IsZero() bool {
 	return c.ActiveFrom.IsZero() && c.ActiveTo == nil
 }
 
+func (c CadencedModel) Overlaps(other CadencedModel) bool {
+	// If either end time is before the other's start time, they don't overlap
+	if c.ActiveTo != nil && c.ActiveTo.Before(other.ActiveFrom) {
+		return false
+	}
+
+	if other.ActiveTo != nil && other.ActiveTo.Before(c.ActiveFrom) {
+		return false
+	}
+
+	// Otherwise they overlap
+	return true
+}
+
 // CadenceList is a simple abstraction for a list of cadenced models.
 // It is useful to validate the relationship between the cadences of the models, like their ordering, overlaps, continuity, etc.
 type CadenceList[T Cadenced] []T
@@ -85,6 +120,8 @@ func NewSortedCadenceList[T Cadenced](cadences []T) CadenceList[T] {
 func (t CadenceList[T]) Cadences() []T {
 	return t
 }
+
+// TODO: rewrite CadenceList helpers to use timeutil.OpenPeriod instead
 
 // GetOverlaps returns true if there is any overlap between the cadences in the timeline
 func (t CadenceList[T]) GetOverlaps() [][2]int {

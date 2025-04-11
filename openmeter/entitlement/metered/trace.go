@@ -19,7 +19,7 @@ func (m mtrace) WithOwner(owner models.NamespacedID) trace.SpanStartEventOption 
 	)
 }
 
-func (m mtrace) WithPeriod(period timeutil.Period) trace.SpanStartEventOption {
+func (m mtrace) WithPeriod(period timeutil.ClosedPeriod) trace.SpanStartEventOption {
 	return trace.WithAttributes(
 		attribute.String("period_from", period.From.String()),
 		attribute.String("period_to", period.To.String()),

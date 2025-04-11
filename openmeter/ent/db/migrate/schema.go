@@ -2023,6 +2023,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "subscription_item_through_id", Type: field.TypeString, Nullable: true},
 		{Name: "subscription_addon_rate_card_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -2034,13 +2035,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscription_addon_rate_card_item_links_subscription_addon_rate_cards_items",
-				Columns:    []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[4]},
+				Columns:    []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[5]},
 				RefColumns: []*schema.Column{SubscriptionAddonRateCardsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "subscription_addon_rate_card_item_links_subscription_items_subscription_addon_rate_card_items",
-				Columns:    []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[5]},
+				Columns:    []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[6]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -2054,17 +2055,22 @@ var (
 			{
 				Name:    "subscriptionaddonratecarditemlink_subscription_addon_rate_card_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[4]},
+				Columns: []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[5]},
 			},
 			{
 				Name:    "subscriptionaddonratecarditemlink_subscription_item_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[5]},
+				Columns: []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[6]},
+			},
+			{
+				Name:    "subscriptionaddonratecarditemlink_subscription_item_through_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[4]},
 			},
 			{
 				Name:    "subscriptionaddonratecarditemlink_subscription_item_id_subscription_addon_rate_card_id",
 				Unique:  true,
-				Columns: []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[5], SubscriptionAddonRateCardItemLinksColumns[4]},
+				Columns: []*schema.Column{SubscriptionAddonRateCardItemLinksColumns[6], SubscriptionAddonRateCardItemLinksColumns[5]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},

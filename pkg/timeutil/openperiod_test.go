@@ -1,0 +1,385 @@
+package timeutil
+
+import (
+	"testing"
+	"time"
+)
+
+func TestOpenPeriod(t *testing.T) {
+	now := time.Now()
+	before := now.Add(-time.Hour)
+	after := now.Add(time.Hour)
+	thirtyMinLater := now.Add(30 * time.Minute)
+
+	t.Run("ContainsInclusive", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			period   OpenPeriod
+			testTime time.Time
+			want     bool
+		}{
+			{
+				name:     "both bounds nil",
+				period:   OpenPeriod{},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "from bound only, time after",
+				period:   OpenPeriod{From: &before},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "from bound only, time before",
+				period:   OpenPeriod{From: &now},
+				testTime: before,
+				want:     false,
+			},
+			{
+				name:     "from bound only, time equal",
+				period:   OpenPeriod{From: &now},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "to bound only, time before",
+				period:   OpenPeriod{To: &after},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "to bound only, time after",
+				period:   OpenPeriod{To: &now},
+				testTime: after,
+				want:     false,
+			},
+			{
+				name:     "to bound only, time equal",
+				period:   OpenPeriod{To: &now},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "both bounds, time inside",
+				period:   OpenPeriod{From: &before, To: &after},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "both bounds, time equal to from",
+				period:   OpenPeriod{From: &now, To: &after},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "both bounds, time equal to to",
+				period:   OpenPeriod{From: &before, To: &now},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "both bounds, time outside before",
+				period:   OpenPeriod{From: &now, To: &after},
+				testTime: before,
+				want:     false,
+			},
+			{
+				name:     "both bounds, time outside after",
+				period:   OpenPeriod{From: &before, To: &now},
+				testTime: after,
+				want:     false,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if got := tt.period.ContainsInclusive(tt.testTime); got != tt.want {
+					t.Errorf("OpenPeriod.ContainsInclusive() = %v, want %v", got, tt.want)
+				}
+			})
+		}
+	})
+
+	t.Run("ContainsExclusive", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			period   OpenPeriod
+			testTime time.Time
+			want     bool
+		}{
+			{
+				name:     "both bounds nil",
+				period:   OpenPeriod{},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "from bound only, time after",
+				period:   OpenPeriod{From: &before},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "from bound only, time before",
+				period:   OpenPeriod{From: &now},
+				testTime: before,
+				want:     false,
+			},
+			{
+				name:     "from bound only, time equal",
+				period:   OpenPeriod{From: &now},
+				testTime: now,
+				want:     false,
+			},
+			{
+				name:     "to bound only, time before",
+				period:   OpenPeriod{To: &after},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "to bound only, time after",
+				period:   OpenPeriod{To: &now},
+				testTime: after,
+				want:     false,
+			},
+			{
+				name:     "to bound only, time equal",
+				period:   OpenPeriod{To: &now},
+				testTime: now,
+				want:     false,
+			},
+			{
+				name:     "both bounds, time inside",
+				period:   OpenPeriod{From: &before, To: &after},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "both bounds, time equal to from",
+				period:   OpenPeriod{From: &now, To: &after},
+				testTime: now,
+				want:     false,
+			},
+			{
+				name:     "both bounds, time equal to to",
+				period:   OpenPeriod{From: &before, To: &now},
+				testTime: now,
+				want:     false,
+			},
+			{
+				name:     "both bounds, time outside before",
+				period:   OpenPeriod{From: &now, To: &after},
+				testTime: before,
+				want:     false,
+			},
+			{
+				name:     "both bounds, time outside after",
+				period:   OpenPeriod{From: &before, To: &now},
+				testTime: after,
+				want:     false,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if got := tt.period.ContainsExclusive(tt.testTime); got != tt.want {
+					t.Errorf("OpenPeriod.ContainsExclusive() = %v, want %v", got, tt.want)
+				}
+			})
+		}
+	})
+
+	t.Run("Contains", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			period   OpenPeriod
+			testTime time.Time
+			want     bool
+		}{
+			{
+				name:     "both bounds nil",
+				period:   OpenPeriod{},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "from bound only, time after",
+				period:   OpenPeriod{From: &before},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "from bound only, time before",
+				period:   OpenPeriod{From: &now},
+				testTime: before,
+				want:     false,
+			},
+			{
+				name:     "from bound only, time equal",
+				period:   OpenPeriod{From: &now},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "to bound only, time before",
+				period:   OpenPeriod{To: &after},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "to bound only, time after",
+				period:   OpenPeriod{To: &now},
+				testTime: after,
+				want:     false,
+			},
+			{
+				name:     "to bound only, time equal",
+				period:   OpenPeriod{To: &now},
+				testTime: now,
+				want:     false,
+			},
+			{
+				name:     "both bounds, time inside",
+				period:   OpenPeriod{From: &before, To: &after},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "both bounds, time equal to from",
+				period:   OpenPeriod{From: &now, To: &after},
+				testTime: now,
+				want:     true,
+			},
+			{
+				name:     "both bounds, time equal to to",
+				period:   OpenPeriod{From: &before, To: &now},
+				testTime: now,
+				want:     false,
+			},
+			{
+				name:     "both bounds, time outside before",
+				period:   OpenPeriod{From: &now, To: &after},
+				testTime: before,
+				want:     false,
+			},
+			{
+				name:     "both bounds, time outside after",
+				period:   OpenPeriod{From: &before, To: &now},
+				testTime: after,
+				want:     false,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if got := tt.period.Contains(tt.testTime); got != tt.want {
+					t.Errorf("OpenPeriod.Contains() = %v, want %v", got, tt.want)
+				}
+			})
+		}
+	})
+
+	t.Run("Intersection", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			period1  OpenPeriod
+			period2  OpenPeriod
+			expected *OpenPeriod
+		}{
+			{
+				name:     "both periods empty",
+				period1:  OpenPeriod{},
+				period2:  OpenPeriod{},
+				expected: &OpenPeriod{},
+			},
+			{
+				name:     "first period empty",
+				period1:  OpenPeriod{},
+				period2:  OpenPeriod{From: &before, To: &after},
+				expected: &OpenPeriod{From: &before, To: &after},
+			},
+			{
+				name:     "second period empty",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{},
+				expected: &OpenPeriod{From: &before, To: &after},
+			},
+			{
+				name:     "overlapping periods",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{From: &now, To: nil},
+				expected: &OpenPeriod{From: &now, To: &after},
+			},
+			{
+				name:     "non-overlapping periods",
+				period1:  OpenPeriod{From: &before, To: &now},
+				period2:  OpenPeriod{From: &after, To: nil},
+				expected: nil,
+			},
+			{
+				name:     "period1 contains period2",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{From: &now, To: &thirtyMinLater},
+				expected: &OpenPeriod{From: &now, To: &thirtyMinLater},
+			},
+			{
+				name:     "period2 contains period1",
+				period1:  OpenPeriod{From: &now, To: &thirtyMinLater},
+				period2:  OpenPeriod{From: &before, To: &after},
+				expected: &OpenPeriod{From: &now, To: &thirtyMinLater},
+			},
+			{
+				name:     "touching periods (no overlap)",
+				period1:  OpenPeriod{From: &before, To: &now},
+				period2:  OpenPeriod{From: &now, To: &after},
+				expected: nil,
+			},
+			{
+				name:     "both periods open-ended in same direction",
+				period1:  OpenPeriod{From: &before, To: nil},
+				period2:  OpenPeriod{From: &now, To: nil},
+				expected: &OpenPeriod{From: &now, To: nil},
+			},
+			{
+				name:     "both periods open-ended in opposite directions",
+				period1:  OpenPeriod{From: nil, To: &now},
+				period2:  OpenPeriod{From: &now, To: nil},
+				expected: nil,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				result := tt.period1.Intersection(tt.period2)
+
+				if tt.expected == nil {
+					if result != nil {
+						t.Errorf("Expected nil result, got %+v", *result)
+					}
+					return
+				}
+
+				if result == nil {
+					t.Errorf("Expected non-nil result %+v, got nil", *tt.expected)
+					return
+				}
+
+				// Check From value
+				if (tt.expected.From == nil) != (result.From == nil) {
+					t.Errorf("Incorrect From nil status, expected %v, got %v", tt.expected.From == nil, result.From == nil)
+				} else if tt.expected.From != nil && result.From != nil && !tt.expected.From.Equal(*result.From) {
+					t.Errorf("Incorrect From value, expected %v, got %v", *tt.expected.From, *result.From)
+				}
+
+				// Check To value
+				if (tt.expected.To == nil) != (result.To == nil) {
+					t.Errorf("Incorrect To nil status, expected %v, got %v", tt.expected.To == nil, result.To == nil)
+				} else if tt.expected.To != nil && result.To != nil && !tt.expected.To.Equal(*result.To) {
+					t.Errorf("Incorrect To value, expected %v, got %v", *tt.expected.To, *result.To)
+				}
+			})
+		}
+	})
+}
