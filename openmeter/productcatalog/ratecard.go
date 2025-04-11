@@ -1,6 +1,7 @@
 package productcatalog
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -321,6 +322,22 @@ func (r *FlatFeeRateCard) Clone() RateCard {
 	return clone
 }
 
+func (r *FlatFeeRateCard) MarshalJSON() ([]byte, error) {
+	serde := struct {
+		RateCardSerde
+		RateCardMeta
+		BillingCadence *isodate.Period `json:"billingCadence"`
+	}{
+		RateCardMeta:   r.RateCardMeta,
+		BillingCadence: r.BillingCadence,
+		RateCardSerde: RateCardSerde{
+			Type: r.Type(),
+		},
+	}
+
+	return json.Marshal(serde)
+}
+
 var _ RateCard = (*UsageBasedRateCard)(nil)
 
 type UsageBasedRateCard struct {
@@ -422,6 +439,22 @@ func (r *UsageBasedRateCard) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (r *UsageBasedRateCard) MarshalJSON() ([]byte, error) {
+	serde := struct {
+		RateCardSerde
+		RateCardMeta
+		BillingCadence isodate.Period `json:"billingCadence"`
+	}{
+		RateCardMeta:   r.RateCardMeta,
+		BillingCadence: r.BillingCadence,
+		RateCardSerde: RateCardSerde{
+			Type: r.Type(),
+		},
+	}
+
+	return json.Marshal(serde)
 }
 
 var _ models.Equaler[RateCards] = (*RateCards)(nil)
