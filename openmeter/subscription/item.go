@@ -1,6 +1,9 @@
 package subscription
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -36,6 +39,76 @@ type SubscriptionItem struct {
 
 	// Description
 	Description *string `json:"description,omitempty"`
+}
+
+func (i *SubscriptionItem) UnmarshalJSON(b []byte) error {
+	// First unmarshal the type information to determine which concrete type to use
+	var serdeTyp struct {
+		RateCard productcatalog.RateCardSerde `json:"rateCard"`
+	}
+
+	if err := json.Unmarshal(b, &serdeTyp); err != nil {
+		return fmt.Errorf("failed to JSON deserialize SubscriptionItemSpec: %w", err)
+	}
+
+	// Create a temporary struct with the correct concrete type for RateCard
+	serde := struct {
+		models.NamespacedID  `json:",inline"`
+		models.ManagedModel  `json:",inline"`
+		models.MetadataModel `json:",inline"`
+
+		ActiveFromOverrideRelativeToPhaseStart *isodate.Period `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
+		ActiveToOverrideRelativeToPhaseStart   *isodate.Period `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
+
+		models.CadencedModel `json:",inline"`
+
+		BillingBehaviorOverride BillingBehaviorOverride `json:"billingBehaviorOverride"`
+
+		SubscriptionId string `json:"subscriptionId"`
+		PhaseId        string `json:"phaseId"`
+		Key            string `json:"itemKey"`
+
+		RateCard productcatalog.RateCard `json:"rateCard"`
+
+		EntitlementID *string `json:"entitlementId,omitempty"`
+		Name          string  `json:"name"`
+		Description   *string `json:"description,omitempty"`
+	}{
+		RateCard: i.RateCard,
+	}
+
+	// Set the concrete type based on the type field
+	switch serdeTyp.RateCard.Type {
+	case productcatalog.FlatFeeRateCardType:
+		serde.RateCard = &productcatalog.FlatFeeRateCard{}
+	case productcatalog.UsageBasedRateCardType:
+		serde.RateCard = &productcatalog.UsageBasedRateCard{}
+	default:
+		return fmt.Errorf("invalid RateCard type: %s", serdeTyp.RateCard.Type)
+	}
+
+	// Unmarshal the full object
+	if err := json.Unmarshal(b, &serde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize SubscriptionItem: %w", err)
+	}
+
+	// Copy all fields from the temporary struct to the actual struct
+	i.NamespacedID = serde.NamespacedID
+	i.ManagedModel = serde.ManagedModel
+	i.MetadataModel = serde.MetadataModel
+	i.ActiveFromOverrideRelativeToPhaseStart = serde.ActiveFromOverrideRelativeToPhaseStart
+	i.ActiveToOverrideRelativeToPhaseStart = serde.ActiveToOverrideRelativeToPhaseStart
+	i.CadencedModel = serde.CadencedModel
+	i.BillingBehaviorOverride = serde.BillingBehaviorOverride
+	i.SubscriptionId = serde.SubscriptionId
+	i.PhaseId = serde.PhaseId
+	i.Key = serde.Key
+	i.RateCard = serde.RateCard
+	i.EntitlementID = serde.EntitlementID
+	i.Name = serde.Name
+	i.Description = serde.Description
+
+	return nil
 }
 
 func (i SubscriptionItem) GetCadence(phaseCadence models.CadencedModel) models.CadencedModel {
