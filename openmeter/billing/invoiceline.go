@@ -705,11 +705,14 @@ type UsageBasedLine struct {
 
 	// Price is the price of the usage based line. Note: this should be a pointer or marshaling will fail for
 	// empty prices.
-	Price                 *Price                 `json:"price"`
-	FeatureKey            string                 `json:"featureKey"`
-	Quantity              *alpacadecimal.Decimal `json:"quantity"`
-	MeteredQuantity       *alpacadecimal.Decimal `json:"meteredQuantity,omitempty"`
-	PreLinePeriodQuantity *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
+	Price      *Price `json:"price"`
+	FeatureKey string `json:"featureKey"`
+
+	Quantity        *alpacadecimal.Decimal `json:"quantity"`
+	MeteredQuantity *alpacadecimal.Decimal `json:"meteredQuantity,omitempty"`
+
+	PreLinePeriodQuantity        *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
+	MeteredPreLinePeriodQuantity *alpacadecimal.Decimal `json:"meteredPreLinePeriodQuantity,omitempty"`
 }
 
 func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {
@@ -734,6 +737,10 @@ func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {
 	}
 
 	if !equal.PtrEqual(i.PreLinePeriodQuantity, other.PreLinePeriodQuantity) {
+		return false
+	}
+
+	if !equal.PtrEqual(i.MeteredPreLinePeriodQuantity, other.MeteredPreLinePeriodQuantity) {
 		return false
 	}
 

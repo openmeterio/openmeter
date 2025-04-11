@@ -69,6 +69,26 @@ func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) ClearPreLinePeriodQuant
 	return biublcu
 }
 
+// SetMeteredPreLinePeriodQuantity sets the "metered_pre_line_period_quantity" field.
+func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetMeteredPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
+	biublcu.mutation.SetMeteredPreLinePeriodQuantity(a)
+	return biublcu
+}
+
+// SetNillableMeteredPreLinePeriodQuantity sets the "metered_pre_line_period_quantity" field if the given value is not nil.
+func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetNillableMeteredPreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
+	if a != nil {
+		biublcu.SetMeteredPreLinePeriodQuantity(*a)
+	}
+	return biublcu
+}
+
+// ClearMeteredPreLinePeriodQuantity clears the value of the "metered_pre_line_period_quantity" field.
+func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) ClearMeteredPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdate {
+	biublcu.mutation.ClearMeteredPreLinePeriodQuantity()
+	return biublcu
+}
+
 // SetMeteredQuantity sets the "metered_quantity" field.
 func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetMeteredQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
 	biublcu.mutation.SetMeteredQuantity(a)
@@ -164,6 +184,12 @@ func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) sqlSave(ctx context.Con
 	if biublcu.mutation.PreLinePeriodQuantityCleared() {
 		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther)
 	}
+	if value, ok := biublcu.mutation.MeteredPreLinePeriodQuantity(); ok {
+		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity, field.TypeOther, value)
+	}
+	if biublcu.mutation.MeteredPreLinePeriodQuantityCleared() {
+		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity, field.TypeOther)
+	}
 	if value, ok := biublcu.mutation.MeteredQuantity(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther, value)
 	}
@@ -227,6 +253,26 @@ func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillablePreLineP
 // ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
 func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdateOne {
 	biublcuo.mutation.ClearPreLinePeriodQuantity()
+	return biublcuo
+}
+
+// SetMeteredPreLinePeriodQuantity sets the "metered_pre_line_period_quantity" field.
+func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetMeteredPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	biublcuo.mutation.SetMeteredPreLinePeriodQuantity(a)
+	return biublcuo
+}
+
+// SetNillableMeteredPreLinePeriodQuantity sets the "metered_pre_line_period_quantity" field if the given value is not nil.
+func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillableMeteredPreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	if a != nil {
+		biublcuo.SetMeteredPreLinePeriodQuantity(*a)
+	}
+	return biublcuo
+}
+
+// ClearMeteredPreLinePeriodQuantity clears the value of the "metered_pre_line_period_quantity" field.
+func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearMeteredPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	biublcuo.mutation.ClearMeteredPreLinePeriodQuantity()
 	return biublcuo
 }
 
@@ -354,6 +400,12 @@ func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) sqlSave(ctx context
 	}
 	if biublcuo.mutation.PreLinePeriodQuantityCleared() {
 		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther)
+	}
+	if value, ok := biublcuo.mutation.MeteredPreLinePeriodQuantity(); ok {
+		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity, field.TypeOther, value)
+	}
+	if biublcuo.mutation.MeteredPreLinePeriodQuantityCleared() {
+		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity, field.TypeOther)
 	}
 	if value, ok := biublcuo.mutation.MeteredQuantity(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther, value)

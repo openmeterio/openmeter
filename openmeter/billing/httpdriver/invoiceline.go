@@ -376,11 +376,13 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 
 		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
 
-		FeatureKey:            lo.ToPtr(line.UsageBased.FeatureKey),
-		MeteredQuantity:       decimalPtrToStringPtr(line.UsageBased.MeteredQuantity),
-		Quantity:              decimalPtrToStringPtr(line.UsageBased.Quantity),
-		PreLinePeriodQuantity: decimalPtrToStringPtr(line.UsageBased.PreLinePeriodQuantity),
-		Price:                 lo.ToPtr(price),
+		FeatureKey:                   lo.ToPtr(line.UsageBased.FeatureKey),
+		MeteredQuantity:              decimalPtrToStringPtr(line.UsageBased.MeteredQuantity),
+		Quantity:                     decimalPtrToStringPtr(line.UsageBased.Quantity),
+		PreLinePeriodQuantity:        decimalPtrToStringPtr(line.UsageBased.PreLinePeriodQuantity),
+		MeteredPreLinePeriodQuantity: decimalPtrToStringPtr(line.UsageBased.MeteredPreLinePeriodQuantity),
+
+		Price: lo.ToPtr(price),
 
 		RateCard: &api.InvoiceUsageBasedRateCard{
 			TaxConfig:  mapTaxConfigToAPI(line.TaxConfig),
@@ -647,10 +649,12 @@ func mapUsageBasedSimulationLineToEntity(line api.InvoiceSimulationUsageBasedLin
 			RateCardDiscounts: rateCardParsed.Discounts,
 		},
 		UsageBased: &billing.UsageBasedLine{
-			Price:                 rateCardParsed.Price,
-			FeatureKey:            rateCardParsed.FeatureKey,
-			Quantity:              &qty,
-			PreLinePeriodQuantity: &prePeriodQty,
+			Price:                        rateCardParsed.Price,
+			FeatureKey:                   rateCardParsed.FeatureKey,
+			Quantity:                     &qty,
+			MeteredQuantity:              &qty,
+			PreLinePeriodQuantity:        &prePeriodQty,
+			MeteredPreLinePeriodQuantity: &prePeriodQty,
 		},
 	}, nil
 }

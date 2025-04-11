@@ -15639,7 +15639,10 @@ components:
         quantity:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The quantity of the item being sold.
+          description: |-
+            The quantity of the item being sold.
+
+            Any usage discounts applied previously are deducted from this quantity.
           readOnly: true
         meteredQuantity:
           allOf:
@@ -15650,7 +15653,17 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            The quantity of the item used in before this line's period.
+            The quantity of the item used before this line's period.
+
+            It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
+
+            Any usage discounts applied previously are deducted from this quantity.
+          readOnly: true
+        meteredPreLinePeriodQuantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The metered quantity of the item used in before this line's period without any discounts applied.
 
             It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
           readOnly: true

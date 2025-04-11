@@ -501,6 +501,12 @@ func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
+		field.Other("metered_pre_line_period_quantity", alpacadecimal.Decimal{}).
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
 		field.Other("metered_quantity", alpacadecimal.Decimal{}).
 			Optional().
 			Nillable().

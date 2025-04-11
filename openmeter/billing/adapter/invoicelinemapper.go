@@ -198,13 +198,25 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			return invoiceLine, fmt.Errorf("manual usage based line is missing")
 		}
 		invoiceLine.UsageBased = &billing.UsageBasedLine{
-			ConfigID:              ubpLine.ID,
-			FeatureKey:            ubpLine.FeatureKey,
-			Price:                 ubpLine.Price,
-			Quantity:              dbLine.Quantity,
-			MeteredQuantity:       ubpLine.MeteredQuantity,
-			PreLinePeriodQuantity: ubpLine.PreLinePeriodQuantity,
+			ConfigID:                     ubpLine.ID,
+			FeatureKey:                   ubpLine.FeatureKey,
+			Price:                        ubpLine.Price,
+			Quantity:                     dbLine.Quantity,
+			MeteredQuantity:              ubpLine.MeteredQuantity,
+			PreLinePeriodQuantity:        ubpLine.PreLinePeriodQuantity,
+			MeteredPreLinePeriodQuantity: ubpLine.MeteredPreLinePeriodQuantity,
 		}
+
+		// Before usage discounts were introduced, we didn't have the metered quantity
+		if ubpLine.MeteredQuantity == nil && dbLine.Quantity != nil {
+			invoiceLine.UsageBased.MeteredQuantity = lo.ToPtr(dbLine.Quantity.Copy())
+		}
+
+		// Before usage discounts were introduced, we didn't have the metered pre-line period quantity
+		if ubpLine.MeteredPreLinePeriodQuantity == nil && ubpLine.PreLinePeriodQuantity != nil {
+			invoiceLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(ubpLine.PreLinePeriodQuantity.Copy())
+		}
+
 	default:
 		return invoiceLine, fmt.Errorf("unsupported line type[%s]: %s", dbLine.ID, dbLine.Type)
 	}
