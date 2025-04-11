@@ -15,14 +15,19 @@ type packagePricer struct {
 var _ Pricer = (*packagePricer)(nil)
 
 func (p packagePricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, error) {
+	usage, err := l.GetUsage()
+	if err != nil {
+		return nil, err
+	}
+
 	packagePrice, err := l.line.UsageBased.Price.AsPackage()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to package price: %w", err)
 	}
 
-	totalUsage := l.linePeriodQty.Add(l.preLinePeriodQty)
+	totalUsage := usage.LinePeriodQuantity.Add(usage.PreLinePeriodQuantity)
 
-	preLinePeriodPackages := p.getNumberOfPackages(l.preLinePeriodQty, packagePrice.QuantityPerPackage)
+	preLinePeriodPackages := p.getNumberOfPackages(usage.PreLinePeriodQuantity, packagePrice.QuantityPerPackage)
 	if l.IsFirstInPeriod() {
 		preLinePeriodPackages = alpacadecimal.Zero
 	}

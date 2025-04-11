@@ -101,7 +101,7 @@ func getPreviouslyBilledAmount(l PricerCalculateInput) (alpacadecimal.Decimal, e
 	}
 
 	sum := l.line.ProgressiveLineHierarchy.SumNetAmount(billing.SumNetAmountInput{
-		UpTo: l.line.Period.Start,
+		PeriodEndLTE: l.line.Period.Start,
 		// TODO[later]: Should we include charges here? For now it's fine to not include them, as only
 		// minimum amount charges can happen, but if later we add more charge types, we will have to
 		// include them here.
