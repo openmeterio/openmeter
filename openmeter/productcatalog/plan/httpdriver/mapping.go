@@ -96,7 +96,7 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 				Key:         a.Key,
 				Name:        a.Name,
 				Description: a.Description,
-				Metadata:    lo.FromPtrOr(a.Metadata, nil),
+				Metadata:    lo.FromPtr(a.Metadata),
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: func() bool {
 						if a.Alignment != nil {
@@ -141,7 +141,7 @@ func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 			Key:         a.Key,
 			Name:        a.Name,
 			Description: a.Description,
-			Metadata:    lo.FromPtrOr(a.Metadata, nil),
+			Metadata:    lo.FromPtr(a.Metadata),
 		},
 	}
 

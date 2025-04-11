@@ -278,7 +278,7 @@ func (h *handler) ListProfiles() ListProfilesHandler {
 
 func apiBillingPartyCreateToSupplierContact(c api.BillingParty) billing.SupplierContact {
 	out := billing.SupplierContact{
-		Name: lo.FromPtrOr(c.Name, ""),
+		Name: lo.FromPtr(c.Name),
 	}
 
 	if c.Addresses == nil || len(*c.Addresses) == 0 {
@@ -306,7 +306,7 @@ func apiBillingPartyCreateToSupplierContact(c api.BillingParty) billing.Supplier
 
 func apiBillingPartyToSupplierContact(c api.BillingParty) billing.SupplierContact {
 	out := billing.SupplierContact{
-		Name: lo.FromPtrOr(c.Name, ""),
+		Name: lo.FromPtr(c.Name),
 	}
 
 	if c.Addresses == nil || len(*c.Addresses) == 0 {

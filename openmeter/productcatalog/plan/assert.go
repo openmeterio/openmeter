@@ -33,7 +33,7 @@ func AssertPlanUpdateInputEqual(t *testing.T, i UpdatePlanInput, p Plan) {
 	}
 
 	if i.Description != nil {
-		assert.Equalf(t, lo.FromPtrOr(i.Description, ""), lo.FromPtrOr(p.Description, ""), "update input: description mismatch")
+		assert.Equalf(t, lo.FromPtr(i.Description), lo.FromPtr(p.Description), "update input: description mismatch")
 	}
 
 	if i.Metadata != nil {

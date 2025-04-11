@@ -119,7 +119,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		EntitlementTemplate: item.EntitlementTemplate,
 		TaxConfig:           item.TaxConfig,
 		Price:               item.Price,
-		Discounts:           lo.FromPtrOr(item.Discounts, productcatalog.Discounts{}),
+		Discounts:           lo.FromPtr(item.Discounts),
 		Key:                 item.Key,
 		FeatureID:           nil, // FIXME: is this an issue?
 	}

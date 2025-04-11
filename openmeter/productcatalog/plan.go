@@ -234,8 +234,8 @@ func (p PlanMeta) Status() PlanStatus {
 
 // StatusAt returns the plan status relative to time t.
 func (p PlanMeta) StatusAt(t time.Time) PlanStatus {
-	from := lo.FromPtrOr(p.EffectiveFrom, time.Time{})
-	to := lo.FromPtrOr(p.EffectiveTo, time.Time{})
+	from := lo.FromPtr(p.EffectiveFrom)
+	to := lo.FromPtr(p.EffectiveTo)
 
 	// Plan has DraftStatus if neither the EffectiveFrom nor EffectiveTo are set
 	if from.IsZero() && to.IsZero() {

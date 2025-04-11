@@ -401,7 +401,7 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard
 			Key:         flat.Key,
 			Name:        flat.Name,
 			Description: flat.Description,
-			Metadata:    lo.FromPtrOr(flat.Metadata, nil),
+			Metadata:    lo.FromPtr(flat.Metadata),
 		},
 	}
 
@@ -474,7 +474,7 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBas
 			Key:         usage.Key,
 			Name:        usage.Name,
 			Description: usage.Description,
-			Metadata:    lo.FromPtrOr(usage.Metadata, nil),
+			Metadata:    lo.FromPtr(usage.Metadata),
 		},
 	}
 
@@ -834,8 +834,8 @@ func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *isodate.Pe
 		}
 
 		meteredTemplate := productcatalog.MeteredEntitlementTemplate{
-			Metadata:                lo.FromPtrOr(metered.Metadata, nil),
-			IsSoftLimit:             lo.FromPtrOr(metered.IsSoftLimit, false),
+			Metadata:                lo.FromPtr(metered.Metadata),
+			IsSoftLimit:             lo.FromPtr(metered.IsSoftLimit),
 			IssueAfterReset:         metered.IssueAfterReset,
 			IssueAfterResetPriority: metered.IssueAfterResetPriority,
 			PreserveOverageAtReset:  metered.PreserveOverageAtReset,
@@ -850,7 +850,7 @@ func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *isodate.Pe
 		}
 
 		staticTemplate := productcatalog.StaticEntitlementTemplate{
-			Metadata: lo.FromPtrOr(static.Metadata, nil),
+			Metadata: lo.FromPtr(static.Metadata),
 			Config:   static.Config,
 		}
 
@@ -862,7 +862,7 @@ func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *isodate.Pe
 		}
 
 		booleanTemplate := productcatalog.BooleanEntitlementTemplate{
-			Metadata: lo.FromPtrOr(boolean.Metadata, nil),
+			Metadata: lo.FromPtr(boolean.Metadata),
 		}
 
 		tmpl = productcatalog.NewEntitlementTemplateFrom(booleanTemplate)

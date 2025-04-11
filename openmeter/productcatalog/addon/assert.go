@@ -34,7 +34,7 @@ func AssertAddonUpdateInputEqual(t *testing.T, i UpdateAddonInput, a Addon) {
 	}
 
 	if i.Description != nil {
-		assert.Equalf(t, lo.FromPtrOr(i.Description, ""), lo.FromPtrOr(a.Description, ""), "update input: description mismatch")
+		assert.Equalf(t, lo.FromPtr(i.Description), lo.FromPtr(a.Description), "update input: description mismatch")
 	}
 
 	if i.Metadata != nil {

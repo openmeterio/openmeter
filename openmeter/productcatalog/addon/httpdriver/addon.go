@@ -51,11 +51,11 @@ func (h *handler) ListAddons() ListAddonsHandler {
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
 				},
 				Namespaces:     []string{ns},
-				IDs:            lo.FromPtrOr(params.Id, nil),
-				Keys:           lo.FromPtrOr(params.Key, nil),
-				KeyVersions:    lo.FromPtrOr(params.KeyVersion, nil),
-				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, false),
-				Currencies:     lo.FromPtrOr(params.Currency, nil),
+				IDs:            lo.FromPtr(params.Id),
+				Keys:           lo.FromPtr(params.Key),
+				KeyVersions:    lo.FromPtr(params.KeyVersion),
+				IncludeDeleted: lo.FromPtr(params.IncludeDeleted),
+				Currencies:     lo.FromPtr(params.Currency),
 				Status:         statusFilter,
 			}
 

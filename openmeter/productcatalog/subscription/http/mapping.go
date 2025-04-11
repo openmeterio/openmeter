@@ -450,7 +450,7 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 			PlanMeta: productcatalog.PlanMeta{
 				Name:        a.Name,
 				Description: a.Description,
-				Metadata:    lo.FromPtrOr(a.Metadata, nil),
+				Metadata:    lo.FromPtr(a.Metadata),
 			},
 			Phases: nil,
 		},

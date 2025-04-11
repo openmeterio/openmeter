@@ -308,7 +308,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				// let's create the invoice
 				invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
 					Namespace: input.Customer.Namespace,
-					Customer:  lo.FromPtrOr(customerProfile.Customer, customer.Customer{}),
+					Customer:  lo.FromPtr(customerProfile.Customer),
 					Profile:   customerProfile.MergedProfile,
 
 					Currency: currency,
@@ -1060,7 +1060,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 			},
 
 			Workflow: billing.InvoiceWorkflow{
-				AppReferences:          lo.FromPtrOr(customerProfile.MergedProfile.AppReferences, billing.ProfileAppReferences{}),
+				AppReferences:          lo.FromPtr(customerProfile.MergedProfile.AppReferences),
 				Apps:                   customerProfile.MergedProfile.Apps,
 				SourceBillingProfileID: customerProfile.MergedProfile.ID,
 				Config:                 customerProfile.MergedProfile.WorkflowConfig,

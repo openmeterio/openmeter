@@ -115,7 +115,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 						MetadataModel: models.MetadataModel{
 							Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
 						},
-						Name:        lo.FromPtrOr(parsedBody.Name, ""),
+						Name:        lo.FromPtr(parsedBody.Name),
 						Description: parsedBody.Description,
 					},
 				}, nil

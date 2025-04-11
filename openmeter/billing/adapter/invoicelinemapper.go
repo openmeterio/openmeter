@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -160,7 +159,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			Currency: dbLine.Currency,
 
 			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
-			RateCardDiscounts: lo.FromPtrOr(dbLine.RatecardDiscounts, billing.Discounts{}),
+			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
 			Totals: billing.Totals{
 				Amount:              dbLine.Amount,
 				ChargesTotal:        dbLine.ChargesTotal,
@@ -171,7 +170,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 				Total:               dbLine.Total,
 			},
 			ExternalIDs: billing.LineExternalIDs{
-				Invoicing: lo.FromPtrOr(dbLine.InvoicingAppExternalID, ""),
+				Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
 			},
 		},
 	}
@@ -189,7 +188,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 		invoiceLine.FlatFee = &billing.FlatFeeLine{
 			ConfigID:      dbLine.Edges.FlatFeeLine.ID,
 			PerUnitAmount: dbLine.Edges.FlatFeeLine.PerUnitAmount,
-			Quantity:      lo.FromPtrOr(dbLine.Quantity, alpacadecimal.Zero),
+			Quantity:      lo.FromPtr(dbLine.Quantity),
 			Category:      dbLine.Edges.FlatFeeLine.Category,
 			PaymentTerm:   dbLine.Edges.FlatFeeLine.PaymentTerm,
 		}
@@ -235,7 +234,7 @@ func (a *adapter) mapInvoiceLineUsageDiscountFromDB(dbDiscount *db.BillingInvoic
 		Description:            dbDiscount.Description,
 		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
 		ExternalIDs: billing.LineExternalIDs{
-			Invoicing: lo.FromPtrOr(dbDiscount.InvoicingAppExternalID, ""),
+			Invoicing: lo.FromPtr(dbDiscount.InvoicingAppExternalID),
 		},
 	}
 
@@ -273,7 +272,7 @@ func (a *adapter) mapInvoiceLineAmountDiscountFromDB(dbDiscount *db.BillingInvoi
 		Description:            dbDiscount.Description,
 		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
 		ExternalIDs: billing.LineExternalIDs{
-			Invoicing: lo.FromPtrOr(dbDiscount.InvoicingAppExternalID, ""),
+			Invoicing: lo.FromPtr(dbDiscount.InvoicingAppExternalID),
 		},
 	}
 
@@ -301,7 +300,7 @@ func (a *adapter) mapInvoiceLineAmountDiscountFromDB(dbDiscount *db.BillingInvoi
 		AmountLineDiscount: billing.AmountLineDiscount{
 			LineDiscountBase: base,
 			Amount:           dbDiscount.Amount,
-			RoundingAmount:   lo.FromPtrOr(dbDiscount.RoundingAmount, alpacadecimal.Zero),
+			RoundingAmount:   lo.FromPtr(dbDiscount.RoundingAmount),
 		},
 	}, nil
 }

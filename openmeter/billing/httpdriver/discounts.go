@@ -13,7 +13,7 @@ import (
 func AsPercentageDiscount(d api.BillingDiscountPercentage) billing.PercentageDiscount {
 	return billing.PercentageDiscount{
 		PercentageDiscount: productcataloghttp.AsPercentageDiscount(api.FromBillingDiscountPercentageToDiscountPercentage(d)),
-		CorrelationID:      lo.FromPtrOr(d.CorrelationId, ""),
+		CorrelationID:      lo.FromPtr(d.CorrelationId),
 	}
 }
 
@@ -27,7 +27,7 @@ func AsUsageDiscount(d api.BillingDiscountUsage) (billing.UsageDiscount, error) 
 
 	return billing.UsageDiscount{
 		UsageDiscount: usageDiscount,
-		CorrelationID: lo.FromPtrOr(d.CorrelationId, ""),
+		CorrelationID: lo.FromPtr(d.CorrelationId),
 	}, nil
 }
 
@@ -42,7 +42,7 @@ func AsDiscounts(discounts *api.BillingDiscounts) (billing.Discounts, error) {
 
 		out.Percentage = &billing.PercentageDiscount{
 			PercentageDiscount: productcataloghttp.AsPercentageDiscount(pctDiscount),
-			CorrelationID:      lo.FromPtrOr(discounts.Percentage.CorrelationId, ""),
+			CorrelationID:      lo.FromPtr(discounts.Percentage.CorrelationId),
 		}
 	}
 
@@ -56,7 +56,7 @@ func AsDiscounts(discounts *api.BillingDiscounts) (billing.Discounts, error) {
 
 		out.Usage = &billing.UsageDiscount{
 			UsageDiscount: usageDiscount,
-			CorrelationID: lo.FromPtrOr(discounts.Usage.CorrelationId, ""),
+			CorrelationID: lo.FromPtr(discounts.Usage.CorrelationId),
 		}
 	}
 

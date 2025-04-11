@@ -416,8 +416,8 @@ func sortInvoiceLines[K StripeInvoiceLineOperationParams](stripeLineAdd []*K) {
 			descB = params[j].Description
 		}
 
-		a := lo.FromPtrOr(descA, "")
-		b := lo.FromPtrOr(descB, "")
+		a := lo.FromPtr(descA)
+		b := lo.FromPtr(descB)
 
 		return a < b
 	})

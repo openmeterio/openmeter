@@ -43,15 +43,15 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 			return ListInvoicesRequest{
 				Namespaces: []string{ns},
 
-				Customers: lo.FromPtrOr(input.Customers, nil),
+				Customers: lo.FromPtr(input.Customers),
 				Statuses: lo.Map(
-					lo.FromPtrOr(input.Statuses, nil),
+					lo.FromPtr(input.Statuses),
 					func(status api.InvoiceStatus, _ int) string {
 						return string(status)
 					},
 				),
 				ExtendedStatuses: lo.Map(
-					lo.FromPtrOr(input.ExtendedStatuses, nil),
+					lo.FromPtr(input.ExtendedStatuses),
 					func(status string, _ int) billing.InvoiceStatus {
 						return billing.InvoiceStatus(status)
 					},
@@ -59,10 +59,10 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 
 				IssuedAfter:  input.IssuedAfter,
 				IssuedBefore: input.IssuedBefore,
-				Expand:       mapInvoiceExpandToEntity(lo.FromPtrOr(input.Expand, nil)).SetRecalculateGatheringInvoice(true),
+				Expand:       mapInvoiceExpandToEntity(lo.FromPtr(input.Expand)).SetRecalculateGatheringInvoice(true),
 
 				Order:   sortx.Order(lo.FromPtrOr(input.Order, api.InvoiceOrderByOrderingOrder(sortx.OrderDefault))),
-				OrderBy: lo.FromPtrOr(input.OrderBy, ""),
+				OrderBy: lo.FromPtr(input.OrderBy),
 
 				IncludeDeleted: lo.FromPtrOr(input.IncludeDeleted, false),
 
@@ -640,7 +640,7 @@ func mapInvoiceAvailableActionDetailsToAPI(actions *billing.InvoiceAvailableActi
 }
 
 func mergeInvoiceSupplierFromAPI(existing billing.SupplierContact, updatedSupplier api.BillingPartyReplaceUpdate) billing.SupplierContact {
-	existing.Name = lo.FromPtrOr(updatedSupplier.Name, "")
+	existing.Name = lo.FromPtr(updatedSupplier.Name)
 
 	if updatedSupplier.Addresses == nil || len(*updatedSupplier.Addresses) == 0 {
 		existing.Address = models.Address{}
@@ -659,7 +659,7 @@ func mergeInvoiceSupplierFromAPI(existing billing.SupplierContact, updatedSuppli
 }
 
 func mergeInvoiceCustomerFromAPI(existing billing.InvoiceCustomer, updatedCustomer api.BillingPartyReplaceUpdate) billing.InvoiceCustomer {
-	existing.Name = lo.FromPtrOr(updatedCustomer.Name, "")
+	existing.Name = lo.FromPtr(updatedCustomer.Name)
 
 	if updatedCustomer.Addresses == nil || len(*updatedCustomer.Addresses) == 0 {
 		existing.BillingAddress = nil
