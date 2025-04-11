@@ -1049,6 +1049,15 @@ func TestEditCombinations(t *testing.T) {
 
 			require.Equal(t, sub.Subscription.NamespacedID, view.Subscription.NamespacedID)
 
+			t.Run("Should add owner annotations", func(t *testing.T) {
+				items := view.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
+				addedItem := items[len(items)-1]
+
+				ownerSystems := subscription.AnnotationParser.ListOwnerSubSystems(addedItem.SubscriptionItem.Annotations)
+				require.Equal(t, 1, len(ownerSystems))
+				require.Equal(t, subscription.OwnerSubscriptionSubSystem, ownerSystems[0])
+			})
+
 			// Now let's cancel the subscription
 			s, err := deps.Service.Cancel(ctx, sub.Subscription.NamespacedID, subscription.Timing{
 				Custom: lo.ToPtr(clock.Now().Add(-time.Minute)),

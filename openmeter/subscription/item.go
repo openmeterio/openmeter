@@ -11,6 +11,8 @@ type SubscriptionItem struct {
 	models.ManagedModel  `json:",inline"`
 	models.MetadataModel `json:",inline"`
 
+	Annotations models.Annotations `json:"annotations"`
+
 	// SubscriptionItem doesn't have a separate Cadence, only one relative to the phase, denoting if it's intentionally different from the phase's cadence.
 	// The durations are relative to phase start.
 	ActiveFromOverrideRelativeToPhaseStart *isodate.Period `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
@@ -67,6 +69,7 @@ func (i SubscriptionItem) AsEntityInput() CreateSubscriptionItemEntityInput {
 			Namespace: i.Namespace,
 		},
 		MetadataModel:                          i.MetadataModel,
+		Annotations:                            i.Annotations,
 		CadencedModel:                          i.CadencedModel,
 		ActiveFromOverrideRelativeToPhaseStart: i.ActiveFromOverrideRelativeToPhaseStart,
 		ActiveToOverrideRelativeToPhaseStart:   i.ActiveToOverrideRelativeToPhaseStart,

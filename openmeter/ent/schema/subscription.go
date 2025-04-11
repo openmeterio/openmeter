@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Subscription struct {
@@ -113,6 +114,13 @@ func (SubscriptionItem) Mixin() []ent.Mixin {
 
 func (SubscriptionItem) Fields() []ent.Field {
 	return []ent.Field{
+		field.String("annotations").
+			GoType(models.Annotations{}).
+			ValueScanner(AnnotationsValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
 		// Note: we cannot use CadencedMixin as these are mutable
 		field.Time("active_from"),
 		field.Time("active_to").Optional().Nillable(),

@@ -26,6 +26,8 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldMetadata holds the string denoting the metadata field in the database.
 	FieldMetadata = "metadata"
+	// FieldAnnotations holds the string denoting the annotations field in the database.
+	FieldAnnotations = "annotations"
 	// FieldActiveFrom holds the string denoting the active_from field in the database.
 	FieldActiveFrom = "active_from"
 	// FieldActiveTo holds the string denoting the active_to field in the database.
@@ -106,6 +108,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldMetadata,
+	FieldAnnotations,
 	FieldActiveFrom,
 	FieldActiveTo,
 	FieldPhaseID,
@@ -153,6 +156,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all SubscriptionItem fields.
 	ValueScanner struct {
+		Annotations         field.TypeValueScanner[map[string]interface{}]
 		EntitlementTemplate field.TypeValueScanner[*productcatalog.EntitlementTemplate]
 		TaxConfig           field.TypeValueScanner[*productcatalog.TaxConfig]
 		Price               field.TypeValueScanner[*productcatalog.Price]
@@ -186,6 +190,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByAnnotations orders the results by the annotations field.
+func ByAnnotations(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAnnotations, opts...).ToFunc()
 }
 
 // ByActiveFrom orders the results by the active_from field.
