@@ -30,14 +30,19 @@ func (p volumeTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLinesI
 		return nil, nil
 	}
 
-	if !l.preLinePeriodQty.IsZero() {
+	usage, err := l.GetUsage()
+	if err != nil {
+		return nil, err
+	}
+
+	if !usage.PreLinePeriodQuantity.IsZero() {
 		// Should not happen: we already somehow enabled progressive billing for volume tiered pricing
 		return nil, billing.ErrInvoiceLineVolumeSplitNotSupported
 	}
 
 	out := make(newDetailedLinesInput, 0, 2)
 
-	findTierRes, err := p.findTierForQuantity(price, l.linePeriodQty)
+	findTierRes, err := p.findTierForQuantity(price, usage.LinePeriodQuantity)
 	if err != nil {
 		return nil, err
 	}
@@ -57,10 +62,10 @@ func (p volumeTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLinesI
 		out = append(out, line)
 	}
 
-	if tier.UnitPrice != nil && !l.linePeriodQty.IsZero() {
+	if tier.UnitPrice != nil && !usage.LinePeriodQuantity.IsZero() {
 		line := newDetailedLineInput{
 			Name:                   fmt.Sprintf("%s: unit price for tier %d", l.line.Name, tierIndex+1),
-			Quantity:               l.linePeriodQty,
+			Quantity:               usage.LinePeriodQuantity,
 			PerUnitAmount:          tier.UnitPrice.Amount,
 			ChildUniqueReferenceID: VolumeUnitPriceChildUniqueReferenceID,
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,

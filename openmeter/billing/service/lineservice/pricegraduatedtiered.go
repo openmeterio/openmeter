@@ -16,6 +16,11 @@ type graduatedTieredPricer struct {
 var _ Pricer = (*graduatedTieredPricer)(nil)
 
 func (p graduatedTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, error) {
+	usage, err := l.GetUsage()
+	if err != nil {
+		return nil, err
+	}
+
 	price, err := l.line.UsageBased.Price.AsTiered()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to graduated tiered price: %w", err)
@@ -29,8 +34,8 @@ func (p graduatedTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLin
 
 	err = p.tieredPriceCalculator(tieredPriceCalculatorInput{
 		TieredPrice: price,
-		FromQty:     l.preLinePeriodQty,
-		ToQty:       l.linePeriodQty.Add(l.preLinePeriodQty),
+		FromQty:     usage.PreLinePeriodQuantity,
+		ToQty:       usage.LinePeriodQuantity.Add(usage.PreLinePeriodQuantity),
 		Currency:    l.currency,
 		TierCallbackFn: func(in tierCallbackInput) error {
 			tierIndex := in.TierIndex + 1

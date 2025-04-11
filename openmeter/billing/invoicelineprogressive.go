@@ -34,7 +34,7 @@ func (h *InvoiceLineProgressiveHierarchy) Clone() InvoiceLineProgressiveHierarch
 }
 
 type SumNetAmountInput struct {
-	UpTo           time.Time
+	PeriodEndLTE   time.Time
 	IncludeCharges bool
 }
 
@@ -44,9 +44,31 @@ type SumNetAmountInput struct {
 func (h *InvoiceLineProgressiveHierarchy) SumNetAmount(in SumNetAmountInput) alpacadecimal.Decimal {
 	netAmount := alpacadecimal.Zero
 
+	_ = h.ForEachChild(ForEachChildInput{
+		PeriodEndLTE: in.PeriodEndLTE,
+		Callback: func(child InvoiceLineWithInvoiceBase) error {
+			netAmount = netAmount.Add(child.Line.Totals.Amount)
+
+			if in.IncludeCharges {
+				netAmount = netAmount.Add(child.Line.Totals.ChargesTotal)
+			}
+
+			return nil
+		},
+	})
+
+	return netAmount
+}
+
+type ForEachChildInput struct {
+	PeriodEndLTE time.Time
+	Callback     func(child InvoiceLineWithInvoiceBase) error
+}
+
+func (h *InvoiceLineProgressiveHierarchy) ForEachChild(in ForEachChildInput) error {
 	for _, child := range h.Children {
 		// The line is not in scope
-		if child.Line.Period.End.After(in.UpTo) {
+		if !in.PeriodEndLTE.IsZero() && child.Line.Period.End.After(in.PeriodEndLTE) {
 			continue
 		}
 
@@ -60,11 +82,10 @@ func (h *InvoiceLineProgressiveHierarchy) SumNetAmount(in SumNetAmountInput) alp
 			continue
 		}
 
-		netAmount = netAmount.Add(child.Line.Totals.Amount)
-		if in.IncludeCharges {
-			netAmount = netAmount.Add(child.Line.Totals.ChargesTotal)
+		if err := in.Callback(child); err != nil {
+			return err
 		}
 	}
 
-	return netAmount
+	return nil
 }
