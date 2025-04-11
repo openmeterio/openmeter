@@ -208,10 +208,10 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 				return tx.BillingInvoiceLineUsageDiscount.
 					CreateBulk(items...).
 					OnConflict(
-						sql.ConflictColumns(billinginvoicelinediscount.FieldID),
+						sql.ConflictColumns(billinginvoicelineusagediscount.FieldID),
 						sql.ResolveWithNewValues(),
 						sql.ResolveWith(func(u *sql.UpdateSet) {
-							u.SetIgnore(billinginvoiceline.FieldCreatedAt)
+							u.SetIgnore(billinginvoicelineusagediscount.FieldCreatedAt)
 						}),
 					).Exec(ctx)
 			},
@@ -257,7 +257,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 						sql.ConflictColumns(billinginvoicelinediscount.FieldID),
 						sql.ResolveWithNewValues(),
 						sql.ResolveWith(func(u *sql.UpdateSet) {
-							u.SetIgnore(billinginvoiceline.FieldCreatedAt)
+							u.SetIgnore(billinginvoicelinediscount.FieldCreatedAt)
 						}),
 					).Exec(ctx)
 			},
