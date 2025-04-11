@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -553,6 +554,45 @@ type CreateSubscriptionItemPlanInput struct {
 	PhaseKey string                  `json:"phaseKey"`
 	ItemKey  string                  `json:"itemKey"`
 	RateCard productcatalog.RateCard `json:"rateCard"`
+}
+
+func (i *CreateSubscriptionItemPlanInput) UnmarshalJSON(b []byte) error {
+	var serdeTyp struct {
+		RateCard productcatalog.RateCardSerde `json:"rateCard"`
+	}
+
+	if err := json.Unmarshal(b, &serdeTyp); err != nil {
+		return fmt.Errorf("failed to JSON deserialize SubscriptionItemSpec: %w", err)
+	}
+
+	serde := struct {
+		RateCard productcatalog.RateCard
+		PhaseKey string `json:"phaseKey"`
+		ItemKey  string `json:"itemKey"`
+	}{
+		RateCard: i.RateCard,
+		PhaseKey: i.PhaseKey,
+		ItemKey:  i.ItemKey,
+	}
+
+	switch serdeTyp.RateCard.Type {
+	case productcatalog.FlatFeeRateCardType:
+		serde.RateCard = &productcatalog.FlatFeeRateCard{}
+	case productcatalog.UsageBasedRateCardType:
+		serde.RateCard = &productcatalog.UsageBasedRateCard{}
+	default:
+		return fmt.Errorf("invalid RateCard type: %s", serdeTyp.RateCard.Type)
+	}
+
+	if err := json.Unmarshal(b, &serde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize SubscriptionItemPlanInput: %w", err)
+	}
+
+	i.RateCard = serde.RateCard
+	i.PhaseKey = serde.PhaseKey
+	i.ItemKey = serde.ItemKey
+
+	return nil
 }
 
 type CreateSubscriptionItemCustomerInput struct {
