@@ -789,7 +789,7 @@ func (h *Handler) updateImmutableInvoice(ctx context.Context, invoice billing.In
 					return fmt.Errorf("recalculating line[%s]: %w", targetStateWithUpdatedQty.ID, err)
 				}
 
-				if !targetStateWithUpdatedQty.UsageBased.Quantity.Equal(lo.FromPtrOr(existingLine.UsageBased.Quantity, alpacadecimal.Zero)) {
+				if !targetStateWithUpdatedQty.UsageBased.Quantity.Equal(lo.FromPtr(existingLine.UsageBased.Quantity)) {
 					validationIssues = append(validationIssues,
 						newValidationIssueOnLine(existingLine, "usage based line's quantity cannot be changed on immutable invoice (new qty: %s)",
 							targetStateWithUpdatedQty.UsageBased.Quantity.String()),

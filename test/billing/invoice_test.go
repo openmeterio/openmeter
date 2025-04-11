@@ -3287,11 +3287,11 @@ func requireDetailedLines(t *testing.T, line *billing.Line, expectations lineExp
 		require.Len(t, discounts.Usage, len(expect.UsageDiscounts), "usage discounts should match")
 
 		amountDiscountsById := lo.GroupBy(discounts.Amount, func(d billing.AmountLineDiscountManaged) string {
-			return lo.FromPtrOr(d.ChildUniqueReferenceID, "")
+			return lo.FromPtr(d.ChildUniqueReferenceID)
 		})
 
 		usageDiscountsById := lo.GroupBy(discounts.Usage, func(d billing.UsageLineDiscountManaged) string {
-			return lo.FromPtrOr(d.ChildUniqueReferenceID, "")
+			return lo.FromPtr(d.ChildUniqueReferenceID)
 		})
 
 		for discountType, discountExpect := range expect.AmountDiscounts {

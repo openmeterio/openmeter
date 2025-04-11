@@ -703,8 +703,8 @@ func (a *adapter) mapInvoiceBaseFromDB(ctx context.Context, invoice *db.BillingI
 		CollectionAt: lo.ToPtr(invoice.CollectionAt.In(time.UTC)),
 
 		ExternalIDs: billing.InvoiceExternalIDs{
-			Invoicing: lo.FromPtrOr(invoice.InvoicingAppExternalID, ""),
-			Payment:   lo.FromPtrOr(invoice.PaymentAppExternalID, ""),
+			Invoicing: lo.FromPtr(invoice.InvoicingAppExternalID),
+			Payment:   lo.FromPtr(invoice.PaymentAppExternalID),
 		},
 	}
 }
@@ -777,9 +777,9 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 
 				Severity:  issue.Severity,
 				Message:   issue.Message,
-				Code:      lo.FromPtrOr(issue.Code, ""),
+				Code:      lo.FromPtr(issue.Code),
 				Component: billing.ComponentName(issue.Component),
-				Path:      lo.FromPtrOr(issue.Path, ""),
+				Path:      lo.FromPtr(issue.Path),
 			}
 		})
 	}

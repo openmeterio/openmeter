@@ -115,7 +115,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 				MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
 				Namespace:            namespace,
 				APIKey:               body.ApiKey,
-				Name:                 lo.FromPtrOr(body.Name, ""),
+				Name:                 lo.FromPtr(body.Name),
 			}
 
 			return req, nil

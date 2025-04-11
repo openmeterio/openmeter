@@ -117,9 +117,9 @@ func (a *adapter) IntrospectValidationIssues(ctx context.Context, invoice billin
 			ValidationIssue: billing.ValidationIssue{
 				Severity:  issue.Severity,
 				Message:   issue.Message,
-				Code:      lo.FromPtrOr(issue.Code, ""),
+				Code:      lo.FromPtr(issue.Code),
 				Component: billing.ComponentName(issue.Component),
-				Path:      lo.FromPtrOr(issue.Path, ""),
+				Path:      lo.FromPtr(issue.Path),
 			},
 			ID:        issue.ID,
 			DeletedAt: issue.DeletedAt,

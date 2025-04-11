@@ -558,7 +558,7 @@ func (t *TieredPrice) Validate() error {
 			tierOpenEndedPresent = true
 		}
 
-		uta := lo.FromPtrOr(tier.UpToAmount, decimal.Zero)
+		uta := lo.FromPtr(tier.UpToAmount)
 		if !uta.IsZero() {
 			if _, ok := upToAmounts[uta.String()]; ok {
 				errs = append(errs, errors.New("multiple PriceTiers with same UpToAmount are not allowed"))
@@ -627,7 +627,7 @@ type PriceTier struct {
 func (p PriceTier) Validate() error {
 	var errs []error
 
-	upToAmount := lo.FromPtrOr(p.UpToAmount, decimal.Zero)
+	upToAmount := lo.FromPtr(p.UpToAmount)
 	if upToAmount.IsNegative() {
 		errs = append(errs, errors.New("the UpToAmount must not be negative"))
 	}
@@ -716,12 +716,12 @@ type Commitments struct {
 func (c Commitments) Validate() error {
 	var errs []error
 
-	minAmount := lo.FromPtrOr(c.MinimumAmount, decimal.Zero)
+	minAmount := lo.FromPtr(c.MinimumAmount)
 	if minAmount.IsNegative() {
 		errs = append(errs, errors.New("the MinimumAmount must not be negative"))
 	}
 
-	maxAmount := lo.FromPtrOr(c.MaximumAmount, decimal.Zero)
+	maxAmount := lo.FromPtr(c.MaximumAmount)
 	if maxAmount.IsNegative() {
 		errs = append(errs, errors.New("the MaximumAmount must not be negative"))
 	}

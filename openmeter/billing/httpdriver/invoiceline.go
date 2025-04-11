@@ -580,7 +580,7 @@ func mapSimulationFlatFeeLineToEntity(line api.InvoiceSimulationFlatFeeLine) (*b
 
 	return &billing.Line{
 		LineBase: billing.LineBase{
-			ID:          lo.FromPtrOr(line.Id, ""),
+			ID:          lo.FromPtr(line.Id),
 			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
 			Name:        line.Name,
 			Type:        billing.InvoiceLineTypeFee,
@@ -629,7 +629,7 @@ func mapUsageBasedSimulationLineToEntity(line api.InvoiceSimulationUsageBasedLin
 
 	return &billing.Line{
 		LineBase: billing.LineBase{
-			ID:          lo.FromPtrOr(line.Id, ""),
+			ID:          lo.FromPtr(line.Id),
 			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
 			Name:        line.Name,
 			Type:        billing.InvoiceLineTypeUsageBased,
@@ -663,9 +663,9 @@ func getIDFromLineReplace(line api.InvoiceLineReplaceUpdate) (string, error) {
 
 	switch v := value.(type) {
 	case api.InvoiceFlatFeeLineReplaceUpdate:
-		return lo.FromPtrOr(v.Id, ""), nil
+		return lo.FromPtr(v.Id), nil
 	case api.InvoiceUsageBasedLineReplaceUpdate:
-		return lo.FromPtrOr(v.Id, ""), nil
+		return lo.FromPtr(v.Id), nil
 	default:
 		return "", fmt.Errorf("unknown line type: %T", value)
 	}

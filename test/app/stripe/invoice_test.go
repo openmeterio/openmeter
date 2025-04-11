@@ -559,7 +559,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			}
 
 			for _, discount := range line.Discounts.Amount {
-				if lo.FromPtrOr(discount.Description, "") != "" && group[0][2] == lo.FromPtrOr(discount.Description, "") {
+				if lo.FromPtr(discount.Description) != "" && group[0][2] == lo.FromPtr(discount.Description) {
 					return discount.GetID()
 				}
 			}
@@ -1102,9 +1102,9 @@ func mapInvoiceItemParamsToInvoiceItem(id string, i *stripe.InvoiceItemParams) s
 		InvoiceItem: &stripe.InvoiceItem{
 			ID:          fmt.Sprintf("ii_%s", id),
 			Amount:      *i.Amount,
-			Quantity:    lo.FromPtrOr(i.Quantity, 0),
+			Quantity:    lo.FromPtr(i.Quantity),
 			Description: *i.Description,
-			Currency:    stripe.Currency(lo.FromPtrOr(i.Currency, "")),
+			Currency:    stripe.Currency(lo.FromPtr(i.Currency)),
 
 			Period: &stripe.Period{
 				Start: *i.Period.Start,

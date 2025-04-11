@@ -162,7 +162,7 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 		return false
 	}
 
-	if i.Description != nil && lo.FromPtrOr(i.Description, "") != lo.FromPtrOr(p.Description, "") {
+	if i.Description != nil && lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
 		return false
 	}
 
@@ -282,7 +282,7 @@ func (i PublishPlanInput) Validate() error {
 
 	now := clock.Now()
 
-	from := lo.FromPtrOr(i.EffectiveFrom, time.Time{})
+	from := lo.FromPtr(i.EffectiveFrom)
 
 	if from.IsZero() {
 		errs = append(errs, errors.New("invalid EffectiveFrom: must not be empty"))
@@ -292,7 +292,7 @@ func (i PublishPlanInput) Validate() error {
 		errs = append(errs, errors.New("invalid EffectiveFrom: period start must not be in the past"))
 	}
 
-	to := lo.FromPtrOr(i.EffectiveTo, time.Time{})
+	to := lo.FromPtr(i.EffectiveTo)
 
 	if !to.IsZero() && from.IsZero() {
 		errs = append(errs, errors.New("invalid EffectiveFrom: must not be empty if EffectiveTo is also set"))

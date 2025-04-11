@@ -135,8 +135,8 @@ func (m AddonMeta) Status() AddonStatus {
 
 // StatusAt returns the Addon status relative to time t.
 func (m AddonMeta) StatusAt(t time.Time) AddonStatus {
-	from := lo.FromPtrOr(m.EffectiveFrom, time.Time{})
-	to := lo.FromPtrOr(m.EffectiveTo, time.Time{})
+	from := lo.FromPtr(m.EffectiveFrom)
+	to := lo.FromPtr(m.EffectiveTo)
 
 	// Add-on has DraftStatus if neither the EffectiveFrom nor EffectiveTo are set
 	if from.IsZero() && to.IsZero() {

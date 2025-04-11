@@ -135,7 +135,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
 						ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 							Timing:      timing,
-							Name:        lo.FromPtrOr(parsedBody.Name, ""),
+							Name:        lo.FromPtr(parsedBody.Name),
 							Description: parsedBody.Description,
 							MetadataModel: models.MetadataModel{
 								Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),

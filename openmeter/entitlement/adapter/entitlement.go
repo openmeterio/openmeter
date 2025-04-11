@@ -475,7 +475,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 
 	// Let's update the current usage period
 	if ent.UsagePeriod != nil {
-		cp, ok := ent.CalculateCurrentUsagePeriodAt(lo.FromPtrOr(ent.LastReset, time.Time{}), clock.Now())
+		cp, ok := ent.CalculateCurrentUsagePeriodAt(lo.FromPtr(ent.LastReset), clock.Now())
 		if ok {
 			ent.CurrentUsagePeriod = &cp
 		}

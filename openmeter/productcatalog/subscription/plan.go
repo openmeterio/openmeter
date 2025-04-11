@@ -85,7 +85,7 @@ func (p *Plan) GetPhases() []subscription.PlanPhase {
 			StartAfter: startAfter,
 		})
 
-		startAfter, _ = startAfter.Add(lo.FromPtrOr(ph.Duration, isodate.Period{}))
+		startAfter, _ = startAfter.Add(lo.FromPtr(ph.Duration))
 	}
 
 	return ps

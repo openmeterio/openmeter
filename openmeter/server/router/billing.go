@@ -153,7 +153,7 @@ func (a *Router) DeleteBillingProfile(w http.ResponseWriter, r *http.Request, id
 func (a *Router) GetBillingProfile(w http.ResponseWriter, r *http.Request, id string, params api.GetBillingProfileParams) {
 	a.billingHandler.GetProfile().With(httpdriver.GetProfileParams{
 		ID:     id,
-		Expand: lo.FromPtrOr(params.Expand, nil),
+		Expand: lo.FromPtr(params.Expand),
 	}).ServeHTTP(w, r)
 }
 

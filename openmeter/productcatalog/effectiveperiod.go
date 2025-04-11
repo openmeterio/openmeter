@@ -40,6 +40,6 @@ func (p EffectivePeriod) Validate() error {
 
 // Equal returns true if the two EffectivePeriod objects are equal.
 func (p EffectivePeriod) Equal(o EffectivePeriod) bool {
-	return lo.FromPtrOr(p.EffectiveFrom, time.Time{}).Equal(lo.FromPtrOr(o.EffectiveFrom, time.Time{})) &&
-		lo.FromPtrOr(p.EffectiveTo, time.Time{}).Equal(lo.FromPtrOr(o.EffectiveTo, time.Time{}))
+	return lo.FromPtr(p.EffectiveFrom).Equal(lo.FromPtr(o.EffectiveFrom)) &&
+		lo.FromPtr(p.EffectiveTo).Equal(lo.FromPtr(o.EffectiveTo))
 }

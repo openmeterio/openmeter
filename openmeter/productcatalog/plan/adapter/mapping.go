@@ -136,7 +136,7 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		EntitlementTemplate: r.EntitlementTemplate,
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
-		Discounts:           lo.FromPtrOr(r.Discounts, productcatalog.Discounts{}),
+		Discounts:           lo.FromPtr(r.Discounts),
 	}
 
 	// Get billing cadence
