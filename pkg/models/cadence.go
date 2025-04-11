@@ -5,8 +5,9 @@ import (
 	"slices"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // Cadenced represents a model with active from and to dates.
