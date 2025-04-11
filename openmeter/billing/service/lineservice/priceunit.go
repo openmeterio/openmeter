@@ -18,11 +18,16 @@ func (p unitPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 		return nil, fmt.Errorf("converting price to unit price: %w", err)
 	}
 
-	if l.linePeriodQty.IsPositive() {
+	usage, err := l.GetUsage()
+	if err != nil {
+		return nil, err
+	}
+
+	if usage.LinePeriodQuantity.IsPositive() {
 		return newDetailedLinesInput{
 			{
 				Name:                   fmt.Sprintf("%s: usage in period", l.line.Name),
-				Quantity:               l.linePeriodQty,
+				Quantity:               usage.LinePeriodQuantity,
 				PerUnitAmount:          unitPrice.Amount,
 				ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
 				PaymentTerm:            productcatalog.InArrearsPaymentTerm,

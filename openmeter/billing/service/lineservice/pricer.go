@@ -1,6 +1,7 @@
 package lineservice
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -13,11 +14,32 @@ type PricerCapabilities struct {
 	SupportsProgressiveBilling bool
 }
 
-type PricerCalculateInput struct {
-	usageBasedLine
+type PricerCalculateInput usageBasedLine
 
-	preLinePeriodQty alpacadecimal.Decimal
-	linePeriodQty    alpacadecimal.Decimal
+type usage struct {
+	LinePeriodQuantity    alpacadecimal.Decimal
+	PreLinePeriodQuantity alpacadecimal.Decimal
+}
+
+func (i PricerCalculateInput) GetUsage() (usage, error) {
+	empty := usage{}
+
+	if i.line.UsageBased.Quantity == nil {
+		return empty, fmt.Errorf("usage based line[%s]: quantity is nil", i.line.ID)
+	}
+
+	if i.line.UsageBased.PreLinePeriodQuantity == nil {
+		return empty, fmt.Errorf("usage based line[%s]: pre line period quantity is nil", i.line.ID)
+	}
+
+	return usage{
+		LinePeriodQuantity:    *i.line.UsageBased.Quantity,
+		PreLinePeriodQuantity: *i.line.UsageBased.PreLinePeriodQuantity,
+	}, nil
+}
+
+func (i PricerCalculateInput) LinePeriodQuantity() alpacadecimal.Decimal {
+	return *i.line.UsageBased.Quantity
 }
 
 type Pricer interface {

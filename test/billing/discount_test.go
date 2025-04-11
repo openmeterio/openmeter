@@ -201,3 +201,243 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.NotEqual(discountCorrelationID, rcDiscounts.Usage.CorrelationID)
 	})
 }
+
+func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
+	// Given:
+	// - we have a progressive billing enabled billing setup
+	// - a unit priced pending line against a meter
+	// - 110 unit discount applied to the line
+
+	// When [invoice1]
+	// - We do a partial invoicing with usage of 50 units
+	// Then:
+	// - The line in the draft invoice will have 0 quantity, 50 metered quantity
+	// - The line will have an unit line discount with quantity 50, and preLinePeriodQuantity 0
+
+	// When [invoice2]
+	// - we do a second partial invoicing with the usage of 75 units
+	// Then:
+	// - The line in the draft invoice will have 15 quantity, 75 metered quantity
+	// - The line will have an unit line discount with quantity 60, and preLinePeriodQuantity 50
+
+	// When [invoice3]
+	// - we do a final invoice with the usage of 30 units
+	// Then:
+	// - The line in the draft invoice will have 30 quantity, 30 metered quantity
+	// - The line will not have an unit line discount
+
+	namespace := "ns-discounts-usage-progressive"
+	ctx := context.Background()
+
+	defaultProfileSettings := MinimalCreateProfileInputTemplate
+	defaultProfileSettings.Default = true
+	defaultProfileSettings.Namespace = namespace
+	defaultProfileSettings.WorkflowConfig.Invoicing.ProgressiveBilling = true
+
+	s.InstallSandboxApp(s.T(), namespace)
+
+	defaultProfile, err := s.BillingService.CreateProfile(ctx, defaultProfileSettings)
+	s.NoError(err)
+	s.NotNil(defaultProfile)
+
+	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
+	s.NotNil(customerEntity)
+
+	meterSlug := "flat-per-unit"
+	s.NoError(s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+		{
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per unit",
+			},
+			Key:           meterSlug,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: lo.ToPtr("$.value"),
+		},
+	}))
+
+	periodStart := time.Now().Add(-24 * time.Hour)
+	periodEnd := time.Now().Add(-time.Hour)
+
+	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 0, periodStart.Add(-time.Minute))
+
+	defer func() {
+		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		require.NoError(s.T(), err, "meter adapter replace meters")
+	}()
+
+	featureFlatPerUnit := lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      meterSlug,
+		Key:       meterSlug,
+		MeterSlug: lo.ToPtr(meterSlug),
+	}))
+
+	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		billing.CreateInvoiceLinesInput{
+			Namespace: namespace,
+			Lines: []billing.LineWithCustomer{
+				{
+					Line: billing.Line{
+						LineBase: billing.LineBase{
+							Namespace: namespace,
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+
+							InvoiceAt: periodEnd,
+
+							Type:      billing.InvoiceLineTypeUsageBased,
+							ManagedBy: billing.ManuallyManagedLine,
+
+							Name:     "Test item1",
+							Currency: currencyx.Code(currency.USD),
+							RateCardDiscounts: billing.Discounts{
+								Usage: &billing.UsageDiscount{
+									UsageDiscount: productcatalog.UsageDiscount{
+										Quantity: alpacadecimal.NewFromInt(110),
+									},
+								},
+							},
+						},
+						UsageBased: &billing.UsageBasedLine{
+							FeatureKey: featureFlatPerUnit.Key,
+							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+								Amount: alpacadecimal.NewFromFloat(100),
+							}),
+						},
+					},
+					CustomerID: customerEntity.ID,
+				},
+			},
+		})
+	s.NoError(err)
+	s.Len(res, 1)
+
+	require.NotNil(s.T(), res[0].RateCardDiscounts.Usage)
+	require.NotEmpty(s.T(), res[0].RateCardDiscounts.Usage.CorrelationID)
+	discountCorrelationID := res[0].RateCardDiscounts.Usage.CorrelationID
+
+	s.Run("[invoice1] Creating a draft invoice with 50 usage", func() {
+		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 50, periodStart.Add(time.Minute))
+		invoice1AsOf := periodStart.Add(time.Hour)
+
+		// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
+		// between the split lines.
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+			AsOf:     lo.ToPtr(invoice1AsOf),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		s.Len(invoices[0].Lines.OrEmpty(), 1)
+
+		invoiceLine := invoices[0].Lines.OrEmpty()[0]
+		s.NotNil(invoiceLine.ProgressiveLineHierarchy)
+
+		// The line has 0 quantity, 50 metered quantity
+		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.Quantity.InexactFloat64())
+		require.Equal(s.T(), float64(50), invoiceLine.UsageBased.MeteredQuantity.InexactFloat64())
+
+		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.PreLinePeriodQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
+
+		s.Len(invoiceLine.Discounts.Usage, 1)
+		usageDiscount := invoiceLine.Discounts.Usage[0]
+
+		// The usage discount has quantity 50, and preLinePeriodQuantity 0
+		require.Equal(s.T(), float64(50), usageDiscount.Quantity.InexactFloat64())
+		require.Nil(s.T(), usageDiscount.PreLinePeriodQuantity)
+		// Sanity check discount data
+		require.Equal(s.T(), billing.RatecardUsageDiscountReason, usageDiscount.Reason.Type())
+		reason, err := usageDiscount.Reason.AsRatecardUsage()
+		require.NoError(s.T(), err)
+
+		require.Equal(s.T(), discountCorrelationID, reason.CorrelationID)
+
+		// The detailed line does not exists, as we had no usage
+		require.Len(s.T(), invoiceLine.Children.OrEmpty(), 0)
+	})
+
+	s.Run("[invoice2] Creating a draft invoice with 75 usage", func() {
+		invoice2AsOf := periodStart.Add(time.Hour * 3)
+		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 75, invoice2AsOf.Add(-time.Minute))
+
+		// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
+		// between the split lines.
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+			AsOf:     lo.ToPtr(invoice2AsOf),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		s.Len(invoices[0].Lines.OrEmpty(), 1)
+
+		invoiceLine := invoices[0].Lines.OrEmpty()[0]
+		s.NotNil(invoiceLine.ProgressiveLineHierarchy)
+
+		// The line has 0 quantity, 50 metered quantity
+		require.Equal(s.T(), float64(15), invoiceLine.UsageBased.Quantity.InexactFloat64())
+		require.Equal(s.T(), float64(75), invoiceLine.UsageBased.MeteredQuantity.InexactFloat64())
+
+		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.PreLinePeriodQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(50), invoiceLine.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
+
+		s.Len(invoiceLine.Discounts.Usage, 1)
+		usageDiscount := invoiceLine.Discounts.Usage[0]
+
+		// The usage discount has quantity 50, and preLinePeriodQuantity 0
+		require.Equal(s.T(), float64(60), usageDiscount.Quantity.InexactFloat64())
+		require.Equal(s.T(), float64(50), usageDiscount.PreLinePeriodQuantity.InexactFloat64())
+		// Sanity check discount data
+		require.Equal(s.T(), billing.RatecardUsageDiscountReason, usageDiscount.Reason.Type())
+		reason, err := usageDiscount.Reason.AsRatecardUsage()
+		require.NoError(s.T(), err)
+
+		require.Equal(s.T(), discountCorrelationID, reason.CorrelationID)
+		require.Equal(s.T(), float64(110), reason.Quantity.InexactFloat64())
+
+		// The detailed line exists and has a usage of 15
+		require.Len(s.T(), invoiceLine.Children.OrEmpty(), 1)
+		detailedLine := invoiceLine.Children.OrEmpty()[0]
+		require.Equal(s.T(), float64(15), detailedLine.FlatFee.Quantity.InexactFloat64())
+	})
+
+	s.Run("[invoice3] Creating a draft invoice with 30 usage", func() {
+		invoice3AsOf := periodEnd
+		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 30, invoice3AsOf.Add(-time.Minute))
+
+		// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
+		// between the split lines.
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+			AsOf:     lo.ToPtr(invoice3AsOf),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		s.Len(invoices[0].Lines.OrEmpty(), 1)
+
+		invoiceLine := invoices[0].Lines.OrEmpty()[0]
+		s.NotNil(invoiceLine.ProgressiveLineHierarchy)
+
+		// The line has 0 quantity, 50 metered quantity
+		require.Equal(s.T(), float64(30), invoiceLine.UsageBased.Quantity.InexactFloat64())
+		require.Equal(s.T(), float64(30), invoiceLine.UsageBased.MeteredQuantity.InexactFloat64())
+
+		require.Equal(s.T(), float64(15), invoiceLine.UsageBased.PreLinePeriodQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(125), invoiceLine.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
+
+		s.Len(invoiceLine.Discounts.Usage, 0)
+
+		// The detailed line exists and has a usage of 30
+		require.Len(s.T(), invoiceLine.Children.OrEmpty(), 1)
+		detailedLine := invoiceLine.Children.OrEmpty()[0]
+		require.Equal(s.T(), float64(30), detailedLine.FlatFee.Quantity.InexactFloat64())
+	})
+}

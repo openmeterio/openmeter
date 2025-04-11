@@ -233,18 +233,6 @@ func (l *usageBasedLine) CalculateDetailedLines() error {
 	return nil
 }
 
-func (l usageBasedLine) asPricerCalculateInput() (PricerCalculateInput, error) {
-	if l.line.UsageBased.Quantity == nil || l.line.UsageBased.PreLinePeriodQuantity == nil {
-		return PricerCalculateInput{}, fmt.Errorf("quantity and pre-line period quantity must be set for line[%s]", l.line.ID)
-	}
-
-	return PricerCalculateInput{
-		usageBasedLine:   l,
-		preLinePeriodQty: *l.line.UsageBased.PreLinePeriodQuantity,
-		linePeriodQty:    *l.line.UsageBased.Quantity,
-	}, nil
-}
-
 func (l usageBasedLine) getPricer() (Pricer, error) {
 	var basePricer Pricer
 
@@ -265,6 +253,10 @@ func (l usageBasedLine) getPricer() (Pricer, error) {
 
 	// This priceMutator captures the calculation flow for discounts and commitments:
 	return &priceMutator{
+		PreCalculation: []PreCalculationMutator{
+			&setQuantityToMeteredQuantity{},
+			&discountUsageMutator{},
+		},
 		Pricer: basePricer,
 		PostCalculation: []PostCalculationMutator{
 			&discountPercentageMutator{},
@@ -280,12 +272,7 @@ func (l usageBasedLine) calculateDetailedLines() (newDetailedLinesInput, error) 
 		return nil, err
 	}
 
-	pricerInput, err := l.asPricerCalculateInput()
-	if err != nil {
-		return nil, err
-	}
-
-	return pricer.Calculate(pricerInput)
+	return pricer.Calculate(PricerCalculateInput(l))
 }
 
 type newDetailedLinesInput []newDetailedLineInput
