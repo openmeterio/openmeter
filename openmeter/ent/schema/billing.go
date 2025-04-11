@@ -257,31 +257,31 @@ func (m TotalsMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.Other("amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 		field.Other("taxes_total", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 		field.Other("taxes_inclusive_total", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 		field.Other("taxes_exclusive_total", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 		field.Other("charges_total", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 		field.Other("discounts_total", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 		field.Other("total", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 	}
 }
@@ -301,7 +301,7 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("invoice_id").
 			SchemaType(map[string]string{
-				"postgres": "char(26)",
+				dialect.Postgres: "char(26)",
 			}),
 
 		field.Enum("managed_by").
@@ -309,7 +309,7 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 
 		field.String("parent_line_id").
 			SchemaType(map[string]string{
-				"postgres": "char(26)",
+				dialect.Postgres: "char(26)",
 			}).Optional().Nillable(),
 
 		field.Time("period_start"),
@@ -330,7 +330,7 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
-				"postgres": "varchar(3)",
+				dialect.Postgres: "varchar(3)",
 			}),
 
 		// Quantity is optional as for usage-based billing we can only persist this value,
@@ -339,12 +339,12 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 
 		field.JSON("tax_config", billing.TaxConfig{}).
 			SchemaType(map[string]string{
-				"postgres": "jsonb",
+				dialect.Postgres: "jsonb",
 			}).
 			Optional(),
 
@@ -460,7 +460,7 @@ func (BillingInvoiceFlatFeeLineConfig) Fields() []ent.Field {
 	return []ent.Field{
 		field.Other("per_unit_amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 		field.Enum("category").
 			GoType(billing.FlatFeeCategory("")).
@@ -499,13 +499,13 @@ func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 		field.Other("metered_quantity", alpacadecimal.Decimal{}).
 			Optional().
 			Nillable().
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 	}
 }
@@ -518,7 +518,7 @@ func (BillingInvoiceLineDiscountBase) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("line_id").
 			SchemaType(map[string]string{
-				"postgres": "char(26)",
+				dialect.Postgres: "char(26)",
 			}),
 
 		field.String("child_unique_reference_id").
@@ -558,12 +558,12 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 	return []ent.Field{
 		field.Other("amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 
 		field.Other("rounding_amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}).
 			Optional().
 			Nillable(),
@@ -587,7 +587,7 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 
 		field.Other("quantity", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}).
 			Optional().
 			Nillable().
@@ -595,7 +595,7 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 
 		field.Other("pre_line_period_quantity", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}).
 			Optional().
 			Nillable().
@@ -641,12 +641,12 @@ func (BillingInvoiceLineUsageDiscount) Fields() []ent.Field {
 	return []ent.Field{
 		field.Other("quantity", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 
 		field.Other("pre_line_period_quantity", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}).
 			Optional().
 			Nillable(),
@@ -733,7 +733,7 @@ func (BillingInvoice) Fields() []ent.Field {
 		field.String("customer_id").
 			NotEmpty().
 			SchemaType(map[string]string{
-				"postgres": "char(26)",
+				dialect.Postgres: "char(26)",
 			}).
 			Immutable(),
 
@@ -741,7 +741,7 @@ func (BillingInvoice) Fields() []ent.Field {
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
-				"postgres": "char(26)",
+				dialect.Postgres: "char(26)",
 			}),
 		field.Time("voided_at").
 			Optional().
@@ -765,7 +765,7 @@ func (BillingInvoice) Fields() []ent.Field {
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
-				"postgres": "varchar(3)",
+				dialect.Postgres: "varchar(3)",
 			}),
 
 		field.Time("due_at").
@@ -781,7 +781,7 @@ func (BillingInvoice) Fields() []ent.Field {
 		// Cloned profile settings
 		field.String("workflow_config_id").
 			SchemaType(map[string]string{
-				"postgres": "char(26)",
+				dialect.Postgres: "char(26)",
 			}),
 
 		field.String("tax_app_id").
@@ -910,7 +910,7 @@ func (BillingInvoiceValidationIssue) Fields() []ent.Field {
 		field.String("invoice_id").
 			NotEmpty().
 			SchemaType(map[string]string{
-				"postgres": "char(26)",
+				dialect.Postgres: "char(26)",
 			}),
 
 		field.Enum("severity").
@@ -967,7 +967,7 @@ func (BillingSequenceNumbers) Fields() []ent.Field {
 		field.String("scope"),
 		field.Other("last", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
-				"postgres": "numeric",
+				dialect.Postgres: "numeric",
 			}),
 	}
 }
@@ -993,7 +993,7 @@ func (BillingCustomerLock) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("customer_id").
 			SchemaType(map[string]string{
-				"postgres": "char(26)",
+				dialect.Postgres: "char(26)",
 			}),
 	}
 }
