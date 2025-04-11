@@ -71,6 +71,18 @@ func (siu *SubscriptionItemUpdate) ClearMetadata() *SubscriptionItemUpdate {
 	return siu
 }
 
+// SetAnnotations sets the "annotations" field.
+func (siu *SubscriptionItemUpdate) SetAnnotations(m map[string]interface{}) *SubscriptionItemUpdate {
+	siu.mutation.SetAnnotations(m)
+	return siu
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (siu *SubscriptionItemUpdate) ClearAnnotations() *SubscriptionItemUpdate {
+	siu.mutation.ClearAnnotations()
+	return siu
+}
+
 // SetActiveFrom sets the "active_from" field.
 func (siu *SubscriptionItemUpdate) SetActiveFrom(t time.Time) *SubscriptionItemUpdate {
 	siu.mutation.SetActiveFrom(t)
@@ -491,6 +503,16 @@ func (siu *SubscriptionItemUpdate) sqlSave(ctx context.Context) (n int, err erro
 	if siu.mutation.MetadataCleared() {
 		_spec.ClearField(subscriptionitem.FieldMetadata, field.TypeJSON)
 	}
+	if value, ok := siu.mutation.Annotations(); ok {
+		vv, err := subscriptionitem.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(subscriptionitem.FieldAnnotations, field.TypeString, vv)
+	}
+	if siu.mutation.AnnotationsCleared() {
+		_spec.ClearField(subscriptionitem.FieldAnnotations, field.TypeString)
+	}
 	if value, ok := siu.mutation.ActiveFrom(); ok {
 		_spec.SetField(subscriptionitem.FieldActiveFrom, field.TypeTime, value)
 	}
@@ -753,6 +775,18 @@ func (siuo *SubscriptionItemUpdateOne) SetMetadata(m map[string]string) *Subscri
 // ClearMetadata clears the value of the "metadata" field.
 func (siuo *SubscriptionItemUpdateOne) ClearMetadata() *SubscriptionItemUpdateOne {
 	siuo.mutation.ClearMetadata()
+	return siuo
+}
+
+// SetAnnotations sets the "annotations" field.
+func (siuo *SubscriptionItemUpdateOne) SetAnnotations(m map[string]interface{}) *SubscriptionItemUpdateOne {
+	siuo.mutation.SetAnnotations(m)
+	return siuo
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (siuo *SubscriptionItemUpdateOne) ClearAnnotations() *SubscriptionItemUpdateOne {
+	siuo.mutation.ClearAnnotations()
 	return siuo
 }
 
@@ -1205,6 +1239,16 @@ func (siuo *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subs
 	}
 	if siuo.mutation.MetadataCleared() {
 		_spec.ClearField(subscriptionitem.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := siuo.mutation.Annotations(); ok {
+		vv, err := subscriptionitem.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(subscriptionitem.FieldAnnotations, field.TypeString, vv)
+	}
+	if siuo.mutation.AnnotationsCleared() {
+		_spec.ClearField(subscriptionitem.FieldAnnotations, field.TypeString)
 	}
 	if value, ok := siuo.mutation.ActiveFrom(); ok {
 		_spec.SetField(subscriptionitem.FieldActiveFrom, field.TypeTime, value)

@@ -32,6 +32,8 @@ type SubscriptionItem struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]string `json:"metadata,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations map[string]interface{} `json:"annotations,omitempty"`
 	// ActiveFrom holds the value of the "active_from" field.
 	ActiveFrom time.Time `json:"active_from,omitempty"`
 	// ActiveTo holds the value of the "active_to" field.
@@ -138,6 +140,8 @@ func (*SubscriptionItem) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case subscriptionitem.FieldCreatedAt, subscriptionitem.FieldUpdatedAt, subscriptionitem.FieldDeletedAt, subscriptionitem.FieldActiveFrom, subscriptionitem.FieldActiveTo:
 			values[i] = new(sql.NullTime)
+		case subscriptionitem.FieldAnnotations:
+			values[i] = subscriptionitem.ValueScanner.Annotations.ScanValue()
 		case subscriptionitem.FieldEntitlementTemplate:
 			values[i] = subscriptionitem.ValueScanner.EntitlementTemplate.ScanValue()
 		case subscriptionitem.FieldTaxConfig:
@@ -199,6 +203,12 @@ func (si *SubscriptionItem) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &si.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
+			}
+		case subscriptionitem.FieldAnnotations:
+			if value, err := subscriptionitem.ValueScanner.Annotations.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				si.Annotations = value
 			}
 		case subscriptionitem.FieldActiveFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -376,6 +386,9 @@ func (si *SubscriptionItem) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
 	builder.WriteString(fmt.Sprintf("%v", si.Metadata))
+	builder.WriteString(", ")
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", si.Annotations))
 	builder.WriteString(", ")
 	builder.WriteString("active_from=")
 	builder.WriteString(si.ActiveFrom.Format(time.ANSIC))

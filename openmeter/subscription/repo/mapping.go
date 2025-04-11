@@ -165,6 +165,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		BillingBehaviorOverride: subscription.BillingBehaviorOverride{
 			RestartBillingPeriod: item.RestartsBillingPeriod,
 		},
+		Annotations:                            item.Annotations,
 		Name:                                   item.Name,
 		Description:                            item.Description,
 		ActiveFromOverrideRelativeToPhaseStart: sa,

@@ -602,6 +602,7 @@ type CreateSubscriptionItemCustomerInput struct {
 }
 
 type CreateSubscriptionItemInput struct {
+	Annotations                         models.Annotations `json:"annotations"`
 	CreateSubscriptionItemPlanInput     `json:",inline"`
 	CreateSubscriptionItemCustomerInput `json:",inline"`
 }
@@ -657,6 +658,7 @@ func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
 		NamespacedModel: models.NamespacedModel{
 			Namespace: phaseID.Namespace,
 		},
+		Annotations:                            s.Annotations,
 		CadencedModel:                          itemCadence,
 		ActiveFromOverrideRelativeToPhaseStart: s.CreateSubscriptionItemCustomerInput.ActiveFromOverrideRelativeToPhaseStart,
 		ActiveToOverrideRelativeToPhaseStart:   s.CreateSubscriptionItemCustomerInput.ActiveToOverrideRelativeToPhaseStart,
@@ -878,10 +880,15 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 			rcByKey[rateCard.GetKey()] = struct{}{}
 
 			createSubscriptionItemPlanInput := rateCard.ToCreateSubscriptionItemPlanInput()
+
+			annotations := models.Annotations{}
+			AnnotationParser.AddOwnerSubSystem(annotations, OwnerSubscriptionSubSystem)
+
 			itemSpec := SubscriptionItemSpec{
 				CreateSubscriptionItemInput: CreateSubscriptionItemInput{
 					CreateSubscriptionItemPlanInput:     createSubscriptionItemPlanInput,
 					CreateSubscriptionItemCustomerInput: CreateSubscriptionItemCustomerInput{},
+					Annotations:                         annotations,
 				},
 			}
 

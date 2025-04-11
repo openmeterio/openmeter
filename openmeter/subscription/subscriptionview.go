@@ -367,6 +367,7 @@ func NewSubscriptionView(
 							ActiveToOverrideRelativeToPhaseStart:   item.ActiveToOverrideRelativeToPhaseStart,
 							BillingBehaviorOverride:                item.BillingBehaviorOverride,
 						},
+						Annotations: item.Annotations,
 					},
 				}
 
