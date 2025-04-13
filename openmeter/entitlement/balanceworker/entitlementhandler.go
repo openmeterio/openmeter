@@ -252,6 +252,11 @@ func (w *Worker) createSnapshotEventNegCache(ctx context.Context, entitlementEnt
 		}
 	}
 
+	// TODO: let's add an option for validation mode:
+	// we always recalculate, but check if the estimations invariants are kept
+	// this should be a percentage and later we can say that for 1% of the events we should validate
+	// cache consistency
+
 	if action == recalcActionRecalculate {
 		value, err := w.negCache.HandleRecalculation(ctx, target, func(ctx context.Context) (*snapshot.EntitlementValue, error) {
 			res, err := w.entitlement.Entitlement.GetEntitlementValue(ctx, entitlementEntity.Namespace, entitlementEntity.SubjectKey, entitlementEntity.ID, calculatedAt)

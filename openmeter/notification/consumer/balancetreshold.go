@@ -389,6 +389,7 @@ func (b *BalanceThresholdEventHandler) GetNextActiveThresholdsFor(ctx context.Co
 		}
 
 		if len(lastEvents.Items) == 0 {
+			// TODO: this is invalid we need to return the first threshold
 			continue
 		}
 
