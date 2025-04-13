@@ -24,7 +24,9 @@ import (
 
 const (
 	// TODO: Parameterize this
-	defaultLockExpiry = 3 * time.Second
+	defaultLockExpiry = 4 * time.Second
+
+	defaultSetCacheKeyTimeout = 1 * time.Second
 )
 
 type EntitlementCached struct {
@@ -89,20 +91,21 @@ type HandleRecalculationResult struct {
 }
 
 type Cache interface {
-	HandleEntitlementEvent(ctx context.Context, event IngestEventInput) (*EntitlementCached, error)
-	HandleRecalculation(ctx context.Context, target TargetEntitlement, calculationFn func(ctx context.Context) (*snapshot.EntitlementValue, error)) (HandleRecalculationResult, error)
+	HandleEntitlementEvent(ctx context.Context, event IngestEventInput) (EntitlementCached, error)
+	HandleRecalculation(ctx context.Context, target TargetEntitlement, calculationFn func(ctx context.Context) (*snapshot.EntitlementValue, error)) (*snapshot.EntitlementValue, error)
 	Remove(ctx context.Context, target TargetEntitlement) error
 }
 
 type cache struct {
-	data    map[hasher.Hash]EntitlementCached
 	backend CacheBackend
 }
 
+var _ Cache = (*cache)(nil)
+
 var (
 	ErrUnsupportedMeterAggregation = errors.New("unsupported meter aggregation")
-	// Cache entry was updated concurrently
-	ErrEntryNotFound = errors.New("entry not found")
+	ErrEntryNotFound               = errors.New("entry not found")
+	ErrLockAlreadyExpired          = redsync.ErrLockAlreadyExpired
 )
 
 func (c *cache) HandleEntitlementEvent(ctx context.Context, event IngestEventInput) (EntitlementCached, error) {
@@ -183,6 +186,35 @@ func (c *cache) getChange(meterDef meter.Meter, events []serializer.CloudEventsK
 	return NewInfDecimalFromDecimal(totalEventValue), nil
 }
 
+func (c *cache) Remove(ctx context.Context, target TargetEntitlement) error {
+	return c.backend.Delete(ctx, target)
+}
+
+func (c *cache) HandleRecalculation(ctx context.Context, target TargetEntitlement, calculationFn func(ctx context.Context) (*snapshot.EntitlementValue, error)) (*snapshot.EntitlementValue, error) {
+	cacheEntry, err := c.backend.UpdateCacheEntryIfExists(ctx, target, func(ctx context.Context, entry *EntitlementCached) (*EntitlementCached, error) {
+		res, err := calculationFn(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		return &EntitlementCached{
+			LastCalculation: *res,
+			LastCalculated:  time.Now(),
+			ApproxUsage:     NewInfDecimal(lo.FromPtr(res.Usage)),
+		}, nil
+	})
+	if err != nil {
+		if errors.Is(err, ErrLockAlreadyExpired) {
+			if cacheEntry != nil {
+				return &cacheEntry.LastCalculation, nil
+			}
+		}
+		return nil, err
+	}
+
+	return &cacheEntry.LastCalculation, nil
+}
+
 type CacheBackend interface {
 	UpdateCacheEntryIfExists(ctx context.Context, target TargetEntitlement, updater func(ctx context.Context, entry *EntitlementCached) (*EntitlementCached, error)) (*EntitlementCached, error)
 	Delete(ctx context.Context, target TargetEntitlement) error
@@ -222,7 +254,7 @@ type wrappedCacheEntry struct {
 	Entry      *EntitlementCached `json:"entry"`
 }
 
-func (b *redisCacheBackend) withRedisLock(ctx context.Context, target TargetEntitlement, fn func(ctx context.Context) error) error {
+func (b *redisCacheBackend) withRedisLock(ctx context.Context, target TargetEntitlement, fn func(ctx context.Context, lock *redsync.Mutex) error) error {
 	lockKey := fmt.Sprintf("lock:entitlement:%s.%x", target.Entitlement.ID, target.GetEntryHash())
 
 	lock := b.redsync.NewMutex(lockKey, redsync.WithExpiry(defaultLockExpiry))
@@ -238,11 +270,18 @@ func (b *redisCacheBackend) withRedisLock(ctx context.Context, target TargetEnti
 		}
 	}()
 
-	fnErr := fn(ctx)
+	fnErr := fn(ctx, lock)
 
 	// Might return ErrLockAlreadyExpired
 	if _, err := lock.UnlockContext(ctx); err != nil {
-		return errors.Join(fnErr, err)
+		// Function might have returned an error, in this case we want to return that error instead of joining
+		// the errors (so that the caller can handle the specific callback error and not the lock error)
+		if fnErr != nil {
+			return fnErr
+		}
+
+		return err
+
 	}
 
 	return fnErr
@@ -251,7 +290,7 @@ func (b *redisCacheBackend) withRedisLock(ctx context.Context, target TargetEnti
 func (b *redisCacheBackend) UpdateCacheEntryIfExists(ctx context.Context, target TargetEntitlement, updater func(ctx context.Context, entry *EntitlementCached) (*EntitlementCached, error)) (*EntitlementCached, error) {
 	var newEntry *EntitlementCached
 
-	err := b.withRedisLock(ctx, target, func(ctx context.Context) error {
+	err := b.withRedisLock(ctx, target, func(ctx context.Context, lock *redsync.Mutex) error {
 		key := fmt.Sprintf("entitlement:%s.%x", target.Entitlement.ID, target.GetEntryHash())
 
 		// TODO: add cache entry ttl as now the entry is always updated thus ttls resets
@@ -293,8 +332,21 @@ func (b *redisCacheBackend) UpdateCacheEntryIfExists(ctx context.Context, target
 			return err
 		}
 
-		_, err = b.redis.Set(ctx, key, newValue, time.Hour).Result()
+		// We should only update the cache if the lock is not yet expired.
+		// It is fine to do the update() call even if the lock is expired, as this might be a recalculation
+		// that we would want to execute regardless. This is why we are creating the timeout context here.
+		//
+		// Let's create a child context with a timeout for the update.
+
+		lockCtx, lockCancel := context.WithDeadline(ctx, lock.Until())
+		defer lockCancel()
+
+		_, err = b.redis.Set(lockCtx, key, newValue, time.Hour).Result()
 		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				return redsync.ErrLockAlreadyExpired
+			}
+
 			return err
 		}
 
@@ -308,7 +360,7 @@ func (b *redisCacheBackend) UpdateCacheEntryIfExists(ctx context.Context, target
 }
 
 func (b *redisCacheBackend) Delete(ctx context.Context, target TargetEntitlement) error {
-	return b.withRedisLock(ctx, target, func(ctx context.Context) error {
+	return b.withRedisLock(ctx, target, func(ctx context.Context, lock *redsync.Mutex) error {
 		key := fmt.Sprintf("entitlement:%s.%x", target.Entitlement.ID, target.GetEntryHash())
 		return b.redis.Del(ctx, key).Err()
 	})
