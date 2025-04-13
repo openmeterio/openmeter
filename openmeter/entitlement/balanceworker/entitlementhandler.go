@@ -158,7 +158,7 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 
 	var err error
 	var snapshot marshaler.Event
-	if opts.useNegCache {
+	if opts.useNegCache && entitlementEntity.EntitlementType == entitlement.EntitlementTypeMetered {
 		snapshot, err = w.createSnapshotEventNegCache(ctx, entitlementEntity, calculatedAt, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create entitlement update snapshot event[negcache]: %w", err)
