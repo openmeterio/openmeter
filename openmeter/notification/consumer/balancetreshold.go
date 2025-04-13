@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"golang.org/x/exp/slices"
 
@@ -43,27 +44,10 @@ func (b *BalanceThresholdEventHandler) Handle(ctx context.Context, event snapsho
 		return nil
 	}
 
-	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
-	affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
-		Namespaces: []string{event.Namespace.ID},
-		Types:      []notification.RuleType{notification.RuleTypeBalanceThreshold},
-	})
+	affectedRules, err := b.getAffectedRules(ctx, event.Entitlement)
 	if err != nil {
-		return fmt.Errorf("failed to list notification rules: %w", err)
+		return fmt.Errorf("failed to get affected rules: %w", err)
 	}
-
-	affectedRules := lo.Filter(affectedRulesPaged.Items, func(rule notification.Rule, _ int) bool {
-		if len(rule.Config.BalanceThreshold.Thresholds) == 0 {
-			return false
-		}
-
-		if len(rule.Config.BalanceThreshold.Features) == 0 {
-			return true
-		}
-
-		return slices.Contains(rule.Config.BalanceThreshold.Features, event.Entitlement.FeatureID) ||
-			slices.Contains(rule.Config.BalanceThreshold.Features, event.Entitlement.FeatureKey)
-	})
 
 	var errs error
 	for _, rule := range affectedRules {
@@ -77,6 +61,32 @@ func (b *BalanceThresholdEventHandler) Handle(ctx context.Context, event snapsho
 	}
 
 	return errs
+}
+
+func (b *BalanceThresholdEventHandler) getAffectedRules(ctx context.Context, entitlement entitlement.Entitlement) ([]notification.Rule, error) {
+	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
+	affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
+		Namespaces: []string{entitlement.Namespace},
+		Types:      []notification.RuleType{notification.RuleTypeBalanceThreshold},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list notification rules: %w", err)
+	}
+
+	affectedRules := lo.Filter(affectedRulesPaged.Items, func(rule notification.Rule, _ int) bool {
+		if len(rule.Config.BalanceThreshold.Thresholds) == 0 {
+			return false
+		}
+
+		if len(rule.Config.BalanceThreshold.Features) == 0 {
+			return true
+		}
+
+		return slices.Contains(rule.Config.BalanceThreshold.Features, entitlement.FeatureID) ||
+			slices.Contains(rule.Config.BalanceThreshold.Features, entitlement.FeatureKey)
+	})
+
+	return affectedRules, nil
 }
 
 func (b *BalanceThresholdEventHandler) handleRule(ctx context.Context, balSnapshot snapshot.SnapshotEvent, rule notification.Rule) error {
@@ -235,23 +245,23 @@ func (b *BalanceThresholdEventHandler) isBalanceThresholdEvent(event snapshot.Sn
 // getPeriodsDeduplicationHash generates a hash that the handler can use to deduplicate the events. Right now the hash is unique
 // for a single entitlement usage period. We can use this to fetch the previous events for the same period and validate
 // if we need to send a new notification.
-func (b *BalanceThresholdEventHandler) getPeriodsDeduplicationHash(snapshot snapshot.SnapshotEvent, ruleID string) string {
+func (b *BalanceThresholdEventHandler) getPeriodsDeduplicationHash(entitlement entitlement.Entitlement, ruleID string) string {
 	// Note: this should not happen, but let's be safe here
 	currentUsagePeriod := defaultx.WithDefault(
-		snapshot.Entitlement.CurrentUsagePeriod, timeutil.ClosedPeriod{
+		entitlement.CurrentUsagePeriod, timeutil.ClosedPeriod{
 			From: time.Time{},
 			To:   time.Time{},
 		})
 
 	source := strings.Join([]string{
 		ruleID,
-		snapshot.Namespace.ID,
+		entitlement.Namespace,
 		currentUsagePeriod.From.UTC().Format(time.RFC3339),
 		currentUsagePeriod.To.UTC().Format(time.RFC3339),
-		snapshot.Subject.Key,
-		snapshot.Entitlement.ID,
-		snapshot.Feature.ID,
-		defaultx.WithDefault(snapshot.Entitlement.MeasureUsageFrom, time.Time{}).UTC().Format(time.RFC3339),
+		entitlement.SubjectKey,
+		entitlement.ID,
+		entitlement.FeatureID,
+		defaultx.WithDefault(entitlement.MeasureUsageFrom, time.Time{}).UTC().Format(time.RFC3339),
 	}, "/")
 
 	h := sha256.New()
@@ -348,4 +358,77 @@ func getHighestMatchingThreshold(thresholds []notification.BalanceThreshold, eVa
 	}
 
 	return highest, nil
+}
+
+func (b *BalanceThresholdEventHandler) GetNextActiveThresholdsFor(ctx context.Context, entitlement entitlement.Entitlement, lastCalculatedValue snapshot.EntitlementValue) (*alpacadecimal.Decimal, error) {
+	affectedRules, err := b.getAffectedRules(ctx, entitlement)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get affected rules: %w", err)
+	}
+
+	thresholds := make([]alpacadecimal.Decimal, 0, len(affectedRules))
+	for _, rule := range affectedRules {
+		periodDedupeHash := b.getPeriodsDeduplicationHash(entitlement, rule.ID)
+
+		lastEvents, err := b.Notification.ListEvents(ctx, notification.ListEventsInput{
+			Page: pagination.Page{
+				PageSize:   1,
+				PageNumber: 1,
+			},
+			Namespaces: []string{entitlement.Namespace},
+
+			From: entitlement.CurrentUsagePeriod.From,
+			To:   entitlement.CurrentUsagePeriod.To,
+
+			DeduplicationHashes: []string{periodDedupeHash},
+			OrderBy:             notification.EventOrderByCreatedAt,
+			Order:               sortx.OrderDesc,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list events: %w", err)
+		}
+
+		if len(lastEvents.Items) == 0 {
+			continue
+		}
+
+		lastEvent := lastEvents.Items[0]
+
+		if lastEvent.Payload.Type != notification.EventTypeBalanceThreshold {
+			continue
+		}
+
+		lastEventActualValue, err := getBalanceThreshold(
+			lastEvent.Payload.BalanceThreshold.Threshold,
+			lastEvent.Payload.BalanceThreshold.Value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to calculate actual value from last event: %w", err)
+		}
+
+		for _, threshold := range rule.Config.BalanceThreshold.Thresholds {
+			actualThreshold, err := getBalanceThreshold(threshold, api.EntitlementValue(lastCalculatedValue))
+			if err != nil {
+				return nil, fmt.Errorf("failed to calculate actual value from last event: %w", err)
+			}
+
+			if actualThreshold.NumericThreshold > lastEventActualValue.NumericThreshold {
+				thresholds = append(thresholds, alpacadecimal.NewFromFloat(threshold.Value))
+			}
+		}
+	}
+
+	var minThreshold *alpacadecimal.Decimal
+
+	for _, threshold := range thresholds {
+		if minThreshold == nil {
+			minThreshold = &threshold
+			continue
+		}
+
+		if threshold.LessThan(*minThreshold) {
+			minThreshold = &threshold
+		}
+	}
+
+	return minThreshold, nil
 }

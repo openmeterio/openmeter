@@ -21,5 +21,5 @@ func (w *Worker) handleCacheMissEvent(ctx context.Context, event *edge.Entitleme
 		return nil, err
 	}
 
-	return w.processEntitlementEntity(ctx, ent, currentTime, source)
+	return w.processEntitlementEntity(ctx, ent, currentTime, WithSource(source))
 }

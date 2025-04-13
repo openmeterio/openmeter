@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
@@ -69,7 +70,9 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 			MeterSlugs: h.getMeterSlugsFromMeters(message.Meters),
 			// Warning: Given this is called after the clickhouse writes have completed, it's a fair assumption that
 			// the event was stored at this time to clickhouse.
-			StoredAt: now,
+			// TODO: nil check
+			RawEvents: []serializer.CloudEventsKafkaPayload{*message.Serialized},
+			StoredAt:  now,
 		}
 	})
 
@@ -91,15 +94,18 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 		}
 
 		meterSlugs := make([]string, 0, len(events))
+		rawEvents := make([]serializer.CloudEventsKafkaPayload, 0, len(events))
 
 		for _, event := range events[1:] {
 			meterSlugs = append(meterSlugs, event.MeterSlugs...)
+			rawEvents = append(rawEvents, event.RawEvents...)
 		}
 
 		iEvents = append(iEvents, ingestevents.EventBatchedIngest{
 			Namespace:  events[0].Namespace,
 			SubjectKey: events[0].SubjectKey,
 			MeterSlugs: lo.Uniq(meterSlugs),
+			RawEvents:  rawEvents,
 			StoredAt:   now,
 		})
 	}
