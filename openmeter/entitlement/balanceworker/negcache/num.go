@@ -1,6 +1,8 @@
 package negcache
 
 import (
+	"math"
+
 	"github.com/alpacahq/alpacadecimal"
 )
 
@@ -55,6 +57,31 @@ func (d InfDecimal) GreaterThanOrEqual(other InfDecimal) bool {
 	}
 
 	return d.value.GreaterThanOrEqual(other.value)
+}
+
+func (d InfDecimal) InexactFloat64() float64 {
+	if d.infinite {
+		return math.Inf(1)
+	}
+
+	return d.value.InexactFloat64()
+}
+
+func (d InfDecimal) MarshalJSON() ([]byte, error) {
+	if d.infinite {
+		return []byte("\"+inf\""), nil
+	}
+
+	return d.value.MarshalJSON()
+}
+
+func (d *InfDecimal) UnmarshalJSON(data []byte) error {
+	if string(data) == "\"+inf\"" {
+		d.infinite = true
+		return nil
+	}
+
+	return d.value.UnmarshalJSON(data)
 }
 
 var infinite = InfDecimal{

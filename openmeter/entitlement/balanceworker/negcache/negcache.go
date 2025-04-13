@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
@@ -20,14 +22,17 @@ import (
 	"github.com/samber/lo"
 )
 
-type EntitlementCached struct {
-	Target TargetEntitlement
+const (
+	// TODO: Parameterize this
+	defaultLockExpiry = 3 * time.Second
+)
 
-	LastCalculation snapshot.EntitlementValue
-	LastCalculated  time.Time
+type EntitlementCached struct {
+	LastCalculation snapshot.EntitlementValue `json:"lastCalculation"`
+	LastCalculated  time.Time                 `json:"lastCalculated"`
 
 	// ApproxUsage is the approximate usage of the entitlement, it is guaranteed, that the usage is at least as much as the entitlement balance as now.
-	ApproxUsage InfDecimal
+	ApproxUsage InfDecimal `json:"approxUsage"`
 }
 
 type IngestEventInput struct {
@@ -59,6 +64,8 @@ func (e TargetEntitlement) Validate() error {
 }
 
 func (t *TargetEntitlement) GetEntryHash() hasher.Hash {
+	// TODO!: nil safety + validation! (e.g CurrentUsagePeriod)
+
 	// TODO: how to express granting with a hash
 	// Entitlement entity changes
 	val := strings.Join(
@@ -76,9 +83,14 @@ func (t *TargetEntitlement) GetEntryHash() hasher.Hash {
 	return hasher.NewHash([]byte(val))
 }
 
+type HandleRecalculationResult struct {
+	Value            *snapshot.EntitlementValue
+	CalculationError error
+}
+
 type Cache interface {
 	HandleEntitlementEvent(ctx context.Context, event IngestEventInput) (*EntitlementCached, error)
-	HandleRecalculation(ctx context.Context, target TargetEntitlement, calculationFn func(ctx context.Context) (*snapshot.EntitlementValue, error)) (*snapshot.EntitlementValue, error)
+	HandleRecalculation(ctx context.Context, target TargetEntitlement, calculationFn func(ctx context.Context) (*snapshot.EntitlementValue, error)) (HandleRecalculationResult, error)
 	Remove(ctx context.Context, target TargetEntitlement) error
 }
 
@@ -87,15 +99,17 @@ type cache struct {
 	backend CacheBackend
 }
 
-var ErrUnsupportedMeterAggregation = errors.New("unsupported meter aggregation")
+var (
+	ErrUnsupportedMeterAggregation = errors.New("unsupported meter aggregation")
+	// Cache entry was updated concurrently
+	ErrEntryNotFound = errors.New("entry not found")
+)
 
 func (c *cache) HandleEntitlementEvent(ctx context.Context, event IngestEventInput) (EntitlementCached, error) {
-	entry, err := c.backend.UpdateCacheEntryIfExists(ctx, event.Target, func(ctx context.Context, entry EntitlementCached) (EntitlementCached, error) {
-		hash := event.Target.GetEntryHash()
-
-		// Something have happend with the entitlement or it's dependencies, we need to re-evaluate the entitlement
-		if entry.ConsistencyHash != hash {
-			return EntitlementCached{}, ErrConcurrentUpdate
+	entry, err := c.backend.UpdateCacheEntryIfExists(ctx, event.Target, func(ctx context.Context, entry *EntitlementCached) (*EntitlementCached, error) {
+		// TODO: return error
+		if entry == nil {
+			return nil, ErrEntryNotFound
 		}
 
 		var approxIncrease InfDecimal
@@ -129,7 +143,7 @@ func (c *cache) HandleEntitlementEvent(ctx context.Context, event IngestEventInp
 			approxIncrease = NewInfDecimal(float64(len(event.DedupedEvents)))
 		default:
 			// Avg, Min, Max
-			return entry, ErrUnsupportedMeterAggregation
+			return nil, ErrUnsupportedMeterAggregation
 		}
 
 		entry.ApproxUsage = entry.ApproxUsage.Add(approxIncrease)
@@ -139,7 +153,12 @@ func (c *cache) HandleEntitlementEvent(ctx context.Context, event IngestEventInp
 		return EntitlementCached{}, err
 	}
 
-	return entry, nil
+	if entry == nil {
+		// TODO: maybe seperate error?!
+		return EntitlementCached{}, ErrEntryNotFound
+	}
+
+	return *entry, nil
 }
 
 func (c *cache) getChange(meterDef meter.Meter, events []serializer.CloudEventsKafkaPayload) (InfDecimal, error) {
@@ -164,98 +183,133 @@ func (c *cache) getChange(meterDef meter.Meter, events []serializer.CloudEventsK
 	return NewInfDecimalFromDecimal(totalEventValue), nil
 }
 
-var (
-	// Cache entry was updated concurrently
-	ErrConcurrentUpdate = errors.New("concurrent update")
-	ErrEntryNotFound    = errors.New("entry not found")
-)
-
 type CacheBackend interface {
-	UpdateCacheEntryIfExists(ctx context.Context, target TargetEntitlement, updater func(ctx context.Context, entry EntitlementCached) (EntitlementCached, error)) (EntitlementCached, error)
+	UpdateCacheEntryIfExists(ctx context.Context, target TargetEntitlement, updater func(ctx context.Context, entry *EntitlementCached) (*EntitlementCached, error)) (*EntitlementCached, error)
+	Delete(ctx context.Context, target TargetEntitlement) error
 }
 
 type redisCacheBackend struct {
 	redis *redis.Client
+
+	redsync *redsync.Redsync
 }
 
+func NewRedisCacheBackend(redisURL string) (CacheBackend, error) {
+	redisURLParsed, err := redis.ParseURL(redisURL)
+	if err != nil {
+		return nil, err
+	}
+
+	redis := redis.NewClient(redisURLParsed)
+
+	return &redisCacheBackend{
+		redis:   redis,
+		redsync: redsync.New(goredis.NewPool(redis)),
+	}, nil
+}
+
+type cacheEntryStatus string
+
 const (
-	cacheEntryStatusPending = iota
-	cacheEntryStatusValid
+	cacheEntryStatusPending cacheEntryStatus = "pending"
+	cacheEntryStatusValid   cacheEntryStatus = "valid"
 )
 
 type wrappedCacheEntry struct {
-	status int
-	entry  EntitlementCached
+	Status cacheEntryStatus `json:"status"`
+	// To ensure that values are not equal, we use a random ULID
+	RandomULID string             `json:"random"`
+	Entry      *EntitlementCached `json:"entry"`
 }
 
-func (b *redisCacheBackend) UpdateCacheEntryIfExists(ctx context.Context, target TargetEntitlement, updater func(ctx context.Context, entry *EntitlementCached) (EntitlementCached, error)) (EntitlementCached, error) {
-	var cachedEntry EntitlementCached
+func (b *redisCacheBackend) withRedisLock(ctx context.Context, target TargetEntitlement, fn func(ctx context.Context) error) error {
+	lockKey := fmt.Sprintf("lock:entitlement:%s.%x", target.Entitlement.ID, target.GetEntryHash())
 
-	key := fmt.Sprintf("entitlement:%s.%x", target.Entitlement.ID, target.GetEntryHash())
+	lock := b.redsync.NewMutex(lockKey, redsync.WithExpiry(defaultLockExpiry))
 
-	wrappedEntryUpsert := wrappedCacheEntry{
-		status: cacheEntryStatusPending,
-		entry:  cachedEntry,
+	if err := lock.LockContext(ctx); err != nil {
+		return err
 	}
 
-	wrappedEntryUpsertJSON, err := json.Marshal(wrappedEntryUpsert)
-	if err != nil {
-		return EntitlementCached{}, err
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			lock.Unlock()
+			panic(recovered)
+		}
+	}()
+
+	fnErr := fn(ctx)
+
+	// Might return ErrLockAlreadyExpired
+	if _, err := lock.UnlockContext(ctx); err != nil {
+		return errors.Join(fnErr, err)
 	}
 
-	// Let's upsert the entry into the cache
-	upserted, err := b.redis.SetNX(ctx, key, wrappedEntryUpsertJSON, time.Hour).Result()
-	if err != nil {
-		return EntitlementCached{}, err
-	}
+	return fnErr
+}
 
-	// TODO:
-	if !upserted {
-		return EntitlementCached{}, ErrConcurrentUpdate
-	}
+func (b *redisCacheBackend) UpdateCacheEntryIfExists(ctx context.Context, target TargetEntitlement, updater func(ctx context.Context, entry *EntitlementCached) (*EntitlementCached, error)) (*EntitlementCached, error) {
+	var newEntry *EntitlementCached
 
-	err = b.redis.Watch(ctx, func(tx *redis.Tx) error {
-		entryJSON, err := tx.Get(ctx, key).Result()
+	err := b.withRedisLock(ctx, target, func(ctx context.Context) error {
+		key := fmt.Sprintf("entitlement:%s.%x", target.Entitlement.ID, target.GetEntryHash())
+
+		// TODO: add cache entry ttl as now the entry is always updated thus ttls resets
+		// Let's delete the entry in case the lock expires, that way subsequent calls will assume cold cache
+		entryJSON, err := b.redis.GetDel(ctx, key).Result()
+
+		notCached := false
 		if err != nil {
-			return err
+			if errors.Is(err, redis.Nil) {
+				notCached = true
+			} else {
+				return err
+			}
 		}
 
-		currentEntry := wrappedCacheEntry{}
-		err = json.Unmarshal([]byte(entryJSON), &currentEntry)
-		if err != nil {
-			return err
-		}
-
-		var cacheEntryIn *EntitlementCached
-		if currentEntry.status == cacheEntryStatusValid {
-			cacheEntryIn = &currentEntry.entry
-		}
-
-		newEntry, err := updater(ctx, cacheEntryIn)
-		if err != nil {
-			return err
-		}
-
-		_, err = tx.Pipelined(ctx, func(pipe redis.Pipeliner) error {
-			newEntryJSON, err := json.Marshal(newEntry)
+		var existingEntry *EntitlementCached
+		if !notCached {
+			unmarshaled := EntitlementCached{}
+			err = json.Unmarshal([]byte(entryJSON), &unmarshaled)
 			if err != nil {
 				return err
 			}
 
-			pipe.Set(ctx, key, newEntryJSON, time.Hour)
-			return nil
-		})
+			existingEntry = &unmarshaled
+		}
+
+		newEntry, err = updater(ctx, existingEntry)
 		if err != nil {
 			return err
 		}
 
-		cachedEntry = newEntry
+		// If the updater returns nil, we do not update the cache
+		if newEntry == nil {
+			return nil
+		}
+
+		newValue, err := json.Marshal(newEntry)
+		if err != nil {
+			return err
+		}
+
+		_, err = b.redis.Set(ctx, key, newValue, time.Hour).Result()
+		if err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
-		// TODO: map redis errors to our own error types
-		return EntitlementCached{}, err
+		return nil, err
 	}
 
-	return cachedEntry, nil
+	return newEntry, nil
+}
+
+func (b *redisCacheBackend) Delete(ctx context.Context, target TargetEntitlement) error {
+	return b.withRedisLock(ctx, target, func(ctx context.Context) error {
+		key := fmt.Sprintf("entitlement:%s.%x", target.Entitlement.ID, target.GetEntryHash())
+		return b.redis.Del(ctx, key).Err()
+	})
 }
