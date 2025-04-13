@@ -1,32 +1,21 @@
-package negcache
+package estimator
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/go-redsync/redsync/v4"
-	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/hasher"
-	"github.com/redis/go-redis/v9"
 	"github.com/samber/lo"
-)
-
-const (
-	// TODO: Parameterize this
-	defaultLockExpiry = 4 * time.Second
-
-	defaultSetCacheKeyTimeout = 1 * time.Second
 )
 
 type EntitlementCached struct {
@@ -94,10 +83,48 @@ type Cache interface {
 	HandleEntitlementEvent(ctx context.Context, event IngestEventInput) (EntitlementCached, error)
 	HandleRecalculation(ctx context.Context, target TargetEntitlement, calculationFn func(ctx context.Context) (*snapshot.EntitlementValue, error)) (*snapshot.EntitlementValue, error)
 	Remove(ctx context.Context, target TargetEntitlement) error
+	IntrospectCacheEntry(ctx context.Context, target TargetEntitlement) (*EntitlementCached, error)
+}
+
+type CacheOptions struct {
+	RedisURL    string
+	LockTimeout time.Duration
+}
+
+func (o *CacheOptions) Validate() error {
+	if o.RedisURL == "" {
+		return errors.New("redisURL is required")
+	}
+
+	if o.LockTimeout <= 0 {
+		return errors.New("lockTimeout must be greater than 0")
+	}
+
+	return nil
+}
+
+func NewCache(in CacheOptions) (Cache, error) {
+	if err := in.Validate(); err != nil {
+		return nil, err
+	}
+
+	backend, err := NewRedisCacheBackend(RedisCacheBackendOptions{
+		RedisURL:    in.RedisURL,
+		LockTimeout: in.LockTimeout,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &cache{
+		backend: backend,
+	}, nil
 }
 
 type cache struct {
 	backend CacheBackend
+
+	validationRate float64
 }
 
 var _ Cache = (*cache)(nil)
@@ -108,6 +135,7 @@ var (
 	ErrLockAlreadyExpired          = redsync.ErrLockAlreadyExpired
 )
 
+// TODO: test getChange
 func (c *cache) HandleEntitlementEvent(ctx context.Context, event IngestEventInput) (EntitlementCached, error) {
 	entry, err := c.backend.UpdateCacheEntryIfExists(ctx, event.Target, func(ctx context.Context, entry *EntitlementCached) (*EntitlementCached, error) {
 		// TODO: return error
@@ -215,153 +243,6 @@ func (c *cache) HandleRecalculation(ctx context.Context, target TargetEntitlemen
 	return &cacheEntry.LastCalculation, nil
 }
 
-type CacheBackend interface {
-	UpdateCacheEntryIfExists(ctx context.Context, target TargetEntitlement, updater func(ctx context.Context, entry *EntitlementCached) (*EntitlementCached, error)) (*EntitlementCached, error)
-	Delete(ctx context.Context, target TargetEntitlement) error
-}
-
-type redisCacheBackend struct {
-	redis *redis.Client
-
-	redsync *redsync.Redsync
-}
-
-func NewRedisCacheBackend(redisURL string) (CacheBackend, error) {
-	redisURLParsed, err := redis.ParseURL(redisURL)
-	if err != nil {
-		return nil, err
-	}
-
-	redis := redis.NewClient(redisURLParsed)
-
-	return &redisCacheBackend{
-		redis:   redis,
-		redsync: redsync.New(goredis.NewPool(redis)),
-	}, nil
-}
-
-type cacheEntryStatus string
-
-const (
-	cacheEntryStatusPending cacheEntryStatus = "pending"
-	cacheEntryStatusValid   cacheEntryStatus = "valid"
-)
-
-type wrappedCacheEntry struct {
-	Status cacheEntryStatus `json:"status"`
-	// To ensure that values are not equal, we use a random ULID
-	RandomULID string             `json:"random"`
-	Entry      *EntitlementCached `json:"entry"`
-}
-
-func (b *redisCacheBackend) withRedisLock(ctx context.Context, target TargetEntitlement, fn func(ctx context.Context, lock *redsync.Mutex) error) error {
-	lockKey := fmt.Sprintf("lock:entitlement:%s.%x", target.Entitlement.ID, target.GetEntryHash())
-
-	lock := b.redsync.NewMutex(lockKey, redsync.WithExpiry(defaultLockExpiry))
-
-	if err := lock.LockContext(ctx); err != nil {
-		return err
-	}
-
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			lock.Unlock()
-			panic(recovered)
-		}
-	}()
-
-	fnErr := fn(ctx, lock)
-
-	// Might return ErrLockAlreadyExpired
-	if _, err := lock.UnlockContext(ctx); err != nil {
-		// Function might have returned an error, in this case we want to return that error instead of joining
-		// the errors (so that the caller can handle the specific callback error and not the lock error)
-		if fnErr != nil {
-			return fnErr
-		}
-
-		return err
-
-	}
-
-	return fnErr
-}
-
-func (b *redisCacheBackend) UpdateCacheEntryIfExists(ctx context.Context, target TargetEntitlement, updater func(ctx context.Context, entry *EntitlementCached) (*EntitlementCached, error)) (*EntitlementCached, error) {
-	var newEntry *EntitlementCached
-
-	err := b.withRedisLock(ctx, target, func(ctx context.Context, lock *redsync.Mutex) error {
-		key := fmt.Sprintf("entitlement:%s.%x", target.Entitlement.ID, target.GetEntryHash())
-
-		// TODO: add cache entry ttl as now the entry is always updated thus ttls resets
-		// Let's delete the entry in case the lock expires, that way subsequent calls will assume cold cache
-		entryJSON, err := b.redis.GetDel(ctx, key).Result()
-
-		notCached := false
-		if err != nil {
-			if errors.Is(err, redis.Nil) {
-				notCached = true
-			} else {
-				return err
-			}
-		}
-
-		var existingEntry *EntitlementCached
-		if !notCached {
-			unmarshaled := EntitlementCached{}
-			err = json.Unmarshal([]byte(entryJSON), &unmarshaled)
-			if err != nil {
-				return err
-			}
-
-			existingEntry = &unmarshaled
-		}
-
-		newEntry, err = updater(ctx, existingEntry)
-		if err != nil {
-			return err
-		}
-
-		// If the updater returns nil, we do not update the cache
-		if newEntry == nil {
-			return nil
-		}
-
-		newValue, err := json.Marshal(newEntry)
-		if err != nil {
-			return err
-		}
-
-		// We should only update the cache if the lock is not yet expired.
-		// It is fine to do the update() call even if the lock is expired, as this might be a recalculation
-		// that we would want to execute regardless. This is why we are creating the timeout context here.
-		//
-		// Let's create a child context with a timeout for the update.
-
-		lockCtx, lockCancel := context.WithDeadline(ctx, lock.Until())
-		defer lockCancel()
-
-		_, err = b.redis.Set(lockCtx, key, newValue, time.Hour).Result()
-		if err != nil {
-			if errors.Is(err, context.DeadlineExceeded) {
-				return redsync.ErrLockAlreadyExpired
-			}
-
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return newEntry, nil
-}
-
-func (b *redisCacheBackend) Delete(ctx context.Context, target TargetEntitlement) error {
-	return b.withRedisLock(ctx, target, func(ctx context.Context, lock *redsync.Mutex) error {
-		key := fmt.Sprintf("entitlement:%s.%x", target.Entitlement.ID, target.GetEntryHash())
-		return b.redis.Del(ctx, key).Err()
-	})
+func (c *cache) IntrospectCacheEntry(ctx context.Context, target TargetEntitlement) (*EntitlementCached, error) {
+	return c.backend.Get(ctx, target)
 }

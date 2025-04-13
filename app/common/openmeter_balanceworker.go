@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
+	notificationconsumer "github.com/openmeterio/openmeter/openmeter/notification/consumer"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -76,16 +77,28 @@ func BalanceWorkerSubscriber(conf config.BalanceWorkerConfiguration, brokerOptio
 
 func NewBalanceWorkerOptions(
 	eventConfig config.EventsConfiguration,
+	estimatorConfig config.EstimatorConfiguration,
 	routerOptions router.Options,
 	eventBus eventbus.Publisher,
 	entitlements *registry.Entitlement,
 	repo balanceworker.BalanceWorkerRepository,
 	subjectResolver balanceworker.SubjectResolver,
+	entitlementBalanceThresholdProvider *notificationconsumer.BalanceThresholdEventHandler,
 	logger *slog.Logger,
 ) balanceworker.WorkerOptions {
 	return balanceworker.WorkerOptions{
 		SystemEventsTopic: eventConfig.SystemEvents.Topic,
 		IngestEventsTopic: eventConfig.IngestEvents.Topic,
+
+		Estimator: balanceworker.EstimatorOptions{
+			Enabled:        estimatorConfig.Enabled,
+			RedisURL:       estimatorConfig.RedisURL,
+			ValidationRate: estimatorConfig.ValidationRate,
+			LockTimeout:    estimatorConfig.LockTimeout,
+			ThresholdProviders: []balanceworker.ThresholdProvider{
+				entitlementBalanceThresholdProvider,
+			},
+		},
 
 		Router:          routerOptions,
 		EventBus:        eventBus,

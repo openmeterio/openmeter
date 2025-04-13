@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/negcache"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/estimator"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
@@ -30,9 +31,9 @@ type handleEntitlementEventOptions struct {
 	// EventAt is the time of the event, e.g. the "time" field from the upstream cloudevents event causing the change
 	eventAt time.Time
 
-	// UseNegCache is true if the entitlement handler should use the negative cache (should be only enabled for events that are
+	// UseEstimatorCache is true if the entitlement handler should use the estimator cache (should be only enabled for events that are
 	// coming from ingested events)
-	useNegCache bool
+	useEstimatorCache bool
 
 	rawIngestedEvents []serializer.CloudEventsKafkaPayload
 }
@@ -51,9 +52,9 @@ func WithEventAt(eventAt time.Time) handleOption {
 	}
 }
 
-func WithNegCache(useNegCache bool) handleOption {
+func WithEstimatorCache(useEstimatorCache bool) handleOption {
 	return func(o *handleEntitlementEventOptions) {
-		o.useNegCache = useNegCache
+		o.useEstimatorCache = useEstimatorCache
 	}
 }
 
@@ -158,8 +159,8 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 
 	var err error
 	var snapshot marshaler.Event
-	if opts.useNegCache && entitlementEntity.EntitlementType == entitlement.EntitlementTypeMetered {
-		snapshot, err = w.createSnapshotEventNegCache(ctx, entitlementEntity, calculatedAt, opts)
+	if opts.useEstimatorCache && w.estimator != nil && entitlementEntity.EntitlementType == entitlement.EntitlementTypeMetered {
+		snapshot, err = w.createSnapshotEventEstimator(ctx, entitlementEntity, calculatedAt, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create entitlement update snapshot event[negcache]: %w", err)
 		}
@@ -184,7 +185,7 @@ const (
 	recalcActionUseCache    recalcAction = "use-cache"
 )
 
-func (w *Worker) createSnapshotEventNegCache(ctx context.Context, entitlementEntity *entitlement.Entitlement, calculatedAt time.Time, opts handleEntitlementEventOptions) (marshaler.Event, error) {
+func (w *Worker) createSnapshotEventEstimator(ctx context.Context, entitlementEntity *entitlement.Entitlement, calculatedAt time.Time, opts handleEntitlementEventOptions) (marshaler.Event, error) {
 	if len(opts.rawIngestedEvents) == 0 {
 		return nil, fmt.Errorf("no raw ingested events provided")
 	}
@@ -206,7 +207,7 @@ func (w *Worker) createSnapshotEventNegCache(ctx context.Context, entitlementEnt
 		return nil, fmt.Errorf("failed to get meter: %w", err)
 	}
 
-	target := negcache.TargetEntitlement{
+	target := estimator.TargetEntitlement{
 		Entitlement: *entitlementEntity,
 		Feature:     *feature,
 		Meter:       meterEntity,
@@ -214,23 +215,23 @@ func (w *Worker) createSnapshotEventNegCache(ctx context.Context, entitlementEnt
 
 	action := recalcActionUseCache
 
-	ent, err := w.negCache.HandleEntitlementEvent(ctx, negcache.IngestEventInput{
+	ent, err := w.estimator.HandleEntitlementEvent(ctx, estimator.IngestEventInput{
 		Target:        target,
 		DedupedEvents: opts.rawIngestedEvents,
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, negcache.ErrUnsupportedMeterAggregation):
+		case errors.Is(err, estimator.ErrUnsupportedMeterAggregation):
 			// TODO: we need to fall back to the nonCached version as we don't need to touch redis for this
 			action = recalcActionRecalculate
-		case errors.Is(err, negcache.ErrLockAlreadyExpired):
+		case errors.Is(err, estimator.ErrLockAlreadyExpired):
 			// We got a timeout while waiting for the lock, so let's remove the entry and recalculate
 			// just to make sure we are in sync.
-			if err := w.negCache.Remove(ctx, target); err != nil {
+			if err := w.estimator.Remove(ctx, target); err != nil {
 				w.opts.Logger.Error("failed to remove entitlement from negcache", "error", err)
 			}
 			action = recalcActionRecalculate
-		case errors.Is(err, negcache.ErrEntryNotFound):
+		case errors.Is(err, estimator.ErrEntryNotFound):
 			action = recalcActionRecalculate
 		default:
 			return nil, fmt.Errorf("failed to handle entitlement event: %w", err)
@@ -254,7 +255,7 @@ func (w *Worker) createSnapshotEventNegCache(ctx context.Context, entitlementEnt
 	// cache consistency
 
 	if action == recalcActionRecalculate {
-		value, err := w.negCache.HandleRecalculation(ctx, target, func(ctx context.Context) (*snapshot.EntitlementValue, error) {
+		value, err := w.estimator.HandleRecalculation(ctx, target, func(ctx context.Context) (*snapshot.EntitlementValue, error) {
 			res, err := w.entitlement.Entitlement.GetEntitlementValue(ctx, entitlementEntity.Namespace, entitlementEntity.SubjectKey, entitlementEntity.ID, calculatedAt)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get entitlement value: %w", err)
@@ -271,42 +272,120 @@ func (w *Worker) createSnapshotEventNegCache(ctx context.Context, entitlementEnt
 			return nil, fmt.Errorf("failed to handle recalculation: %w", err)
 		}
 
-		if value == nil {
-			return nil, fmt.Errorf("unexpected nil: entitlement value")
+		return w.snapshotToEvent(ctx, snapshotToEventInput{
+			Entitlement:  entitlementEntity,
+			Feature:      feature,
+			Value:        value,
+			CalculatedAt: calculatedAt,
+			Source:       opts.source,
+		})
+	}
+
+	if rand.Float64() < w.estimator.validationRate {
+		res, err := w.entitlement.Entitlement.GetEntitlementValue(ctx, entitlementEntity.Namespace, entitlementEntity.SubjectKey, entitlementEntity.ID, calculatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get entitlement value: %w", err)
 		}
 
-		subject := models.Subject{
-			Key: entitlementEntity.SubjectKey,
+		value, err := entitlementdriver.MapEntitlementValueToAPI(res)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map entitlement value: %w", err)
 		}
-		if w.opts.SubjectResolver != nil {
-			subject, err = w.opts.SubjectResolver.GetSubjectByKey(ctx, entitlementEntity.Namespace, entitlementEntity.SubjectKey)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get subject ID: %w", err)
+
+		cacheEntry, err := w.estimator.IntrospectCacheEntry(ctx, target)
+		if err != nil {
+			w.opts.Logger.Error("failed to introspect cache entry", "error", err)
+			cacheEntry = nil
+		}
+
+		if cacheEntry != nil {
+			balance := estimator.NewInfDecimal(lo.FromPtr(value.Balance))
+
+			if balance.GreaterThan(cacheEntry.ApproxUsage) {
+				w.opts.Logger.Error("cache entry is inconsistent", "error", err)
 			}
 		}
 
-		event := marshaler.WithSource(
-			opts.source,
-			snapshot.SnapshotEvent{
-				Entitlement: *entitlementEntity,
-				Namespace: models.NamespaceID{
-					ID: entitlementEntity.Namespace,
-				},
-				Subject:   subject,
-				Feature:   *feature,
-				Operation: snapshot.ValueOperationUpdate,
+		return w.snapshotToEvent(ctx, snapshotToEventInput{
+			Entitlement:  entitlementEntity,
+			Feature:      feature,
+			Value:        lo.ToPtr((snapshot.EntitlementValue)(value)),
+			CalculatedAt: calculatedAt,
+			Source:       opts.source,
+		})
 
-				CalculatedAt: &calculatedAt,
-
-				Value:              value,
-				CurrentUsagePeriod: entitlementEntity.CurrentUsagePeriod,
-			},
-		)
-
-		return event, nil
 	}
 
 	return nil, nil
+}
+
+type snapshotToEventInput struct {
+	Entitlement  *entitlement.Entitlement
+	Feature      *feature.Feature
+	Value        *snapshot.EntitlementValue
+	CalculatedAt time.Time
+	Source       string
+}
+
+func (i *snapshotToEventInput) Validate() error {
+	if i.Value == nil {
+		return fmt.Errorf("unexpected nil: entitlement value")
+	}
+
+	if i.Entitlement == nil {
+		return fmt.Errorf("unexpected nil: entitlement")
+	}
+
+	if i.Feature == nil {
+		return fmt.Errorf("unexpected nil: feature")
+	}
+
+	if i.CalculatedAt.IsZero() {
+		return fmt.Errorf("unexpected zero: calculatedAt")
+	}
+
+	if i.Source == "" {
+		return fmt.Errorf("unexpected empty: source")
+	}
+
+	return nil
+}
+
+func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (marshaler.Event, error) {
+	if in.Value == nil {
+		return nil, fmt.Errorf("unexpected nil: entitlement value")
+	}
+
+	subject := models.Subject{
+		Key: in.Entitlement.SubjectKey,
+	}
+
+	if w.opts.SubjectResolver != nil {
+		var err error
+		subject, err = w.opts.SubjectResolver.GetSubjectByKey(ctx, in.Entitlement.Namespace, in.Entitlement.SubjectKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get subject ID: %w", err)
+		}
+	}
+
+	event := marshaler.WithSource(
+		in.Source,
+		snapshot.SnapshotEvent{
+			Entitlement: *in.Entitlement,
+			Namespace: models.NamespaceID{
+				ID: in.Entitlement.Namespace,
+			},
+			Subject:   subject,
+			Feature:   *in.Feature,
+			Operation: snapshot.ValueOperationUpdate,
+
+			CalculatedAt: &in.CalculatedAt,
+
+			Value:              in.Value,
+			CurrentUsagePeriod: in.Entitlement.CurrentUsagePeriod,
+		},
+	)
+	return event, nil
 }
 
 func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *entitlement.Entitlement, calculatedAt time.Time, opts handleEntitlementEventOptions) (marshaler.Event, error) {
@@ -335,35 +414,13 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 		return nil, fmt.Errorf("failed to map entitlement value: %w", err)
 	}
 
-	subject := models.Subject{
-		Key: entitlementEntity.SubjectKey,
-	}
-	if w.opts.SubjectResolver != nil {
-		subject, err = w.opts.SubjectResolver.GetSubjectByKey(ctx, entitlementEntity.Namespace, entitlementEntity.SubjectKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get subject ID: %w", err)
-		}
-	}
-
-	event := marshaler.WithSource(
-		opts.source,
-		snapshot.SnapshotEvent{
-			Entitlement: *entitlementEntity,
-			Namespace: models.NamespaceID{
-				ID: entitlementEntity.Namespace,
-			},
-			Subject:   subject,
-			Feature:   *feature,
-			Operation: snapshot.ValueOperationUpdate,
-
-			CalculatedAt: &calculatedAt,
-
-			Value:              convert.ToPointer((snapshot.EntitlementValue)(mappedValues)),
-			CurrentUsagePeriod: entitlementEntity.CurrentUsagePeriod,
-		},
-	)
-
-	return event, nil
+	return w.snapshotToEvent(ctx, snapshotToEventInput{
+		Entitlement:  entitlementEntity,
+		Feature:      feature,
+		Value:        convert.ToPointer((snapshot.EntitlementValue)(mappedValues)),
+		CalculatedAt: calculatedAt,
+		Source:       opts.source,
+	})
 }
 
 func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitlement.EntitlementDeletedEvent, calculationTime time.Time) (marshaler.Event, error) {

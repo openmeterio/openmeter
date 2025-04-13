@@ -6,7 +6,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/negcache"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/estimator"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 )
 
@@ -14,7 +14,7 @@ type ThresholdProvider interface {
 	GetNextActiveThresholdsFor(ctx context.Context, entitlement entitlement.Entitlement, lastCalculatedValue snapshot.EntitlementValue) (*alpacadecimal.Decimal, error)
 }
 
-func (w *Worker) hitsWatchedThresholds(ctx context.Context, ent entitlement.Entitlement, entitlementEnt negcache.EntitlementCached) (bool, error) {
+func (w *Worker) hitsWatchedThresholds(ctx context.Context, ent entitlement.Entitlement, entitlementEnt estimator.EntitlementCached) (bool, error) {
 	for _, provider := range w.thresholdProviders {
 		nextThreshold, err := provider.GetNextActiveThresholdsFor(ctx, ent, entitlementEnt.LastCalculation)
 		if err != nil {
@@ -22,7 +22,7 @@ func (w *Worker) hitsWatchedThresholds(ctx context.Context, ent entitlement.Enti
 		}
 
 		if nextThreshold != nil {
-			if entitlementEnt.ApproxUsage.GreaterThanOrEqual(negcache.NewInfDecimalFromDecimal(*nextThreshold)) {
+			if entitlementEnt.ApproxUsage.GreaterThanOrEqual(estimator.NewInfDecimalFromDecimal(*nextThreshold)) {
 				return true, nil
 			}
 		}

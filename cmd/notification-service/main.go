@@ -14,9 +14,6 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
-	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
-	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	"github.com/openmeterio/openmeter/pkg/log"
 )
 
@@ -89,38 +86,8 @@ func main() {
 	}
 
 	// Create  subscriber
-	wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{
-		Broker:            app.BrokerOptions,
-		ConsumerGroupName: conf.Notification.Consumer.ConsumerGroupName,
-	})
-	if err != nil {
-		logger.Error("failed to initialize Kafka subscriber", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
 
 	// Initialize consumer
-	consumerOptions := consumer.Options{
-		SystemEventsTopic: conf.Events.SystemEvents.Topic,
-		Router: router.Options{
-			Subscriber:  wmSubscriber,
-			Publisher:   app.MessagePublisher,
-			Logger:      logger,
-			MetricMeter: app.Meter,
-
-			Config: conf.Notification.Consumer,
-		},
-		Marshaler: app.EventPublisher.Marshaler(),
-
-		Notification: app.Notification,
-
-		Logger: logger,
-	}
-
-	notifictionConsumer, err := consumer.New(consumerOptions)
-	if err != nil {
-		logger.Error("failed to initialize worker", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
 
 	var group run.Group
 
@@ -138,8 +105,8 @@ func main() {
 
 	// Notification service consumer
 	group.Add(
-		func() error { return notifictionConsumer.Run(ctx) },
-		func(err error) { _ = notifictionConsumer.Close() },
+		func() error { return app.Consumer.Run(ctx) },
+		func(err error) { _ = app.Consumer.Close() },
 	)
 
 	// Handle shutdown
