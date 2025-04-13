@@ -83,7 +83,9 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 			MeterSlugs: h.getMeterSlugsFromMeters(message.Meters),
 			// Warning: Given this is called after the clickhouse writes have completed, it's a fair assumption that
 			// the event was stored at this time to clickhouse.
-			StoredAt: now,
+			// TODO: nil check
+			RawEvents: []serializer.CloudEventsKafkaPayload{*message.Serialized},
+			StoredAt:  now,
 		}
 
 		if message.Serialized != nil {

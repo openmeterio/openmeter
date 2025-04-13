@@ -14,10 +14,12 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/negcache"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/edge"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -65,10 +67,15 @@ type highWatermarkCacheEntry struct {
 type Worker struct {
 	opts        WorkerOptions
 	entitlement *registry.Entitlement
+	meter       meter.Service
 	repo        BalanceWorkerRepository
 	router      *message.Router
 
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
+
+	// Entitlement cache
+	negCache           negcache.Cache
+	thresholdProviders []ThresholdProvider
 
 	metricRecalculationTime       metric.Int64Histogram
 	metricHighWatermarkCacheStats metric.Int64Counter
@@ -159,8 +166,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
-					event.CreatedAt,
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
+					WithEventAt(event.CreatedAt),
 				))
 		}),
 
@@ -170,8 +177,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
-					lo.FromPtrOr(event.DeletedAt, time.Now()),
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
+					WithEventAt(lo.FromPtrOr(event.DeletedAt, time.Now())),
 				))
 		}),
 
@@ -182,8 +189,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID),
-					event.CreatedAt,
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
+					WithEventAt(event.CreatedAt),
 				))
 		}),
 
@@ -194,8 +201,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID),
-					event.UpdatedAt,
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
+					WithEventAt(event.UpdatedAt),
 				))
 		}),
 
@@ -206,8 +213,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID),
-					event.ResetRequestedAt,
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID)),
+					WithEventAt(event.ResetRequestedAt),
 				))
 		}),
 
