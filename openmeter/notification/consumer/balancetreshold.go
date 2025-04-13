@@ -104,7 +104,7 @@ func (b *BalanceThresholdEventHandler) handleRule(ctx context.Context, balSnapsh
 
 	// Check 2: fetch the last event for the same period and validate if we need to send a new notification
 
-	periodDedupeHash := b.getPeriodsDeduplicationHash(balSnapshot, rule.ID)
+	periodDedupeHash := b.getPeriodsDeduplicationHash(balSnapshot.Entitlement, rule.ID)
 
 	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
 	lastEvents, err := b.Notification.ListEvents(ctx, notification.ListEventsInput{

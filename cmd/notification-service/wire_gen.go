@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
@@ -75,7 +76,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
+	eventsConfiguration := conf.Events
 	notificationConfiguration := conf.Notification
+	subscriber, err := common.NotificationConsumerSubscriber(notificationConfiguration, brokerOptions)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	v := common.NotificationServiceProvisionTopics(notificationConfiguration)
 	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
@@ -111,7 +122,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventsConfiguration := conf.Events
 	eventbusPublisher, err := common.NewEventBusPublisher(publisher, eventsConfiguration, logger)
 	if err != nil {
 		cleanup6()
@@ -122,6 +132,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	v2 := conf.Svix
 	adapter, err := common.NewMeterAdapter(logger, client)
 	if err != nil {
 		cleanup6()
@@ -134,8 +145,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	service := common.NewMeterService(adapter)
 	featureConnector := common.NewFeatureConnector(logger, client, service, eventbusPublisher)
-	v2 := conf.Svix
 	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v2, featureConnector)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	options := common.NotificationConsumerOptions(eventsConfiguration, notificationConfiguration, meter, logger, subscriber, publisher, eventbusPublisher, notificationService)
+	consumer, err := common.NewNotificationConsumer(options)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -207,6 +228,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		GlobalInitializer:  globalInitializer,
 		Migrator:           migrator,
 		BrokerOptions:      brokerOptions,
+		Consumer:           consumer,
 		EventPublisher:     eventbusPublisher,
 		EntClient:          client,
 		FeatureConnector:   featureConnector,
@@ -237,6 +259,7 @@ type Application struct {
 	common.Migrator
 
 	BrokerOptions      kafka.BrokerOptions
+	Consumer           *consumer.Consumer
 	EventPublisher     eventbus.Publisher
 	EntClient          *db.Client
 	FeatureConnector   feature.FeatureConnector

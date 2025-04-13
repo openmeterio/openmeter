@@ -1,4 +1,4 @@
-package negcache
+package estimator
 
 import (
 	"context"
@@ -47,7 +47,10 @@ func (s *NegCacheSuite) SetupTest() {
 
 func (s *NegCacheSuite) TestBackendUpdateSanity() {
 	// TODO: Set lock expiry to hours to avoid debug failures
-	backend, err := NewRedisCacheBackend(s.redisURL)
+	backend, err := NewRedisCacheBackend(RedisCacheBackendOptions{
+		RedisURL:    s.redisURL,
+		LockTimeout: 2 * time.Second,
+	})
 	s.Require().NoError(err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -148,7 +151,10 @@ func (s *NegCacheSuite) TestBackendUpdateSanity() {
 }
 
 func (s *NegCacheSuite) TestBackendUpdateConcurrency() {
-	backend, err := NewRedisCacheBackend(s.redisURL)
+	backend, err := NewRedisCacheBackend(RedisCacheBackendOptions{
+		RedisURL:    s.redisURL,
+		LockTimeout: 2 * time.Second,
+	})
 	s.Require().NoError(err)
 
 	ctx, cancel := context.WithCancel(context.Background())

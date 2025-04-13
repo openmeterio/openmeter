@@ -14,7 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/negcache"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/estimator"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/edge"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
@@ -57,11 +57,89 @@ type WorkerOptions struct {
 	SubjectResolver SubjectResolver
 
 	Logger *slog.Logger
+
+	Estimator EstimatorOptions
+}
+
+func (o *WorkerOptions) Validate() error {
+	if err := o.Estimator.Validate(); err != nil {
+		return fmt.Errorf("failed to validate estimator options: %w", err)
+	}
+
+	if o.Entitlement == nil {
+		return errors.New("entitlement is required")
+	}
+
+	if o.Repo == nil {
+		return errors.New("repo is required")
+	}
+
+	if o.EventBus == nil {
+		return errors.New("event bus is required")
+	}
+
+	if o.Logger == nil {
+		return errors.New("logger is required")
+	}
+
+	if o.SystemEventsTopic == "" {
+		return errors.New("system events topic is required")
+	}
+
+	if o.IngestEventsTopic == "" {
+		return errors.New("ingest events topic is required")
+	}
+
+	return nil
+}
+
+type EstimatorOptions struct {
+	Enabled            bool
+	RedisURL           string
+	ValidationRate     float64
+	LockTimeout        time.Duration
+	ThresholdProviders []ThresholdProvider
+}
+
+func (o *EstimatorOptions) Validate() error {
+	if !o.Enabled {
+		return nil
+	}
+
+	if o.RedisURL == "" {
+		return errors.New("redis url is required")
+	}
+
+	if o.ValidationRate <= 0 || o.ValidationRate > 1 {
+		return errors.New("validation rate must be between 0 and 1")
+	}
+
+	if o.LockTimeout <= 0 {
+		return errors.New("lock timeout must be greater than 0")
+	}
+
+	// Or we won't emit any events
+	if len(o.ThresholdProviders) == 0 {
+		return errors.New("threshold providers are required")
+	}
+
+	return nil
 }
 
 type highWatermarkCacheEntry struct {
 	HighWatermark time.Time
 	IsDeleted     bool
+}
+
+type estimatorSettings struct {
+	estimator.Cache
+
+	enabled bool
+
+	thresholdProviders []ThresholdProvider
+	validationRate     float64
+
+	lockTimeout time.Duration
 }
 
 type Worker struct {
@@ -73,8 +151,8 @@ type Worker struct {
 
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
 
-	// Entitlement cache
-	negCache           negcache.Cache
+	// Estimator debounce engine
+	estimator          *estimatorSettings
 	thresholdProviders []ThresholdProvider
 
 	metricRecalculationTime       metric.Int64Histogram
@@ -85,6 +163,10 @@ type Worker struct {
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, fmt.Errorf("failed to validate  options: %w", err)
+	}
+
 	highWatermarkCache, err := lru.New[string, highWatermarkCacheEntry](defaultHighWatermarkCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create high watermark cache: %w", err)

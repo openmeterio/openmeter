@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
@@ -27,6 +28,7 @@ type Application struct {
 	common.Migrator
 
 	BrokerOptions      watermillkafka.BrokerOptions
+	Consumer           *consumer.Consumer
 	EventPublisher     eventbus.Publisher
 	EntClient          *db.Client
 	FeatureConnector   feature.FeatureConnector
@@ -54,6 +56,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewDefaultTextMapPropagator,
 		common.Notification,
 		common.NotificationServiceProvisionTopics,
+		common.NotificationConsumerSubscriber,
+		common.NotificationConsumerOptions,
+		common.NewNotificationConsumer,
 		common.ProgressManager,
 		common.Streaming,
 		common.Telemetry,

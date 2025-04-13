@@ -1,4 +1,4 @@
-package negcache
+package estimator
 
 import (
 	"encoding/json"

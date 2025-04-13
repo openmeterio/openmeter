@@ -1,4 +1,4 @@
-package negcache
+package estimator
 
 import (
 	"math"
@@ -57,6 +57,23 @@ func (d InfDecimal) GreaterThanOrEqual(other InfDecimal) bool {
 	}
 
 	return d.value.GreaterThanOrEqual(other.value)
+}
+
+func (d InfDecimal) GreaterThan(other InfDecimal) bool {
+	if d.infinite && !other.infinite {
+		return true
+	}
+
+	if !d.infinite && other.infinite {
+		return false
+	}
+
+	// TODO: This is mathematically wrong, but it's ok for our use case
+	if d.infinite && other.infinite {
+		return true
+	}
+
+	return d.value.GreaterThan(other.value)
 }
 
 func (d InfDecimal) InexactFloat64() float64 {
