@@ -223,9 +223,9 @@ func (w *Worker) createSnapshotEventNegCache(ctx context.Context, entitlementEnt
 		case errors.Is(err, negcache.ErrUnsupportedMeterAggregation):
 			// TODO: we need to fall back to the nonCached version as we don't need to touch redis for this
 			action = recalcActionRecalculate
-		case errors.Is(err, negcache.ErrConcurrentUpdate):
-			// If there's a race condition that's due to rebalancing, so let's remove the entry
-			// and once rebalancing is done, we will continue to cache
+		case errors.Is(err, negcache.ErrLockAlreadyExpired):
+			// We got a timeout while waiting for the lock, so let's remove the entry and recalculate
+			// just to make sure we are in sync.
 			if err := w.negCache.Remove(ctx, target); err != nil {
 				w.opts.Logger.Error("failed to remove entitlement from negcache", "error", err)
 			}
@@ -237,12 +237,8 @@ func (w *Worker) createSnapshotEventNegCache(ctx context.Context, entitlementEnt
 		}
 	}
 
-	if ent == nil {
-		action = recalcActionRecalculate
-	}
-
-	if ent != nil && action == recalcActionUseCache {
-		thHit, err := w.hitsWatchedThresholds(ctx, ent)
+	if action == recalcActionUseCache {
+		thHit, err := w.hitsWatchedThresholds(ctx, *entitlementEntity, ent)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check if entitlement hits watched thresholds: %w", err)
 		}
