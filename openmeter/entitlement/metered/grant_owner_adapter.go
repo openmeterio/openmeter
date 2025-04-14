@@ -245,7 +245,7 @@ func (e *entitlementGrantOwner) GetResetTimelineInclusive(ctx context.Context, o
 
 	resetTimes := make([]time.Time, 0)
 
-	periods := resetTimeline.GetPeriods()
+	periods := resetTimeline.GetClosedPeriods()
 
 	// We need to go through all the manual reset times and check if programmatic resets occur in between
 	for idx, p := range periods {

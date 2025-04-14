@@ -74,7 +74,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 			require.Len(t, timeline.GetTimes(), 1)
 
-			periods := timeline.GetPeriods()
+			periods := timeline.GetClosedPeriods()
 			require.Len(t, periods, 1)
 
 			assert.Equal(t, now, periods[0].From)
@@ -91,7 +91,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 			require.Len(t, timeline.GetTimes(), 1)
 
-			periods := timeline.GetPeriods()
+			periods := timeline.GetClosedPeriods()
 			require.Len(t, periods, 1)
 
 			assert.Equal(t, now, periods[0].From)
