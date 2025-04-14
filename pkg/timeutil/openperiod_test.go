@@ -575,4 +575,136 @@ func TestOpenPeriod(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("Difference", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			period1  OpenPeriod
+			period2  OpenPeriod
+			expected []OpenPeriod
+		}{
+			{
+				name:     "no intersection",
+				period1:  OpenPeriod{From: &before, To: &now},
+				period2:  OpenPeriod{From: &after, To: nil},
+				expected: []OpenPeriod{{From: &before, To: &now}},
+			},
+			{
+				name:     "identical periods",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{From: &before, To: &after},
+				expected: []OpenPeriod{},
+			},
+			{
+				name:     "period2 entirely contains period1",
+				period1:  OpenPeriod{From: &now, To: &thirtyMinLater},
+				period2:  OpenPeriod{From: &before, To: &after},
+				expected: []OpenPeriod{},
+			},
+			{
+				name:    "period1 entirely contains period2",
+				period1: OpenPeriod{From: &before, To: &after},
+				period2: OpenPeriod{From: &now, To: &thirtyMinLater},
+				expected: []OpenPeriod{
+					{From: &before, To: &now},
+					{From: &thirtyMinLater, To: &after},
+				},
+			},
+			{
+				name:    "partial overlap - period2 starts before period1",
+				period1: OpenPeriod{From: &now, To: &after},
+				period2: OpenPeriod{From: &before, To: &thirtyMinLater},
+				expected: []OpenPeriod{
+					{From: &thirtyMinLater, To: &after},
+				},
+			},
+			{
+				name:    "partial overlap - period2 ends after period1",
+				period1: OpenPeriod{From: &before, To: &thirtyMinLater},
+				period2: OpenPeriod{From: &now, To: &after},
+				expected: []OpenPeriod{
+					{From: &before, To: &now},
+				},
+			},
+			{
+				name:    "period1 open from start",
+				period1: OpenPeriod{From: nil, To: &after},
+				period2: OpenPeriod{From: &now, To: &thirtyMinLater},
+				expected: []OpenPeriod{
+					{From: nil, To: &now},
+					{From: &thirtyMinLater, To: &after},
+				},
+			},
+			{
+				name:    "period1 open to end",
+				period1: OpenPeriod{From: &before, To: nil},
+				period2: OpenPeriod{From: &now, To: &after},
+				expected: []OpenPeriod{
+					{From: &before, To: &now},
+					{From: &after, To: nil},
+				},
+			},
+			{
+				name:    "period1 completely open (nil bounds)",
+				period1: OpenPeriod{From: nil, To: nil},
+				period2: OpenPeriod{From: &now, To: &after},
+				expected: []OpenPeriod{
+					{From: nil, To: &now},
+					{From: &after, To: nil},
+				},
+			},
+			{
+				name:     "period2 completely open (nil bounds)",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{From: nil, To: nil},
+				expected: []OpenPeriod{},
+			},
+			{
+				name:    "both periods open on opposite ends, with overlap",
+				period1: OpenPeriod{From: nil, To: &thirtyMinLater},
+				period2: OpenPeriod{From: &now, To: nil},
+				expected: []OpenPeriod{
+					{From: nil, To: &now},
+				},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				result := tt.period1.Difference(tt.period2)
+
+				if len(result) != len(tt.expected) {
+					t.Errorf("Expected %d period(s), got %d", len(tt.expected), len(result))
+					return
+				}
+
+				for i, expectedPeriod := range tt.expected {
+					if i >= len(result) {
+						t.Errorf("Missing expected period at index %d", i)
+						continue
+					}
+
+					// Check From value
+					if (expectedPeriod.From == nil) != (result[i].From == nil) {
+						t.Errorf("Period %d: Incorrect From nil status, expected %v, got %v",
+							i, expectedPeriod.From == nil, result[i].From == nil)
+					} else if expectedPeriod.From != nil && result[i].From != nil &&
+						!expectedPeriod.From.Equal(*result[i].From) {
+						t.Errorf("Period %d: Incorrect From value, expected %v, got %v",
+							i, *expectedPeriod.From, *result[i].From)
+					}
+
+					// Check To value
+					if (expectedPeriod.To == nil) != (result[i].To == nil) {
+						t.Errorf("Period %d: Incorrect To nil status, expected %v, got %v",
+							i, expectedPeriod.To == nil, result[i].To == nil)
+					} else if expectedPeriod.To != nil && result[i].To != nil &&
+						!expectedPeriod.To.Equal(*result[i].To) {
+						t.Errorf("Period %d: Incorrect To value, expected %v, got %v",
+							i, *expectedPeriod.To, *result[i].To)
+					}
+				}
+			})
+		}
+	})
 }
