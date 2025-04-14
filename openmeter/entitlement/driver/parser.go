@@ -194,7 +194,7 @@ func mapUsagePeriod(u *entitlement.UsagePeriod) *api.RecurringPeriod {
 	}
 }
 
-func mapPeriod(u *timeutil.Period) *api.Period {
+func mapPeriod(u *timeutil.ClosedPeriod) *api.Period {
 	if u == nil {
 		return nil
 	}

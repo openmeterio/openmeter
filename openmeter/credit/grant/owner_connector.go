@@ -49,7 +49,7 @@ type OwnerConnector interface {
 	// let LR(t Time) be the last reset time before t
 	// GetResetTimelineInclusive(period) = for t in [period.From, period.To]: LR(t)
 	// This means, the first time can be before the input period (except if the start of the period is a reset itself)
-	GetResetTimelineInclusive(ctx context.Context, id models.NamespacedID, period timeutil.Period) (timeutil.SimpleTimeline, error)
+	GetResetTimelineInclusive(ctx context.Context, id models.NamespacedID, period timeutil.ClosedPeriod) (timeutil.SimpleTimeline, error)
 	GetUsagePeriodStartAt(ctx context.Context, id models.NamespacedID, at time.Time) (time.Time, error)
 	GetStartOfMeasurement(ctx context.Context, id models.NamespacedID) (time.Time, error)
 

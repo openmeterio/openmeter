@@ -48,7 +48,7 @@ type GrantUsage struct {
 //
 // It is not necessarily the largest such segment.
 type GrantBurnDownHistorySegment struct {
-	timeutil.Period
+	timeutil.ClosedPeriod
 	BalanceAtStart     balance.Map
 	TerminationReasons SegmentTerminationReason // Reason why the segment was terminated (could be multiple taking effect at same time)
 	TotalUsage         float64                  // Total usage of the feature in the Period
@@ -72,7 +72,7 @@ func NewGrantBurnDownHistory(segments []GrantBurnDownHistorySegment, usageAtStar
 
 	// sort segments by time
 	sort.Slice(s, func(i, j int) bool {
-		return s[i].Period.From.Before(s[j].Period.From)
+		return s[i].ClosedPeriod.From.Before(s[j].ClosedPeriod.From)
 	})
 
 	// validate no two segments overlap

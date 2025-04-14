@@ -66,7 +66,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		t.Run("Should return reset for period start if before the period", func(t *testing.T) {
 			// We query for 4 days without reset
-			timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
+			timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.ClosedPeriod{
 				From: now.AddDate(0, 0, 1),
 				To:   now.AddDate(0, 0, 5),
 			})
@@ -83,7 +83,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		t.Run("Should return reset for period start when coincides with period start", func(t *testing.T) {
 			// We query for 4 days without reset
-			timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
+			timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.ClosedPeriod{
 				From: now,
 				To:   now.AddDate(0, 0, 5),
 			})
@@ -142,7 +142,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		}
 
 		// We query for 4 days without the reset included
-		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
+		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.ClosedPeriod{
 			From: now.AddDate(0, 0, 1),
 			To:   now.AddDate(0, 0, 5),
 		})
@@ -189,7 +189,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		}
 
 		// We query for 4 days without the reset included
-		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
+		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.ClosedPeriod{
 			From: now.AddDate(0, 0, 1),
 			To:   now.AddDate(0, 1, 5), // We query for more than usage period
 		})
@@ -257,7 +257,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		}
 
 		// We query for 4 days without the reset included
-		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
+		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.ClosedPeriod{
 			From: now.AddDate(0, 0, 1),
 			To:   now.AddDate(0, 1, 5), // We query for more than usage period
 		})
@@ -315,7 +315,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			ID:        ent.ID,
 		}
 
-		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
+		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.ClosedPeriod{
 			From: now.AddDate(0, 0, 1),
 			To:   now.AddDate(0, 1, 5),
 		})
@@ -359,7 +359,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			ID:        ent.ID,
 		}
 
-		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
+		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.ClosedPeriod{
 			From: now.AddDate(0, 0, 1),
 			To:   now.AddDate(0, 1, 0),
 		})
@@ -415,7 +415,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			ID:        ent.ID,
 		}
 
-		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
+		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.ClosedPeriod{
 			From: now,
 			To:   resetTime,
 		})
@@ -471,7 +471,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			ID:        ent.ID,
 		}
 
-		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
+		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.ClosedPeriod{
 			From: now,
 			To:   now.AddDate(0, 1, 1),
 		})

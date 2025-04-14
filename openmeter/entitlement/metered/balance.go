@@ -135,7 +135,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to describe owner: %w", err)
 	}
 
-	fullPeriodTruncated := timeutil.Period{
+	fullPeriodTruncated := timeutil.ClosedPeriod{
 		From: params.From.Truncate(owner.Meter.WindowSize.Duration()),
 		To:   params.To.Truncate(owner.Meter.WindowSize.Duration()),
 	}
@@ -236,7 +236,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		}
 	}
 
-	historyRes, err := e.balanceConnector.GetBalanceForPeriod(ctx, owner.NamespacedID, timeutil.Period{
+	historyRes, err := e.balanceConnector.GetBalanceForPeriod(ctx, owner.NamespacedID, timeutil.ClosedPeriod{
 		From: periodToQueryEngine.From,
 		To:   periodToQueryEngine.To,
 	})
@@ -265,7 +265,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		}{
 			balance:   segment.BalanceAtStart.Balance(),
 			overage:   segment.Overage,
-			timestamp: segment.Period.From,
+			timestamp: segment.ClosedPeriod.From,
 		})
 	}
 
