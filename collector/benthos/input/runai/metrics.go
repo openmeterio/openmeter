@@ -71,7 +71,7 @@ type Metrics struct {
 // GetWorkloadMetrics gets metrics of a workload.
 func (s *Service) GetWorkloadMetrics(ctx context.Context, workloadID string, params MeasurementParams) (Metrics, error) {
 	m := Metrics{
-		Timestamp: params.StartTime,
+		Timestamp: params.EndTime,
 		Values:    make(map[MetricType]float64),
 	}
 
@@ -152,7 +152,7 @@ func (s *Service) GetAllWorkloadWithMetrics(ctx context.Context, params Measurem
 	workloadsWithMetrics := make([]WorkloadWithMetrics, len(workloads))
 	for i, workload := range workloads {
 		metrics := Metrics{
-			Timestamp: params.StartTime.UTC(),
+			Timestamp: params.EndTime.UTC(),
 			Values:    make(map[MetricType]float64),
 		}
 
@@ -167,7 +167,6 @@ func (s *Service) GetAllWorkloadWithMetrics(ctx context.Context, params Measurem
 				return nil, err
 			}
 
-			metrics.Timestamp = m.Timestamp.UTC()
 			for mt, v := range m.Values {
 				metrics.Values[mt] = v
 			}
@@ -208,7 +207,7 @@ const (
 // GetPodMetrics gets metrics of a pod.
 func (s *Service) GetPodMetrics(ctx context.Context, workloadID string, podID string, params MeasurementParams) (Metrics, error) {
 	m := Metrics{
-		Timestamp: params.StartTime,
+		Timestamp: params.EndTime,
 		Values:    make(map[MetricType]float64),
 	}
 
@@ -289,7 +288,7 @@ func (s *Service) GetAllPodWithMetrics(ctx context.Context, params MeasurementPa
 	podsWithMetrics := make([]PodWithMetrics, len(pods))
 	for i, pod := range pods {
 		metrics := Metrics{
-			Timestamp: params.StartTime.UTC(),
+			Timestamp: params.EndTime.UTC(),
 			Values:    make(map[MetricType]float64),
 		}
 
@@ -304,7 +303,6 @@ func (s *Service) GetAllPodWithMetrics(ctx context.Context, params MeasurementPa
 				return nil, err
 			}
 
-			metrics.Timestamp = m.Timestamp.UTC()
 			for mt, v := range m.Values {
 				metrics.Values[mt] = v
 			}
