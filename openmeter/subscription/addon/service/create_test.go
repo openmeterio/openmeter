@@ -35,9 +35,9 @@ func TestAddonServiceCreate(t *testing.T) {
 			sub := createExampleSubscription(t, deps, now)
 
 			// Let's create an add
-			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
-			})
+			}))
 
 			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
 				return rc.ID
@@ -105,9 +105,9 @@ func TestAddonServiceCreate(t *testing.T) {
 			_ = deps.FeatureConnector.CreateExampleFeatures(t)
 
 			// Let's create an add
-			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
-			})
+			}))
 
 			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
 				return rc.ID
@@ -146,9 +146,9 @@ func TestAddonServiceCreate(t *testing.T) {
 			sub := createExampleSubscription(t, deps, now)
 
 			// Let's create an add-on
-			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
-			})
+			}))
 
 			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
 				return rc.ID
@@ -188,9 +188,9 @@ func TestAddonServiceCreate(t *testing.T) {
 			sub := createExampleSubscription(t, deps, now)
 
 			// Let's create an add
-			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
-			})
+			}))
 
 			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
 				return rc.ID
@@ -276,9 +276,9 @@ func TestAddonServiceCreate(t *testing.T) {
 			require.Nil(t, err)
 
 			// Let's create an add
-			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
-			})
+			}))
 
 			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
 				return rc.ID
@@ -316,9 +316,9 @@ func TestAddonServiceCreate(t *testing.T) {
 			sub := createExampleSubscription(t, deps, now)
 
 			// Let's create an addon
-			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
-			})
+			}))
 
 			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
 				return rc.ID
@@ -367,9 +367,9 @@ func TestAddonServiceCreate(t *testing.T) {
 			sub := createExampleSubscription(t, deps, now)
 
 			// Let's create an addon
-			add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+			add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
-			})
+			}))
 
 			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
 				return rc.ID
