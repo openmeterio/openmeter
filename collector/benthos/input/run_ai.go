@@ -96,7 +96,7 @@ input:
     app_id: "${RUNAI_APP_ID:}"
     app_secret: "${RUNAI_APP_SECRET:}"
     schedule: "*/30 * * * * *"
-    metrics_scrape_offset: "30s"
+    metrics_offset: "30s"
     resource_type: "workload"
     page_size: 500
     metrics:
