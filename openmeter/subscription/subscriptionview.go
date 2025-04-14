@@ -29,6 +29,20 @@ func (s SubscriptionView) AsSpec() SubscriptionSpec {
 	return s.Spec
 }
 
+func (s SubscriptionView) GetPathToItem(subscriptionItemID string) (SpecPath, error) {
+	for _, phase := range s.Phases {
+		for _, items := range phase.ItemsByKey {
+			for idx, item := range items {
+				if item.SubscriptionItem.ID == subscriptionItemID {
+					return NewItemVersionPath(phase.SubscriptionPhase.Key, item.SubscriptionItem.Key, idx), nil
+				}
+			}
+		}
+	}
+
+	return SpecPath(""), fmt.Errorf("item %s not found", subscriptionItemID)
+}
+
 func (s SubscriptionView) GetPhaseByKey(key string) (*SubscriptionPhaseView, bool) {
 	for _, phase := range s.Phases {
 		if phase.SubscriptionPhase.Key == key {

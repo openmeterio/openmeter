@@ -144,7 +144,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 							return def, fmt.Errorf("failed to delete item: %w", err)
 						}
 
-						dirty.mark(NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx))
+						dirty.mark(subscription.NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx))
 
 						// There's nothing more to be done for this item, so lets skip to the next one
 						continue
@@ -195,7 +195,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 							return def, fmt.Errorf("failed to delete item: %w", err)
 						}
 
-						dirty.mark(NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx))
+						dirty.mark(subscription.NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx))
 
 						// There's nothing more to be done here, so lets skip to the next one
 						continue
@@ -258,7 +258,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 					matchingItemFromNewSpec := matchingItemsByKeyFromNewSpec[currentItemIdx]
 
 					// If the item got deleted, we can create it as a whole
-					if dirty.isTouched(NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx)) {
+					if dirty.isTouched(subscription.NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx)) {
 						if _, err := s.createItem(ctx, createItemOptions{
 							cust:         view.Customer,
 							sub:          view.Subscription,
@@ -370,10 +370,6 @@ func (t touched) isTouched(key subscription.SpecPath) bool {
 
 // NewItemVersionPath returns an invalid PatchPath thats still usable for IsParentOf checks
 // FIXME: this is a hack. For instance, is featureKey were to contain `/` it would completely break (though that exact scenario is otherwise prohibited)
-func NewItemVersionPath(phaseKey, itemKey string, idx int) subscription.SpecPath {
-	itemPath := subscription.NewItemPath(phaseKey, itemKey)
-	return subscription.SpecPath(fmt.Sprintf("%s/idx/%d", itemPath, idx))
-}
 
 // an ID that can never occur in normal control flow
 var impossibleNamespacedId = models.NamespacedID{
