@@ -35,7 +35,7 @@ require (
 	github.com/google/wire v0.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/go-sqlbuilder v1.35.0
-	github.com/invopop/gobl v0.213.2
+	github.com/invopop/gobl v0.214.1
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/jmattheis/goverter v1.8.2
 	github.com/lmittmann/tint v1.0.7
@@ -433,7 +433,6 @@ require (
 	github.com/speakeasy-api/openapi-overlay v0.9.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
-	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tetratelabs/wazero v1.8.2 // indirect
