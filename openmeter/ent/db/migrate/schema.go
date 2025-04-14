@@ -1435,6 +1435,14 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{MetersColumns[1], MetersColumns[8], MetersColumns[5]},
 			},
+			{
+				Name:    "meter_namespace_key",
+				Unique:  true,
+				Columns: []*schema.Column{MetersColumns[1], MetersColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
 		},
 	}
 	// NotificationChannelsColumns holds the columns for the "notification_channels" table.

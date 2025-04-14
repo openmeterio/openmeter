@@ -1,4 +1,4 @@
-h1:lvOZ/HoRVR7p3MfGl8F8n327ZgsoYolWo594foUwxkE=
+h1:huqTaHNdz/a0iTwLsJbN3MOGGzrGD5Y/g9iS/SmS6qk=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -169,3 +169,5 @@ h1:lvOZ/HoRVR7p3MfGl8F8n327ZgsoYolWo594foUwxkE=
 20250411062903_billing-split-line-discounts.up.sql h1:92JV/wmhRaqknD04/noIO68+IcjnWZ39aPiwO2Mmlgw=
 20250411132453_billing-metered-pre-line-period-quantity.down.sql h1:/0eHD5OL1vzP9BomwOfu8PTN4ejrIbvdngrmqNmn/4s=
 20250411132453_billing-metered-pre-line-period-quantity.up.sql h1:TbiPXTQ6t7mjzXfQAb3LcoxCVkIGjFF0nknKrRW3C8E=
+20250414082312_meter-unique-key.down.sql h1:1EwZXmwNudPwT9ytFPJC9uQd4Mv/lwNo8P1N7IrRdWQ=
+20250414082312_meter-unique-key.up.sql h1:OF9P3yFizv0xgLeOh2nlRnMlB1wrr8Di0tOR0X0hyMA=
