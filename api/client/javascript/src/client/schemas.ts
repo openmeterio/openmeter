@@ -1374,6 +1374,60 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/plans/{planId}/addons': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List all available add-ons for plan
+     * @description List all available add-ons for plan.
+     */
+    get: operations['listPlanAddons']
+    put?: never
+    /**
+     * Create new add-on assignment for plan
+     * @description Create new add-on assignment for plan.
+     */
+    post: operations['createPlanAddon']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/plans/{planId}/addons/{planAddonId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get add-on assignment for plan
+     * @description Get add-on assignment for plan by id.
+     */
+    get: operations['getPlanAddon']
+    /**
+     * Update add-on assignment for plan
+     * @description Update add-on assignment for plan.
+     */
+    put: operations['updatePlanAddon']
+    post?: never
+    /**
+     * Delete add-on assignment for plan
+     * @description Delete add-on assignment for plan.
+     *
+     *     Once a plan is deleted it cannot be undeleted.
+     */
+    delete: operations['deletePlanAddon']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/plans/{planId}/archive': {
     parameters: {
       query?: never
@@ -7090,6 +7144,153 @@ export interface components {
        */
       phases: components['schemas']['PlanPhase'][]
     }
+    /** @description The AddonAssignment describes the association between a plan and add-on. */
+    PlanAddon: {
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /**
+       * Addon
+       * @description Partially populated add-on properties.
+       */
+      addon: {
+        /**
+         * ID
+         * @description The ID of the add-on.
+         * @example 01G65Z755AFWAKHE12NY0CQ9FH
+         */
+        id: string
+        /**
+         * Key
+         * @description A semi-unique identifier for the resource.
+         */
+        readonly key: string
+        /**
+         * Version
+         * @description The version of the Add-on which templates this instance.
+         * @default 1
+         */
+        readonly version: number
+        /**
+         * InstanceType
+         * @description The instance type of the add-on.
+         */
+        readonly instanceType: components['schemas']['AddonInstanceType']
+      }
+      /**
+       * The plan phase from the add-on becomes purchasable
+       * @description The key of the plan phase from the add-on becomes available for purchase.
+       */
+      fromPlanPhase: string
+      /**
+       * Max quantity of the add-on
+       * @description The maximum number of times the add-on can be purchased for the plan.
+       *     It is not applicable for add-ons with single instance type.
+       */
+      maxQuantity?: number
+    }
+    /** @description Resource create operation model. */
+    PlanAddonCreate: {
+      /**
+       * Addon
+       * @description Partially populated add-on properties.
+       */
+      addon: {
+        /**
+         * ID
+         * @description The ID of the add-on.
+         * @example 01G65Z755AFWAKHE12NY0CQ9FH
+         */
+        id: string
+        /**
+         * Key
+         * @description A semi-unique identifier for the resource.
+         */
+        readonly key: string
+        /**
+         * Version
+         * @description The version of the Add-on which templates this instance.
+         * @default 1
+         */
+        readonly version: number
+        /**
+         * InstanceType
+         * @description The instance type of the add-on.
+         */
+        readonly instanceType: components['schemas']['AddonInstanceType']
+      }
+      /**
+       * The plan phase from the add-on becomes purchasable
+       * @description The key of the plan phase from the add-on becomes available for purchase.
+       */
+      fromPlanPhase: string
+      /**
+       * Max quantity of the add-on
+       * @description The maximum number of times the add-on can be purchased for the plan.
+       *     It is not applicable for add-ons with single instance type.
+       */
+      maxQuantity?: number
+    }
+    /** @description Resource update operation model. */
+    PlanAddonReplaceUpdate: {
+      /**
+       * Addon
+       * @description Partially populated add-on properties.
+       */
+      addon: {
+        /**
+         * ID
+         * @description The ID of the add-on.
+         * @example 01G65Z755AFWAKHE12NY0CQ9FH
+         */
+        id: string
+        /**
+         * Key
+         * @description A semi-unique identifier for the resource.
+         */
+        readonly key: string
+        /**
+         * Version
+         * @description The version of the Add-on which templates this instance.
+         * @default 1
+         */
+        readonly version: number
+        /**
+         * InstanceType
+         * @description The instance type of the add-on.
+         */
+        readonly instanceType: components['schemas']['AddonInstanceType']
+      }
+      /**
+       * The plan phase from the add-on becomes purchasable
+       * @description The key of the plan phase from the add-on becomes available for purchase.
+       */
+      fromPlanPhase: string
+      /**
+       * Max quantity of the add-on
+       * @description The maximum number of times the add-on can be purchased for the plan.
+       *     It is not applicable for add-ons with single instance type.
+       */
+      maxQuantity?: number
+    }
     /** @description Resource create operation model. */
     PlanCreate: {
       /**
@@ -9624,6 +9825,10 @@ export type PaymentTerms = components['schemas']['PaymentTerms']
 export type Percentage = components['schemas']['Percentage']
 export type Period = components['schemas']['Period']
 export type Plan = components['schemas']['Plan']
+export type PlanAddon = components['schemas']['PlanAddon']
+export type PlanAddonCreate = components['schemas']['PlanAddonCreate']
+export type PlanAddonReplaceUpdate =
+  components['schemas']['PlanAddonReplaceUpdate']
 export type PlanCreate = components['schemas']['PlanCreate']
 export type PlanOrderBy = components['schemas']['PlanOrderBy']
 export type PlanPaginatedResponse =
@@ -18466,6 +18671,494 @@ export interface operations {
       header?: never
       path: {
         planId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful.  */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  listPlanAddons: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        planId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['PlanAddon'][]
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  createPlanAddon: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        planId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PlanAddonCreate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['PlanAddon']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The request could not be completed due to a conflict with the current state of the target resource. */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ConflictProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  getPlanAddon: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        planId: string
+        planAddonId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['PlanAddon']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  updatePlanAddon: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        planId: string
+        planAddonId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PlanAddonReplaceUpdate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['PlanAddon']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  deletePlanAddon: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        planId: string
+        planAddonId: string
       }
       cookie?: never
     }
