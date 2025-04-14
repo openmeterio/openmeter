@@ -1,6 +1,7 @@
 package runai
 
 import (
+	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -16,32 +17,38 @@ type Service struct {
 	appSecret string
 	token     string
 	pageSize  int
+
+	resourceTypeMetrics *service.MetricGauge
 }
 
-type HTTPRequestConfig struct {
+type ServiceConfig struct {
 	Timeout          time.Duration
 	RetryWaitTime    time.Duration
 	RetryMaxWaitTime time.Duration
 	RetryCount       int
 	PageSize         int
-	TimingMetrics    *service.MetricTimer
+
+	TimingMetrics       *service.MetricTimer
+	ResourceTypeMetrics *service.MetricGauge
 }
 
-func NewService(baseURL, appID, appSecret string, logger *service.Logger, requestConfig HTTPRequestConfig) (*Service, error) {
+func NewService(baseURL, appID, appSecret string, logger *service.Logger, config ServiceConfig) (*Service, error) {
 	service := &Service{
 		logger:    logger,
 		appID:     appID,
 		appSecret: appSecret,
-		pageSize:  requestConfig.PageSize,
+		pageSize:  config.PageSize,
+
+		resourceTypeMetrics: config.ResourceTypeMetrics,
 	}
 
 	client := resty.New().
 		SetBaseURL(baseURL).
 		SetLogger(logger).
-		SetTimeout(requestConfig.Timeout).
-		SetRetryCount(requestConfig.RetryCount).
-		SetRetryWaitTime(requestConfig.RetryWaitTime).
-		SetRetryMaxWaitTime(requestConfig.RetryMaxWaitTime).
+		SetTimeout(config.Timeout).
+		SetRetryCount(config.RetryCount).
+		SetRetryWaitTime(config.RetryWaitTime).
+		SetRetryMaxWaitTime(config.RetryMaxWaitTime).
 		OnBeforeRequest(func(client *resty.Client, request *resty.Request) error {
 			service.logger.Tracef("request: %s", request.URL)
 
@@ -64,7 +71,7 @@ func NewService(baseURL, appID, appSecret string, logger *service.Logger, reques
 				service.SetToken("")
 			}
 
-			if requestConfig.TimingMetrics != nil {
+			if config.TimingMetrics != nil {
 				path := response.Request.RawRequest.URL.Path
 				if matched, err := regexp.MatchString("/api/v1/workloads/[0-9a-f-]+/pods/[0-9a-f-]+/metrics", path); err == nil && matched {
 					path = "/api/v1/workloads/:workloadID/pods/:podID/metrics"
@@ -75,7 +82,7 @@ func NewService(baseURL, appID, appSecret string, logger *service.Logger, reques
 				} else if matched, err := regexp.MatchString("/api/v1/workloads", path); err == nil && matched {
 					path = "/api/v1/workloads"
 				}
-				requestConfig.TimingMetrics.Timing(response.Time().Nanoseconds(), path)
+				config.TimingMetrics.Timing(response.Time().Nanoseconds(), path, fmt.Sprintf("%d", response.StatusCode()))
 			}
 
 			return nil

@@ -130,5 +130,7 @@ func (s *Service) ListAllPods(ctx context.Context) ([]Pod, error) {
 		}
 	}
 
+	s.resourceTypeMetrics.Set(int64(len(pods)), "pod")
+
 	return pods, nil
 }

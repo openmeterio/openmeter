@@ -153,5 +153,7 @@ func (s *Service) ListAllWorkloads(ctx context.Context) ([]Workload, error) {
 		}
 	}
 
+	s.resourceTypeMetrics.Set(int64(len(workloads)), "workload")
+
 	return workloads, nil
 }
