@@ -152,11 +152,11 @@ func (r RateCardMeta) Equal(v RateCardMeta) bool {
 		return false
 	}
 
-	if r.EntitlementTemplate.Equal(v.EntitlementTemplate) {
+	if !r.EntitlementTemplate.Equal(v.EntitlementTemplate) {
 		return false
 	}
 
-	if r.TaxConfig.Equal(v.TaxConfig) {
+	if !r.TaxConfig.Equal(v.TaxConfig) {
 		return false
 	}
 
@@ -265,7 +265,7 @@ func (r *FlatFeeRateCard) Equal(v RateCard) bool {
 		return false
 	}
 
-	if r.RateCardMeta.Equal(vv.RateCardMeta) {
+	if !r.RateCardMeta.Equal(vv.RateCardMeta) {
 		return false
 	}
 
@@ -403,7 +403,7 @@ func (r *UsageBasedRateCard) Equal(v RateCard) bool {
 		return false
 	}
 
-	if r.RateCardMeta.Equal(vv.RateCardMeta) {
+	if !r.RateCardMeta.Equal(vv.RateCardMeta) {
 		return false
 	}
 
