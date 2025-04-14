@@ -14,5 +14,6 @@ import "./tax.tsp";
 import "./subscription.tsp";
 import "./alignment.tsp";
 import "./addon.tsp";
+import "./planaddon.tsp";
 
 namespace OpenMeter.ProductCatalog;

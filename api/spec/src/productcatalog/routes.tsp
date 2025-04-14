@@ -79,17 +79,19 @@ interface Plans {
    * Update plan by id.
    */
   @put
+  @route("/{planId}")
   @operationId("updatePlan")
   @summary("Update a plan")
   update(
     @path planId: ULID,
-    @body request: TypeSpec.Rest.Resource.ResourceReplaceModel<Plan>,
+    @body body: TypeSpec.Rest.Resource.ResourceReplaceModel<Plan>,
   ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Get a plan by id or key. The latest published version is returned if latter is used.
    */
   @get
+  @route("/{planId}")
   @operationId("getPlan")
   @summary("Get plan")
   get(
@@ -113,6 +115,7 @@ interface Plans {
    * Once a plan is deleted it cannot be undeleted.
    */
   @delete
+  @route("/{planId}")
   @operationId("deletePlan")
   @summary("Delete plan")
   delete(@path planId: ULID): {
@@ -157,6 +160,81 @@ interface Plans {
   ): {
     @statusCode _: 201;
     @body body: Plan;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+}
+
+@route("/api/v1/plans/{planId}/addons")
+@tag("Product Catalog")
+interface PlanAddons {
+  /**
+   * List all available add-ons for plan.
+   */
+  @get
+  @operationId("listPlanAddons")
+  @summary("List all available add-ons for plan")
+  @extension("x-internal", true)
+  list(
+    @path planId: ULIDOrKey,
+  ): PlanAddon[] | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * Create new add-on assignment for plan.
+   */
+  @post
+  @operationId("createPlanAddon")
+  @summary("Create new add-on assignment for plan")
+  @extension("x-internal", true)
+  create(
+    @path planId: ULID,
+    @body body: TypeSpec.Rest.Resource.ResourceCreateModel<PlanAddon>,
+  ):
+    | {
+        @statusCode _: 201;
+        @body body: PlanAddon;
+      }
+    | OpenMeter.ConflictError
+    | OpenMeter.NotFoundError
+    | OpenMeter.CommonErrors;
+
+  /**
+   * Update add-on assignment for plan.
+   */
+  @put
+  @route("/{planAddonId}")
+  @operationId("updatePlanAddon")
+  @summary("Update add-on assignment for plan")
+  @extension("x-internal", true)
+  update(
+    @path planId: ULID,
+    @path planAddonId: ULID,
+    @body body: TypeSpec.Rest.Resource.ResourceReplaceModel<PlanAddon>,
+  ): PlanAddon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * Get add-on assignment for plan by id.
+   */
+  @get
+  @route("/{planAddonId}")
+  @operationId("getPlanAddon")
+  @summary("Get add-on assignment for plan")
+  @extension("x-internal", true)
+  get(
+    @path planId: ULIDOrKey,
+    @path planAddonId: ULIDOrKey,
+  ): PlanAddon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * Delete add-on assignment for plan.
+   *
+   * Once a plan is deleted it cannot be undeleted.
+   */
+  @delete
+  @route("/{planAddonId}")
+  @operationId("deletePlanAddon")
+  @summary("Delete add-on assignment for plan")
+  @extension("x-internal", true)
+  delete(@path planId: ULID, @path planAddonId: ULID): {
+    @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 

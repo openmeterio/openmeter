@@ -6802,6 +6802,401 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
+  /api/v1/plans/{planId}/addons:
+    get:
+      operationId: listPlanAddons
+      summary: List all available add-ons for plan
+      description: List all available add-ons for plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlanAddon'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
+      x-internal: true
+    post:
+      operationId: createPlanAddon
+      summary: Create new add-on assignment for plan
+      description: Create new add-on assignment for plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanAddon'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '409':
+          description: The request could not be completed due to a conflict with the current state of the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConflictProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanAddonCreate'
+      x-internal: true
+  /api/v1/plans/{planId}/addons/{planAddonId}:
+    put:
+      operationId: updatePlanAddon
+      summary: Update add-on assignment for plan
+      description: Update add-on assignment for plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+        - name: planAddonId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanAddon'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanAddonReplaceUpdate'
+      x-internal: true
+    get:
+      operationId: getPlanAddon
+      summary: Get add-on assignment for plan
+      description: Get add-on assignment for plan by id.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: planAddonId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanAddon'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
+      x-internal: true
+    delete:
+      operationId: deletePlanAddon
+      summary: Delete add-on assignment for plan
+      description: |-
+        Delete add-on assignment for plan.
+
+        Once a plan is deleted it cannot be undeleted.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+        - name: planAddonId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
+      x-internal: true
   /api/v1/plans/{planId}/archive:
     post:
       operationId: archivePlan
@@ -17418,6 +17813,191 @@ components:
             A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
           title: Plan phases
       description: Plans provide a template for subscriptions.
+    PlanAddon:
+      type: object
+      required:
+        - createdAt
+        - updatedAt
+        - addon
+        - fromPlanPhase
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        addon:
+          type: object
+          properties:
+            id:
+              type: string
+              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: The ID of the add-on.
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
+              title: ID
+            key:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A semi-unique identifier for the resource.
+              title: Key
+              readOnly: true
+            version:
+              type: integer
+              minimum: 1
+              description: The version of the Add-on which templates this instance.
+              title: Version
+              default: 1
+              readOnly: true
+            instanceType:
+              allOf:
+                - $ref: '#/components/schemas/AddonInstanceType'
+              description: The instance type of the add-on.
+              title: InstanceType
+              readOnly: true
+          required:
+            - id
+            - key
+            - version
+            - instanceType
+          description: Partially populated add-on properties.
+          title: Addon
+        fromPlanPhase:
+          type: string
+          description: The key of the plan phase from the add-on becomes available for purchase.
+          title: The plan phase from the add-on becomes purchasable
+        maxQuantity:
+          type: integer
+          description: |-
+            The maximum number of times the add-on can be purchased for the plan.
+            It is not applicable for add-ons with single instance type.
+          title: Max quantity of the add-on
+      description: The AddonAssignment describes the association between a plan and add-on.
+    PlanAddonCreate:
+      type: object
+      required:
+        - addon
+        - fromPlanPhase
+      properties:
+        addon:
+          type: object
+          properties:
+            id:
+              type: string
+              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: The ID of the add-on.
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
+              title: ID
+            key:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A semi-unique identifier for the resource.
+              title: Key
+              readOnly: true
+            version:
+              type: integer
+              minimum: 1
+              description: The version of the Add-on which templates this instance.
+              title: Version
+              default: 1
+              readOnly: true
+            instanceType:
+              allOf:
+                - $ref: '#/components/schemas/AddonInstanceType'
+              description: The instance type of the add-on.
+              title: InstanceType
+              readOnly: true
+          required:
+            - id
+            - key
+            - version
+            - instanceType
+          description: Partially populated add-on properties.
+          title: Addon
+        fromPlanPhase:
+          type: string
+          description: The key of the plan phase from the add-on becomes available for purchase.
+          title: The plan phase from the add-on becomes purchasable
+        maxQuantity:
+          type: integer
+          description: |-
+            The maximum number of times the add-on can be purchased for the plan.
+            It is not applicable for add-ons with single instance type.
+          title: Max quantity of the add-on
+      description: Resource create operation model.
+    PlanAddonReplaceUpdate:
+      type: object
+      required:
+        - addon
+        - fromPlanPhase
+      properties:
+        addon:
+          type: object
+          properties:
+            id:
+              type: string
+              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: The ID of the add-on.
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
+              title: ID
+            key:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A semi-unique identifier for the resource.
+              title: Key
+              readOnly: true
+            version:
+              type: integer
+              minimum: 1
+              description: The version of the Add-on which templates this instance.
+              title: Version
+              default: 1
+              readOnly: true
+            instanceType:
+              allOf:
+                - $ref: '#/components/schemas/AddonInstanceType'
+              description: The instance type of the add-on.
+              title: InstanceType
+              readOnly: true
+          required:
+            - id
+            - key
+            - version
+            - instanceType
+          description: Partially populated add-on properties.
+          title: Addon
+        fromPlanPhase:
+          type: string
+          description: The key of the plan phase from the add-on becomes available for purchase.
+          title: The plan phase from the add-on becomes purchasable
+        maxQuantity:
+          type: integer
+          description: |-
+            The maximum number of times the add-on can be purchased for the plan.
+            It is not applicable for add-ons with single instance type.
+          title: Max quantity of the add-on
+      description: Resource update operation model.
     PlanCreate:
       type: object
       required:
