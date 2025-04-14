@@ -122,8 +122,9 @@ input:
 
 func init() {
 	err := service.RegisterBatchInput("run_ai", runAIInputConfig(), func(conf *service.ParsedConfig, mgr *service.Resources) (service.BatchInput, error) {
-		httpMetrics := mgr.Metrics().NewTimer("run_ai_http_request", "url")
-		in, err := newRunAIInput(conf, mgr.Logger(), httpMetrics)
+		httpMetrics := mgr.Metrics().NewTimer("run_ai_http_request_ns", "url", "status_code")
+		resourceTypeMetrics := mgr.Metrics().NewGauge("run_ai_resource_count", "type")
+		in, err := newRunAIInput(conf, mgr.Logger(), httpMetrics, resourceTypeMetrics)
 		if err != nil {
 			return nil, err
 		}
@@ -151,10 +152,11 @@ type runAIInput struct {
 	store         map[time.Time][]runai.ResourceWithMetrics
 	mu            sync.Mutex
 
-	timingMetrics *service.MetricTimer
+	timingMetrics       *service.MetricTimer
+	resourceTypeMetrics *service.MetricGauge
 }
 
-func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger, httpMetrics *service.MetricTimer) (*runAIInput, error) {
+func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger, httpMetrics *service.MetricTimer, resourceTypeMetrics *service.MetricGauge) (*runAIInput, error) {
 	url, err := conf.FieldString(fieldURL)
 	if err != nil {
 		return nil, err
@@ -239,13 +241,14 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger, httpMetri
 		return nil, err
 	}
 
-	service, err := runai.NewService(url, appID, appSecret, logger, runai.HTTPRequestConfig{
-		Timeout:          requestTimeout,
-		RetryCount:       retryCount,
-		RetryWaitTime:    retryWaitTime,
-		RetryMaxWaitTime: retryMaxWaitTime,
-		TimingMetrics:    httpMetrics,
-		PageSize:         pageSize,
+	service, err := runai.NewService(url, appID, appSecret, logger, runai.ServiceConfig{
+		Timeout:             requestTimeout,
+		RetryCount:          retryCount,
+		RetryWaitTime:       retryWaitTime,
+		RetryMaxWaitTime:    retryMaxWaitTime,
+		PageSize:            pageSize,
+		TimingMetrics:       httpMetrics,
+		ResourceTypeMetrics: resourceTypeMetrics,
 	})
 	if err != nil {
 		return nil, err
