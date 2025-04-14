@@ -2,6 +2,7 @@ package subscriptiontestutils
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/invopop/gobl/currency"
@@ -14,61 +15,63 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func GetExamplePlanInput(t *testing.T) plan.CreatePlanInput {
-	return plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: ExampleNamespace,
+type testPlanbuilder struct {
+	p plan.CreatePlanInput
+}
+
+func (b *testPlanbuilder) AddPhase(dur *isodate.Period, rcs ...productcatalog.RateCard) *testPlanbuilder {
+	idx := len(b.p.Plan.Phases) + 1
+
+	b.p.Plan.Phases = append(b.p.Plan.Phases, productcatalog.Phase{
+		PhaseMeta: productcatalog.PhaseMeta{
+			Key:         fmt.Sprintf("test_phase_%d", idx),
+			Name:        fmt.Sprintf("Test Phase %d", idx),
+			Description: lo.ToPtr(fmt.Sprintf("Test Phase %d Description", idx)),
+			Duration:    dur,
 		},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test_plan",
-				Version:  1,
-				Currency: currency.USD,
+		RateCards: rcs,
+	})
+
+	return b
+}
+
+func (b *testPlanbuilder) Build() plan.CreatePlanInput {
+	return b.p
+}
+
+func BuildTestPlan(t *testing.T) *testPlanbuilder {
+	b := &testPlanbuilder{
+		p: plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: ExampleNamespace,
 			},
-			Phases: []productcatalog.Phase{
-				{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:         "test_phase_1",
-						Name:        "Test Phase 1",
-						Description: lo.ToPtr("Test Phase 1 Description"),
-						Duration:    lo.ToPtr(testutils.GetISODuration(t, "P1M")),
-					},
-					RateCards: productcatalog.RateCards{
-						&ExampleRateCard1,
-					},
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:     "Test Plan",
+					Key:      "test_plan",
+					Version:  1,
+					Currency: currency.USD,
 				},
-				{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:         "test_phase_2",
-						Name:        "Test Phase 2",
-						Description: lo.ToPtr("Test Phase 2 Description"),
-						Duration:    lo.ToPtr(testutils.GetISODuration(t, "P2M")),
-					},
-					RateCards: productcatalog.RateCards{
-						&ExampleRateCard1,
-						&ExampleRateCard2,
-						&ExampleRateCard3ForAddons,
-					},
-				},
-				{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:         "test_phase_3",
-						Name:        "Test Phase 3",
-						Description: lo.ToPtr("Test Phase 3 Description"),
-						Duration:    nil,
-					},
-					RateCards: productcatalog.RateCards{
-						&ExampleRateCard1,
-						&ExampleRateCard3ForAddons,
-					},
-				},
+				Phases: []productcatalog.Phase{},
 			},
 		},
 	}
+
+	return b
+}
+
+func GetExamplePlanInput(t *testing.T) plan.CreatePlanInput {
+	b := BuildTestPlan(t)
+
+	b.AddPhase(lo.ToPtr(testutils.GetISODuration(t, "P1M")), ExampleRateCard1.Clone())
+	b.AddPhase(lo.ToPtr(testutils.GetISODuration(t, "P2M")), ExampleRateCard1.Clone(), ExampleRateCard2.Clone(), ExampleRateCard3ForAddons.Clone())
+	b.AddPhase(nil, ExampleRateCard1.Clone(), ExampleRateCard3ForAddons.Clone())
+
+	return b.Build()
 }
 
 // PlanHelper simply creates and returns a plan
