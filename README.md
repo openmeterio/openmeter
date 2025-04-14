@@ -42,7 +42,7 @@ Check out the [quickstart guide](/quickstart) for a 5-minute overview and demo o
 
 ### Deploy
 
-Deploy OpenMeter to your Kubernetes cluster using our [Helm chart](https://openmeter.io/docs/manage/deploy/kubernetes).
+Deploy OpenMeter to your Kubernetes cluster using our [Helm chart](https://openmeter.io/docs/deploy/kubernetes).
 
 ## Links
 
