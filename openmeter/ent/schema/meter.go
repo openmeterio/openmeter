@@ -2,7 +2,9 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -35,7 +37,11 @@ func (Meter) Fields() []ent.Field {
 
 // Indexes of the Meter.
 func (Meter) Indexes() []ent.Index {
-	return []ent.Index{}
+	return []ent.Index{index.Fields("namespace", "key").
+		Annotations(
+			entsql.IndexWhere("deleted_at IS NULL"),
+		).
+		Unique()}
 }
 
 // Edges of the Meter.
