@@ -9,6 +9,26 @@ type OpenPeriod struct {
 
 var _ Period = OpenPeriod{}
 
+func (p OpenPeriod) Equals(other OpenPeriod) bool {
+	// For From: both should be nil, or both non-nil and equal
+	if (p.From == nil) != (other.From == nil) {
+		return false
+	}
+	if p.From != nil && !p.From.Equal(*other.From) {
+		return false
+	}
+
+	// For To: both should be nil, or both non-nil and equal
+	if (p.To == nil) != (other.To == nil) {
+		return false
+	}
+	if p.To != nil && !p.To.Equal(*other.To) {
+		return false
+	}
+
+	return true
+}
+
 // Inclusive at both start and end
 func (p OpenPeriod) ContainsInclusive(t time.Time) bool {
 	if p.From != nil && t.Before(*p.From) {
@@ -116,6 +136,49 @@ func (p OpenPeriod) Intersection(other OpenPeriod) *OpenPeriod {
 		From: newFrom,
 		To:   newTo,
 	}
+}
+
+// Difference returns P - Other (times in P not in Other)
+func (p OpenPeriod) Difference(other OpenPeriod) []OpenPeriod {
+	// Check for intersection
+	intersection := p.Intersection(other)
+
+	// If there's no intersection, the difference is the original period
+	if intersection == nil {
+		return []OpenPeriod{p}
+	}
+
+	// If the intersection equals the original period, the difference is empty
+	if (p.From == nil) == (intersection.From == nil) &&
+		(p.To == nil) == (intersection.To == nil) &&
+		(p.From == nil || p.From.Equal(*intersection.From)) &&
+		(p.To == nil || p.To.Equal(*intersection.To)) {
+		return []OpenPeriod{}
+	}
+
+	result := []OpenPeriod{}
+
+	// Check if there's a period before the intersection
+	if (p.From == nil && intersection.From != nil) ||
+		(p.From != nil && intersection.From != nil && p.From.Before(*intersection.From)) {
+		before := OpenPeriod{
+			From: p.From,
+			To:   intersection.From,
+		}
+		result = append(result, before)
+	}
+
+	// Check if there's a period after the intersection
+	if (p.To == nil && intersection.To != nil) ||
+		(p.To != nil && intersection.To != nil && p.To.After(*intersection.To)) {
+		after := OpenPeriod{
+			From: intersection.To,
+			To:   p.To,
+		}
+		result = append(result, after)
+	}
+
+	return result
 }
 
 func (p OpenPeriod) Union(other OpenPeriod) OpenPeriod {
