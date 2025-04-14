@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/samber/lo"
@@ -10,15 +11,17 @@ import (
 type SpecPath string
 
 const (
-	phasePathPrefix = "phases"
-	itemPathPrefix  = "items"
+	phasePathPrefix   = "phases"
+	itemPathPrefix    = "items"
+	versionPathPrefix = "idx"
 )
 
 type SpecPathType string
 
 const (
-	SpecPathTypePhase SpecPathType = "phase"
-	SpecPathTypeItem  SpecPathType = "item"
+	SpecPathTypePhase       SpecPathType = "phase"
+	SpecPathTypeItem        SpecPathType = "item"
+	SpecPathTypeItemVersion SpecPathType = "item_version"
 )
 
 // Lets implement JSON Unmarshaler for Path
@@ -70,9 +73,9 @@ func (p SpecPath) Validate() error {
 	}
 
 	segments := p.seg()
-	if len(segments) != 2 && len(segments) != 4 {
+	if len(segments) != 2 && len(segments) != 4 && len(segments) != 6 {
 		return &PatchValidationError{
-			Msg: fmt.Sprintf("invalid path: %s, should have 2 or 4 segments, has %d", strVal, len(segments)),
+			Msg: fmt.Sprintf("invalid path: %s, should have 2, 4 or 6 segments, has %d", strVal, len(segments)),
 		}
 	}
 
@@ -84,6 +87,10 @@ func (p SpecPath) Validate() error {
 		return &PatchValidationError{Msg: fmt.Sprintf("invalid path: %s, third segment should be %s", strVal, itemPathPrefix)}
 	}
 
+	if len(segments) == 6 && segments[4] != versionPathPrefix {
+		return &PatchValidationError{Msg: fmt.Sprintf("invalid path: %s, fifth segment should be %s", strVal, versionPathPrefix)}
+	}
+
 	if lo.SomeBy(segments, func(s string) bool { return s == "" }) {
 		return &PatchValidationError{Msg: fmt.Sprintf("invalid path: %s, segments should not be empty", strVal)}
 	}
@@ -92,10 +99,15 @@ func (p SpecPath) Validate() error {
 }
 
 func (p SpecPath) Type() SpecPathType {
+	if len(p.seg()) == 6 {
+		return SpecPathTypeItemVersion
+	}
+
 	if len(p.seg()) == 4 {
 		return SpecPathTypeItem
 	}
 
+	// As validity is not guaranteed, Phase is the placeholder type for invalid values
 	return SpecPathTypePhase
 }
 
@@ -111,10 +123,30 @@ func (p SpecPath) ItemKey() string {
 	return p.seg()[3]
 }
 
+func (p SpecPath) ItemVersion() int {
+	if p.Type() != SpecPathTypeItemVersion {
+		return -1
+	}
+
+	idxStr := p.seg()[5]
+	idx, err := strconv.Atoi(idxStr)
+	if err != nil {
+		return -1
+	}
+
+	return idx
+}
+
 func NewPhasePath(phaseKey string) SpecPath {
 	return SpecPath(fmt.Sprintf("/%s/%s", phasePathPrefix, phaseKey))
 }
 
 func NewItemPath(phaseKey, itemKey string) SpecPath {
-	return SpecPath(fmt.Sprintf("/%s/%s/%s/%s", phasePathPrefix, phaseKey, itemPathPrefix, itemKey))
+	phasePath := NewPhasePath(phaseKey)
+	return SpecPath(fmt.Sprintf("%s/%s/%s", phasePath, itemPathPrefix, itemKey))
+}
+
+func NewItemVersionPath(phaseKey, itemKey string, idx int) SpecPath {
+	itemPath := NewItemPath(phaseKey, itemKey)
+	return SpecPath(fmt.Sprintf("%s/%s/%d", itemPath, versionPathPrefix, idx))
 }
