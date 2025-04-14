@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/go-redsync/redsync/v4"
@@ -23,11 +24,13 @@ type redisCacheBackend struct {
 
 	redsync     *redsync.Redsync
 	lockTimeout time.Duration
+	logger      *slog.Logger
 }
 
 type RedisCacheBackendOptions struct {
 	RedisURL    string
 	LockTimeout time.Duration
+	Logger      *slog.Logger
 }
 
 func (o *RedisCacheBackendOptions) Validate() error {
@@ -37,6 +40,10 @@ func (o *RedisCacheBackendOptions) Validate() error {
 
 	if o.LockTimeout <= 0 {
 		return errors.New("lockTimeout must be greater than 0")
+	}
+
+	if o.Logger == nil {
+		return errors.New("logger is required")
 	}
 
 	return nil
@@ -58,6 +65,7 @@ func NewRedisCacheBackend(in RedisCacheBackendOptions) (CacheBackend, error) {
 		redis:       redis,
 		redsync:     redsync.New(goredis.NewPool(redis)),
 		lockTimeout: in.LockTimeout,
+		logger:      in.Logger,
 	}, nil
 }
 
