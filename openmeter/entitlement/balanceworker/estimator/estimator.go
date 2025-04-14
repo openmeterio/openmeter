@@ -62,7 +62,7 @@ func (t *TargetEntitlement) GetEntryHash() hasher.Hash {
 	val := strings.Join(
 		[]string{
 			t.Entitlement.ID, t.Entitlement.UpdatedAt.String(), lo.FromPtr(t.Entitlement.DeletedAt).String(),
-			// TODO: NR of voided and active grants
+			// TODO: NR of voided and active grants !!!!
 			// Entitlement usage period change
 			t.Entitlement.CurrentUsagePeriod.From.String(), t.Entitlement.CurrentUsagePeriod.To.String(),
 			// Feature changes
@@ -89,6 +89,7 @@ type Cache interface {
 type CacheOptions struct {
 	RedisURL    string
 	LockTimeout time.Duration
+	Logger      *slog.Logger
 }
 
 func (o *CacheOptions) Validate() error {
@@ -98,6 +99,10 @@ func (o *CacheOptions) Validate() error {
 
 	if o.LockTimeout <= 0 {
 		return errors.New("lockTimeout must be greater than 0")
+	}
+
+	if o.Logger == nil {
+		return errors.New("logger is required")
 	}
 
 	return nil
@@ -111,6 +116,7 @@ func NewCache(in CacheOptions) (Cache, error) {
 	backend, err := NewRedisCacheBackend(RedisCacheBackendOptions{
 		RedisURL:    in.RedisURL,
 		LockTimeout: in.LockTimeout,
+		Logger:      in.Logger,
 	})
 	if err != nil {
 		return nil, err
@@ -118,13 +124,14 @@ func NewCache(in CacheOptions) (Cache, error) {
 
 	return &cache{
 		backend: backend,
+		logger:  in.Logger,
 	}, nil
 }
 
 type cache struct {
 	backend CacheBackend
 
-	validationRate float64
+	logger *slog.Logger
 }
 
 var _ Cache = (*cache)(nil)
@@ -151,7 +158,7 @@ func (c *cache) HandleEntitlementEvent(ctx context.Context, event IngestEventInp
 			getChange, err := c.getChange(event.Target.Meter, event.DedupedEvents)
 			if err != nil {
 				// TODO: more details
-				slog.Warn("failed to get change for entitlement", "error", err)
+				c.logger.Warn("failed to get change for entitlement", "error", err)
 				// We should not fail the whole calculation, instead if we have any pending
 				// thresholds, this will force a recalculation of the entitlement balance.
 				approxIncrease = infinite

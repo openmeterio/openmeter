@@ -158,6 +158,11 @@ type Worker struct {
 	metricRecalculationTime       metric.Int64Histogram
 	metricHighWatermarkCacheStats metric.Int64Counter
 
+	// Estimator metrics
+	metricEstimatorRequestsTotal         metric.Int64Counter
+	metricEstimatorValidationErrorsTotal metric.Int64Counter
+	metricEstimatorActionTotal           metric.Int64Counter
+
 	// Handlers
 	nonPublishingHandler *grouphandler.NoPublishingHandler
 }

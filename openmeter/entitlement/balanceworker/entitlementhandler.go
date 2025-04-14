@@ -24,6 +24,10 @@ import (
 	"github.com/samber/lo"
 )
 
+const (
+	metricAttributeAction string = "action"
+)
+
 type handleEntitlementEventOptions struct {
 	// Source is the source of the event, e.g. the "subject" field from the upstream cloudevents event causing the change
 	source string
@@ -181,8 +185,9 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 type recalcAction string
 
 const (
-	recalcActionRecalculate recalcAction = "recalculate"
-	recalcActionUseCache    recalcAction = "use-cache"
+	recalcActionRecalculate      recalcAction = "recalculate"
+	recalcActionRecalculateOnHit recalcAction = "recalculate-on-hit"
+	recalcActionUseCache         recalcAction = "use-cache"
 )
 
 func (w *Worker) createSnapshotEventEstimator(ctx context.Context, entitlementEntity *entitlement.Entitlement, calculatedAt time.Time, opts handleEntitlementEventOptions) (marshaler.Event, error) {
@@ -190,6 +195,7 @@ func (w *Worker) createSnapshotEventEstimator(ctx context.Context, entitlementEn
 		return nil, fmt.Errorf("no raw ingested events provided")
 	}
 
+	// TODO: These should come from outside of the call
 	feature, err := w.entitlement.Feature.GetFeature(ctx, entitlementEntity.Namespace, entitlementEntity.FeatureID, feature.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature: %w", err)
@@ -212,6 +218,8 @@ func (w *Worker) createSnapshotEventEstimator(ctx context.Context, entitlementEn
 		Feature:     *feature,
 		Meter:       meterEntity,
 	}
+
+	w.metricEstimatorRequestsTotal.Add(ctx, 1)
 
 	action := recalcActionUseCache
 
@@ -245,7 +253,7 @@ func (w *Worker) createSnapshotEventEstimator(ctx context.Context, entitlementEn
 		}
 
 		if thHit {
-			action = recalcActionRecalculate
+			action = recalcActionRecalculateOnHit
 		}
 	}
 
@@ -254,7 +262,11 @@ func (w *Worker) createSnapshotEventEstimator(ctx context.Context, entitlementEn
 	// this should be a percentage and later we can say that for 1% of the events we should validate
 	// cache consistency
 
-	if action == recalcActionRecalculate {
+	w.metricEstimatorActionTotal.Add(ctx, 1, metric.WithAttributes(
+		attribute.String(metricAttributeAction, string(action)),
+	))
+
+	if action == recalcActionRecalculate || action == recalcActionRecalculateOnHit {
 		value, err := w.estimator.HandleRecalculation(ctx, target, func(ctx context.Context) (*snapshot.EntitlementValue, error) {
 			res, err := w.entitlement.Entitlement.GetEntitlementValue(ctx, entitlementEntity.Namespace, entitlementEntity.SubjectKey, entitlementEntity.ID, calculatedAt)
 			if err != nil {
@@ -302,6 +314,7 @@ func (w *Worker) createSnapshotEventEstimator(ctx context.Context, entitlementEn
 			balance := estimator.NewInfDecimal(lo.FromPtr(value.Balance))
 
 			if balance.GreaterThan(cacheEntry.ApproxUsage) {
+				w.metricEstimatorValidationErrorsTotal.Add(ctx, 1)
 				w.opts.Logger.Error("cache entry is inconsistent", "error", err)
 			}
 		}
