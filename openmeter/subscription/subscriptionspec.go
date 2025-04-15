@@ -777,6 +777,10 @@ func (s *SubscriptionItemSpec) Validate() error {
 	// TODO: if the price is usage based, we have to validate that that the feature is metered
 	// TODO: if the entitlement is metered, we have to validate that the feature is metered
 
+	if s.RateCard == nil {
+		return fmt.Errorf("rate card is required")
+	}
+
 	// Let's validate the key
 	if s.RateCard.AsMeta().FeatureKey != nil {
 		if s.ItemKey != *s.RateCard.AsMeta().FeatureKey {
