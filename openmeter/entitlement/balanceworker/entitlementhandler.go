@@ -163,6 +163,7 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 
 	var err error
 	var snapshot marshaler.Event
+	// TODO: This must not be in scope for high watermark cache or we are adding negative estimations!!!
 	if opts.useEstimator && entitlementEntity.EntitlementType == entitlement.EntitlementTypeMetered {
 		snapshot, err = w.createSnapshotEventEstimator(ctx, entitlementEntity, calculatedAt, opts)
 		if err != nil {
