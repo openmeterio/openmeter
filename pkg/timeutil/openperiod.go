@@ -192,15 +192,12 @@ func (p OpenPeriod) Union(other OpenPeriod) OpenPeriod {
 	switch {
 	case p.From == nil || other.From == nil:
 		newFrom = nil
+	case p.From.Before(*other.From):
+		tmp := *p.From
+		newFrom = &tmp
 	default:
-		// Both From are not nil, take the earlier one
-		if p.From.Before(*other.From) {
-			tmp := *p.From
-			newFrom = &tmp
-		} else {
-			tmp := *other.From
-			newFrom = &tmp
-		}
+		tmp := *other.From
+		newFrom = &tmp
 	}
 
 	// Calculate the latest To date
@@ -208,15 +205,13 @@ func (p OpenPeriod) Union(other OpenPeriod) OpenPeriod {
 	switch {
 	case p.To == nil || other.To == nil:
 		newTo = nil
+	case p.To.After(*other.To):
+		tmp := *p.To
+		newTo = &tmp
 	default:
-		// Both To are not nil, take the later one
-		if p.To.After(*other.To) {
-			tmp := *p.To
-			newTo = &tmp
-		} else {
-			tmp := *other.To
-			newTo = &tmp
-		}
+		tmp := *other.To
+		newTo = &tmp
+
 	}
 
 	return OpenPeriod{
