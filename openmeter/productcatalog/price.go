@@ -90,6 +90,27 @@ type Price struct {
 	packagePrice *PackagePrice
 }
 
+func (p *Price) Clone() *Price {
+	clone := &Price{
+		t: p.t,
+	}
+
+	switch p.t {
+	case FlatPriceType:
+		clone.flat = lo.ToPtr(p.flat.Clone())
+	case UnitPriceType:
+		clone.unit = lo.ToPtr(p.unit.Clone())
+	case TieredPriceType:
+		clone.tiered = lo.ToPtr(p.tiered.Clone())
+	case DynamicPriceType:
+		clone.dynamic = lo.ToPtr(p.dynamic.Clone())
+	case PackagePriceType:
+		clone.packagePrice = lo.ToPtr(p.packagePrice.Clone())
+	}
+
+	return clone
+}
+
 func (p *Price) MarshalJSON() ([]byte, error) {
 	var b []byte
 	var err error
@@ -389,6 +410,13 @@ type FlatPrice struct {
 	PaymentTerm PaymentTermType `json:"paymentTerm,omitempty"`
 }
 
+func (f *FlatPrice) Clone() FlatPrice {
+	return FlatPrice{
+		Amount:      f.Amount.Copy(),
+		PaymentTerm: f.PaymentTerm,
+	}
+}
+
 func (f *FlatPrice) Equal(v *FlatPrice) bool {
 	if f == nil && v == nil {
 		return true
@@ -428,6 +456,24 @@ type UnitPrice struct {
 
 	// Amount of the unit price.
 	Amount decimal.Decimal `json:"amount"`
+}
+
+func (u *UnitPrice) Clone() UnitPrice {
+	clone := UnitPrice{}
+
+	if u.Commitments.MinimumAmount != nil {
+		cp := u.Commitments.MinimumAmount.Copy()
+		clone.Commitments.MinimumAmount = &cp
+	}
+
+	if u.Commitments.MaximumAmount != nil {
+		cp := u.Commitments.MaximumAmount.Copy()
+		clone.Commitments.MaximumAmount = &cp
+	}
+
+	clone.Amount = u.Amount.Copy()
+
+	return clone
 }
 
 func (u *UnitPrice) Equal(v *UnitPrice) bool {
@@ -508,6 +554,29 @@ type TieredPrice struct {
 
 	// Tiers defines the list of PriceTier.
 	Tiers []PriceTier `json:"tiers"`
+}
+
+func (t *TieredPrice) Clone() TieredPrice {
+	clone := TieredPrice{}
+
+	if t.Commitments.MinimumAmount != nil {
+		cp := t.Commitments.MinimumAmount.Copy()
+		clone.Commitments.MinimumAmount = &cp
+	}
+
+	if t.Commitments.MaximumAmount != nil {
+		cp := t.Commitments.MaximumAmount.Copy()
+		clone.Commitments.MaximumAmount = &cp
+	}
+
+	tiersClone := make([]PriceTier, len(t.Tiers))
+	for i, tier := range t.Tiers {
+		tiersClone[i] = tier.Clone()
+	}
+
+	clone.Tiers = tiersClone
+
+	return clone
 }
 
 func (t *TieredPrice) Equal(v *TieredPrice) bool {
@@ -624,6 +693,25 @@ type PriceTier struct {
 	UnitPrice *PriceTierUnitPrice `json:"unitPrice,omitempty"`
 }
 
+func (p PriceTier) Clone() PriceTier {
+	clone := PriceTier{}
+
+	if p.UpToAmount != nil {
+		cp := p.UpToAmount.Copy()
+		clone.UpToAmount = &cp
+	}
+
+	if p.FlatPrice != nil {
+		clone.FlatPrice = lo.ToPtr(p.FlatPrice.Clone())
+	}
+
+	if p.UnitPrice != nil {
+		clone.UnitPrice = lo.ToPtr(p.UnitPrice.Clone())
+	}
+
+	return clone
+}
+
 func (p PriceTier) Validate() error {
 	var errs []error
 
@@ -674,6 +762,12 @@ type PriceTierFlatPrice struct {
 	Amount decimal.Decimal `json:"amount"`
 }
 
+func (f PriceTierFlatPrice) Clone() PriceTierFlatPrice {
+	return PriceTierFlatPrice{
+		Amount: f.Amount.Copy(),
+	}
+}
+
 func (f PriceTierFlatPrice) Validate() error {
 	if f.Amount.IsNegative() {
 		return models.NewGenericValidationError(errors.New("the Amount must not be negative"))
@@ -691,6 +785,12 @@ var _ models.Validator = (*PriceTierUnitPrice)(nil)
 type PriceTierUnitPrice struct {
 	// Amount of the flat price.
 	Amount decimal.Decimal `json:"amount"`
+}
+
+func (u PriceTierUnitPrice) Clone() PriceTierUnitPrice {
+	return PriceTierUnitPrice{
+		Amount: u.Amount.Copy(),
+	}
 }
 
 func (u PriceTierUnitPrice) Validate() error {
@@ -758,6 +858,24 @@ type DynamicPrice struct {
 	Multiplier decimal.Decimal `json:"multiplier"`
 }
 
+func (p DynamicPrice) Clone() DynamicPrice {
+	clone := DynamicPrice{}
+
+	if p.Commitments.MinimumAmount != nil {
+		cp := p.Commitments.MinimumAmount.Copy()
+		clone.Commitments.MinimumAmount = &cp
+	}
+
+	if p.Commitments.MaximumAmount != nil {
+		cp := p.Commitments.MaximumAmount.Copy()
+		clone.Commitments.MaximumAmount = &cp
+	}
+
+	clone.Multiplier = p.Multiplier.Copy()
+
+	return clone
+}
+
 func (p DynamicPrice) Validate() error {
 	var errs []error
 
@@ -799,6 +917,25 @@ type PackagePrice struct {
 
 	Amount             decimal.Decimal `json:"amount"`
 	QuantityPerPackage decimal.Decimal `json:"quantityPerPackage"`
+}
+
+func (p PackagePrice) Clone() PackagePrice {
+	clone := PackagePrice{}
+
+	if p.Commitments.MinimumAmount != nil {
+		cp := p.Commitments.MinimumAmount.Copy()
+		clone.Commitments.MinimumAmount = &cp
+	}
+
+	if p.Commitments.MaximumAmount != nil {
+		cp := p.Commitments.MaximumAmount.Copy()
+		clone.Commitments.MaximumAmount = &cp
+	}
+
+	clone.Amount = p.Amount.Copy()
+	clone.QuantityPerPackage = p.QuantityPerPackage.Copy()
+
+	return clone
 }
 
 func (p PackagePrice) Validate() error {
