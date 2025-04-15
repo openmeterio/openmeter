@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/samber/lo"
 )
 
 type SubscriptionAddon struct {
