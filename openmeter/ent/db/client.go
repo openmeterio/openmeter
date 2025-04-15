@@ -45,6 +45,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -124,6 +125,8 @@ type Client struct {
 	NotificationRule *NotificationRuleClient
 	// Plan is the client for interacting with the Plan builders.
 	Plan *PlanClient
+	// PlanAddon is the client for interacting with the PlanAddon builders.
+	PlanAddon *PlanAddonClient
 	// PlanPhase is the client for interacting with the PlanPhase builders.
 	PlanPhase *PlanPhaseClient
 	// PlanRateCard is the client for interacting with the PlanRateCard builders.
@@ -185,6 +188,7 @@ func (c *Client) init() {
 	c.NotificationEventDeliveryStatus = NewNotificationEventDeliveryStatusClient(c.config)
 	c.NotificationRule = NewNotificationRuleClient(c.config)
 	c.Plan = NewPlanClient(c.config)
+	c.PlanAddon = NewPlanAddonClient(c.config)
 	c.PlanPhase = NewPlanPhaseClient(c.config)
 	c.PlanRateCard = NewPlanRateCardClient(c.config)
 	c.Subscription = NewSubscriptionClient(c.config)
@@ -317,6 +321,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		NotificationEventDeliveryStatus:    NewNotificationEventDeliveryStatusClient(cfg),
 		NotificationRule:                   NewNotificationRuleClient(cfg),
 		Plan:                               NewPlanClient(cfg),
+		PlanAddon:                          NewPlanAddonClient(cfg),
 		PlanPhase:                          NewPlanPhaseClient(cfg),
 		PlanRateCard:                       NewPlanRateCardClient(cfg),
 		Subscription:                       NewSubscriptionClient(cfg),
@@ -376,6 +381,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		NotificationEventDeliveryStatus:    NewNotificationEventDeliveryStatusClient(cfg),
 		NotificationRule:                   NewNotificationRuleClient(cfg),
 		Plan:                               NewPlanClient(cfg),
+		PlanAddon:                          NewPlanAddonClient(cfg),
 		PlanPhase:                          NewPlanPhaseClient(cfg),
 		PlanRateCard:                       NewPlanRateCardClient(cfg),
 		Subscription:                       NewSubscriptionClient(cfg),
@@ -423,8 +429,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects, c.Entitlement,
 		c.Feature, c.Grant, c.Meter, c.NotificationChannel, c.NotificationEvent,
-		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanPhase,
-		c.PlanRateCard, c.Subscription, c.SubscriptionAddon,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
+		c.PlanPhase, c.PlanRateCard, c.Subscription, c.SubscriptionAddon,
 		c.SubscriptionAddonQuantity, c.SubscriptionAddonRateCard,
 		c.SubscriptionAddonRateCardItemLink, c.SubscriptionItem, c.SubscriptionPhase,
 		c.UsageReset,
@@ -445,8 +451,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects, c.Entitlement,
 		c.Feature, c.Grant, c.Meter, c.NotificationChannel, c.NotificationEvent,
-		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanPhase,
-		c.PlanRateCard, c.Subscription, c.SubscriptionAddon,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
+		c.PlanPhase, c.PlanRateCard, c.Subscription, c.SubscriptionAddon,
 		c.SubscriptionAddonQuantity, c.SubscriptionAddonRateCard,
 		c.SubscriptionAddonRateCardItemLink, c.SubscriptionItem, c.SubscriptionPhase,
 		c.UsageReset,
@@ -518,6 +524,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.NotificationRule.mutate(ctx, m)
 	case *PlanMutation:
 		return c.Plan.mutate(ctx, m)
+	case *PlanAddonMutation:
+		return c.PlanAddon.mutate(ctx, m)
 	case *PlanPhaseMutation:
 		return c.PlanPhase.mutate(ctx, m)
 	case *PlanRateCardMutation:
@@ -660,6 +668,22 @@ func (c *AddonClient) QueryRatecards(a *Addon) *AddonRateCardQuery {
 			sqlgraph.From(addon.Table, addon.FieldID, id),
 			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, addon.RatecardsTable, addon.RatecardsColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPlans queries the plans edge of a Addon.
+func (c *AddonClient) QueryPlans(a *Addon) *PlanAddonQuery {
+	query := (&PlanAddonClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(addon.Table, addon.FieldID, id),
+			sqlgraph.To(planaddon.Table, planaddon.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, addon.PlansTable, addon.PlansColumn),
 		)
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
@@ -5660,6 +5684,22 @@ func (c *PlanClient) QueryPhases(pl *Plan) *PlanPhaseQuery {
 	return query
 }
 
+// QueryAddons queries the addons edge of a Plan.
+func (c *PlanClient) QueryAddons(pl *Plan) *PlanAddonQuery {
+	query := (&PlanAddonClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, id),
+			sqlgraph.To(planaddon.Table, planaddon.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, plan.AddonsTable, plan.AddonsColumn),
+		)
+		fromV = sqlgraph.Neighbors(pl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QuerySubscriptions queries the subscriptions edge of a Plan.
 func (c *PlanClient) QuerySubscriptions(pl *Plan) *SubscriptionQuery {
 	query := (&SubscriptionClient{config: c.config}).Query()
@@ -5698,6 +5738,171 @@ func (c *PlanClient) mutate(ctx context.Context, m *PlanMutation) (Value, error)
 		return (&PlanDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown Plan mutation op: %q", m.Op())
+	}
+}
+
+// PlanAddonClient is a client for the PlanAddon schema.
+type PlanAddonClient struct {
+	config
+}
+
+// NewPlanAddonClient returns a client for the PlanAddon from the given config.
+func NewPlanAddonClient(c config) *PlanAddonClient {
+	return &PlanAddonClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `planaddon.Hooks(f(g(h())))`.
+func (c *PlanAddonClient) Use(hooks ...Hook) {
+	c.hooks.PlanAddon = append(c.hooks.PlanAddon, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `planaddon.Intercept(f(g(h())))`.
+func (c *PlanAddonClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlanAddon = append(c.inters.PlanAddon, interceptors...)
+}
+
+// Create returns a builder for creating a PlanAddon entity.
+func (c *PlanAddonClient) Create() *PlanAddonCreate {
+	mutation := newPlanAddonMutation(c.config, OpCreate)
+	return &PlanAddonCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlanAddon entities.
+func (c *PlanAddonClient) CreateBulk(builders ...*PlanAddonCreate) *PlanAddonCreateBulk {
+	return &PlanAddonCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlanAddonClient) MapCreateBulk(slice any, setFunc func(*PlanAddonCreate, int)) *PlanAddonCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlanAddonCreateBulk{err: fmt.Errorf("calling to PlanAddonClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlanAddonCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlanAddonCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlanAddon.
+func (c *PlanAddonClient) Update() *PlanAddonUpdate {
+	mutation := newPlanAddonMutation(c.config, OpUpdate)
+	return &PlanAddonUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlanAddonClient) UpdateOne(pa *PlanAddon) *PlanAddonUpdateOne {
+	mutation := newPlanAddonMutation(c.config, OpUpdateOne, withPlanAddon(pa))
+	return &PlanAddonUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlanAddonClient) UpdateOneID(id string) *PlanAddonUpdateOne {
+	mutation := newPlanAddonMutation(c.config, OpUpdateOne, withPlanAddonID(id))
+	return &PlanAddonUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlanAddon.
+func (c *PlanAddonClient) Delete() *PlanAddonDelete {
+	mutation := newPlanAddonMutation(c.config, OpDelete)
+	return &PlanAddonDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlanAddonClient) DeleteOne(pa *PlanAddon) *PlanAddonDeleteOne {
+	return c.DeleteOneID(pa.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlanAddonClient) DeleteOneID(id string) *PlanAddonDeleteOne {
+	builder := c.Delete().Where(planaddon.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlanAddonDeleteOne{builder}
+}
+
+// Query returns a query builder for PlanAddon.
+func (c *PlanAddonClient) Query() *PlanAddonQuery {
+	return &PlanAddonQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlanAddon},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlanAddon entity by its id.
+func (c *PlanAddonClient) Get(ctx context.Context, id string) (*PlanAddon, error) {
+	return c.Query().Where(planaddon.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlanAddonClient) GetX(ctx context.Context, id string) *PlanAddon {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPlan queries the plan edge of a PlanAddon.
+func (c *PlanAddonClient) QueryPlan(pa *PlanAddon) *PlanQuery {
+	query := (&PlanClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pa.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(planaddon.Table, planaddon.FieldID, id),
+			sqlgraph.To(plan.Table, plan.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, planaddon.PlanTable, planaddon.PlanColumn),
+		)
+		fromV = sqlgraph.Neighbors(pa.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAddon queries the addon edge of a PlanAddon.
+func (c *PlanAddonClient) QueryAddon(pa *PlanAddon) *AddonQuery {
+	query := (&AddonClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pa.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(planaddon.Table, planaddon.FieldID, id),
+			sqlgraph.To(addon.Table, addon.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, planaddon.AddonTable, planaddon.AddonColumn),
+		)
+		fromV = sqlgraph.Neighbors(pa.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PlanAddonClient) Hooks() []Hook {
+	return c.hooks.PlanAddon
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlanAddonClient) Interceptors() []Interceptor {
+	return c.inters.PlanAddon
+}
+
+func (c *PlanAddonClient) mutate(ctx context.Context, m *PlanAddonMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlanAddonCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlanAddonUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlanAddonUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlanAddonDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown PlanAddon mutation op: %q", m.Op())
 	}
 }
 
@@ -7474,7 +7679,7 @@ type (
 		BillingProfile, BillingSequenceNumbers, BillingWorkflowConfig, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanPhase, PlanRateCard, Subscription, SubscriptionAddon,
+		PlanAddon, PlanPhase, PlanRateCard, Subscription, SubscriptionAddon,
 		SubscriptionAddonQuantity, SubscriptionAddonRateCard,
 		SubscriptionAddonRateCardItemLink, SubscriptionItem, SubscriptionPhase,
 		UsageReset []ent.Hook
@@ -7488,7 +7693,7 @@ type (
 		BillingProfile, BillingSequenceNumbers, BillingWorkflowConfig, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanPhase, PlanRateCard, Subscription, SubscriptionAddon,
+		PlanAddon, PlanPhase, PlanRateCard, Subscription, SubscriptionAddon,
 		SubscriptionAddonQuantity, SubscriptionAddonRateCard,
 		SubscriptionAddonRateCardItemLink, SubscriptionItem, SubscriptionPhase,
 		UsageReset []ent.Interceptor

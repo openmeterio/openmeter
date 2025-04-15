@@ -369,6 +369,18 @@ func (f PlanFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.PlanMutation", m)
 }
 
+// The PlanAddonFunc type is an adapter to allow the use of ordinary
+// function as PlanAddon mutator.
+type PlanAddonFunc func(context.Context, *db.PlanAddonMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlanAddonFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.PlanAddonMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.PlanAddonMutation", m)
+}
+
 // The PlanPhaseFunc type is an adapter to allow the use of ordinary
 // function as PlanPhase mutator.
 type PlanPhaseFunc func(context.Context, *db.PlanPhaseMutation) (db.Value, error)

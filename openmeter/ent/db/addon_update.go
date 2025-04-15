@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -205,6 +206,21 @@ func (au *AddonUpdate) AddRatecards(a ...*AddonRateCard) *AddonUpdate {
 	return au.AddRatecardIDs(ids...)
 }
 
+// AddPlanIDs adds the "plans" edge to the PlanAddon entity by IDs.
+func (au *AddonUpdate) AddPlanIDs(ids ...string) *AddonUpdate {
+	au.mutation.AddPlanIDs(ids...)
+	return au
+}
+
+// AddPlans adds the "plans" edges to the PlanAddon entity.
+func (au *AddonUpdate) AddPlans(p ...*PlanAddon) *AddonUpdate {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return au.AddPlanIDs(ids...)
+}
+
 // AddSubscriptionAddonIDs adds the "subscription_addons" edge to the SubscriptionAddon entity by IDs.
 func (au *AddonUpdate) AddSubscriptionAddonIDs(ids ...string) *AddonUpdate {
 	au.mutation.AddSubscriptionAddonIDs(ids...)
@@ -244,6 +260,27 @@ func (au *AddonUpdate) RemoveRatecards(a ...*AddonRateCard) *AddonUpdate {
 		ids[i] = a[i].ID
 	}
 	return au.RemoveRatecardIDs(ids...)
+}
+
+// ClearPlans clears all "plans" edges to the PlanAddon entity.
+func (au *AddonUpdate) ClearPlans() *AddonUpdate {
+	au.mutation.ClearPlans()
+	return au
+}
+
+// RemovePlanIDs removes the "plans" edge to PlanAddon entities by IDs.
+func (au *AddonUpdate) RemovePlanIDs(ids ...string) *AddonUpdate {
+	au.mutation.RemovePlanIDs(ids...)
+	return au
+}
+
+// RemovePlans removes "plans" edges to PlanAddon entities.
+func (au *AddonUpdate) RemovePlans(p ...*PlanAddon) *AddonUpdate {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return au.RemovePlanIDs(ids...)
 }
 
 // ClearSubscriptionAddons clears all "subscription_addons" edges to the SubscriptionAddon entity.
@@ -423,6 +460,51 @@ func (au *AddonUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if au.mutation.PlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.PlansTable,
+			Columns: []string{addon.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := au.mutation.RemovedPlansIDs(); len(nodes) > 0 && !au.mutation.PlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.PlansTable,
+			Columns: []string{addon.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := au.mutation.PlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.PlansTable,
+			Columns: []string{addon.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -669,6 +751,21 @@ func (auo *AddonUpdateOne) AddRatecards(a ...*AddonRateCard) *AddonUpdateOne {
 	return auo.AddRatecardIDs(ids...)
 }
 
+// AddPlanIDs adds the "plans" edge to the PlanAddon entity by IDs.
+func (auo *AddonUpdateOne) AddPlanIDs(ids ...string) *AddonUpdateOne {
+	auo.mutation.AddPlanIDs(ids...)
+	return auo
+}
+
+// AddPlans adds the "plans" edges to the PlanAddon entity.
+func (auo *AddonUpdateOne) AddPlans(p ...*PlanAddon) *AddonUpdateOne {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return auo.AddPlanIDs(ids...)
+}
+
 // AddSubscriptionAddonIDs adds the "subscription_addons" edge to the SubscriptionAddon entity by IDs.
 func (auo *AddonUpdateOne) AddSubscriptionAddonIDs(ids ...string) *AddonUpdateOne {
 	auo.mutation.AddSubscriptionAddonIDs(ids...)
@@ -708,6 +805,27 @@ func (auo *AddonUpdateOne) RemoveRatecards(a ...*AddonRateCard) *AddonUpdateOne 
 		ids[i] = a[i].ID
 	}
 	return auo.RemoveRatecardIDs(ids...)
+}
+
+// ClearPlans clears all "plans" edges to the PlanAddon entity.
+func (auo *AddonUpdateOne) ClearPlans() *AddonUpdateOne {
+	auo.mutation.ClearPlans()
+	return auo
+}
+
+// RemovePlanIDs removes the "plans" edge to PlanAddon entities by IDs.
+func (auo *AddonUpdateOne) RemovePlanIDs(ids ...string) *AddonUpdateOne {
+	auo.mutation.RemovePlanIDs(ids...)
+	return auo
+}
+
+// RemovePlans removes "plans" edges to PlanAddon entities.
+func (auo *AddonUpdateOne) RemovePlans(p ...*PlanAddon) *AddonUpdateOne {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return auo.RemovePlanIDs(ids...)
 }
 
 // ClearSubscriptionAddons clears all "subscription_addons" edges to the SubscriptionAddon entity.
@@ -917,6 +1035,51 @@ func (auo *AddonUpdateOne) sqlSave(ctx context.Context) (_node *Addon, err error
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if auo.mutation.PlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.PlansTable,
+			Columns: []string{addon.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := auo.mutation.RemovedPlansIDs(); len(nodes) > 0 && !auo.mutation.PlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.PlansTable,
+			Columns: []string{addon.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := auo.mutation.PlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.PlansTable,
+			Columns: []string{addon.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

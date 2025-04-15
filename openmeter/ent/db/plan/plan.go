@@ -42,6 +42,8 @@ const (
 	FieldEffectiveTo = "effective_to"
 	// EdgePhases holds the string denoting the phases edge name in mutations.
 	EdgePhases = "phases"
+	// EdgeAddons holds the string denoting the addons edge name in mutations.
+	EdgeAddons = "addons"
 	// EdgeSubscriptions holds the string denoting the subscriptions edge name in mutations.
 	EdgeSubscriptions = "subscriptions"
 	// Table holds the table name of the plan in the database.
@@ -53,6 +55,13 @@ const (
 	PhasesInverseTable = "plan_phases"
 	// PhasesColumn is the table column denoting the phases relation/edge.
 	PhasesColumn = "plan_id"
+	// AddonsTable is the table that holds the addons relation/edge.
+	AddonsTable = "plan_addons"
+	// AddonsInverseTable is the table name for the PlanAddon entity.
+	// It exists in this package in order to avoid circular dependency with the "planaddon" package.
+	AddonsInverseTable = "plan_addons"
+	// AddonsColumn is the table column denoting the addons relation/edge.
+	AddonsColumn = "plan_id"
 	// SubscriptionsTable is the table that holds the subscriptions relation/edge.
 	SubscriptionsTable = "subscriptions"
 	// SubscriptionsInverseTable is the table name for the Subscription entity.
@@ -195,6 +204,20 @@ func ByPhases(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByAddonsCount orders the results by addons count.
+func ByAddonsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAddonsStep(), opts...)
+	}
+}
+
+// ByAddons orders the results by addons terms.
+func ByAddons(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAddonsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // BySubscriptionsCount orders the results by subscriptions count.
 func BySubscriptionsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -213,6 +236,13 @@ func newPhasesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PhasesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, PhasesTable, PhasesColumn),
+	)
+}
+func newAddonsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AddonsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AddonsTable, AddonsColumn),
 	)
 }
 func newSubscriptionsStep() *sqlgraph.Step {

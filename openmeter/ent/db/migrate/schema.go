@@ -1678,6 +1678,70 @@ var (
 			},
 		},
 	}
+	// PlanAddonsColumns holds the columns for the "plan_addons" table.
+	PlanAddonsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "from_plan_phase", Type: field.TypeString},
+		{Name: "max_quantity", Type: field.TypeInt, Nullable: true},
+		{Name: "addon_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "plan_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// PlanAddonsTable holds the schema information for the "plan_addons" table.
+	PlanAddonsTable = &schema.Table{
+		Name:       "plan_addons",
+		Columns:    PlanAddonsColumns,
+		PrimaryKey: []*schema.Column{PlanAddonsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "plan_addons_addons_plans",
+				Columns:    []*schema.Column{PlanAddonsColumns[9]},
+				RefColumns: []*schema.Column{AddonsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "plan_addons_plans_addons",
+				Columns:    []*schema.Column{PlanAddonsColumns[10]},
+				RefColumns: []*schema.Column{PlansColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "planaddon_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlanAddonsColumns[0]},
+			},
+			{
+				Name:    "planaddon_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{PlanAddonsColumns[1]},
+			},
+			{
+				Name:    "planaddon_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{PlanAddonsColumns[3]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "planaddon_namespace_plan_id_addon_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlanAddonsColumns[1], PlanAddonsColumns[10], PlanAddonsColumns[9]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
 	// PlanPhasesColumns holds the columns for the "plan_phases" table.
 	PlanPhasesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2331,6 +2395,7 @@ var (
 		NotificationEventDeliveryStatusTable,
 		NotificationRulesTable,
 		PlansTable,
+		PlanAddonsTable,
 		PlanPhasesTable,
 		PlanRateCardsTable,
 		SubscriptionsTable,
@@ -2381,6 +2446,8 @@ func init() {
 	EntitlementsTable.ForeignKeys[0].RefTable = FeaturesTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
+	PlanAddonsTable.ForeignKeys[0].RefTable = AddonsTable
+	PlanAddonsTable.ForeignKeys[1].RefTable = PlansTable
 	PlanPhasesTable.ForeignKeys[0].RefTable = PlansTable
 	PlanRateCardsTable.ForeignKeys[0].RefTable = FeaturesTable
 	PlanRateCardsTable.ForeignKeys[1].RefTable = PlanPhasesTable

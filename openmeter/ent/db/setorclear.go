@@ -2211,6 +2211,62 @@ func (u *PlanUpdateOne) SetOrClearEffectiveTo(value *time.Time) *PlanUpdateOne {
 	return u.SetEffectiveTo(*value)
 }
 
+func (u *PlanAddonUpdate) SetOrClearMetadata(value *map[string]string) *PlanAddonUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *PlanAddonUpdateOne) SetOrClearMetadata(value *map[string]string) *PlanAddonUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *PlanAddonUpdate) SetOrClearAnnotations(value *map[string]interface{}) *PlanAddonUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *PlanAddonUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *PlanAddonUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *PlanAddonUpdate) SetOrClearDeletedAt(value *time.Time) *PlanAddonUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *PlanAddonUpdateOne) SetOrClearDeletedAt(value *time.Time) *PlanAddonUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *PlanAddonUpdate) SetOrClearMaxQuantity(value *int) *PlanAddonUpdate {
+	if value == nil {
+		return u.ClearMaxQuantity()
+	}
+	return u.SetMaxQuantity(*value)
+}
+
+func (u *PlanAddonUpdateOne) SetOrClearMaxQuantity(value *int) *PlanAddonUpdateOne {
+	if value == nil {
+		return u.ClearMaxQuantity()
+	}
+	return u.SetMaxQuantity(*value)
+}
+
 func (u *PlanPhaseUpdate) SetOrClearMetadata(value *map[string]string) *PlanPhaseUpdate {
 	if value == nil {
 		return u.ClearMetadata()

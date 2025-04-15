@@ -46,6 +46,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -104,6 +105,7 @@ const (
 	TypeNotificationEventDeliveryStatus    = "NotificationEventDeliveryStatus"
 	TypeNotificationRule                   = "NotificationRule"
 	TypePlan                               = "Plan"
+	TypePlanAddon                          = "PlanAddon"
 	TypePlanPhase                          = "PlanPhase"
 	TypePlanRateCard                       = "PlanRateCard"
 	TypeSubscription                       = "Subscription"
@@ -141,6 +143,9 @@ type AddonMutation struct {
 	ratecards                  map[string]struct{}
 	removedratecards           map[string]struct{}
 	clearedratecards           bool
+	plans                      map[string]struct{}
+	removedplans               map[string]struct{}
+	clearedplans               bool
 	subscription_addons        map[string]struct{}
 	removedsubscription_addons map[string]struct{}
 	clearedsubscription_addons bool
@@ -909,6 +914,60 @@ func (m *AddonMutation) ResetRatecards() {
 	m.removedratecards = nil
 }
 
+// AddPlanIDs adds the "plans" edge to the PlanAddon entity by ids.
+func (m *AddonMutation) AddPlanIDs(ids ...string) {
+	if m.plans == nil {
+		m.plans = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.plans[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPlans clears the "plans" edge to the PlanAddon entity.
+func (m *AddonMutation) ClearPlans() {
+	m.clearedplans = true
+}
+
+// PlansCleared reports if the "plans" edge to the PlanAddon entity was cleared.
+func (m *AddonMutation) PlansCleared() bool {
+	return m.clearedplans
+}
+
+// RemovePlanIDs removes the "plans" edge to the PlanAddon entity by IDs.
+func (m *AddonMutation) RemovePlanIDs(ids ...string) {
+	if m.removedplans == nil {
+		m.removedplans = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.plans, ids[i])
+		m.removedplans[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPlans returns the removed IDs of the "plans" edge to the PlanAddon entity.
+func (m *AddonMutation) RemovedPlansIDs() (ids []string) {
+	for id := range m.removedplans {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PlansIDs returns the "plans" edge IDs in the mutation.
+func (m *AddonMutation) PlansIDs() (ids []string) {
+	for id := range m.plans {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPlans resets all changes to the "plans" edge.
+func (m *AddonMutation) ResetPlans() {
+	m.plans = nil
+	m.clearedplans = false
+	m.removedplans = nil
+}
+
 // AddSubscriptionAddonIDs adds the "subscription_addons" edge to the SubscriptionAddon entity by ids.
 func (m *AddonMutation) AddSubscriptionAddonIDs(ids ...string) {
 	if m.subscription_addons == nil {
@@ -1371,9 +1430,12 @@ func (m *AddonMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AddonMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.ratecards != nil {
 		edges = append(edges, addon.EdgeRatecards)
+	}
+	if m.plans != nil {
+		edges = append(edges, addon.EdgePlans)
 	}
 	if m.subscription_addons != nil {
 		edges = append(edges, addon.EdgeSubscriptionAddons)
@@ -1391,6 +1453,12 @@ func (m *AddonMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case addon.EdgePlans:
+		ids := make([]ent.Value, 0, len(m.plans))
+		for id := range m.plans {
+			ids = append(ids, id)
+		}
+		return ids
 	case addon.EdgeSubscriptionAddons:
 		ids := make([]ent.Value, 0, len(m.subscription_addons))
 		for id := range m.subscription_addons {
@@ -1403,9 +1471,12 @@ func (m *AddonMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AddonMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedratecards != nil {
 		edges = append(edges, addon.EdgeRatecards)
+	}
+	if m.removedplans != nil {
+		edges = append(edges, addon.EdgePlans)
 	}
 	if m.removedsubscription_addons != nil {
 		edges = append(edges, addon.EdgeSubscriptionAddons)
@@ -1423,6 +1494,12 @@ func (m *AddonMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case addon.EdgePlans:
+		ids := make([]ent.Value, 0, len(m.removedplans))
+		for id := range m.removedplans {
+			ids = append(ids, id)
+		}
+		return ids
 	case addon.EdgeSubscriptionAddons:
 		ids := make([]ent.Value, 0, len(m.removedsubscription_addons))
 		for id := range m.removedsubscription_addons {
@@ -1435,9 +1512,12 @@ func (m *AddonMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AddonMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedratecards {
 		edges = append(edges, addon.EdgeRatecards)
+	}
+	if m.clearedplans {
+		edges = append(edges, addon.EdgePlans)
 	}
 	if m.clearedsubscription_addons {
 		edges = append(edges, addon.EdgeSubscriptionAddons)
@@ -1451,6 +1531,8 @@ func (m *AddonMutation) EdgeCleared(name string) bool {
 	switch name {
 	case addon.EdgeRatecards:
 		return m.clearedratecards
+	case addon.EdgePlans:
+		return m.clearedplans
 	case addon.EdgeSubscriptionAddons:
 		return m.clearedsubscription_addons
 	}
@@ -1471,6 +1553,9 @@ func (m *AddonMutation) ResetEdge(name string) error {
 	switch name {
 	case addon.EdgeRatecards:
 		m.ResetRatecards()
+		return nil
+	case addon.EdgePlans:
+		m.ResetPlans()
 		return nil
 	case addon.EdgeSubscriptionAddons:
 		m.ResetSubscriptionAddons()
@@ -36782,6 +36867,9 @@ type PlanMutation struct {
 	phases               map[string]struct{}
 	removedphases        map[string]struct{}
 	clearedphases        bool
+	addons               map[string]struct{}
+	removedaddons        map[string]struct{}
+	clearedaddons        bool
 	subscriptions        map[string]struct{}
 	removedsubscriptions map[string]struct{}
 	clearedsubscriptions bool
@@ -37501,6 +37589,60 @@ func (m *PlanMutation) ResetPhases() {
 	m.removedphases = nil
 }
 
+// AddAddonIDs adds the "addons" edge to the PlanAddon entity by ids.
+func (m *PlanMutation) AddAddonIDs(ids ...string) {
+	if m.addons == nil {
+		m.addons = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.addons[ids[i]] = struct{}{}
+	}
+}
+
+// ClearAddons clears the "addons" edge to the PlanAddon entity.
+func (m *PlanMutation) ClearAddons() {
+	m.clearedaddons = true
+}
+
+// AddonsCleared reports if the "addons" edge to the PlanAddon entity was cleared.
+func (m *PlanMutation) AddonsCleared() bool {
+	return m.clearedaddons
+}
+
+// RemoveAddonIDs removes the "addons" edge to the PlanAddon entity by IDs.
+func (m *PlanMutation) RemoveAddonIDs(ids ...string) {
+	if m.removedaddons == nil {
+		m.removedaddons = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.addons, ids[i])
+		m.removedaddons[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedAddons returns the removed IDs of the "addons" edge to the PlanAddon entity.
+func (m *PlanMutation) RemovedAddonsIDs() (ids []string) {
+	for id := range m.removedaddons {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// AddonsIDs returns the "addons" edge IDs in the mutation.
+func (m *PlanMutation) AddonsIDs() (ids []string) {
+	for id := range m.addons {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetAddons resets all changes to the "addons" edge.
+func (m *PlanMutation) ResetAddons() {
+	m.addons = nil
+	m.clearedaddons = false
+	m.removedaddons = nil
+}
+
 // AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by ids.
 func (m *PlanMutation) AddSubscriptionIDs(ids ...string) {
 	if m.subscriptions == nil {
@@ -37940,9 +38082,12 @@ func (m *PlanMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PlanMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.phases != nil {
 		edges = append(edges, plan.EdgePhases)
+	}
+	if m.addons != nil {
+		edges = append(edges, plan.EdgeAddons)
 	}
 	if m.subscriptions != nil {
 		edges = append(edges, plan.EdgeSubscriptions)
@@ -37960,6 +38105,12 @@ func (m *PlanMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case plan.EdgeAddons:
+		ids := make([]ent.Value, 0, len(m.addons))
+		for id := range m.addons {
+			ids = append(ids, id)
+		}
+		return ids
 	case plan.EdgeSubscriptions:
 		ids := make([]ent.Value, 0, len(m.subscriptions))
 		for id := range m.subscriptions {
@@ -37972,9 +38123,12 @@ func (m *PlanMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PlanMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedphases != nil {
 		edges = append(edges, plan.EdgePhases)
+	}
+	if m.removedaddons != nil {
+		edges = append(edges, plan.EdgeAddons)
 	}
 	if m.removedsubscriptions != nil {
 		edges = append(edges, plan.EdgeSubscriptions)
@@ -37992,6 +38146,12 @@ func (m *PlanMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case plan.EdgeAddons:
+		ids := make([]ent.Value, 0, len(m.removedaddons))
+		for id := range m.removedaddons {
+			ids = append(ids, id)
+		}
+		return ids
 	case plan.EdgeSubscriptions:
 		ids := make([]ent.Value, 0, len(m.removedsubscriptions))
 		for id := range m.removedsubscriptions {
@@ -38004,9 +38164,12 @@ func (m *PlanMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PlanMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedphases {
 		edges = append(edges, plan.EdgePhases)
+	}
+	if m.clearedaddons {
+		edges = append(edges, plan.EdgeAddons)
 	}
 	if m.clearedsubscriptions {
 		edges = append(edges, plan.EdgeSubscriptions)
@@ -38020,6 +38183,8 @@ func (m *PlanMutation) EdgeCleared(name string) bool {
 	switch name {
 	case plan.EdgePhases:
 		return m.clearedphases
+	case plan.EdgeAddons:
+		return m.clearedaddons
 	case plan.EdgeSubscriptions:
 		return m.clearedsubscriptions
 	}
@@ -38041,11 +38206,1048 @@ func (m *PlanMutation) ResetEdge(name string) error {
 	case plan.EdgePhases:
 		m.ResetPhases()
 		return nil
+	case plan.EdgeAddons:
+		m.ResetAddons()
+		return nil
 	case plan.EdgeSubscriptions:
 		m.ResetSubscriptions()
 		return nil
 	}
 	return fmt.Errorf("unknown Plan edge %s", name)
+}
+
+// PlanAddonMutation represents an operation that mutates the PlanAddon nodes in the graph.
+type PlanAddonMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	namespace       *string
+	metadata        *map[string]string
+	annotations     *map[string]interface{}
+	created_at      *time.Time
+	updated_at      *time.Time
+	deleted_at      *time.Time
+	from_plan_phase *string
+	max_quantity    *int
+	addmax_quantity *int
+	clearedFields   map[string]struct{}
+	plan            *string
+	clearedplan     bool
+	addon           *string
+	clearedaddon    bool
+	done            bool
+	oldValue        func(context.Context) (*PlanAddon, error)
+	predicates      []predicate.PlanAddon
+}
+
+var _ ent.Mutation = (*PlanAddonMutation)(nil)
+
+// planaddonOption allows management of the mutation configuration using functional options.
+type planaddonOption func(*PlanAddonMutation)
+
+// newPlanAddonMutation creates new mutation for the PlanAddon entity.
+func newPlanAddonMutation(c config, op Op, opts ...planaddonOption) *PlanAddonMutation {
+	m := &PlanAddonMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlanAddon,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlanAddonID sets the ID field of the mutation.
+func withPlanAddonID(id string) planaddonOption {
+	return func(m *PlanAddonMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlanAddon
+		)
+		m.oldValue = func(ctx context.Context) (*PlanAddon, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlanAddon.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlanAddon sets the old PlanAddon of the mutation.
+func withPlanAddon(node *PlanAddon) planaddonOption {
+	return func(m *PlanAddonMutation) {
+		m.oldValue = func(context.Context) (*PlanAddon, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlanAddonMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlanAddonMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlanAddon entities.
+func (m *PlanAddonMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlanAddonMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlanAddonMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlanAddon.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *PlanAddonMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *PlanAddonMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the PlanAddon entity.
+// If the PlanAddon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanAddonMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *PlanAddonMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *PlanAddonMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *PlanAddonMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the PlanAddon entity.
+// If the PlanAddon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanAddonMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *PlanAddonMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[planaddon.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *PlanAddonMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[planaddon.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *PlanAddonMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, planaddon.FieldMetadata)
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *PlanAddonMutation) SetAnnotations(value map[string]interface{}) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *PlanAddonMutation) Annotations() (r map[string]interface{}, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the PlanAddon entity.
+// If the PlanAddon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanAddonMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *PlanAddonMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[planaddon.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *PlanAddonMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[planaddon.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *PlanAddonMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, planaddon.FieldAnnotations)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PlanAddonMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PlanAddonMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PlanAddon entity.
+// If the PlanAddon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanAddonMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PlanAddonMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PlanAddonMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PlanAddonMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the PlanAddon entity.
+// If the PlanAddon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanAddonMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PlanAddonMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *PlanAddonMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *PlanAddonMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the PlanAddon entity.
+// If the PlanAddon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanAddonMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *PlanAddonMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[planaddon.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *PlanAddonMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[planaddon.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *PlanAddonMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, planaddon.FieldDeletedAt)
+}
+
+// SetPlanID sets the "plan_id" field.
+func (m *PlanAddonMutation) SetPlanID(s string) {
+	m.plan = &s
+}
+
+// PlanID returns the value of the "plan_id" field in the mutation.
+func (m *PlanAddonMutation) PlanID() (r string, exists bool) {
+	v := m.plan
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlanID returns the old "plan_id" field's value of the PlanAddon entity.
+// If the PlanAddon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanAddonMutation) OldPlanID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlanID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlanID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlanID: %w", err)
+	}
+	return oldValue.PlanID, nil
+}
+
+// ResetPlanID resets all changes to the "plan_id" field.
+func (m *PlanAddonMutation) ResetPlanID() {
+	m.plan = nil
+}
+
+// SetAddonID sets the "addon_id" field.
+func (m *PlanAddonMutation) SetAddonID(s string) {
+	m.addon = &s
+}
+
+// AddonID returns the value of the "addon_id" field in the mutation.
+func (m *PlanAddonMutation) AddonID() (r string, exists bool) {
+	v := m.addon
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAddonID returns the old "addon_id" field's value of the PlanAddon entity.
+// If the PlanAddon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanAddonMutation) OldAddonID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAddonID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAddonID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAddonID: %w", err)
+	}
+	return oldValue.AddonID, nil
+}
+
+// ResetAddonID resets all changes to the "addon_id" field.
+func (m *PlanAddonMutation) ResetAddonID() {
+	m.addon = nil
+}
+
+// SetFromPlanPhase sets the "from_plan_phase" field.
+func (m *PlanAddonMutation) SetFromPlanPhase(s string) {
+	m.from_plan_phase = &s
+}
+
+// FromPlanPhase returns the value of the "from_plan_phase" field in the mutation.
+func (m *PlanAddonMutation) FromPlanPhase() (r string, exists bool) {
+	v := m.from_plan_phase
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFromPlanPhase returns the old "from_plan_phase" field's value of the PlanAddon entity.
+// If the PlanAddon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanAddonMutation) OldFromPlanPhase(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFromPlanPhase is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFromPlanPhase requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFromPlanPhase: %w", err)
+	}
+	return oldValue.FromPlanPhase, nil
+}
+
+// ResetFromPlanPhase resets all changes to the "from_plan_phase" field.
+func (m *PlanAddonMutation) ResetFromPlanPhase() {
+	m.from_plan_phase = nil
+}
+
+// SetMaxQuantity sets the "max_quantity" field.
+func (m *PlanAddonMutation) SetMaxQuantity(i int) {
+	m.max_quantity = &i
+	m.addmax_quantity = nil
+}
+
+// MaxQuantity returns the value of the "max_quantity" field in the mutation.
+func (m *PlanAddonMutation) MaxQuantity() (r int, exists bool) {
+	v := m.max_quantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMaxQuantity returns the old "max_quantity" field's value of the PlanAddon entity.
+// If the PlanAddon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanAddonMutation) OldMaxQuantity(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMaxQuantity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMaxQuantity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMaxQuantity: %w", err)
+	}
+	return oldValue.MaxQuantity, nil
+}
+
+// AddMaxQuantity adds i to the "max_quantity" field.
+func (m *PlanAddonMutation) AddMaxQuantity(i int) {
+	if m.addmax_quantity != nil {
+		*m.addmax_quantity += i
+	} else {
+		m.addmax_quantity = &i
+	}
+}
+
+// AddedMaxQuantity returns the value that was added to the "max_quantity" field in this mutation.
+func (m *PlanAddonMutation) AddedMaxQuantity() (r int, exists bool) {
+	v := m.addmax_quantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearMaxQuantity clears the value of the "max_quantity" field.
+func (m *PlanAddonMutation) ClearMaxQuantity() {
+	m.max_quantity = nil
+	m.addmax_quantity = nil
+	m.clearedFields[planaddon.FieldMaxQuantity] = struct{}{}
+}
+
+// MaxQuantityCleared returns if the "max_quantity" field was cleared in this mutation.
+func (m *PlanAddonMutation) MaxQuantityCleared() bool {
+	_, ok := m.clearedFields[planaddon.FieldMaxQuantity]
+	return ok
+}
+
+// ResetMaxQuantity resets all changes to the "max_quantity" field.
+func (m *PlanAddonMutation) ResetMaxQuantity() {
+	m.max_quantity = nil
+	m.addmax_quantity = nil
+	delete(m.clearedFields, planaddon.FieldMaxQuantity)
+}
+
+// ClearPlan clears the "plan" edge to the Plan entity.
+func (m *PlanAddonMutation) ClearPlan() {
+	m.clearedplan = true
+	m.clearedFields[planaddon.FieldPlanID] = struct{}{}
+}
+
+// PlanCleared reports if the "plan" edge to the Plan entity was cleared.
+func (m *PlanAddonMutation) PlanCleared() bool {
+	return m.clearedplan
+}
+
+// PlanIDs returns the "plan" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PlanID instead. It exists only for internal usage by the builders.
+func (m *PlanAddonMutation) PlanIDs() (ids []string) {
+	if id := m.plan; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPlan resets all changes to the "plan" edge.
+func (m *PlanAddonMutation) ResetPlan() {
+	m.plan = nil
+	m.clearedplan = false
+}
+
+// ClearAddon clears the "addon" edge to the Addon entity.
+func (m *PlanAddonMutation) ClearAddon() {
+	m.clearedaddon = true
+	m.clearedFields[planaddon.FieldAddonID] = struct{}{}
+}
+
+// AddonCleared reports if the "addon" edge to the Addon entity was cleared.
+func (m *PlanAddonMutation) AddonCleared() bool {
+	return m.clearedaddon
+}
+
+// AddonIDs returns the "addon" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AddonID instead. It exists only for internal usage by the builders.
+func (m *PlanAddonMutation) AddonIDs() (ids []string) {
+	if id := m.addon; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAddon resets all changes to the "addon" edge.
+func (m *PlanAddonMutation) ResetAddon() {
+	m.addon = nil
+	m.clearedaddon = false
+}
+
+// Where appends a list predicates to the PlanAddonMutation builder.
+func (m *PlanAddonMutation) Where(ps ...predicate.PlanAddon) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlanAddonMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlanAddonMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlanAddon, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlanAddonMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlanAddonMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlanAddon).
+func (m *PlanAddonMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlanAddonMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.namespace != nil {
+		fields = append(fields, planaddon.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, planaddon.FieldMetadata)
+	}
+	if m.annotations != nil {
+		fields = append(fields, planaddon.FieldAnnotations)
+	}
+	if m.created_at != nil {
+		fields = append(fields, planaddon.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, planaddon.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, planaddon.FieldDeletedAt)
+	}
+	if m.plan != nil {
+		fields = append(fields, planaddon.FieldPlanID)
+	}
+	if m.addon != nil {
+		fields = append(fields, planaddon.FieldAddonID)
+	}
+	if m.from_plan_phase != nil {
+		fields = append(fields, planaddon.FieldFromPlanPhase)
+	}
+	if m.max_quantity != nil {
+		fields = append(fields, planaddon.FieldMaxQuantity)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlanAddonMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case planaddon.FieldNamespace:
+		return m.Namespace()
+	case planaddon.FieldMetadata:
+		return m.Metadata()
+	case planaddon.FieldAnnotations:
+		return m.Annotations()
+	case planaddon.FieldCreatedAt:
+		return m.CreatedAt()
+	case planaddon.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case planaddon.FieldDeletedAt:
+		return m.DeletedAt()
+	case planaddon.FieldPlanID:
+		return m.PlanID()
+	case planaddon.FieldAddonID:
+		return m.AddonID()
+	case planaddon.FieldFromPlanPhase:
+		return m.FromPlanPhase()
+	case planaddon.FieldMaxQuantity:
+		return m.MaxQuantity()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlanAddonMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case planaddon.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case planaddon.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case planaddon.FieldAnnotations:
+		return m.OldAnnotations(ctx)
+	case planaddon.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case planaddon.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case planaddon.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case planaddon.FieldPlanID:
+		return m.OldPlanID(ctx)
+	case planaddon.FieldAddonID:
+		return m.OldAddonID(ctx)
+	case planaddon.FieldFromPlanPhase:
+		return m.OldFromPlanPhase(ctx)
+	case planaddon.FieldMaxQuantity:
+		return m.OldMaxQuantity(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlanAddon field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlanAddonMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case planaddon.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case planaddon.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case planaddon.FieldAnnotations:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
+	case planaddon.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case planaddon.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case planaddon.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case planaddon.FieldPlanID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlanID(v)
+		return nil
+	case planaddon.FieldAddonID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAddonID(v)
+		return nil
+	case planaddon.FieldFromPlanPhase:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFromPlanPhase(v)
+		return nil
+	case planaddon.FieldMaxQuantity:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMaxQuantity(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlanAddon field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlanAddonMutation) AddedFields() []string {
+	var fields []string
+	if m.addmax_quantity != nil {
+		fields = append(fields, planaddon.FieldMaxQuantity)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlanAddonMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case planaddon.FieldMaxQuantity:
+		return m.AddedMaxQuantity()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlanAddonMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case planaddon.FieldMaxQuantity:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddMaxQuantity(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlanAddon numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlanAddonMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(planaddon.FieldMetadata) {
+		fields = append(fields, planaddon.FieldMetadata)
+	}
+	if m.FieldCleared(planaddon.FieldAnnotations) {
+		fields = append(fields, planaddon.FieldAnnotations)
+	}
+	if m.FieldCleared(planaddon.FieldDeletedAt) {
+		fields = append(fields, planaddon.FieldDeletedAt)
+	}
+	if m.FieldCleared(planaddon.FieldMaxQuantity) {
+		fields = append(fields, planaddon.FieldMaxQuantity)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlanAddonMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlanAddonMutation) ClearField(name string) error {
+	switch name {
+	case planaddon.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case planaddon.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
+	case planaddon.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case planaddon.FieldMaxQuantity:
+		m.ClearMaxQuantity()
+		return nil
+	}
+	return fmt.Errorf("unknown PlanAddon nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlanAddonMutation) ResetField(name string) error {
+	switch name {
+	case planaddon.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case planaddon.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case planaddon.FieldAnnotations:
+		m.ResetAnnotations()
+		return nil
+	case planaddon.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case planaddon.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case planaddon.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case planaddon.FieldPlanID:
+		m.ResetPlanID()
+		return nil
+	case planaddon.FieldAddonID:
+		m.ResetAddonID()
+		return nil
+	case planaddon.FieldFromPlanPhase:
+		m.ResetFromPlanPhase()
+		return nil
+	case planaddon.FieldMaxQuantity:
+		m.ResetMaxQuantity()
+		return nil
+	}
+	return fmt.Errorf("unknown PlanAddon field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlanAddonMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.plan != nil {
+		edges = append(edges, planaddon.EdgePlan)
+	}
+	if m.addon != nil {
+		edges = append(edges, planaddon.EdgeAddon)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlanAddonMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case planaddon.EdgePlan:
+		if id := m.plan; id != nil {
+			return []ent.Value{*id}
+		}
+	case planaddon.EdgeAddon:
+		if id := m.addon; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlanAddonMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlanAddonMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlanAddonMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedplan {
+		edges = append(edges, planaddon.EdgePlan)
+	}
+	if m.clearedaddon {
+		edges = append(edges, planaddon.EdgeAddon)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlanAddonMutation) EdgeCleared(name string) bool {
+	switch name {
+	case planaddon.EdgePlan:
+		return m.clearedplan
+	case planaddon.EdgeAddon:
+		return m.clearedaddon
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlanAddonMutation) ClearEdge(name string) error {
+	switch name {
+	case planaddon.EdgePlan:
+		m.ClearPlan()
+		return nil
+	case planaddon.EdgeAddon:
+		m.ClearAddon()
+		return nil
+	}
+	return fmt.Errorf("unknown PlanAddon unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlanAddonMutation) ResetEdge(name string) error {
+	switch name {
+	case planaddon.EdgePlan:
+		m.ResetPlan()
+		return nil
+	case planaddon.EdgeAddon:
+		m.ResetAddon()
+		return nil
+	}
+	return fmt.Errorf("unknown PlanAddon edge %s", name)
 }
 
 // PlanPhaseMutation represents an operation that mutates the PlanPhase nodes in the graph.

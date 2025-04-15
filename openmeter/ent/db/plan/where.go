@@ -773,6 +773,29 @@ func HasPhasesWith(preds ...predicate.PlanPhase) predicate.Plan {
 	})
 }
 
+// HasAddons applies the HasEdge predicate on the "addons" edge.
+func HasAddons() predicate.Plan {
+	return predicate.Plan(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AddonsTable, AddonsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAddonsWith applies the HasEdge predicate on the "addons" edge with a given conditions (other predicates).
+func HasAddonsWith(preds ...predicate.PlanAddon) predicate.Plan {
+	return predicate.Plan(func(s *sql.Selector) {
+		step := newAddonsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasSubscriptions applies the HasEdge predicate on the "subscriptions" edge.
 func HasSubscriptions() predicate.Plan {
 	return predicate.Plan(func(s *sql.Selector) {

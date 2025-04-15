@@ -149,6 +149,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		Plan: NewPlanClient(config),
 
+		PlanAddon: NewPlanAddonClient(config),
+
 		PlanPhase: NewPlanPhaseClient(config),
 
 		PlanRateCard: NewPlanRateCardClient(config),

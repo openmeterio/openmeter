@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -192,6 +193,21 @@ func (pu *PlanUpdate) AddPhases(p ...*PlanPhase) *PlanUpdate {
 	return pu.AddPhaseIDs(ids...)
 }
 
+// AddAddonIDs adds the "addons" edge to the PlanAddon entity by IDs.
+func (pu *PlanUpdate) AddAddonIDs(ids ...string) *PlanUpdate {
+	pu.mutation.AddAddonIDs(ids...)
+	return pu
+}
+
+// AddAddons adds the "addons" edges to the PlanAddon entity.
+func (pu *PlanUpdate) AddAddons(p ...*PlanAddon) *PlanUpdate {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return pu.AddAddonIDs(ids...)
+}
+
 // AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by IDs.
 func (pu *PlanUpdate) AddSubscriptionIDs(ids ...string) *PlanUpdate {
 	pu.mutation.AddSubscriptionIDs(ids...)
@@ -231,6 +247,27 @@ func (pu *PlanUpdate) RemovePhases(p ...*PlanPhase) *PlanUpdate {
 		ids[i] = p[i].ID
 	}
 	return pu.RemovePhaseIDs(ids...)
+}
+
+// ClearAddons clears all "addons" edges to the PlanAddon entity.
+func (pu *PlanUpdate) ClearAddons() *PlanUpdate {
+	pu.mutation.ClearAddons()
+	return pu
+}
+
+// RemoveAddonIDs removes the "addons" edge to PlanAddon entities by IDs.
+func (pu *PlanUpdate) RemoveAddonIDs(ids ...string) *PlanUpdate {
+	pu.mutation.RemoveAddonIDs(ids...)
+	return pu
+}
+
+// RemoveAddons removes "addons" edges to PlanAddon entities.
+func (pu *PlanUpdate) RemoveAddons(p ...*PlanAddon) *PlanUpdate {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return pu.RemoveAddonIDs(ids...)
 }
 
 // ClearSubscriptions clears all "subscriptions" edges to the Subscription entity.
@@ -395,6 +432,51 @@ func (pu *PlanUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pu.mutation.AddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   plan.AddonsTable,
+			Columns: []string{plan.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedAddonsIDs(); len(nodes) > 0 && !pu.mutation.AddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   plan.AddonsTable,
+			Columns: []string{plan.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.AddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   plan.AddonsTable,
+			Columns: []string{plan.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -629,6 +711,21 @@ func (puo *PlanUpdateOne) AddPhases(p ...*PlanPhase) *PlanUpdateOne {
 	return puo.AddPhaseIDs(ids...)
 }
 
+// AddAddonIDs adds the "addons" edge to the PlanAddon entity by IDs.
+func (puo *PlanUpdateOne) AddAddonIDs(ids ...string) *PlanUpdateOne {
+	puo.mutation.AddAddonIDs(ids...)
+	return puo
+}
+
+// AddAddons adds the "addons" edges to the PlanAddon entity.
+func (puo *PlanUpdateOne) AddAddons(p ...*PlanAddon) *PlanUpdateOne {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return puo.AddAddonIDs(ids...)
+}
+
 // AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by IDs.
 func (puo *PlanUpdateOne) AddSubscriptionIDs(ids ...string) *PlanUpdateOne {
 	puo.mutation.AddSubscriptionIDs(ids...)
@@ -668,6 +765,27 @@ func (puo *PlanUpdateOne) RemovePhases(p ...*PlanPhase) *PlanUpdateOne {
 		ids[i] = p[i].ID
 	}
 	return puo.RemovePhaseIDs(ids...)
+}
+
+// ClearAddons clears all "addons" edges to the PlanAddon entity.
+func (puo *PlanUpdateOne) ClearAddons() *PlanUpdateOne {
+	puo.mutation.ClearAddons()
+	return puo
+}
+
+// RemoveAddonIDs removes the "addons" edge to PlanAddon entities by IDs.
+func (puo *PlanUpdateOne) RemoveAddonIDs(ids ...string) *PlanUpdateOne {
+	puo.mutation.RemoveAddonIDs(ids...)
+	return puo
+}
+
+// RemoveAddons removes "addons" edges to PlanAddon entities.
+func (puo *PlanUpdateOne) RemoveAddons(p ...*PlanAddon) *PlanUpdateOne {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return puo.RemoveAddonIDs(ids...)
 }
 
 // ClearSubscriptions clears all "subscriptions" edges to the Subscription entity.
@@ -862,6 +980,51 @@ func (puo *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if puo.mutation.AddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   plan.AddonsTable,
+			Columns: []string{plan.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedAddonsIDs(); len(nodes) > 0 && !puo.mutation.AddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   plan.AddonsTable,
+			Columns: []string{plan.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.AddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   plan.AddonsTable,
+			Columns: []string{plan.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

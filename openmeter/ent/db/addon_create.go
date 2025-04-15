@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -201,6 +202,21 @@ func (ac *AddonCreate) AddRatecards(a ...*AddonRateCard) *AddonCreate {
 		ids[i] = a[i].ID
 	}
 	return ac.AddRatecardIDs(ids...)
+}
+
+// AddPlanIDs adds the "plans" edge to the PlanAddon entity by IDs.
+func (ac *AddonCreate) AddPlanIDs(ids ...string) *AddonCreate {
+	ac.mutation.AddPlanIDs(ids...)
+	return ac
+}
+
+// AddPlans adds the "plans" edges to the PlanAddon entity.
+func (ac *AddonCreate) AddPlans(p ...*PlanAddon) *AddonCreate {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return ac.AddPlanIDs(ids...)
 }
 
 // AddSubscriptionAddonIDs adds the "subscription_addons" edge to the SubscriptionAddon entity by IDs.
@@ -434,6 +450,22 @@ func (ac *AddonCreate) createSpec() (*Addon, *sqlgraph.CreateSpec, error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ac.mutation.PlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   addon.PlansTable,
+			Columns: []string{addon.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

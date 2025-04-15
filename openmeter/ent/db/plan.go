@@ -54,11 +54,13 @@ type Plan struct {
 type PlanEdges struct {
 	// Phases holds the value of the phases edge.
 	Phases []*PlanPhase `json:"phases,omitempty"`
+	// Addons holds the value of the addons edge.
+	Addons []*PlanAddon `json:"addons,omitempty"`
 	// Subscriptions holds the value of the subscriptions edge.
 	Subscriptions []*Subscription `json:"subscriptions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // PhasesOrErr returns the Phases value or an error if the edge
@@ -70,10 +72,19 @@ func (e PlanEdges) PhasesOrErr() ([]*PlanPhase, error) {
 	return nil, &NotLoadedError{edge: "phases"}
 }
 
+// AddonsOrErr returns the Addons value or an error if the edge
+// was not loaded in eager-loading.
+func (e PlanEdges) AddonsOrErr() ([]*PlanAddon, error) {
+	if e.loadedTypes[1] {
+		return e.Addons, nil
+	}
+	return nil, &NotLoadedError{edge: "addons"}
+}
+
 // SubscriptionsOrErr returns the Subscriptions value or an error if the edge
 // was not loaded in eager-loading.
 func (e PlanEdges) SubscriptionsOrErr() ([]*Subscription, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.Subscriptions, nil
 	}
 	return nil, &NotLoadedError{edge: "subscriptions"}
@@ -215,6 +226,11 @@ func (pl *Plan) Value(name string) (ent.Value, error) {
 // QueryPhases queries the "phases" edge of the Plan entity.
 func (pl *Plan) QueryPhases() *PlanPhaseQuery {
 	return NewPlanClient(pl.config).QueryPhases(pl)
+}
+
+// QueryAddons queries the "addons" edge of the Plan entity.
+func (pl *Plan) QueryAddons() *PlanAddonQuery {
+	return NewPlanClient(pl.config).QueryAddons(pl)
 }
 
 // QuerySubscriptions queries the "subscriptions" edge of the Plan entity.

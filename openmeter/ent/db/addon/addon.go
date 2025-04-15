@@ -47,6 +47,8 @@ const (
 	FieldAnnotations = "annotations"
 	// EdgeRatecards holds the string denoting the ratecards edge name in mutations.
 	EdgeRatecards = "ratecards"
+	// EdgePlans holds the string denoting the plans edge name in mutations.
+	EdgePlans = "plans"
 	// EdgeSubscriptionAddons holds the string denoting the subscription_addons edge name in mutations.
 	EdgeSubscriptionAddons = "subscription_addons"
 	// Table holds the table name of the addon in the database.
@@ -58,6 +60,13 @@ const (
 	RatecardsInverseTable = "addon_rate_cards"
 	// RatecardsColumn is the table column denoting the ratecards relation/edge.
 	RatecardsColumn = "addon_id"
+	// PlansTable is the table that holds the plans relation/edge.
+	PlansTable = "plan_addons"
+	// PlansInverseTable is the table name for the PlanAddon entity.
+	// It exists in this package in order to avoid circular dependency with the "planaddon" package.
+	PlansInverseTable = "plan_addons"
+	// PlansColumn is the table column denoting the plans relation/edge.
+	PlansColumn = "addon_id"
 	// SubscriptionAddonsTable is the table that holds the subscription_addons relation/edge.
 	SubscriptionAddonsTable = "subscription_addons"
 	// SubscriptionAddonsInverseTable is the table name for the SubscriptionAddon entity.
@@ -220,6 +229,20 @@ func ByRatecards(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByPlansCount orders the results by plans count.
+func ByPlansCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPlansStep(), opts...)
+	}
+}
+
+// ByPlans orders the results by plans terms.
+func ByPlans(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPlansStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // BySubscriptionAddonsCount orders the results by subscription_addons count.
 func BySubscriptionAddonsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -238,6 +261,13 @@ func newRatecardsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(RatecardsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, RatecardsTable, RatecardsColumn),
+	)
+}
+func newPlansStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PlansInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PlansTable, PlansColumn),
 	)
 }
 func newSubscriptionAddonsStep() *sqlgraph.Step {
