@@ -11,18 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-// THERE ARE NO PAST FUTURE ETC VALIDATIONS HERE, WE CAN UPDATE ANYTHING WHENEVER (those validations happen outside of this)
-
-// Algo for applying a SubscriptionAddon to a SubscriptionSpec
-//
-// I have a SubscriptionSpec
-// I have a SubscriptionAddonInstance
-// I need to apply each RateCard of the SubscriptionAddonInstance to the SubscriptionSpec
-// - I have RateCards that I will match some Items in the SubscriptionSpec (or create new ones)
-// - To determine this, first I find all items what's cadence is a subset of the ratecard's intended cadence
-// - For each gap i'll need to create a new item (honoring phase boundaries)
-// - For each match, i'll need to update the item in the spec, quantity times, with the provided ratecard
-
+// getApplyForRC returns a function that applies a SubscriptionAddonRateCard to a SubscriptionSpec
 func (d *diffable) getApplyForRC(rc subscriptionaddon.SubscriptionAddonRateCard) subscription.AppliesToSpec {
 	return subscription.NewAppliesToSpec(func(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
 		phaseAtCadenceStart, ok := spec.GetCurrentPhaseAt(d.addon.ActiveFrom)
