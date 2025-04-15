@@ -14,6 +14,7 @@ import (
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/set"
@@ -854,9 +855,27 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 		existing.InvoiceAt = v.InvoiceAt
 
 		existing.TaxConfig = rateCardParsed.TaxConfig
-		existing.RateCardDiscounts = rateCardParsed.Discounts
 		existing.UsageBased.Price = rateCardParsed.Price
 		existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
+
+		// Rate card discounts are not allowed to be updated on a progressively billed line (e.g. if there is
+		// already a partial invoice created), as we might go short on the discount quantity.
+		//
+		// If this is ever requested:
+		// - we should introduce the concept of a "discount pool" that is shared across invoices and
+		// - editing the discount edits the pool
+		// - editing requires that the discount pool's quantity cannot be less than the already used
+		//   quantity.
+
+		if existing.ParentLineID != nil && rateCardParsed.Discounts.Usage != nil && existing.RateCardDiscounts.Usage != nil {
+			if !equal.PtrEqual(rateCardParsed.Discounts.Usage, existing.RateCardDiscounts.Usage) {
+				return nil, false, billing.ValidationError{
+					Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden),
+				}
+			}
+		}
+
+		existing.RateCardDiscounts = rateCardParsed.Discounts
 
 		wasChange := !oldBase.Equal(existing.LineBase) || !oldUBP.Equal(existing.UsageBased)
 		if wasChange {

@@ -3,6 +3,7 @@ package lineservice
 import "time"
 
 type priceMutator struct {
+	PreCalculation  []PreCalculationMutator
 	Pricer          Pricer
 	PostCalculation []PostCalculationMutator
 }
@@ -11,9 +12,23 @@ type PostCalculationMutator interface {
 	Mutate(PricerCalculateInput, newDetailedLinesInput) (newDetailedLinesInput, error)
 }
 
+type PreCalculationMutator interface {
+	Mutate(PricerCalculateInput) (PricerCalculateInput, error)
+}
+
 var _ Pricer = (*priceMutator)(nil)
 
 func (p *priceMutator) Calculate(l PricerCalculateInput) (newDetailedLinesInput, error) {
+	// Apply pre-calculation mutators
+	for _, mutator := range p.PreCalculation {
+		var err error
+
+		l, err = mutator.Mutate(l)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	newDetailedLines, err := p.Pricer.Calculate(l)
 	if err != nil {
 		return nil, err

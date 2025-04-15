@@ -15,14 +15,19 @@ type dynamicPricer struct {
 var _ Pricer = (*dynamicPricer)(nil)
 
 func (p dynamicPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, error) {
+	usage, err := l.GetUsage()
+	if err != nil {
+		return nil, err
+	}
+
 	dynamicPrice, err := l.line.UsageBased.Price.AsDynamic()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to dynamic price: %w", err)
 	}
 
-	if l.linePeriodQty.IsPositive() {
+	if usage.LinePeriodQuantity.IsPositive() {
 		amountInPeriod := l.currency.RoundToPrecision(
-			l.linePeriodQty.Mul(dynamicPrice.Multiplier),
+			usage.LinePeriodQuantity.Mul(dynamicPrice.Multiplier),
 		)
 
 		return newDetailedLinesInput{

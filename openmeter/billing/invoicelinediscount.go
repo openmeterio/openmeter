@@ -300,7 +300,47 @@ func (i UsageLineDiscountManaged) WithManagedFieldsWithID(managed models.Managed
 	}
 }
 
+var _ models.Clonable[UsageLineDiscountsManaged] = (*UsageLineDiscountsManaged)(nil)
+
 type UsageLineDiscountsManaged []UsageLineDiscountManaged
+
+func (d UsageLineDiscountsManaged) Clone() UsageLineDiscountsManaged {
+	return lo.Map(d, func(item UsageLineDiscountManaged, _ int) UsageLineDiscountManaged {
+		return item.Clone()
+	})
+}
+
+func (d UsageLineDiscountsManaged) MergeDiscountsByChildUniqueReferenceID(newDiscount UsageLineDiscountManaged) UsageLineDiscountsManaged {
+	out := d.Clone()
+	if newDiscount.ChildUniqueReferenceID == nil {
+		return append(out, newDiscount)
+	}
+
+	oldDiscount, idx, ok := lo.FindIndexOf(out, func(item UsageLineDiscountManaged) bool {
+		if item.ChildUniqueReferenceID == nil {
+			return false
+		}
+
+		return *item.ChildUniqueReferenceID == *newDiscount.ChildUniqueReferenceID
+	})
+	if !ok {
+		// No existing discount found with this child unique reference ID, let's add it
+		return append(out, newDiscount)
+	}
+
+	out[idx] = newDiscount.WithManagedFieldsWithID(
+		models.ManagedModelWithID{
+			ID: oldDiscount.ID,
+			ManagedModel: models.ManagedModel{
+				CreatedAt: oldDiscount.CreatedAt,
+				// UpdatedAt is updated by the adapter layer
+				// DeletedAt should not be set, to ensure that we are not carrying over soft-deletion flags
+			},
+		},
+	)
+
+	return out
+}
 
 // LineDiscounts is a list of line discounts.
 
