@@ -101,6 +101,14 @@ func (d *InfDecimal) UnmarshalJSON(data []byte) error {
 	return d.value.UnmarshalJSON(data)
 }
 
+func (d InfDecimal) String() string {
+	if d.infinite {
+		return "+inf"
+	}
+
+	return d.value.String()
+}
+
 var infinite = InfDecimal{
 	infinite: true,
 }

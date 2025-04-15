@@ -30,6 +30,7 @@ type EstimatorConfiguration struct {
 	RedisURL       string
 	ValidationRate float64
 	LockTimeout    time.Duration
+	CacheTTL       time.Duration
 }
 
 func (c EstimatorConfiguration) Validate() error {
@@ -43,7 +44,7 @@ func (c EstimatorConfiguration) Validate() error {
 		errs = append(errs, errors.New("redis url is required"))
 	}
 
-	if c.ValidationRate <= 0 || c.ValidationRate > 1 {
+	if c.ValidationRate < 0 || c.ValidationRate > 1 {
 		errs = append(errs, errors.New("validation rate must be between 0 and 1"))
 	}
 
@@ -63,4 +64,5 @@ func ConfigureBalanceWorker(v *viper.Viper) {
 	v.SetDefault("balanceWorker.estimator.redisURL", "redis://localhost:6379")
 	v.SetDefault("balanceWorker.estimator.validationRate", 0.01) // 1%
 	v.SetDefault("balanceWorker.estimator.lockTimeout", 3*time.Second)
+	v.SetDefault("balanceWorker.estimator.cacheTTL", 1*time.Hour)
 }

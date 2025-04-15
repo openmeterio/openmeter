@@ -368,53 +368,22 @@ func (b *BalanceThresholdEventHandler) GetNextActiveThresholdsFor(ctx context.Co
 
 	thresholds := make([]alpacadecimal.Decimal, 0, len(affectedRules))
 	for _, rule := range affectedRules {
-		periodDedupeHash := b.getPeriodsDeduplicationHash(entitlement, rule.ID)
-
-		lastEvents, err := b.Notification.ListEvents(ctx, notification.ListEventsInput{
-			Page: pagination.Page{
-				PageSize:   1,
-				PageNumber: 1,
-			},
-			Namespaces: []string{entitlement.Namespace},
-
-			From: entitlement.CurrentUsagePeriod.From,
-			To:   entitlement.CurrentUsagePeriod.To,
-
-			DeduplicationHashes: []string{periodDedupeHash},
-			OrderBy:             notification.EventOrderByCreatedAt,
-			Order:               sortx.OrderDesc,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to list events: %w", err)
-		}
-
-		if len(lastEvents.Items) == 0 {
-			// TODO: this is invalid we need to return the first threshold
-			continue
-		}
-
-		lastEvent := lastEvents.Items[0]
-
-		if lastEvent.Payload.Type != notification.EventTypeBalanceThreshold {
-			continue
-		}
-
-		lastEventActualValue, err := getBalanceThreshold(
-			lastEvent.Payload.BalanceThreshold.Threshold,
-			lastEvent.Payload.BalanceThreshold.Value)
-		if err != nil {
-			return nil, fmt.Errorf("failed to calculate actual value from last event: %w", err)
-		}
-
 		for _, threshold := range rule.Config.BalanceThreshold.Thresholds {
 			actualThreshold, err := getBalanceThreshold(threshold, api.EntitlementValue(lastCalculatedValue))
 			if err != nil {
 				return nil, fmt.Errorf("failed to calculate actual value from last event: %w", err)
 			}
 
-			if actualThreshold.NumericThreshold > lastEventActualValue.NumericThreshold {
-				thresholds = append(thresholds, alpacadecimal.NewFromFloat(threshold.Value))
+			lastHitThreshold, err := b.getLastHitThreshold(ctx, entitlement, rule)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get last hit threshold: %w", err)
 			}
+
+			if lastHitThreshold != nil && lastHitThreshold.NumericThreshold >= actualThreshold.NumericThreshold {
+				continue
+			}
+
+			thresholds = append(thresholds, alpacadecimal.NewFromFloat(actualThreshold.NumericThreshold))
 		}
 	}
 
@@ -432,4 +401,45 @@ func (b *BalanceThresholdEventHandler) GetNextActiveThresholdsFor(ctx context.Co
 	}
 
 	return minThreshold, nil
+}
+
+func (b *BalanceThresholdEventHandler) getLastHitThreshold(ctx context.Context, entitlement entitlement.Entitlement, rule notification.Rule) (*balanceThreshold, error) {
+	periodDedupeHash := b.getPeriodsDeduplicationHash(entitlement, rule.ID)
+
+	lastEvents, err := b.Notification.ListEvents(ctx, notification.ListEventsInput{
+		Page: pagination.Page{
+			PageSize:   1,
+			PageNumber: 1,
+		},
+		Namespaces: []string{entitlement.Namespace},
+
+		From: entitlement.CurrentUsagePeriod.From,
+		To:   entitlement.CurrentUsagePeriod.To,
+
+		DeduplicationHashes: []string{periodDedupeHash},
+		OrderBy:             notification.EventOrderByCreatedAt,
+		Order:               sortx.OrderDesc,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list events: %w", err)
+	}
+
+	if len(lastEvents.Items) == 0 {
+		return nil, nil
+	}
+
+	lastEvent := lastEvents.Items[0]
+
+	if lastEvent.Payload.Type != notification.EventTypeBalanceThreshold {
+		return nil, nil
+	}
+
+	lastEventActualValue, err := getBalanceThreshold(
+		lastEvent.Payload.BalanceThreshold.Threshold,
+		lastEvent.Payload.BalanceThreshold.Value)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate actual value from last event: %w", err)
+	}
+
+	return &lastEventActualValue, nil
 }

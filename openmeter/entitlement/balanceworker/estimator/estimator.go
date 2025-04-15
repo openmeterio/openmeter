@@ -21,6 +21,9 @@ import (
 type EntitlementCached struct {
 	LastCalculation snapshot.EntitlementValue `json:"lastCalculation"`
 	LastCalculated  time.Time                 `json:"lastCalculated"`
+	// ExpiresAt is the time when the cache entry will expire, this is a safety net to prevent cache items
+	// sticking around forever (as we are recreating the cache entry on every event).
+	ExpiresAt time.Time `json:"expiresAt"`
 
 	// ApproxUsage is the approximate usage of the entitlement, it is guaranteed, that the usage is at least as much as the entitlement balance as now.
 	ApproxUsage InfDecimal `json:"approxUsage"`
@@ -79,20 +82,21 @@ type HandleRecalculationResult struct {
 	CalculationError error
 }
 
-type Cache interface {
+type Estimator interface {
 	HandleEntitlementEvent(ctx context.Context, event IngestEventInput) (EntitlementCached, error)
 	HandleRecalculation(ctx context.Context, target TargetEntitlement, calculationFn func(ctx context.Context) (*snapshot.EntitlementValue, error)) (*snapshot.EntitlementValue, error)
 	Remove(ctx context.Context, target TargetEntitlement) error
 	IntrospectCacheEntry(ctx context.Context, target TargetEntitlement) (*EntitlementCached, error)
 }
 
-type CacheOptions struct {
+type Options struct {
 	RedisURL    string
 	LockTimeout time.Duration
 	Logger      *slog.Logger
+	CacheTTL    time.Duration
 }
 
-func (o *CacheOptions) Validate() error {
+func (o *Options) Validate() error {
 	if o.RedisURL == "" {
 		return errors.New("redisURL is required")
 	}
@@ -105,10 +109,14 @@ func (o *CacheOptions) Validate() error {
 		return errors.New("logger is required")
 	}
 
+	if o.CacheTTL <= 0 {
+		return errors.New("cacheTTL must be greater than 0")
+	}
+
 	return nil
 }
 
-func NewCache(in CacheOptions) (Cache, error) {
+func New(in Options) (Estimator, error) {
 	if err := in.Validate(); err != nil {
 		return nil, err
 	}
@@ -117,6 +125,7 @@ func NewCache(in CacheOptions) (Cache, error) {
 		RedisURL:    in.RedisURL,
 		LockTimeout: in.LockTimeout,
 		Logger:      in.Logger,
+		CacheTTL:    in.CacheTTL,
 	})
 	if err != nil {
 		return nil, err
@@ -134,7 +143,7 @@ type cache struct {
 	logger *slog.Logger
 }
 
-var _ Cache = (*cache)(nil)
+var _ Estimator = (*cache)(nil)
 
 var (
 	ErrUnsupportedMeterAggregation = errors.New("unsupported meter aggregation")

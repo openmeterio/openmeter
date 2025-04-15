@@ -228,7 +228,7 @@ func (s *NegCacheSuite) getTarget(id string) TargetEntitlement {
 		Entitlement: entitlement.Entitlement{
 			GenericProperties: entitlement.GenericProperties{
 				ID: id,
-				CurrentUsagePeriod: &timeutil.Period{
+				CurrentUsagePeriod: &timeutil.ClosedPeriod{
 					From: time.Now(),
 					To:   time.Now().Add(time.Hour),
 				},
