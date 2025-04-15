@@ -21,6 +21,8 @@ func (w *Worker) hitsWatchedThresholds(ctx context.Context, ent entitlement.Enti
 			return false, fmt.Errorf("failed to get next active thresholds: %w", err)
 		}
 
+		// TODO: Let's check if overage / usage is correctly handled in the code (e.g. > 100% notifications etc)
+
 		if nextThreshold != nil {
 			if entitlementEnt.ApproxUsage.GreaterThanOrEqual(estimator.NewInfDecimalFromDecimal(*nextThreshold)) {
 				return true, nil
