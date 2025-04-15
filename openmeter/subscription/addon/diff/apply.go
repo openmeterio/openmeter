@@ -11,8 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-// getApplyForRC returns a function that applies a SubscriptionAddonRateCard to a SubscriptionSpec
-func (d *diffable) getApplyForRC(rc subscriptionaddon.SubscriptionAddonRateCard) subscription.AppliesToSpec {
+// getApplyForRateCard returns a function that applies a SubscriptionAddonRateCard to a SubscriptionSpec
+func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRateCard) subscription.AppliesToSpec {
 	return subscription.NewAppliesToSpec(func(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
 		phaseAtCadenceStart, ok := spec.GetCurrentPhaseAt(d.addon.ActiveFrom)
 		if !ok {

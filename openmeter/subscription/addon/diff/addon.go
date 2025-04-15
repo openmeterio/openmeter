@@ -15,10 +15,7 @@ func GetDiffableFromAddon(
 
 	if len(instances) == 0 {
 		// no-op
-		return &someDiffable{
-			ApplyFn:   func(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error { return nil },
-			RestoreFn: func(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error { return nil },
-		}, nil
+		return nil, nil
 	}
 
 	// As there's no overlap between the instances (no two instance would affect the same items), we can just apply them in (any) sequence
@@ -64,7 +61,7 @@ func (d *diffable) GetApplies() subscription.AppliesToSpec {
 	}
 
 	applieses := lo.Map(d.addon.RateCards, func(rc subscriptionaddon.SubscriptionAddonRateCard, _ int) subscription.AppliesToSpec {
-		return d.getApplyForRC(rc)
+		return d.getApplyForRateCard(rc)
 	})
 
 	return subscription.NewAggregateAppliesToSpec(applieses)

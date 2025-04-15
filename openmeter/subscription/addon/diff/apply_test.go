@@ -63,15 +63,7 @@ func TestApply(t *testing.T) {
 			diffable, err := addondiff.GetDiffableFromAddon(subView, subsAdd)
 			require.NoError(t, err)
 
-			spec := subView.Spec
-
-			err = spec.Apply(diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now})
-			require.NoError(t, err)
-
-			view2, err := deps.deps.SubscriptionService.GetView(context.Background(), subView.Subscription.NamespacedID)
-			require.NoError(t, err)
-
-			subscriptiontestutils.SpecsEqual(t, spec, view2.Spec)
+			require.Nil(t, diffable)
 		})
 	})
 
