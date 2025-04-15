@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var (
@@ -21,6 +22,13 @@ type EffectivePeriod struct {
 
 	// EffectiveTo defines the time from the Plan or Addon becomes archived.
 	EffectiveTo *time.Time `json:"effectiveTo,omitempty"`
+}
+
+func (p EffectivePeriod) AsPeriod() timeutil.OpenPeriod {
+	return timeutil.OpenPeriod{
+		From: p.EffectiveFrom,
+		To:   p.EffectiveTo,
+	}
 }
 
 func (p EffectivePeriod) Validate() error {

@@ -68,7 +68,7 @@ func NewAggregateAppliesToSpec(applieses []AppliesToSpec) AppliesToSpec {
 				}
 
 				// Otherwise we return with the error
-				return fmt.Errorf("patch %d failed during validation: %w", i, err)
+				return fmt.Errorf("appliesToSpec %d failed during validation: %w", i, err)
 			}
 		}
 
