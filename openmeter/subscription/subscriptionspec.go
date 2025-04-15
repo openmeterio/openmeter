@@ -444,7 +444,7 @@ func (s SubscriptionPhaseSpec) Validate(
 	// Let's validate that the phase is not empty
 	flat := lo.Flatten(lo.Values(s.ItemsByKey))
 	if len(flat) == 0 {
-		errs = append(errs, &AllowedDuringApplyingPatchesError{
+		errs = append(errs, &AllowedDuringApplyingToSpecError{
 			Inner: &SpecValidationError{
 				AffectedKeys: [][]string{
 					{
@@ -536,7 +536,7 @@ func (s SubscriptionPhaseSpec) Validate(
 		})
 
 		if len(cadences) > 1 {
-			errs = append(errs, &AllowedDuringApplyingPatchesError{Inner: &AlignmentError{Inner: fmt.Errorf("all billables must have the same billing cadence")}})
+			errs = append(errs, &AllowedDuringApplyingToSpecError{Inner: &AlignmentError{Inner: fmt.Errorf("all billables must have the same billing cadence")}})
 		}
 
 		// Some validations that might feel reasonable but are misleading:
@@ -775,6 +775,10 @@ func (s *SubscriptionItemSpec) Validate() error {
 	// TODO: if the price is usage based, we have to validate that that the feature is metered
 	// TODO: if the entitlement is metered, we have to validate that the feature is metered
 
+	if s.RateCard == nil {
+		return fmt.Errorf("rate card is required")
+	}
+
 	// Let's validate the key
 	if s.RateCard.AsMeta().FeatureKey != nil {
 		if s.ItemKey != *s.RateCard.AsMeta().FeatureKey {
@@ -898,34 +902,18 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 	return spec, nil
 }
 
-type ApplyContext struct {
-	CurrentTime time.Time
+func (s *SubscriptionSpec) Apply(applies AppliesToSpec, context ApplyContext) error {
+	err := applies.ApplyTo(s, context)
+	if err != nil {
+		return fmt.Errorf("apply failed: %w", err)
+	}
+
+	return s.Validate()
 }
 
-// Each Patch applies its changes to the SubscriptionSpec.
-type Applies interface {
-	ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error
-}
-
-func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext) error {
-	for i, patch := range patches {
-		err := patch.ApplyTo(s, context)
-		if err != nil {
-			return fmt.Errorf("patch %d failed: %w", i, err)
-		}
-		if err = s.Validate(); err != nil {
-			if uw, ok := err.(interface{ Unwrap() []error }); ok {
-				// If all returned errors are allowed during applying patches, we can continue
-				if lo.EveryBy(uw.Unwrap(), func(e error) bool {
-					_, ok := lo.ErrorsAs[*AllowedDuringApplyingPatchesError](e)
-					return ok
-				}) {
-					continue
-				}
-			}
-			// Otherwise we return with the error
-			return fmt.Errorf("patch %d failed during validation: %w", i, err)
-		}
+func (s *SubscriptionSpec) ApplyMany(applieses []AppliesToSpec, aCtx ApplyContext) error {
+	if err := NewAggregateAppliesToSpec(applieses).ApplyTo(s, aCtx); err != nil {
+		return fmt.Errorf("apply failed: %w", err)
 	}
 
 	if err := s.Validate(); err != nil {
@@ -933,19 +921,6 @@ func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext)
 	}
 
 	return nil
-}
-
-// Some errors are allowed during applying individual patches, but still mean the Spec as a whole is invalid
-type AllowedDuringApplyingPatchesError struct {
-	Inner error
-}
-
-func (e *AllowedDuringApplyingPatchesError) Error() string {
-	return fmt.Sprintf("allowed during incremental validation failed: %s", e.Inner)
-}
-
-func (e *AllowedDuringApplyingPatchesError) Unwrap() error {
-	return e.Inner
 }
 
 type SpecValidationError struct {

@@ -122,8 +122,8 @@ func (r RateCardMeta) Clone() RateCardMeta {
 	}
 
 	if r.Price != nil {
-		price := *r.Price
-		clone.Price = &price
+		p := *r.Price.Clone()
+		clone.Price = &p
 	}
 
 	clone.Discounts = r.Discounts.Clone()
@@ -357,10 +357,12 @@ func (r *UsageBasedRateCard) GetBillingCadence() *isodate.Period {
 }
 
 func (r *UsageBasedRateCard) Clone() RateCard {
-	return &UsageBasedRateCard{
+	clone := &UsageBasedRateCard{
 		RateCardMeta:   r.RateCardMeta.Clone(),
 		BillingCadence: r.BillingCadence,
 	}
+
+	return clone
 }
 
 func (r *UsageBasedRateCard) ChangeMeta(fn func(m RateCardMeta) RateCardMeta) error {

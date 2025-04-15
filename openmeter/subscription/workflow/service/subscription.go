@@ -93,7 +93,7 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 	// Let's apply the customizations
 	spec := curr.AsSpec()
 
-	err = spec.ApplyPatches(lo.Map(customizations, subscription.ToApplies), subscription.ApplyContext{
+	err = spec.ApplyMany(lo.Map(customizations, subscription.ToApplies), subscription.ApplyContext{
 		CurrentTime: editTime,
 	})
 	if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil {

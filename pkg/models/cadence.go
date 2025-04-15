@@ -148,6 +148,16 @@ func (t CadenceList[T]) IsSorted() bool {
 	return true
 }
 
+func (t CadenceList[T]) IsContinuous() bool {
+	for i := 1; i < len(t); i++ {
+		if t[i-1].cadence().ActiveTo == nil || !t[i-1].cadence().ActiveTo.Equal(t[i].cadence().ActiveFrom) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (t CadenceList[T]) sort() {
 	slices.SortStableFunc(t, func(a, b T) int {
 		aC := a.cadence()

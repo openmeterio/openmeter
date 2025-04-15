@@ -17,7 +17,7 @@ func (a PatchAddItem) Op() subscription.PatchOperation {
 	return subscription.PatchOperationAdd
 }
 
-func (a PatchAddItem) Path() subscription.PatchPath {
+func (a PatchAddItem) Path() subscription.SpecPath {
 	return subscription.NewItemPath(a.PhaseKey, a.ItemKey)
 }
 

@@ -61,7 +61,7 @@ func TestRemoveAdd(t *testing.T) {
 			CreateInput: nSpec,
 		}
 
-		err := s.ApplyPatches(lo.Map([]subscription.Patch{rmP, addP}, subscription.ToApplies), subscription.ApplyContext{
+		err := s.ApplyMany(lo.Map([]subscription.Patch{rmP, addP}, subscription.ToApplies), subscription.ApplyContext{
 			CurrentTime: now,
 		})
 		require.NoError(t, err)
@@ -122,7 +122,7 @@ func TestRemoveAdd(t *testing.T) {
 			CreateInput: nSpec,
 		}
 
-		err := s.ApplyPatches(lo.Map([]subscription.Patch{rmP, addP}, subscription.ToApplies), subscription.ApplyContext{
+		err := s.ApplyMany(lo.Map([]subscription.Patch{rmP, addP}, subscription.ToApplies), subscription.ApplyContext{
 			CurrentTime: now,
 		})
 		require.NoError(t, err)
@@ -139,7 +139,7 @@ func TestRemoveAdd(t *testing.T) {
 		require.True(t, now.Before(latestNowWeGoTu))
 
 		// And lets repeat the same process
-		err = s.ApplyPatches(lo.Map([]subscription.Patch{rmP, addP}, subscription.ToApplies), subscription.ApplyContext{
+		err = s.ApplyMany(lo.Map([]subscription.Patch{rmP, addP}, subscription.ToApplies), subscription.ApplyContext{
 			CurrentTime: now,
 		})
 		require.NoError(t, err)
@@ -157,7 +157,7 @@ func TestRemoveAdd(t *testing.T) {
 }
 
 // utils
-type testcase[T subscription.Applies] struct {
+type testcase[T subscription.AppliesToSpec] struct {
 	Name            string
 	Patch           T
 	GetSpec         func(t *testing.T) *subscription.SubscriptionSpec
@@ -166,7 +166,7 @@ type testcase[T subscription.Applies] struct {
 	ExpectedError   error
 }
 
-type testsuite[T subscription.Applies] struct {
+type testsuite[T subscription.AppliesToSpec] struct {
 	SystemTime time.Time
 	TT         []testcase[T]
 }
