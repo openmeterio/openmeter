@@ -4,7 +4,8 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/app/httpdriver"
+	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
+	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
 )
 
@@ -28,8 +29,11 @@ func (a *Router) DeleteCustomer(w http.ResponseWriter, r *http.Request, customer
 
 // Get customer
 // (GET /api/v1/customer/customers/{customerId})
-func (a *Router) GetCustomer(w http.ResponseWriter, r *http.Request, customerIDOrKey string) {
-	a.customerHandler.GetCustomer().With(customerIDOrKey).ServeHTTP(w, r)
+func (a *Router) GetCustomer(w http.ResponseWriter, r *http.Request, customerIDOrKey string, params api.GetCustomerParams) {
+	a.customerHandler.GetCustomer().With(customerhttpdriver.GetCustomerParams{
+		CustomerIDOrKey:   customerIDOrKey,
+		GetCustomerParams: params,
+	}).ServeHTTP(w, r)
 }
 
 // Update customer
@@ -41,7 +45,7 @@ func (a *Router) UpdateCustomer(w http.ResponseWriter, r *http.Request, customer
 // List customer apps
 // (GET /api/v1/customer/customers/{customerId}/apps)
 func (a *Router) ListCustomerAppData(w http.ResponseWriter, r *http.Request, customerIdOrKey string, params api.ListCustomerAppDataParams) {
-	a.appHandler.ListCustomerData().With(httpdriver.ListCustomerDataParams{
+	a.appHandler.ListCustomerData().With(apphttpdriver.ListCustomerDataParams{
 		ListCustomerAppDataParams: params,
 		CustomerIdOrKey:           customerIdOrKey,
 	}).ServeHTTP(w, r)
@@ -50,7 +54,7 @@ func (a *Router) ListCustomerAppData(w http.ResponseWriter, r *http.Request, cus
 // Upsert customer app data
 // (PUT /api/v1/customer/customers/{customerId}/apps/{appId})
 func (a *Router) UpsertCustomerAppData(w http.ResponseWriter, r *http.Request, customerIDOrKey string) {
-	a.appHandler.UpsertCustomerData().With(httpdriver.UpsertCustomerDataParams{
+	a.appHandler.UpsertCustomerData().With(apphttpdriver.UpsertCustomerDataParams{
 		CustomerIdOrKey: customerIDOrKey,
 	}).ServeHTTP(w, r)
 }
@@ -58,7 +62,7 @@ func (a *Router) UpsertCustomerAppData(w http.ResponseWriter, r *http.Request, c
 // Delete customer app data
 // (DELETE /api/v1/customer/customers/{customerId}/apps/{appId})
 func (a *Router) DeleteCustomerAppData(w http.ResponseWriter, r *http.Request, customerIDOrKey string, appID string) {
-	a.appHandler.DeleteCustomerData().With(httpdriver.DeleteCustomerDataParams{
+	a.appHandler.DeleteCustomerData().With(apphttpdriver.DeleteCustomerDataParams{
 		CustomerIdOrKey: customerIDOrKey,
 		AppId:           appID,
 	}).ServeHTTP(w, r)

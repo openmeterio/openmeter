@@ -55,6 +55,9 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 
 				// Modifiers
 				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, customer.IncludeDeleted),
+
+				// Expand
+				Expand: lo.FromPtrOr(params.Expand, []api.CustomerExpand{}),
 			}
 
 			if err := req.Page.Validate(); err != nil {
@@ -265,13 +268,18 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 type (
 	GetCustomerRequest  = customer.GetCustomerInput
 	GetCustomerResponse = api.Customer
-	GetCustomerHandler  httptransport.HandlerWithArgs[GetCustomerRequest, GetCustomerResponse, string]
+	GetCustomerHandler  httptransport.HandlerWithArgs[GetCustomerRequest, GetCustomerResponse, GetCustomerParams]
 )
+
+type GetCustomerParams struct {
+	CustomerIDOrKey string
+	api.GetCustomerParams
+}
 
 // GetCustomer returns a handler for getting a customer.
 func (h *handler) GetCustomer() GetCustomerHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, customerIDOrKey string) (GetCustomerRequest, error) {
+		func(ctx context.Context, r *http.Request, params GetCustomerParams) (GetCustomerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return GetCustomerRequest{}, err
@@ -280,8 +288,11 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 			return GetCustomerRequest{
 				CustomerIDOrKey: &customer.CustomerIDOrKey{
 					Namespace: ns,
-					IDOrKey:   customerIDOrKey,
+					IDOrKey:   params.CustomerIDOrKey,
 				},
+
+				// Expand
+				Expand: lo.FromPtrOr(params.Expand, []api.CustomerExpand{}),
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerRequest) (GetCustomerResponse, error) {

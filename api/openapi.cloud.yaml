@@ -2650,6 +2650,7 @@ paths:
         - $ref: '#/components/parameters/queryCustomerList.primaryEmail'
         - $ref: '#/components/parameters/queryCustomerList.subject'
         - $ref: '#/components/parameters/queryCustomerList.planKey'
+        - $ref: '#/components/parameters/queryCustomerList.expand'
       responses:
         '200':
           description: The request has succeeded.
@@ -2715,6 +2716,7 @@ paths:
             minLength: 1
             maxLength: 64
             pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - $ref: '#/components/parameters/queryCustomerGet'
       responses:
         '200':
           description: The request has succeeded.
@@ -10699,6 +10701,26 @@ components:
         $ref: '#/components/schemas/PlanOrderBy'
       explode: false
       style: form
+    queryCustomerGet:
+      name: expand
+      in: query
+      required: false
+      description: What parts of the customer output to expand
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/CustomerExpand'
+      style: form
+    queryCustomerList.expand:
+      name: expand
+      in: query
+      required: false
+      description: What parts of the list output to expand in listings
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/CustomerExpand'
+      style: form
     queryCustomerList.includeDeleted:
       name: includeDeleted
       in: query
@@ -12568,6 +12590,15 @@ components:
           example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: Current Subscription ID
           readOnly: true
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subscription'
+          description: |-
+            The subscriptions of the customer.
+            Only with the `subscriptions` expand option.
+          title: Subscriptions
+          readOnly: true
       description: A customer object.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -12688,6 +12719,11 @@ components:
             Used for tax and invoicing.
           title: Billing Address
       description: Resource create operation model.
+    CustomerExpand:
+      type: string
+      enum:
+        - subscriptions
+      description: CustomerExpand specifies the parts of the customer to expand in the list output.
     CustomerId:
       type: object
       required:

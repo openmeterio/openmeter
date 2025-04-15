@@ -7,6 +7,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -86,6 +88,12 @@ func CustomerToAPI(c customer.Customer) (api.Customer, error) {
 
 	if c.Currency != nil {
 		apiCustomer.Currency = lo.ToPtr(string(*c.Currency))
+	}
+
+	if c.Subscriptions != nil {
+		apiCustomer.Subscriptions = lo.Map(c.Subscriptions, func(s subscription.Subscription, _ int) api.Subscription {
+			return subscriptionhttp.MapSubscriptionToAPI(s)
+		})
 	}
 
 	return apiCustomer, nil

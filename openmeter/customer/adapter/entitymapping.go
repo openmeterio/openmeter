@@ -5,6 +5,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -13,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func CustomerFromDBEntity(e db.Customer) (*customer.Customer, error) {
+func CustomerFromDBEntity(e db.Customer, expand []api.CustomerExpand) (*customer.Customer, error) {
 	var subjectKeys []string
 
 	if e.Edges.Subjects != nil {
@@ -26,9 +27,9 @@ func CustomerFromDBEntity(e db.Customer) (*customer.Customer, error) {
 	}
 
 	var currentSubID *string
+	var subs []subscription.Subscription
 
 	if len(e.Edges.Subscription) > 0 {
-		var subs []subscription.Subscription
 		for _, s := range e.Edges.Subscription {
 			sub, err := subscriptionrepo.MapDBSubscription(s)
 			if err != nil {
@@ -61,6 +62,11 @@ func CustomerFromDBEntity(e db.Customer) (*customer.Customer, error) {
 		PrimaryEmail:          e.PrimaryEmail,
 		Currency:              e.Currency,
 		CurrentSubscriptionID: currentSubID,
+	}
+
+	// Altough we always fetch the subscriptions, we only return them if the expand is requested
+	if lo.Contains(expand, api.CustomerExpandSubscriptions) {
+		result.Subscriptions = subs
 	}
 
 	if e.Key != "" {

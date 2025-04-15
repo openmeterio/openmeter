@@ -3293,6 +3293,12 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       readonly currentSubscriptionId?: string
+      /**
+       * Subscriptions
+       * @description The subscriptions of the customer.
+       *     Only with the `subscriptions` expand option.
+       */
+      readonly subscriptions?: components['schemas']['Subscription'][]
     }
     /** @description CustomerAccess describes what features the customer has access to. */
     CustomerAccess: {
@@ -3375,6 +3381,11 @@ export interface components {
        */
       billingAddress?: components['schemas']['Address']
     }
+    /**
+     * @description CustomerExpand specifies the parts of the customer to expand in the list output.
+     * @enum {string}
+     */
+    CustomerExpand: 'subscriptions'
     /** @description Create Stripe checkout session with customer ID. */
     CustomerId: {
       /**
@@ -9440,6 +9451,10 @@ export interface components {
     'PlanOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'PlanOrderByOrdering.orderBy': components['schemas']['PlanOrderBy']
+    /** @description What parts of the customer output to expand */
+    queryCustomerGet: components['schemas']['CustomerExpand'][]
+    /** @description What parts of the list output to expand in listings */
+    'queryCustomerList.expand': components['schemas']['CustomerExpand'][]
     /** @description Include deleted customers. */
     'queryCustomerList.includeDeleted': boolean
     /** @description Filter customers by key.
@@ -9596,6 +9611,7 @@ export type CustomerAppData = components['schemas']['CustomerAppData']
 export type CustomerAppDataPaginatedResponse =
   components['schemas']['CustomerAppDataPaginatedResponse']
 export type CustomerCreate = components['schemas']['CustomerCreate']
+export type CustomerExpand = components['schemas']['CustomerExpand']
 export type CustomerId = components['schemas']['CustomerId']
 export type CustomerKey = components['schemas']['CustomerKey']
 export type CustomerOrderBy = components['schemas']['CustomerOrderBy']
@@ -10111,6 +10127,10 @@ export type ParameterPlanOrderByOrderingOrder =
   components['parameters']['PlanOrderByOrdering.order']
 export type ParameterPlanOrderByOrderingOrderBy =
   components['parameters']['PlanOrderByOrdering.orderBy']
+export type ParameterQueryCustomerGet =
+  components['parameters']['queryCustomerGet']
+export type ParameterQueryCustomerListExpand =
+  components['parameters']['queryCustomerList.expand']
 export type ParameterQueryCustomerListIncludeDeleted =
   components['parameters']['queryCustomerList.includeDeleted']
 export type ParameterQueryCustomerListKey =
@@ -13407,6 +13427,8 @@ export interface operations {
         subject?: components['parameters']['queryCustomerList.subject']
         /** @description Filter customers by the plan key of their susbcription. */
         planKey?: components['parameters']['queryCustomerList.planKey']
+        /** @description What parts of the list output to expand in listings */
+        expand?: components['parameters']['queryCustomerList.expand']
       }
       header?: never
       path?: never
@@ -13577,7 +13599,10 @@ export interface operations {
   }
   getCustomer: {
     parameters: {
-      query?: never
+      query?: {
+        /** @description What parts of the customer output to expand */
+        expand?: components['parameters']['queryCustomerGet']
+      }
       header?: never
       path: {
         customerIdOrKey: string

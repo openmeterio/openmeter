@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -21,7 +22,8 @@ type Customer struct {
 	Currency         *currencyx.Code          `json:"currency,omitempty"`
 	BillingAddress   *models.Address          `json:"billingAddress,omitempty"`
 
-	CurrentSubscriptionID *string `json:"currentSubscriptionId,omitempty"`
+	CurrentSubscriptionID *string                     `json:"currentSubscriptionId,omitempty"`
+	Subscriptions         []subscription.Subscription `json:"subscriptions,omitempty"`
 }
 
 func (c Customer) Validate() error {
@@ -144,6 +146,9 @@ type ListCustomersInput struct {
 
 	IncludeDeleted bool
 
+	// Expand
+	Expand []api.CustomerExpand
+
 	// Order
 	OrderBy api.CustomerOrderBy
 	Order   sortx.Order
@@ -213,6 +218,9 @@ type GetCustomerInput struct {
 	CustomerID      *CustomerID
 	CustomerKey     *CustomerKey
 	CustomerIDOrKey *CustomerIDOrKey
+
+	// Expand
+	Expand []api.CustomerExpand
 }
 
 func (i GetCustomerInput) Validate() error {

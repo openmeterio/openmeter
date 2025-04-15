@@ -47,6 +47,7 @@ interface Customers {
   @summary("Get customer")
   get(
     @path customerIdOrKey: ULIDOrKey,
+    ...GetCustomerParams,
   ): Customer | NotFoundError | CommonErrors;
 
   /**
@@ -121,6 +122,18 @@ interface Customers {
 }
 
 /**
+ * Query params for get customer.
+ */
+@friendlyName("queryCustomerGet")
+model GetCustomerParams {
+  /**
+   * What parts of the customer output to expand
+   */
+  @query(#{ explode: true })
+  expand?: CustomerExpand[];
+}
+
+/**
  * Query params for listing customers.
  */
 @friendlyName("queryCustomerList")
@@ -176,6 +189,20 @@ model ListCustomersParams {
   @query
   @example("pro_plan")
   planKey?: string;
+
+  /**
+   * What parts of the list output to expand in listings
+   */
+  @query(#{ explode: true })
+  expand?: CustomerExpand[];
+}
+
+/**
+ * CustomerExpand specifies the parts of the customer to expand in the list output.
+ */
+@friendlyName("CustomerExpand")
+enum CustomerExpand {
+  subscriptions: "subscriptions",
 }
 
 /**
@@ -257,6 +284,16 @@ model Customer {
   @summary("Current Subscription ID")
   @visibility(Lifecycle.Read)
   currentSubscriptionId?: ULID;
+
+  /**
+   * The subscriptions of the customer.
+   * Only with the `subscriptions` expand option.
+   *
+   * @visibility(Lifecycle.Read)
+   */
+  @summary("Subscriptions")
+  @visibility(Lifecycle.Read)
+  subscriptions?: ProductCatalog.Subscription[];
 }
 
 /**
