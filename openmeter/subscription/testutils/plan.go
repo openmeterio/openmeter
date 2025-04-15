@@ -39,6 +39,11 @@ func (b *testPlanbuilder) AddPhase(dur *isodate.Period, rcs ...productcatalog.Ra
 	return b
 }
 
+func (b *testPlanbuilder) SetMeta(meta productcatalog.PlanMeta) *testPlanbuilder {
+	b.p.Plan.PlanMeta = meta
+	return b
+}
+
 func (b *testPlanbuilder) Build() plan.CreatePlanInput {
 	return b.p
 }

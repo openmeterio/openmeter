@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func BuildAddonForTesting(t *testing.T, period productcatalog.EffectivePeriod, rcs ...productcatalog.RateCard) addon.CreateAddonInput {
+func BuildAddonForTesting(t *testing.T, period productcatalog.EffectivePeriod, typ productcatalog.AddonInstanceType, rcs ...productcatalog.RateCard) addon.CreateAddonInput {
 	t.Helper()
 
 	inp := addon.CreateAddonInput{
@@ -28,7 +28,7 @@ func BuildAddonForTesting(t *testing.T, period productcatalog.EffectivePeriod, r
 				Key:             "test-addon",
 				Version:         1,
 				Currency:        currency.USD,
-				InstanceType:    productcatalog.AddonInstanceTypeSingle,
+				InstanceType:    typ,
 				Metadata: models.NewMetadata(map[string]string{
 					"test": "test",
 				}),
@@ -87,7 +87,7 @@ var ExampleAddonRateCard4 = productcatalog.FlatFeeRateCard{
 }
 
 func GetExampleAddonInput(t *testing.T, effectivePeriod productcatalog.EffectivePeriod) addon.CreateAddonInput {
-	return BuildAddonForTesting(t, effectivePeriod, &ExampleAddonRateCard1)
+	return BuildAddonForTesting(t, effectivePeriod, productcatalog.AddonInstanceTypeSingle, &ExampleAddonRateCard1)
 }
 
 type testAddonService struct {
