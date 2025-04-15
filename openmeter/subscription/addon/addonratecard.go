@@ -11,6 +11,7 @@ type SubscriptionAddonRateCard struct {
 
 	AddonRateCard addon.RateCard `json:"addonRateCard"`
 
+	// TODO: Remove this
 	AffectedSubscriptionItems []SubscriptionAddonRateCardItemRef `json:"affectedSubscriptionItems"`
 }
 
