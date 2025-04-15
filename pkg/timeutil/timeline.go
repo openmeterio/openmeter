@@ -129,20 +129,6 @@ func (t Timeline[T]) GetOpenPeriods() []OpenPeriod {
 		return []OpenPeriod{}
 	}
 
-	if len(t.times) == 1 {
-		timePoint := t.times[0].GetTime()
-		return []OpenPeriod{
-			{
-				From: nil,
-				To:   &timePoint,
-			},
-			{
-				From: &timePoint,
-				To:   nil,
-			},
-		}
-	}
-
 	periods := make([]OpenPeriod, 0, len(t.times)+1)
 
 	// First period: open at start, closed at first time

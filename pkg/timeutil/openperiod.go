@@ -211,7 +211,6 @@ func (p OpenPeriod) Union(other OpenPeriod) OpenPeriod {
 	default:
 		tmp := *other.To
 		newTo = &tmp
-
 	}
 
 	return OpenPeriod{
@@ -220,7 +219,7 @@ func (p OpenPeriod) Union(other OpenPeriod) OpenPeriod {
 	}
 }
 
-// contains / bounds in other words (both ends inclusive)
+// IsSupersetOf returns true if p contains other (both ends inclusive)
 func (p OpenPeriod) IsSupersetOf(other OpenPeriod) bool {
 	// Empty period is a superset of everything
 	if p.From == nil && p.To == nil {
