@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	notificationconsumer "github.com/openmeterio/openmeter/openmeter/notification/consumer"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
@@ -83,6 +84,7 @@ func NewBalanceWorkerOptions(
 	entitlements *registry.Entitlement,
 	repo balanceworker.BalanceWorkerRepository,
 	subjectResolver balanceworker.SubjectResolver,
+	meterService meter.Service,
 	entitlementBalanceThresholdProvider *notificationconsumer.BalanceThresholdEventHandler,
 	logger *slog.Logger,
 ) balanceworker.WorkerOptions {
@@ -95,6 +97,7 @@ func NewBalanceWorkerOptions(
 			RedisURL:       estimatorConfig.RedisURL,
 			ValidationRate: estimatorConfig.ValidationRate,
 			LockTimeout:    estimatorConfig.LockTimeout,
+			CacheTTL:       estimatorConfig.CacheTTL,
 			ThresholdProviders: []balanceworker.ThresholdProvider{
 				entitlementBalanceThresholdProvider,
 			},
@@ -103,6 +106,7 @@ func NewBalanceWorkerOptions(
 		Router:          routerOptions,
 		EventBus:        eventBus,
 		Entitlement:     entitlements,
+		MeterService:    meterService,
 		Repo:            repo,
 		SubjectResolver: subjectResolver,
 		Logger:          logger,

@@ -15,7 +15,7 @@ type ThresholdProvider interface {
 }
 
 func (w *Worker) hitsWatchedThresholds(ctx context.Context, ent entitlement.Entitlement, entitlementEnt estimator.EntitlementCached) (bool, error) {
-	for _, provider := range w.thresholdProviders {
+	for _, provider := range w.estimator.thresholdProviders {
 		nextThreshold, err := provider.GetNextActiveThresholdsFor(ctx, ent, entitlementEnt.LastCalculation)
 		if err != nil {
 			return false, fmt.Errorf("failed to get next active thresholds: %w", err)

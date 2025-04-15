@@ -24,12 +24,14 @@ type redisCacheBackend struct {
 
 	redsync     *redsync.Redsync
 	lockTimeout time.Duration
+	cacheTTL    time.Duration
 	logger      *slog.Logger
 }
 
 type RedisCacheBackendOptions struct {
 	RedisURL    string
 	LockTimeout time.Duration
+	CacheTTL    time.Duration
 	Logger      *slog.Logger
 }
 
@@ -44,6 +46,10 @@ func (o *RedisCacheBackendOptions) Validate() error {
 
 	if o.Logger == nil {
 		return errors.New("logger is required")
+	}
+
+	if o.CacheTTL <= 0 {
+		return errors.New("cacheTTL must be greater than 0")
 	}
 
 	return nil
@@ -65,6 +71,7 @@ func NewRedisCacheBackend(in RedisCacheBackendOptions) (CacheBackend, error) {
 		redis:       redis,
 		redsync:     redsync.New(goredis.NewPool(redis)),
 		lockTimeout: in.LockTimeout,
+		cacheTTL:    in.CacheTTL,
 		logger:      in.Logger,
 	}, nil
 }
@@ -130,17 +137,19 @@ func (b *redisCacheBackend) UpdateCacheEntryIfExists(ctx context.Context, target
 		// Let's delete the entry in case the lock expires, that way subsequent calls will assume cold cache
 		entryJSON, err := b.redis.GetDel(ctx, key).Result()
 
-		notCached := false
+		cacheEntryExists := true
 		if err != nil {
 			if errors.Is(err, redis.Nil) {
-				notCached = true
+				cacheEntryExists = false
 			} else {
 				return err
 			}
 		}
 
 		var existingEntry *EntitlementCached
-		if !notCached {
+		var expiresAt time.Time
+
+		if cacheEntryExists {
 			unmarshaled := EntitlementCached{}
 			err = json.Unmarshal([]byte(entryJSON), &unmarshaled)
 			if err != nil {
@@ -148,6 +157,7 @@ func (b *redisCacheBackend) UpdateCacheEntryIfExists(ctx context.Context, target
 			}
 
 			existingEntry = &unmarshaled
+			expiresAt = unmarshaled.ExpiresAt
 		}
 
 		newEntry, err = updater(ctx, existingEntry)
@@ -159,6 +169,17 @@ func (b *redisCacheBackend) UpdateCacheEntryIfExists(ctx context.Context, target
 		if newEntry == nil {
 			return nil
 		}
+
+		if expiresAt.IsZero() {
+			expiresAt = time.Now().Add(b.cacheTTL)
+		}
+
+		if expiresAt.Before(time.Now()) {
+			// Evict expired cache entry
+			return nil
+		}
+
+		newEntry.ExpiresAt = expiresAt
 
 		newValue, err := json.Marshal(newEntry)
 		if err != nil {

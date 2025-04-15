@@ -55,6 +55,7 @@ type WorkerOptions struct {
 	Repo        BalanceWorkerRepository
 	// External connectors
 	SubjectResolver SubjectResolver
+	MeterService    meter.Service
 
 	Logger *slog.Logger
 
@@ -90,6 +91,10 @@ func (o *WorkerOptions) Validate() error {
 		return errors.New("ingest events topic is required")
 	}
 
+	if o.MeterService == nil {
+		return errors.New("meter service is required")
+	}
+
 	return nil
 }
 
@@ -98,6 +103,7 @@ type EstimatorOptions struct {
 	RedisURL           string
 	ValidationRate     float64
 	LockTimeout        time.Duration
+	CacheTTL           time.Duration
 	ThresholdProviders []ThresholdProvider
 }
 
@@ -110,7 +116,7 @@ func (o *EstimatorOptions) Validate() error {
 		return errors.New("redis url is required")
 	}
 
-	if o.ValidationRate <= 0 || o.ValidationRate > 1 {
+	if o.ValidationRate < 0 || o.ValidationRate > 1 {
 		return errors.New("validation rate must be between 0 and 1")
 	}
 
@@ -131,8 +137,8 @@ type highWatermarkCacheEntry struct {
 	IsDeleted     bool
 }
 
-type estimatorSettings struct {
-	estimator.Cache
+type estimatorConfig struct {
+	estimator.Estimator
 
 	enabled bool
 
@@ -152,8 +158,7 @@ type Worker struct {
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
 
 	// Estimator debounce engine
-	estimator          *estimatorSettings
-	thresholdProviders []ThresholdProvider
+	estimator estimatorConfig
 
 	metricRecalculationTime       metric.Int64Histogram
 	metricHighWatermarkCacheStats metric.Int64Counter
@@ -167,6 +172,51 @@ type Worker struct {
 	nonPublishingHandler *grouphandler.NoPublishingHandler
 }
 
+func (w *Worker) initMetrics() error {
+	var err error
+
+	w.metricRecalculationTime, err = w.opts.Router.MetricMeter.Int64Histogram(
+		metricNameRecalculationTime,
+		metric.WithDescription("Entitlement recalculation time"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create recalculation time histogram: %w", err)
+	}
+
+	w.metricHighWatermarkCacheStats, err = w.opts.Router.MetricMeter.Int64Counter(
+		metricNameHighWatermarkCacheStats,
+		metric.WithDescription("High watermark cache stats"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create high watermark cache stats counter: %w", err)
+	}
+
+	w.metricEstimatorRequestsTotal, err = w.opts.Router.MetricMeter.Int64Counter(
+		metricNameEstimatorRequestsTotal,
+		metric.WithDescription("Estimator requests total"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create estimator requests total counter: %w", err)
+	}
+
+	w.metricEstimatorValidationErrorsTotal, err = w.opts.Router.MetricMeter.Int64Counter(
+		metricNameEstimatorValidationErrorsTotal,
+		metric.WithDescription("Estimator validation errors total"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create estimator validation errors total counter: %w", err)
+	}
+
+	w.metricEstimatorActionTotal, err = w.opts.Router.MetricMeter.Int64Counter(
+		metricNameEstimatorActionTotal,
+		metric.WithDescription("Estimator action total"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create estimator action total counter: %w", err)
+	}
+	return nil
+}
+
 func New(opts WorkerOptions) (*Worker, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("failed to validate  options: %w", err)
@@ -177,20 +227,29 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, fmt.Errorf("failed to create high watermark cache: %w", err)
 	}
 
-	metricRecalculationTime, err := opts.Router.MetricMeter.Int64Histogram(
-		metricNameRecalculationTime,
-		metric.WithDescription("Entitlement recalculation time"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create recalculation time histogram: %w", err)
-	}
+	// Let's setup estimator
+	var estCfg estimatorConfig
+	if opts.Estimator.Enabled {
+		estimatorInstance, err := estimator.New(estimator.Options{
+			RedisURL:    opts.Estimator.RedisURL,
+			LockTimeout: opts.Estimator.LockTimeout,
+			CacheTTL:    opts.Estimator.CacheTTL,
+			Logger:      opts.Logger,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create estimator: %w", err)
+		}
 
-	metricHighWatermarkCacheStats, err := opts.Router.MetricMeter.Int64Counter(
-		metricNameHighWatermarkCacheStats,
-		metric.WithDescription("High watermark cache stats"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create high watermark cache stats counter: %w", err)
+		estCfg = estimatorConfig{
+			Estimator: estimatorInstance,
+			enabled:   true,
+
+			thresholdProviders: opts.Estimator.ThresholdProviders,
+			validationRate:     opts.Estimator.ValidationRate,
+			lockTimeout:        opts.Estimator.LockTimeout,
+		}
+	} else {
+		estCfg.enabled = false
 	}
 
 	worker := &Worker{
@@ -198,9 +257,12 @@ func New(opts WorkerOptions) (*Worker, error) {
 		entitlement:        opts.Entitlement,
 		repo:               opts.Repo,
 		highWatermarkCache: highWatermarkCache,
+		estimator:          estCfg,
+		meter:              opts.MeterService,
+	}
 
-		metricRecalculationTime:       metricRecalculationTime,
-		metricHighWatermarkCacheStats: metricHighWatermarkCacheStats,
+	if err := worker.initMetrics(); err != nil {
+		return nil, fmt.Errorf("failed to init metrics: %w", err)
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)

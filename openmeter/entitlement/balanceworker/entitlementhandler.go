@@ -35,9 +35,9 @@ type handleEntitlementEventOptions struct {
 	// EventAt is the time of the event, e.g. the "time" field from the upstream cloudevents event causing the change
 	eventAt time.Time
 
-	// UseEstimatorCache is true if the entitlement handler should use the estimator cache (should be only enabled for events that are
+	// UseEstimator is true if the entitlement handler should use the estimator cache (should be only enabled for events that are
 	// coming from ingested events)
-	useEstimatorCache bool
+	useEstimator bool
 
 	rawIngestedEvents []serializer.CloudEventsKafkaPayload
 }
@@ -56,9 +56,9 @@ func WithEventAt(eventAt time.Time) handleOption {
 	}
 }
 
-func WithEstimatorCache(useEstimatorCache bool) handleOption {
+func WithEstimator(useEstimator bool) handleOption {
 	return func(o *handleEntitlementEventOptions) {
-		o.useEstimatorCache = useEstimatorCache
+		o.useEstimator = useEstimator
 	}
 }
 
@@ -163,7 +163,7 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 
 	var err error
 	var snapshot marshaler.Event
-	if opts.useEstimatorCache && w.estimator != nil && entitlementEntity.EntitlementType == entitlement.EntitlementTypeMetered {
+	if opts.useEstimator && entitlementEntity.EntitlementType == entitlement.EntitlementTypeMetered {
 		snapshot, err = w.createSnapshotEventEstimator(ctx, entitlementEntity, calculatedAt, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create entitlement update snapshot event[negcache]: %w", err)
