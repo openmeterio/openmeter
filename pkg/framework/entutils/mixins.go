@@ -5,6 +5,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"entgo.io/ent/schema/mixin"
@@ -149,6 +150,33 @@ func (MetadataMixin) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
+	}
+}
+
+// AnnotationsMixin adds annotations to the schema
+type AnnotationsMixin struct {
+	mixin.Schema
+}
+
+// Fields of the IDMixin.
+func (AnnotationsMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.JSON("annotations", models.Annotations{}).
+			Optional().
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}),
+	}
+}
+
+func (AnnotationsMixin) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("annotations").
+			Annotations(
+				entsql.IndexTypes(map[string]string{
+					dialect.Postgres: "GIN",
+				}),
+			),
 	}
 }
 

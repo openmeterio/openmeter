@@ -36,6 +36,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -1100,6 +1101,41 @@ func init() {
 	planDescID := planMixinFields0[0].Descriptor()
 	// plan.DefaultID holds the default value on creation for the id field.
 	plan.DefaultID = planDescID.Default.(func() string)
+	planaddonMixin := schema.PlanAddon{}.Mixin()
+	planaddonMixinFields0 := planaddonMixin[0].Fields()
+	_ = planaddonMixinFields0
+	planaddonMixinFields1 := planaddonMixin[1].Fields()
+	_ = planaddonMixinFields1
+	planaddonMixinFields4 := planaddonMixin[4].Fields()
+	_ = planaddonMixinFields4
+	planaddonFields := schema.PlanAddon{}.Fields()
+	_ = planaddonFields
+	// planaddonDescNamespace is the schema descriptor for namespace field.
+	planaddonDescNamespace := planaddonMixinFields1[0].Descriptor()
+	// planaddon.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	planaddon.NamespaceValidator = planaddonDescNamespace.Validators[0].(func(string) error)
+	// planaddonDescCreatedAt is the schema descriptor for created_at field.
+	planaddonDescCreatedAt := planaddonMixinFields4[0].Descriptor()
+	// planaddon.DefaultCreatedAt holds the default value on creation for the created_at field.
+	planaddon.DefaultCreatedAt = planaddonDescCreatedAt.Default.(func() time.Time)
+	// planaddonDescUpdatedAt is the schema descriptor for updated_at field.
+	planaddonDescUpdatedAt := planaddonMixinFields4[1].Descriptor()
+	// planaddon.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	planaddon.DefaultUpdatedAt = planaddonDescUpdatedAt.Default.(func() time.Time)
+	// planaddon.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	planaddon.UpdateDefaultUpdatedAt = planaddonDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// planaddonDescPlanID is the schema descriptor for plan_id field.
+	planaddonDescPlanID := planaddonFields[0].Descriptor()
+	// planaddon.PlanIDValidator is a validator for the "plan_id" field. It is called by the builders before save.
+	planaddon.PlanIDValidator = planaddonDescPlanID.Validators[0].(func(string) error)
+	// planaddonDescAddonID is the schema descriptor for addon_id field.
+	planaddonDescAddonID := planaddonFields[1].Descriptor()
+	// planaddon.AddonIDValidator is a validator for the "addon_id" field. It is called by the builders before save.
+	planaddon.AddonIDValidator = planaddonDescAddonID.Validators[0].(func(string) error)
+	// planaddonDescID is the schema descriptor for id field.
+	planaddonDescID := planaddonMixinFields0[0].Descriptor()
+	// planaddon.DefaultID holds the default value on creation for the id field.
+	planaddon.DefaultID = planaddonDescID.Default.(func() string)
 	planphaseMixin := schema.PlanPhase{}.Mixin()
 	planphaseMixinFields0 := planphaseMixin[0].Fields()
 	_ = planphaseMixinFields0

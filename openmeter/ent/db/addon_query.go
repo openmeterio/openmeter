@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 )
@@ -27,6 +28,7 @@ type AddonQuery struct {
 	inters                 []Interceptor
 	predicates             []predicate.Addon
 	withRatecards          *AddonRateCardQuery
+	withPlans              *PlanAddonQuery
 	withSubscriptionAddons *SubscriptionAddonQuery
 	modifiers              []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -80,6 +82,28 @@ func (aq *AddonQuery) QueryRatecards() *AddonRateCardQuery {
 			sqlgraph.From(addon.Table, addon.FieldID, selector),
 			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, addon.RatecardsTable, addon.RatecardsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPlans chains the current query on the "plans" edge.
+func (aq *AddonQuery) QueryPlans() *PlanAddonQuery {
+	query := (&PlanAddonClient{config: aq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := aq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := aq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(addon.Table, addon.FieldID, selector),
+			sqlgraph.To(planaddon.Table, planaddon.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, addon.PlansTable, addon.PlansColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -302,6 +326,7 @@ func (aq *AddonQuery) Clone() *AddonQuery {
 		inters:                 append([]Interceptor{}, aq.inters...),
 		predicates:             append([]predicate.Addon{}, aq.predicates...),
 		withRatecards:          aq.withRatecards.Clone(),
+		withPlans:              aq.withPlans.Clone(),
 		withSubscriptionAddons: aq.withSubscriptionAddons.Clone(),
 		// clone intermediate query.
 		sql:  aq.sql.Clone(),
@@ -317,6 +342,17 @@ func (aq *AddonQuery) WithRatecards(opts ...func(*AddonRateCardQuery)) *AddonQue
 		opt(query)
 	}
 	aq.withRatecards = query
+	return aq
+}
+
+// WithPlans tells the query-builder to eager-load the nodes that are connected to
+// the "plans" edge. The optional arguments are used to configure the query builder of the edge.
+func (aq *AddonQuery) WithPlans(opts ...func(*PlanAddonQuery)) *AddonQuery {
+	query := (&PlanAddonClient{config: aq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	aq.withPlans = query
 	return aq
 }
 
@@ -409,8 +445,9 @@ func (aq *AddonQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Addon,
 	var (
 		nodes       = []*Addon{}
 		_spec       = aq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			aq.withRatecards != nil,
+			aq.withPlans != nil,
 			aq.withSubscriptionAddons != nil,
 		}
 	)
@@ -442,6 +479,13 @@ func (aq *AddonQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Addon,
 			return nil, err
 		}
 	}
+	if query := aq.withPlans; query != nil {
+		if err := aq.loadPlans(ctx, query, nodes,
+			func(n *Addon) { n.Edges.Plans = []*PlanAddon{} },
+			func(n *Addon, e *PlanAddon) { n.Edges.Plans = append(n.Edges.Plans, e) }); err != nil {
+			return nil, err
+		}
+	}
 	if query := aq.withSubscriptionAddons; query != nil {
 		if err := aq.loadSubscriptionAddons(ctx, query, nodes,
 			func(n *Addon) { n.Edges.SubscriptionAddons = []*SubscriptionAddon{} },
@@ -469,6 +513,36 @@ func (aq *AddonQuery) loadRatecards(ctx context.Context, query *AddonRateCardQue
 	}
 	query.Where(predicate.AddonRateCard(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(addon.RatecardsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.AddonID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "addon_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (aq *AddonQuery) loadPlans(ctx context.Context, query *PlanAddonQuery, nodes []*Addon, init func(*Addon), assign func(*Addon, *PlanAddon)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Addon)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(planaddon.FieldAddonID)
+	}
+	query.Where(predicate.PlanAddon(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(addon.PlansColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

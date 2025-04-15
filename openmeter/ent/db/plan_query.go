@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -27,6 +28,7 @@ type PlanQuery struct {
 	inters            []Interceptor
 	predicates        []predicate.Plan
 	withPhases        *PlanPhaseQuery
+	withAddons        *PlanAddonQuery
 	withSubscriptions *SubscriptionQuery
 	modifiers         []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -80,6 +82,28 @@ func (pq *PlanQuery) QueryPhases() *PlanPhaseQuery {
 			sqlgraph.From(plan.Table, plan.FieldID, selector),
 			sqlgraph.To(planphase.Table, planphase.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, plan.PhasesTable, plan.PhasesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAddons chains the current query on the "addons" edge.
+func (pq *PlanQuery) QueryAddons() *PlanAddonQuery {
+	query := (&PlanAddonClient{config: pq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, selector),
+			sqlgraph.To(planaddon.Table, planaddon.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, plan.AddonsTable, plan.AddonsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -302,6 +326,7 @@ func (pq *PlanQuery) Clone() *PlanQuery {
 		inters:            append([]Interceptor{}, pq.inters...),
 		predicates:        append([]predicate.Plan{}, pq.predicates...),
 		withPhases:        pq.withPhases.Clone(),
+		withAddons:        pq.withAddons.Clone(),
 		withSubscriptions: pq.withSubscriptions.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
@@ -317,6 +342,17 @@ func (pq *PlanQuery) WithPhases(opts ...func(*PlanPhaseQuery)) *PlanQuery {
 		opt(query)
 	}
 	pq.withPhases = query
+	return pq
+}
+
+// WithAddons tells the query-builder to eager-load the nodes that are connected to
+// the "addons" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PlanQuery) WithAddons(opts ...func(*PlanAddonQuery)) *PlanQuery {
+	query := (&PlanAddonClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withAddons = query
 	return pq
 }
 
@@ -409,8 +445,9 @@ func (pq *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, e
 	var (
 		nodes       = []*Plan{}
 		_spec       = pq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			pq.withPhases != nil,
+			pq.withAddons != nil,
 			pq.withSubscriptions != nil,
 		}
 	)
@@ -442,6 +479,13 @@ func (pq *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, e
 			return nil, err
 		}
 	}
+	if query := pq.withAddons; query != nil {
+		if err := pq.loadAddons(ctx, query, nodes,
+			func(n *Plan) { n.Edges.Addons = []*PlanAddon{} },
+			func(n *Plan, e *PlanAddon) { n.Edges.Addons = append(n.Edges.Addons, e) }); err != nil {
+			return nil, err
+		}
+	}
 	if query := pq.withSubscriptions; query != nil {
 		if err := pq.loadSubscriptions(ctx, query, nodes,
 			func(n *Plan) { n.Edges.Subscriptions = []*Subscription{} },
@@ -467,6 +511,36 @@ func (pq *PlanQuery) loadPhases(ctx context.Context, query *PlanPhaseQuery, node
 	}
 	query.Where(predicate.PlanPhase(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(plan.PhasesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PlanID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "plan_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (pq *PlanQuery) loadAddons(ctx context.Context, query *PlanAddonQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *PlanAddon)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Plan)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(planaddon.FieldPlanID)
+	}
+	query.Where(predicate.PlanAddon(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(plan.AddonsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

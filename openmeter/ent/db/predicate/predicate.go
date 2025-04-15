@@ -206,6 +206,9 @@ func NotificationRuleOrErr(p NotificationRule, err error) NotificationRule {
 // Plan is the predicate function for plan builders.
 type Plan func(*sql.Selector)
 
+// PlanAddon is the predicate function for planaddon builders.
+type PlanAddon func(*sql.Selector)
+
 // PlanPhase is the predicate function for planphase builders.
 type PlanPhase func(*sql.Selector)
 

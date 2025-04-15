@@ -47,6 +47,10 @@ func (Plan) Edges() []ent.Edge {
 			Annotations(entsql.Annotation{
 				OnDelete: entsql.Cascade,
 			}),
+		edge.To("addons", PlanAddon.Type).
+			Annotations(entsql.Annotation{
+				OnDelete: entsql.Cascade,
+			}),
 		edge.To("subscriptions", Subscription.Type),
 	}
 }
