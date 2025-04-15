@@ -30,7 +30,9 @@ func (d *diffable) getApplyForRC(rc subscriptionaddon.SubscriptionAddonRateCard)
 			return fmt.Errorf("no phase found at %s", d.addon.ActiveFrom)
 		}
 
-		lastPhaseKey := d.view.Phases[len(d.view.Phases)-1].SubscriptionPhase.Key
+		phases := spec.GetSortedPhases()
+
+		lastPhaseKey := phases[len(phases)-1].PhaseKey
 		lastPhase, ok := spec.Phases[lastPhaseKey]
 		if !ok {
 			return fmt.Errorf("no last phase found at %s", lastPhaseKey)

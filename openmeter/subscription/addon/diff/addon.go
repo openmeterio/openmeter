@@ -8,7 +8,7 @@ import (
 )
 
 func GetDiffableFromAddon(
-	view subscription.SubscriptionView,
+	_ subscription.SubscriptionView,
 	addon subscriptionaddon.SubscriptionAddon,
 ) (Diffable, error) {
 	instances := addon.GetInstances()
@@ -21,11 +21,9 @@ func GetDiffableFromAddon(
 		}, nil
 	}
 
-	// As there's no overlap between the instances, we can just apply them in (any) sequence
-
+	// As there's no overlap between the instances (no two instance would affect the same items), we can just apply them in (any) sequence
 	diffs := lo.Map(instances, func(instance subscriptionaddon.SubscriptionAddonInstance, _ int) Diffable {
 		return &diffable{
-			view:  view,
 			addon: instance,
 		}
 	})
@@ -55,7 +53,6 @@ func GetDiffableFromAddon(
 var _ Diffable = &diffable{}
 
 type diffable struct {
-	view  subscription.SubscriptionView
 	addon subscriptionaddon.SubscriptionAddonInstance
 }
 
