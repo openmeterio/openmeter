@@ -10960,6 +10960,22 @@ components:
         This profile is calculated from the customer override and the billing profile it references or the default.
 
         Thus this does not have any kind of resource fields, only the calculated values.
+    BillingDiscountMetadata:
+      type: object
+      properties:
+        correlationId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            Correlation ID for the discount.
+
+            This is used to link discounts across different invoices (progressive billing use case).
+
+            If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
+            please make sure to keep the same correlation ID of the discount or in progressive billing
+            setups the discount amounts might be incorrect.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+      description: Billing specific fields for product catalog discounts.
     BillingDiscountPercentage:
       type: object
       required:
@@ -12626,6 +12642,13 @@ components:
             setups the discount amounts might be incorrect.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: The reason for the discount is a ratecard usage.
+    DiscountReasonType:
+      type: string
+      enum:
+        - maximum_spend
+        - ratecard_percentage
+        - ratecard_usage
+      description: The type of the discount reason.
     DiscountUsage:
       type: object
       required:
@@ -14726,6 +14749,56 @@ components:
           description: Invoice a gathering invoice
           readOnly: true
       description: InvoiceAvailableActions represents the actions that can be performed on the invoice.
+    InvoiceDiscountBase:
+      type: object
+      required:
+        - createdAt
+        - updatedAt
+        - id
+        - reason
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ID of the charge or discount.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          readOnly: true
+        reason:
+          allOf:
+            - $ref: '#/components/schemas/BillingDiscountReason'
+          description: Reason code.
+          readOnly: true
+        description:
+          type: string
+          description: Text description as to why the discount was applied.
+          readOnly: true
+        externalIds:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+      description: InvoiceDiscountBase represents a charge or discount that can be applied to a line or the entire invoice.
     InvoiceDocumentRef:
       type: object
       allOf:
@@ -15224,6 +15297,151 @@ components:
           description: The external ID of the invoice in the tax app if available.
           readOnly: true
       description: InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps such as Stripe.
+    InvoiceLineBase:
+      type: object
+      required:
+        - name
+        - createdAt
+        - updatedAt
+        - id
+        - type
+        - managedBy
+        - status
+        - currency
+        - totals
+        - period
+        - invoiceAt
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ID of the line.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+        type:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineTypes'
+          description: |-
+            Type of the line.
+
+            A line's type cannot be changed after creation.
+        managedBy:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineManagedBy'
+          description: managedBy specifies if the line is manually added via the api or managed by OpenMeter.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineStatus'
+          description: |-
+            Status of the line.
+
+            External calls always create valid lines, other line types are managed by the
+            billing engine of OpenMeter.
+          readOnly: true
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineDiscounts'
+          description: |-
+            Discounts detailes applied to this line.
+
+            New discounts can be added via the invoice's discounts API, to facilitate
+            discounts that are affecting multiple lines.
+          readOnly: true
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceReference'
+          description: The invoice this item belongs to.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency of this line.
+        taxes:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLineTaxItem'
+          description: Taxes applied to the invoice totals.
+          readOnly: true
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: Tax config specify the tax configuration for this line.
+          deprecated: true
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLine'
+          description: The lines detailing the item or service sold.
+          readOnly: true
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceTotals'
+          description: Totals for this line.
+          readOnly: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: |-
+            Period of the line item applies to for revenue recognition pruposes.
+
+            Billing always treats periods as start being inclusive and end being exclusive.
+        invoiceAt:
+          type: string
+          format: date-time
+          description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
+        externalIds:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+        subscription:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineSubscriptionReference'
+          description: Subscription are the references to the subscritpions that this line is related to.
+          readOnly: true
+      description: |-
+        InvoiceLine represents a single item or service sold to the customer.
+
+        This is a base class for all line types, and should not be used directly.
     InvoiceLineDiscounts:
       type: object
       properties:
@@ -15329,6 +15547,12 @@ components:
           description: Is the tax item inclusive or exclusive of the base amount.
           readOnly: true
       description: TaxConfig stores the configuration for a tax line relative to an invoice line.
+    InvoiceLineTypes:
+      type: string
+      enum:
+        - flat_fee
+        - usage_based
+      description: LineTypes represents the different types of lines that can be used in an invoice.
     InvoiceLineUsageDiscount:
       type: object
       required:
@@ -17662,6 +17886,12 @@ components:
           description: Description of the conditions for payment.
           readOnly: true
       description: PaymentTermInstant defines the terms for payment on receipt of invoice.
+    PaymentTermType:
+      type: string
+      enum:
+        - due_date
+        - instant
+      description: PaymentTermType defines the type of terms to be applied.
     PaymentTerms:
       anyOf:
         - $ref: '#/components/schemas/PaymentTermInstant'
