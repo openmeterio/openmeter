@@ -12,6 +12,21 @@ model PlanAddon {
   ...ResourceTimestamps;
 
   /**
+   * Set of key-value pairs managed by the system. Cannot be modified by user.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Annotations")
+  annotations?: Annotations;
+
+  // FIXME: enable support for metadata
+  // /**
+  //  * Additional metadata for the resource.
+  //  */
+  // @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  // @summary("Metadata")
+  // metadata?: Metadata | null;
+
+  /**
    * Partially populated add-on properties.
    */
   @summary("Addon")
@@ -61,4 +76,16 @@ model PlanAddon {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Max quantity of the add-on")
   maxQuantity?: integer;
+}
+
+/**
+ * Order by options for plan add-on assignments.
+ */
+@friendlyName("PlanAddonOrderBy")
+enum PlanAddonOrderBy {
+  id: "id",
+  key: "key",
+  version: "version",
+  createdAt: "created_at",
+  updatedAt: "updated_at",
 }

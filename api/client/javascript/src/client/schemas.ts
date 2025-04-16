@@ -7201,6 +7201,11 @@ export interface components {
        */
       readonly deletedAt?: Date
       /**
+       * Annotations
+       * @description Set of key-value pairs managed by the system. Cannot be modified by user.
+       */
+      readonly annotations?: components['schemas']['Annotations']
+      /**
        * Addon
        * @description Partially populated add-on properties.
        */
@@ -7265,6 +7270,31 @@ export interface components {
        *     It is not applicable for add-ons with single instance type.
        */
       maxQuantity?: number
+    }
+    /**
+     * @description Order by options for plan add-on assignments.
+     * @enum {string}
+     */
+    PlanAddonOrderBy: 'id' | 'key' | 'version' | 'created_at' | 'updated_at'
+    /** @description Paginated response */
+    PlanAddonPaginatedResponse: {
+      /**
+       * @description The total number of items.
+       * @example 500
+       */
+      totalCount: number
+      /**
+       * @description The page index.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The maximum number of items per page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
+      items: components['schemas']['PlanAddon'][]
     }
     /** @description Resource update operation model. */
     PlanAddonUpdate: {
@@ -9389,6 +9419,10 @@ export interface components {
      *     Default is 100. */
     'Pagination.pageSize': number
     /** @description The order direction. */
+    'PlanAddonOrderByOrdering.order': components['schemas']['SortOrder']
+    /** @description The order by field. */
+    'PlanAddonOrderByOrdering.orderBy': components['schemas']['PlanAddonOrderBy']
+    /** @description The order direction. */
     'PlanOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'PlanOrderByOrdering.orderBy': components['schemas']['PlanOrderBy']
@@ -9801,6 +9835,9 @@ export type Period = components['schemas']['Period']
 export type Plan = components['schemas']['Plan']
 export type PlanAddon = components['schemas']['PlanAddon']
 export type PlanAddonCreate = components['schemas']['PlanAddonCreate']
+export type PlanAddonOrderBy = components['schemas']['PlanAddonOrderBy']
+export type PlanAddonPaginatedResponse =
+  components['schemas']['PlanAddonPaginatedResponse']
 export type PlanAddonUpdate = components['schemas']['PlanAddonUpdate']
 export type PlanCreate = components['schemas']['PlanCreate']
 export type PlanOrderBy = components['schemas']['PlanOrderBy']
@@ -10051,6 +10088,10 @@ export type ParameterPaginationPage =
   components['parameters']['Pagination.page']
 export type ParameterPaginationPageSize =
   components['parameters']['Pagination.pageSize']
+export type ParameterPlanAddonOrderByOrderingOrder =
+  components['parameters']['PlanAddonOrderByOrdering.order']
+export type ParameterPlanAddonOrderByOrderingOrderBy =
+  components['parameters']['PlanAddonOrderByOrdering.orderBy']
 export type ParameterPlanOrderByOrderingOrder =
   components['parameters']['PlanOrderByOrdering.order']
 export type ParameterPlanOrderByOrderingOrderBy =
@@ -18829,7 +18870,32 @@ export interface operations {
   }
   listPlanAddons: {
     parameters: {
-      query?: never
+      query?: {
+        /** @description Include deleted plan add-on assignments.
+         *
+         *     Usage: `?includeDeleted=true` */
+        includeDeleted?: boolean
+        /** @description Filter by addon.id attribute. */
+        id?: string[]
+        /** @description Filter by addon.key attribute. */
+        key?: string[]
+        /** @description Filter by addon.key and addon.version attributes. */
+        keyVersion?: {
+          [key: string]: number[]
+        }
+        /** @description Page index.
+         *
+         *     Default is 1. */
+        page?: components['parameters']['Pagination.page']
+        /** @description The maximum number of items per page.
+         *
+         *     Default is 100. */
+        pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description The order direction. */
+        order?: components['parameters']['PlanAddonOrderByOrdering.order']
+        /** @description The order by field. */
+        orderBy?: components['parameters']['PlanAddonOrderByOrdering.orderBy']
+      }
       header?: never
       path: {
         planId: string
@@ -18844,7 +18910,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['PlanAddon'][]
+          'application/json': components['schemas']['PlanAddonPaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */

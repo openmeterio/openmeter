@@ -6888,15 +6888,65 @@ paths:
             minLength: 1
             maxLength: 64
             pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: includeDeleted
+          in: query
+          required: false
+          description: |-
+            Include deleted plan add-on assignments.
+
+            Usage: `?includeDeleted=true`
+          schema:
+            type: boolean
+            default: false
+          explode: false
+          style: form
+        - name: id
+          in: query
+          required: false
+          description: Filter by addon.id attribute.
+          schema:
+            type: array
+            items:
+              type: string
+              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: ULID (Universally Unique Lexicographically Sortable Identifier).
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
+          style: form
+        - name: key
+          in: query
+          required: false
+          description: Filter by addon.key attribute.
+          schema:
+            type: array
+            items:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A key is a unique string that is used to identify a resource.
+          style: form
+        - name: keyVersion
+          in: query
+          required: false
+          description: Filter by addon.key and addon.version attributes.
+          schema:
+            type: object
+            additionalProperties:
+              type: array
+              items:
+                type: integer
+          style: deepObject
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
+        - $ref: '#/components/parameters/PlanAddonOrderByOrdering.order'
+        - $ref: '#/components/parameters/PlanAddonOrderByOrdering.orderBy'
       responses:
         '200':
           description: The request has succeeded.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PlanAddon'
+                $ref: '#/components/schemas/PlanAddonPaginatedResponse'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -10609,6 +10659,25 @@ components:
         minimum: 1
         maximum: 1000
         default: 100
+      explode: false
+      style: form
+    PlanAddonOrderByOrdering.order:
+      name: order
+      in: query
+      required: false
+      description: The order direction.
+      schema:
+        $ref: '#/components/schemas/SortOrder'
+        default: ASC
+      explode: false
+      style: form
+    PlanAddonOrderByOrdering.orderBy:
+      name: orderBy
+      in: query
+      required: false
+      description: The order by field.
+      schema:
+        $ref: '#/components/schemas/PlanAddonOrderBy'
       explode: false
       style: form
     PlanOrderByOrdering.order:
@@ -17792,6 +17861,12 @@ components:
           example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
         addon:
           type: object
           properties:
@@ -17870,6 +17945,41 @@ components:
             It is not applicable for add-ons with single instance type.
           title: Max quantity of the add-on
       description: Resource create operation model.
+    PlanAddonOrderBy:
+      type: string
+      enum:
+        - id
+        - key
+        - version
+        - created_at
+        - updated_at
+      description: Order by options for plan add-on assignments.
+    PlanAddonPaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          description: The total number of items.
+          example: 500
+        page:
+          type: integer
+          description: The page index.
+          example: 1
+        pageSize:
+          type: integer
+          description: The maximum number of items per page.
+          example: 100
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanAddon'
+          description: The items in the current page.
+      description: Paginated response
     PlanAddonUpdate:
       type: object
       required:
