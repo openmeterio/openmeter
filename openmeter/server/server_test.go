@@ -44,6 +44,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	progressmanageradapter "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
@@ -469,6 +470,7 @@ func getTestServer(t *testing.T) *Server {
 	// Create plan service
 	planService := &NoopPlanService{}
 	addonService := &NoopAddonService{}
+	planAddonService := &NoopPlanAddonService{}
 
 	// Create plan subscription service
 	planSubscriptionService := &NoopPlanSubscriptionService{}
@@ -507,7 +509,8 @@ func getTestServer(t *testing.T) *Server {
 			NamespaceManager:   namespaceManager,
 			Notification:       &NoopNotificationService{},
 			// Use the plan service
-			Plan: planService,
+			Plan:      planService,
+			PlanAddon: planAddonService,
 			// Use the plan subscription service
 			PlanSubscriptionService: planSubscriptionService,
 			Portal:                  portal,
@@ -1115,6 +1118,32 @@ func (n NoopAddonService) ArchiveAddon(ctx context.Context, params addon.Archive
 
 func (n NoopAddonService) NextAddon(ctx context.Context, params addon.NextAddonInput) (*addon.Addon, error) {
 	return &addon.Addon{}, nil
+}
+
+var _ planaddon.Service = (*NoopPlanAddonService)(nil)
+
+// NoopAddonService implements planaddon.Service interface with no-op operations
+// for use in testing
+type NoopPlanAddonService struct{}
+
+func (n NoopPlanAddonService) ListPlanAddons(ctx context.Context, params planaddon.ListPlanAddonsInput) (pagination.PagedResponse[planaddon.PlanAddon], error) {
+	return pagination.PagedResponse[planaddon.PlanAddon]{}, nil
+}
+
+func (n NoopPlanAddonService) CreatePlanAddon(ctx context.Context, params planaddon.CreatePlanAddonInput) (*planaddon.PlanAddon, error) {
+	return &planaddon.PlanAddon{}, nil
+}
+
+func (n NoopPlanAddonService) DeletePlanAddon(ctx context.Context, params planaddon.DeletePlanAddonInput) error {
+	return nil
+}
+
+func (n NoopPlanAddonService) GetPlanAddon(ctx context.Context, params planaddon.GetPlanAddonInput) (*planaddon.PlanAddon, error) {
+	return &planaddon.PlanAddon{}, nil
+}
+
+func (n NoopPlanAddonService) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePlanAddonInput) (*planaddon.PlanAddon, error) {
+	return &planaddon.PlanAddon{}, nil
 }
 
 var _ plansubscription.PlanSubscriptionService = (*NoopPlanSubscriptionService)(nil)
