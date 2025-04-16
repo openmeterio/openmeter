@@ -60,7 +60,7 @@ func FromPlanAddonRow(a entdb.PlanAddon) (*planaddon.PlanAddon, error) {
 	planAddon.Addon = addon.Addon{
 		NamespacedID: models.NamespacedID{
 			Namespace: a.Namespace,
-			ID:        a.PlanID,
+			ID:        a.AddonID,
 		},
 	}
 

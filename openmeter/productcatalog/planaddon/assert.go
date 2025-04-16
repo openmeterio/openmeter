@@ -12,7 +12,6 @@ func AssertPlanAddonCreateInputEqual(t *testing.T, i CreatePlanAddonInput, a Pla
 	assert.Equalf(t, i.Namespace, a.Namespace, "create input: namespace mismatch")
 	assert.Equalf(t, i.Metadata, a.Metadata, "metadata mismatch")
 	assert.Equalf(t, i.Annotations, a.Annotations, "annotations mismatch")
-	assert.Equalf(t, i.Annotations, a.Annotations, "annotations mismatch")
 	assert.Equalf(t, i.PlanID, a.Plan.ID, "plan id mismatch")
 	assert.Equalf(t, i.AddonID, a.Addon.ID, "add-on id mismatch")
 	assert.Equalf(t, i.FromPlanPhase, a.FromPlanPhase, "plan phase key mismatch")
@@ -52,7 +51,7 @@ func AssertPlanAddonUpdateInputEqual(t *testing.T, i UpdatePlanAddonInput, a Pla
 	}
 
 	if i.MaxQuantity != nil {
-		assert.Equalf(t, *i.MaxQuantity, a.MaxQuantity, "max quality mismatch")
+		assert.Equalf(t, *i.MaxQuantity, *a.MaxQuantity, "max quality mismatch")
 	}
 }
 

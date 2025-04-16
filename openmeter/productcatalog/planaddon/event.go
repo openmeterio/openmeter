@@ -144,7 +144,7 @@ func (e PlanAddonDeleteEvent) Validate() error {
 		errs = append(errs, errors.New("plan add-on assignment is required"))
 	}
 
-	if e.PlanAddon.DeletedAt == nil {
+	if e.PlanAddon != nil && e.PlanAddon.DeletedAt == nil {
 		errs = append(errs, errors.New(`"deleted at" attribute for plan add-on assignment is required`))
 	}
 

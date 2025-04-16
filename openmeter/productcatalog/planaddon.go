@@ -92,7 +92,7 @@ func (c PlanAddon) Validate() error {
 	}
 
 	if len(c.Plan.Phases) > 0 {
-		var phaseIdx = -1
+		phaseIdx := -1
 		for i, phase := range c.Plan.Phases {
 			if phase.Key == c.FromPlanPhase {
 				phaseIdx = i

@@ -337,7 +337,7 @@ func TestPostgresAdapter(t *testing.T) {
 					})
 					assert.NoErrorf(t, err, "getting plan add-on assignment by id must not fail")
 
-					require.NotNilf(t, addonV1, "plan add-on assignment must not be nil")
+					require.NotNilf(t, getPlanAddon, "plan add-on assignment must not be nil")
 
 					planaddon.AssertPlanAddonEqual(t, *planAddon, *getPlanAddon)
 				})
@@ -352,7 +352,7 @@ func TestPostgresAdapter(t *testing.T) {
 					})
 					assert.NoErrorf(t, err, "getting plan add-on assignment by plan and add-on key must not fail")
 
-					require.NotNilf(t, addonV1, "plan add-on assignment must not be nil")
+					require.NotNilf(t, getPlanAddon, "plan add-on assignment must not be nil")
 
 					planaddon.AssertPlanAddonEqual(t, *planAddon, *getPlanAddon)
 				})
