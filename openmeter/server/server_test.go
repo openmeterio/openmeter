@@ -880,6 +880,10 @@ func (n NoopAppService) InstallMarketplaceListingWithAPIKey(ctx context.Context,
 	return appstripeentityapp.App{}, nil
 }
 
+func (n NoopAppService) InstallMarketplaceListing(ctx context.Context, input app.InstallAppInput) (app.App, error) {
+	return appstripeentityapp.App{}, nil
+}
+
 func (n NoopAppService) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input app.GetOauth2InstallURLInput) (app.GetOauth2InstallURLOutput, error) {
 	return app.GetOauth2InstallURLOutput{}, nil
 }

@@ -66,7 +66,7 @@ interface Marketplace {
   /* **************** Install App via API Key **************** */
 
   /**
-   * Install an marketplace via API Key.
+   * Install an marketplace app via API Key.
    */
   @post
   @route("/listings/{type}/install/apikey")
@@ -74,6 +74,19 @@ interface Marketplace {
   @summary("Install app via API key")
   installWithAPIKey(
     ...MarketplaceApiKeyInstallRequest,
+  ): MarketplaceInstallResponse | CommonErrors;
+
+  /* **************** Install App **************** */
+
+  /**
+   * Install an app from the marketplace.
+   */
+  @post
+  @route("/listings/{type}/install")
+  @operationId("marketplaceAppInstall")
+  @summary("Install app")
+  install(
+    ...MarketplaceInstallRequest,
   ): MarketplaceInstallResponse | CommonErrors;
 }
 
@@ -130,6 +143,26 @@ model MarketplaceApiKeyInstallRequest {
 }
 
 /**
+ * Marketplace app install request.
+ */
+@friendlyName("MarketplaceInstallRequest")
+model MarketplaceInstallRequest {
+  /**
+   * The type of the app to install.
+   */
+  @path type: Type;
+
+  @body _: {
+    /**
+     * Name of the application to install.
+     *
+     * If not set defaults to the marketplace item's description.
+     */
+    name?: string;
+  };
+}
+
+/**
  * A marketplace listing.
  * Represent an available app in the app marketplace that can be installed to the organization.
  *
@@ -160,6 +193,7 @@ model MarketplaceApiKeyInstallRequest {
       description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
     }
   ],
+  installMethods: #[InstallMethod.WithOAuth2, InstallMethod.WithAPIKey],
 })
 model MarketplaceListing {
   /**
@@ -181,4 +215,21 @@ model MarketplaceListing {
    * The app's capabilities.
    */
   capabilities: Capability[];
+
+  /**
+   * Install methods.
+   *
+   * List of methods to install the app.
+   */
+  installMethods: InstallMethod[];
+}
+
+/**
+ * Install method of the application.
+ */
+@friendlyName("InstallMethod")
+enum InstallMethod {
+  WithOAuth2: "with_oauth2",
+  WithAPIKey: "with_api_key",
+  NoCredentialsRequired: "no_credentials_required",
 }

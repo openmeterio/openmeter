@@ -686,6 +686,7 @@ model CheckoutSessionCustomTextParams {
         description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
       }
     ],
+    installMethods: #[InstallMethod.WithOAuth2, InstallMethod.WithAPIKey],
   },
   createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
   updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),

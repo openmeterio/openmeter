@@ -64,12 +64,15 @@ func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 
 	// Create a stripe app
 	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: app.MarketplaceListingID{
-			Type: app.AppTypeStripe,
+		InstallAppInput: app.InstallAppInput{
+			MarketplaceListingID: app.MarketplaceListingID{
+				Type: app.AppTypeStripe,
+			},
+
+			Namespace: s.namespace,
 		},
 
-		Namespace: s.namespace,
-		APIKey:    TestStripeAPIKey,
+		APIKey: TestStripeAPIKey,
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
@@ -77,12 +80,14 @@ func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 
 	// Create with same Stripe account ID should return conflict
 	_, err = s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: app.MarketplaceListingID{
-			Type: app.AppTypeStripe,
+		InstallAppInput: app.InstallAppInput{
+			MarketplaceListingID: app.MarketplaceListingID{
+				Type: app.AppTypeStripe,
+			},
+			Namespace: s.namespace,
 		},
 
-		Namespace: s.namespace,
-		APIKey:    TestStripeAPIKey,
+		APIKey: TestStripeAPIKey,
 	})
 
 	require.True(t, models.IsGenericConflictError(err), "Create stripe app must return conflict error with same Stripe account ID")
@@ -138,12 +143,14 @@ func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) 
 
 	// Create a stripe app first
 	createApp1, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: app.MarketplaceListingID{
-			Type: app.AppTypeStripe,
-		},
+		InstallAppInput: app.InstallAppInput{
+			MarketplaceListingID: app.MarketplaceListingID{
+				Type: app.AppTypeStripe,
+			},
 
-		Namespace: s.namespace,
-		APIKey:    TestStripeAPIKey,
+			Namespace: s.namespace,
+		},
+		APIKey: TestStripeAPIKey,
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
@@ -166,12 +173,14 @@ func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) 
 		}, nil)
 
 	createApp2, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: app.MarketplaceListingID{
-			Type: app.AppTypeStripe,
-		},
+		InstallAppInput: app.InstallAppInput{
+			MarketplaceListingID: app.MarketplaceListingID{
+				Type: app.AppTypeStripe,
+			},
 
-		Namespace: s.namespace,
-		APIKey:    TestStripeAPIKey,
+			Namespace: s.namespace,
+		},
+		APIKey: TestStripeAPIKey,
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
@@ -209,12 +218,14 @@ func (s *AppHandlerTestSuite) TestGetDefaultAfterDelete(ctx context.Context, t *
 
 	// Create a stripe app first
 	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: app.MarketplaceListingID{
-			Type: app.AppTypeStripe,
-		},
+		InstallAppInput: app.InstallAppInput{
+			MarketplaceListingID: app.MarketplaceListingID{
+				Type: app.AppTypeStripe,
+			},
 
-		Namespace: s.namespace,
-		APIKey:    TestStripeAPIKey,
+			Namespace: s.namespace,
+		},
+		APIKey: TestStripeAPIKey,
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
@@ -240,12 +251,14 @@ func (s *AppHandlerTestSuite) TestGetDefaultAfterDelete(ctx context.Context, t *
 
 	// Create a new stripe app that should become the new default
 	createApp2, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: app.MarketplaceListingID{
-			Type: app.AppTypeStripe,
-		},
+		InstallAppInput: app.InstallAppInput{
+			MarketplaceListingID: app.MarketplaceListingID{
+				Type: app.AppTypeStripe,
+			},
 
-		Namespace: s.namespace,
-		APIKey:    TestStripeAPIKey,
+			Namespace: s.namespace,
+		},
+		APIKey: TestStripeAPIKey,
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")

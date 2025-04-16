@@ -112,10 +112,13 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			}
 
 			req := MarketplaceAppAPIKeyInstallRequest{
-				MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
-				Namespace:            namespace,
-				APIKey:               body.ApiKey,
-				Name:                 lo.FromPtr(body.Name),
+				InstallAppInput: app.InstallAppInput{
+					MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
+					Namespace:            namespace,
+					Name:                 lo.FromPtr(body.Name),
+				},
+
+				APIKey: body.ApiKey,
 			}
 
 			return req, nil
@@ -160,6 +163,63 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("marketplaceAppAPIKeyInstall"),
+		)...,
+	)
+}
+
+type (
+	MarketplaceAppInstallRequest  = app.InstallAppInput
+	MarketplaceAppInstallResponse = api.MarketplaceInstallResponse
+	MarketplaceAppInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppInstallRequest, MarketplaceAppInstallResponse, api.AppType]
+)
+
+// MarketplaceAppInstall returns a handler for installing an app type with an API key
+func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, appType api.AppType) (MarketplaceAppInstallRequest, error) {
+			body := api.MarketplaceAppInstallJSONBody{}
+			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
+				return MarketplaceAppInstallRequest{}, fmt.Errorf("field to decode marketplace app install request: %w", err)
+			}
+
+			// Resolve namespace
+			namespace, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return MarketplaceAppInstallRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			req := MarketplaceAppInstallRequest{
+				MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
+				Namespace:            namespace,
+				Name:                 lo.FromPtr(body.Name),
+			}
+
+			return req, nil
+		},
+		func(ctx context.Context, request MarketplaceAppInstallRequest) (MarketplaceAppInstallResponse, error) {
+			resp := MarketplaceAppInstallResponse{
+				DefaultForCapabilityTypes: []api.AppCapabilityType{},
+			}
+
+			installedApp, err := h.service.InstallMarketplaceListing(ctx, request)
+			if err != nil {
+				return resp, err
+			}
+
+			// Map app to API
+			apiApp, err := h.appMapper.MapAppToAPI(installedApp)
+			if err != nil {
+				return resp, fmt.Errorf("failed to map app to API: %w", err)
+			}
+
+			resp.App = apiApp
+
+			return resp, nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[MarketplaceAppInstallResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("marketplaceAppInstall"),
 		)...,
 	)
 }
@@ -239,6 +299,9 @@ func mapMarketplaceListing(listing app.MarketplaceListing) api.MarketplaceListin
 				Name:        v.Name,
 				Description: v.Description,
 			}
+		}),
+		InstallMethods: lo.Map(listing.InstallMethods, func(v app.InstallMethod, _ int) api.InstallMethod {
+			return api.InstallMethod(v)
 		}),
 	}
 }

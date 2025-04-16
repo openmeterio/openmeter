@@ -37,3 +37,9 @@ func (a *Router) MarketplaceOAuth2InstallAuthorize(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusNotImplemented)
 	_, _ = w.Write([]byte("Unimplemented"))
 }
+
+// Install app
+// (POST /api/v1/marketplace/listings/{type}/install)
+func (a *Router) MarketplaceAppInstall(w http.ResponseWriter, r *http.Request, appType api.AppType) {
+	a.appHandler.MarketplaceAppInstall().With(appType).ServeHTTP(w, r)
+}

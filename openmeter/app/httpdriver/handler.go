@@ -35,6 +35,7 @@ type AppHandler interface {
 	ListMarketplaceListings() ListMarketplaceListingsHandler
 	GetMarketplaceListing() GetMarketplaceListingHandler
 	MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandler
+	MarketplaceAppInstall() MarketplaceAppInstallHandler
 }
 
 var _ Handler = (*handler)(nil)

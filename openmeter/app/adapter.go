@@ -18,6 +18,7 @@ type AppAdapter interface {
 	GetMarketplaceListing(ctx context.Context, input MarketplaceGetInput) (RegistryItem, error)
 	ListMarketplaceListings(ctx context.Context, input MarketplaceListInput) (pagination.PagedResponse[RegistryItem], error)
 	InstallMarketplaceListingWithAPIKey(ctx context.Context, input InstallAppWithAPIKeyInput) (App, error)
+	InstallMarketplaceListing(ctx context.Context, input InstallAppInput) (App, error)
 	GetMarketplaceListingOauth2InstallURL(ctx context.Context, input GetOauth2InstallURLInput) (GetOauth2InstallURLOutput, error)
 	AuthorizeMarketplaceListingOauth2Install(ctx context.Context, input AuthorizeOauth2InstallInput) error
 

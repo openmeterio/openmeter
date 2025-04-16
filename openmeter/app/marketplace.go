@@ -3,16 +3,42 @@ package app
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
+type InstallMethod string
+
+const (
+	InstallMethodOAuth2        InstallMethod = "with_oauth2"
+	InstallMethodAPIKey        InstallMethod = "with_api_key"
+	InstallMethodNoCredentials InstallMethod = "no_credentials_required"
+)
+
+func (i InstallMethod) Validate() error {
+	if i == "" {
+		return errors.New("install method is required")
+	}
+
+	if !slices.Contains([]InstallMethod{
+		InstallMethodOAuth2,
+		InstallMethodAPIKey,
+		InstallMethodNoCredentials,
+	}, i) {
+		return fmt.Errorf("invalid install method: %s", i)
+	}
+
+	return nil
+}
+
 type MarketplaceListing struct {
-	Type         AppType      `json:"type"`
-	Name         string       `json:"name"`
-	Description  string       `json:"description"`
-	Capabilities []Capability `json:"capabilities"`
+	Type           AppType         `json:"type"`
+	Name           string          `json:"name"`
+	Description    string          `json:"description"`
+	Capabilities   []Capability    `json:"capabilities"`
+	InstallMethods []InstallMethod `json:"installMethods"`
 }
 
 func (p MarketplaceListing) Validate() error {
@@ -30,7 +56,13 @@ func (p MarketplaceListing) Validate() error {
 
 	for i, capability := range p.Capabilities {
 		if err := capability.Validate(); err != nil {
-			return fmt.Errorf("error validating capability a position %d: %w", i, err)
+			return fmt.Errorf("error validating capability at position %d: %w", i, err)
+		}
+	}
+
+	for i, installMethod := range p.InstallMethods {
+		if err := installMethod.Validate(); err != nil {
+			return fmt.Errorf("error validating install method at position %d: %w", i, err)
 		}
 	}
 
@@ -89,14 +121,31 @@ func (i MarketplaceListInput) Validate() error {
 }
 
 type InstallAppWithAPIKeyInput struct {
-	MarketplaceListingID
+	InstallAppInput
 
-	Namespace string
-	APIKey    string
-	Name      string
+	APIKey string
 }
 
 func (i InstallAppWithAPIKeyInput) Validate() error {
+	if err := i.InstallAppInput.Validate(); err != nil {
+		return fmt.Errorf("error validating install app input: %w", err)
+	}
+
+	if i.APIKey == "" {
+		return errors.New("api key is required")
+	}
+
+	return nil
+}
+
+type InstallAppInput struct {
+	MarketplaceListingID
+
+	Namespace string
+	Name      string
+}
+
+func (i InstallAppInput) Validate() error {
 	if err := i.MarketplaceListingID.Validate(); err != nil {
 		return models.NewGenericValidationError(
 			fmt.Errorf("error validating marketplace listing id: %w", err),
@@ -105,10 +154,6 @@ func (i InstallAppWithAPIKeyInput) Validate() error {
 
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
-	}
-
-	if i.APIKey == "" {
-		return errors.New("api key is required")
 	}
 
 	return nil
