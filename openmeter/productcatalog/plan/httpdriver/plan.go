@@ -117,7 +117,7 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 
 			req, err := AsCreatePlanRequest(body, ns)
 			if err != nil {
-				return CreatePlanRequest{}, fmt.Errorf("failed to create plan request: %w", err)
+				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("failed to create plan request: %w", err))
 			}
 
 			req.NamespacedModel = models.NamespacedModel{
