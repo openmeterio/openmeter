@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -15,11 +16,14 @@ import (
 
 type Handler interface {
 	CreateSubscriptionAddon() CreateSubscriptionAddonHandler
+	ListSubscriptionAddons() ListSubscriptionAddonsHandler
+	GetSubscriptionAddon() GetSubscriptionAddonHandler
 }
 
 type HandlerConfig struct {
 	SubscriptionAddonService    subscriptionaddon.Service
 	SubscriptionWorkflowService subscriptionworkflow.Service
+	SubscriptionService         subscription.Service
 	NamespaceDecoder            namespacedriver.NamespaceDecoder
 	Logger                      *slog.Logger
 }

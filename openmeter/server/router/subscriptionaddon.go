@@ -9,7 +9,9 @@ import (
 // List subscription addons
 // (GET /api/v1/subscriptions/{subscriptionId}/addons)
 func (a *Router) ListSubscriptionAddons(w http.ResponseWriter, r *http.Request, subscriptionId string) {
-	w.WriteHeader(http.StatusNotImplemented)
+	a.subscriptionAddonHandler.ListSubscriptionAddons().With(httpdriver.ListSubscriptionAddonsParams{
+		SubscriptionID: subscriptionId,
+	}).ServeHTTP(w, r)
 }
 
 // Create a subscription addon
@@ -23,7 +25,10 @@ func (a *Router) CreateSubscriptionAddon(w http.ResponseWriter, r *http.Request,
 // Get subscription addon
 // (GET /api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId})
 func (a *Router) GetSubscriptionAddon(w http.ResponseWriter, r *http.Request, subscriptionId string, subscriptionAddonId string) {
-	w.WriteHeader(http.StatusNotImplemented)
+	a.subscriptionAddonHandler.GetSubscriptionAddon().With(httpdriver.GetSubscriptionAddonParams{
+		SubscriptionID:      subscriptionId,
+		SubscriptionAddonID: subscriptionAddonId,
+	}).ServeHTTP(w, r)
 }
 
 // Update a subscription addon

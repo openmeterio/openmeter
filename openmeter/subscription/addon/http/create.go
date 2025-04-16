@@ -59,7 +59,7 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 		commonhttp.JSONResponseEncoderWithStatus[CreateSubscriptionAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.Options,
-			httptransport.WithOperationName("getSubscription"),
+			httptransport.WithOperationName("createSubscriptionAddon"),
 		)...,
 	)
 }

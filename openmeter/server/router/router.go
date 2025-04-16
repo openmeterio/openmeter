@@ -366,6 +366,7 @@ func NewRouter(config Config) (*Router, error) {
 		subscriptionaddonhttpdriver.HandlerConfig{
 			SubscriptionAddonService:    config.SubscriptionAddonService,
 			SubscriptionWorkflowService: config.SubscriptionWorkflowService,
+			SubscriptionService:         config.SubscriptionService,
 			NamespaceDecoder:            staticNamespaceDecoder,
 			Logger:                      config.Logger,
 		},
