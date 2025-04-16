@@ -216,10 +216,10 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 
 			return resp, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[MarketplaceAppAPIKeyInstallResponse](http.StatusOK),
+		commonhttp.JSONResponseEncoderWithStatus[MarketplaceAppInstallResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("marketplaceAppAPIKeyInstall"),
+			httptransport.WithOperationName("marketplaceAppInstall"),
 		)...,
 	)
 }

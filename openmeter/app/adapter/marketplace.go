@@ -91,7 +91,7 @@ func (a *adapter) InstallMarketplaceListing(ctx context.Context, input app.Insta
 
 		installer, ok := registryItem.Factory.(app.AppFactoryInstall)
 		if !ok {
-			return nil, fmt.Errorf("app factory does not support API key installation")
+			return nil, fmt.Errorf("app factory does not support installation")
 		}
 
 		// Install app
