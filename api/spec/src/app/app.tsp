@@ -49,7 +49,7 @@ interface Apps {
   @summary("Update app")
   update(
     @path id: ULID,
-    @body app: TypeSpec.Rest.Resource.ResourceReplaceModel<AppBase>,
+    @body app: AppReplaceUpdate,
   ): App | NotFoundError | CommonErrors;
 
   /**
@@ -79,6 +79,7 @@ model ListAppsRequest {
 enum Type {
   Stripe: "stripe",
   Sandbox: "sandbox",
+  CustomInvoicing: "custom_invoicing",
 }
 
 /**
@@ -90,6 +91,19 @@ enum Type {
 union App {
   stripe: StripeApp,
   sandbox: SandboxApp,
+  custom_invoicing: CustomInvoicingApp,
+}
+
+/**
+ * App ReplaceUpdate Model
+ */
+// TODO: Once we can properly do ReplaceModel<App> we can use that here (right now we cannot do this recursively and it fails on Resource).
+@friendlyName("AppReplaceUpdate")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+union AppReplaceUpdate {
+  stripe: TypeSpec.Rest.Resource.ResourceReplaceModel<StripeApp>,
+  sandbox: TypeSpec.Rest.Resource.ResourceReplaceModel<SandboxApp>,
+  custom_invoicing: TypeSpec.Rest.Resource.ResourceReplaceModel<CustomInvoicingApp>,
 }
 
 /**

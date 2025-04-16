@@ -12,8 +12,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/app"
-	"github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -170,10 +168,29 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	tracer := common.NewTracer(tracerProvider, commonMetadata)
-	entitlementsConfiguration := conf.Entitlements
+	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(kafkaIngestConfiguration)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	namespaceHandler, err := common.NewKafkaNamespaceHandler(namespacedTopicResolver, topicProvisioner, kafkaIngestConfiguration)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
+	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
 	if err != nil {
 		cleanup6()
@@ -205,18 +222,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, service, eventbusPublisher)
-	customerService, err := common.NewCustomerService(logger, client, entitlement, eventbusPublisher)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	secretserviceService, err := common.NewUnsafeSecretService(logger, client)
+	v3 := common.NewNamespaceHandlers(namespaceHandler, connector)
+	namespaceConfiguration := conf.Namespace
+	manager, err := common.NewNamespaceManager(v3, namespaceConfiguration)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -227,6 +235,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	billingAdapter, err := common.BillingAdapter(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	entitlementsConfiguration := conf.Entitlements
+	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, service, eventbusPublisher)
+	customerService, err := common.NewCustomerService(logger, client, entitlement, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -269,48 +289,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, appService, customerService, secretserviceService, billingService, eventbusPublisher)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(kafkaIngestConfiguration)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	namespaceHandler, err := common.NewKafkaNamespaceHandler(namespacedTopicResolver, topicProvisioner, kafkaIngestConfiguration)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	v3 := common.NewNamespaceHandlers(namespaceHandler, connector)
-	namespaceConfiguration := conf.Namespace
-	manager, err := common.NewNamespaceManager(v3, namespaceConfiguration)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, appService, manager, billingService)
 	if err != nil {
 		cleanup6()
@@ -321,6 +299,37 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	secretserviceService, err := common.NewUnsafeSecretService(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, appService, customerService, secretserviceService, billingService, eventbusPublisher)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appcustominvoicingService, err := common.NewAppCustomInvoicingService(logger, client, appsConfiguration, appService, customerService, secretserviceService, billingService, eventbusPublisher)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appRegistry := common.NewAppRegistry(appService, appSandboxProvisioner, appstripeService, appcustominvoicingService)
 	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger)
 	if err != nil {
 		cleanup6()
@@ -434,9 +443,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		GlobalInitializer:       globalInitializer,
 		Migrator:                migrator,
 		Addon:                   addonService,
-		App:                     appService,
-		AppStripe:               appstripeService,
-		AppSandboxProvisioner:   appSandboxProvisioner,
+		AppRegistry:             appRegistry,
 		Customer:                customerService,
 		Billing:                 billingService,
 		EntClient:               client,
@@ -486,9 +493,7 @@ type Application struct {
 	common.Migrator
 
 	Addon                   addon.Service
-	App                     app.Service
-	AppStripe               appstripe.Service
-	AppSandboxProvisioner   common.AppSandboxProvisioner
+	AppRegistry             common.AppRegistry
 	Customer                customer.Service
 	Billing                 billing.Service
 	EntClient               *db.Client

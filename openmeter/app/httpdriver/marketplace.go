@@ -150,7 +150,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			}
 
 			// Map app to API
-			apiApp, err := h.appMapper.MapAppToAPI(installedApp)
+			apiApp, err := MapAppToAPI(installedApp)
 			if err != nil {
 				return resp, fmt.Errorf("failed to map app to API: %w", err)
 			}
@@ -207,7 +207,7 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 			}
 
 			// Map app to API
-			apiApp, err := h.appMapper.MapAppToAPI(installedApp)
+			apiApp, err := MapAppToAPI(installedApp)
 			if err != nil {
 				return resp, fmt.Errorf("failed to map app to API: %w", err)
 			}

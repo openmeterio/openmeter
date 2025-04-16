@@ -9,8 +9,12 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
+	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
+	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -48,7 +52,7 @@ func (h *handler) ListApps() ListAppsHandler {
 
 			items := make([]api.App, 0, len(result.Items))
 			for _, item := range result.Items {
-				app, err := h.appMapper.MapAppToAPI(item)
+				app, err := MapAppToAPI(item)
 				if err != nil {
 					return ListAppsResponse{}, fmt.Errorf("failed to map app to api: %w", err)
 				}
@@ -99,7 +103,7 @@ func (h *handler) GetApp() GetAppHandler {
 				return GetAppResponse{}, fmt.Errorf("failed to get app: %w", err)
 			}
 
-			return h.appMapper.MapAppToAPI(app)
+			return MapAppToAPI(app)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetAppResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -131,16 +135,72 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 				return UpdateAppRequest{}, fmt.Errorf("field to decode upsert customer data request: %w", err)
 			}
 
-			return UpdateAppRequest{
-				AppID: app.AppID{
-					ID:        appId,
-					Namespace: namespace,
-				},
-				Name:        body.Name,
-				Default:     body.Default,
-				Description: body.Description,
-				Metadata:    body.Metadata,
-			}, nil
+			updateType, err := body.Discriminator()
+			if err != nil {
+				return UpdateAppRequest{}, models.NewGenericValidationError(fmt.Errorf("failed to get update type: %w", err))
+			}
+
+			switch updateType {
+			case string(app.AppTypeStripe):
+				payload, err := body.AsStripeAppReplaceUpdate()
+				if err != nil {
+					return UpdateAppRequest{}, fmt.Errorf("failed to get stripe app replace update: %w", err)
+				}
+
+				return UpdateAppRequest{
+					AppID: app.AppID{
+						ID:        appId,
+						Namespace: namespace,
+					},
+					Name:        payload.Name,
+					Default:     payload.Default,
+					Description: payload.Description,
+					Metadata:    payload.Metadata,
+					AppConfigUpdate: appstripeentityapp.Configuration{
+						SecretAPIKey: payload.SecretAPIKey,
+					},
+				}, nil
+
+			case string(app.AppTypeSandbox):
+				payload, err := body.AsSandboxAppReplaceUpdate()
+				if err != nil {
+					return UpdateAppRequest{}, fmt.Errorf("failed to get sandbox app replace update: %w", err)
+				}
+
+				return UpdateAppRequest{
+					AppID: app.AppID{
+						ID:        appId,
+						Namespace: namespace,
+					},
+					Name:            payload.Name,
+					Default:         payload.Default,
+					Description:     payload.Description,
+					Metadata:        payload.Metadata,
+					AppConfigUpdate: appsandbox.Configuration{},
+				}, nil
+			case string(app.AppTypeCustomInvoicing):
+				payload, err := body.AsCustomInvoicingAppReplaceUpdate()
+				if err != nil {
+					return UpdateAppRequest{}, fmt.Errorf("failed to get custom invoicing app replace update: %w", err)
+				}
+
+				return UpdateAppRequest{
+					AppID: app.AppID{
+						ID:        appId,
+						Namespace: namespace,
+					},
+					Name:        payload.Name,
+					Default:     payload.Default,
+					Description: payload.Description,
+					Metadata:    payload.Metadata,
+					AppConfigUpdate: appcustominvoicing.Configuration{
+						SkipDraftSyncHook:   payload.SkipDraftSyncHook,
+						SkipIssuingSyncHook: payload.SkipIssuingSyncHook,
+					},
+				}, nil
+			default:
+				return UpdateAppRequest{}, models.NewGenericValidationError(fmt.Errorf("invalid app type: %s", updateType))
+			}
 		},
 		func(ctx context.Context, request UpdateAppRequest) (UpdateAppResponse, error) {
 			app, err := h.service.UpdateApp(ctx, request)
@@ -148,7 +208,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 				return UpdateAppResponse{}, fmt.Errorf("failed to update app: %w", err)
 			}
 
-			return h.appMapper.MapAppToAPI(app)
+			return MapAppToAPI(app)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateAppResponse](http.StatusOK),
 		httptransport.AppendOptions(

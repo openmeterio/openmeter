@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -53,19 +54,36 @@ func (s *Service) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.
 		return nil, models.NewGenericValidationError(err)
 	}
 
-	// Update the app
-	updatedApp, err := s.adapter.UpdateApp(ctx, input)
-	if err != nil {
-		return nil, err
-	}
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (app.App, error) {
+		// Update the app
+		updatedApp, err := s.adapter.UpdateApp(ctx, input)
+		if err != nil {
+			return nil, err
+		}
 
-	// Emit the app updated event
-	event := app.NewAppUpdateEvent(ctx, updatedApp.GetAppBase())
-	if err := s.publisher.Publish(ctx, event); err != nil {
-		return nil, err
-	}
+		// Update the app specific entity
+		if input.AppConfigUpdate != nil {
+			err := updatedApp.UpdateAppConfig(ctx, input.AppConfigUpdate)
+			if err != nil {
+				return nil, err
+			}
 
-	return updatedApp, nil
+			app, err := s.adapter.GetApp(ctx, input.AppID)
+			if err != nil {
+				return nil, err
+			}
+
+			return app, nil
+		}
+
+		// Emit the app updated event
+		event := app.NewAppUpdateEvent(ctx, updatedApp.GetAppBase())
+		if err := s.publisher.Publish(ctx, event); err != nil {
+			return nil, err
+		}
+
+		return updatedApp, nil
+	})
 }
 
 func (s *Service) ListApps(ctx context.Context, input app.ListAppInput) (pagination.PagedResponse[app.App], error) {

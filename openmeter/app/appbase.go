@@ -11,8 +11,9 @@ import (
 type AppType string
 
 const (
-	AppTypeStripe  AppType = "stripe"
-	AppTypeSandbox AppType = "sandbox"
+	AppTypeStripe          AppType = "stripe"
+	AppTypeSandbox         AppType = "sandbox"
+	AppTypeCustomInvoicing AppType = "custom_invoicing"
 )
 
 // AppStatus represents the status of an app
