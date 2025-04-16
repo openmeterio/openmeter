@@ -122,3 +122,20 @@ type purchaseRes struct {
 	sub    subscription.SubscriptionView
 	subAdd subscriptionaddon.SubscriptionAddon
 }
+
+// The sub has addons if it has a non-0 quantity on any of them during its cadence
+func hasAddons(view subscription.SubscriptionView, addons []subscriptionaddon.SubscriptionAddon) bool {
+	subPer := view.Subscription.CadencedModel.AsPeriod()
+
+	for _, add := range addons {
+		for _, addInst := range add.GetInstances() {
+			if addInst.Quantity > 0 {
+				if addInst.CadencedModel.AsPeriod().Intersection(subPer) != nil {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}

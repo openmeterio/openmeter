@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -72,6 +73,17 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 	curr, err := s.Service.GetView(ctx, subscriptionID)
 	if err != nil {
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to fetch subscription: %w", err)
+	}
+
+	adds, err := s.AddonService.List(ctx, subscriptionID.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{
+		SubscriptionID: subscriptionID.ID,
+	})
+	if err != nil {
+		return subscription.SubscriptionView{}, fmt.Errorf("failed to list addons: %w", err)
+	}
+
+	if hasAddons(curr, adds.Items) {
+		return subscription.SubscriptionView{}, models.NewGenericForbiddenError(fmt.Errorf("subscription with addons cannot be edited"))
 	}
 
 	// Let's set the owner subsystem

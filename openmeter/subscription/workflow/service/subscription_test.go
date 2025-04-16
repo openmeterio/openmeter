@@ -974,6 +974,7 @@ func TestEditCombinations(t *testing.T) {
 		Service         subscription.Service
 		DBDeps          *subscriptiontestutils.DBDeps
 		Plan1           subscription.Plan
+		SubsDeps        *subscriptiontestutils.SubscriptionDependencies
 	}
 
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
@@ -1005,10 +1006,47 @@ func TestEditCombinations(t *testing.T) {
 			tcDeps.Service = deps.SubscriptionService
 			tcDeps.WorkflowService = deps.WorkflowService
 			tcDeps.Plan1 = plan1
+			tcDeps.SubsDeps = &deps
 
 			fn(t, tcDeps)
 		}
 	}
+
+	t.Run("Should error on edit if subscription has addons purchased", func(t *testing.T) {
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+					Name: "Example Subscription",
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			_, _ = subscriptiontestutils.CreateAddonForSub(t, deps.SubsDeps, subView.Subscription.NamespacedID, subscriptiontestutils.BuildAddonForTesting(t,
+				productcatalog.EffectivePeriod{
+					EffectiveFrom: &deps.CurrentTime,
+					EffectiveTo:   nil,
+				},
+				productcatalog.AddonInstanceTypeSingle,
+				subscriptiontestutils.ExampleAddonRateCard2.Clone(),
+				subscriptiontestutils.ExampleAddonRateCard4.Clone(),
+			))
+
+			_, err = deps.WorkflowService.EditRunning(context.Background(), subView.Subscription.NamespacedID, []subscription.Patch{
+				patch.PatchRemoveItem{
+					PhaseKey: "test_phase_1",
+					ItemKey:  subscriptiontestutils.ExampleFeatureKey,
+				},
+			}, immediate)
+			require.Error(t, err)
+			require.ErrorAs(t, err, lo.ToPtr(&models.GenericForbiddenError{}))
+			require.True(t, models.IsGenericForbiddenError(err))
+		})
+	})
 
 	t.Run("Should be able to cancel an edited subscription", func(t *testing.T) {
 		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
