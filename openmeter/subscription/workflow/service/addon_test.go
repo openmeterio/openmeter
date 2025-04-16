@@ -38,7 +38,7 @@ func TestAddAddon(t *testing.T) {
 	}
 
 	t.Run("Should error on invalid input", runWithDeps(func(t *testing.T, deps testCaseDeps) {
-		_, subView := subscriptiontestutils.CreateSubFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
+		_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
 
 		add := deps.deps.AddonService.CreateTestAddon(t, subscriptiontestutils.BuildAddonForTesting(t,
 			productcatalog.EffectivePeriod{
@@ -69,7 +69,7 @@ func TestAddAddon(t *testing.T) {
 	}))
 
 	t.Run("Should error with not implemented if the subscription already has addons", runWithDeps(func(t *testing.T, deps testCaseDeps) {
-		_, subView := subscriptiontestutils.CreateSubFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
+		_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
 
 		addInp := subscriptiontestutils.BuildAddonForTesting(t,
 			productcatalog.EffectivePeriod{
@@ -80,7 +80,7 @@ func TestAddAddon(t *testing.T) {
 			subscriptiontestutils.ExampleAddonRateCard2.Clone(),
 			subscriptiontestutils.ExampleAddonRateCard4.Clone(),
 		)
-		_, _ = subscriptiontestutils.CreateAddonForSub(t, &deps.deps, subView.Subscription.NamespacedID, addInp)
+		_, _ = subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, addInp)
 
 		addInp.Key = "some-new-key"
 
@@ -101,7 +101,7 @@ func TestAddAddon(t *testing.T) {
 	}))
 
 	t.Run("Should sync subscription with new addons contents", runWithDeps(func(t *testing.T, deps testCaseDeps) {
-		_, subView := subscriptiontestutils.CreateSubFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
+		_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
 
 		ogView := subView
 		require.NotNil(t, ogView)
@@ -150,7 +150,7 @@ func TestAddAddon(t *testing.T) {
 	}))
 
 	t.Run("Should return conflict error if subscription already has that addon purchased", runWithDeps(func(t *testing.T, deps testCaseDeps) {
-		_, subView := subscriptiontestutils.CreateSubFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
+		_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
 
 		add := deps.deps.AddonService.CreateTestAddon(t, subscriptiontestutils.BuildAddonForTesting(t,
 			productcatalog.EffectivePeriod{

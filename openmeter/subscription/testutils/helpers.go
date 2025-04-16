@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func CreateSubFromPlan(t *testing.T, deps *SubscriptionDependencies, planInp plan.CreatePlanInput, startAt time.Time) (subscription.Plan, subscription.SubscriptionView) {
+func CreateSubscriptionFromPlan(t *testing.T, deps *SubscriptionDependencies, planInp plan.CreatePlanInput, startAt time.Time) (subscription.Plan, subscription.SubscriptionView) {
 	deps.FeatureConnector.CreateExampleFeatures(t)
 	cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 
@@ -36,7 +36,7 @@ func CreateSubFromPlan(t *testing.T, deps *SubscriptionDependencies, planInp pla
 }
 
 // For most cases, use the workflow service instead!
-func CreateMultiInstanceAddonForSub(t *testing.T, deps *SubscriptionDependencies, subID models.NamespacedID, addonInp addon.CreateAddonInput, quants []subscriptionaddon.CreateSubscriptionAddonQuantityInput) (addon.Addon, subscriptionaddon.SubscriptionAddon) {
+func CreateMultiInstanceAddonForSubscription(t *testing.T, deps *SubscriptionDependencies, subID models.NamespacedID, addonInp addon.CreateAddonInput, quants []subscriptionaddon.CreateSubscriptionAddonQuantityInput) (addon.Addon, subscriptionaddon.SubscriptionAddon) {
 	t.Helper()
 
 	add := deps.AddonService.CreateTestAddon(t, addonInp)
@@ -65,7 +65,7 @@ func CreateMultiInstanceAddonForSub(t *testing.T, deps *SubscriptionDependencies
 
 // this is a bit hacky, we reuse the addon's effective period as cadence for the subscriptionaddon
 // For most cases, use the workflow service instead!
-func CreateAddonForSub(t *testing.T, deps *SubscriptionDependencies, subID models.NamespacedID, addonInp addon.CreateAddonInput) (addon.Addon, subscriptionaddon.SubscriptionAddon) {
+func CreateAddonForSubscription(t *testing.T, deps *SubscriptionDependencies, subID models.NamespacedID, addonInp addon.CreateAddonInput) (addon.Addon, subscriptionaddon.SubscriptionAddon) {
 	t.Helper()
 
 	quants := []subscriptionaddon.CreateSubscriptionAddonQuantityInput{
@@ -82,5 +82,5 @@ func CreateAddonForSub(t *testing.T, deps *SubscriptionDependencies, subID model
 		})
 	}
 
-	return CreateMultiInstanceAddonForSub(t, deps, subID, addonInp, quants)
+	return CreateMultiInstanceAddonForSubscription(t, deps, subID, addonInp, quants)
 }

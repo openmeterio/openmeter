@@ -1026,7 +1026,7 @@ func TestEditCombinations(t *testing.T) {
 			}, deps.Plan1)
 			require.Nil(t, err)
 
-			_, _ = subscriptiontestutils.CreateAddonForSub(t, deps.SubsDeps, subView.Subscription.NamespacedID, subscriptiontestutils.BuildAddonForTesting(t,
+			_, _ = subscriptiontestutils.CreateAddonForSubscription(t, deps.SubsDeps, subView.Subscription.NamespacedID, subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
 					EffectiveFrom: &deps.CurrentTime,
 					EffectiveTo:   nil,
