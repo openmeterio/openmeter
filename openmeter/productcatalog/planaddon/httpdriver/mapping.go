@@ -1,6 +1,8 @@
 package httpdriver
 
 import (
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -25,6 +27,7 @@ func FromPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
 		DeletedAt:     a.DeletedAt,
 		UpdatedAt:     a.UpdatedAt,
 		Annotations:   FromAnnotations(a.Annotations),
+		Metadata:      FromMetadata(a.Metadata),
 	}
 
 	return resp, nil
@@ -44,27 +47,53 @@ func FromAnnotations(annotations models.Annotations) *api.Annotations {
 	return &result
 }
 
+func FromMetadata(metadata models.Metadata) *api.Metadata {
+	var result api.Metadata
+
+	if len(metadata) > 0 {
+		result = make(api.Metadata)
+
+		for k, v := range metadata {
+			result[k] = v
+		}
+	}
+
+	return &result
+}
+
 func AsCreatePlanAddonRequest(a api.PlanAddonCreate, namespace string, planID string) (CreatePlanAddonRequest, error) {
+	var metadata models.Metadata
+
+	if a.Metadata != nil {
+		metadata = AsMetadata(*a.Metadata)
+	}
+
 	req := CreatePlanAddonRequest{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
 		},
-		Metadata:      nil, // FIXME:
+		Metadata:      metadata,
 		PlanID:        planID,
 		AddonID:       a.Addon.Id,
-		FromPlanPhase: "",
+		FromPlanPhase: a.FromPlanPhase,
 		MaxQuantity:   nil,
 	}
 
 	return req, nil
 }
 
-func AsUpdatePlanAddonRequest(a api.PlanAddonUpdate, namespace string, planID string, addonID string) (UpdatePlanAddonRequest, error) {
+func AsUpdatePlanAddonRequest(a api.PlanAddonReplaceUpdate, namespace string, planID string, addonID string) (UpdatePlanAddonRequest, error) {
+	var metadata *models.Metadata
+
+	if a.Metadata != nil {
+		metadata = lo.ToPtr(AsMetadata(*a.Metadata))
+	}
+
 	req := UpdatePlanAddonRequest{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
 		},
-		Metadata:      nil, // FIXME:
+		Metadata:      metadata,
 		PlanID:        planID,
 		AddonID:       addonID,
 		FromPlanPhase: &a.FromPlanPhase,
@@ -72,4 +101,18 @@ func AsUpdatePlanAddonRequest(a api.PlanAddonUpdate, namespace string, planID st
 	}
 
 	return req, nil
+}
+
+func AsMetadata(metadata api.Metadata) models.Metadata {
+	var result models.Metadata
+
+	if len(metadata) > 0 {
+		result = make(models.Metadata)
+
+		for k, v := range metadata {
+			result[k] = v
+		}
+	}
+
+	return result
 }

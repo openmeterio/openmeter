@@ -153,7 +153,7 @@ type (
 func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params UpdatePlanAddonParams) (UpdatePlanAddonRequest, error) {
-			body := api.PlanAddonUpdate{}
+			body := api.PlanAddonReplaceUpdate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdatePlanAddonRequest{}, fmt.Errorf("failed to decode update plan add-on assignment request: %w", err)
 			}

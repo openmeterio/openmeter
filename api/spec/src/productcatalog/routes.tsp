@@ -214,10 +214,7 @@ interface PlanAddons {
   @operationId("createPlanAddon")
   @summary("Create new add-on assignment for plan")
   @extension("x-internal", true)
-  create(
-    @path planId: ULID,
-    @body body: OpenMeter.Rest.ResourceCreateModel<PlanAddon>,
-  ):
+  create(@path planId: ULID, @body body: PlanAddonCreate):
     | {
         @statusCode _: 201;
         @body body: PlanAddon;
@@ -237,7 +234,7 @@ interface PlanAddons {
   update(
     @path planId: ULID,
     @path planAddonId: ULID,
-    @body body: OpenMeter.Rest.ResourceUpdateModel<PlanAddon>,
+    @body body: TypeSpec.Rest.Resource.ResourceReplaceModel<PlanAddon>,
   ): PlanAddon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**

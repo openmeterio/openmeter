@@ -18,13 +18,12 @@ model PlanAddon {
   @summary("Annotations")
   annotations?: Annotations;
 
-  // FIXME: enable support for metadata
-  // /**
-  //  * Additional metadata for the resource.
-  //  */
-  // @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  // @summary("Metadata")
-  // metadata?: Metadata | null;
+  /**
+   * Additional metadata for the resource.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Metadata")
+  metadata?: Metadata;
 
   /**
    * Partially populated add-on properties.
@@ -88,4 +87,25 @@ enum PlanAddonOrderBy {
   version: "version",
   createdAt: "created_at",
   updatedAt: "updated_at",
+}
+
+/**
+ * A plan add-on assignment create request.
+ */
+@friendlyName("PlanAddonCreate")
+@withVisibility(Lifecycle.Create)
+model PlanAddonCreate {
+  ...OmitProperties<DefaultKeyVisibility<PlanAddon, Lifecycle.Read>, "addon">;
+
+  /**
+   * The add-on to create.
+   */
+  @summary("Addon")
+  @visibility(Lifecycle.Create)
+  addon: {
+    /**
+     * The ID of the add-on.
+     */
+    id: ULID;
+  };
 }
