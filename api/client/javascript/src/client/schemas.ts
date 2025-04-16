@@ -956,6 +956,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/marketplace/listings/{type}/install': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Install app
+     * @description Install an app without API keys
+     */
+    post: operations['marketplaceAppInstall']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/marketplace/listings/{type}/install/apikey': {
     parameters: {
       query?: never
@@ -2244,6 +2264,7 @@ export interface components {
     App:
       | components['schemas']['StripeApp']
       | components['schemas']['SandboxApp']
+      | components['schemas']['CustomInvoicingApp']
     /** @description Resource update operation model. */
     AppBaseReplaceUpdate: {
       /**
@@ -2335,7 +2356,7 @@ export interface components {
      * @description Type of the app.
      * @enum {string}
      */
-    AppType: 'stripe' | 'sandbox'
+    AppType: 'stripe' | 'sandbox' | 'custom_invoicing'
     /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
     BadRequestProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description The balance history window. */
@@ -3123,6 +3144,85 @@ export interface components {
      * @example USD
      */
     CurrencyCode: string
+    /** @description Custom Invoicing app can be used for testing OpenMeter features.
+     *
+     *     The app is intended to be used for custom invoicing integrations external to
+     *     openmeter. */
+    CustomInvoicingApp: {
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly id: string
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /** @description The marketplace listing that this installed app is based on. */
+      readonly listing: components['schemas']['MarketplaceListing']
+      /** @description Status of the app connection. */
+      readonly status: components['schemas']['AppStatus']
+      /** @description Default for the app type
+       *     Only one app of each type can be default. */
+      default: boolean
+      /**
+       * @description The app's type is Custom Invoicing. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'custom_invoicing'
+    }
+    /** @description Sandbox Customer App Data. */
+    CustomInvoicingCustomerAppData: {
+      /** @description The installed custom invoicing app this data belongs to. */
+      readonly app?: components['schemas']['CustomInvoicingApp']
+      /**
+       * App ID
+       * @description The app ID.
+       *     If not provided, it will use the global default for the app type.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id?: string
+      /**
+       * @description The app name. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'custom_invoicing'
+      /** @description App sepecific metadata of the customer. */
+      metadata?: components['schemas']['Metadata']
+    }
     /** @description Plan input for custom subscription creation (without key and version). */
     CustomPlanInput: {
       /**
@@ -3288,6 +3388,7 @@ export interface components {
     CustomerAppData:
       | components['schemas']['StripeCustomerAppData']
       | components['schemas']['SandboxCustomerAppData']
+      | components['schemas']['CustomInvoicingCustomerAppData']
     /** @description Paginated response */
     CustomerAppDataPaginatedResponse: {
       /**
@@ -9332,6 +9433,8 @@ export interface components {
     /** @description The type of the app to install. */
     'MarketplaceApiKeyInstallRequest.type': components['schemas']['AppType']
     /** @description The type of the app to install. */
+    'MarketplaceInstallRequest.type': components['schemas']['AppType']
+    /** @description The type of the app to install. */
     'MarketplaceOAuth2InstallAuthorizeRequest.type': components['schemas']['AppType']
     /** @description The order direction. */
     'MeterOrderByOrdering.order': components['schemas']['SortOrder']
@@ -9564,6 +9667,9 @@ export type CreditNoteOriginalInvoiceRef =
   components['schemas']['CreditNoteOriginalInvoiceRef']
 export type Currency = components['schemas']['Currency']
 export type CurrencyCode = components['schemas']['CurrencyCode']
+export type CustomInvoicingApp = components['schemas']['CustomInvoicingApp']
+export type CustomInvoicingCustomerAppData =
+  components['schemas']['CustomInvoicingCustomerAppData']
 export type CustomPlanInput = components['schemas']['CustomPlanInput']
 export type CustomSubscriptionChange =
   components['schemas']['CustomSubscriptionChange']
@@ -10029,6 +10135,8 @@ export type ParameterLimitOffsetOffset =
   components['parameters']['LimitOffset.offset']
 export type ParameterMarketplaceApiKeyInstallRequestType =
   components['parameters']['MarketplaceApiKeyInstallRequest.type']
+export type ParameterMarketplaceInstallRequestType =
+  components['parameters']['MarketplaceInstallRequest.type']
 export type ParameterMarketplaceOAuth2InstallAuthorizeRequestType =
   components['parameters']['MarketplaceOAuth2InstallAuthorizeRequest.type']
 export type ParameterMeterOrderByOrderingOrder =
@@ -15798,6 +15906,101 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['MarketplaceListing']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  marketplaceAppInstall: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description The type of the app to install. */
+        type: components['parameters']['MarketplaceInstallRequest.type']
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description Name of the application to install.
+           *
+           *     If not set defaults to the marketplace item's description. */
+          name?: string
+        }
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['MarketplaceInstallResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */

@@ -75,6 +75,17 @@ interface Marketplace {
   installWithAPIKey(
     ...MarketplaceApiKeyInstallRequest,
   ): MarketplaceInstallResponse | CommonErrors;
+
+  /**
+   * Install an app without API keys
+   */
+  @post
+  @route("/listings/{type}/install")
+  @operationId("marketplaceAppInstall")
+  @summary("Install app")
+  install(
+    ...MarketplaceInstallRequest,
+  ): MarketplaceInstallResponse | CommonErrors;
 }
 
 /**
@@ -120,6 +131,26 @@ model MarketplaceApiKeyInstallRequest {
      */
     apiKey: string;
 
+    /**
+     * Name of the application to install.
+     *
+     * If not set defaults to the marketplace item's description.
+     */
+    name?: string;
+  };
+}
+
+/**
+ * App API key install request.
+ */
+@friendlyName("MarketplaceInstallRequest")
+model MarketplaceInstallRequest {
+  /**
+   * The type of the app to install.
+   */
+  @path type: Type;
+
+  @body _: {
     /**
      * Name of the application to install.
      *

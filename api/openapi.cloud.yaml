@@ -4538,6 +4538,77 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
+  /api/v1/marketplace/listings/{type}/install:
+    post:
+      operationId: marketplaceAppInstall
+      summary: Install app
+      description: Install an app without API keys
+      parameters:
+        - $ref: '#/components/parameters/MarketplaceInstallRequest.type'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketplaceInstallResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: |-
+                    Name of the application to install.
+
+                    If not set defaults to the marketplace item's description.
   /api/v1/marketplace/listings/{type}/install/apikey:
     post:
       operationId: marketplaceAppAPIKeyInstall
@@ -10253,6 +10324,13 @@ components:
       description: The type of the app to install.
       schema:
         $ref: '#/components/schemas/AppType'
+    MarketplaceInstallRequest.type:
+      name: type
+      in: path
+      required: true
+      description: The type of the app to install.
+      schema:
+        $ref: '#/components/schemas/AppType'
     MarketplaceOAuth2InstallAuthorizeRequest.type:
       name: type
       in: path
@@ -10943,11 +11021,13 @@ components:
       oneOf:
         - $ref: '#/components/schemas/StripeApp'
         - $ref: '#/components/schemas/SandboxApp'
+        - $ref: '#/components/schemas/CustomInvoicingApp'
       discriminator:
         propertyName: type
         mapping:
           stripe: '#/components/schemas/StripeApp'
           sandbox: '#/components/schemas/SandboxApp'
+          custom_invoicing: '#/components/schemas/CustomInvoicingApp'
       description: |-
         App.
         One of: stripe
@@ -11074,6 +11154,7 @@ components:
       enum:
         - stripe
         - sandbox
+        - custom_invoicing
       description: Type of the app.
     BadRequestProblemResponse:
       type: object
@@ -12235,6 +12316,118 @@ components:
         Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
         Custom three-letter currency codes are also supported for convenience.
       example: USD
+    CustomInvoicingApp:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - listing
+        - status
+        - default
+        - type
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        listing:
+          allOf:
+            - $ref: '#/components/schemas/MarketplaceListing'
+          description: The marketplace listing that this installed app is based on.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/AppStatus'
+          description: Status of the app connection.
+          readOnly: true
+        default:
+          type: boolean
+          description: |-
+            Default for the app type
+            Only one app of each type can be default.
+        type:
+          type: string
+          enum:
+            - custom_invoicing
+          description: The app's type is Custom Invoicing.
+      description: |-
+        Custom Invoicing app can be used for testing OpenMeter features.
+
+        The app is intended to be used for custom invoicing integrations external to
+        openmeter.
+    CustomInvoicingCustomerAppData:
+      type: object
+      required:
+        - type
+      properties:
+        app:
+          allOf:
+            - $ref: '#/components/schemas/CustomInvoicingApp'
+          description: The installed custom invoicing app this data belongs to.
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            The app ID.
+            If not provided, it will use the global default for the app type.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          title: App ID
+        type:
+          type: string
+          enum:
+            - custom_invoicing
+          description: The app name.
+          title: App Type
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: App sepecific metadata of the customer.
+      description: Sandbox Customer App Data.
     CustomPlanInput:
       type: object
       allOf:
@@ -12449,11 +12642,13 @@ components:
       oneOf:
         - $ref: '#/components/schemas/StripeCustomerAppData'
         - $ref: '#/components/schemas/SandboxCustomerAppData'
+        - $ref: '#/components/schemas/CustomInvoicingCustomerAppData'
       discriminator:
         propertyName: type
         mapping:
           stripe: '#/components/schemas/StripeCustomerAppData'
           sandbox: '#/components/schemas/SandboxCustomerAppData'
+          custom_invoicing: '#/components/schemas/CustomInvoicingCustomerAppData'
       description: |-
         CustomerAppData
         Stores the app specific data for the customer.

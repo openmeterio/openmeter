@@ -21,6 +21,9 @@ union CustomerAppData {
 
   @summary("Sandbox")
   sandbox: SandboxCustomerAppData,
+
+  @summary("Custom Invoicing")
+  custom_invoicing: CustomInvoicingCustomerAppData,
 }
 
 /**
@@ -79,4 +82,23 @@ model StripeCustomerAppData {
    * The Stripe default payment method ID.
    */
   stripeDefaultPaymentMethodId?: string;
+}
+
+/**
+ * Sandbox Customer App Data.
+ */
+@friendlyName("CustomInvoicingCustomerAppData")
+model CustomInvoicingCustomerAppData {
+  /**
+   * The installed custom invoicing app this data belongs to.
+   */
+  @visibility(Lifecycle.Read)
+  app?: CustomInvoicingApp;
+
+  ...CustomerAppBase<Type.CustomInvoicing>;
+
+  /**
+   * App sepecific metadata of the customer.
+   */
+  metadata?: Metadata;
 }
