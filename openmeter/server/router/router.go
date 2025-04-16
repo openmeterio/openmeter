@@ -45,6 +45,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	planaddonhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
@@ -96,6 +98,7 @@ type Config struct {
 	NamespaceManager            *namespace.Manager
 	Notification                notification.Service
 	Plan                        plan.Service
+	PlanAddon                   planaddon.Service
 	PlanSubscriptionService     plansubscription.PlanSubscriptionService
 	PortalCORSEnabled           bool
 	Portal                      portal.Service
@@ -168,6 +171,10 @@ func (c Config) Validate() error {
 		return errors.New("notification service is required")
 	}
 
+	if c.PlanAddon == nil {
+		return errors.New("plan add-on service is required")
+	}
+
 	if c.ProgressManager == nil {
 		return errors.New("progress manager service is required")
 	}
@@ -200,6 +207,7 @@ type Router struct {
 	billingHandler            billinghttpdriver.Handler
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	planHandler               planhttpdriver.Handler
+	planAddonHandler          planaddonhttpdriver.Handler
 	subscriptionHandler       subscriptionhttpdriver.Handler
 	subscriptionAddonHandler  subscriptionaddonhttpdriver.Handler
 	creditHandler             creditdriver.GrantHandler
@@ -338,6 +346,12 @@ func NewRouter(config Config) (*Router, error) {
 	router.addonHandler = addonhttpdriver.New(
 		staticNamespaceDecoder,
 		config.Addon,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	router.planAddonHandler = planaddonhttpdriver.New(
+		staticNamespaceDecoder,
+		config.PlanAddon,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

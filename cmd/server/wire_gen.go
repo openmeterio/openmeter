@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/secret"
@@ -378,6 +379,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	planaddonService, err := common.NewPlanAddonService(logger, client, planService, addonService, eventbusPublisher)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	portalConfiguration := conf.Portal
 	portalService, err := common.NewPortalService(portalConfiguration)
 	if err != nil {
@@ -443,6 +455,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		NamespaceManager:        manager,
 		Notification:            notificationService,
 		Plan:                    planService,
+		PlanAddon:               planaddonService,
 		Portal:                  portalService,
 		ProgressManager:         progressmanagerService,
 		RouterHook:              v7,
@@ -494,6 +507,7 @@ type Application struct {
 	NamespaceManager        *namespace.Manager
 	Notification            notification.Service
 	Plan                    plan.Service
+	PlanAddon               planaddon.Service
 	Portal                  portal.Service
 	ProgressManager         progressmanager.Service
 	RouterHook              func(chi.Router)

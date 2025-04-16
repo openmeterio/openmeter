@@ -167,6 +167,7 @@ func main() {
 			NamespaceManager:            app.NamespaceManager,
 			Notification:                app.Notification,
 			Plan:                        app.Plan,
+			PlanAddon:                   app.PlanAddon,
 			PlanSubscriptionService:     app.Subscription.PlanSubscriptionService,
 			Portal:                      app.Portal,
 			PortalCORSEnabled:           conf.Portal.CORS.Enabled,
