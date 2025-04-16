@@ -56,3 +56,10 @@ func (p Plan) AsProductCatalogPlan(at time.Time) (productcatalog.Plan, error) {
 		Phases:   lo.Map(phases, func(phase Phase, _ int) productcatalog.Phase { return phase.AsProductCatalogPhase() }),
 	}, nil
 }
+
+func (p Plan) AsProductCatalogPlan2() productcatalog.Plan {
+	return productcatalog.Plan{
+		PlanMeta: p.PlanMeta,
+		Phases:   lo.Map(p.Phases, func(phase Phase, _ int) productcatalog.Phase { return phase.AsProductCatalogPhase() }),
+	}
+}

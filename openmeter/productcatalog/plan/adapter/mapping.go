@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func fromPlanRow(p entdb.Plan) (*plan.Plan, error) {
+func FromPlanRow(p entdb.Plan) (*plan.Plan, error) {
 	pp := &plan.Plan{
 		NamespacedID: models.NamespacedID{
 			Namespace: p.Namespace,

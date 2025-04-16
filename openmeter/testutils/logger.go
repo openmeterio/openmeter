@@ -11,16 +11,18 @@ func NewLogger(t testing.TB) *slog.Logger {
 	return slog.Default()
 }
 
-// discardHandler is a slog.Handler implementation which does not emit log messages
-// See: https://go-review.googlesource.com/c/go/+/548335/5/src/log/slog/example_discard_test.go#14
-type discardHandler struct {
-	slog.JSONHandler
-}
-
-func (d *discardHandler) Enabled(context.Context, slog.Level) bool { return false }
-
 func NewDiscardLogger(t testing.TB) *slog.Logger {
 	t.Helper()
 
-	return slog.New(&discardHandler{})
+	return slog.New(discardHandler{})
 }
+
+// TODO: remove discardHandler as soon as the project is bumped to go1.24 as minimum version
+// where the discard handler has been introduced.
+// This is the exact copy from slog package: https://cs.opensource.google/go/go/+/refs/tags/go1.24.2:src/log/slog/handler.go;l=608-615
+type discardHandler struct{}
+
+func (dh discardHandler) Enabled(context.Context, slog.Level) bool  { return false }
+func (dh discardHandler) Handle(context.Context, slog.Record) error { return nil }
+func (dh discardHandler) WithAttrs(attrs []slog.Attr) slog.Handler  { return dh }
+func (dh discardHandler) WithGroup(name string) slog.Handler        { return dh }

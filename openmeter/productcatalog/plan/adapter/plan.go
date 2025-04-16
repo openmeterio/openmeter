@@ -146,7 +146,7 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 				continue
 			}
 
-			p, err := fromPlanRow(*item)
+			p, err := FromPlanRow(*item)
 			if err != nil {
 				return response, fmt.Errorf("failed to cast Plan: %w", err)
 			}
@@ -191,7 +191,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			return nil, fmt.Errorf("invalid query result: nil Plan received")
 		}
 
-		p, err := fromPlanRow(*planRow)
+		p, err := FromPlanRow(*planRow)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast Plan: %w", err)
 		}
@@ -383,7 +383,7 @@ func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.
 			return nil, fmt.Errorf("invalid query result: nil Plan received")
 		}
 
-		p, err := fromPlanRow(*planRow)
+		p, err := FromPlanRow(*planRow)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast Plan: %w", err)
 		}
