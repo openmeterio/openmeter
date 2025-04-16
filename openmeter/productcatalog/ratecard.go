@@ -34,7 +34,7 @@ type RateCard interface {
 	AsMeta() RateCardMeta
 	Key() string
 	Merge(RateCard) error
-	ChangeMeta(func(m RateCardMeta) RateCardMeta) error
+	ChangeMeta(func(m RateCardMeta) (RateCardMeta, error)) error
 	Clone() RateCard
 	Compatible(RateCard) error
 	GetBillingCadence() *isodate.Period
@@ -225,8 +225,12 @@ func (r *FlatFeeRateCard) GetBillingCadence() *isodate.Period {
 	return r.BillingCadence
 }
 
-func (r *FlatFeeRateCard) ChangeMeta(fn func(m RateCardMeta) RateCardMeta) error {
-	r.RateCardMeta = fn(r.RateCardMeta)
+func (r *FlatFeeRateCard) ChangeMeta(fn func(m RateCardMeta) (RateCardMeta, error)) error {
+	var err error
+	r.RateCardMeta, err = fn(r.RateCardMeta)
+	if err != nil {
+		return err
+	}
 
 	return r.Validate()
 }
@@ -365,8 +369,12 @@ func (r *UsageBasedRateCard) Clone() RateCard {
 	return clone
 }
 
-func (r *UsageBasedRateCard) ChangeMeta(fn func(m RateCardMeta) RateCardMeta) error {
-	r.RateCardMeta = fn(r.RateCardMeta)
+func (r *UsageBasedRateCard) ChangeMeta(fn func(m RateCardMeta) (RateCardMeta, error)) error {
+	var err error
+	r.RateCardMeta, err = fn(r.RateCardMeta)
+	if err != nil {
+		return err
+	}
 
 	return r.Validate()
 }

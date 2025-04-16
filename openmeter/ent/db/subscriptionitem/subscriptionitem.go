@@ -66,8 +66,6 @@ const (
 	EdgeEntitlement = "entitlement"
 	// EdgeBillingLines holds the string denoting the billing_lines edge name in mutations.
 	EdgeBillingLines = "billing_lines"
-	// EdgeSubscriptionAddonRateCardItems holds the string denoting the subscription_addon_rate_card_items edge name in mutations.
-	EdgeSubscriptionAddonRateCardItems = "subscription_addon_rate_card_items"
 	// Table holds the table name of the subscriptionitem in the database.
 	Table = "subscription_items"
 	// PhaseTable is the table that holds the phase relation/edge.
@@ -91,13 +89,6 @@ const (
 	BillingLinesInverseTable = "billing_invoice_lines"
 	// BillingLinesColumn is the table column denoting the billing_lines relation/edge.
 	BillingLinesColumn = "subscription_item_id"
-	// SubscriptionAddonRateCardItemsTable is the table that holds the subscription_addon_rate_card_items relation/edge.
-	SubscriptionAddonRateCardItemsTable = "subscription_addon_rate_card_item_links"
-	// SubscriptionAddonRateCardItemsInverseTable is the table name for the SubscriptionAddonRateCardItemLink entity.
-	// It exists in this package in order to avoid circular dependency with the "subscriptionaddonratecarditemlink" package.
-	SubscriptionAddonRateCardItemsInverseTable = "subscription_addon_rate_card_item_links"
-	// SubscriptionAddonRateCardItemsColumn is the table column denoting the subscription_addon_rate_card_items relation/edge.
-	SubscriptionAddonRateCardItemsColumn = "subscription_item_id"
 )
 
 // Columns holds all SQL columns for subscriptionitem fields.
@@ -304,20 +295,6 @@ func ByBillingLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newBillingLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-
-// BySubscriptionAddonRateCardItemsCount orders the results by subscription_addon_rate_card_items count.
-func BySubscriptionAddonRateCardItemsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newSubscriptionAddonRateCardItemsStep(), opts...)
-	}
-}
-
-// BySubscriptionAddonRateCardItems orders the results by subscription_addon_rate_card_items terms.
-func BySubscriptionAddonRateCardItems(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newSubscriptionAddonRateCardItemsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
 func newPhaseStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -337,12 +314,5 @@ func newBillingLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingLinesTable, BillingLinesColumn),
-	)
-}
-func newSubscriptionAddonRateCardItemsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(SubscriptionAddonRateCardItemsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionAddonRateCardItemsTable, SubscriptionAddonRateCardItemsColumn),
 	)
 }

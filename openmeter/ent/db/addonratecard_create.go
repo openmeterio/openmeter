@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
@@ -222,21 +221,6 @@ func (arcc *AddonRateCardCreate) SetNillableFeaturesID(id *string) *AddonRateCar
 // SetFeatures sets the "features" edge to the Feature entity.
 func (arcc *AddonRateCardCreate) SetFeatures(f *Feature) *AddonRateCardCreate {
 	return arcc.SetFeaturesID(f.ID)
-}
-
-// AddSubscriptionAddonRateCardIDs adds the "subscription_addon_rate_cards" edge to the SubscriptionAddonRateCard entity by IDs.
-func (arcc *AddonRateCardCreate) AddSubscriptionAddonRateCardIDs(ids ...string) *AddonRateCardCreate {
-	arcc.mutation.AddSubscriptionAddonRateCardIDs(ids...)
-	return arcc
-}
-
-// AddSubscriptionAddonRateCards adds the "subscription_addon_rate_cards" edges to the SubscriptionAddonRateCard entity.
-func (arcc *AddonRateCardCreate) AddSubscriptionAddonRateCards(s ...*SubscriptionAddonRateCard) *AddonRateCardCreate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return arcc.AddSubscriptionAddonRateCardIDs(ids...)
 }
 
 // Mutation returns the AddonRateCardMutation object of the builder.
@@ -501,22 +485,6 @@ func (arcc *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateS
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.FeatureID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := arcc.mutation.SubscriptionAddonRateCardsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   addonratecard.SubscriptionAddonRateCardsTable,
-			Columns: []string{addonratecard.SubscriptionAddonRateCardsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil

@@ -9,17 +9,13 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -48,7 +44,6 @@ func TestAddonServiceCreate(t *testing.T) {
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
 				AddonID:        add.ID,
 				SubscriptionID: sub.Subscription.ID,
-				RateCards:      []subscriptionaddon.CreateSubscriptionAddonRateCardInput{},
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 					ActiveFrom: now,
 					Quantity:   0,
@@ -77,13 +72,6 @@ func TestAddonServiceCreate(t *testing.T) {
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
 				AddonID:        ulid.Make().String(),
 				SubscriptionID: sub.Subscription.ID,
-				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
-					{
-						AddonRateCardID: ulid.Make().String(),
-
-						AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
-					},
-				},
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 					ActiveFrom: now,
 					Quantity:   1,
@@ -118,13 +106,6 @@ func TestAddonServiceCreate(t *testing.T) {
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
 				AddonID:        add.ID,
 				SubscriptionID: ulid.Make().String(),
-				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
-					{
-						AddonRateCardID: aRCIDs[0],
-
-						AffectedSubscriptionItemIDs: []string{ulid.Make().String()},
-					},
-				},
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 					ActiveFrom: now,
 					Quantity:   1,
@@ -134,176 +115,6 @@ func TestAddonServiceCreate(t *testing.T) {
 			_, err := deps.SubscriptionAddonService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, subAddonInp)
 			require.Error(t, err)
 			require.ErrorAs(t, err, lo.ToPtr(&models.GenericNotFoundError{}))
-		})
-	})
-
-	t.Run("Should error if referenced AddonRateCards don't belong to provided Addon", func(t *testing.T) {
-		withDeps(t, func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
-			clock.SetTime(now)
-			defer clock.ResetTime()
-
-			// Let's create a subscription
-			sub := createExampleSubscription(t, deps, now)
-
-			// Let's create an add-on
-			add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now),
-			}))
-
-			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
-				return rc.ID
-			})
-			require.Len(t, aRCIDs, 1)
-
-			// Now, let's create a SubscriptionAddon
-			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-				AddonID:        add.ID,
-				SubscriptionID: sub.Subscription.ID,
-				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
-					{
-						AddonRateCardID: ulid.Make().String(), // invalid AddonRateCardID
-
-						AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
-					},
-				},
-				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
-					ActiveFrom: now,
-					Quantity:   1,
-				},
-			}
-			_, err := deps.SubscriptionAddonService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, subAddonInp)
-			require.Error(t, err)
-			require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
-		})
-	})
-
-	t.Run("Should error if referenced SubscriptionItems don't exist", func(t *testing.T) {
-		t.Skip("Conflict error will always precede this so there's no clean way to do this test right now")
-
-		withDeps(t, func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
-			clock.SetTime(now)
-			defer clock.ResetTime()
-
-			// Let's create a subscription
-			sub := createExampleSubscription(t, deps, now)
-
-			// Let's create an add
-			add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now),
-			}))
-
-			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
-				return rc.ID
-			})
-			require.Len(t, aRCIDs, 1)
-
-			// Now, let's create a SubscriptionAddon
-			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-				AddonID:        add.ID,
-				SubscriptionID: sub.Subscription.ID,
-				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
-					{
-						AddonRateCardID: aRCIDs[0],
-
-						AffectedSubscriptionItemIDs: []string{ulid.Make().String()},
-					},
-				},
-				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
-					ActiveFrom: now,
-					Quantity:   1,
-				},
-			}
-
-			_, err := deps.SubscriptionAddonService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, subAddonInp)
-			require.Error(t, err)
-			require.ErrorAs(t, err, lo.ToPtr(&models.GenericNotFoundError{}))
-		})
-	})
-
-	t.Run("Should error if referenced SubscriptionItems don't belong to provided Subscription", func(t *testing.T) {
-		withDeps(t, func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
-			clock.SetTime(now)
-			defer clock.ResetTime()
-
-			// Let's create a subscription
-			sub := createExampleSubscription(t, deps, now)
-
-			// And let's create another subscription that we'll incorrectly reference
-
-			cust, err := deps.CustomerAdapter.CreateCustomer(context.Background(), customer.CreateCustomerInput{
-				Namespace: subscriptiontestutils.ExampleNamespace,
-				CustomerMutate: customer.CustomerMutate{
-					Name:         "Test Customer 2",
-					Key:          lo.ToPtr("test-customer-2"),
-					PrimaryEmail: lo.ToPtr("mail2@me.uk"),
-					Currency:     lo.ToPtr(currencyx.Code("USD")),
-					UsageAttribution: customer.CustomerUsageAttribution{
-						SubjectKeys: []string{"john-doe-2"},
-					},
-				},
-			})
-			require.Nil(t, err)
-
-			plan, err := deps.PlanService.GetPlan(context.Background(), plan.GetPlanInput{
-				Key:           "test_plan",
-				IncludeLatest: true,
-				NamespacedID: models.NamespacedID{
-					Namespace: subscriptiontestutils.ExampleNamespace,
-				},
-			})
-			require.Nil(t, err)
-
-			pp, err := plan.AsProductCatalogPlan(clock.Now())
-			require.Nil(t, err)
-
-			subPlan := &plansubscription.Plan{
-				Plan: pp,
-				Ref:  &plan.NamespacedID,
-			}
-
-			spec1, err := subscription.NewSpecFromPlan(subPlan, subscription.CreateSubscriptionCustomerInput{
-				CustomerId: cust.ID,
-				Currency:   "USD",
-				ActiveFrom: now,
-				Name:       "Test Subscription",
-			})
-			require.Nil(t, err)
-
-			sub2, err := deps.SubscriptionService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, spec1)
-			require.Nil(t, err)
-
-			view, err := deps.SubscriptionService.GetView(context.Background(), sub2.NamespacedID)
-			require.Nil(t, err)
-
-			// Let's create an add
-			add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now),
-			}))
-
-			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
-				return rc.ID
-			})
-			require.Len(t, aRCIDs, 1)
-
-			// Now, let's create a SubscriptionAddon
-			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-				AddonID:        add.ID,
-				SubscriptionID: sub.Subscription.ID,
-				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
-					ActiveFrom: now,
-					Quantity:   1,
-				},
-				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
-					{
-						AddonRateCardID: aRCIDs[0],
-
-						AffectedSubscriptionItemIDs: []string{view.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
-					},
-				},
-			}
-			_, err = deps.SubscriptionAddonService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, subAddonInp)
-			require.Error(t, err)
-			require.ErrorAs(t, err, lo.ToPtr(&models.GenericConflictError{}))
 		})
 	})
 
@@ -332,13 +143,6 @@ func TestAddonServiceCreate(t *testing.T) {
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
 				AddonID:        add.ID,
 				SubscriptionID: sub.Subscription.ID,
-				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
-					{
-						AddonRateCardID: aRCIDs[0],
-
-						AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
-					},
-				},
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 					ActiveFrom: now,
 					Quantity:   3,
@@ -380,13 +184,6 @@ func TestAddonServiceCreate(t *testing.T) {
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
 				AddonID:        add.ID,
 				SubscriptionID: sub.Subscription.ID,
-				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
-					{
-						AddonRateCardID: aRCIDs[0],
-
-						AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
-					},
-				},
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 					ActiveFrom: now,
 					Quantity:   1,
@@ -403,8 +200,7 @@ func TestAddonServiceCreate(t *testing.T) {
 				require.Equal(t, subAddonInp.AddonID, subAdd1.Addon.ID)
 				require.Equal(t, subAddonInp.SubscriptionID, subAdd1.SubscriptionID)
 				require.Len(t, subAdd1.RateCards, 1)
-				require.Equal(t, subAddonInp.RateCards[0].AddonRateCardID, subAdd1.RateCards[0].AddonRateCard.ID)
-				require.Equal(t, subAddonInp.RateCards[0].AffectedSubscriptionItemIDs, subAdd1.RateCards[0].AffectedSubscriptionItemIDs)
+				require.Equal(t, aRCIDs[0], subAdd1.RateCards[0].AddonRateCard.ID)
 			})
 
 			t.Run("Should return same addon on create and then a subsequent get", func(t *testing.T) {

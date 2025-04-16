@@ -3,6 +3,7 @@ package subscriptionaddon
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -19,12 +20,30 @@ type SubscriptionAddon struct {
 	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
 
-	// AddonID        string `json:"addonID"`
+	// Maybe break up to AddonID + AddonMeta?
 	Addon          addon.Addon `json:"addon"`
 	SubscriptionID string      `json:"subscriptionID"`
 
+	// RateCards is populated from the Addon's RateCards
 	RateCards  []SubscriptionAddonRateCard                  `json:"rateCards"`
 	Quantities timeutil.Timeline[SubscriptionAddonQuantity] `json:"quantities"`
+}
+
+func (a SubscriptionAddon) GetInstanceAt(t time.Time) (SubscriptionAddonInstance, bool) {
+	inst := SubscriptionAddonInstance{}
+	found := false
+
+	for _, q := range a.GetInstances() {
+		if q.CadencedModel.IsActiveAt(t) {
+			found = true
+
+			inst = q
+
+			break
+		}
+	}
+
+	return inst, found
 }
 
 func (a SubscriptionAddon) GetInstances() []SubscriptionAddonInstance {
@@ -89,8 +108,7 @@ type CreateSubscriptionAddonInput struct {
 	AddonID        string `json:"addonID"`
 	SubscriptionID string `json:"subscriptionID"`
 
-	RateCards       []CreateSubscriptionAddonRateCardInput `json:"rateCards"`
-	InitialQuantity CreateSubscriptionAddonQuantityInput   `json:"initialQuantity"`
+	InitialQuantity CreateSubscriptionAddonQuantityInput `json:"initialQuantity"`
 }
 
 func (i CreateSubscriptionAddonInput) Validate() error {
@@ -102,10 +120,6 @@ func (i CreateSubscriptionAddonInput) Validate() error {
 
 	if i.SubscriptionID == "" {
 		errs = append(errs, errors.New("subscriptionID is required"))
-	}
-
-	if len(i.RateCards) == 0 {
-		errs = append(errs, errors.New("rateCards weren't provided"))
 	}
 
 	if err := i.InitialQuantity.Validate(); err != nil {

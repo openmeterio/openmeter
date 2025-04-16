@@ -3,12 +3,14 @@ package service
 import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 type WorkflowServiceConfig struct {
-	Service subscription.Service
+	Service      subscription.Service
+	AddonService subscriptionaddon.Service
 	// connectors
 	CustomerService customer.Service
 	// framework

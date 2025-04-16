@@ -4,7 +4,6 @@ package db
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -17,20 +16,18 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecard"
 )
 
 // AddonRateCardQuery is the builder for querying AddonRateCard entities.
 type AddonRateCardQuery struct {
 	config
-	ctx                            *QueryContext
-	order                          []addonratecard.OrderOption
-	inters                         []Interceptor
-	predicates                     []predicate.AddonRateCard
-	withAddon                      *AddonQuery
-	withFeatures                   *FeatureQuery
-	withSubscriptionAddonRateCards *SubscriptionAddonRateCardQuery
-	modifiers                      []func(*sql.Selector)
+	ctx          *QueryContext
+	order        []addonratecard.OrderOption
+	inters       []Interceptor
+	predicates   []predicate.AddonRateCard
+	withAddon    *AddonQuery
+	withFeatures *FeatureQuery
+	modifiers    []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -104,28 +101,6 @@ func (arcq *AddonRateCardQuery) QueryFeatures() *FeatureQuery {
 			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, selector),
 			sqlgraph.To(feature.Table, feature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.FeaturesTable, addonratecard.FeaturesColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(arcq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QuerySubscriptionAddonRateCards chains the current query on the "subscription_addon_rate_cards" edge.
-func (arcq *AddonRateCardQuery) QuerySubscriptionAddonRateCards() *SubscriptionAddonRateCardQuery {
-	query := (&SubscriptionAddonRateCardClient{config: arcq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := arcq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := arcq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, selector),
-			sqlgraph.To(subscriptionaddonratecard.Table, subscriptionaddonratecard.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, addonratecard.SubscriptionAddonRateCardsTable, addonratecard.SubscriptionAddonRateCardsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(arcq.driver.Dialect(), step)
 		return fromU, nil
@@ -320,14 +295,13 @@ func (arcq *AddonRateCardQuery) Clone() *AddonRateCardQuery {
 		return nil
 	}
 	return &AddonRateCardQuery{
-		config:                         arcq.config,
-		ctx:                            arcq.ctx.Clone(),
-		order:                          append([]addonratecard.OrderOption{}, arcq.order...),
-		inters:                         append([]Interceptor{}, arcq.inters...),
-		predicates:                     append([]predicate.AddonRateCard{}, arcq.predicates...),
-		withAddon:                      arcq.withAddon.Clone(),
-		withFeatures:                   arcq.withFeatures.Clone(),
-		withSubscriptionAddonRateCards: arcq.withSubscriptionAddonRateCards.Clone(),
+		config:       arcq.config,
+		ctx:          arcq.ctx.Clone(),
+		order:        append([]addonratecard.OrderOption{}, arcq.order...),
+		inters:       append([]Interceptor{}, arcq.inters...),
+		predicates:   append([]predicate.AddonRateCard{}, arcq.predicates...),
+		withAddon:    arcq.withAddon.Clone(),
+		withFeatures: arcq.withFeatures.Clone(),
 		// clone intermediate query.
 		sql:  arcq.sql.Clone(),
 		path: arcq.path,
@@ -353,17 +327,6 @@ func (arcq *AddonRateCardQuery) WithFeatures(opts ...func(*FeatureQuery)) *Addon
 		opt(query)
 	}
 	arcq.withFeatures = query
-	return arcq
-}
-
-// WithSubscriptionAddonRateCards tells the query-builder to eager-load the nodes that are connected to
-// the "subscription_addon_rate_cards" edge. The optional arguments are used to configure the query builder of the edge.
-func (arcq *AddonRateCardQuery) WithSubscriptionAddonRateCards(opts ...func(*SubscriptionAddonRateCardQuery)) *AddonRateCardQuery {
-	query := (&SubscriptionAddonRateCardClient{config: arcq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	arcq.withSubscriptionAddonRateCards = query
 	return arcq
 }
 
@@ -445,10 +408,9 @@ func (arcq *AddonRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	var (
 		nodes       = []*AddonRateCard{}
 		_spec       = arcq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [2]bool{
 			arcq.withAddon != nil,
 			arcq.withFeatures != nil,
-			arcq.withSubscriptionAddonRateCards != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -481,15 +443,6 @@ func (arcq *AddonRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	if query := arcq.withFeatures; query != nil {
 		if err := arcq.loadFeatures(ctx, query, nodes, nil,
 			func(n *AddonRateCard, e *Feature) { n.Edges.Features = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := arcq.withSubscriptionAddonRateCards; query != nil {
-		if err := arcq.loadSubscriptionAddonRateCards(ctx, query, nodes,
-			func(n *AddonRateCard) { n.Edges.SubscriptionAddonRateCards = []*SubscriptionAddonRateCard{} },
-			func(n *AddonRateCard, e *SubscriptionAddonRateCard) {
-				n.Edges.SubscriptionAddonRateCards = append(n.Edges.SubscriptionAddonRateCards, e)
-			}); err != nil {
 			return nil, err
 		}
 	}
@@ -554,36 +507,6 @@ func (arcq *AddonRateCardQuery) loadFeatures(ctx context.Context, query *Feature
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
-	}
-	return nil
-}
-func (arcq *AddonRateCardQuery) loadSubscriptionAddonRateCards(ctx context.Context, query *SubscriptionAddonRateCardQuery, nodes []*AddonRateCard, init func(*AddonRateCard), assign func(*AddonRateCard, *SubscriptionAddonRateCard)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[string]*AddonRateCard)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(subscriptionaddonratecard.FieldAddonRatecardID)
-	}
-	query.Where(predicate.SubscriptionAddonRateCard(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(addonratecard.SubscriptionAddonRateCardsColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.AddonRatecardID
-		node, ok := nodeids[fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "addon_ratecard_id" returned %v for node %v`, fk, n.ID)
-		}
-		assign(node, n)
 	}
 	return nil
 }

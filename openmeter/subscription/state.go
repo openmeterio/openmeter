@@ -34,11 +34,12 @@ func (s SubscriptionStatus) Validate() error {
 type SubscriptionAction string
 
 const (
-	SubscriptionActionCreate   SubscriptionAction = "create"
-	SubscriptionActionUpdate   SubscriptionAction = "update"
-	SubscriptionActionCancel   SubscriptionAction = "cancel"
-	SubscriptionActionContinue SubscriptionAction = "continue"
-	SubscriptionActionDelete   SubscriptionAction = "delete"
+	SubscriptionActionCreate       SubscriptionAction = "create"
+	SubscriptionActionUpdate       SubscriptionAction = "update"
+	SubscriptionActionCancel       SubscriptionAction = "cancel"
+	SubscriptionActionContinue     SubscriptionAction = "continue"
+	SubscriptionActionDelete       SubscriptionAction = "delete"
+	SubscriptionActionChangeAddons SubscriptionAction = "change_addons"
 )
 
 // SubscriptionStateMachine is a very simple state machine that determines what actions can be taken on a Subscription
@@ -84,6 +85,7 @@ func NewStateMachine(status SubscriptionStatus) SubscriptionStateMachine {
 
 	sm.Configure(SubscriptionStatusActive).
 		PermitReentry(SubscriptionActionUpdate).
+		PermitReentry(SubscriptionActionChangeAddons).
 		Permit(SubscriptionActionCancel, SubscriptionStatusCanceled)
 
 	sm.Configure(SubscriptionStatusCanceled).

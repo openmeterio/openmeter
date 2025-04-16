@@ -8428,7 +8428,7 @@ export interface components {
        */
       readonly rateCards: components['schemas']['SubscriptionAddonRateCard'][]
     }
-    /** @description Resource create operation model. */
+    /** @description A subscription add-on create body. */
     SubscriptionAddonCreate: {
       /**
        * Display name
@@ -8458,34 +8458,6 @@ export interface components {
        */
       activeTo?: Date
       /**
-       * Addon
-       * @description Partially populated add-on properties.
-       */
-      addon: {
-        /**
-         * ID
-         * @description The ID of the add-on.
-         * @example 01G65Z755AFWAKHE12NY0CQ9FH
-         */
-        id: string
-        /**
-         * Key
-         * @description A semi-unique identifier for the resource.
-         */
-        readonly key: string
-        /**
-         * Version
-         * @description The version of the Add-on which templates this instance.
-         * @default 1
-         */
-        readonly version: number
-        /**
-         * InstanceType
-         * @description The instance type of the add-on.
-         */
-        readonly instanceType: components['schemas']['AddonInstanceType']
-      }
-      /**
        * Quantity
        * @description The quantity of the add-on. Always 1 for single instance add-ons.
        * @example 1
@@ -8496,6 +8468,17 @@ export interface components {
        * @description The timing of the operation. After the create or update, a new entry will be created in the timeline.
        */
       timing: components['schemas']['SubscriptionTiming']
+      /**
+       * Addon
+       * @description The add-on to create.
+       */
+      addon: {
+        /**
+         * @description The ID of the add-on.
+         * @example 01G65Z755AFWAKHE12NY0CQ9FH
+         */
+        id: string
+      }
     }
     /** @description A rate card for a subscription add-on. */
     SubscriptionAddonRateCard: {
@@ -8560,11 +8543,6 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
-      /**
-       * Addon
-       * @description Partially populated add-on properties.
-       */
-      addon?: Record<string, never>
       /**
        * Quantity
        * @description The quantity of the add-on. Always 1 for single instance add-ons.

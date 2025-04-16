@@ -235,12 +235,6 @@ type SubscriptionAddon func(*sql.Selector)
 // SubscriptionAddonQuantity is the predicate function for subscriptionaddonquantity builders.
 type SubscriptionAddonQuantity func(*sql.Selector)
 
-// SubscriptionAddonRateCard is the predicate function for subscriptionaddonratecard builders.
-type SubscriptionAddonRateCard func(*sql.Selector)
-
-// SubscriptionAddonRateCardItemLink is the predicate function for subscriptionaddonratecarditemlink builders.
-type SubscriptionAddonRateCardItemLink func(*sql.Selector)
-
 // SubscriptionItem is the predicate function for subscriptionitem builders.
 type SubscriptionItem func(*sql.Selector)
 

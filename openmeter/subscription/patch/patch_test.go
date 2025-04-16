@@ -48,9 +48,9 @@ func TestRemoveAdd(t *testing.T) {
 		// Then add it back with changes
 		nSpec := *v[0]
 		nSpec.RateCard = nSpec.RateCard.Clone()
-		require.NoError(t, nSpec.CreateSubscriptionItemPlanInput.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) productcatalog.RateCardMeta {
+		require.NoError(t, nSpec.CreateSubscriptionItemPlanInput.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 			m.Name = "new_name"
-			return m
+			return m, nil
 		}))
 
 		assert.NotEqual(t, "new_name", s.Phases["test_phase_3"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].RateCard.AsMeta().Name)
@@ -109,9 +109,9 @@ func TestRemoveAdd(t *testing.T) {
 		// Then add it back with changes
 		nSpec := *v[0]
 		nSpec.RateCard = nSpec.RateCard.Clone()
-		require.NoError(t, nSpec.CreateSubscriptionItemPlanInput.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) productcatalog.RateCardMeta {
+		require.NoError(t, nSpec.CreateSubscriptionItemPlanInput.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 			m.Name = "new_name"
-			return m
+			return m, nil
 		}))
 
 		assert.NotEqual(t, "new_name", s.Phases["test_phase_2"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].RateCard.AsMeta().Name)

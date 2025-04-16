@@ -59,6 +59,34 @@ func TestCreateFromPlan(t *testing.T) {
 				assert.True(t, models.IsGenericNotFoundError(err), "expected customer not found error, got %T", err)
 			},
 		},
+		{
+			Name: "Should add annotations to all created items",
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				subView, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+						Timing: subscription.Timing{
+							Custom: &deps.CurrentTime,
+						},
+					},
+					CustomerID: deps.Customer.ID,
+					Namespace:  subscriptiontestutils.ExampleNamespace,
+				}, deps.Plan)
+				require.Nil(t, err)
+
+				for _, phase := range subView.Phases {
+					for _, item := range phase.ItemsByKey {
+						for _, i := range item {
+							require.NotNil(t, i.SubscriptionItem.Annotations)
+							systems := subscription.AnnotationParser.ListOwnerSubSystems(i.SubscriptionItem.Annotations)
+							require.Contains(t, systems, subscription.OwnerSubscriptionSubSystem)
+						}
+					}
+				}
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -246,6 +274,7 @@ func TestEditRunning(t *testing.T) {
 					Service:            &mSvc,
 					CustomerService:    tuDeps.CustomerService,
 					TransactionManager: tuDeps.CustomerAdapter,
+					AddonService:       tuDeps.SubscriptionAddonService,
 				})
 
 				_, err := workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1}, immediate)
@@ -945,6 +974,7 @@ func TestEditCombinations(t *testing.T) {
 		Service         subscription.Service
 		DBDeps          *subscriptiontestutils.DBDeps
 		Plan1           subscription.Plan
+		SubsDeps        *subscriptiontestutils.SubscriptionDependencies
 	}
 
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
@@ -976,10 +1006,47 @@ func TestEditCombinations(t *testing.T) {
 			tcDeps.Service = deps.SubscriptionService
 			tcDeps.WorkflowService = deps.WorkflowService
 			tcDeps.Plan1 = plan1
+			tcDeps.SubsDeps = &deps
 
 			fn(t, tcDeps)
 		}
 	}
+
+	t.Run("Should error on edit if subscription has addons purchased", func(t *testing.T) {
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+					Name: "Example Subscription",
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			_, _ = subscriptiontestutils.CreateAddonForSubscription(t, deps.SubsDeps, subView.Subscription.NamespacedID, subscriptiontestutils.BuildAddonForTesting(t,
+				productcatalog.EffectivePeriod{
+					EffectiveFrom: &deps.CurrentTime,
+					EffectiveTo:   nil,
+				},
+				productcatalog.AddonInstanceTypeSingle,
+				subscriptiontestutils.ExampleAddonRateCard2.Clone(),
+				subscriptiontestutils.ExampleAddonRateCard4.Clone(),
+			))
+
+			_, err = deps.WorkflowService.EditRunning(context.Background(), subView.Subscription.NamespacedID, []subscription.Patch{
+				patch.PatchRemoveItem{
+					PhaseKey: "test_phase_1",
+					ItemKey:  subscriptiontestutils.ExampleFeatureKey,
+				},
+			}, immediate)
+			require.Error(t, err)
+			require.ErrorAs(t, err, lo.ToPtr(&models.GenericForbiddenError{}))
+			require.True(t, models.IsGenericForbiddenError(err))
+		})
+	})
 
 	t.Run("Should be able to cancel an edited subscription", func(t *testing.T) {
 		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
@@ -1009,9 +1076,9 @@ func TestEditCombinations(t *testing.T) {
 			val := values[0]
 
 			rc := val.Spec.RateCard
-			require.NoError(t, rc.ChangeMeta(func(m productcatalog.RateCardMeta) productcatalog.RateCardMeta {
+			require.NoError(t, rc.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 				m.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(19)})
-				return m
+				return m, nil
 			}))
 
 			// Let's edit the subscription

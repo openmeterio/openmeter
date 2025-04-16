@@ -121,10 +121,6 @@ func (AddonRateCard) Edges() []ent.Edge {
 			Ref("addon_ratecard").
 			Field("feature_id").
 			Unique(),
-		edge.To("subscription_addon_rate_cards", SubscriptionAddonRateCard.Type).
-			Annotations(entsql.Annotation{
-				OnDelete: entsql.Cascade,
-			}),
 	}
 }
 

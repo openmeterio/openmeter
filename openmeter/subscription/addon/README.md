@@ -8,9 +8,7 @@ This package contains the subscription addon related functionality.
 erDiagram
     Subscription ||--|| SubscriptionAddon : "has (1:1)"
     SubscriptionAddon ||--o{ SubscriptionAddonQuantity : "has (1:N)"
-    SubscriptionAddon ||--o{ SubscriptionAddonRateCard : "has (1:N)"
-    SubscriptionAddonRateCard ||--o{ SubscriptionAddonRateCardItemLink : "links (1:N)"
-    SubscriptionItem ||--o{ SubscriptionAddonRateCardItemLink : "links (1:N)"
+    SubscriptionAddon ||--o{ SubscriptionAddonRateCard : "has (1:N) calculated from Addon"
     Addon ||--|| SubscriptionAddon : "has (1:1)"
 
     Subscription {
@@ -33,17 +31,10 @@ erDiagram
     }
 
     SubscriptionAddonRateCard {
-        string id PK
-        string subscription_addon_id FK
-    }
 
-    SubscriptionAddonRateCardItemLink {
-        string id PK
-        string subscription_addon_rate_card_id FK
-        string subscription_item_id FK
-    }
-
-    SubscriptionItem {
-        string id PK
     }
 ```
+
+## Quirks
+
+1. **Feature resolution**: When an addon creates a new SubscriptionItem (not a split of an existing one but a new item), the featureKey => feature resolution will happen at sync time. This means, that potentially, in a subscription, items with the same featureKey reference can point to different feature instances.

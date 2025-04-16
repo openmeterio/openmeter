@@ -30,8 +30,6 @@ const (
 	FieldSubscriptionID = "subscription_id"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
 	EdgeSubscription = "subscription"
-	// EdgeRateCards holds the string denoting the rate_cards edge name in mutations.
-	EdgeRateCards = "rate_cards"
 	// EdgeQuantities holds the string denoting the quantities edge name in mutations.
 	EdgeQuantities = "quantities"
 	// EdgeAddon holds the string denoting the addon edge name in mutations.
@@ -45,13 +43,6 @@ const (
 	SubscriptionInverseTable = "subscriptions"
 	// SubscriptionColumn is the table column denoting the subscription relation/edge.
 	SubscriptionColumn = "subscription_id"
-	// RateCardsTable is the table that holds the rate_cards relation/edge.
-	RateCardsTable = "subscription_addon_rate_cards"
-	// RateCardsInverseTable is the table name for the SubscriptionAddonRateCard entity.
-	// It exists in this package in order to avoid circular dependency with the "subscriptionaddonratecard" package.
-	RateCardsInverseTable = "subscription_addon_rate_cards"
-	// RateCardsColumn is the table column denoting the rate_cards relation/edge.
-	RateCardsColumn = "subscription_addon_id"
 	// QuantitiesTable is the table that holds the quantities relation/edge.
 	QuantitiesTable = "subscription_addon_quantities"
 	// QuantitiesInverseTable is the table name for the SubscriptionAddonQuantity entity.
@@ -152,20 +143,6 @@ func BySubscriptionField(field string, opts ...sql.OrderTermOption) OrderOption 
 	}
 }
 
-// ByRateCardsCount orders the results by rate_cards count.
-func ByRateCardsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newRateCardsStep(), opts...)
-	}
-}
-
-// ByRateCards orders the results by rate_cards terms.
-func ByRateCards(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newRateCardsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
 // ByQuantitiesCount orders the results by quantities count.
 func ByQuantitiesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -191,13 +168,6 @@ func newSubscriptionStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubscriptionInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionTable, SubscriptionColumn),
-	)
-}
-func newRateCardsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(RateCardsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, RateCardsTable, RateCardsColumn),
 	)
 }
 func newQuantitiesStep() *sqlgraph.Step {

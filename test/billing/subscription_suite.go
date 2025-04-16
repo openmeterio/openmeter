@@ -21,6 +21,8 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
+	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
+	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
@@ -28,6 +30,9 @@ import (
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/testutils"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	subscriptionaddonrepo "github.com/openmeterio/openmeter/openmeter/subscription/addon/repo"
+	subscriptionaddonservice "github.com/openmeterio/openmeter/openmeter/subscription/addon/service"
 	subscriptionentitlementadatapter "github.com/openmeterio/openmeter/openmeter/subscription/entitlement"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
@@ -40,6 +45,7 @@ import (
 type SubscriptionMixin struct {
 	PlanService                 plan.Service
 	SubscriptionService         subscription.Service
+	SubscriptionAddonService    subscriptionaddon.Service
 	SubscriptionPlanAdapter     subscriptiontestutils.PlanSubscriptionAdapter
 	SubscriptionWorkflowService subscriptionworkflow.Service
 }
@@ -126,6 +132,32 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Publisher: publisher,
 	})
 
+	addonRepo, err := addonrepo.New(addonrepo.Config{
+		Client: deps.DBClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
+	addonService, err := addonservice.New(addonservice.Config{
+		Adapter:   addonRepo,
+		Logger:    slog.Default(),
+		Publisher: publisher,
+		Feature:   deps.FeatureService,
+	})
+	require.NoError(t, err)
+
+	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(deps.DBClient)
+	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(deps.DBClient)
+
+	s.SubscriptionAddonService = subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
+		TxManager:     subsItemRepo,
+		Logger:        slog.Default(),
+		AddonService:  addonService,
+		SubService:    s.SubscriptionService,
+		SubAddRepo:    subAddRepo,
+		SubAddQtyRepo: subAddQtyRepo,
+	})
+
 	s.SubscriptionPlanAdapter = subscriptiontestutils.NewPlanSubscriptionAdapter(subscriptiontestutils.PlanSubscriptionAdapterConfig{
 		PlanService: planService,
 		Logger:      slog.Default(),
@@ -133,6 +165,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 
 	s.SubscriptionWorkflowService = subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            s.SubscriptionService,
+		AddonService:       s.SubscriptionAddonService,
 		CustomerService:    deps.CustomerService,
 		TransactionManager: subsRepo,
 	})

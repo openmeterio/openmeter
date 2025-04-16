@@ -50,6 +50,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
@@ -475,7 +476,7 @@ func getTestServer(t *testing.T) *Server {
 	// Create subscription services
 	subscriptionService := &NoopSubscriptionService{}
 	subscriptionWorkflowService := &NoopSubscriptionWorkflowService{}
-
+	subscriptionAddonService := &NoopSubscriptionAddonService{}
 	// Create grant repo
 	grantRepo := &NoopGrantRepo{}
 
@@ -516,6 +517,7 @@ func getTestServer(t *testing.T) *Server {
 			SubscriptionService: subscriptionService,
 			// Use the subscription workflow service
 			SubscriptionWorkflowService: subscriptionWorkflowService,
+			SubscriptionAddonService:    subscriptionAddonService,
 		},
 		RouterHook: func(r chi.Router) {},
 	}
@@ -1205,6 +1207,32 @@ func (n NoopSubscriptionWorkflowService) ChangeToPlan(ctx context.Context, subsc
 
 func (n NoopSubscriptionWorkflowService) Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
 	return subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionWorkflowService) AddAddon(ctx context.Context, subscriptionID models.NamespacedID, inp subscriptionworkflow.AddAddonWorkflowInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {
+	return subscription.SubscriptionView{}, subscriptionaddon.SubscriptionAddon{}, nil
+}
+
+var _ subscriptionaddon.Service = (*NoopSubscriptionAddonService)(nil)
+
+// NoopSubscriptionAddonService implements subscriptionaddon.Service with no-op operations
+// for use in testing
+type NoopSubscriptionAddonService struct{}
+
+func (n NoopSubscriptionAddonService) ChangeQuantity(ctx context.Context, subscriptionID models.NamespacedID, input subscriptionaddon.CreateSubscriptionAddonQuantityInput) (*subscriptionaddon.SubscriptionAddon, error) {
+	return nil, nil
+}
+
+func (n NoopSubscriptionAddonService) Get(ctx context.Context, addonId models.NamespacedID) (*subscriptionaddon.SubscriptionAddon, error) {
+	return nil, nil
+}
+
+func (n NoopSubscriptionAddonService) Create(ctx context.Context, ns string, input subscriptionaddon.CreateSubscriptionAddonInput) (*subscriptionaddon.SubscriptionAddon, error) {
+	return nil, nil
+}
+
+func (n NoopSubscriptionAddonService) List(ctx context.Context, ns string, input subscriptionaddon.ListSubscriptionAddonsInput) (pagination.PagedResponse[subscriptionaddon.SubscriptionAddon], error) {
+	return pagination.PagedResponse[subscriptionaddon.SubscriptionAddon]{}, nil
 }
 
 var _ grant.Repo = (*NoopGrantRepo)(nil)

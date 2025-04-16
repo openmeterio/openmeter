@@ -19385,9 +19385,9 @@ components:
       required:
         - name
         - activeFrom
-        - addon
         - quantity
         - timing
+        - addon
       properties:
         name:
           type: string
@@ -19417,43 +19417,6 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
-        addon:
-          type: object
-          properties:
-            id:
-              type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: The ID of the add-on.
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-              title: ID
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: A semi-unique identifier for the resource.
-              title: Key
-              readOnly: true
-            version:
-              type: integer
-              minimum: 1
-              description: The version of the Add-on which templates this instance.
-              title: Version
-              default: 1
-              readOnly: true
-            instanceType:
-              allOf:
-                - $ref: '#/components/schemas/AddonInstanceType'
-              description: The instance type of the add-on.
-              title: InstanceType
-              readOnly: true
-          required:
-            - id
-            - key
-            - version
-            - instanceType
-          description: Partially populated add-on properties.
-          title: Addon
         quantity:
           type: integer
           minimum: 0
@@ -19465,7 +19428,19 @@ components:
             - $ref: '#/components/schemas/SubscriptionTiming'
           description: The timing of the operation. After the create or update, a new entry will be created in the timeline.
           title: Timing
-      description: Resource create operation model.
+        addon:
+          type: object
+          properties:
+            id:
+              type: string
+              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: The ID of the add-on.
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
+          required:
+            - id
+          description: The add-on to create.
+          title: Addon
+      description: A subscription add-on create body.
     SubscriptionAddonRateCard:
       type: object
       required:
@@ -19543,10 +19518,6 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
-        addon:
-          type: object
-          description: Partially populated add-on properties.
-          title: Addon
         quantity:
           type: integer
           minimum: 0

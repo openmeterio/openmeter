@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecarditemlink"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
@@ -339,21 +338,6 @@ func (siu *SubscriptionItemUpdate) AddBillingLines(b ...*BillingInvoiceLine) *Su
 	return siu.AddBillingLineIDs(ids...)
 }
 
-// AddSubscriptionAddonRateCardItemIDs adds the "subscription_addon_rate_card_items" edge to the SubscriptionAddonRateCardItemLink entity by IDs.
-func (siu *SubscriptionItemUpdate) AddSubscriptionAddonRateCardItemIDs(ids ...string) *SubscriptionItemUpdate {
-	siu.mutation.AddSubscriptionAddonRateCardItemIDs(ids...)
-	return siu
-}
-
-// AddSubscriptionAddonRateCardItems adds the "subscription_addon_rate_card_items" edges to the SubscriptionAddonRateCardItemLink entity.
-func (siu *SubscriptionItemUpdate) AddSubscriptionAddonRateCardItems(s ...*SubscriptionAddonRateCardItemLink) *SubscriptionItemUpdate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return siu.AddSubscriptionAddonRateCardItemIDs(ids...)
-}
-
 // Mutation returns the SubscriptionItemMutation object of the builder.
 func (siu *SubscriptionItemUpdate) Mutation() *SubscriptionItemMutation {
 	return siu.mutation
@@ -384,27 +368,6 @@ func (siu *SubscriptionItemUpdate) RemoveBillingLines(b ...*BillingInvoiceLine) 
 		ids[i] = b[i].ID
 	}
 	return siu.RemoveBillingLineIDs(ids...)
-}
-
-// ClearSubscriptionAddonRateCardItems clears all "subscription_addon_rate_card_items" edges to the SubscriptionAddonRateCardItemLink entity.
-func (siu *SubscriptionItemUpdate) ClearSubscriptionAddonRateCardItems() *SubscriptionItemUpdate {
-	siu.mutation.ClearSubscriptionAddonRateCardItems()
-	return siu
-}
-
-// RemoveSubscriptionAddonRateCardItemIDs removes the "subscription_addon_rate_card_items" edge to SubscriptionAddonRateCardItemLink entities by IDs.
-func (siu *SubscriptionItemUpdate) RemoveSubscriptionAddonRateCardItemIDs(ids ...string) *SubscriptionItemUpdate {
-	siu.mutation.RemoveSubscriptionAddonRateCardItemIDs(ids...)
-	return siu
-}
-
-// RemoveSubscriptionAddonRateCardItems removes "subscription_addon_rate_card_items" edges to SubscriptionAddonRateCardItemLink entities.
-func (siu *SubscriptionItemUpdate) RemoveSubscriptionAddonRateCardItems(s ...*SubscriptionAddonRateCardItemLink) *SubscriptionItemUpdate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return siu.RemoveSubscriptionAddonRateCardItemIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -668,51 +631,6 @@ func (siu *SubscriptionItemUpdate) sqlSave(ctx context.Context) (n int, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if siu.mutation.SubscriptionAddonRateCardItemsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionitem.SubscriptionAddonRateCardItemsTable,
-			Columns: []string{subscriptionitem.SubscriptionAddonRateCardItemsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecarditemlink.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := siu.mutation.RemovedSubscriptionAddonRateCardItemsIDs(); len(nodes) > 0 && !siu.mutation.SubscriptionAddonRateCardItemsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionitem.SubscriptionAddonRateCardItemsTable,
-			Columns: []string{subscriptionitem.SubscriptionAddonRateCardItemsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecarditemlink.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := siu.mutation.SubscriptionAddonRateCardItemsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionitem.SubscriptionAddonRateCardItemsTable,
-			Columns: []string{subscriptionitem.SubscriptionAddonRateCardItemsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecarditemlink.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1046,21 +964,6 @@ func (siuo *SubscriptionItemUpdateOne) AddBillingLines(b ...*BillingInvoiceLine)
 	return siuo.AddBillingLineIDs(ids...)
 }
 
-// AddSubscriptionAddonRateCardItemIDs adds the "subscription_addon_rate_card_items" edge to the SubscriptionAddonRateCardItemLink entity by IDs.
-func (siuo *SubscriptionItemUpdateOne) AddSubscriptionAddonRateCardItemIDs(ids ...string) *SubscriptionItemUpdateOne {
-	siuo.mutation.AddSubscriptionAddonRateCardItemIDs(ids...)
-	return siuo
-}
-
-// AddSubscriptionAddonRateCardItems adds the "subscription_addon_rate_card_items" edges to the SubscriptionAddonRateCardItemLink entity.
-func (siuo *SubscriptionItemUpdateOne) AddSubscriptionAddonRateCardItems(s ...*SubscriptionAddonRateCardItemLink) *SubscriptionItemUpdateOne {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return siuo.AddSubscriptionAddonRateCardItemIDs(ids...)
-}
-
 // Mutation returns the SubscriptionItemMutation object of the builder.
 func (siuo *SubscriptionItemUpdateOne) Mutation() *SubscriptionItemMutation {
 	return siuo.mutation
@@ -1091,27 +994,6 @@ func (siuo *SubscriptionItemUpdateOne) RemoveBillingLines(b ...*BillingInvoiceLi
 		ids[i] = b[i].ID
 	}
 	return siuo.RemoveBillingLineIDs(ids...)
-}
-
-// ClearSubscriptionAddonRateCardItems clears all "subscription_addon_rate_card_items" edges to the SubscriptionAddonRateCardItemLink entity.
-func (siuo *SubscriptionItemUpdateOne) ClearSubscriptionAddonRateCardItems() *SubscriptionItemUpdateOne {
-	siuo.mutation.ClearSubscriptionAddonRateCardItems()
-	return siuo
-}
-
-// RemoveSubscriptionAddonRateCardItemIDs removes the "subscription_addon_rate_card_items" edge to SubscriptionAddonRateCardItemLink entities by IDs.
-func (siuo *SubscriptionItemUpdateOne) RemoveSubscriptionAddonRateCardItemIDs(ids ...string) *SubscriptionItemUpdateOne {
-	siuo.mutation.RemoveSubscriptionAddonRateCardItemIDs(ids...)
-	return siuo
-}
-
-// RemoveSubscriptionAddonRateCardItems removes "subscription_addon_rate_card_items" edges to SubscriptionAddonRateCardItemLink entities.
-func (siuo *SubscriptionItemUpdateOne) RemoveSubscriptionAddonRateCardItems(s ...*SubscriptionAddonRateCardItemLink) *SubscriptionItemUpdateOne {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return siuo.RemoveSubscriptionAddonRateCardItemIDs(ids...)
 }
 
 // Where appends a list predicates to the SubscriptionItemUpdate builder.
@@ -1405,51 +1287,6 @@ func (siuo *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subs
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if siuo.mutation.SubscriptionAddonRateCardItemsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionitem.SubscriptionAddonRateCardItemsTable,
-			Columns: []string{subscriptionitem.SubscriptionAddonRateCardItemsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecarditemlink.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := siuo.mutation.RemovedSubscriptionAddonRateCardItemsIDs(); len(nodes) > 0 && !siuo.mutation.SubscriptionAddonRateCardItemsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionitem.SubscriptionAddonRateCardItemsTable,
-			Columns: []string{subscriptionitem.SubscriptionAddonRateCardItemsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecarditemlink.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := siuo.mutation.SubscriptionAddonRateCardItemsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionitem.SubscriptionAddonRateCardItemsTable,
-			Columns: []string{subscriptionitem.SubscriptionAddonRateCardItemsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecarditemlink.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

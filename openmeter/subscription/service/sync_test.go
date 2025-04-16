@@ -315,9 +315,9 @@ func TestEdit(t *testing.T) {
 				item := v[0]
 
 				// Let's unset the entitlement template
-				require.NoError(t, item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) productcatalog.RateCardMeta {
+				require.NoError(t, item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 					m.EntitlementTemplate = nil
-					return m
+					return m, nil
 				}))
 
 				// Let's add the item

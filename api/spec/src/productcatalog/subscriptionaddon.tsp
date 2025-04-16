@@ -16,6 +16,7 @@ model SubscriptionAddon {
    * Partially populated add-on properties.
    */
   @summary("Addon")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   addon: {
     /**
      * The ID of the add-on.
@@ -104,6 +105,30 @@ model SubscriptionAddon {
   @visibility(Lifecycle.Read)
   @summary("Rate cards")
   rateCards: SubscriptionAddonRateCard[];
+}
+
+/**
+ * A subscription add-on create body.
+ */
+@friendlyName("SubscriptionAddonCreate")
+@withVisibility(Lifecycle.Create)
+model SubscriptionAddonCreate {
+  ...OmitProperties<
+    DefaultKeyVisibility<SubscriptionAddon, Lifecycle.Read>,
+    "addon"
+  >;
+
+  /**
+   * The add-on to create.
+   */
+  @summary("Addon")
+  @visibility(Lifecycle.Create)
+  addon: {
+    /**
+     * The ID of the add-on.
+     */
+    id: ULID;
+  };
 }
 
 /**

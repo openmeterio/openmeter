@@ -51,8 +51,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecard"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecarditemlink"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
@@ -137,10 +135,6 @@ type Client struct {
 	SubscriptionAddon *SubscriptionAddonClient
 	// SubscriptionAddonQuantity is the client for interacting with the SubscriptionAddonQuantity builders.
 	SubscriptionAddonQuantity *SubscriptionAddonQuantityClient
-	// SubscriptionAddonRateCard is the client for interacting with the SubscriptionAddonRateCard builders.
-	SubscriptionAddonRateCard *SubscriptionAddonRateCardClient
-	// SubscriptionAddonRateCardItemLink is the client for interacting with the SubscriptionAddonRateCardItemLink builders.
-	SubscriptionAddonRateCardItemLink *SubscriptionAddonRateCardItemLinkClient
 	// SubscriptionItem is the client for interacting with the SubscriptionItem builders.
 	SubscriptionItem *SubscriptionItemClient
 	// SubscriptionPhase is the client for interacting with the SubscriptionPhase builders.
@@ -194,8 +188,6 @@ func (c *Client) init() {
 	c.Subscription = NewSubscriptionClient(c.config)
 	c.SubscriptionAddon = NewSubscriptionAddonClient(c.config)
 	c.SubscriptionAddonQuantity = NewSubscriptionAddonQuantityClient(c.config)
-	c.SubscriptionAddonRateCard = NewSubscriptionAddonRateCardClient(c.config)
-	c.SubscriptionAddonRateCardItemLink = NewSubscriptionAddonRateCardItemLinkClient(c.config)
 	c.SubscriptionItem = NewSubscriptionItemClient(c.config)
 	c.SubscriptionPhase = NewSubscriptionPhaseClient(c.config)
 	c.UsageReset = NewUsageResetClient(c.config)
@@ -327,8 +319,6 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Subscription:                       NewSubscriptionClient(cfg),
 		SubscriptionAddon:                  NewSubscriptionAddonClient(cfg),
 		SubscriptionAddonQuantity:          NewSubscriptionAddonQuantityClient(cfg),
-		SubscriptionAddonRateCard:          NewSubscriptionAddonRateCardClient(cfg),
-		SubscriptionAddonRateCardItemLink:  NewSubscriptionAddonRateCardItemLinkClient(cfg),
 		SubscriptionItem:                   NewSubscriptionItemClient(cfg),
 		SubscriptionPhase:                  NewSubscriptionPhaseClient(cfg),
 		UsageReset:                         NewUsageResetClient(cfg),
@@ -387,8 +377,6 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Subscription:                       NewSubscriptionClient(cfg),
 		SubscriptionAddon:                  NewSubscriptionAddonClient(cfg),
 		SubscriptionAddonQuantity:          NewSubscriptionAddonQuantityClient(cfg),
-		SubscriptionAddonRateCard:          NewSubscriptionAddonRateCardClient(cfg),
-		SubscriptionAddonRateCardItemLink:  NewSubscriptionAddonRateCardItemLinkClient(cfg),
 		SubscriptionItem:                   NewSubscriptionItemClient(cfg),
 		SubscriptionPhase:                  NewSubscriptionPhaseClient(cfg),
 		UsageReset:                         NewUsageResetClient(cfg),
@@ -431,8 +419,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.Feature, c.Grant, c.Meter, c.NotificationChannel, c.NotificationEvent,
 		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
 		c.PlanPhase, c.PlanRateCard, c.Subscription, c.SubscriptionAddon,
-		c.SubscriptionAddonQuantity, c.SubscriptionAddonRateCard,
-		c.SubscriptionAddonRateCardItemLink, c.SubscriptionItem, c.SubscriptionPhase,
+		c.SubscriptionAddonQuantity, c.SubscriptionItem, c.SubscriptionPhase,
 		c.UsageReset,
 	} {
 		n.Use(hooks...)
@@ -453,8 +440,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.Feature, c.Grant, c.Meter, c.NotificationChannel, c.NotificationEvent,
 		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
 		c.PlanPhase, c.PlanRateCard, c.Subscription, c.SubscriptionAddon,
-		c.SubscriptionAddonQuantity, c.SubscriptionAddonRateCard,
-		c.SubscriptionAddonRateCardItemLink, c.SubscriptionItem, c.SubscriptionPhase,
+		c.SubscriptionAddonQuantity, c.SubscriptionItem, c.SubscriptionPhase,
 		c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
@@ -536,10 +522,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SubscriptionAddon.mutate(ctx, m)
 	case *SubscriptionAddonQuantityMutation:
 		return c.SubscriptionAddonQuantity.mutate(ctx, m)
-	case *SubscriptionAddonRateCardMutation:
-		return c.SubscriptionAddonRateCard.mutate(ctx, m)
-	case *SubscriptionAddonRateCardItemLinkMutation:
-		return c.SubscriptionAddonRateCardItemLink.mutate(ctx, m)
 	case *SubscriptionItemMutation:
 		return c.SubscriptionItem.mutate(ctx, m)
 	case *SubscriptionPhaseMutation:
@@ -865,22 +847,6 @@ func (c *AddonRateCardClient) QueryFeatures(arc *AddonRateCard) *FeatureQuery {
 			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, id),
 			sqlgraph.To(feature.Table, feature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.FeaturesTable, addonratecard.FeaturesColumn),
-		)
-		fromV = sqlgraph.Neighbors(arc.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QuerySubscriptionAddonRateCards queries the subscription_addon_rate_cards edge of a AddonRateCard.
-func (c *AddonRateCardClient) QuerySubscriptionAddonRateCards(arc *AddonRateCard) *SubscriptionAddonRateCardQuery {
-	query := (&SubscriptionAddonRateCardClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := arc.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, id),
-			sqlgraph.To(subscriptionaddonratecard.Table, subscriptionaddonratecard.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, addonratecard.SubscriptionAddonRateCardsTable, addonratecard.SubscriptionAddonRateCardsColumn),
 		)
 		fromV = sqlgraph.Neighbors(arc.driver.Dialect(), step)
 		return fromV, nil
@@ -6573,22 +6539,6 @@ func (c *SubscriptionAddonClient) QuerySubscription(sa *SubscriptionAddon) *Subs
 	return query
 }
 
-// QueryRateCards queries the rate_cards edge of a SubscriptionAddon.
-func (c *SubscriptionAddonClient) QueryRateCards(sa *SubscriptionAddon) *SubscriptionAddonRateCardQuery {
-	query := (&SubscriptionAddonRateCardClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := sa.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subscriptionaddon.Table, subscriptionaddon.FieldID, id),
-			sqlgraph.To(subscriptionaddonratecard.Table, subscriptionaddonratecard.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionaddon.RateCardsTable, subscriptionaddon.RateCardsColumn),
-		)
-		fromV = sqlgraph.Neighbors(sa.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryQuantities queries the quantities edge of a SubscriptionAddon.
 func (c *SubscriptionAddonClient) QueryQuantities(sa *SubscriptionAddon) *SubscriptionAddonQuantityQuery {
 	query := (&SubscriptionAddonQuantityClient{config: c.config}).Query()
@@ -6795,352 +6745,6 @@ func (c *SubscriptionAddonQuantityClient) mutate(ctx context.Context, m *Subscri
 	}
 }
 
-// SubscriptionAddonRateCardClient is a client for the SubscriptionAddonRateCard schema.
-type SubscriptionAddonRateCardClient struct {
-	config
-}
-
-// NewSubscriptionAddonRateCardClient returns a client for the SubscriptionAddonRateCard from the given config.
-func NewSubscriptionAddonRateCardClient(c config) *SubscriptionAddonRateCardClient {
-	return &SubscriptionAddonRateCardClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `subscriptionaddonratecard.Hooks(f(g(h())))`.
-func (c *SubscriptionAddonRateCardClient) Use(hooks ...Hook) {
-	c.hooks.SubscriptionAddonRateCard = append(c.hooks.SubscriptionAddonRateCard, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `subscriptionaddonratecard.Intercept(f(g(h())))`.
-func (c *SubscriptionAddonRateCardClient) Intercept(interceptors ...Interceptor) {
-	c.inters.SubscriptionAddonRateCard = append(c.inters.SubscriptionAddonRateCard, interceptors...)
-}
-
-// Create returns a builder for creating a SubscriptionAddonRateCard entity.
-func (c *SubscriptionAddonRateCardClient) Create() *SubscriptionAddonRateCardCreate {
-	mutation := newSubscriptionAddonRateCardMutation(c.config, OpCreate)
-	return &SubscriptionAddonRateCardCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of SubscriptionAddonRateCard entities.
-func (c *SubscriptionAddonRateCardClient) CreateBulk(builders ...*SubscriptionAddonRateCardCreate) *SubscriptionAddonRateCardCreateBulk {
-	return &SubscriptionAddonRateCardCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *SubscriptionAddonRateCardClient) MapCreateBulk(slice any, setFunc func(*SubscriptionAddonRateCardCreate, int)) *SubscriptionAddonRateCardCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &SubscriptionAddonRateCardCreateBulk{err: fmt.Errorf("calling to SubscriptionAddonRateCardClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*SubscriptionAddonRateCardCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &SubscriptionAddonRateCardCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for SubscriptionAddonRateCard.
-func (c *SubscriptionAddonRateCardClient) Update() *SubscriptionAddonRateCardUpdate {
-	mutation := newSubscriptionAddonRateCardMutation(c.config, OpUpdate)
-	return &SubscriptionAddonRateCardUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *SubscriptionAddonRateCardClient) UpdateOne(sarc *SubscriptionAddonRateCard) *SubscriptionAddonRateCardUpdateOne {
-	mutation := newSubscriptionAddonRateCardMutation(c.config, OpUpdateOne, withSubscriptionAddonRateCard(sarc))
-	return &SubscriptionAddonRateCardUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *SubscriptionAddonRateCardClient) UpdateOneID(id string) *SubscriptionAddonRateCardUpdateOne {
-	mutation := newSubscriptionAddonRateCardMutation(c.config, OpUpdateOne, withSubscriptionAddonRateCardID(id))
-	return &SubscriptionAddonRateCardUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for SubscriptionAddonRateCard.
-func (c *SubscriptionAddonRateCardClient) Delete() *SubscriptionAddonRateCardDelete {
-	mutation := newSubscriptionAddonRateCardMutation(c.config, OpDelete)
-	return &SubscriptionAddonRateCardDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *SubscriptionAddonRateCardClient) DeleteOne(sarc *SubscriptionAddonRateCard) *SubscriptionAddonRateCardDeleteOne {
-	return c.DeleteOneID(sarc.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *SubscriptionAddonRateCardClient) DeleteOneID(id string) *SubscriptionAddonRateCardDeleteOne {
-	builder := c.Delete().Where(subscriptionaddonratecard.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &SubscriptionAddonRateCardDeleteOne{builder}
-}
-
-// Query returns a query builder for SubscriptionAddonRateCard.
-func (c *SubscriptionAddonRateCardClient) Query() *SubscriptionAddonRateCardQuery {
-	return &SubscriptionAddonRateCardQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeSubscriptionAddonRateCard},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a SubscriptionAddonRateCard entity by its id.
-func (c *SubscriptionAddonRateCardClient) Get(ctx context.Context, id string) (*SubscriptionAddonRateCard, error) {
-	return c.Query().Where(subscriptionaddonratecard.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *SubscriptionAddonRateCardClient) GetX(ctx context.Context, id string) *SubscriptionAddonRateCard {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QuerySubscriptionAddon queries the subscription_addon edge of a SubscriptionAddonRateCard.
-func (c *SubscriptionAddonRateCardClient) QuerySubscriptionAddon(sarc *SubscriptionAddonRateCard) *SubscriptionAddonQuery {
-	query := (&SubscriptionAddonClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := sarc.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subscriptionaddonratecard.Table, subscriptionaddonratecard.FieldID, id),
-			sqlgraph.To(subscriptionaddon.Table, subscriptionaddon.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionaddonratecard.SubscriptionAddonTable, subscriptionaddonratecard.SubscriptionAddonColumn),
-		)
-		fromV = sqlgraph.Neighbors(sarc.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryItems queries the items edge of a SubscriptionAddonRateCard.
-func (c *SubscriptionAddonRateCardClient) QueryItems(sarc *SubscriptionAddonRateCard) *SubscriptionAddonRateCardItemLinkQuery {
-	query := (&SubscriptionAddonRateCardItemLinkClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := sarc.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subscriptionaddonratecard.Table, subscriptionaddonratecard.FieldID, id),
-			sqlgraph.To(subscriptionaddonratecarditemlink.Table, subscriptionaddonratecarditemlink.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionaddonratecard.ItemsTable, subscriptionaddonratecard.ItemsColumn),
-		)
-		fromV = sqlgraph.Neighbors(sarc.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryAddonRatecard queries the addon_ratecard edge of a SubscriptionAddonRateCard.
-func (c *SubscriptionAddonRateCardClient) QueryAddonRatecard(sarc *SubscriptionAddonRateCard) *AddonRateCardQuery {
-	query := (&AddonRateCardClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := sarc.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subscriptionaddonratecard.Table, subscriptionaddonratecard.FieldID, id),
-			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionaddonratecard.AddonRatecardTable, subscriptionaddonratecard.AddonRatecardColumn),
-		)
-		fromV = sqlgraph.Neighbors(sarc.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *SubscriptionAddonRateCardClient) Hooks() []Hook {
-	return c.hooks.SubscriptionAddonRateCard
-}
-
-// Interceptors returns the client interceptors.
-func (c *SubscriptionAddonRateCardClient) Interceptors() []Interceptor {
-	return c.inters.SubscriptionAddonRateCard
-}
-
-func (c *SubscriptionAddonRateCardClient) mutate(ctx context.Context, m *SubscriptionAddonRateCardMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&SubscriptionAddonRateCardCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&SubscriptionAddonRateCardUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&SubscriptionAddonRateCardUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&SubscriptionAddonRateCardDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("db: unknown SubscriptionAddonRateCard mutation op: %q", m.Op())
-	}
-}
-
-// SubscriptionAddonRateCardItemLinkClient is a client for the SubscriptionAddonRateCardItemLink schema.
-type SubscriptionAddonRateCardItemLinkClient struct {
-	config
-}
-
-// NewSubscriptionAddonRateCardItemLinkClient returns a client for the SubscriptionAddonRateCardItemLink from the given config.
-func NewSubscriptionAddonRateCardItemLinkClient(c config) *SubscriptionAddonRateCardItemLinkClient {
-	return &SubscriptionAddonRateCardItemLinkClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `subscriptionaddonratecarditemlink.Hooks(f(g(h())))`.
-func (c *SubscriptionAddonRateCardItemLinkClient) Use(hooks ...Hook) {
-	c.hooks.SubscriptionAddonRateCardItemLink = append(c.hooks.SubscriptionAddonRateCardItemLink, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `subscriptionaddonratecarditemlink.Intercept(f(g(h())))`.
-func (c *SubscriptionAddonRateCardItemLinkClient) Intercept(interceptors ...Interceptor) {
-	c.inters.SubscriptionAddonRateCardItemLink = append(c.inters.SubscriptionAddonRateCardItemLink, interceptors...)
-}
-
-// Create returns a builder for creating a SubscriptionAddonRateCardItemLink entity.
-func (c *SubscriptionAddonRateCardItemLinkClient) Create() *SubscriptionAddonRateCardItemLinkCreate {
-	mutation := newSubscriptionAddonRateCardItemLinkMutation(c.config, OpCreate)
-	return &SubscriptionAddonRateCardItemLinkCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of SubscriptionAddonRateCardItemLink entities.
-func (c *SubscriptionAddonRateCardItemLinkClient) CreateBulk(builders ...*SubscriptionAddonRateCardItemLinkCreate) *SubscriptionAddonRateCardItemLinkCreateBulk {
-	return &SubscriptionAddonRateCardItemLinkCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *SubscriptionAddonRateCardItemLinkClient) MapCreateBulk(slice any, setFunc func(*SubscriptionAddonRateCardItemLinkCreate, int)) *SubscriptionAddonRateCardItemLinkCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &SubscriptionAddonRateCardItemLinkCreateBulk{err: fmt.Errorf("calling to SubscriptionAddonRateCardItemLinkClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*SubscriptionAddonRateCardItemLinkCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &SubscriptionAddonRateCardItemLinkCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for SubscriptionAddonRateCardItemLink.
-func (c *SubscriptionAddonRateCardItemLinkClient) Update() *SubscriptionAddonRateCardItemLinkUpdate {
-	mutation := newSubscriptionAddonRateCardItemLinkMutation(c.config, OpUpdate)
-	return &SubscriptionAddonRateCardItemLinkUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *SubscriptionAddonRateCardItemLinkClient) UpdateOne(sarcil *SubscriptionAddonRateCardItemLink) *SubscriptionAddonRateCardItemLinkUpdateOne {
-	mutation := newSubscriptionAddonRateCardItemLinkMutation(c.config, OpUpdateOne, withSubscriptionAddonRateCardItemLink(sarcil))
-	return &SubscriptionAddonRateCardItemLinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *SubscriptionAddonRateCardItemLinkClient) UpdateOneID(id string) *SubscriptionAddonRateCardItemLinkUpdateOne {
-	mutation := newSubscriptionAddonRateCardItemLinkMutation(c.config, OpUpdateOne, withSubscriptionAddonRateCardItemLinkID(id))
-	return &SubscriptionAddonRateCardItemLinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for SubscriptionAddonRateCardItemLink.
-func (c *SubscriptionAddonRateCardItemLinkClient) Delete() *SubscriptionAddonRateCardItemLinkDelete {
-	mutation := newSubscriptionAddonRateCardItemLinkMutation(c.config, OpDelete)
-	return &SubscriptionAddonRateCardItemLinkDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *SubscriptionAddonRateCardItemLinkClient) DeleteOne(sarcil *SubscriptionAddonRateCardItemLink) *SubscriptionAddonRateCardItemLinkDeleteOne {
-	return c.DeleteOneID(sarcil.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *SubscriptionAddonRateCardItemLinkClient) DeleteOneID(id string) *SubscriptionAddonRateCardItemLinkDeleteOne {
-	builder := c.Delete().Where(subscriptionaddonratecarditemlink.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &SubscriptionAddonRateCardItemLinkDeleteOne{builder}
-}
-
-// Query returns a query builder for SubscriptionAddonRateCardItemLink.
-func (c *SubscriptionAddonRateCardItemLinkClient) Query() *SubscriptionAddonRateCardItemLinkQuery {
-	return &SubscriptionAddonRateCardItemLinkQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeSubscriptionAddonRateCardItemLink},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a SubscriptionAddonRateCardItemLink entity by its id.
-func (c *SubscriptionAddonRateCardItemLinkClient) Get(ctx context.Context, id string) (*SubscriptionAddonRateCardItemLink, error) {
-	return c.Query().Where(subscriptionaddonratecarditemlink.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *SubscriptionAddonRateCardItemLinkClient) GetX(ctx context.Context, id string) *SubscriptionAddonRateCardItemLink {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QuerySubscriptionAddonRateCard queries the subscription_addon_rate_card edge of a SubscriptionAddonRateCardItemLink.
-func (c *SubscriptionAddonRateCardItemLinkClient) QuerySubscriptionAddonRateCard(sarcil *SubscriptionAddonRateCardItemLink) *SubscriptionAddonRateCardQuery {
-	query := (&SubscriptionAddonRateCardClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := sarcil.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subscriptionaddonratecarditemlink.Table, subscriptionaddonratecarditemlink.FieldID, id),
-			sqlgraph.To(subscriptionaddonratecard.Table, subscriptionaddonratecard.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionaddonratecarditemlink.SubscriptionAddonRateCardTable, subscriptionaddonratecarditemlink.SubscriptionAddonRateCardColumn),
-		)
-		fromV = sqlgraph.Neighbors(sarcil.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QuerySubscriptionItem queries the subscription_item edge of a SubscriptionAddonRateCardItemLink.
-func (c *SubscriptionAddonRateCardItemLinkClient) QuerySubscriptionItem(sarcil *SubscriptionAddonRateCardItemLink) *SubscriptionItemQuery {
-	query := (&SubscriptionItemClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := sarcil.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subscriptionaddonratecarditemlink.Table, subscriptionaddonratecarditemlink.FieldID, id),
-			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionaddonratecarditemlink.SubscriptionItemTable, subscriptionaddonratecarditemlink.SubscriptionItemColumn),
-		)
-		fromV = sqlgraph.Neighbors(sarcil.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *SubscriptionAddonRateCardItemLinkClient) Hooks() []Hook {
-	return c.hooks.SubscriptionAddonRateCardItemLink
-}
-
-// Interceptors returns the client interceptors.
-func (c *SubscriptionAddonRateCardItemLinkClient) Interceptors() []Interceptor {
-	return c.inters.SubscriptionAddonRateCardItemLink
-}
-
-func (c *SubscriptionAddonRateCardItemLinkClient) mutate(ctx context.Context, m *SubscriptionAddonRateCardItemLinkMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&SubscriptionAddonRateCardItemLinkCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&SubscriptionAddonRateCardItemLinkUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&SubscriptionAddonRateCardItemLinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&SubscriptionAddonRateCardItemLinkDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("db: unknown SubscriptionAddonRateCardItemLink mutation op: %q", m.Op())
-	}
-}
-
 // SubscriptionItemClient is a client for the SubscriptionItem schema.
 type SubscriptionItemClient struct {
 	config
@@ -7290,22 +6894,6 @@ func (c *SubscriptionItemClient) QueryBillingLines(si *SubscriptionItem) *Billin
 			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.BillingLinesTable, subscriptionitem.BillingLinesColumn),
-		)
-		fromV = sqlgraph.Neighbors(si.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QuerySubscriptionAddonRateCardItems queries the subscription_addon_rate_card_items edge of a SubscriptionItem.
-func (c *SubscriptionItemClient) QuerySubscriptionAddonRateCardItems(si *SubscriptionItem) *SubscriptionAddonRateCardItemLinkQuery {
-	query := (&SubscriptionAddonRateCardItemLinkClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := si.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
-			sqlgraph.To(subscriptionaddonratecarditemlink.Table, subscriptionaddonratecarditemlink.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.SubscriptionAddonRateCardItemsTable, subscriptionitem.SubscriptionAddonRateCardItemsColumn),
 		)
 		fromV = sqlgraph.Neighbors(si.driver.Dialect(), step)
 		return fromV, nil
@@ -7680,8 +7268,7 @@ type (
 		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
 		PlanAddon, PlanPhase, PlanRateCard, Subscription, SubscriptionAddon,
-		SubscriptionAddonQuantity, SubscriptionAddonRateCard,
-		SubscriptionAddonRateCardItemLink, SubscriptionItem, SubscriptionPhase,
+		SubscriptionAddonQuantity, SubscriptionItem, SubscriptionPhase,
 		UsageReset []ent.Hook
 	}
 	inters struct {
@@ -7694,8 +7281,7 @@ type (
 		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
 		PlanAddon, PlanPhase, PlanRateCard, Subscription, SubscriptionAddon,
-		SubscriptionAddonQuantity, SubscriptionAddonRateCard,
-		SubscriptionAddonRateCardItemLink, SubscriptionItem, SubscriptionPhase,
+		SubscriptionAddonQuantity, SubscriptionItem, SubscriptionPhase,
 		UsageReset []ent.Interceptor
 	}
 )

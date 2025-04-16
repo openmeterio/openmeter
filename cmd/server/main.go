@@ -173,6 +173,7 @@ func main() {
 			ProgressManager:             app.ProgressManager,
 			SubscriptionService:         app.Subscription.Service,
 			SubscriptionWorkflowService: app.Subscription.WorkflowService,
+			SubscriptionAddonService:    app.Subscription.SubscriptionAddonService,
 			StreamingConnector:          app.StreamingConnector,
 		},
 		RouterHook: app.RouterHook,

@@ -51,8 +51,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecard"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecarditemlink"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
@@ -152,8 +150,6 @@ func checkColumn(table, column string) error {
 			subscription.Table:                       subscription.ValidColumn,
 			subscriptionaddon.Table:                  subscriptionaddon.ValidColumn,
 			subscriptionaddonquantity.Table:          subscriptionaddonquantity.ValidColumn,
-			subscriptionaddonratecard.Table:          subscriptionaddonratecard.ValidColumn,
-			subscriptionaddonratecarditemlink.Table:  subscriptionaddonratecarditemlink.ValidColumn,
 			subscriptionitem.Table:                   subscriptionitem.ValidColumn,
 			subscriptionphase.Table:                  subscriptionphase.ValidColumn,
 			usagereset.Table:                         usagereset.ValidColumn,

@@ -31,27 +31,6 @@ func (r *subscriptionAddonRepo) WithTx(ctx context.Context, tx *entutils.TxDrive
 	return NewSubscriptionAddonRepo(txClient.Client())
 }
 
-// Transaction handling for subscriptionAddonRateCardRepo
-
-func (r *subscriptionAddonRateCardRepo) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
-	txCtx, rawConfig, eDriver, err := r.db.HijackTx(ctx, &sql.TxOptions{
-		ReadOnly: false,
-	})
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
-	}
-	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
-}
-
-func (r *subscriptionAddonRateCardRepo) Self() *subscriptionAddonRateCardRepo {
-	return r
-}
-
-func (r *subscriptionAddonRateCardRepo) WithTx(ctx context.Context, tx *entutils.TxDriver) *subscriptionAddonRateCardRepo {
-	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	return NewSubscriptionAddonRateCardRepo(txClient.Client())
-}
-
 // Transaction handling for subscriptionAddonQuantityRepo
 
 func (r *subscriptionAddonQuantityRepo) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {

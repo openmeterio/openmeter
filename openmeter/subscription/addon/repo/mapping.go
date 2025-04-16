@@ -52,8 +52,8 @@ func MapSubscriptionAddon(
 		}))
 	}
 
-	if len(entity.Edges.RateCards) > 0 {
-		rateCards, err := MapSubscriptionAddonRateCards(entity.Edges.RateCards)
+	if len(entity.Edges.Addon.Edges.Ratecards) > 0 {
+		rateCards, err := MapSubscriptionAddonRateCards(entity.Edges.Addon.Edges.Ratecards)
 		if err != nil {
 			return subscriptionaddon.SubscriptionAddon{}, err
 		}
@@ -71,41 +71,30 @@ func MapSubscriptionAddons(entities []*db.SubscriptionAddon) ([]subscriptionaddo
 }
 
 // MapSubscriptionAddonRateCard maps a db.SubscriptionAddonRateCard to a subscriptionaddon.SubscriptionAddonRateCard
-func MapSubscriptionAddonRateCard(entity *db.SubscriptionAddonRateCard) (subscriptionaddon.SubscriptionAddonRateCard, error) {
-	base := subscriptionaddon.SubscriptionAddonRateCard{
-		NamespacedID: models.NamespacedID{
-			ID:        entity.ID,
-			Namespace: entity.Namespace,
-		},
-		ManagedModel: models.ManagedModel{
-			CreatedAt: entity.CreatedAt,
-			UpdatedAt: entity.UpdatedAt,
-			DeletedAt: entity.DeletedAt,
-		},
-	}
-	if len(entity.Edges.Items) > 0 {
-		base.AffectedSubscriptionItemIDs = lo.Map(entity.Edges.Items, func(item *db.SubscriptionAddonRateCardItemLink, _ int) string {
-			return item.SubscriptionItemID
-		})
+func MapSubscriptionAddonRateCard(entity *db.AddonRateCard) (subscriptionaddon.SubscriptionAddonRateCard, error) {
+	if entity == nil {
+		return subscriptionaddon.SubscriptionAddonRateCard{}, errors.New("nil addon rate card row")
 	}
 
-	if entity.Edges.AddonRatecard != nil {
-		arc, err := addonrepo.FromAddonRateCardRow(*entity.Edges.AddonRatecard)
-		if err != nil {
-			return subscriptionaddon.SubscriptionAddonRateCard{}, err
-		}
-		if arc == nil {
-			return subscriptionaddon.SubscriptionAddonRateCard{}, errors.New("invalid addon rate card")
-		}
-		base.AddonRateCard = *arc
+	arc, err := addonrepo.FromAddonRateCardRow(*entity)
+	if err != nil {
+		return subscriptionaddon.SubscriptionAddonRateCard{}, err
+	}
+
+	if arc == nil {
+		return subscriptionaddon.SubscriptionAddonRateCard{}, errors.New("nil addon rate card")
+	}
+
+	base := subscriptionaddon.SubscriptionAddonRateCard{
+		AddonRateCard: *arc,
 	}
 
 	return base, nil
 }
 
-// MapSubscriptionAddonRateCards maps a slice of db.SubscriptionAddonRateCard to a slice of subscriptionaddon.SubscriptionAddonRateCard
-func MapSubscriptionAddonRateCards(entities []*db.SubscriptionAddonRateCard) ([]subscriptionaddon.SubscriptionAddonRateCard, error) {
-	return slicesx.MapWithErr(entities, func(entity *db.SubscriptionAddonRateCard) (subscriptionaddon.SubscriptionAddonRateCard, error) {
+// MapSubscriptionAddonRateCards maps a slice of db.AddonRateCard to a slice of subscriptionaddon.SubscriptionAddonRateCard
+func MapSubscriptionAddonRateCards(entities []*db.AddonRateCard) ([]subscriptionaddon.SubscriptionAddonRateCard, error) {
+	return slicesx.MapWithErr(entities, func(entity *db.AddonRateCard) (subscriptionaddon.SubscriptionAddonRateCard, error) {
 		return MapSubscriptionAddonRateCard(entity)
 	})
 }

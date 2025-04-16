@@ -171,6 +171,13 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 			return models.NewGenericValidationError(fmt.Errorf("cannot cancel misaligned subscription with next_billing_cycle timing"))
 		}
 
+	case SubscriptionActionChangeAddons:
+		if subView == nil {
+			return fmt.Errorf("missing subscription view")
+		}
+
+		// Everything is possible
+		return nil
 	default:
 		slog.Warn("timing called with unsupported action", slog.Any("action", action), slog.String("stack", string(debug.Stack())))
 
