@@ -557,7 +557,9 @@ type TieredPrice struct {
 }
 
 func (t *TieredPrice) Clone() TieredPrice {
-	clone := TieredPrice{}
+	clone := TieredPrice{
+		Mode: t.Mode,
+	}
 
 	if t.Commitments.MinimumAmount != nil {
 		cp := t.Commitments.MinimumAmount.Copy()
