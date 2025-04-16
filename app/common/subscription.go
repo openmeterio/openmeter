@@ -85,6 +85,7 @@ func NewSubscriptionServices(
 		Service:            subscriptionService,
 		CustomerService:    customerService,
 		TransactionManager: subscriptionRepo,
+		AddonService:       subAddSvc,
 	})
 
 	planSubscriptionService := subscriptionchangeservice.New(subscriptionchangeservice.Config{
