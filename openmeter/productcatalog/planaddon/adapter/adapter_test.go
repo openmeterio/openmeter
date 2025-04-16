@@ -6,135 +6,73 @@ import (
 	"time"
 
 	decimal "github.com/alpacahq/alpacadecimal"
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	featureadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
-	addonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
-	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
-	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
-	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	planaddontestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/testutils"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var (
-	MonthPeriod = isodate.FromDuration(30 * 24 * time.Hour)
-	namespace   = "01JBX0P4GQZCQY1WNGX3VT94P4"
-)
-
-var featureInput = feature.CreateFeatureInputs{
-	Name:      "Feature 1",
-	Key:       "feature1",
-	Namespace: namespace,
-}
-
-var addonV1Input = addon.CreateAddonInput{
-	NamespacedModel: models.NamespacedModel{
-		Namespace: namespace,
-	},
-	Addon: productcatalog.Addon{
-		AddonMeta: productcatalog.AddonMeta{
-			Key:          "addon1",
-			Name:         "Addon v1",
-			Description:  lo.ToPtr("Addon v1"),
-			Metadata:     models.Metadata{"name": "addon1"},
-			Annotations:  models.Annotations{"key": "value"},
-			Currency:     currency.USD,
-			InstanceType: productcatalog.AddonInstanceTypeSingle,
-		},
-		RateCards: nil,
-	},
-}
-
-var planV1Input = plan.CreatePlanInput{
-	NamespacedModel: models.NamespacedModel{
-		Namespace: namespace,
-	},
-	Plan: productcatalog.Plan{
-		PlanMeta: productcatalog.PlanMeta{
-			Key:         "pro",
-			Name:        "Pro",
-			Description: lo.ToPtr("Pro plan v1"),
-			Metadata:    models.Metadata{"name": "pro"},
-			Currency:    currency.USD,
-		},
-	},
-}
+var MonthPeriod = isodate.FromDuration(30 * 24 * time.Hour)
 
 func TestPostgresAdapter(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	pg := testutils.InitPostgresDB(t)
-	defer func() {
-		if err := pg.EntDriver.Close(); err != nil {
-			t.Errorf("failed to close ent driver: %v", err)
-		}
+	// Setup test environment
+	env := planaddontestutils.NewTestEnv(t)
+	defer env.Close(t)
 
-		if err := pg.PGDriver.Close(); err != nil {
-			t.Errorf("failed to postgres driver: %v", err)
-		}
-	}()
+	// Run database migrations
+	env.DBSchemaMigrate(t)
 
-	err := pg.EntDriver.Client().Schema.Create(context.Background())
-	require.NoErrorf(t, err, "schema migration must not fail")
+	// Get new namespace ID
+	namespace := planaddontestutils.NewTestNamespace(t)
 
-	entClient := pg.EntDriver.Client()
-	defer func() {
-		if err = entClient.Close(); err != nil {
-			t.Errorf("failed to close ent client: %v", err)
-		}
-	}()
+	// Setup meter repository
+	err := env.Meter.ReplaceMeters(ctx, planaddontestutils.NewTestMeters(t, namespace))
+	require.NoError(t, err, "replacing meters must not fail")
 
-	logger := testutils.NewDiscardLogger(t)
-
-	publisher := eventbus.NewMock(t)
-
-	featureSrv := feature.NewFeatureConnector(
-		featureadapter.NewPostgresFeatureRepo(entClient, logger),
-		nil,
-		publisher,
-	)
-
-	planAdapter, err := planadapter.New(planadapter.Config{
-		Client: entClient,
-		Logger: logger,
+	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+		Page: pagination.Page{
+			PageSize:   1000,
+			PageNumber: 1,
+		},
+		Namespace: namespace,
 	})
-	require.NoErrorf(t, err, "creating plan repo must not fail")
+	require.NoErrorf(t, err, "listing meters must not fail")
 
-	planSrv, err := planservice.New(planservice.Config{
-		Adapter:   planAdapter,
-		Feature:   featureSrv,
-		Logger:    logger,
-		Publisher: publisher,
-	})
+	meters := result.Items
+	require.NotEmptyf(t, meters, "list of Meters must not be empty")
 
-	addonAdapter, err := addonadapter.New(addonadapter.Config{
-		Client: entClient,
-		Logger: logger,
-	})
-	require.NoErrorf(t, err, "creating plan repo must not fail")
+	// Set feature for each meter
+	features := make([]feature.Feature, 0, len(meters))
+	for _, m := range meters {
+		input := planaddontestutils.NewTestFeatureFromMeter(t, &m)
 
-	addonSrv, err := addonservice.New(addonservice.Config{
-		Adapter:   addonAdapter,
-		Feature:   featureSrv,
-		Logger:    logger,
-		Publisher: publisher,
-	})
+		feat, err := env.Feature.CreateFeature(ctx, input)
+		require.NoErrorf(t, err, "creating feature must not fail")
+		require.NotNil(t, feat, "feature must not be empty")
+
+		features = append(features, feat)
+	}
+
+	planV1Input := planaddontestutils.NewTestPlan(t, namespace)
+
+	addonV1Input := planaddontestutils.NewTestAddon(t, namespace)
 
 	planAddonRepo := &adapter{
-		db:     entClient,
-		logger: logger,
+		db:     env.Client,
+		logger: env.Logger,
 	}
 
 	t.Run("Addon", func(t *testing.T) {
@@ -145,8 +83,7 @@ func TestPostgresAdapter(t *testing.T) {
 			planAddon *planaddon.PlanAddon
 		)
 
-		feature1, err = featureSrv.CreateFeature(ctx, featureInput)
-		require.NoErrorf(t, err, "creating feature must not fail")
+		feature1 = features[0]
 
 		planV1Input.Phases = []productcatalog.Phase{
 			{
@@ -293,10 +230,10 @@ func TestPostgresAdapter(t *testing.T) {
 			},
 		}
 
-		planV1, err = planSrv.CreatePlan(ctx, planV1Input)
+		planV1, err = env.Plan.CreatePlan(ctx, planV1Input)
 		require.NoErrorf(t, err, "creating plan must not fail")
 
-		planV1, err = planSrv.PublishPlan(ctx, plan.PublishPlanInput{
+		planV1, err = env.Plan.PublishPlan(ctx, plan.PublishPlanInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: namespace,
 				ID:        planV1.ID,
@@ -355,10 +292,10 @@ func TestPostgresAdapter(t *testing.T) {
 			},
 		}
 
-		addonV1, err = addonSrv.CreateAddon(ctx, addonV1Input)
+		addonV1, err = env.Addon.CreateAddon(ctx, addonV1Input)
 		require.NoErrorf(t, err, "creating add-on must not fail")
 
-		addonV1, err = addonSrv.PublishAddon(ctx, addon.PublishAddonInput{
+		addonV1, err = env.Addon.PublishAddon(ctx, addon.PublishAddonInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: namespace,
 				ID:        addonV1.ID,
