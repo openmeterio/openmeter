@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 h1:wzk2pPsb0sj5boxd1KNWaOo9dbXvQWpJxnl1oyegx1A=
+=======
+h1:eHKzJtcIakUrZlEyQwMua3u5S+Ecu3p9IBlUQXqAP+c=
+>>>>>>> 977f9afb (feat: custom invoicing app db structure)
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -173,7 +177,12 @@ h1:wzk2pPsb0sj5boxd1KNWaOo9dbXvQWpJxnl1oyegx1A=
 20250414082312_meter-unique-key.up.sql h1:OF9P3yFizv0xgLeOh2nlRnMlB1wrr8Di0tOR0X0hyMA=
 20250415105134_plan_addons.down.sql h1:iAQGCEzCDdfwQhxtSlJlCLQUpi3sXR4mfD2VdXJxdGw=
 20250415105134_plan_addons.up.sql h1:lD37D3dYzMx9A/l7n+55rQLlfEcHeDK+SaWNkdoggwo=
+<<<<<<< HEAD
 20250415143130_subs-annotations.down.sql h1:8y+IsP+lg4kdJ1099ASeD3YHrrgJXjD0SP7VThBH+Lw=
 20250415143130_subs-annotations.up.sql h1:xhEkDJaQfuKTS9/RbRYcZ+o2biAWcQtvBnjn4wQq4pg=
 20250416094534_delete-subsadd-ratecards.down.sql h1:osSmTL7wvmOCFDY3PJnSa+JIssoGAqQHP9Q7LSC8FqM=
 20250416094534_delete-subsadd-ratecards.up.sql h1:MJTMvAfsTQox7ZydlKXFYALvwZeSzw02QL/yG0mgcRk=
+=======
+20250416120917_app-custominvoicing.down.sql h1:a9WiX8FhAVlC9diJkYmM4o+HS3dmL5ETi6KanIjbPgU=
+20250416120917_app-custominvoicing.up.sql h1:4DNCJWC3oN5gDca8qjhZjMaRcZFjbgSt+D5UedRtofw=
+>>>>>>> 977f9afb (feat: custom invoicing app db structure)
