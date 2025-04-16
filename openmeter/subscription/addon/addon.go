@@ -3,6 +3,7 @@ package subscriptionaddon
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -26,6 +27,23 @@ type SubscriptionAddon struct {
 	// RateCards is populated from the Addon's RateCards
 	RateCards  []SubscriptionAddonRateCard                  `json:"rateCards"`
 	Quantities timeutil.Timeline[SubscriptionAddonQuantity] `json:"quantities"`
+}
+
+func (a SubscriptionAddon) GetInstanceAt(t time.Time) (SubscriptionAddonInstance, bool) {
+	inst := SubscriptionAddonInstance{}
+	found := false
+
+	for _, q := range a.GetInstances() {
+		if q.CadencedModel.IsActiveAt(t) {
+			found = true
+
+			inst = q
+
+			break
+		}
+	}
+
+	return inst, found
 }
 
 func (a SubscriptionAddon) GetInstances() []SubscriptionAddonInstance {

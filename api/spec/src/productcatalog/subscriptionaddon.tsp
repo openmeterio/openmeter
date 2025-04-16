@@ -16,36 +16,7 @@ model SubscriptionAddon {
    * Partially populated add-on properties.
    */
   @summary("Addon")
-  addon: {
-    /**
-     * The ID of the add-on.
-     */
-    @summary("ID")
-    @visibility(Lifecycle.Read, Lifecycle.Create)
-    id: ULID;
-
-    /**
-     * A semi-unique identifier for the resource.
-     */
-    @visibility(Lifecycle.Read)
-    @summary("Key")
-    key: Key;
-
-    /**
-     * The version of the Add-on which templates this instance.
-     */
-    @summary("Version")
-    @minValue(1)
-    @visibility(Lifecycle.Read)
-    version: integer = 1;
-
-    /**
-     * The instance type of the add-on.
-     */
-    @visibility(Lifecycle.Read)
-    @summary("InstanceType")
-    instanceType: AddonInstanceType;
-  };
+  addon: SubscriptionAddonAddon;
 
   /**
    * For which point in time the quantity was resolved to.
@@ -104,6 +75,41 @@ model SubscriptionAddon {
   @visibility(Lifecycle.Read)
   @summary("Rate cards")
   rateCards: SubscriptionAddonRateCard[];
+}
+
+/**
+ * A subscription add-on's add-on info.
+ */
+@friendlyName("SubscriptionAddonAddon")
+model SubscriptionAddonAddon {
+  /**
+   * The ID of the add-on.
+   */
+  @summary("ID")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  id: ULID;
+
+  /**
+   * A semi-unique identifier for the resource.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Key")
+  key: Key;
+
+  /**
+   * The version of the Add-on which templates this instance.
+   */
+  @summary("Version")
+  @minValue(1)
+  @visibility(Lifecycle.Read)
+  version: integer = 1;
+
+  /**
+   * The instance type of the add-on.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("InstanceType")
+  instanceType: AddonInstanceType;
 }
 
 /**

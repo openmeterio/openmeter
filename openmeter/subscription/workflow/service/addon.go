@@ -10,13 +10,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (s *service) AddAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp subscriptionaddon.CreateSubscriptionAddonInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {
+func (s *service) AddAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp subscriptionworkflow.AddAddonWorkflowInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {
 	var def1 subscription.SubscriptionView
 	var def2 subscriptionaddon.SubscriptionAddon
 
@@ -67,7 +68,25 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 		}
 
 		// Now let's try to purchase the addon
-		subsAdd, err := s.AddonService.Create(ctx, subscriptionID.Namespace, addonInp)
+		// Let's try to decode when the subscription should be patched
+		if err := addonInp.Timing.ValidateForAction(subscription.SubscriptionActionChangeAddons, &subView); err != nil {
+			return def, models.NewGenericValidationError(fmt.Errorf("invalid timing for adding add-on: %w", err))
+		}
+
+		editTime, err := addonInp.Timing.ResolveForSpec(spec)
+		if err != nil {
+			return def, fmt.Errorf("failed to resolve timing: %w", err)
+		}
+
+		subsAdd, err := s.AddonService.Create(ctx, subscriptionID.Namespace, subscriptionaddon.CreateSubscriptionAddonInput{
+			MetadataModel:  addonInp.MetadataModel,
+			AddonID:        addonInp.AddonID,
+			SubscriptionID: subscriptionID.ID,
+			InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
+				ActiveFrom: editTime,
+				Quantity:   addonInp.InitialQuantity,
+			},
+		})
 		if err != nil {
 			return def, fmt.Errorf("failed to create subscription addon: %w", err)
 		}

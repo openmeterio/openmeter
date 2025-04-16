@@ -8358,30 +8358,7 @@ export interface components {
        * Addon
        * @description Partially populated add-on properties.
        */
-      addon: {
-        /**
-         * ID
-         * @description The ID of the add-on.
-         * @example 01G65Z755AFWAKHE12NY0CQ9FH
-         */
-        id: string
-        /**
-         * Key
-         * @description A semi-unique identifier for the resource.
-         */
-        readonly key: string
-        /**
-         * Version
-         * @description The version of the Add-on which templates this instance.
-         * @default 1
-         */
-        readonly version: number
-        /**
-         * InstanceType
-         * @description The instance type of the add-on.
-         */
-        readonly instanceType: components['schemas']['AddonInstanceType']
-      }
+      addon: components['schemas']['SubscriptionAddonAddon']
       /**
        * QuantityAt
        * Format: date-time
@@ -8428,6 +8405,33 @@ export interface components {
        */
       readonly rateCards: components['schemas']['SubscriptionAddonRateCard'][]
     }
+    /** @description A subscription add-on's add-on info. */
+    SubscriptionAddonAddon: {
+      /**
+       * ID
+       * @description The ID of the add-on.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+      /**
+       * Key
+       * @description A semi-unique identifier for the resource.
+       */
+      readonly key: string
+      /**
+       * Version
+       * @description The version of the Add-on which templates this instance.
+       * @default 1
+       */
+      readonly version: number
+      /**
+       * InstanceType
+       * @description The instance type of the add-on.
+       */
+      readonly instanceType: components['schemas']['AddonInstanceType']
+    }
+    /** @description A subscription add-on's add-on info. */
+    SubscriptionAddonAddonUpdate: Record<string, never>
     /** @description Resource create operation model. */
     SubscriptionAddonCreate: {
       /**
@@ -8461,30 +8465,7 @@ export interface components {
        * Addon
        * @description Partially populated add-on properties.
        */
-      addon: {
-        /**
-         * ID
-         * @description The ID of the add-on.
-         * @example 01G65Z755AFWAKHE12NY0CQ9FH
-         */
-        id: string
-        /**
-         * Key
-         * @description A semi-unique identifier for the resource.
-         */
-        readonly key: string
-        /**
-         * Version
-         * @description The version of the Add-on which templates this instance.
-         * @default 1
-         */
-        readonly version: number
-        /**
-         * InstanceType
-         * @description The instance type of the add-on.
-         */
-        readonly instanceType: components['schemas']['AddonInstanceType']
-      }
+      addon: components['schemas']['SubscriptionAddonAddon']
       /**
        * Quantity
        * @description The quantity of the add-on. Always 1 for single instance add-ons.
@@ -8564,7 +8545,7 @@ export interface components {
        * Addon
        * @description Partially populated add-on properties.
        */
-      addon?: Record<string, never>
+      addon?: components['schemas']['SubscriptionAddonAddonUpdate']
       /**
        * Quantity
        * @description The quantity of the add-on. Always 1 for single instance add-ons.
@@ -9885,6 +9866,10 @@ export type Subject = components['schemas']['Subject']
 export type SubjectUpsert = components['schemas']['SubjectUpsert']
 export type Subscription = components['schemas']['Subscription']
 export type SubscriptionAddon = components['schemas']['SubscriptionAddon']
+export type SubscriptionAddonAddon =
+  components['schemas']['SubscriptionAddonAddon']
+export type SubscriptionAddonAddonUpdate =
+  components['schemas']['SubscriptionAddonAddonUpdate']
 export type SubscriptionAddonCreate =
   components['schemas']['SubscriptionAddonCreate']
 export type SubscriptionAddonRateCard =

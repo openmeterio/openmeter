@@ -9,9 +9,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -50,12 +50,11 @@ func TestAddAddon(t *testing.T) {
 			subscriptiontestutils.ExampleAddonRateCard4.Clone(), // This will extend existing items
 		))
 
-		addonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-			AddonID:        add.ID,
-			SubscriptionID: subView.Subscription.NamespacedID.ID,
-			InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
-				ActiveFrom: now,
-				Quantity:   0,
+		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add.ID,
+			InitialQuantity: 0,
+			Timing: subscription.Timing{
+				Custom: &now,
 			},
 		}
 
@@ -88,12 +87,11 @@ func TestAddAddon(t *testing.T) {
 		// We need a new addon to avoid conflicts
 		add := deps.deps.AddonService.CreateTestAddon(t, addInp)
 
-		_, _, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionaddon.CreateSubscriptionAddonInput{
-			AddonID:        add.ID,
-			SubscriptionID: subView.Subscription.NamespacedID.ID,
-			InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
-				ActiveFrom: now,
-				Quantity:   1,
+		_, _, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add.ID,
+			InitialQuantity: 1,
+			Timing: subscription.Timing{
+				Custom: &now,
 			},
 		})
 
@@ -120,12 +118,11 @@ func TestAddAddon(t *testing.T) {
 			subscriptiontestutils.ExampleAddonRateCard4.Clone(), // This will extend existing items
 		))
 
-		addonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-			AddonID:        add.ID,
-			SubscriptionID: subView.Subscription.NamespacedID.ID,
-			InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
-				ActiveFrom: now,
-				Quantity:   1,
+		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add.ID,
+			InitialQuantity: 1,
+			Timing: subscription.Timing{
+				Custom: &now,
 			},
 		}
 
@@ -165,12 +162,11 @@ func TestAddAddon(t *testing.T) {
 			subscriptiontestutils.ExampleAddonRateCard4.Clone(), // This will extend existing items
 		))
 
-		addonInp := subscriptionaddon.CreateSubscriptionAddonInput{
-			AddonID:        add.ID,
-			SubscriptionID: subView.Subscription.NamespacedID.ID,
-			InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
-				ActiveFrom: now,
-				Quantity:   1,
+		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add.ID,
+			InitialQuantity: 1,
+			Timing: subscription.Timing{
+				Custom: &now,
 			},
 		}
 

@@ -51,6 +51,8 @@ import (
 	progresshttpdriver "github.com/openmeterio/openmeter/openmeter/progressmanager/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	subscriptionaddonhttpdriver "github.com/openmeterio/openmeter/openmeter/subscription/addon/http"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -100,6 +102,7 @@ type Config struct {
 	ProgressManager             progressmanager.Service
 	StreamingConnector          streaming.Connector
 	SubscriptionService         subscription.Service
+	SubscriptionAddonService    subscriptionaddon.Service
 	SubscriptionWorkflowService subscriptionworkflow.Service
 }
 
@@ -173,6 +176,18 @@ func (c Config) Validate() error {
 		return errors.New("streaming connector is required")
 	}
 
+	if c.SubscriptionWorkflowService == nil {
+		return errors.New("subscription workflow service is required")
+	}
+
+	if c.SubscriptionService == nil {
+		return errors.New("subscription service is required")
+	}
+
+	if c.SubscriptionAddonService == nil {
+		return errors.New("subscription addon service is required")
+	}
+
 	return nil
 }
 
@@ -186,6 +201,7 @@ type Router struct {
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	planHandler               planhttpdriver.Handler
 	subscriptionHandler       subscriptionhttpdriver.Handler
+	subscriptionAddonHandler  subscriptionaddonhttpdriver.Handler
 	creditHandler             creditdriver.GrantHandler
 	debugHandler              debug_httpdriver.DebugHandler
 	customerHandler           customerhttpdriver.CustomerHandler
@@ -341,6 +357,16 @@ func NewRouter(config Config) (*Router, error) {
 			PlanSubscriptionService:     config.PlanSubscriptionService,
 			NamespaceDecoder:            staticNamespaceDecoder,
 			CustomerService:             config.Customer,
+			Logger:                      config.Logger,
+		},
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	router.subscriptionAddonHandler = subscriptionaddonhttpdriver.NewHandler(
+		subscriptionaddonhttpdriver.HandlerConfig{
+			SubscriptionAddonService:    config.SubscriptionAddonService,
+			SubscriptionWorkflowService: config.SubscriptionWorkflowService,
+			NamespaceDecoder:            staticNamespaceDecoder,
 			Logger:                      config.Logger,
 		},
 		httptransport.WithErrorHandler(config.ErrorHandler),

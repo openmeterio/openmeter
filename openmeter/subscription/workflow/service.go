@@ -2,6 +2,7 @@ package subscriptionworkflow
 
 import (
 	"context"
+	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
@@ -14,7 +15,7 @@ type Service interface {
 	ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp ChangeSubscriptionWorkflowInput, plan subscription.Plan) (current subscription.Subscription, new subscription.SubscriptionView, err error)
 	Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 
-	AddAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp subscriptionaddon.CreateSubscriptionAddonInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error)
+	AddAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp AddAddonWorkflowInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error)
 }
 
 type CreateSubscriptionWorkflowInput struct {
@@ -28,4 +29,26 @@ type ChangeSubscriptionWorkflowInput struct {
 	models.MetadataModel
 	Name        string
 	Description *string
+}
+
+type AddAddonWorkflowInput struct {
+	models.MetadataModel
+
+	AddonID string `json:"addonID"`
+
+	InitialQuantity int `json:"initialQuantity"`
+
+	Timing subscription.Timing `json:"timing"`
+}
+
+func (i AddAddonWorkflowInput) Validate() error {
+	if i.AddonID == "" {
+		return errors.New("addonID is required")
+	}
+
+	if i.InitialQuantity <= 0 {
+		return errors.New("initialQuantity must be greater than 0")
+	}
+
+	return nil
 }
