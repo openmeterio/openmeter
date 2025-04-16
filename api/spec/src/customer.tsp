@@ -23,7 +23,9 @@ interface Customers {
   @post
   @operationId("createCustomer")
   @summary("Create customer")
-  create(@body customer: TypeSpec.Rest.Resource.ResourceCreateModel<Customer>): {
+  create(
+    @body customer: TypeSpec.Rest.Resource.ResourceCreateModel<Customer>,
+  ): {
     @statusCode _: 201;
     @body body: Customer;
   } | CommonErrors;

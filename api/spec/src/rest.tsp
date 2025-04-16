@@ -19,7 +19,7 @@ namespace OpenMeter.Rest {
   @withVisibilityFilter(#{ all: #[Lifecycle.Create] })
   model ResourceCreateModel<Resource extends {}> {
     ...Resource;
-  };
+  }
 
   /**
    * Resource update operation model.
@@ -29,7 +29,7 @@ namespace OpenMeter.Rest {
   @withVisibilityFilter(#{ all: #[Lifecycle.Update] })
   model ResourceUpdateModel<Resource extends {}> {
     ...Resource;
-  };
+  }
 
   /**
    * Resource replace operation model.
@@ -39,5 +39,5 @@ namespace OpenMeter.Rest {
   @withVisibilityFilter(#{ any: #[Lifecycle.Create, Lifecycle.Update] })
   model ResourceReplaceModel<Resource extends {}> {
     ...Resource;
-  };
+  }
 }
