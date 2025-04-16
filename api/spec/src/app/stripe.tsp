@@ -703,23 +703,33 @@ model StripeApp {
   /**
    * The app's type is Stripe.
    */
+  @visibility(Lifecycle.Read)
   type: Type.Stripe;
 
   /**
    * The Stripe account ID.
    */
+  @visibility(Lifecycle.Read)
   stripeAccountId: string;
 
   /**
    * Livemode, true if the app is in production mode.
    */
+  @visibility(Lifecycle.Read)
   livemode: boolean;
 
   /**
    * The masked API key.
    * Only shows the first 8 and last 3 characters.
    */
+  @visibility(Lifecycle.Read)
   maskedAPIKey: string;
+
+  /**
+   * API Key.
+   */
+  @visibility(Lifecycle.Update)
+  apiKey?: string;
 }
 
 /**

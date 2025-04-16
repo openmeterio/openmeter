@@ -3139,7 +3139,7 @@ paths:
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/CustomerAppData'
+                $ref: '#/components/schemas/CustomerAppDataCreateOrUpdateItem'
   /api/v1/customers/{customerIdOrKey}/apps/{appId}:
     delete:
       operationId: deleteCustomerAppData
@@ -12536,6 +12536,20 @@ components:
         CustomerAppData
         Stores the app specific data for the customer.
         One of: stripe, sandbox
+    CustomerAppDataCreateOrUpdateItem:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/StripeCustomerAppDataCreateOrUpdateItem'
+        - $ref: '#/components/schemas/SandboxCustomerAppData'
+      discriminator:
+        propertyName: type
+        mapping:
+          stripe: '#/components/schemas/StripeCustomerAppDataCreateOrUpdateItem'
+          sandbox: '#/components/schemas/SandboxCustomerAppData'
+      description: |-
+        CustomerAppData
+        Stores the app specific data for the customer.
+        One of: stripe, sandbox
     CustomerAppDataPaginatedResponse:
       type: object
       required:
@@ -18887,17 +18901,21 @@ components:
           enum:
             - stripe
           description: The app's type is Stripe.
+          readOnly: true
         stripeAccountId:
           type: string
           description: The Stripe account ID.
+          readOnly: true
         livemode:
           type: boolean
           description: Livemode, true if the app is in production mode.
+          readOnly: true
         maskedAPIKey:
           type: string
           description: |-
             The masked API key.
             Only shows the first 8 and last 3 characters.
+          readOnly: true
       description: A installed Stripe app object.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -18960,6 +18978,36 @@ components:
             - $ref: '#/components/schemas/StripeApp'
           description: The installed stripe app this data belongs to.
           readOnly: true
+        stripeCustomerId:
+          type: string
+          description: The Stripe customer ID.
+        stripeDefaultPaymentMethodId:
+          type: string
+          description: The Stripe default payment method ID.
+      description: Stripe Customer App Data.
+      example:
+        type: stripe
+        stripeCustomerId: cus_xxxxxxxxxxxxxx
+    StripeCustomerAppDataCreateOrUpdateItem:
+      type: object
+      required:
+        - type
+        - stripeCustomerId
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            The app ID.
+            If not provided, it will use the global default for the app type.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          title: App ID
+        type:
+          type: string
+          enum:
+            - stripe
+          description: The app name.
+          title: App Type
         stripeCustomerId:
           type: string
           description: The Stripe customer ID.

@@ -49,7 +49,7 @@ interface Apps {
   @summary("Update app")
   update(
     @path id: ULID,
-    @body app: TypeSpec.Rest.Resource.ResourceReplaceModel<AppBase>,
+    @body app: OpenMeter.Rest.ResourceReplaceModel<App>,
   ): App | NotFoundError | CommonErrors;
 
   /**
@@ -113,7 +113,7 @@ model AppReference {
  */
 @friendlyName("AppBase")
 model AppBase {
-  ...Resource;
+  ...global.Resource;
 
   /**
    * The marketplace listing that this installed app is based on.
@@ -131,6 +131,7 @@ model AppBase {
    * Default for the app type
    * Only one app of each type can be default.
    */
+  @visibility(Lifecycle.Read, Lifecycle.Update, Lifecycle.Create)
   default: boolean;
 }
 

@@ -3308,6 +3308,12 @@ export interface components {
     CustomerAppData:
       | components['schemas']['StripeCustomerAppData']
       | components['schemas']['SandboxCustomerAppData']
+    /** @description CustomerAppData
+     *     Stores the app specific data for the customer.
+     *     One of: stripe, sandbox */
+    CustomerAppDataCreateOrUpdateItem:
+      | components['schemas']['StripeCustomerAppDataCreateOrUpdateItem']
+      | components['schemas']['SandboxCustomerAppData']
     /** @description Paginated response */
     CustomerAppDataPaginatedResponse: {
       /**
@@ -8040,12 +8046,12 @@ export interface components {
        */
       type: 'stripe'
       /** @description The Stripe account ID. */
-      stripeAccountId: string
+      readonly stripeAccountId: string
       /** @description Livemode, true if the app is in production mode. */
-      livemode: boolean
+      readonly livemode: boolean
       /** @description The masked API key.
        *     Only shows the first 8 and last 3 characters. */
-      maskedAPIKey: string
+      readonly maskedAPIKey: string
     }
     /**
      * @description Stripe CheckoutSession.mode
@@ -8074,6 +8080,31 @@ export interface components {
       type: 'stripe'
       /** @description The installed stripe app this data belongs to. */
       readonly app?: components['schemas']['StripeApp']
+      /** @description The Stripe customer ID. */
+      stripeCustomerId: string
+      /** @description The Stripe default payment method ID. */
+      stripeDefaultPaymentMethodId?: string
+    }
+    /**
+     * @description Stripe Customer App Data.
+     * @example {
+     *       "type": "stripe",
+     *       "stripeCustomerId": "cus_xxxxxxxxxxxxxx"
+     *     }
+     */
+    StripeCustomerAppDataCreateOrUpdateItem: {
+      /**
+       * App ID
+       * @description The app ID.
+       *     If not provided, it will use the global default for the app type.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id?: string
+      /**
+       * @description The app name. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'stripe'
       /** @description The Stripe customer ID. */
       stripeCustomerId: string
       /** @description The Stripe default payment method ID. */
@@ -9567,6 +9598,8 @@ export type CustomSubscriptionCreate =
 export type Customer = components['schemas']['Customer']
 export type CustomerAccess = components['schemas']['CustomerAccess']
 export type CustomerAppData = components['schemas']['CustomerAppData']
+export type CustomerAppDataCreateOrUpdateItem =
+  components['schemas']['CustomerAppDataCreateOrUpdateItem']
 export type CustomerAppDataPaginatedResponse =
   components['schemas']['CustomerAppDataPaginatedResponse']
 export type CustomerCreate = components['schemas']['CustomerCreate']
@@ -9877,6 +9910,8 @@ export type StripeCheckoutSessionMode =
   components['schemas']['StripeCheckoutSessionMode']
 export type StripeCustomerAppData =
   components['schemas']['StripeCustomerAppData']
+export type StripeCustomerAppDataCreateOrUpdateItem =
+  components['schemas']['StripeCustomerAppDataCreateOrUpdateItem']
 export type StripeTaxConfig = components['schemas']['StripeTaxConfig']
 export type StripeWebhookEvent = components['schemas']['StripeWebhookEvent']
 export type StripeWebhookResponse =
@@ -14035,7 +14070,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['CustomerAppData'][]
+        'application/json': components['schemas']['CustomerAppDataCreateOrUpdateItem'][]
       }
     }
     responses: {
