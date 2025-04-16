@@ -274,7 +274,7 @@ func (h *handler) mapCustomerOverrideToAPI(ctx context.Context, in billing.Custo
 	}
 
 	if in.Customer != nil {
-		customer, err := customerhttpdriver.CustomerToAPI(*in.Customer)
+		customer, err := customerhttpdriver.CustomerToAPI(*in.Customer, nil, nil)
 		if err != nil {
 			return res, err
 		}

@@ -1,20 +1,14 @@
 package adapter
 
 import (
-	"fmt"
-
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func CustomerFromDBEntity(e db.Customer, expand []api.CustomerExpand) (*customer.Customer, error) {
+func CustomerFromDBEntity(e db.Customer) (*customer.Customer, error) {
 	var subjectKeys []string
 
 	if e.Edges.Subjects != nil {
@@ -24,26 +18,6 @@ func CustomerFromDBEntity(e db.Customer, expand []api.CustomerExpand) (*customer
 				return item.SubjectKey
 			},
 		)
-	}
-
-	var currentSubID *string
-	var subs []subscription.Subscription
-
-	if len(e.Edges.Subscription) > 0 {
-		for _, s := range e.Edges.Subscription {
-			sub, err := subscriptionrepo.MapDBSubscription(s)
-			if err != nil {
-				return nil, fmt.Errorf("failed to map subscription with id %s: %w", s.ID, err)
-			}
-			subs = append(subs, sub)
-		}
-
-		// Let's find the active one
-		if active, found := lo.Find(subs, func(s subscription.Subscription) bool {
-			return s.CadencedModel.IsActiveAt(clock.Now())
-		}); found {
-			currentSubID = &active.ID
-		}
 	}
 
 	result := &customer.Customer{
@@ -59,14 +33,8 @@ func CustomerFromDBEntity(e db.Customer, expand []api.CustomerExpand) (*customer
 		UsageAttribution: customer.CustomerUsageAttribution{
 			SubjectKeys: subjectKeys,
 		},
-		PrimaryEmail:          e.PrimaryEmail,
-		Currency:              e.Currency,
-		CurrentSubscriptionID: currentSubID,
-	}
-
-	// Altough we always fetch the subscriptions, we only return them if the expand is requested
-	if lo.Contains(expand, api.CustomerExpandSubscriptions) {
-		result.Subscriptions = subs
+		PrimaryEmail: e.PrimaryEmail,
+		Currency:     e.Currency,
 	}
 
 	if e.Key != "" {

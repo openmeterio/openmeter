@@ -108,7 +108,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 					a.logger.Warn("invalid query result: nil customer received")
 					continue
 				}
-				cust, err := CustomerFromDBEntity(*item, input.Expand)
+				cust, err := CustomerFromDBEntity(*item)
 				if err != nil {
 					return response, fmt.Errorf("failed to convert customer: %w", err)
 				}
@@ -226,7 +226,7 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 				// so we don't need to fetch it here.
 
 				customerEntity.Edges.Subjects = customerSubjects
-				cus, err := CustomerFromDBEntity(*customerEntity, nil)
+				cus, err := CustomerFromDBEntity(*customerEntity)
 				if err != nil {
 					return cus, fmt.Errorf("failed to convert customer: %w", err)
 				}
@@ -359,7 +359,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 				return nil, fmt.Errorf("invalid query result: nil customer received")
 			}
 
-			return CustomerFromDBEntity(*entity, input.Expand)
+			return CustomerFromDBEntity(*entity)
 		},
 	)
 }
@@ -571,7 +571,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 					})
 				}
 
-				cus, err := CustomerFromDBEntity(*entity, nil)
+				cus, err := CustomerFromDBEntity(*entity)
 				if err != nil {
 					return cus, fmt.Errorf("failed to convert customer: %w", err)
 				}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -21,9 +20,6 @@ type Customer struct {
 	PrimaryEmail     *string                  `json:"primaryEmail,omitempty"`
 	Currency         *currencyx.Code          `json:"currency,omitempty"`
 	BillingAddress   *models.Address          `json:"billingAddress,omitempty"`
-
-	CurrentSubscriptionID *string                     `json:"currentSubscriptionId,omitempty"`
-	Subscriptions         []subscription.Subscription `json:"subscriptions,omitempty"`
 }
 
 func (c Customer) Validate() error {
@@ -145,9 +141,6 @@ type ListCustomersInput struct {
 	pagination.Page
 
 	IncludeDeleted bool
-
-	// Expand
-	Expand []api.CustomerExpand
 
 	// Order
 	OrderBy api.CustomerOrderBy
