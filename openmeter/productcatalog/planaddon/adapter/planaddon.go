@@ -164,7 +164,8 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 func (a *adapter) CreatePlanAddon(ctx context.Context, params planaddon.CreatePlanAddonInput) (*planaddon.PlanAddon, error) {
 	fn := func(ctx context.Context, a *adapter) (*planaddon.PlanAddon, error) {
 		if err := params.Validate(); err != nil {
-			return nil, fmt.Errorf("invalid create plan add-on assignment parameters: %w", err)
+			return nil, fmt.Errorf("invalid create plan add-on assignment parameters [namespace=%s plan.id=%s addon.id=%s]: %w",
+				params.Namespace, params.PlanID, params.AddonID, err)
 		}
 
 		planAddonRow, err := a.db.PlanAddon.Create().
@@ -360,7 +361,7 @@ func (a *adapter) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePl
 				})
 			}
 
-			return nil, fmt.Errorf("failed to get plan add-on assignment for update : %w", err)
+			return nil, fmt.Errorf("failed to get plan add-on assignment for update: %w", err)
 		}
 
 		if !params.Equal(*planAddon) {
