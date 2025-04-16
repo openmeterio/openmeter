@@ -24,16 +24,6 @@ type AppFactoryInstallAppWithAPIKeyInput struct {
 	Name      string
 }
 
-type AppFactoryInstall interface {
-	InstallApp(ctx context.Context, input AppFactoryInstallAppInput) (App, error)
-}
-
-type AppFactoryInstallAppInput struct {
-	Namespace string
-	Name      string
-	BaseURL   string
-}
-
 func (i AppFactoryInstallAppWithAPIKeyInput) Validate() error {
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
@@ -49,6 +39,32 @@ func (i AppFactoryInstallAppWithAPIKeyInput) Validate() error {
 
 	if i.Name == "" {
 		return errors.New("name is required")
+	}
+
+	return nil
+}
+
+type AppFactoryInstall interface {
+	InstallApp(ctx context.Context, input AppFactoryInstallAppInput) (App, error)
+}
+
+type AppFactoryInstallAppInput struct {
+	Namespace string
+	Name      string
+	BaseURL   string
+}
+
+func (i AppFactoryInstallAppInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.Name == "" {
+		return errors.New("name is required")
+	}
+
+	if i.BaseURL == "" {
+		return errors.New("base url is required")
 	}
 
 	return nil

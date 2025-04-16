@@ -2264,6 +2264,7 @@ export interface components {
     App:
       | components['schemas']['StripeApp']
       | components['schemas']['SandboxApp']
+      | components['schemas']['CustomInvoicingApp']
     /** @description Resource update operation model. */
     AppBaseReplaceUpdate: {
       /**
@@ -2355,7 +2356,7 @@ export interface components {
      * @description Type of the app.
      * @enum {string}
      */
-    AppType: 'stripe' | 'sandbox'
+    AppType: 'stripe' | 'sandbox' | 'custom_invoicing'
     /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
     BadRequestProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description The balance history window. */
@@ -3143,6 +3144,103 @@ export interface components {
      * @example USD
      */
     CurrencyCode: string
+    /** @description Custom Invoicing app can be used for interface with any invoicing or payment system.
+     *
+     *     This app provides ways to manipulate invoices and payments, however the integration
+     *     must rely on Notifications API to get notified about invoice changes. */
+    CustomInvoicingApp: {
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly id: string
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /** @description The marketplace listing that this installed app is based on. */
+      readonly listing: components['schemas']['MarketplaceListing']
+      /** @description Status of the app connection. */
+      readonly status: components['schemas']['AppStatus']
+      /** @description Default for the app type
+       *     Only one app of each type can be default. */
+      default: boolean
+      /**
+       * @description The app's type is CustomInvoicing. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'custom_invoicing'
+      /** @description Skip draft.sync hook.
+       *
+       *     The hook will auto progress to the next state of the invoice. */
+      skipDraftSyncHook: boolean
+      /** @description Skip issuing.sync hook.
+       *
+       *     The hook will auto progress to the next state of the invoice. */
+      skipIssuingSyncHook: boolean
+    }
+    /** @description Custom Invoicing Customer App Data. */
+    CustomInvoicingCustomerAppData: {
+      /** @description The installed sandbox app this data belongs to. */
+      readonly app?: components['schemas']['CustomInvoicingApp']
+      /**
+       * App ID
+       * @description The app ID.
+       *     If not provided, it will use the global default for the app type.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id?: string
+      /**
+       * @description The app name. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'custom_invoicing'
+      /** @description Metadata to be used by the custom invoicing provider. */
+      metadata?: components['schemas']['Metadata']
+    }
+    /** @description Custom invoicing tax config. */
+    CustomInvoicingTaxConfig: {
+      /**
+       * Tax code
+       * @description Tax code.
+       *
+       *     The tax code should be interpreted by the custom invoicing provider.
+       */
+      code: string
+    }
     /** @description Plan input for custom subscription creation (without key and version). */
     CustomPlanInput: {
       /**
@@ -3314,6 +3412,7 @@ export interface components {
     CustomerAppData:
       | components['schemas']['StripeCustomerAppData']
       | components['schemas']['SandboxCustomerAppData']
+      | components['schemas']['CustomInvoicingCustomerAppData']
     /** @description Paginated response */
     CustomerAppDataPaginatedResponse: {
       /**
@@ -9020,6 +9119,11 @@ export interface components {
        * @description Stripe tax config.
        */
       stripe?: components['schemas']['StripeTaxConfig']
+      /**
+       * Custom invoicing tax config
+       * @description Custom invoicing tax config.
+       */
+      customInvoicing?: components['schemas']['CustomInvoicingTaxConfig']
     }
     /**
      * @description The mode of the tiered price.
@@ -9600,6 +9704,11 @@ export type CreditNoteOriginalInvoiceRef =
   components['schemas']['CreditNoteOriginalInvoiceRef']
 export type Currency = components['schemas']['Currency']
 export type CurrencyCode = components['schemas']['CurrencyCode']
+export type CustomInvoicingApp = components['schemas']['CustomInvoicingApp']
+export type CustomInvoicingCustomerAppData =
+  components['schemas']['CustomInvoicingCustomerAppData']
+export type CustomInvoicingTaxConfig =
+  components['schemas']['CustomInvoicingTaxConfig']
 export type CustomPlanInput = components['schemas']['CustomPlanInput']
 export type CustomSubscriptionChange =
   components['schemas']['CustomSubscriptionChange']

@@ -2,42 +2,24 @@ package httpdriver
 
 import (
 	"fmt"
-	"log/slog"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
-	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 )
 
-// NewAppMapper creates a new app mapper
-func NewAppMapper(
-	logger *slog.Logger,
-	stripeAppService appstripe.Service,
-) *AppMapper {
-	return &AppMapper{
-		logger:           logger,
-		stripeAppService: stripeAppService,
-	}
-}
-
-// AppMapper maps app models to API models
-type AppMapper struct {
-	logger           *slog.Logger
-	stripeAppService appstripe.Service
-}
-
 // MapAppToAPI maps an app to an API app
-func (a *AppMapper) MapAppToAPI(item app.App) (api.App, error) {
+func MapAppToAPI(item app.App) (api.App, error) {
 	switch item.GetType() {
 	case app.AppTypeStripe:
 		stripeApp := item.(appstripeentityapp.App)
 
 		app := api.App{}
-		if err := app.FromStripeApp(a.mapStripeAppToAPI(stripeApp)); err != nil {
+		if err := app.FromStripeApp(mapStripeAppToAPI(stripeApp)); err != nil {
 			return app, err
 		}
 
@@ -46,7 +28,16 @@ func (a *AppMapper) MapAppToAPI(item app.App) (api.App, error) {
 		sandboxApp := item.(appsandbox.App)
 
 		app := api.App{}
-		if err := app.FromSandboxApp(a.mapSandboxAppToAPI(sandboxApp)); err != nil {
+		if err := app.FromSandboxApp(mapSandboxAppToAPI(sandboxApp)); err != nil {
+			return app, err
+		}
+
+		return app, nil
+	case app.AppTypeCustomInvoicing:
+		customInvoicingApp := item.(appcustominvoicing.App)
+
+		app := api.App{}
+		if err := app.FromCustomInvoicingApp(mapCustomInvoicingAppToAPI(customInvoicingApp)); err != nil {
 			return app, err
 		}
 
@@ -56,7 +47,7 @@ func (a *AppMapper) MapAppToAPI(item app.App) (api.App, error) {
 	}
 }
 
-func (a *AppMapper) mapSandboxAppToAPI(app appsandbox.App) api.SandboxApp {
+func mapSandboxAppToAPI(app appsandbox.App) api.SandboxApp {
 	return api.SandboxApp{
 		Id:        app.GetID().ID,
 		Type:      api.SandboxAppTypeSandbox,
@@ -70,7 +61,7 @@ func (a *AppMapper) mapSandboxAppToAPI(app appsandbox.App) api.SandboxApp {
 	}
 }
 
-func (a *AppMapper) mapStripeAppToAPI(
+func mapStripeAppToAPI(
 	stripeApp appstripeentityapp.App,
 ) api.StripeApp {
 	apiStripeApp := api.StripeApp{
@@ -95,4 +86,23 @@ func (a *AppMapper) mapStripeAppToAPI(
 	}
 
 	return apiStripeApp
+}
+
+func mapCustomInvoicingAppToAPI(app appcustominvoicing.App) api.CustomInvoicingApp {
+	return api.CustomInvoicingApp{
+		Id:          app.GetID().ID,
+		Type:        api.CustomInvoicingAppTypeCustomInvoicing,
+		Name:        app.GetName(),
+		Status:      api.AppStatus(app.GetStatus()),
+		Default:     app.Default,
+		Listing:     mapMarketplaceListing(app.GetListing()),
+		Metadata:    lo.EmptyableToPtr(app.GetMetadata()),
+		Description: app.GetDescription(),
+		CreatedAt:   app.CreatedAt,
+		UpdatedAt:   app.UpdatedAt,
+		DeletedAt:   app.DeletedAt,
+
+		SkipDraftSyncHook:   app.Configuration.SkipDraftSyncHook,
+		SkipIssuingSyncHook: app.Configuration.SkipIssuingSyncHook,
+	}
 }

@@ -62,6 +62,10 @@ func (a App) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error
 	return nil
 }
 
+func (a App) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) error {
+	return nil
+}
+
 func (a App) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
 	return billing.NewUpsertInvoiceResult(), nil
 }

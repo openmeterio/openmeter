@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	appshttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -51,7 +50,6 @@ type CustomerOverrideHandler interface {
 }
 
 type handler struct {
-	appMapper        *appshttpdriver.AppMapper
 	service          billing.Service
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
@@ -74,7 +72,6 @@ func New(
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
-		appMapper:        appshttpdriver.NewAppMapper(logger, stripeAppService),
 		service:          service,
 		namespaceDecoder: namespaceDecoder,
 		options:          options,

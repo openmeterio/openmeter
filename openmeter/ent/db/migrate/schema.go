@@ -236,6 +236,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{AppCustomInvoicingsColumns[1]},
 			},
+			{
+				Name:    "appcustominvoicing_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppCustomInvoicingsColumns[1], AppCustomInvoicingsColumns[0]},
+			},
 		},
 	}
 	// AppCustomInvoicingCustomersColumns holds the columns for the "app_custom_invoicing_customers" table.

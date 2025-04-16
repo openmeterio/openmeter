@@ -55,7 +55,7 @@ func (a *adapter) InstallMarketplaceListingWithAPIKey(ctx context.Context, input
 
 		installer, ok := registryItem.Factory.(app.AppFactoryInstallWithAPIKey)
 		if !ok {
-			return nil, fmt.Errorf("app factory does not support API key installation")
+			return nil, models.NewGenericValidationError(fmt.Errorf("app does not support this installation method. Supported methods: %v", registryItem.Listing.InstallMethods))
 		}
 
 		// Install app
@@ -91,7 +91,7 @@ func (a *adapter) InstallMarketplaceListing(ctx context.Context, input app.Insta
 
 		installer, ok := registryItem.Factory.(app.AppFactoryInstall)
 		if !ok {
-			return nil, fmt.Errorf("app factory does not support installation")
+			return nil, models.NewGenericValidationError(fmt.Errorf("app does not support this installation method. Supported methods: %v", registryItem.Listing.InstallMethods))
 		}
 
 		// Install app

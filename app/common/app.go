@@ -10,6 +10,9 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
+	appcustominvoicingadapter "github.com/openmeterio/openmeter/openmeter/app/custominvoicing/adapter"
+	appcustominvoicingservice "github.com/openmeterio/openmeter/openmeter/app/custominvoicing/service"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -24,9 +27,11 @@ import (
 )
 
 var App = wire.NewSet(
+	NewAppRegistry,
 	NewAppService,
 	NewAppStripeService,
 	NewAppSandboxProvisioner,
+	NewAppCustomInvoicingService,
 )
 
 type AppSandboxProvisioner func() error
@@ -96,4 +101,55 @@ func NewAppSandboxProvisioner(ctx context.Context, logger *slog.Logger, appsConf
 
 		return nil
 	}, nil
+}
+
+func NewAppCustomInvoicingService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingService billing.Service, publisher eventbus.Publisher) (appcustominvoicing.Service, error) {
+	appCustomInvoicingAdapter, err := appcustominvoicingadapter.New(appcustominvoicingadapter.Config{
+		Client: db,
+		Logger: logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create appcustominvoicing adapter: %w", err)
+	}
+
+	service, err := appcustominvoicingservice.New(appcustominvoicingservice.Config{
+		Adapter:    appCustomInvoicingAdapter,
+		Logger:     logger,
+		AppService: appService,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create appcustominvoicing service: %w", err)
+	}
+
+	// This registers the app with the marketplace as a side-effect
+	_, err = appcustominvoicing.NewFactory(appcustominvoicing.FactoryConfig{
+		AppService:             appService,
+		CustomInvoicingService: service,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create appcustominvoicing factory: %w", err)
+	}
+
+	return service, nil
+}
+
+type AppRegistry struct {
+	Service            app.Service
+	SandboxProvisioner AppSandboxProvisioner
+	Stripe             appstripe.Service
+	CustomInvoicing    appcustominvoicing.Service
+}
+
+func NewAppRegistry(
+	Service app.Service,
+	SandboxProvisioner AppSandboxProvisioner,
+	Stripe appstripe.Service,
+	CustomInvoicing appcustominvoicing.Service,
+) AppRegistry {
+	return AppRegistry{
+		Service:            Service,
+		SandboxProvisioner: SandboxProvisioner,
+		Stripe:             Stripe,
+		CustomInvoicing:    CustomInvoicing,
+	}
 }

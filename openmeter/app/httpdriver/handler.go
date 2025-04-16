@@ -41,8 +41,7 @@ type AppHandler interface {
 var _ Handler = (*handler)(nil)
 
 type handler struct {
-	appMapper *AppMapper
-	service   app.Service
+	service app.Service
 
 	stripeAppService stripeapp.Service
 	billingService   billing.Service
@@ -71,7 +70,6 @@ func New(
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
-		appMapper:        NewAppMapper(logger, appStripeService),
 		service:          appService,
 		namespaceDecoder: namespaceDecoder,
 		stripeAppService: appStripeService,
