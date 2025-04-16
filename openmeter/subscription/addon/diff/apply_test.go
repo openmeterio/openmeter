@@ -759,11 +759,6 @@ func createMultiInstanceAddonForSub(t *testing.T, deps *subscriptiontestutils.Su
 	subAdd, err := deps.SubscriptionAddonService.Create(context.Background(), subID.Namespace, subscriptionaddon.CreateSubscriptionAddonInput{
 		AddonID:        add.ID,
 		SubscriptionID: subID.ID,
-		RateCards: lo.Map(add.RateCards, func(rc addon.RateCard, _ int) subscriptionaddon.CreateSubscriptionAddonRateCardInput {
-			return subscriptionaddon.CreateSubscriptionAddonRateCardInput{
-				AddonRateCardID: rc.ID,
-			}
-		}),
 		InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 			ActiveFrom: quants[0].ActiveFrom,
 			Quantity:   quants[0].Quantity,

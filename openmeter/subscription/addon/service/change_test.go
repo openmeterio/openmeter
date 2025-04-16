@@ -112,13 +112,6 @@ func createExampleSubscriptionAddon(t *testing.T, deps subscriptiontestutils.Sub
 	subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
 		AddonID:        add.ID,
 		SubscriptionID: sub.Subscription.ID,
-		RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
-			{
-				AddonRateCardID: aRCIDs[0],
-
-				AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
-			},
-		},
 		InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 			ActiveFrom: now,
 			Quantity:   1,

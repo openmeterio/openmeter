@@ -127,12 +127,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Publisher:             publisher,
 	})
 
-	workflowSvc := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
-		Service:            svc,
-		CustomerService:    customer,
-		TransactionManager: subItemRepo,
-	})
-
 	addonRepo, err := addonrepo.New(addonrepo.Config{
 		Client: dbDeps.DBClient,
 		Logger: logger,
@@ -148,7 +142,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	require.NoError(t, err)
 
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(dbDeps.DBClient)
-	subAddRCRepo := subscriptionaddonrepo.NewSubscriptionAddonRateCardRepo(dbDeps.DBClient)
 	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(dbDeps.DBClient)
 
 	subAddSvc := subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
@@ -157,8 +150,13 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		AddonService:  addonService,
 		SubService:    svc,
 		SubAddRepo:    subAddRepo,
-		SubAddRCRepo:  subAddRCRepo,
 		SubAddQtyRepo: subAddQtyRepo,
+	})
+
+	workflowSvc := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
+		Service:            svc,
+		CustomerService:    customer,
+		TransactionManager: subItemRepo,
 	})
 
 	return SubscriptionDependencies{

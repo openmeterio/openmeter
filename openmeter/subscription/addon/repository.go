@@ -31,17 +31,6 @@ type SubscriptionAddonRepository interface {
 	List(ctx context.Context, namespace string, filter ListSubscriptionAddonRepositoryInput) (pagination.PagedResponse[SubscriptionAddon], error)
 }
 
-// SubscriptionAddonRateCard
-type CreateSubscriptionAddonRateCardRepositoryInput struct {
-	AddonRateCardID string `json:"addonRateCardID"`
-
-	AffectedSubscriptionItemIDs []string `json:"affectedSubscriptionItemIDs"`
-}
-
-type SubscriptionAddonRateCardRepository interface {
-	CreateMany(ctx context.Context, subscriptionAddonID models.NamespacedID, inputs []CreateSubscriptionAddonRateCardRepositoryInput) ([]SubscriptionAddonRateCard, error)
-}
-
 // SubscriptionAddonQuantity
 type CreateSubscriptionAddonQuantityRepositoryInput struct {
 	ActiveFrom time.Time `json:"activeFrom"`

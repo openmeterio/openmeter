@@ -18,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecard"
 )
 
 // SubscriptionAddonQuery is the builder for querying SubscriptionAddon entities.
@@ -29,7 +28,6 @@ type SubscriptionAddonQuery struct {
 	inters           []Interceptor
 	predicates       []predicate.SubscriptionAddon
 	withSubscription *SubscriptionQuery
-	withRateCards    *SubscriptionAddonRateCardQuery
 	withQuantities   *SubscriptionAddonQuantityQuery
 	withAddon        *AddonQuery
 	modifiers        []func(*sql.Selector)
@@ -84,28 +82,6 @@ func (saq *SubscriptionAddonQuery) QuerySubscription() *SubscriptionQuery {
 			sqlgraph.From(subscriptionaddon.Table, subscriptionaddon.FieldID, selector),
 			sqlgraph.To(subscription.Table, subscription.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionaddon.SubscriptionTable, subscriptionaddon.SubscriptionColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(saq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryRateCards chains the current query on the "rate_cards" edge.
-func (saq *SubscriptionAddonQuery) QueryRateCards() *SubscriptionAddonRateCardQuery {
-	query := (&SubscriptionAddonRateCardClient{config: saq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := saq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := saq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subscriptionaddon.Table, subscriptionaddon.FieldID, selector),
-			sqlgraph.To(subscriptionaddonratecard.Table, subscriptionaddonratecard.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionaddon.RateCardsTable, subscriptionaddon.RateCardsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(saq.driver.Dialect(), step)
 		return fromU, nil
@@ -350,7 +326,6 @@ func (saq *SubscriptionAddonQuery) Clone() *SubscriptionAddonQuery {
 		inters:           append([]Interceptor{}, saq.inters...),
 		predicates:       append([]predicate.SubscriptionAddon{}, saq.predicates...),
 		withSubscription: saq.withSubscription.Clone(),
-		withRateCards:    saq.withRateCards.Clone(),
 		withQuantities:   saq.withQuantities.Clone(),
 		withAddon:        saq.withAddon.Clone(),
 		// clone intermediate query.
@@ -367,17 +342,6 @@ func (saq *SubscriptionAddonQuery) WithSubscription(opts ...func(*SubscriptionQu
 		opt(query)
 	}
 	saq.withSubscription = query
-	return saq
-}
-
-// WithRateCards tells the query-builder to eager-load the nodes that are connected to
-// the "rate_cards" edge. The optional arguments are used to configure the query builder of the edge.
-func (saq *SubscriptionAddonQuery) WithRateCards(opts ...func(*SubscriptionAddonRateCardQuery)) *SubscriptionAddonQuery {
-	query := (&SubscriptionAddonRateCardClient{config: saq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	saq.withRateCards = query
 	return saq
 }
 
@@ -481,9 +445,8 @@ func (saq *SubscriptionAddonQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 	var (
 		nodes       = []*SubscriptionAddon{}
 		_spec       = saq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [3]bool{
 			saq.withSubscription != nil,
-			saq.withRateCards != nil,
 			saq.withQuantities != nil,
 			saq.withAddon != nil,
 		}
@@ -512,15 +475,6 @@ func (saq *SubscriptionAddonQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 	if query := saq.withSubscription; query != nil {
 		if err := saq.loadSubscription(ctx, query, nodes, nil,
 			func(n *SubscriptionAddon, e *Subscription) { n.Edges.Subscription = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := saq.withRateCards; query != nil {
-		if err := saq.loadRateCards(ctx, query, nodes,
-			func(n *SubscriptionAddon) { n.Edges.RateCards = []*SubscriptionAddonRateCard{} },
-			func(n *SubscriptionAddon, e *SubscriptionAddonRateCard) {
-				n.Edges.RateCards = append(n.Edges.RateCards, e)
-			}); err != nil {
 			return nil, err
 		}
 	}
@@ -568,36 +522,6 @@ func (saq *SubscriptionAddonQuery) loadSubscription(ctx context.Context, query *
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
-	}
-	return nil
-}
-func (saq *SubscriptionAddonQuery) loadRateCards(ctx context.Context, query *SubscriptionAddonRateCardQuery, nodes []*SubscriptionAddon, init func(*SubscriptionAddon), assign func(*SubscriptionAddon, *SubscriptionAddonRateCard)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[string]*SubscriptionAddon)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(subscriptionaddonratecard.FieldSubscriptionAddonID)
-	}
-	query.Where(predicate.SubscriptionAddonRateCard(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(subscriptionaddon.RateCardsColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.SubscriptionAddonID
-		node, ok := nodeids[fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "subscription_addon_id" returned %v for node %v`, fk, n.ID)
-		}
-		assign(node, n)
 	}
 	return nil
 }

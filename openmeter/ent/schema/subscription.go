@@ -189,9 +189,5 @@ func (SubscriptionItem) Edges() []ent.Edge {
 		edge.From("phase", SubscriptionPhase.Type).Field("phase_id").Ref("items").Unique().Immutable().Required(),
 		edge.From("entitlement", Entitlement.Type).Field("entitlement_id").Ref("subscription_item").Unique(),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
-		edge.To("subscription_addon_rate_card_items", SubscriptionAddonRateCardItemLink.Type).
-			Annotations(entsql.Annotation{
-				OnDelete: entsql.Cascade,
-			}),
 	}
 }

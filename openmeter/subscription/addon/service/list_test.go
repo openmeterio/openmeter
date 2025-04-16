@@ -40,13 +40,6 @@ func TestAddonServiceGet(t *testing.T) {
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
 				AddonID:        add.ID,
 				SubscriptionID: sub.Subscription.ID,
-				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
-					{
-						AddonRateCardID: aRCIDs[0],
-
-						AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
-					},
-				},
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 					ActiveFrom: now,
 					Quantity:   1,
@@ -119,13 +112,6 @@ func TestAddonServiceList(t *testing.T) {
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
 				AddonID:        add1.ID,
 				SubscriptionID: sub.Subscription.ID,
-				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
-					{
-						AddonRateCardID: aRCIDs1[0],
-
-						AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
-					},
-				},
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 					ActiveFrom: now,
 					Quantity:   1,
@@ -138,13 +124,6 @@ func TestAddonServiceList(t *testing.T) {
 			subAddonInp2 := subscriptionaddon.CreateSubscriptionAddonInput{
 				AddonID:        addon2.ID,
 				SubscriptionID: sub.Subscription.ID,
-				RateCards: []subscriptionaddon.CreateSubscriptionAddonRateCardInput{
-					{
-						AddonRateCardID: aRCIDs2[0],
-
-						AffectedSubscriptionItemIDs: []string{sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0].SubscriptionItem.ID},
-					},
-				},
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 					ActiveFrom: now,
 					Quantity:   1,

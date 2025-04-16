@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -15,13 +13,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type Config struct {
 	// repos
 	SubAddRepo    subscriptionaddon.SubscriptionAddonRepository
-	SubAddRCRepo  subscriptionaddon.SubscriptionAddonRateCardRepository
 	SubAddQtyRepo subscriptionaddon.SubscriptionAddonQuantityRepository
 
 	TxManager transaction.Creator
@@ -48,7 +44,7 @@ func NewService(
 
 func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon.CreateSubscriptionAddonInput) (*subscriptionaddon.SubscriptionAddon, error) {
 	if err := input.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid input: %w", err)
+		return nil, models.NewGenericValidationError(fmt.Errorf("invalid input: %w", err))
 	}
 
 	add, err := s.cfg.AddonService.GetAddon(ctx, addon.GetAddonInput{
@@ -69,20 +65,13 @@ func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon
 		return nil, models.NewGenericValidationError(errors.New("invalid input: single instance add-on must have initial quantity of 1"))
 	}
 
-	subView, err := s.cfg.SubService.GetView(ctx, models.NamespacedID{
+	_, err = s.cfg.SubService.GetView(ctx, models.NamespacedID{
 		Namespace: ns,
 		ID:        input.SubscriptionID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subscription: %w", err)
 	}
-
-	flatItemIDs := lo.Flatten(lo.Map(subView.Phases, func(phase subscription.SubscriptionPhaseView, _ int) []string {
-		items := lo.Flatten(lo.Values(phase.ItemsByKey))
-		return lo.Map(items, func(item subscription.SubscriptionItemView, _ int) string {
-			return item.SubscriptionItem.ID
-		})
-	}))
 
 	return transaction.Run(ctx, s.cfg.TxManager, func(ctx context.Context) (*subscriptionaddon.SubscriptionAddon, error) {
 		// Create the subscription addon
@@ -97,33 +86,6 @@ func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon
 
 		if subAdd == nil {
 			return nil, fmt.Errorf("inconsitency error: nil subscription add-on received")
-		}
-
-		// Let's map to input and validate the RateCards & SubscriptionItems actually exist
-		rcInputs, err := slicesx.MapWithErr(input.RateCards, func(rc subscriptionaddon.CreateSubscriptionAddonRateCardInput) (subscriptionaddon.CreateSubscriptionAddonRateCardRepositoryInput, error) {
-			if !lo.Contains(lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
-				return rc.ID
-			}), rc.AddonRateCardID) {
-				return subscriptionaddon.CreateSubscriptionAddonRateCardRepositoryInput{}, models.NewGenericValidationError(fmt.Errorf("invalid input: referenced add-on rate card %s not found", rc.AddonRateCardID))
-			}
-
-			// Let's check that all referenced Items belong to the Subscription
-			if lo.SomeBy(rc.AffectedSubscriptionItemIDs, func(itemID string) bool {
-				return !lo.Contains(flatItemIDs, itemID)
-			}) {
-				return subscriptionaddon.CreateSubscriptionAddonRateCardRepositoryInput{}, models.NewGenericConflictError(fmt.Errorf("invalid input: referenced subscription item not found"))
-			}
-
-			return subscriptionaddon.CreateSubscriptionAddonRateCardRepositoryInput(rc), nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to map rate cards: %w", err)
-		}
-
-		// Create the rate cards
-		_, err = s.cfg.SubAddRCRepo.CreateMany(ctx, *subAdd, rcInputs)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create subscription add-on rate cards: %w", err)
 		}
 
 		// Create the initial quantity

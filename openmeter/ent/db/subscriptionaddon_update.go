@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecard"
 )
 
 // SubscriptionAddonUpdate is the builder for updating SubscriptionAddon entities.
@@ -68,21 +67,6 @@ func (sau *SubscriptionAddonUpdate) ClearDeletedAt() *SubscriptionAddonUpdate {
 	return sau
 }
 
-// AddRateCardIDs adds the "rate_cards" edge to the SubscriptionAddonRateCard entity by IDs.
-func (sau *SubscriptionAddonUpdate) AddRateCardIDs(ids ...string) *SubscriptionAddonUpdate {
-	sau.mutation.AddRateCardIDs(ids...)
-	return sau
-}
-
-// AddRateCards adds the "rate_cards" edges to the SubscriptionAddonRateCard entity.
-func (sau *SubscriptionAddonUpdate) AddRateCards(s ...*SubscriptionAddonRateCard) *SubscriptionAddonUpdate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return sau.AddRateCardIDs(ids...)
-}
-
 // AddQuantityIDs adds the "quantities" edge to the SubscriptionAddonQuantity entity by IDs.
 func (sau *SubscriptionAddonUpdate) AddQuantityIDs(ids ...string) *SubscriptionAddonUpdate {
 	sau.mutation.AddQuantityIDs(ids...)
@@ -101,27 +85,6 @@ func (sau *SubscriptionAddonUpdate) AddQuantities(s ...*SubscriptionAddonQuantit
 // Mutation returns the SubscriptionAddonMutation object of the builder.
 func (sau *SubscriptionAddonUpdate) Mutation() *SubscriptionAddonMutation {
 	return sau.mutation
-}
-
-// ClearRateCards clears all "rate_cards" edges to the SubscriptionAddonRateCard entity.
-func (sau *SubscriptionAddonUpdate) ClearRateCards() *SubscriptionAddonUpdate {
-	sau.mutation.ClearRateCards()
-	return sau
-}
-
-// RemoveRateCardIDs removes the "rate_cards" edge to SubscriptionAddonRateCard entities by IDs.
-func (sau *SubscriptionAddonUpdate) RemoveRateCardIDs(ids ...string) *SubscriptionAddonUpdate {
-	sau.mutation.RemoveRateCardIDs(ids...)
-	return sau
-}
-
-// RemoveRateCards removes "rate_cards" edges to SubscriptionAddonRateCard entities.
-func (sau *SubscriptionAddonUpdate) RemoveRateCards(s ...*SubscriptionAddonRateCard) *SubscriptionAddonUpdate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return sau.RemoveRateCardIDs(ids...)
 }
 
 // ClearQuantities clears all "quantities" edges to the SubscriptionAddonQuantity entity.
@@ -218,51 +181,6 @@ func (sau *SubscriptionAddonUpdate) sqlSave(ctx context.Context) (n int, err err
 	}
 	if sau.mutation.DeletedAtCleared() {
 		_spec.ClearField(subscriptionaddon.FieldDeletedAt, field.TypeTime)
-	}
-	if sau.mutation.RateCardsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionaddon.RateCardsTable,
-			Columns: []string{subscriptionaddon.RateCardsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := sau.mutation.RemovedRateCardsIDs(); len(nodes) > 0 && !sau.mutation.RateCardsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionaddon.RateCardsTable,
-			Columns: []string{subscriptionaddon.RateCardsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := sau.mutation.RateCardsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionaddon.RateCardsTable,
-			Columns: []string{subscriptionaddon.RateCardsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if sau.mutation.QuantitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -367,21 +285,6 @@ func (sauo *SubscriptionAddonUpdateOne) ClearDeletedAt() *SubscriptionAddonUpdat
 	return sauo
 }
 
-// AddRateCardIDs adds the "rate_cards" edge to the SubscriptionAddonRateCard entity by IDs.
-func (sauo *SubscriptionAddonUpdateOne) AddRateCardIDs(ids ...string) *SubscriptionAddonUpdateOne {
-	sauo.mutation.AddRateCardIDs(ids...)
-	return sauo
-}
-
-// AddRateCards adds the "rate_cards" edges to the SubscriptionAddonRateCard entity.
-func (sauo *SubscriptionAddonUpdateOne) AddRateCards(s ...*SubscriptionAddonRateCard) *SubscriptionAddonUpdateOne {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return sauo.AddRateCardIDs(ids...)
-}
-
 // AddQuantityIDs adds the "quantities" edge to the SubscriptionAddonQuantity entity by IDs.
 func (sauo *SubscriptionAddonUpdateOne) AddQuantityIDs(ids ...string) *SubscriptionAddonUpdateOne {
 	sauo.mutation.AddQuantityIDs(ids...)
@@ -400,27 +303,6 @@ func (sauo *SubscriptionAddonUpdateOne) AddQuantities(s ...*SubscriptionAddonQua
 // Mutation returns the SubscriptionAddonMutation object of the builder.
 func (sauo *SubscriptionAddonUpdateOne) Mutation() *SubscriptionAddonMutation {
 	return sauo.mutation
-}
-
-// ClearRateCards clears all "rate_cards" edges to the SubscriptionAddonRateCard entity.
-func (sauo *SubscriptionAddonUpdateOne) ClearRateCards() *SubscriptionAddonUpdateOne {
-	sauo.mutation.ClearRateCards()
-	return sauo
-}
-
-// RemoveRateCardIDs removes the "rate_cards" edge to SubscriptionAddonRateCard entities by IDs.
-func (sauo *SubscriptionAddonUpdateOne) RemoveRateCardIDs(ids ...string) *SubscriptionAddonUpdateOne {
-	sauo.mutation.RemoveRateCardIDs(ids...)
-	return sauo
-}
-
-// RemoveRateCards removes "rate_cards" edges to SubscriptionAddonRateCard entities.
-func (sauo *SubscriptionAddonUpdateOne) RemoveRateCards(s ...*SubscriptionAddonRateCard) *SubscriptionAddonUpdateOne {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return sauo.RemoveRateCardIDs(ids...)
 }
 
 // ClearQuantities clears all "quantities" edges to the SubscriptionAddonQuantity entity.
@@ -547,51 +429,6 @@ func (sauo *SubscriptionAddonUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 	}
 	if sauo.mutation.DeletedAtCleared() {
 		_spec.ClearField(subscriptionaddon.FieldDeletedAt, field.TypeTime)
-	}
-	if sauo.mutation.RateCardsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionaddon.RateCardsTable,
-			Columns: []string{subscriptionaddon.RateCardsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := sauo.mutation.RemovedRateCardsIDs(); len(nodes) > 0 && !sauo.mutation.RateCardsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionaddon.RateCardsTable,
-			Columns: []string{subscriptionaddon.RateCardsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := sauo.mutation.RateCardsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionaddon.RateCardsTable,
-			Columns: []string{subscriptionaddon.RateCardsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if sauo.mutation.QuantitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{

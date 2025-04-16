@@ -68,11 +68,9 @@ type AddonRateCardEdges struct {
 	Addon *Addon `json:"addon,omitempty"`
 	// Features holds the value of the features edge.
 	Features *Feature `json:"features,omitempty"`
-	// SubscriptionAddonRateCards holds the value of the subscription_addon_rate_cards edge.
-	SubscriptionAddonRateCards []*SubscriptionAddonRateCard `json:"subscription_addon_rate_cards,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [2]bool
 }
 
 // AddonOrErr returns the Addon value or an error if the edge
@@ -95,15 +93,6 @@ func (e AddonRateCardEdges) FeaturesOrErr() (*Feature, error) {
 		return nil, &NotFoundError{label: feature.Label}
 	}
 	return nil, &NotLoadedError{edge: "features"}
-}
-
-// SubscriptionAddonRateCardsOrErr returns the SubscriptionAddonRateCards value or an error if the edge
-// was not loaded in eager-loading.
-func (e AddonRateCardEdges) SubscriptionAddonRateCardsOrErr() ([]*SubscriptionAddonRateCard, error) {
-	if e.loadedTypes[2] {
-		return e.SubscriptionAddonRateCards, nil
-	}
-	return nil, &NotLoadedError{edge: "subscription_addon_rate_cards"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -276,11 +265,6 @@ func (arc *AddonRateCard) QueryAddon() *AddonQuery {
 // QueryFeatures queries the "features" edge of the AddonRateCard entity.
 func (arc *AddonRateCard) QueryFeatures() *FeatureQuery {
 	return NewAddonRateCardClient(arc.config).QueryFeatures(arc)
-}
-
-// QuerySubscriptionAddonRateCards queries the "subscription_addon_rate_cards" edge of the AddonRateCard entity.
-func (arc *AddonRateCard) QuerySubscriptionAddonRateCards() *SubscriptionAddonRateCardQuery {
-	return NewAddonRateCardClient(arc.config).QuerySubscriptionAddonRateCards(arc)
 }
 
 // Update returns a builder for updating this AddonRateCard.

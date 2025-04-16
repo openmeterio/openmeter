@@ -55,8 +55,6 @@ const (
 	EdgeAddon = "addon"
 	// EdgeFeatures holds the string denoting the features edge name in mutations.
 	EdgeFeatures = "features"
-	// EdgeSubscriptionAddonRateCards holds the string denoting the subscription_addon_rate_cards edge name in mutations.
-	EdgeSubscriptionAddonRateCards = "subscription_addon_rate_cards"
 	// Table holds the table name of the addonratecard in the database.
 	Table = "addon_rate_cards"
 	// AddonTable is the table that holds the addon relation/edge.
@@ -73,13 +71,6 @@ const (
 	FeaturesInverseTable = "features"
 	// FeaturesColumn is the table column denoting the features relation/edge.
 	FeaturesColumn = "feature_id"
-	// SubscriptionAddonRateCardsTable is the table that holds the subscription_addon_rate_cards relation/edge.
-	SubscriptionAddonRateCardsTable = "subscription_addon_rate_cards"
-	// SubscriptionAddonRateCardsInverseTable is the table name for the SubscriptionAddonRateCard entity.
-	// It exists in this package in order to avoid circular dependency with the "subscriptionaddonratecard" package.
-	SubscriptionAddonRateCardsInverseTable = "subscription_addon_rate_cards"
-	// SubscriptionAddonRateCardsColumn is the table column denoting the subscription_addon_rate_cards relation/edge.
-	SubscriptionAddonRateCardsColumn = "addon_ratecard_id"
 )
 
 // Columns holds all SQL columns for addonratecard fields.
@@ -249,20 +240,6 @@ func ByFeaturesField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newFeaturesStep(), sql.OrderByField(field, opts...))
 	}
 }
-
-// BySubscriptionAddonRateCardsCount orders the results by subscription_addon_rate_cards count.
-func BySubscriptionAddonRateCardsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newSubscriptionAddonRateCardsStep(), opts...)
-	}
-}
-
-// BySubscriptionAddonRateCards orders the results by subscription_addon_rate_cards terms.
-func BySubscriptionAddonRateCards(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newSubscriptionAddonRateCardsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
 func newAddonStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -275,12 +252,5 @@ func newFeaturesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FeaturesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, FeaturesTable, FeaturesColumn),
-	)
-}
-func newSubscriptionAddonRateCardsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(SubscriptionAddonRateCardsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionAddonRateCardsTable, SubscriptionAddonRateCardsColumn),
 	)
 }

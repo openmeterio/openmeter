@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonratecard"
 )
 
 // SubscriptionAddonCreate is the builder for creating a SubscriptionAddon entity.
@@ -110,21 +109,6 @@ func (sac *SubscriptionAddonCreate) SetNillableID(s *string) *SubscriptionAddonC
 // SetSubscription sets the "subscription" edge to the Subscription entity.
 func (sac *SubscriptionAddonCreate) SetSubscription(s *Subscription) *SubscriptionAddonCreate {
 	return sac.SetSubscriptionID(s.ID)
-}
-
-// AddRateCardIDs adds the "rate_cards" edge to the SubscriptionAddonRateCard entity by IDs.
-func (sac *SubscriptionAddonCreate) AddRateCardIDs(ids ...string) *SubscriptionAddonCreate {
-	sac.mutation.AddRateCardIDs(ids...)
-	return sac
-}
-
-// AddRateCards adds the "rate_cards" edges to the SubscriptionAddonRateCard entity.
-func (sac *SubscriptionAddonCreate) AddRateCards(s ...*SubscriptionAddonRateCard) *SubscriptionAddonCreate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return sac.AddRateCardIDs(ids...)
 }
 
 // AddQuantityIDs adds the "quantities" edge to the SubscriptionAddonQuantity entity by IDs.
@@ -305,22 +289,6 @@ func (sac *SubscriptionAddonCreate) createSpec() (*SubscriptionAddon, *sqlgraph.
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.SubscriptionID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := sac.mutation.RateCardsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subscriptionaddon.RateCardsTable,
-			Columns: []string{subscriptionaddon.RateCardsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddonratecard.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := sac.mutation.QuantitiesIDs(); len(nodes) > 0 {

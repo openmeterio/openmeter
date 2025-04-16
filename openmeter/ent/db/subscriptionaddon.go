@@ -44,15 +44,13 @@ type SubscriptionAddon struct {
 type SubscriptionAddonEdges struct {
 	// Subscription holds the value of the subscription edge.
 	Subscription *Subscription `json:"subscription,omitempty"`
-	// RateCards holds the value of the rate_cards edge.
-	RateCards []*SubscriptionAddonRateCard `json:"rate_cards,omitempty"`
 	// Quantities holds the value of the quantities edge.
 	Quantities []*SubscriptionAddonQuantity `json:"quantities,omitempty"`
 	// Addon holds the value of the addon edge.
 	Addon *Addon `json:"addon,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [3]bool
 }
 
 // SubscriptionOrErr returns the Subscription value or an error if the edge
@@ -66,19 +64,10 @@ func (e SubscriptionAddonEdges) SubscriptionOrErr() (*Subscription, error) {
 	return nil, &NotLoadedError{edge: "subscription"}
 }
 
-// RateCardsOrErr returns the RateCards value or an error if the edge
-// was not loaded in eager-loading.
-func (e SubscriptionAddonEdges) RateCardsOrErr() ([]*SubscriptionAddonRateCard, error) {
-	if e.loadedTypes[1] {
-		return e.RateCards, nil
-	}
-	return nil, &NotLoadedError{edge: "rate_cards"}
-}
-
 // QuantitiesOrErr returns the Quantities value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionAddonEdges) QuantitiesOrErr() ([]*SubscriptionAddonQuantity, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[1] {
 		return e.Quantities, nil
 	}
 	return nil, &NotLoadedError{edge: "quantities"}
@@ -89,7 +78,7 @@ func (e SubscriptionAddonEdges) QuantitiesOrErr() ([]*SubscriptionAddonQuantity,
 func (e SubscriptionAddonEdges) AddonOrErr() (*Addon, error) {
 	if e.Addon != nil {
 		return e.Addon, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: addon.Label}
 	}
 	return nil, &NotLoadedError{edge: "addon"}
@@ -188,11 +177,6 @@ func (sa *SubscriptionAddon) Value(name string) (ent.Value, error) {
 // QuerySubscription queries the "subscription" edge of the SubscriptionAddon entity.
 func (sa *SubscriptionAddon) QuerySubscription() *SubscriptionQuery {
 	return NewSubscriptionAddonClient(sa.config).QuerySubscription(sa)
-}
-
-// QueryRateCards queries the "rate_cards" edge of the SubscriptionAddon entity.
-func (sa *SubscriptionAddon) QueryRateCards() *SubscriptionAddonRateCardQuery {
-	return NewSubscriptionAddonClient(sa.config).QueryRateCards(sa)
 }
 
 // QueryQuantities queries the "quantities" edge of the SubscriptionAddon entity.
