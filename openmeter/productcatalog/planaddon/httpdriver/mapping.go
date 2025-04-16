@@ -49,7 +49,7 @@ func AsCreatePlanAddonRequest(a api.PlanAddonCreate, namespace string, planID st
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
 		},
-		Metadata:      nil, //FIXME:
+		Metadata:      nil, // FIXME:
 		PlanID:        planID,
 		AddonID:       a.Addon.Id,
 		FromPlanPhase: "",
