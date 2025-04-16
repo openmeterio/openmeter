@@ -189,7 +189,7 @@ func (e *GenericNotImplementedError) Unwrap() error {
 	return e.err
 }
 
-// IsGenericNotImplementedError returns true if the error is a BadRequestError.
+// IsGenericNotImplementedError returns true if the error is a GenericNotImplementedError.
 func IsGenericNotImplementedError(err error) bool {
 	if err == nil {
 		return false

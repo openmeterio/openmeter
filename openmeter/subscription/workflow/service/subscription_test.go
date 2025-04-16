@@ -1009,9 +1009,9 @@ func TestEditCombinations(t *testing.T) {
 			val := values[0]
 
 			rc := val.Spec.RateCard
-			require.NoError(t, rc.ChangeMeta(func(m productcatalog.RateCardMeta) productcatalog.RateCardMeta {
+			require.NoError(t, rc.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 				m.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(19)})
-				return m
+				return m, nil
 			}))
 
 			// Let's edit the subscription
