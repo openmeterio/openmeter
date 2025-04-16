@@ -280,6 +280,16 @@ func DeletedAtNotNil() predicate.AppCustomInvoicingCustomer {
 	return predicate.AppCustomInvoicingCustomer(sql.FieldNotNull(FieldDeletedAt))
 }
 
+// MetadataIsNil applies the IsNil predicate on the "metadata" field.
+func MetadataIsNil() predicate.AppCustomInvoicingCustomer {
+	return predicate.AppCustomInvoicingCustomer(sql.FieldIsNull(FieldMetadata))
+}
+
+// MetadataNotNil applies the NotNil predicate on the "metadata" field.
+func MetadataNotNil() predicate.AppCustomInvoicingCustomer {
+	return predicate.AppCustomInvoicingCustomer(sql.FieldNotNull(FieldMetadata))
+}
+
 // AppIDEQ applies the EQ predicate on the "app_id" field.
 func AppIDEQ(v string) predicate.AppCustomInvoicingCustomer {
 	return predicate.AppCustomInvoicingCustomer(sql.FieldEQ(FieldAppID, v))
@@ -408,16 +418,6 @@ func CustomerIDEqualFold(v string) predicate.AppCustomInvoicingCustomer {
 // CustomerIDContainsFold applies the ContainsFold predicate on the "customer_id" field.
 func CustomerIDContainsFold(v string) predicate.AppCustomInvoicingCustomer {
 	return predicate.AppCustomInvoicingCustomer(sql.FieldContainsFold(FieldCustomerID, v))
-}
-
-// MetadataIsNil applies the IsNil predicate on the "metadata" field.
-func MetadataIsNil() predicate.AppCustomInvoicingCustomer {
-	return predicate.AppCustomInvoicingCustomer(sql.FieldIsNull(FieldMetadata))
-}
-
-// MetadataNotNil applies the NotNil predicate on the "metadata" field.
-func MetadataNotNil() predicate.AppCustomInvoicingCustomer {
-	return predicate.AppCustomInvoicingCustomer(sql.FieldNotNull(FieldMetadata))
 }
 
 // HasCustomInvoicingApp applies the HasEdge predicate on the "custom_invoicing_app" edge.

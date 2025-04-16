@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -56,6 +57,7 @@ func (AppCustomInvoicingCustomer) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
+		entutils.MetadataMixin{},
 	}
 }
 
@@ -67,7 +69,6 @@ func (AppCustomInvoicingCustomer) Fields() []ent.Field {
 		field.String("customer_id").NotEmpty().Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
-		field.JSON("metadata", map[string]string{}).Optional(),
 	}
 }
 

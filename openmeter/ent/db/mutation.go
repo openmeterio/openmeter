@@ -5587,6 +5587,55 @@ func (m *AppCustomInvoicingCustomerMutation) ResetDeletedAt() {
 	delete(m.clearedFields, appcustominvoicingcustomer.FieldDeletedAt)
 }
 
+// SetMetadata sets the "metadata" field.
+func (m *AppCustomInvoicingCustomerMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *AppCustomInvoicingCustomerMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the AppCustomInvoicingCustomer entity.
+// If the AppCustomInvoicingCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingCustomerMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *AppCustomInvoicingCustomerMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[appcustominvoicingcustomer.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *AppCustomInvoicingCustomerMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[appcustominvoicingcustomer.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *AppCustomInvoicingCustomerMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, appcustominvoicingcustomer.FieldMetadata)
+}
+
 // SetAppID sets the "app_id" field.
 func (m *AppCustomInvoicingCustomerMutation) SetAppID(s string) {
 	m.custom_invoicing_app = &s
@@ -5657,55 +5706,6 @@ func (m *AppCustomInvoicingCustomerMutation) OldCustomerID(ctx context.Context) 
 // ResetCustomerID resets all changes to the "customer_id" field.
 func (m *AppCustomInvoicingCustomerMutation) ResetCustomerID() {
 	m.customer = nil
-}
-
-// SetMetadata sets the "metadata" field.
-func (m *AppCustomInvoicingCustomerMutation) SetMetadata(value map[string]string) {
-	m.metadata = &value
-}
-
-// Metadata returns the value of the "metadata" field in the mutation.
-func (m *AppCustomInvoicingCustomerMutation) Metadata() (r map[string]string, exists bool) {
-	v := m.metadata
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldMetadata returns the old "metadata" field's value of the AppCustomInvoicingCustomer entity.
-// If the AppCustomInvoicingCustomer object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppCustomInvoicingCustomerMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldMetadata requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
-	}
-	return oldValue.Metadata, nil
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (m *AppCustomInvoicingCustomerMutation) ClearMetadata() {
-	m.metadata = nil
-	m.clearedFields[appcustominvoicingcustomer.FieldMetadata] = struct{}{}
-}
-
-// MetadataCleared returns if the "metadata" field was cleared in this mutation.
-func (m *AppCustomInvoicingCustomerMutation) MetadataCleared() bool {
-	_, ok := m.clearedFields[appcustominvoicingcustomer.FieldMetadata]
-	return ok
-}
-
-// ResetMetadata resets all changes to the "metadata" field.
-func (m *AppCustomInvoicingCustomerMutation) ResetMetadata() {
-	m.metadata = nil
-	delete(m.clearedFields, appcustominvoicingcustomer.FieldMetadata)
 }
 
 // SetCustomInvoicingAppID sets the "custom_invoicing_app" edge to the AppCustomInvoicing entity by id.
@@ -5822,14 +5822,14 @@ func (m *AppCustomInvoicingCustomerMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, appcustominvoicingcustomer.FieldDeletedAt)
 	}
+	if m.metadata != nil {
+		fields = append(fields, appcustominvoicingcustomer.FieldMetadata)
+	}
 	if m.custom_invoicing_app != nil {
 		fields = append(fields, appcustominvoicingcustomer.FieldAppID)
 	}
 	if m.customer != nil {
 		fields = append(fields, appcustominvoicingcustomer.FieldCustomerID)
-	}
-	if m.metadata != nil {
-		fields = append(fields, appcustominvoicingcustomer.FieldMetadata)
 	}
 	return fields
 }
@@ -5847,12 +5847,12 @@ func (m *AppCustomInvoicingCustomerMutation) Field(name string) (ent.Value, bool
 		return m.UpdatedAt()
 	case appcustominvoicingcustomer.FieldDeletedAt:
 		return m.DeletedAt()
+	case appcustominvoicingcustomer.FieldMetadata:
+		return m.Metadata()
 	case appcustominvoicingcustomer.FieldAppID:
 		return m.AppID()
 	case appcustominvoicingcustomer.FieldCustomerID:
 		return m.CustomerID()
-	case appcustominvoicingcustomer.FieldMetadata:
-		return m.Metadata()
 	}
 	return nil, false
 }
@@ -5870,12 +5870,12 @@ func (m *AppCustomInvoicingCustomerMutation) OldField(ctx context.Context, name 
 		return m.OldUpdatedAt(ctx)
 	case appcustominvoicingcustomer.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case appcustominvoicingcustomer.FieldMetadata:
+		return m.OldMetadata(ctx)
 	case appcustominvoicingcustomer.FieldAppID:
 		return m.OldAppID(ctx)
 	case appcustominvoicingcustomer.FieldCustomerID:
 		return m.OldCustomerID(ctx)
-	case appcustominvoicingcustomer.FieldMetadata:
-		return m.OldMetadata(ctx)
 	}
 	return nil, fmt.Errorf("unknown AppCustomInvoicingCustomer field %s", name)
 }
@@ -5913,6 +5913,13 @@ func (m *AppCustomInvoicingCustomerMutation) SetField(name string, value ent.Val
 		}
 		m.SetDeletedAt(v)
 		return nil
+	case appcustominvoicingcustomer.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
 	case appcustominvoicingcustomer.FieldAppID:
 		v, ok := value.(string)
 		if !ok {
@@ -5926,13 +5933,6 @@ func (m *AppCustomInvoicingCustomerMutation) SetField(name string, value ent.Val
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCustomerID(v)
-		return nil
-	case appcustominvoicingcustomer.FieldMetadata:
-		v, ok := value.(map[string]string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetMetadata(v)
 		return nil
 	}
 	return fmt.Errorf("unknown AppCustomInvoicingCustomer field %s", name)
@@ -6010,14 +6010,14 @@ func (m *AppCustomInvoicingCustomerMutation) ResetField(name string) error {
 	case appcustominvoicingcustomer.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
+	case appcustominvoicingcustomer.FieldMetadata:
+		m.ResetMetadata()
+		return nil
 	case appcustominvoicingcustomer.FieldAppID:
 		m.ResetAppID()
 		return nil
 	case appcustominvoicingcustomer.FieldCustomerID:
 		m.ResetCustomerID()
-		return nil
-	case appcustominvoicingcustomer.FieldMetadata:
-		m.ResetMetadata()
 		return nil
 	}
 	return fmt.Errorf("unknown AppCustomInvoicingCustomer field %s", name)

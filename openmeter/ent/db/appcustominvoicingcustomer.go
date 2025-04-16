@@ -28,12 +28,12 @@ type AppCustomInvoicingCustomer struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata map[string]string `json:"metadata,omitempty"`
 	// AppID holds the value of the "app_id" field.
 	AppID string `json:"app_id,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
-	// Metadata holds the value of the "metadata" field.
-	Metadata map[string]string `json:"metadata,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AppCustomInvoicingCustomerQuery when eager-loading is set.
 	Edges        AppCustomInvoicingCustomerEdges `json:"edges"`
@@ -132,6 +132,14 @@ func (acic *AppCustomInvoicingCustomer) assignValues(columns []string, values []
 				acic.DeletedAt = new(time.Time)
 				*acic.DeletedAt = value.Time
 			}
+		case appcustominvoicingcustomer.FieldMetadata:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &acic.Metadata); err != nil {
+					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
+			}
 		case appcustominvoicingcustomer.FieldAppID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field app_id", values[i])
@@ -143,14 +151,6 @@ func (acic *AppCustomInvoicingCustomer) assignValues(columns []string, values []
 				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
 			} else if value.Valid {
 				acic.CustomerID = value.String
-			}
-		case appcustominvoicingcustomer.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &acic.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
 			}
 		default:
 			acic.selectValues.Set(columns[i], values[i])
@@ -212,14 +212,14 @@ func (acic *AppCustomInvoicingCustomer) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", acic.Metadata))
+	builder.WriteString(", ")
 	builder.WriteString("app_id=")
 	builder.WriteString(acic.AppID)
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(acic.CustomerID)
-	builder.WriteString(", ")
-	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", acic.Metadata))
 	builder.WriteByte(')')
 	return builder.String()
 }

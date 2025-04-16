@@ -72,6 +72,12 @@ func (acicc *AppCustomInvoicingCustomerCreate) SetNillableDeletedAt(t *time.Time
 	return acicc
 }
 
+// SetMetadata sets the "metadata" field.
+func (acicc *AppCustomInvoicingCustomerCreate) SetMetadata(m map[string]string) *AppCustomInvoicingCustomerCreate {
+	acicc.mutation.SetMetadata(m)
+	return acicc
+}
+
 // SetAppID sets the "app_id" field.
 func (acicc *AppCustomInvoicingCustomerCreate) SetAppID(s string) *AppCustomInvoicingCustomerCreate {
 	acicc.mutation.SetAppID(s)
@@ -81,12 +87,6 @@ func (acicc *AppCustomInvoicingCustomerCreate) SetAppID(s string) *AppCustomInvo
 // SetCustomerID sets the "customer_id" field.
 func (acicc *AppCustomInvoicingCustomerCreate) SetCustomerID(s string) *AppCustomInvoicingCustomerCreate {
 	acicc.mutation.SetCustomerID(s)
-	return acicc
-}
-
-// SetMetadata sets the "metadata" field.
-func (acicc *AppCustomInvoicingCustomerCreate) SetMetadata(m map[string]string) *AppCustomInvoicingCustomerCreate {
-	acicc.mutation.SetMetadata(m)
 	return acicc
 }
 

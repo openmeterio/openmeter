@@ -22,12 +22,12 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldMetadata holds the string denoting the metadata field in the database.
+	FieldMetadata = "metadata"
 	// FieldAppID holds the string denoting the app_id field in the database.
 	FieldAppID = "app_id"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
-	// FieldMetadata holds the string denoting the metadata field in the database.
-	FieldMetadata = "metadata"
 	// EdgeCustomInvoicingApp holds the string denoting the custom_invoicing_app edge name in mutations.
 	EdgeCustomInvoicingApp = "custom_invoicing_app"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
@@ -57,9 +57,9 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
+	FieldMetadata,
 	FieldAppID,
 	FieldCustomerID,
-	FieldMetadata,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
