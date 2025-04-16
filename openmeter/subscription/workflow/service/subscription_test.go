@@ -59,6 +59,34 @@ func TestCreateFromPlan(t *testing.T) {
 				assert.True(t, models.IsGenericNotFoundError(err), "expected customer not found error, got %T", err)
 			},
 		},
+		{
+			Name: "Should add annotations to all created items",
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				subView, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+						Timing: subscription.Timing{
+							Custom: &deps.CurrentTime,
+						},
+					},
+					CustomerID: deps.Customer.ID,
+					Namespace:  subscriptiontestutils.ExampleNamespace,
+				}, deps.Plan)
+				require.Nil(t, err)
+
+				for _, phase := range subView.Phases {
+					for _, item := range phase.ItemsByKey {
+						for _, i := range item {
+							require.NotNil(t, i.SubscriptionItem.Annotations)
+							systems := subscription.AnnotationParser.ListOwnerSubSystems(i.SubscriptionItem.Annotations)
+							require.Contains(t, systems, subscription.OwnerSubscriptionSubSystem)
+						}
+					}
+				}
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -246,6 +274,7 @@ func TestEditRunning(t *testing.T) {
 					Service:            &mSvc,
 					CustomerService:    tuDeps.CustomerService,
 					TransactionManager: tuDeps.CustomerAdapter,
+					AddonService:       tuDeps.SubscriptionAddonService,
 				})
 
 				_, err := workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1}, immediate)

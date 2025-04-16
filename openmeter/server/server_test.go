@@ -50,6 +50,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
@@ -1205,6 +1206,10 @@ func (n NoopSubscriptionWorkflowService) ChangeToPlan(ctx context.Context, subsc
 
 func (n NoopSubscriptionWorkflowService) Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
 	return subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionWorkflowService) PurchaseAddon(ctx context.Context, subscriptionID models.NamespacedID, inp subscriptionaddon.CreateSubscriptionAddonInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {
+	return subscription.SubscriptionView{}, subscriptionaddon.SubscriptionAddon{}, nil
 }
 
 var _ grant.Repo = (*NoopGrantRepo)(nil)

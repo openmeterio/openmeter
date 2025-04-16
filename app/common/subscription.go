@@ -7,12 +7,16 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	subscriptionchangeservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	subscriptionaddonrepo "github.com/openmeterio/openmeter/openmeter/subscription/addon/repo"
+	subscriptionaddonservice "github.com/openmeterio/openmeter/openmeter/subscription/addon/service"
 	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/entitlement"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
@@ -26,13 +30,12 @@ var Subscription = wire.NewSet(
 	NewSubscriptionServices,
 )
 
-// Combine Srvice and WorkflowService into one struct
-// We do this to able to initialize the Service and WorkflowService together
-// and share the same subscriptionRepo.
+// TODO: break up to multiple initializers
 type SubscriptionServiceWithWorkflow struct {
-	Service                 subscription.Service
-	WorkflowService         subscriptionworkflow.Service
-	PlanSubscriptionService plansubscription.PlanSubscriptionService
+	Service                  subscription.Service
+	WorkflowService          subscriptionworkflow.Service
+	PlanSubscriptionService  plansubscription.PlanSubscriptionService
+	SubscriptionAddonService subscriptionaddon.Service
 }
 
 func NewSubscriptionServices(
@@ -42,6 +45,7 @@ func NewSubscriptionServices(
 	entitlementRegistry *registry.Entitlement,
 	customerService customer.Service,
 	planService plan.Service,
+	addonService addon.Service,
 	eventPublisher eventbus.Publisher,
 ) (SubscriptionServiceWithWorkflow, error) {
 	subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(db)
@@ -63,6 +67,18 @@ func NewSubscriptionServices(
 		FeatureService:        featureConnector,
 		TransactionManager:    subscriptionRepo,
 		Publisher:             eventPublisher,
+	})
+
+	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(db)
+	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(db)
+
+	subAddSvc := subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
+		TxManager:     subAddRepo,
+		Logger:        logger,
+		AddonService:  addonService,
+		SubService:    subscriptionService,
+		SubAddRepo:    subAddRepo,
+		SubAddQtyRepo: subAddQtyRepo,
 	})
 
 	subscriptionWorkflowService := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
@@ -87,8 +103,9 @@ func NewSubscriptionServices(
 	customerService.RegisterRequestValidator(validator)
 
 	return SubscriptionServiceWithWorkflow{
-		Service:                 subscriptionService,
-		WorkflowService:         subscriptionWorkflowService,
-		PlanSubscriptionService: planSubscriptionService,
+		Service:                  subscriptionService,
+		WorkflowService:          subscriptionWorkflowService,
+		PlanSubscriptionService:  planSubscriptionService,
+		SubscriptionAddonService: subAddSvc,
 	}, nil
 }

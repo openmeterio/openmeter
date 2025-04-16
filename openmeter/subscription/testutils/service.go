@@ -157,6 +157,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Service:            svc,
 		CustomerService:    customer,
 		TransactionManager: subItemRepo,
+		AddonService:       subAddSvc,
 	})
 
 	return SubscriptionDependencies{

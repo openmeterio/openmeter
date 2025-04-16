@@ -175,8 +175,8 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 				// Let's validate the item properties
 				assert.Equal(t, i1.ItemKey, i2.ItemKey)
 				assert.True(t, i1.RateCard.Equal(i2.RateCard), "rate card mismatch for item %s in phase %s: \nspec: %+v\n\nview: %+v", itemKey, key, i1.RateCard, i2.RateCard)
-				assert.Equal(t, i1.CreateSubscriptionItemPlanInput, i2.CreateSubscriptionItemPlanInput)
-				assert.Equal(t, i1.CreateSubscriptionItemCustomerInput, i2.CreateSubscriptionItemCustomerInput)
+				assert.Equal(t, i1.CreateSubscriptionItemPlanInput, i2.CreateSubscriptionItemPlanInput, "create subscription item plan input mismatch for item %s in phase %s", itemKey, key)
+				assert.Equal(t, i1.CreateSubscriptionItemCustomerInput, i2.CreateSubscriptionItemCustomerInput, "create subscription item customer input mismatch for item %s in phase %s", itemKey, key)
 			}
 		}
 	}
