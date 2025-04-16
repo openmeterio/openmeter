@@ -7206,6 +7206,11 @@ export interface components {
        */
       readonly annotations?: components['schemas']['Annotations']
       /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
        * Addon
        * @description Partially populated add-on properties.
        */
@@ -7245,20 +7250,13 @@ export interface components {
        */
       maxQuantity?: number
     }
-    /** @description Resource create operation model. */
+    /** @description A plan add-on assignment create request. */
     PlanAddonCreate: {
       /**
-       * Addon
-       * @description Partially populated add-on properties.
+       * Metadata
+       * @description Additional metadata for the resource.
        */
-      addon: {
-        /**
-         * ID
-         * @description The ID of the add-on.
-         * @example 01G65Z755AFWAKHE12NY0CQ9FH
-         */
-        id: string
-      }
+      metadata?: components['schemas']['Metadata']
       /**
        * The plan phase from the add-on becomes purchasable
        * @description The key of the plan phase from the add-on becomes available for purchase.
@@ -7270,6 +7268,17 @@ export interface components {
        *     It is not applicable for add-ons with single instance type.
        */
       maxQuantity?: number
+      /**
+       * Addon
+       * @description The add-on to create.
+       */
+      addon: {
+        /**
+         * @description The ID of the add-on.
+         * @example 01G65Z755AFWAKHE12NY0CQ9FH
+         */
+        id: string
+      }
     }
     /**
      * @description Order by options for plan add-on assignments.
@@ -7297,7 +7306,12 @@ export interface components {
       items: components['schemas']['PlanAddon'][]
     }
     /** @description Resource update operation model. */
-    PlanAddonUpdate: {
+    PlanAddonReplaceUpdate: {
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata']
       /**
        * The plan phase from the add-on becomes purchasable
        * @description The key of the plan phase from the add-on becomes available for purchase.
@@ -9838,7 +9852,8 @@ export type PlanAddonCreate = components['schemas']['PlanAddonCreate']
 export type PlanAddonOrderBy = components['schemas']['PlanAddonOrderBy']
 export type PlanAddonPaginatedResponse =
   components['schemas']['PlanAddonPaginatedResponse']
-export type PlanAddonUpdate = components['schemas']['PlanAddonUpdate']
+export type PlanAddonReplaceUpdate =
+  components['schemas']['PlanAddonReplaceUpdate']
 export type PlanCreate = components['schemas']['PlanCreate']
 export type PlanOrderBy = components['schemas']['PlanOrderBy']
 export type PlanPaginatedResponse =
@@ -19201,7 +19216,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['PlanAddonUpdate']
+        'application/json': components['schemas']['PlanAddonReplaceUpdate']
       }
     }
     responses: {

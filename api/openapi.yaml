@@ -7161,7 +7161,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PlanAddonUpdate'
+              $ref: '#/components/schemas/PlanAddonReplaceUpdate'
       x-internal: true
     get:
       operationId: getPlanAddon
@@ -18244,6 +18244,11 @@ components:
           description: Set of key-value pairs managed by the system. Cannot be modified by user.
           title: Annotations
           readOnly: true
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
         addon:
           type: object
           properties:
@@ -18295,22 +18300,14 @@ components:
     PlanAddonCreate:
       type: object
       required:
-        - addon
         - fromPlanPhase
+        - addon
       properties:
-        addon:
-          type: object
-          properties:
-            id:
-              type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: The ID of the add-on.
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-              title: ID
-          required:
-            - id
-          description: Partially populated add-on properties.
-          title: Addon
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
         fromPlanPhase:
           type: string
           description: The key of the plan phase from the add-on becomes available for purchase.
@@ -18321,7 +18318,19 @@ components:
             The maximum number of times the add-on can be purchased for the plan.
             It is not applicable for add-ons with single instance type.
           title: Max quantity of the add-on
-      description: Resource create operation model.
+        addon:
+          type: object
+          properties:
+            id:
+              type: string
+              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: The ID of the add-on.
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
+          required:
+            - id
+          description: The add-on to create.
+          title: Addon
+      description: A plan add-on assignment create request.
     PlanAddonOrderBy:
       type: string
       enum:
@@ -18357,11 +18366,16 @@ components:
             $ref: '#/components/schemas/PlanAddon'
           description: The items in the current page.
       description: Paginated response
-    PlanAddonUpdate:
+    PlanAddonReplaceUpdate:
       type: object
       required:
         - fromPlanPhase
       properties:
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the resource.
+          title: Metadata
         fromPlanPhase:
           type: string
           description: The key of the plan phase from the add-on becomes available for purchase.
