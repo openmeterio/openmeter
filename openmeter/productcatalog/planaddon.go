@@ -7,30 +7,41 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var (
-	_ models.Validator                            = (*PlanAddonAssignment)(nil)
-	_ models.CustomValidator[PlanAddonAssignment] = (*PlanAddonAssignment)(nil)
-)
+type PlanAddonMeta struct {
+	models.Metadata
+	models.Annotations
 
-type PlanAddonAssignment struct {
-	// Addon
-	Plan Plan `json:"plan"`
+	PlanAddonConfig
+}
 
-	// Addon
-	Addon Addon `json:"addon"`
-
-	// FromPhase
-	FromPlanPhase int `json:"fromPlanPhase"`
+type PlanAddonConfig struct {
+	// FromPlanPhase
+	FromPlanPhase string `json:"fromPlanPhase"`
 
 	// MaxQuantity
 	MaxQuantity *int `json:"maxQuantity"`
 }
 
-func (c PlanAddonAssignment) ValidateWith(validators ...models.ValidatorFunc[PlanAddonAssignment]) error {
+var (
+	_ models.Validator                  = (*PlanAddon)(nil)
+	_ models.CustomValidator[PlanAddon] = (*PlanAddon)(nil)
+)
+
+type PlanAddon struct {
+	PlanAddonMeta
+
+	// Plan
+	Plan Plan `json:"plan"`
+
+	// Addon
+	Addon Addon `json:"addon"`
+}
+
+func (c PlanAddon) ValidateWith(validators ...models.ValidatorFunc[PlanAddon]) error {
 	return models.Validate(c, validators...)
 }
 
-func (c PlanAddonAssignment) Validate() error {
+func (c PlanAddon) Validate() error {
 	var errs []error
 
 	// Validate config
@@ -80,18 +91,30 @@ func (c PlanAddonAssignment) Validate() error {
 		errs = append(errs, errors.New("currency mismatch"))
 	}
 
-	// Validate ratecards from plan phases and addon.
-	for idx, phase := range c.Plan.Phases {
-		if idx < c.FromPlanPhase {
-			continue
+	if len(c.Plan.Phases) > 0 {
+		var phaseIdx = -1
+		for i, phase := range c.Plan.Phases {
+			if phase.Key == c.FromPlanPhase {
+				phaseIdx = i
+				break
+			}
 		}
 
-		// If ratecards can be merged then they are compatible.
-		if err := phase.RateCards.Compatible(c.Addon.RateCards); err != nil {
-			errs = append(errs,
-				fmt.Errorf("invalid phase [phase.key=%s]: ratecards cannot be merged: %w", phase.Key, err),
-			)
+		if phaseIdx == -1 {
+			errs = append(errs, fmt.Errorf("plan does not have phase %q", c.FromPlanPhase))
+		} else {
+			// Validate ratecards from plan phases and addon.
+			for _, phase := range c.Plan.Phases[phaseIdx:] {
+				// If ratecards can be merged then they are compatible.
+				if err := phase.RateCards.Compatible(c.Addon.RateCards); err != nil {
+					errs = append(errs,
+						fmt.Errorf("invalid phase [phase.key=%s]: ratecards are not compatible: %w", phase.Key, err),
+					)
+				}
+			}
 		}
+	} else {
+		errs = append(errs, errors.New("invalid plan: has no phases"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
