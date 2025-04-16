@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestPurchaseAddon(t *testing.T) {
+func TestAddAddon(t *testing.T) {
 	now := testutils.GetRFC3339Time(t, "2025-04-01T00:00:00Z")
 
 	type testCaseDeps struct {
@@ -62,7 +62,7 @@ func TestPurchaseAddon(t *testing.T) {
 		expectedErr := addonInp.Validate()
 		require.NotNil(t, expectedErr)
 
-		_, _, err := deps.deps.WorkflowService.PurchaseAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		_, _, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.Error(t, err)
 
 		require.True(t, models.IsGenericValidationError(err))
@@ -88,7 +88,7 @@ func TestPurchaseAddon(t *testing.T) {
 		// We need a new addon to avoid conflicts
 		add := deps.deps.AddonService.CreateTestAddon(t, addInp)
 
-		_, _, err := deps.deps.WorkflowService.PurchaseAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionaddon.CreateSubscriptionAddonInput{
+		_, _, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionaddon.CreateSubscriptionAddonInput{
 			AddonID:        add.ID,
 			SubscriptionID: subView.Subscription.NamespacedID.ID,
 			InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
@@ -129,7 +129,7 @@ func TestPurchaseAddon(t *testing.T) {
 			},
 		}
 
-		subView, subAdd, err := deps.deps.WorkflowService.PurchaseAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		subView, subAdd, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.NoError(t, err)
 
 		// Let's figure out what the expected spec should be
@@ -174,10 +174,10 @@ func TestPurchaseAddon(t *testing.T) {
 			},
 		}
 
-		_, _, err := deps.deps.WorkflowService.PurchaseAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		_, _, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.NoError(t, err)
 
-		_, _, err = deps.deps.WorkflowService.PurchaseAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		_, _, err = deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.Error(t, err)
 		require.ErrorAs(t, err, lo.ToPtr(&models.GenericConflictError{}))
 		require.True(t, models.IsGenericConflictError(err))

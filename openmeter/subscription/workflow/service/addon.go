@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (s *service) PurchaseAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp subscriptionaddon.CreateSubscriptionAddonInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {
+func (s *service) AddAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp subscriptionaddon.CreateSubscriptionAddonInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {
 	var def1 subscription.SubscriptionView
 	var def2 subscriptionaddon.SubscriptionAddon
 

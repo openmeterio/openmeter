@@ -1208,7 +1208,7 @@ func (n NoopSubscriptionWorkflowService) Restore(ctx context.Context, subscripti
 	return subscription.Subscription{}, nil
 }
 
-func (n NoopSubscriptionWorkflowService) PurchaseAddon(ctx context.Context, subscriptionID models.NamespacedID, inp subscriptionaddon.CreateSubscriptionAddonInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {
+func (n NoopSubscriptionWorkflowService) AddAddon(ctx context.Context, subscriptionID models.NamespacedID, inp subscriptionaddon.CreateSubscriptionAddonInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {
 	return subscription.SubscriptionView{}, subscriptionaddon.SubscriptionAddon{}, nil
 }
 

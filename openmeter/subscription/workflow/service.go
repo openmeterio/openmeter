@@ -14,7 +14,7 @@ type Service interface {
 	ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp ChangeSubscriptionWorkflowInput, plan subscription.Plan) (current subscription.Subscription, new subscription.SubscriptionView, err error)
 	Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 
-	PurchaseAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp subscriptionaddon.CreateSubscriptionAddonInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error)
+	AddAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp subscriptionaddon.CreateSubscriptionAddonInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error)
 }
 
 type CreateSubscriptionWorkflowInput struct {
