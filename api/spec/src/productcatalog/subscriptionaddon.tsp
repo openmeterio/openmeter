@@ -16,7 +16,37 @@ model SubscriptionAddon {
    * Partially populated add-on properties.
    */
   @summary("Addon")
-  addon: SubscriptionAddonAddon;
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  addon: {
+    /**
+     * The ID of the add-on.
+     */
+    @summary("ID")
+    @visibility(Lifecycle.Read, Lifecycle.Create)
+    id: ULID;
+
+    /**
+     * A semi-unique identifier for the resource.
+     */
+    @visibility(Lifecycle.Read)
+    @summary("Key")
+    key: Key;
+
+    /**
+     * The version of the Add-on which templates this instance.
+     */
+    @summary("Version")
+    @minValue(1)
+    @visibility(Lifecycle.Read)
+    version: integer = 1;
+
+    /**
+     * The instance type of the add-on.
+     */
+    @visibility(Lifecycle.Read)
+    @summary("InstanceType")
+    instanceType: AddonInstanceType;
+  };
 
   /**
    * For which point in time the quantity was resolved to.
@@ -78,38 +108,27 @@ model SubscriptionAddon {
 }
 
 /**
- * A subscription add-on's add-on info.
+ * A subscription add-on create body.
  */
-@friendlyName("SubscriptionAddonAddon")
-model SubscriptionAddonAddon {
-  /**
-   * The ID of the add-on.
-   */
-  @summary("ID")
-  @visibility(Lifecycle.Read, Lifecycle.Create)
-  id: ULID;
+@friendlyName("SubscriptionAddonCreate")
+@withVisibility(Lifecycle.Create)
+model SubscriptionAddonCreate {
+  ...OmitProperties<
+    DefaultKeyVisibility<SubscriptionAddon, Lifecycle.Read>,
+    "addon"
+  >;
 
   /**
-   * A semi-unique identifier for the resource.
+   * The add-on to create.
    */
-  @visibility(Lifecycle.Read)
-  @summary("Key")
-  key: Key;
-
-  /**
-   * The version of the Add-on which templates this instance.
-   */
-  @summary("Version")
-  @minValue(1)
-  @visibility(Lifecycle.Read)
-  version: integer = 1;
-
-  /**
-   * The instance type of the add-on.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("InstanceType")
-  instanceType: AddonInstanceType;
+  @summary("Addon")
+  @visibility(Lifecycle.Create)
+  addon: {
+    /**
+     * The ID of the add-on.
+     */
+    id: ULID;
+  };
 }
 
 /**

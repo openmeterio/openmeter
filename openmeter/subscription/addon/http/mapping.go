@@ -79,7 +79,12 @@ func MapSubscriptionAddonToResponse(view subscription.SubscriptionView, addon su
 		Description:    addon.Description,
 		Name:           addon.Name,
 		SubscriptionId: addon.SubscriptionID,
-		Addon: api.SubscriptionAddonAddon{
+		Addon: struct {
+			Id           string                "json:\"id\""
+			InstanceType api.AddonInstanceType "json:\"instanceType\""
+			Key          string                "json:\"key\""
+			Version      int                   "json:\"version\""
+		}{
 			Id:           addon.Addon.ID,
 			InstanceType: api.AddonInstanceType(addon.Addon.InstanceType),
 			Key:          addon.Addon.Key,

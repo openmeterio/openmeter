@@ -541,7 +541,7 @@ interface SubscriptionAddons {
     @path subscriptionId: ULID,
 
     @body
-    request: TypeSpec.Rest.Resource.ResourceCreateModel<SubscriptionAddon>,
+    request: SubscriptionAddonCreate,
   ):
     | {
         @statusCode _: 201;
