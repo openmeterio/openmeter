@@ -122,7 +122,7 @@ model BillingCustomerProfile {
    * The name and contact information for the supplier this billing profile represents
    */
   @visibility(Lifecycle.Read)
-  supplier: Invoices.BillingParty;
+  supplier: Invoice.BillingParty;
 
   /**
    * The billing workflow settings for this profile

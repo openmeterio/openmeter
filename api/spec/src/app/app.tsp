@@ -79,6 +79,7 @@ model ListAppsRequest {
 enum Type {
   Stripe: "stripe",
   Sandbox: "sandbox",
+  CustomInvoicing: "custom_invoicing",
 }
 
 /**
@@ -90,6 +91,7 @@ enum Type {
 union App {
   stripe: StripeApp,
   sandbox: SandboxApp,
+  custom_invoicing: CustomInvoicingApp,
 }
 
 /**

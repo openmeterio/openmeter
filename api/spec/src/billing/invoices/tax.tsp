@@ -7,7 +7,7 @@ using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 using OpenMeter.ProductCatalog;
 
-namespace Invoices;
+namespace OpenMeter.Billing.Invoice;
 
 /**
  * TaxConfig stores the configuration for a tax line relative to an invoice line.

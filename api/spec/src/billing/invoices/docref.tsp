@@ -6,7 +6,7 @@ using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
-namespace Invoices;
+namespace OpenMeter.Billing.Invoice;
 
 /**
  * InvoiceDocumentRefType defines the type of document that is being referenced.

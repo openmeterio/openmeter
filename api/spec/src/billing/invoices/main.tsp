@@ -20,4 +20,4 @@ using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 using TypeSpec.Versioning;
 
-namespace Invoice;
+namespace OpenMeter.Billing.Invoice;

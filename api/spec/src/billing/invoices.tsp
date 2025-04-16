@@ -32,7 +32,7 @@ interface InvoicesEndpoints {
     @statusCode _: 201;
 
     @body
-    body: Invoices.Invoice[];
+    body: Invoice.Invoice[];
   } | OpenMeter.CommonErrors;
 
   /**
@@ -45,7 +45,7 @@ interface InvoicesEndpoints {
     ...InvoiceListParams,
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryOrdering<InvoiceOrderBy>,
-  ): OpenMeter.PaginatedResponse<Invoices.Invoice> | OpenMeter.CommonErrors;
+  ): OpenMeter.PaginatedResponse<Invoice.Invoice> | OpenMeter.CommonErrors;
 
   /**
    * Create a new pending line item (charge).
@@ -63,10 +63,10 @@ interface InvoicesEndpoints {
   @operationId("createPendingInvoiceLine")
   createPendingInvoiceLine(
     @body
-    request: Invoices.InvoicePendingLineCreate[],
+    request: Invoice.InvoicePendingLineCreate[],
   ): {
     @statusCode _: 201;
-    @body body: Invoices.InvoiceLine[];
+    @body body: Invoice.InvoiceLine[];
   } | OpenMeter.CommonErrors;
 }
 
@@ -91,7 +91,7 @@ interface InvoiceEndpoints {
 
     @query
     includeDeletedLines?: boolean = false,
-  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Delete an invoice
@@ -122,7 +122,7 @@ interface InvoiceEndpoints {
 
     @body
     request: InvoiceReplaceUpdate,
-  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Recalculate an invoice's tax amounts (using the app set in the customer's billing profile)
@@ -136,7 +136,7 @@ interface InvoiceEndpoints {
   recalculateTaxAction(
     @path
     invoiceId: ULID,
-  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Approve an invoice and start executing the payment workflow.
@@ -154,7 +154,7 @@ interface InvoiceEndpoints {
   approveAction(
     @path
     invoiceId: ULID,
-  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Void an invoice
@@ -173,7 +173,7 @@ interface InvoiceEndpoints {
 
     @body
     request: VoidInvoiceActionInput,
-  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Advance the invoice's state to the next status.
@@ -189,7 +189,7 @@ interface InvoiceEndpoints {
   advanceAction(
     @path
     invoiceId: ULID,
-  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Retry advancing the invoice after a failed attempt.
@@ -203,7 +203,7 @@ interface InvoiceEndpoints {
   retryAction(
     @path
     invoiceId: ULID,
-  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
 @route("/api/v1/billing/customers/{customerId}/invoices/simulate")
@@ -225,7 +225,7 @@ interface InvoiceSimulationEndpoints {
 
     @body
     request: InvoiceSimulationInput,
-  ): Invoices.Invoice | OpenMeter.CommonErrors;
+  ): Invoice.Invoice | OpenMeter.CommonErrors;
 }
 
 /**
@@ -366,13 +366,13 @@ model InvoiceListParams {
    * Filter by the invoice status.
    */
   @query(#{ explode: true })
-  statuses?: Invoices.InvoiceStatus[];
+  statuses?: Invoice.InvoiceStatus[];
 
   /**
    * Filter by invoice extended statuses
    */
   @query(#{ explode: true })
-  extendedStatuses?: Invoices.InvoiceExtendedStatus[];
+  extendedStatuses?: Invoice.InvoiceExtendedStatus[];
 
   /**
    * Filter by invoice creation time
@@ -470,7 +470,7 @@ model InvoiceSimulationInput {
    * The number of the invoice.
    */
   @visibility(Lifecycle.Create)
-  number?: Invoices.InvoiceNumber;
+  number?: Invoice.InvoiceNumber;
 
   /**
    * Currency for all invoice line items.
@@ -503,7 +503,7 @@ union InvoiceSimulationLine {
 @friendlyName("InvoiceSimulationUsageBasedLine")
 model InvoiceSimulationUsageBasedLine {
   ...Rest.Resource.ResourceCreateModel<OmitProperties<
-    Invoices.InvoiceUsageBasedLine,
+    Invoice.InvoiceUsageBasedLine,
     "invoice" | "currency"
   >>;
 
@@ -534,7 +534,7 @@ model InvoiceSimulationUsageBasedLine {
 @friendlyName("InvoiceSimulationFlatFeeLine")
 model InvoiceSimulationFlatFeeLine {
   ...Rest.Resource.ResourceCreateModel<OmitProperties<
-    Invoices.InvoiceFlatFeeLine,
+    Invoice.InvoiceFlatFeeLine,
     "invoice" | "currency"
   >>;
 
@@ -553,7 +553,7 @@ model InvoiceSimulationFlatFeeLine {
 @friendlyName("InvoiceReplaceUpdate")
 model InvoiceReplaceUpdate {
   ...Rest.Resource.ResourceReplaceModel<OmitProperties<
-    Invoices.Invoice,
+    Invoice.Invoice,
     "lines" | "supplier" | "customer" | "discounts" | "workflow" // TODO: discounts is not yet implemented, then we need to enable it
   >>;
 
@@ -561,19 +561,19 @@ model InvoiceReplaceUpdate {
    * The supplier of the lines included in the invoice.
    */
   @visibility(Lifecycle.Update)
-  supplier: Rest.Resource.ResourceReplaceModel<Invoices.BillingParty>;
+  supplier: Rest.Resource.ResourceReplaceModel<Invoice.BillingParty>;
 
   /**
    * The customer the invoice is sent to.
    */
   @visibility(Lifecycle.Update)
-  customer: Rest.Resource.ResourceReplaceModel<Invoices.BillingParty>;
+  customer: Rest.Resource.ResourceReplaceModel<Invoice.BillingParty>;
 
   /**
    * The lines included in the invoice.
    */
   @visibility(Lifecycle.Update)
-  lines: Invoices.InvoiceLineReplaceUpdate[];
+  lines: Invoice.InvoiceLineReplaceUpdate[];
 
   /**
    * The workflow settings for the invoice.

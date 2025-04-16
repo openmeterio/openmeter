@@ -2,7 +2,7 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
 
-namespace Invoices;
+namespace OpenMeter.Billing.Invoice;
 
 /**
  * InvoiceDiscountBase represents a charge or discount that can be applied to a line or the entire invoice.
