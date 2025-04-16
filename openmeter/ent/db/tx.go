@@ -20,6 +20,10 @@ type Tx struct {
 	AddonRateCard *AddonRateCardClient
 	// App is the client for interacting with the App builders.
 	App *AppClient
+	// AppCustomInvoicing is the client for interacting with the AppCustomInvoicing builders.
+	AppCustomInvoicing *AppCustomInvoicingClient
+	// AppCustomInvoicingCustomer is the client for interacting with the AppCustomInvoicingCustomer builders.
+	AppCustomInvoicingCustomer *AppCustomInvoicingCustomerClient
 	// AppCustomer is the client for interacting with the AppCustomer builders.
 	AppCustomer *AppCustomerClient
 	// AppStripe is the client for interacting with the AppStripe builders.
@@ -226,6 +230,8 @@ func (tx *Tx) init() {
 	tx.Addon = NewAddonClient(tx.config)
 	tx.AddonRateCard = NewAddonRateCardClient(tx.config)
 	tx.App = NewAppClient(tx.config)
+	tx.AppCustomInvoicing = NewAppCustomInvoicingClient(tx.config)
+	tx.AppCustomInvoicingCustomer = NewAppCustomInvoicingCustomerClient(tx.config)
 	tx.AppCustomer = NewAppCustomerClient(tx.config)
 	tx.AppStripe = NewAppStripeClient(tx.config)
 	tx.AppStripeCustomer = NewAppStripeCustomerClient(tx.config)

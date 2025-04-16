@@ -45,6 +45,30 @@ func (f AppFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.AppMutation", m)
 }
 
+// The AppCustomInvoicingFunc type is an adapter to allow the use of ordinary
+// function as AppCustomInvoicing mutator.
+type AppCustomInvoicingFunc func(context.Context, *db.AppCustomInvoicingMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AppCustomInvoicingFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.AppCustomInvoicingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.AppCustomInvoicingMutation", m)
+}
+
+// The AppCustomInvoicingCustomerFunc type is an adapter to allow the use of ordinary
+// function as AppCustomInvoicingCustomer mutator.
+type AppCustomInvoicingCustomerFunc func(context.Context, *db.AppCustomInvoicingCustomerMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AppCustomInvoicingCustomerFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.AppCustomInvoicingCustomerMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.AppCustomInvoicingCustomerMutation", m)
+}
+
 // The AppCustomerFunc type is an adapter to allow the use of ordinary
 // function as AppCustomer mutator.
 type AppCustomerFunc func(context.Context, *db.AppCustomerMutation) (db.Value, error)

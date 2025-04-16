@@ -20,6 +20,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicing"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
@@ -76,6 +78,8 @@ const (
 	TypeAddon                              = "Addon"
 	TypeAddonRateCard                      = "AddonRateCard"
 	TypeApp                                = "App"
+	TypeAppCustomInvoicing                 = "AppCustomInvoicing"
+	TypeAppCustomInvoicingCustomer         = "AppCustomInvoicingCustomer"
 	TypeAppCustomer                        = "AppCustomer"
 	TypeAppStripe                          = "AppStripe"
 	TypeAppStripeCustomer                  = "AppStripeCustomer"
@@ -4529,6 +4533,1586 @@ func (m *AppMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown App edge %s", name)
+}
+
+// AppCustomInvoicingMutation represents an operation that mutates the AppCustomInvoicing nodes in the graph.
+type AppCustomInvoicingMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *string
+	namespace              *string
+	created_at             *time.Time
+	updated_at             *time.Time
+	deleted_at             *time.Time
+	skip_draft_sync_hook   *bool
+	skip_issuing_sync_hook *bool
+	clearedFields          map[string]struct{}
+	customer_apps          map[int]struct{}
+	removedcustomer_apps   map[int]struct{}
+	clearedcustomer_apps   bool
+	app                    *string
+	clearedapp             bool
+	done                   bool
+	oldValue               func(context.Context) (*AppCustomInvoicing, error)
+	predicates             []predicate.AppCustomInvoicing
+}
+
+var _ ent.Mutation = (*AppCustomInvoicingMutation)(nil)
+
+// appcustominvoicingOption allows management of the mutation configuration using functional options.
+type appcustominvoicingOption func(*AppCustomInvoicingMutation)
+
+// newAppCustomInvoicingMutation creates new mutation for the AppCustomInvoicing entity.
+func newAppCustomInvoicingMutation(c config, op Op, opts ...appcustominvoicingOption) *AppCustomInvoicingMutation {
+	m := &AppCustomInvoicingMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAppCustomInvoicing,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAppCustomInvoicingID sets the ID field of the mutation.
+func withAppCustomInvoicingID(id string) appcustominvoicingOption {
+	return func(m *AppCustomInvoicingMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AppCustomInvoicing
+		)
+		m.oldValue = func(ctx context.Context) (*AppCustomInvoicing, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AppCustomInvoicing.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAppCustomInvoicing sets the old AppCustomInvoicing of the mutation.
+func withAppCustomInvoicing(node *AppCustomInvoicing) appcustominvoicingOption {
+	return func(m *AppCustomInvoicingMutation) {
+		m.oldValue = func(context.Context) (*AppCustomInvoicing, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AppCustomInvoicingMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AppCustomInvoicingMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of AppCustomInvoicing entities.
+func (m *AppCustomInvoicingMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AppCustomInvoicingMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AppCustomInvoicingMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AppCustomInvoicing.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *AppCustomInvoicingMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *AppCustomInvoicingMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the AppCustomInvoicing entity.
+// If the AppCustomInvoicing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *AppCustomInvoicingMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AppCustomInvoicingMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AppCustomInvoicingMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AppCustomInvoicing entity.
+// If the AppCustomInvoicing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AppCustomInvoicingMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *AppCustomInvoicingMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *AppCustomInvoicingMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the AppCustomInvoicing entity.
+// If the AppCustomInvoicing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *AppCustomInvoicingMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *AppCustomInvoicingMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *AppCustomInvoicingMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the AppCustomInvoicing entity.
+// If the AppCustomInvoicing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *AppCustomInvoicingMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[appcustominvoicing.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *AppCustomInvoicingMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[appcustominvoicing.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *AppCustomInvoicingMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, appcustominvoicing.FieldDeletedAt)
+}
+
+// SetSkipDraftSyncHook sets the "skip_draft_sync_hook" field.
+func (m *AppCustomInvoicingMutation) SetSkipDraftSyncHook(b bool) {
+	m.skip_draft_sync_hook = &b
+}
+
+// SkipDraftSyncHook returns the value of the "skip_draft_sync_hook" field in the mutation.
+func (m *AppCustomInvoicingMutation) SkipDraftSyncHook() (r bool, exists bool) {
+	v := m.skip_draft_sync_hook
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSkipDraftSyncHook returns the old "skip_draft_sync_hook" field's value of the AppCustomInvoicing entity.
+// If the AppCustomInvoicing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingMutation) OldSkipDraftSyncHook(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSkipDraftSyncHook is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSkipDraftSyncHook requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSkipDraftSyncHook: %w", err)
+	}
+	return oldValue.SkipDraftSyncHook, nil
+}
+
+// ResetSkipDraftSyncHook resets all changes to the "skip_draft_sync_hook" field.
+func (m *AppCustomInvoicingMutation) ResetSkipDraftSyncHook() {
+	m.skip_draft_sync_hook = nil
+}
+
+// SetSkipIssuingSyncHook sets the "skip_issuing_sync_hook" field.
+func (m *AppCustomInvoicingMutation) SetSkipIssuingSyncHook(b bool) {
+	m.skip_issuing_sync_hook = &b
+}
+
+// SkipIssuingSyncHook returns the value of the "skip_issuing_sync_hook" field in the mutation.
+func (m *AppCustomInvoicingMutation) SkipIssuingSyncHook() (r bool, exists bool) {
+	v := m.skip_issuing_sync_hook
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSkipIssuingSyncHook returns the old "skip_issuing_sync_hook" field's value of the AppCustomInvoicing entity.
+// If the AppCustomInvoicing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingMutation) OldSkipIssuingSyncHook(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSkipIssuingSyncHook is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSkipIssuingSyncHook requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSkipIssuingSyncHook: %w", err)
+	}
+	return oldValue.SkipIssuingSyncHook, nil
+}
+
+// ResetSkipIssuingSyncHook resets all changes to the "skip_issuing_sync_hook" field.
+func (m *AppCustomInvoicingMutation) ResetSkipIssuingSyncHook() {
+	m.skip_issuing_sync_hook = nil
+}
+
+// AddCustomerAppIDs adds the "customer_apps" edge to the AppCustomInvoicingCustomer entity by ids.
+func (m *AppCustomInvoicingMutation) AddCustomerAppIDs(ids ...int) {
+	if m.customer_apps == nil {
+		m.customer_apps = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.customer_apps[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCustomerApps clears the "customer_apps" edge to the AppCustomInvoicingCustomer entity.
+func (m *AppCustomInvoicingMutation) ClearCustomerApps() {
+	m.clearedcustomer_apps = true
+}
+
+// CustomerAppsCleared reports if the "customer_apps" edge to the AppCustomInvoicingCustomer entity was cleared.
+func (m *AppCustomInvoicingMutation) CustomerAppsCleared() bool {
+	return m.clearedcustomer_apps
+}
+
+// RemoveCustomerAppIDs removes the "customer_apps" edge to the AppCustomInvoicingCustomer entity by IDs.
+func (m *AppCustomInvoicingMutation) RemoveCustomerAppIDs(ids ...int) {
+	if m.removedcustomer_apps == nil {
+		m.removedcustomer_apps = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.customer_apps, ids[i])
+		m.removedcustomer_apps[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCustomerApps returns the removed IDs of the "customer_apps" edge to the AppCustomInvoicingCustomer entity.
+func (m *AppCustomInvoicingMutation) RemovedCustomerAppsIDs() (ids []int) {
+	for id := range m.removedcustomer_apps {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CustomerAppsIDs returns the "customer_apps" edge IDs in the mutation.
+func (m *AppCustomInvoicingMutation) CustomerAppsIDs() (ids []int) {
+	for id := range m.customer_apps {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCustomerApps resets all changes to the "customer_apps" edge.
+func (m *AppCustomInvoicingMutation) ResetCustomerApps() {
+	m.customer_apps = nil
+	m.clearedcustomer_apps = false
+	m.removedcustomer_apps = nil
+}
+
+// SetAppID sets the "app" edge to the App entity by id.
+func (m *AppCustomInvoicingMutation) SetAppID(id string) {
+	m.app = &id
+}
+
+// ClearApp clears the "app" edge to the App entity.
+func (m *AppCustomInvoicingMutation) ClearApp() {
+	m.clearedapp = true
+}
+
+// AppCleared reports if the "app" edge to the App entity was cleared.
+func (m *AppCustomInvoicingMutation) AppCleared() bool {
+	return m.clearedapp
+}
+
+// AppID returns the "app" edge ID in the mutation.
+func (m *AppCustomInvoicingMutation) AppID() (id string, exists bool) {
+	if m.app != nil {
+		return *m.app, true
+	}
+	return
+}
+
+// AppIDs returns the "app" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AppID instead. It exists only for internal usage by the builders.
+func (m *AppCustomInvoicingMutation) AppIDs() (ids []string) {
+	if id := m.app; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetApp resets all changes to the "app" edge.
+func (m *AppCustomInvoicingMutation) ResetApp() {
+	m.app = nil
+	m.clearedapp = false
+}
+
+// Where appends a list predicates to the AppCustomInvoicingMutation builder.
+func (m *AppCustomInvoicingMutation) Where(ps ...predicate.AppCustomInvoicing) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AppCustomInvoicingMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AppCustomInvoicingMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AppCustomInvoicing, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AppCustomInvoicingMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AppCustomInvoicingMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AppCustomInvoicing).
+func (m *AppCustomInvoicingMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AppCustomInvoicingMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.namespace != nil {
+		fields = append(fields, appcustominvoicing.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, appcustominvoicing.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, appcustominvoicing.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, appcustominvoicing.FieldDeletedAt)
+	}
+	if m.skip_draft_sync_hook != nil {
+		fields = append(fields, appcustominvoicing.FieldSkipDraftSyncHook)
+	}
+	if m.skip_issuing_sync_hook != nil {
+		fields = append(fields, appcustominvoicing.FieldSkipIssuingSyncHook)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AppCustomInvoicingMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case appcustominvoicing.FieldNamespace:
+		return m.Namespace()
+	case appcustominvoicing.FieldCreatedAt:
+		return m.CreatedAt()
+	case appcustominvoicing.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case appcustominvoicing.FieldDeletedAt:
+		return m.DeletedAt()
+	case appcustominvoicing.FieldSkipDraftSyncHook:
+		return m.SkipDraftSyncHook()
+	case appcustominvoicing.FieldSkipIssuingSyncHook:
+		return m.SkipIssuingSyncHook()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AppCustomInvoicingMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case appcustominvoicing.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case appcustominvoicing.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case appcustominvoicing.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case appcustominvoicing.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case appcustominvoicing.FieldSkipDraftSyncHook:
+		return m.OldSkipDraftSyncHook(ctx)
+	case appcustominvoicing.FieldSkipIssuingSyncHook:
+		return m.OldSkipIssuingSyncHook(ctx)
+	}
+	return nil, fmt.Errorf("unknown AppCustomInvoicing field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppCustomInvoicingMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case appcustominvoicing.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case appcustominvoicing.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case appcustominvoicing.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case appcustominvoicing.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case appcustominvoicing.FieldSkipDraftSyncHook:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSkipDraftSyncHook(v)
+		return nil
+	case appcustominvoicing.FieldSkipIssuingSyncHook:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSkipIssuingSyncHook(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AppCustomInvoicing field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AppCustomInvoicingMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AppCustomInvoicingMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppCustomInvoicingMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown AppCustomInvoicing numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AppCustomInvoicingMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(appcustominvoicing.FieldDeletedAt) {
+		fields = append(fields, appcustominvoicing.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AppCustomInvoicingMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AppCustomInvoicingMutation) ClearField(name string) error {
+	switch name {
+	case appcustominvoicing.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AppCustomInvoicing nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AppCustomInvoicingMutation) ResetField(name string) error {
+	switch name {
+	case appcustominvoicing.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case appcustominvoicing.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case appcustominvoicing.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case appcustominvoicing.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case appcustominvoicing.FieldSkipDraftSyncHook:
+		m.ResetSkipDraftSyncHook()
+		return nil
+	case appcustominvoicing.FieldSkipIssuingSyncHook:
+		m.ResetSkipIssuingSyncHook()
+		return nil
+	}
+	return fmt.Errorf("unknown AppCustomInvoicing field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AppCustomInvoicingMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.customer_apps != nil {
+		edges = append(edges, appcustominvoicing.EdgeCustomerApps)
+	}
+	if m.app != nil {
+		edges = append(edges, appcustominvoicing.EdgeApp)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AppCustomInvoicingMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case appcustominvoicing.EdgeCustomerApps:
+		ids := make([]ent.Value, 0, len(m.customer_apps))
+		for id := range m.customer_apps {
+			ids = append(ids, id)
+		}
+		return ids
+	case appcustominvoicing.EdgeApp:
+		if id := m.app; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AppCustomInvoicingMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedcustomer_apps != nil {
+		edges = append(edges, appcustominvoicing.EdgeCustomerApps)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AppCustomInvoicingMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case appcustominvoicing.EdgeCustomerApps:
+		ids := make([]ent.Value, 0, len(m.removedcustomer_apps))
+		for id := range m.removedcustomer_apps {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AppCustomInvoicingMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedcustomer_apps {
+		edges = append(edges, appcustominvoicing.EdgeCustomerApps)
+	}
+	if m.clearedapp {
+		edges = append(edges, appcustominvoicing.EdgeApp)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AppCustomInvoicingMutation) EdgeCleared(name string) bool {
+	switch name {
+	case appcustominvoicing.EdgeCustomerApps:
+		return m.clearedcustomer_apps
+	case appcustominvoicing.EdgeApp:
+		return m.clearedapp
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AppCustomInvoicingMutation) ClearEdge(name string) error {
+	switch name {
+	case appcustominvoicing.EdgeApp:
+		m.ClearApp()
+		return nil
+	}
+	return fmt.Errorf("unknown AppCustomInvoicing unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AppCustomInvoicingMutation) ResetEdge(name string) error {
+	switch name {
+	case appcustominvoicing.EdgeCustomerApps:
+		m.ResetCustomerApps()
+		return nil
+	case appcustominvoicing.EdgeApp:
+		m.ResetApp()
+		return nil
+	}
+	return fmt.Errorf("unknown AppCustomInvoicing edge %s", name)
+}
+
+// AppCustomInvoicingCustomerMutation represents an operation that mutates the AppCustomInvoicingCustomer nodes in the graph.
+type AppCustomInvoicingCustomerMutation struct {
+	config
+	op                          Op
+	typ                         string
+	id                          *int
+	namespace                   *string
+	created_at                  *time.Time
+	updated_at                  *time.Time
+	deleted_at                  *time.Time
+	metadata                    *map[string]string
+	clearedFields               map[string]struct{}
+	custom_invoicing_app        *string
+	clearedcustom_invoicing_app bool
+	customer                    *string
+	clearedcustomer             bool
+	done                        bool
+	oldValue                    func(context.Context) (*AppCustomInvoicingCustomer, error)
+	predicates                  []predicate.AppCustomInvoicingCustomer
+}
+
+var _ ent.Mutation = (*AppCustomInvoicingCustomerMutation)(nil)
+
+// appcustominvoicingcustomerOption allows management of the mutation configuration using functional options.
+type appcustominvoicingcustomerOption func(*AppCustomInvoicingCustomerMutation)
+
+// newAppCustomInvoicingCustomerMutation creates new mutation for the AppCustomInvoicingCustomer entity.
+func newAppCustomInvoicingCustomerMutation(c config, op Op, opts ...appcustominvoicingcustomerOption) *AppCustomInvoicingCustomerMutation {
+	m := &AppCustomInvoicingCustomerMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAppCustomInvoicingCustomer,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAppCustomInvoicingCustomerID sets the ID field of the mutation.
+func withAppCustomInvoicingCustomerID(id int) appcustominvoicingcustomerOption {
+	return func(m *AppCustomInvoicingCustomerMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AppCustomInvoicingCustomer
+		)
+		m.oldValue = func(ctx context.Context) (*AppCustomInvoicingCustomer, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AppCustomInvoicingCustomer.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAppCustomInvoicingCustomer sets the old AppCustomInvoicingCustomer of the mutation.
+func withAppCustomInvoicingCustomer(node *AppCustomInvoicingCustomer) appcustominvoicingcustomerOption {
+	return func(m *AppCustomInvoicingCustomerMutation) {
+		m.oldValue = func(context.Context) (*AppCustomInvoicingCustomer, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AppCustomInvoicingCustomerMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AppCustomInvoicingCustomerMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AppCustomInvoicingCustomerMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AppCustomInvoicingCustomerMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AppCustomInvoicingCustomer.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *AppCustomInvoicingCustomerMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *AppCustomInvoicingCustomerMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the AppCustomInvoicingCustomer entity.
+// If the AppCustomInvoicingCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingCustomerMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *AppCustomInvoicingCustomerMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AppCustomInvoicingCustomerMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AppCustomInvoicingCustomerMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AppCustomInvoicingCustomer entity.
+// If the AppCustomInvoicingCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingCustomerMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AppCustomInvoicingCustomerMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *AppCustomInvoicingCustomerMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *AppCustomInvoicingCustomerMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the AppCustomInvoicingCustomer entity.
+// If the AppCustomInvoicingCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingCustomerMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *AppCustomInvoicingCustomerMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *AppCustomInvoicingCustomerMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *AppCustomInvoicingCustomerMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the AppCustomInvoicingCustomer entity.
+// If the AppCustomInvoicingCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingCustomerMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *AppCustomInvoicingCustomerMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[appcustominvoicingcustomer.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *AppCustomInvoicingCustomerMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[appcustominvoicingcustomer.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *AppCustomInvoicingCustomerMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, appcustominvoicingcustomer.FieldDeletedAt)
+}
+
+// SetAppID sets the "app_id" field.
+func (m *AppCustomInvoicingCustomerMutation) SetAppID(s string) {
+	m.custom_invoicing_app = &s
+}
+
+// AppID returns the value of the "app_id" field in the mutation.
+func (m *AppCustomInvoicingCustomerMutation) AppID() (r string, exists bool) {
+	v := m.custom_invoicing_app
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppID returns the old "app_id" field's value of the AppCustomInvoicingCustomer entity.
+// If the AppCustomInvoicingCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingCustomerMutation) OldAppID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppID: %w", err)
+	}
+	return oldValue.AppID, nil
+}
+
+// ResetAppID resets all changes to the "app_id" field.
+func (m *AppCustomInvoicingCustomerMutation) ResetAppID() {
+	m.custom_invoicing_app = nil
+}
+
+// SetCustomerID sets the "customer_id" field.
+func (m *AppCustomInvoicingCustomerMutation) SetCustomerID(s string) {
+	m.customer = &s
+}
+
+// CustomerID returns the value of the "customer_id" field in the mutation.
+func (m *AppCustomInvoicingCustomerMutation) CustomerID() (r string, exists bool) {
+	v := m.customer
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerID returns the old "customer_id" field's value of the AppCustomInvoicingCustomer entity.
+// If the AppCustomInvoicingCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingCustomerMutation) OldCustomerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerID: %w", err)
+	}
+	return oldValue.CustomerID, nil
+}
+
+// ResetCustomerID resets all changes to the "customer_id" field.
+func (m *AppCustomInvoicingCustomerMutation) ResetCustomerID() {
+	m.customer = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *AppCustomInvoicingCustomerMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *AppCustomInvoicingCustomerMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the AppCustomInvoicingCustomer entity.
+// If the AppCustomInvoicingCustomer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppCustomInvoicingCustomerMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *AppCustomInvoicingCustomerMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[appcustominvoicingcustomer.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *AppCustomInvoicingCustomerMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[appcustominvoicingcustomer.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *AppCustomInvoicingCustomerMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, appcustominvoicingcustomer.FieldMetadata)
+}
+
+// SetCustomInvoicingAppID sets the "custom_invoicing_app" edge to the AppCustomInvoicing entity by id.
+func (m *AppCustomInvoicingCustomerMutation) SetCustomInvoicingAppID(id string) {
+	m.custom_invoicing_app = &id
+}
+
+// ClearCustomInvoicingApp clears the "custom_invoicing_app" edge to the AppCustomInvoicing entity.
+func (m *AppCustomInvoicingCustomerMutation) ClearCustomInvoicingApp() {
+	m.clearedcustom_invoicing_app = true
+	m.clearedFields[appcustominvoicingcustomer.FieldAppID] = struct{}{}
+}
+
+// CustomInvoicingAppCleared reports if the "custom_invoicing_app" edge to the AppCustomInvoicing entity was cleared.
+func (m *AppCustomInvoicingCustomerMutation) CustomInvoicingAppCleared() bool {
+	return m.clearedcustom_invoicing_app
+}
+
+// CustomInvoicingAppID returns the "custom_invoicing_app" edge ID in the mutation.
+func (m *AppCustomInvoicingCustomerMutation) CustomInvoicingAppID() (id string, exists bool) {
+	if m.custom_invoicing_app != nil {
+		return *m.custom_invoicing_app, true
+	}
+	return
+}
+
+// CustomInvoicingAppIDs returns the "custom_invoicing_app" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomInvoicingAppID instead. It exists only for internal usage by the builders.
+func (m *AppCustomInvoicingCustomerMutation) CustomInvoicingAppIDs() (ids []string) {
+	if id := m.custom_invoicing_app; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomInvoicingApp resets all changes to the "custom_invoicing_app" edge.
+func (m *AppCustomInvoicingCustomerMutation) ResetCustomInvoicingApp() {
+	m.custom_invoicing_app = nil
+	m.clearedcustom_invoicing_app = false
+}
+
+// ClearCustomer clears the "customer" edge to the Customer entity.
+func (m *AppCustomInvoicingCustomerMutation) ClearCustomer() {
+	m.clearedcustomer = true
+	m.clearedFields[appcustominvoicingcustomer.FieldCustomerID] = struct{}{}
+}
+
+// CustomerCleared reports if the "customer" edge to the Customer entity was cleared.
+func (m *AppCustomInvoicingCustomerMutation) CustomerCleared() bool {
+	return m.clearedcustomer
+}
+
+// CustomerIDs returns the "customer" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomerID instead. It exists only for internal usage by the builders.
+func (m *AppCustomInvoicingCustomerMutation) CustomerIDs() (ids []string) {
+	if id := m.customer; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomer resets all changes to the "customer" edge.
+func (m *AppCustomInvoicingCustomerMutation) ResetCustomer() {
+	m.customer = nil
+	m.clearedcustomer = false
+}
+
+// Where appends a list predicates to the AppCustomInvoicingCustomerMutation builder.
+func (m *AppCustomInvoicingCustomerMutation) Where(ps ...predicate.AppCustomInvoicingCustomer) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AppCustomInvoicingCustomerMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AppCustomInvoicingCustomerMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AppCustomInvoicingCustomer, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AppCustomInvoicingCustomerMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AppCustomInvoicingCustomerMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AppCustomInvoicingCustomer).
+func (m *AppCustomInvoicingCustomerMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AppCustomInvoicingCustomerMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.namespace != nil {
+		fields = append(fields, appcustominvoicingcustomer.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, appcustominvoicingcustomer.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, appcustominvoicingcustomer.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, appcustominvoicingcustomer.FieldDeletedAt)
+	}
+	if m.custom_invoicing_app != nil {
+		fields = append(fields, appcustominvoicingcustomer.FieldAppID)
+	}
+	if m.customer != nil {
+		fields = append(fields, appcustominvoicingcustomer.FieldCustomerID)
+	}
+	if m.metadata != nil {
+		fields = append(fields, appcustominvoicingcustomer.FieldMetadata)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AppCustomInvoicingCustomerMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case appcustominvoicingcustomer.FieldNamespace:
+		return m.Namespace()
+	case appcustominvoicingcustomer.FieldCreatedAt:
+		return m.CreatedAt()
+	case appcustominvoicingcustomer.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case appcustominvoicingcustomer.FieldDeletedAt:
+		return m.DeletedAt()
+	case appcustominvoicingcustomer.FieldAppID:
+		return m.AppID()
+	case appcustominvoicingcustomer.FieldCustomerID:
+		return m.CustomerID()
+	case appcustominvoicingcustomer.FieldMetadata:
+		return m.Metadata()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AppCustomInvoicingCustomerMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case appcustominvoicingcustomer.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case appcustominvoicingcustomer.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case appcustominvoicingcustomer.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case appcustominvoicingcustomer.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case appcustominvoicingcustomer.FieldAppID:
+		return m.OldAppID(ctx)
+	case appcustominvoicingcustomer.FieldCustomerID:
+		return m.OldCustomerID(ctx)
+	case appcustominvoicingcustomer.FieldMetadata:
+		return m.OldMetadata(ctx)
+	}
+	return nil, fmt.Errorf("unknown AppCustomInvoicingCustomer field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppCustomInvoicingCustomerMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case appcustominvoicingcustomer.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case appcustominvoicingcustomer.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case appcustominvoicingcustomer.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case appcustominvoicingcustomer.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case appcustominvoicingcustomer.FieldAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppID(v)
+		return nil
+	case appcustominvoicingcustomer.FieldCustomerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerID(v)
+		return nil
+	case appcustominvoicingcustomer.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AppCustomInvoicingCustomer field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AppCustomInvoicingCustomerMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AppCustomInvoicingCustomerMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppCustomInvoicingCustomerMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown AppCustomInvoicingCustomer numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AppCustomInvoicingCustomerMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(appcustominvoicingcustomer.FieldDeletedAt) {
+		fields = append(fields, appcustominvoicingcustomer.FieldDeletedAt)
+	}
+	if m.FieldCleared(appcustominvoicingcustomer.FieldMetadata) {
+		fields = append(fields, appcustominvoicingcustomer.FieldMetadata)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AppCustomInvoicingCustomerMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AppCustomInvoicingCustomerMutation) ClearField(name string) error {
+	switch name {
+	case appcustominvoicingcustomer.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case appcustominvoicingcustomer.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	}
+	return fmt.Errorf("unknown AppCustomInvoicingCustomer nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AppCustomInvoicingCustomerMutation) ResetField(name string) error {
+	switch name {
+	case appcustominvoicingcustomer.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case appcustominvoicingcustomer.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case appcustominvoicingcustomer.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case appcustominvoicingcustomer.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case appcustominvoicingcustomer.FieldAppID:
+		m.ResetAppID()
+		return nil
+	case appcustominvoicingcustomer.FieldCustomerID:
+		m.ResetCustomerID()
+		return nil
+	case appcustominvoicingcustomer.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	}
+	return fmt.Errorf("unknown AppCustomInvoicingCustomer field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AppCustomInvoicingCustomerMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.custom_invoicing_app != nil {
+		edges = append(edges, appcustominvoicingcustomer.EdgeCustomInvoicingApp)
+	}
+	if m.customer != nil {
+		edges = append(edges, appcustominvoicingcustomer.EdgeCustomer)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AppCustomInvoicingCustomerMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case appcustominvoicingcustomer.EdgeCustomInvoicingApp:
+		if id := m.custom_invoicing_app; id != nil {
+			return []ent.Value{*id}
+		}
+	case appcustominvoicingcustomer.EdgeCustomer:
+		if id := m.customer; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AppCustomInvoicingCustomerMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AppCustomInvoicingCustomerMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AppCustomInvoicingCustomerMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedcustom_invoicing_app {
+		edges = append(edges, appcustominvoicingcustomer.EdgeCustomInvoicingApp)
+	}
+	if m.clearedcustomer {
+		edges = append(edges, appcustominvoicingcustomer.EdgeCustomer)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AppCustomInvoicingCustomerMutation) EdgeCleared(name string) bool {
+	switch name {
+	case appcustominvoicingcustomer.EdgeCustomInvoicingApp:
+		return m.clearedcustom_invoicing_app
+	case appcustominvoicingcustomer.EdgeCustomer:
+		return m.clearedcustomer
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AppCustomInvoicingCustomerMutation) ClearEdge(name string) error {
+	switch name {
+	case appcustominvoicingcustomer.EdgeCustomInvoicingApp:
+		m.ClearCustomInvoicingApp()
+		return nil
+	case appcustominvoicingcustomer.EdgeCustomer:
+		m.ClearCustomer()
+		return nil
+	}
+	return fmt.Errorf("unknown AppCustomInvoicingCustomer unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AppCustomInvoicingCustomerMutation) ResetEdge(name string) error {
+	switch name {
+	case appcustominvoicingcustomer.EdgeCustomInvoicingApp:
+		m.ResetCustomInvoicingApp()
+		return nil
+	case appcustominvoicingcustomer.EdgeCustomer:
+		m.ResetCustomer()
+		return nil
+	}
+	return fmt.Errorf("unknown AppCustomInvoicingCustomer edge %s", name)
 }
 
 // AppCustomerMutation represents an operation that mutates the AppCustomer nodes in the graph.

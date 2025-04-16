@@ -17,6 +17,8 @@ import (
 
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicing"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
@@ -117,6 +119,8 @@ func checkColumn(table, column string) error {
 			addon.Table:                              addon.ValidColumn,
 			addonratecard.Table:                      addonratecard.ValidColumn,
 			dbapp.Table:                              dbapp.ValidColumn,
+			appcustominvoicing.Table:                 appcustominvoicing.ValidColumn,
+			appcustominvoicingcustomer.Table:         appcustominvoicingcustomer.ValidColumn,
 			appcustomer.Table:                        appcustomer.ValidColumn,
 			appstripe.Table:                          appstripe.ValidColumn,
 			appstripecustomer.Table:                  appstripecustomer.ValidColumn,
