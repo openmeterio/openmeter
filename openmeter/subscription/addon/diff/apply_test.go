@@ -530,6 +530,7 @@ func TestApply(t *testing.T) {
 			require.True(t, items[1].GetCadence(pCad).ActiveFrom.Equal(t1))
 			require.True(t, items[1].GetCadence(pCad).ActiveTo.Equal(t2))
 			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100*2, items[1].RateCard, "phase %s", phase.PhaseKey)
+			require.Equal(t, ogItem.Annotations, items[1].Annotations, "annotations should be the same")
 
 			// [t2-t3]: ExampleAddonRateCard4
 			require.True(t, items[2].GetCadence(pCad).ActiveFrom.Equal(t2))
@@ -540,6 +541,7 @@ func TestApply(t *testing.T) {
 			require.True(t, items[3].GetCadence(pCad).ActiveFrom.Equal(t3))
 			require.True(t, items[3].GetCadence(pCad).ActiveTo.Equal(t4))
 			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100*2, items[3].RateCard, "phase %s", phase.PhaseKey)
+			require.Equal(t, ogItem.Annotations, items[3].Annotations, "annotations should be the same")
 
 			// [t4-open]: ExampleRateCard3ForAddons
 			require.True(t, items[4].GetCadence(pCad).ActiveFrom.Equal(t4))

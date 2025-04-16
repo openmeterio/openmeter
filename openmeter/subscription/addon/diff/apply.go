@@ -126,6 +126,7 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 								ItemKey:  item.ItemKey,
 								RateCard: item.RateCard.Clone(),
 							},
+							Annotations: item.Annotations,
 						},
 					}
 
@@ -142,6 +143,7 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 							ItemKey:  item.ItemKey,
 							RateCard: item.RateCard.Clone(),
 						},
+						Annotations: item.Annotations,
 					},
 				}
 
