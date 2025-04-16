@@ -956,6 +956,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/marketplace/listings/{type}/install': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Install app
+     * @description Install an app from the marketplace.
+     */
+    post: operations['marketplaceAppInstall']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/marketplace/listings/{type}/install/apikey': {
     parameters: {
       query?: never
@@ -967,7 +987,7 @@ export interface paths {
     put?: never
     /**
      * Install app via API key
-     * @description Install an marketplace via API Key.
+     * @description Install an marketplace app via API Key.
      */
     post: operations['marketplaceAppAPIKeyInstall']
     delete?: never
@@ -4789,6 +4809,11 @@ export interface components {
       /** @description The cursor of the last item in the list. */
       nextCursor?: string
     }
+    /**
+     * @description Install method of the application.
+     * @enum {string}
+     */
+    InstallMethod: 'with_oauth2' | 'with_api_key' | 'no_credentials_required'
     /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
     InternalServerErrorProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description Invoice represents an invoice in the system. */
@@ -6097,6 +6122,10 @@ export interface components {
      *           "name": "Collect Payments",
      *           "description": "Stripe payments collects outstanding revenue with Stripe customer's default payment method."
      *         }
+     *       ],
+     *       "installMethods": [
+     *         "with_oauth2",
+     *         "with_api_key"
      *       ]
      *     }
      */
@@ -6109,6 +6138,10 @@ export interface components {
       description: string
       /** @description The app's capabilities. */
       capabilities: components['schemas']['AppCapability'][]
+      /** @description Install methods.
+       *
+       *     List of methods to install the app. */
+      installMethods: components['schemas']['InstallMethod'][]
     }
     /** @description Paginated response */
     MarketplaceListingPaginatedResponse: {
@@ -7982,6 +8015,10 @@ export interface components {
      *             "name": "Collect Payments",
      *             "description": "Stripe payments collects outstanding revenue with Stripe customer's default payment method."
      *           }
+     *         ],
+     *         "installMethods": [
+     *           "with_oauth2",
+     *           "with_api_key"
      *         ]
      *       },
      *       "createdAt": "2024-01-01T01:01:01.001Z",
@@ -9332,6 +9369,8 @@ export interface components {
     /** @description The type of the app to install. */
     'MarketplaceApiKeyInstallRequest.type': components['schemas']['AppType']
     /** @description The type of the app to install. */
+    'MarketplaceInstallRequest.type': components['schemas']['AppType']
+    /** @description The type of the app to install. */
     'MarketplaceOAuth2InstallAuthorizeRequest.type': components['schemas']['AppType']
     /** @description The order direction. */
     'MeterOrderByOrdering.order': components['schemas']['SortOrder']
@@ -9658,6 +9697,7 @@ export type IngestEventsBody = components['schemas']['IngestEventsBody']
 export type IngestedEvent = components['schemas']['IngestedEvent']
 export type IngestedEventCursorPaginatedResponse =
   components['schemas']['IngestedEventCursorPaginatedResponse']
+export type InstallMethod = components['schemas']['InstallMethod']
 export type InternalServerErrorProblemResponse =
   components['schemas']['InternalServerErrorProblemResponse']
 export type Invoice = components['schemas']['Invoice']
@@ -10029,6 +10069,8 @@ export type ParameterLimitOffsetOffset =
   components['parameters']['LimitOffset.offset']
 export type ParameterMarketplaceApiKeyInstallRequestType =
   components['parameters']['MarketplaceApiKeyInstallRequest.type']
+export type ParameterMarketplaceInstallRequestType =
+  components['parameters']['MarketplaceInstallRequest.type']
 export type ParameterMarketplaceOAuth2InstallAuthorizeRequestType =
   components['parameters']['MarketplaceOAuth2InstallAuthorizeRequest.type']
 export type ParameterMeterOrderByOrderingOrder =
@@ -15798,6 +15840,101 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['MarketplaceListing']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  marketplaceAppInstall: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description The type of the app to install. */
+        type: components['parameters']['MarketplaceInstallRequest.type']
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description Name of the application to install.
+           *
+           *     If not set defaults to the marketplace item's description. */
+          name?: string
+        }
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['MarketplaceInstallResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */

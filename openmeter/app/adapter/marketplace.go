@@ -53,10 +53,50 @@ func (a *adapter) InstallMarketplaceListingWithAPIKey(ctx context.Context, input
 			return nil, fmt.Errorf("name is required, listing doesn't have a name either")
 		}
 
+		installer, ok := registryItem.Factory.(app.AppFactoryInstallWithAPIKey)
+		if !ok {
+			return nil, fmt.Errorf("app factory does not support API key installation")
+		}
+
 		// Install app
-		app, err := registryItem.Factory.InstallAppWithAPIKey(ctx, app.AppFactoryInstallAppWithAPIKeyInput{
+		app, err := installer.InstallAppWithAPIKey(ctx, app.AppFactoryInstallAppWithAPIKeyInput{
 			Namespace: input.Namespace,
 			APIKey:    input.APIKey,
+			BaseURL:   a.baseURL,
+			Name:      name,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to install app: %w", err)
+		}
+
+		return app, nil
+	})
+}
+
+// InstallMarketplaceListing installs an app
+func (a *adapter) InstallMarketplaceListing(ctx context.Context, input app.InstallAppInput) (app.App, error) {
+	return transaction.Run(ctx, a, func(ctx context.Context) (app.App, error) {
+		// Get registry item
+		registryItem, err := a.GetMarketplaceListing(ctx, app.MarketplaceGetInput{
+			Type: input.Type,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get listing for app %s: %w", input.Type, err)
+		}
+
+		name, ok := lo.Coalesce(input.Name, registryItem.Listing.Name)
+		if !ok {
+			return nil, fmt.Errorf("name is required, listing doesn't have a name either")
+		}
+
+		installer, ok := registryItem.Factory.(app.AppFactoryInstall)
+		if !ok {
+			return nil, fmt.Errorf("app factory does not support API key installation")
+		}
+
+		// Install app
+		app, err := installer.InstallApp(ctx, app.AppFactoryInstallAppInput{
+			Namespace: input.Namespace,
 			BaseURL:   a.baseURL,
 			Name:      name,
 		})

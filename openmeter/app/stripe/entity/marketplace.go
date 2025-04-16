@@ -14,6 +14,9 @@ var (
 			StripeCalculateTaxCapability,
 			StripeInvoiceCustomerCapability,
 		},
+		InstallMethods: []app.InstallMethod{
+			app.InstallMethodAPIKey,
+		},
 	}
 
 	StripeCollectPaymentCapability = app.Capability{

@@ -8,8 +8,11 @@ import (
 
 type AppFactory interface {
 	NewApp(context.Context, AppBase) (App, error)
-	InstallAppWithAPIKey(ctx context.Context, input AppFactoryInstallAppWithAPIKeyInput) (App, error)
 	UninstallApp(ctx context.Context, input UninstallAppInput) error
+}
+
+type AppFactoryInstallWithAPIKey interface {
+	InstallAppWithAPIKey(ctx context.Context, input AppFactoryInstallAppWithAPIKeyInput) (App, error)
 }
 
 type UninstallAppInput = AppID
@@ -19,6 +22,16 @@ type AppFactoryInstallAppWithAPIKeyInput struct {
 	APIKey    string
 	BaseURL   string
 	Name      string
+}
+
+type AppFactoryInstall interface {
+	InstallApp(ctx context.Context, input AppFactoryInstallAppInput) (App, error)
+}
+
+type AppFactoryInstallAppInput struct {
+	Namespace string
+	Name      string
+	BaseURL   string
 }
 
 func (i AppFactoryInstallAppWithAPIKeyInput) Validate() error {

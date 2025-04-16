@@ -14,6 +14,9 @@ var (
 			CalculateTaxCapability,
 			InvoiceCustomerCapability,
 		},
+		InstallMethods: []app.InstallMethod{
+			app.InstallMethodNoCredentials,
+		},
 	}
 
 	CollectPaymentCapability = app.Capability{

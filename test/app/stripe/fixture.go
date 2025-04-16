@@ -76,12 +76,14 @@ func (s *Fixture) setupApp(ctx context.Context, namespace string) (app.App, erro
 	defer s.stripeClient.Restore()
 
 	app, err := s.app.InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: app.MarketplaceListingID{
-			Type: app.AppTypeStripe,
-		},
+		InstallAppInput: app.InstallAppInput{
+			MarketplaceListingID: app.MarketplaceListingID{
+				Type: app.AppTypeStripe,
+			},
 
-		Namespace: namespace,
-		APIKey:    TestStripeAPIKey,
+			Namespace: namespace,
+		},
+		APIKey: TestStripeAPIKey,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("install stripe app failed: %w", err)

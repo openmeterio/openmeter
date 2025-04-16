@@ -42,6 +42,14 @@ func (s *Service) InstallMarketplaceListingWithAPIKey(ctx context.Context, input
 	return s.adapter.InstallMarketplaceListingWithAPIKey(ctx, input)
 }
 
+func (s *Service) InstallMarketplaceListing(ctx context.Context, input app.InstallAppInput) (app.App, error) {
+	if err := input.Validate(); err != nil {
+		return nil, models.NewGenericValidationError(err)
+	}
+
+	return s.adapter.InstallMarketplaceListing(ctx, input)
+}
+
 func (s *Service) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input app.GetOauth2InstallURLInput) (app.GetOauth2InstallURLOutput, error) {
 	if err := input.Validate(); err != nil {
 		return app.GetOauth2InstallURLOutput{}, models.NewGenericValidationError(err)
