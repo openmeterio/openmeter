@@ -175,7 +175,37 @@ interface PlanAddons {
   @extension("x-internal", true)
   list(
     @path planId: ULIDOrKey,
-  ): PlanAddon[] | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+    /**
+     * Include deleted plan add-on assignments.
+     *
+     * Usage: `?includeDeleted=true`
+     */
+    @query
+    @example(true)
+    includeDeleted?: boolean = false,
+
+    /**
+     * Filter by addon.id attribute.
+     */
+    @query(#{ explode: true })
+    id?: ULID[],
+
+    /**
+     * Filter by addon.key attribute.
+     */
+    @query(#{ explode: true })
+    key?: Key[],
+
+    /**
+     * Filter by addon.key and addon.version attributes.
+     */
+    @query(#{ explode: true, style: "deepObject" })
+    keyVersion?: Record<integer[]>,
+
+    ...OpenMeter.QueryPagination,
+    ...OpenMeter.QueryOrdering<PlanAddonOrderBy>,
+  ): OpenMeter.PaginatedResponse<PlanAddon> | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Create new add-on assignment for plan.

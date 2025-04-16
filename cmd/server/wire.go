@@ -29,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/secret"
@@ -63,6 +64,7 @@ type Application struct {
 	NamespaceManager        *namespace.Manager
 	Notification            notification.Service
 	Plan                    plan.Service
+	PlanAddon               planaddon.Service
 	Portal                  portal.Service
 	ProgressManager         progressmanager.Service
 	RouterHook              func(chi.Router)
