@@ -7112,7 +7112,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PlanAddonReplaceUpdate'
+              $ref: '#/components/schemas/PlanAddonUpdate'
       x-internal: true
     get:
       operationId: getPlanAddon
@@ -17855,32 +17855,8 @@ components:
               description: The ID of the add-on.
               example: 01G65Z755AFWAKHE12NY0CQ9FH
               title: ID
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: A semi-unique identifier for the resource.
-              title: Key
-              readOnly: true
-            version:
-              type: integer
-              minimum: 1
-              description: The version of the Add-on which templates this instance.
-              title: Version
-              default: 1
-              readOnly: true
-            instanceType:
-              allOf:
-                - $ref: '#/components/schemas/AddonInstanceType'
-              description: The instance type of the add-on.
-              title: InstanceType
-              readOnly: true
           required:
             - id
-            - key
-            - version
-            - instanceType
           description: Partially populated add-on properties.
           title: Addon
         fromPlanPhase:
@@ -17894,49 +17870,11 @@ components:
             It is not applicable for add-ons with single instance type.
           title: Max quantity of the add-on
       description: Resource create operation model.
-    PlanAddonReplaceUpdate:
+    PlanAddonUpdate:
       type: object
       required:
-        - addon
         - fromPlanPhase
       properties:
-        addon:
-          type: object
-          properties:
-            id:
-              type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: The ID of the add-on.
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-              title: ID
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: A semi-unique identifier for the resource.
-              title: Key
-              readOnly: true
-            version:
-              type: integer
-              minimum: 1
-              description: The version of the Add-on which templates this instance.
-              title: Version
-              default: 1
-              readOnly: true
-            instanceType:
-              allOf:
-                - $ref: '#/components/schemas/AddonInstanceType'
-              description: The instance type of the add-on.
-              title: InstanceType
-              readOnly: true
-          required:
-            - id
-            - key
-            - version
-            - instanceType
-          description: Partially populated add-on properties.
-          title: Addon
         fromPlanPhase:
           type: string
           description: The key of the plan phase from the add-on becomes available for purchase.

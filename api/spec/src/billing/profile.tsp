@@ -141,12 +141,12 @@ model BillingProfile {
  */
 @friendlyName("BillingProfileCreate")
 model BillingProfileCreate
-  is Rest.Resource.ResourceCreateModel<BillingProfile> {
+  is TypeSpec.Rest.Resource.ResourceCreateModel<BillingProfile> {
   /**
    * The billing workflow settings for this profile.
    */
   @visibility(Lifecycle.Create)
-  workflow: Rest.Resource.ResourceCreateModel<BillingWorkflow>;
+  workflow: TypeSpec.Rest.Resource.ResourceCreateModel<BillingWorkflow>;
 
   /**
    * The apps used by this billing profile.
@@ -165,7 +165,7 @@ model BillingProfileCreate
 // need a different friendly name here.
 @friendlyName("BillingProfileReplaceUpdateWithWorkflow")
 model BillingProfileReplaceUpdate
-  is Rest.Resource.ResourceReplaceModel<BillingProfile> {
+  is TypeSpec.Rest.Resource.ResourceReplaceModel<BillingProfile> {
   /**
    * The billing workflow settings for this profile.
    */

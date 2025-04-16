@@ -502,7 +502,7 @@ union InvoiceSimulationLine {
  */
 @friendlyName("InvoiceSimulationUsageBasedLine")
 model InvoiceSimulationUsageBasedLine {
-  ...Rest.Resource.ResourceCreateModel<OmitProperties<
+  ...TypeSpec.Rest.Resource.ResourceCreateModel<OmitProperties<
     Invoice.InvoiceUsageBasedLine,
     "invoice" | "currency"
   >>;
@@ -533,7 +533,7 @@ model InvoiceSimulationUsageBasedLine {
  */
 @friendlyName("InvoiceSimulationFlatFeeLine")
 model InvoiceSimulationFlatFeeLine {
-  ...Rest.Resource.ResourceCreateModel<OmitProperties<
+  ...TypeSpec.Rest.Resource.ResourceCreateModel<OmitProperties<
     Invoice.InvoiceFlatFeeLine,
     "invoice" | "currency"
   >>;
@@ -552,7 +552,7 @@ model InvoiceSimulationFlatFeeLine {
  */
 @friendlyName("InvoiceReplaceUpdate")
 model InvoiceReplaceUpdate {
-  ...Rest.Resource.ResourceReplaceModel<OmitProperties<
+  ...TypeSpec.Rest.Resource.ResourceReplaceModel<OmitProperties<
     Invoice.Invoice,
     "lines" | "supplier" | "customer" | "discounts" | "workflow" // TODO: discounts is not yet implemented, then we need to enable it
   >>;
@@ -561,13 +561,13 @@ model InvoiceReplaceUpdate {
    * The supplier of the lines included in the invoice.
    */
   @visibility(Lifecycle.Update)
-  supplier: Rest.Resource.ResourceReplaceModel<Invoice.BillingParty>;
+  supplier: TypeSpec.Rest.Resource.ResourceReplaceModel<Invoice.BillingParty>;
 
   /**
    * The customer the invoice is sent to.
    */
   @visibility(Lifecycle.Update)
-  customer: Rest.Resource.ResourceReplaceModel<Invoice.BillingParty>;
+  customer: TypeSpec.Rest.Resource.ResourceReplaceModel<Invoice.BillingParty>;
 
   /**
    * The lines included in the invoice.
@@ -621,7 +621,7 @@ model InvoiceWorkflowSettingsReplaceUpdate {
  */
 @friendlyName("InvoiceWorkflowInvoicingSettingsReplaceUpdate")
 model InvoiceWorkflowInvoicingSettingsReplaceUpdate {
-  ...Rest.Resource.ResourceReplaceModel<OmitProperties<
+  ...TypeSpec.Rest.Resource.ResourceReplaceModel<OmitProperties<
     BillingWorkflowInvoicingSettings,
     "progressiveBilling"
   >>;

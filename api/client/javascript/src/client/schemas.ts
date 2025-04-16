@@ -7253,22 +7253,6 @@ export interface components {
          * @example 01G65Z755AFWAKHE12NY0CQ9FH
          */
         id: string
-        /**
-         * Key
-         * @description A semi-unique identifier for the resource.
-         */
-        readonly key: string
-        /**
-         * Version
-         * @description The version of the Add-on which templates this instance.
-         * @default 1
-         */
-        readonly version: number
-        /**
-         * InstanceType
-         * @description The instance type of the add-on.
-         */
-        readonly instanceType: components['schemas']['AddonInstanceType']
       }
       /**
        * The plan phase from the add-on becomes purchasable
@@ -7283,35 +7267,7 @@ export interface components {
       maxQuantity?: number
     }
     /** @description Resource update operation model. */
-    PlanAddonReplaceUpdate: {
-      /**
-       * Addon
-       * @description Partially populated add-on properties.
-       */
-      addon: {
-        /**
-         * ID
-         * @description The ID of the add-on.
-         * @example 01G65Z755AFWAKHE12NY0CQ9FH
-         */
-        id: string
-        /**
-         * Key
-         * @description A semi-unique identifier for the resource.
-         */
-        readonly key: string
-        /**
-         * Version
-         * @description The version of the Add-on which templates this instance.
-         * @default 1
-         */
-        readonly version: number
-        /**
-         * InstanceType
-         * @description The instance type of the add-on.
-         */
-        readonly instanceType: components['schemas']['AddonInstanceType']
-      }
+    PlanAddonUpdate: {
       /**
        * The plan phase from the add-on becomes purchasable
        * @description The key of the plan phase from the add-on becomes available for purchase.
@@ -9867,8 +9823,7 @@ export type Period = components['schemas']['Period']
 export type Plan = components['schemas']['Plan']
 export type PlanAddon = components['schemas']['PlanAddon']
 export type PlanAddonCreate = components['schemas']['PlanAddonCreate']
-export type PlanAddonReplaceUpdate =
-  components['schemas']['PlanAddonReplaceUpdate']
+export type PlanAddonUpdate = components['schemas']['PlanAddonUpdate']
 export type PlanCreate = components['schemas']['PlanCreate']
 export type PlanOrderBy = components['schemas']['PlanOrderBy']
 export type PlanPaginatedResponse =
@@ -19202,7 +19157,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['PlanAddonReplaceUpdate']
+        'application/json': components['schemas']['PlanAddonUpdate']
       }
     }
     responses: {

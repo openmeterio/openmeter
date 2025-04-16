@@ -23,7 +23,7 @@ interface Customers {
   @post
   @operationId("createCustomer")
   @summary("Create customer")
-  create(@body customer: Rest.Resource.ResourceCreateModel<Customer>): {
+  create(@body customer: TypeSpec.Rest.Resource.ResourceCreateModel<Customer>): {
     @statusCode _: 201;
     @body body: Customer;
   } | CommonErrors;
@@ -56,7 +56,7 @@ interface Customers {
   @summary("Update customer")
   update(
     @path customerIdOrKey: ULIDOrKey,
-    @body customer: Rest.Resource.ResourceReplaceModel<Customer>,
+    @body customer: TypeSpec.Rest.Resource.ResourceReplaceModel<Customer>,
   ): Customer | NotFoundError | CommonErrors;
 
   /**
