@@ -354,6 +354,16 @@ func MetadataNotNil() predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldNotNull(FieldMetadata))
 }
 
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldIsNull(FieldAnnotations))
+}
+
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNotNull(FieldAnnotations))
+}
+
 // ActiveFromEQ applies the EQ predicate on the "active_from" field.
 func ActiveFromEQ(v time.Time) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldActiveFrom, v))

@@ -99,9 +99,9 @@ func createExampleSubscriptionAddon(t *testing.T, deps subscriptiontestutils.Sub
 	sub := createExampleSubscription(t, deps, now)
 
 	// Let's create an add
-	add := deps.AddonService.CreateExampleAddon(t, productcatalog.EffectivePeriod{
+	add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 		EffectiveFrom: lo.ToPtr(now),
-	})
+	}))
 
 	aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
 		return rc.ID

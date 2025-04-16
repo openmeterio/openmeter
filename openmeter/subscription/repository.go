@@ -91,6 +91,8 @@ type CreateSubscriptionItemEntityInput struct {
 	models.NamespacedModel
 	models.MetadataModel
 
+	Annotations models.Annotations `json:"annotations"`
+
 	ActiveFromOverrideRelativeToPhaseStart *isodate.Period
 	ActiveToOverrideRelativeToPhaseStart   *isodate.Period
 
@@ -114,9 +116,12 @@ type CreateSubscriptionItemEntityInput struct {
 func (i CreateSubscriptionItemEntityInput) Equal(other CreateSubscriptionItemEntityInput) bool {
 	a := i
 	a.MetadataModel = models.MetadataModel{}
+	a.Annotations = models.Annotations{}
 	b := other
 	b.MetadataModel = models.MetadataModel{}
+	b.Annotations = models.Annotations{}
 
+	// we don't compare annotations
 	return reflect.DeepEqual(a, b) && maps.Equal(i.Metadata, other.Metadata)
 }
 

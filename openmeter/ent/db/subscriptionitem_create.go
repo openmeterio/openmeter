@@ -83,6 +83,12 @@ func (sic *SubscriptionItemCreate) SetMetadata(m map[string]string) *Subscriptio
 	return sic
 }
 
+// SetAnnotations sets the "annotations" field.
+func (sic *SubscriptionItemCreate) SetAnnotations(m map[string]interface{}) *SubscriptionItemCreate {
+	sic.mutation.SetAnnotations(m)
+	return sic
+}
+
 // SetActiveFrom sets the "active_from" field.
 func (sic *SubscriptionItemCreate) SetActiveFrom(t time.Time) *SubscriptionItemCreate {
 	sic.mutation.SetActiveFrom(t)
@@ -471,6 +477,14 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 		_spec.SetField(subscriptionitem.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
+	if value, ok := sic.mutation.Annotations(); ok {
+		vv, err := subscriptionitem.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(subscriptionitem.FieldAnnotations, field.TypeString, vv)
+		_node.Annotations = value
+	}
 	if value, ok := sic.mutation.ActiveFrom(); ok {
 		_spec.SetField(subscriptionitem.FieldActiveFrom, field.TypeTime, value)
 		_node.ActiveFrom = value
@@ -706,6 +720,24 @@ func (u *SubscriptionItemUpsert) UpdateMetadata() *SubscriptionItemUpsert {
 // ClearMetadata clears the value of the "metadata" field.
 func (u *SubscriptionItemUpsert) ClearMetadata() *SubscriptionItemUpsert {
 	u.SetNull(subscriptionitem.FieldMetadata)
+	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *SubscriptionItemUpsert) SetAnnotations(v map[string]interface{}) *SubscriptionItemUpsert {
+	u.Set(subscriptionitem.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *SubscriptionItemUpsert) UpdateAnnotations() *SubscriptionItemUpsert {
+	u.SetExcluded(subscriptionitem.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *SubscriptionItemUpsert) ClearAnnotations() *SubscriptionItemUpsert {
+	u.SetNull(subscriptionitem.FieldAnnotations)
 	return u
 }
 
@@ -1062,6 +1094,27 @@ func (u *SubscriptionItemUpsertOne) UpdateMetadata() *SubscriptionItemUpsertOne 
 func (u *SubscriptionItemUpsertOne) ClearMetadata() *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearMetadata()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *SubscriptionItemUpsertOne) SetAnnotations(v map[string]interface{}) *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertOne) UpdateAnnotations() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *SubscriptionItemUpsertOne) ClearAnnotations() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearAnnotations()
 	})
 }
 
@@ -1628,6 +1681,27 @@ func (u *SubscriptionItemUpsertBulk) UpdateMetadata() *SubscriptionItemUpsertBul
 func (u *SubscriptionItemUpsertBulk) ClearMetadata() *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearMetadata()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *SubscriptionItemUpsertBulk) SetAnnotations(v map[string]interface{}) *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertBulk) UpdateAnnotations() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *SubscriptionItemUpsertBulk) ClearAnnotations() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearAnnotations()
 	})
 }
 

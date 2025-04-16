@@ -2645,6 +2645,20 @@ func (u *SubscriptionItemUpdateOne) SetOrClearMetadata(value *map[string]string)
 	return u.SetMetadata(*value)
 }
 
+func (u *SubscriptionItemUpdate) SetOrClearAnnotations(value *map[string]interface{}) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
 func (u *SubscriptionItemUpdate) SetOrClearActiveTo(value *time.Time) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearActiveTo()

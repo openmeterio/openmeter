@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -73,9 +74,33 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to fetch subscription: %w", err)
 	}
 
+	// Let's set the owner subsystem
+	// TODO: let's refactor, its a bit ad-hoc
+	customizations = lo.Map(customizations, func(p subscription.Patch, _ int) subscription.Patch {
+		if ap, ok := p.(patch.PatchAddItem); ok {
+			if ap.CreateInput.CreateSubscriptionItemInput.Annotations == nil {
+				ap.CreateInput.CreateSubscriptionItemInput.Annotations = models.Annotations{}
+			}
+			subscription.AnnotationParser.AddOwnerSubSystem(ap.CreateInput.CreateSubscriptionItemInput.Annotations, subscription.OwnerSubscriptionSubSystem)
+
+			return ap
+		}
+
+		if ap, ok := p.(*patch.PatchAddItem); ok {
+			if ap.CreateInput.CreateSubscriptionItemInput.Annotations == nil {
+				ap.CreateInput.CreateSubscriptionItemInput.Annotations = models.Annotations{}
+			}
+			subscription.AnnotationParser.AddOwnerSubSystem(ap.CreateInput.CreateSubscriptionItemInput.Annotations, subscription.OwnerSubscriptionSubSystem)
+
+			return ap
+		}
+
+		return p
+	})
+
 	// Let's validate the patches
-	for i, patch := range customizations {
-		if err := patch.Validate(); err != nil {
+	for i, p := range customizations {
+		if err := p.Validate(); err != nil {
 			return subscription.SubscriptionView{}, models.NewGenericValidationError(fmt.Errorf("invalid patch at index %d: %s", i, err.Error()))
 		}
 	}
