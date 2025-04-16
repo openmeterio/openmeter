@@ -5,7 +5,6 @@ import "@typespec/openapi3";
 import "./types.tsp";
 
 using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
@@ -165,7 +164,8 @@ interface Meters {
   valueProperty: "$.tokens",
   groupBy: #{ `model`: "$.model", type: "$.type" },
 })
-model MeterCreate is Rest.Resource.ResourceCreateModel<OpenMeter.Meter>;
+model MeterCreate
+  is TypeSpec.Rest.Resource.ResourceCreateModel<OpenMeter.Meter>;
 
 /**
  * A meter update model.
@@ -179,7 +179,8 @@ model MeterCreate is Rest.Resource.ResourceCreateModel<OpenMeter.Meter>;
   description: "AI Token Usage",
   groupBy: #{ `model`: "$.model", type: "$.type" },
 })
-model MeterUpdate is Rest.Resource.ResourceReplaceModel<OpenMeter.Meter>;
+model MeterUpdate
+  is TypeSpec.Rest.Resource.ResourceReplaceModel<OpenMeter.Meter>;
 
 /**
  * A meter is a configuration that defines how to match and aggregate events.

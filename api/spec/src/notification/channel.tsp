@@ -125,7 +125,7 @@ union NotificationChannelCreateRequest {
  */
 @friendlyName("NotificationChannelWebhookCreateRequest")
 model NotificationChannelWebhookCreateRequest
-  is Rest.Resource.ResourceCreateModel<NotificationChannelWebhook>;
+  is TypeSpec.Rest.Resource.ResourceCreateModel<NotificationChannelWebhook>;
 
 /**
  * Order by options for notification channels.

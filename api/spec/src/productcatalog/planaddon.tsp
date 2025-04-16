@@ -4,9 +4,6 @@ import "./ratecards.tsp";
 
 namespace OpenMeter.ProductCatalog;
 
-using TypeSpec.Http;
-using TypeSpec.OpenAPI;
-
 /**
  *  The AddonAssignment describes the association between a plan and add-on.
  */
@@ -18,6 +15,7 @@ model PlanAddon {
    * Partially populated add-on properties.
    */
   @summary("Addon")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   addon: {
     /**
      * The ID of the add-on.

@@ -49,7 +49,7 @@ interface Apps {
   @summary("Update app")
   update(
     @path id: ULID,
-    @body app: Rest.Resource.ResourceReplaceModel<AppBase>,
+    @body app: TypeSpec.Rest.Resource.ResourceReplaceModel<AppBase>,
   ): App | NotFoundError | CommonErrors;
 
   /**

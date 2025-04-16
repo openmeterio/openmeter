@@ -428,7 +428,7 @@ union InvoiceLineReplaceUpdate {
  */
 @friendlyName("InvoiceUsageBasedLineReplaceUpdate")
 model InvoiceUsageBasedLineReplaceUpdate {
-  ...Rest.Resource.ResourceReplaceModel<OmitProperties<
+  ...TypeSpec.Rest.Resource.ResourceReplaceModel<OmitProperties<
     InvoiceUsageBasedLine,
     "id"
   >>;
@@ -447,7 +447,7 @@ model InvoiceUsageBasedLineReplaceUpdate {
  */
 @friendlyName("InvoiceFlatFeeLineReplaceUpdate")
 model InvoiceFlatFeeLineReplaceUpdate {
-  ...Rest.Resource.ResourceReplaceModel<OmitProperties<
+  ...TypeSpec.Rest.Resource.ResourceReplaceModel<OmitProperties<
     InvoiceFlatFeeLine,
     "id"
   >>;
@@ -475,7 +475,7 @@ union InvoicePendingLineCreate {
 @friendlyName("InvoiceUsageBasedPendingLineCreate")
 model InvoiceUsageBasedPendingLineCreate {
   // Note: invoice is omitted as the line is assigned a new or existing gathering invoice
-  ...Rest.Resource.ResourceCreateModel<OmitProperties<
+  ...TypeSpec.Rest.Resource.ResourceCreateModel<OmitProperties<
     InvoiceUsageBasedLine,
     "invoice"
   >>;
@@ -493,7 +493,7 @@ model InvoiceUsageBasedPendingLineCreate {
 @friendlyName("InvoiceFlatFeePendingLineCreate")
 model InvoiceFlatFeePendingLineCreate {
   // Note: invoice is omitted as the line is assigned a new or existing gathering invoice
-  ...Rest.Resource.ResourceCreateModel<OmitProperties<
+  ...TypeSpec.Rest.Resource.ResourceCreateModel<OmitProperties<
     InvoiceFlatFeeLine,
     "invoice"
   >>;
