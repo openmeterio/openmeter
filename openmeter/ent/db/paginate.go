@@ -155,6 +155,102 @@ var _ pagination.Paginator[*App] = (*AppQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (aci *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomInvoicing], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	aci.ctx.Offset = &zero
+	aci.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := aci.Clone()
+	pagedQuery := aci
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*AppCustomInvoicing]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*AppCustomInvoicing] = (*AppCustomInvoicingQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (acic *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomInvoicingCustomer], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	acic.ctx.Offset = &zero
+	acic.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := acic.Clone()
+	pagedQuery := acic
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.PagedResponse[*AppCustomInvoicingCustomer]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*AppCustomInvoicingCustomer] = (*AppCustomInvoicingCustomerQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (ac *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()

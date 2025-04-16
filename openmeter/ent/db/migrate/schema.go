@@ -202,6 +202,85 @@ var (
 			},
 		},
 	}
+	// AppCustomInvoicingsColumns holds the columns for the "app_custom_invoicings" table.
+	AppCustomInvoicingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "skip_draft_sync_hook", Type: field.TypeBool, Default: false},
+		{Name: "skip_issuing_sync_hook", Type: field.TypeBool, Default: false},
+	}
+	// AppCustomInvoicingsTable holds the schema information for the "app_custom_invoicings" table.
+	AppCustomInvoicingsTable = &schema.Table{
+		Name:       "app_custom_invoicings",
+		Columns:    AppCustomInvoicingsColumns,
+		PrimaryKey: []*schema.Column{AppCustomInvoicingsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "app_custom_invoicings_apps_app",
+				Columns:    []*schema.Column{AppCustomInvoicingsColumns[0]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appcustominvoicing_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppCustomInvoicingsColumns[0]},
+			},
+			{
+				Name:    "appcustominvoicing_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AppCustomInvoicingsColumns[1]},
+			},
+		},
+	}
+	// AppCustomInvoicingCustomersColumns holds the columns for the "app_custom_invoicing_customers" table.
+	AppCustomInvoicingCustomersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// AppCustomInvoicingCustomersTable holds the schema information for the "app_custom_invoicing_customers" table.
+	AppCustomInvoicingCustomersTable = &schema.Table{
+		Name:       "app_custom_invoicing_customers",
+		Columns:    AppCustomInvoicingCustomersColumns,
+		PrimaryKey: []*schema.Column{AppCustomInvoicingCustomersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "app_custom_invoicing_customers_app_custom_invoicings_customer_apps",
+				Columns:    []*schema.Column{AppCustomInvoicingCustomersColumns[6]},
+				RefColumns: []*schema.Column{AppCustomInvoicingsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "app_custom_invoicing_customers_customers_customer",
+				Columns:    []*schema.Column{AppCustomInvoicingCustomersColumns[7]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appcustominvoicingcustomer_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AppCustomInvoicingCustomersColumns[1]},
+			},
+			{
+				Name:    "appcustominvoicingcustomer_namespace_app_id_customer_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppCustomInvoicingCustomersColumns[1], AppCustomInvoicingCustomersColumns[6], AppCustomInvoicingCustomersColumns[7]},
+			},
+		},
+	}
 	// AppCustomersColumns holds the columns for the "app_customers" table.
 	AppCustomersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -2262,6 +2341,8 @@ var (
 		AddonsTable,
 		AddonRateCardsTable,
 		AppsTable,
+		AppCustomInvoicingsTable,
+		AppCustomInvoicingCustomersTable,
 		AppCustomersTable,
 		AppStripesTable,
 		AppStripeCustomersTable,
@@ -2306,6 +2387,9 @@ var (
 func init() {
 	AddonRateCardsTable.ForeignKeys[0].RefTable = AddonsTable
 	AddonRateCardsTable.ForeignKeys[1].RefTable = FeaturesTable
+	AppCustomInvoicingsTable.ForeignKeys[0].RefTable = AppsTable
+	AppCustomInvoicingCustomersTable.ForeignKeys[0].RefTable = AppCustomInvoicingsTable
+	AppCustomInvoicingCustomersTable.ForeignKeys[1].RefTable = CustomersTable
 	AppCustomersTable.ForeignKeys[0].RefTable = AppsTable
 	AppCustomersTable.ForeignKeys[1].RefTable = CustomersTable
 	AppStripesTable.ForeignKeys[0].RefTable = AppsTable

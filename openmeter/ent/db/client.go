@@ -19,6 +19,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicing"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
@@ -69,6 +71,10 @@ type Client struct {
 	AddonRateCard *AddonRateCardClient
 	// App is the client for interacting with the App builders.
 	App *AppClient
+	// AppCustomInvoicing is the client for interacting with the AppCustomInvoicing builders.
+	AppCustomInvoicing *AppCustomInvoicingClient
+	// AppCustomInvoicingCustomer is the client for interacting with the AppCustomInvoicingCustomer builders.
+	AppCustomInvoicingCustomer *AppCustomInvoicingCustomerClient
 	// AppCustomer is the client for interacting with the AppCustomer builders.
 	AppCustomer *AppCustomerClient
 	// AppStripe is the client for interacting with the AppStripe builders.
@@ -155,6 +161,8 @@ func (c *Client) init() {
 	c.Addon = NewAddonClient(c.config)
 	c.AddonRateCard = NewAddonRateCardClient(c.config)
 	c.App = NewAppClient(c.config)
+	c.AppCustomInvoicing = NewAppCustomInvoicingClient(c.config)
+	c.AppCustomInvoicingCustomer = NewAppCustomInvoicingCustomerClient(c.config)
 	c.AppCustomer = NewAppCustomerClient(c.config)
 	c.AppStripe = NewAppStripeClient(c.config)
 	c.AppStripeCustomer = NewAppStripeCustomerClient(c.config)
@@ -286,6 +294,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Addon:                              NewAddonClient(cfg),
 		AddonRateCard:                      NewAddonRateCardClient(cfg),
 		App:                                NewAppClient(cfg),
+		AppCustomInvoicing:                 NewAppCustomInvoicingClient(cfg),
+		AppCustomInvoicingCustomer:         NewAppCustomInvoicingCustomerClient(cfg),
 		AppCustomer:                        NewAppCustomerClient(cfg),
 		AppStripe:                          NewAppStripeClient(cfg),
 		AppStripeCustomer:                  NewAppStripeCustomerClient(cfg),
@@ -344,6 +354,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Addon:                              NewAddonClient(cfg),
 		AddonRateCard:                      NewAddonRateCardClient(cfg),
 		App:                                NewAppClient(cfg),
+		AppCustomInvoicing:                 NewAppCustomInvoicingClient(cfg),
+		AppCustomInvoicingCustomer:         NewAppCustomInvoicingCustomerClient(cfg),
 		AppCustomer:                        NewAppCustomerClient(cfg),
 		AppStripe:                          NewAppStripeClient(cfg),
 		AppStripeCustomer:                  NewAppStripeCustomerClient(cfg),
@@ -409,18 +421,18 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Addon, c.AddonRateCard, c.App, c.AppCustomer, c.AppStripe,
-		c.AppStripeCustomer, c.BalanceSnapshot, c.BillingCustomerLock,
-		c.BillingCustomerOverride, c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig,
-		c.BillingInvoiceLine, c.BillingInvoiceLineDiscount,
-		c.BillingInvoiceLineUsageDiscount, c.BillingInvoiceUsageBasedLineConfig,
-		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingSequenceNumbers,
-		c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects, c.Entitlement,
-		c.Feature, c.Grant, c.Meter, c.NotificationChannel, c.NotificationEvent,
-		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
-		c.PlanPhase, c.PlanRateCard, c.Subscription, c.SubscriptionAddon,
-		c.SubscriptionAddonQuantity, c.SubscriptionItem, c.SubscriptionPhase,
-		c.UsageReset,
+		c.Addon, c.AddonRateCard, c.App, c.AppCustomInvoicing,
+		c.AppCustomInvoicingCustomer, c.AppCustomer, c.AppStripe, c.AppStripeCustomer,
+		c.BalanceSnapshot, c.BillingCustomerLock, c.BillingCustomerOverride,
+		c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
+		c.BillingInvoiceLineDiscount, c.BillingInvoiceLineUsageDiscount,
+		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
+		c.BillingProfile, c.BillingSequenceNumbers, c.BillingWorkflowConfig,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
+		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
+		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
+		c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -430,18 +442,18 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Addon, c.AddonRateCard, c.App, c.AppCustomer, c.AppStripe,
-		c.AppStripeCustomer, c.BalanceSnapshot, c.BillingCustomerLock,
-		c.BillingCustomerOverride, c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig,
-		c.BillingInvoiceLine, c.BillingInvoiceLineDiscount,
-		c.BillingInvoiceLineUsageDiscount, c.BillingInvoiceUsageBasedLineConfig,
-		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingSequenceNumbers,
-		c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects, c.Entitlement,
-		c.Feature, c.Grant, c.Meter, c.NotificationChannel, c.NotificationEvent,
-		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
-		c.PlanPhase, c.PlanRateCard, c.Subscription, c.SubscriptionAddon,
-		c.SubscriptionAddonQuantity, c.SubscriptionItem, c.SubscriptionPhase,
-		c.UsageReset,
+		c.Addon, c.AddonRateCard, c.App, c.AppCustomInvoicing,
+		c.AppCustomInvoicingCustomer, c.AppCustomer, c.AppStripe, c.AppStripeCustomer,
+		c.BalanceSnapshot, c.BillingCustomerLock, c.BillingCustomerOverride,
+		c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
+		c.BillingInvoiceLineDiscount, c.BillingInvoiceLineUsageDiscount,
+		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
+		c.BillingProfile, c.BillingSequenceNumbers, c.BillingWorkflowConfig,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
+		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
+		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
+		c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -456,6 +468,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AddonRateCard.mutate(ctx, m)
 	case *AppMutation:
 		return c.App.mutate(ctx, m)
+	case *AppCustomInvoicingMutation:
+		return c.AppCustomInvoicing.mutate(ctx, m)
+	case *AppCustomInvoicingCustomerMutation:
+		return c.AppCustomInvoicingCustomer.mutate(ctx, m)
 	case *AppCustomerMutation:
 		return c.AppCustomer.mutate(ctx, m)
 	case *AppStripeMutation:
@@ -1121,6 +1137,336 @@ func (c *AppClient) mutate(ctx context.Context, m *AppMutation) (Value, error) {
 		return (&AppDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown App mutation op: %q", m.Op())
+	}
+}
+
+// AppCustomInvoicingClient is a client for the AppCustomInvoicing schema.
+type AppCustomInvoicingClient struct {
+	config
+}
+
+// NewAppCustomInvoicingClient returns a client for the AppCustomInvoicing from the given config.
+func NewAppCustomInvoicingClient(c config) *AppCustomInvoicingClient {
+	return &AppCustomInvoicingClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `appcustominvoicing.Hooks(f(g(h())))`.
+func (c *AppCustomInvoicingClient) Use(hooks ...Hook) {
+	c.hooks.AppCustomInvoicing = append(c.hooks.AppCustomInvoicing, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `appcustominvoicing.Intercept(f(g(h())))`.
+func (c *AppCustomInvoicingClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AppCustomInvoicing = append(c.inters.AppCustomInvoicing, interceptors...)
+}
+
+// Create returns a builder for creating a AppCustomInvoicing entity.
+func (c *AppCustomInvoicingClient) Create() *AppCustomInvoicingCreate {
+	mutation := newAppCustomInvoicingMutation(c.config, OpCreate)
+	return &AppCustomInvoicingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AppCustomInvoicing entities.
+func (c *AppCustomInvoicingClient) CreateBulk(builders ...*AppCustomInvoicingCreate) *AppCustomInvoicingCreateBulk {
+	return &AppCustomInvoicingCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AppCustomInvoicingClient) MapCreateBulk(slice any, setFunc func(*AppCustomInvoicingCreate, int)) *AppCustomInvoicingCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AppCustomInvoicingCreateBulk{err: fmt.Errorf("calling to AppCustomInvoicingClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AppCustomInvoicingCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AppCustomInvoicingCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AppCustomInvoicing.
+func (c *AppCustomInvoicingClient) Update() *AppCustomInvoicingUpdate {
+	mutation := newAppCustomInvoicingMutation(c.config, OpUpdate)
+	return &AppCustomInvoicingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AppCustomInvoicingClient) UpdateOne(aci *AppCustomInvoicing) *AppCustomInvoicingUpdateOne {
+	mutation := newAppCustomInvoicingMutation(c.config, OpUpdateOne, withAppCustomInvoicing(aci))
+	return &AppCustomInvoicingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AppCustomInvoicingClient) UpdateOneID(id string) *AppCustomInvoicingUpdateOne {
+	mutation := newAppCustomInvoicingMutation(c.config, OpUpdateOne, withAppCustomInvoicingID(id))
+	return &AppCustomInvoicingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AppCustomInvoicing.
+func (c *AppCustomInvoicingClient) Delete() *AppCustomInvoicingDelete {
+	mutation := newAppCustomInvoicingMutation(c.config, OpDelete)
+	return &AppCustomInvoicingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AppCustomInvoicingClient) DeleteOne(aci *AppCustomInvoicing) *AppCustomInvoicingDeleteOne {
+	return c.DeleteOneID(aci.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AppCustomInvoicingClient) DeleteOneID(id string) *AppCustomInvoicingDeleteOne {
+	builder := c.Delete().Where(appcustominvoicing.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AppCustomInvoicingDeleteOne{builder}
+}
+
+// Query returns a query builder for AppCustomInvoicing.
+func (c *AppCustomInvoicingClient) Query() *AppCustomInvoicingQuery {
+	return &AppCustomInvoicingQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAppCustomInvoicing},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AppCustomInvoicing entity by its id.
+func (c *AppCustomInvoicingClient) Get(ctx context.Context, id string) (*AppCustomInvoicing, error) {
+	return c.Query().Where(appcustominvoicing.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AppCustomInvoicingClient) GetX(ctx context.Context, id string) *AppCustomInvoicing {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCustomerApps queries the customer_apps edge of a AppCustomInvoicing.
+func (c *AppCustomInvoicingClient) QueryCustomerApps(aci *AppCustomInvoicing) *AppCustomInvoicingCustomerQuery {
+	query := (&AppCustomInvoicingCustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := aci.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appcustominvoicing.Table, appcustominvoicing.FieldID, id),
+			sqlgraph.To(appcustominvoicingcustomer.Table, appcustominvoicingcustomer.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, appcustominvoicing.CustomerAppsTable, appcustominvoicing.CustomerAppsColumn),
+		)
+		fromV = sqlgraph.Neighbors(aci.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryApp queries the app edge of a AppCustomInvoicing.
+func (c *AppCustomInvoicingClient) QueryApp(aci *AppCustomInvoicing) *AppQuery {
+	query := (&AppClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := aci.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appcustominvoicing.Table, appcustominvoicing.FieldID, id),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, appcustominvoicing.AppTable, appcustominvoicing.AppColumn),
+		)
+		fromV = sqlgraph.Neighbors(aci.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AppCustomInvoicingClient) Hooks() []Hook {
+	return c.hooks.AppCustomInvoicing
+}
+
+// Interceptors returns the client interceptors.
+func (c *AppCustomInvoicingClient) Interceptors() []Interceptor {
+	return c.inters.AppCustomInvoicing
+}
+
+func (c *AppCustomInvoicingClient) mutate(ctx context.Context, m *AppCustomInvoicingMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AppCustomInvoicingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AppCustomInvoicingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AppCustomInvoicingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AppCustomInvoicingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown AppCustomInvoicing mutation op: %q", m.Op())
+	}
+}
+
+// AppCustomInvoicingCustomerClient is a client for the AppCustomInvoicingCustomer schema.
+type AppCustomInvoicingCustomerClient struct {
+	config
+}
+
+// NewAppCustomInvoicingCustomerClient returns a client for the AppCustomInvoicingCustomer from the given config.
+func NewAppCustomInvoicingCustomerClient(c config) *AppCustomInvoicingCustomerClient {
+	return &AppCustomInvoicingCustomerClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `appcustominvoicingcustomer.Hooks(f(g(h())))`.
+func (c *AppCustomInvoicingCustomerClient) Use(hooks ...Hook) {
+	c.hooks.AppCustomInvoicingCustomer = append(c.hooks.AppCustomInvoicingCustomer, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `appcustominvoicingcustomer.Intercept(f(g(h())))`.
+func (c *AppCustomInvoicingCustomerClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AppCustomInvoicingCustomer = append(c.inters.AppCustomInvoicingCustomer, interceptors...)
+}
+
+// Create returns a builder for creating a AppCustomInvoicingCustomer entity.
+func (c *AppCustomInvoicingCustomerClient) Create() *AppCustomInvoicingCustomerCreate {
+	mutation := newAppCustomInvoicingCustomerMutation(c.config, OpCreate)
+	return &AppCustomInvoicingCustomerCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AppCustomInvoicingCustomer entities.
+func (c *AppCustomInvoicingCustomerClient) CreateBulk(builders ...*AppCustomInvoicingCustomerCreate) *AppCustomInvoicingCustomerCreateBulk {
+	return &AppCustomInvoicingCustomerCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AppCustomInvoicingCustomerClient) MapCreateBulk(slice any, setFunc func(*AppCustomInvoicingCustomerCreate, int)) *AppCustomInvoicingCustomerCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AppCustomInvoicingCustomerCreateBulk{err: fmt.Errorf("calling to AppCustomInvoicingCustomerClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AppCustomInvoicingCustomerCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AppCustomInvoicingCustomerCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AppCustomInvoicingCustomer.
+func (c *AppCustomInvoicingCustomerClient) Update() *AppCustomInvoicingCustomerUpdate {
+	mutation := newAppCustomInvoicingCustomerMutation(c.config, OpUpdate)
+	return &AppCustomInvoicingCustomerUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AppCustomInvoicingCustomerClient) UpdateOne(acic *AppCustomInvoicingCustomer) *AppCustomInvoicingCustomerUpdateOne {
+	mutation := newAppCustomInvoicingCustomerMutation(c.config, OpUpdateOne, withAppCustomInvoicingCustomer(acic))
+	return &AppCustomInvoicingCustomerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AppCustomInvoicingCustomerClient) UpdateOneID(id int) *AppCustomInvoicingCustomerUpdateOne {
+	mutation := newAppCustomInvoicingCustomerMutation(c.config, OpUpdateOne, withAppCustomInvoicingCustomerID(id))
+	return &AppCustomInvoicingCustomerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AppCustomInvoicingCustomer.
+func (c *AppCustomInvoicingCustomerClient) Delete() *AppCustomInvoicingCustomerDelete {
+	mutation := newAppCustomInvoicingCustomerMutation(c.config, OpDelete)
+	return &AppCustomInvoicingCustomerDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AppCustomInvoicingCustomerClient) DeleteOne(acic *AppCustomInvoicingCustomer) *AppCustomInvoicingCustomerDeleteOne {
+	return c.DeleteOneID(acic.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AppCustomInvoicingCustomerClient) DeleteOneID(id int) *AppCustomInvoicingCustomerDeleteOne {
+	builder := c.Delete().Where(appcustominvoicingcustomer.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AppCustomInvoicingCustomerDeleteOne{builder}
+}
+
+// Query returns a query builder for AppCustomInvoicingCustomer.
+func (c *AppCustomInvoicingCustomerClient) Query() *AppCustomInvoicingCustomerQuery {
+	return &AppCustomInvoicingCustomerQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAppCustomInvoicingCustomer},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AppCustomInvoicingCustomer entity by its id.
+func (c *AppCustomInvoicingCustomerClient) Get(ctx context.Context, id int) (*AppCustomInvoicingCustomer, error) {
+	return c.Query().Where(appcustominvoicingcustomer.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AppCustomInvoicingCustomerClient) GetX(ctx context.Context, id int) *AppCustomInvoicingCustomer {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCustomInvoicingApp queries the custom_invoicing_app edge of a AppCustomInvoicingCustomer.
+func (c *AppCustomInvoicingCustomerClient) QueryCustomInvoicingApp(acic *AppCustomInvoicingCustomer) *AppCustomInvoicingQuery {
+	query := (&AppCustomInvoicingClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := acic.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appcustominvoicingcustomer.Table, appcustominvoicingcustomer.FieldID, id),
+			sqlgraph.To(appcustominvoicing.Table, appcustominvoicing.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, appcustominvoicingcustomer.CustomInvoicingAppTable, appcustominvoicingcustomer.CustomInvoicingAppColumn),
+		)
+		fromV = sqlgraph.Neighbors(acic.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomer queries the customer edge of a AppCustomInvoicingCustomer.
+func (c *AppCustomInvoicingCustomerClient) QueryCustomer(acic *AppCustomInvoicingCustomer) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := acic.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(appcustominvoicingcustomer.Table, appcustominvoicingcustomer.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, appcustominvoicingcustomer.CustomerTable, appcustominvoicingcustomer.CustomerColumn),
+		)
+		fromV = sqlgraph.Neighbors(acic.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AppCustomInvoicingCustomerClient) Hooks() []Hook {
+	return c.hooks.AppCustomInvoicingCustomer
+}
+
+// Interceptors returns the client interceptors.
+func (c *AppCustomInvoicingCustomerClient) Interceptors() []Interceptor {
+	return c.inters.AppCustomInvoicingCustomer
+}
+
+func (c *AppCustomInvoicingCustomerClient) mutate(ctx context.Context, m *AppCustomInvoicingCustomerMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AppCustomInvoicingCustomerCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AppCustomInvoicingCustomerUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AppCustomInvoicingCustomerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AppCustomInvoicingCustomerDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown AppCustomInvoicingCustomer mutation op: %q", m.Op())
 	}
 }
 
@@ -7259,8 +7605,9 @@ func (c *UsageResetClient) mutate(ctx context.Context, m *UsageResetMutation) (V
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Addon, AddonRateCard, App, AppCustomer, AppStripe, AppStripeCustomer,
-		BalanceSnapshot, BillingCustomerLock, BillingCustomerOverride, BillingInvoice,
+		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
+		AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
+		BillingCustomerLock, BillingCustomerOverride, BillingInvoice,
 		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
 		BillingInvoiceLineDiscount, BillingInvoiceLineUsageDiscount,
 		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
@@ -7272,8 +7619,9 @@ type (
 		UsageReset []ent.Hook
 	}
 	inters struct {
-		Addon, AddonRateCard, App, AppCustomer, AppStripe, AppStripeCustomer,
-		BalanceSnapshot, BillingCustomerLock, BillingCustomerOverride, BillingInvoice,
+		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
+		AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
+		BillingCustomerLock, BillingCustomerOverride, BillingInvoice,
 		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
 		BillingInvoiceLineDiscount, BillingInvoiceLineUsageDiscount,
 		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,

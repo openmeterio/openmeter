@@ -10,6 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicing"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
@@ -166,6 +168,70 @@ func init() {
 	dbappDescID := dbappMixinFields0[0].Descriptor()
 	// dbapp.DefaultID holds the default value on creation for the id field.
 	dbapp.DefaultID = dbappDescID.Default.(func() string)
+	appcustominvoicingMixin := schema.AppCustomInvoicing{}.Mixin()
+	appcustominvoicingMixinFields0 := appcustominvoicingMixin[0].Fields()
+	_ = appcustominvoicingMixinFields0
+	appcustominvoicingMixinFields1 := appcustominvoicingMixin[1].Fields()
+	_ = appcustominvoicingMixinFields1
+	appcustominvoicingMixinFields2 := appcustominvoicingMixin[2].Fields()
+	_ = appcustominvoicingMixinFields2
+	appcustominvoicingFields := schema.AppCustomInvoicing{}.Fields()
+	_ = appcustominvoicingFields
+	// appcustominvoicingDescNamespace is the schema descriptor for namespace field.
+	appcustominvoicingDescNamespace := appcustominvoicingMixinFields1[0].Descriptor()
+	// appcustominvoicing.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	appcustominvoicing.NamespaceValidator = appcustominvoicingDescNamespace.Validators[0].(func(string) error)
+	// appcustominvoicingDescCreatedAt is the schema descriptor for created_at field.
+	appcustominvoicingDescCreatedAt := appcustominvoicingMixinFields2[0].Descriptor()
+	// appcustominvoicing.DefaultCreatedAt holds the default value on creation for the created_at field.
+	appcustominvoicing.DefaultCreatedAt = appcustominvoicingDescCreatedAt.Default.(func() time.Time)
+	// appcustominvoicingDescUpdatedAt is the schema descriptor for updated_at field.
+	appcustominvoicingDescUpdatedAt := appcustominvoicingMixinFields2[1].Descriptor()
+	// appcustominvoicing.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	appcustominvoicing.DefaultUpdatedAt = appcustominvoicingDescUpdatedAt.Default.(func() time.Time)
+	// appcustominvoicing.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	appcustominvoicing.UpdateDefaultUpdatedAt = appcustominvoicingDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// appcustominvoicingDescSkipDraftSyncHook is the schema descriptor for skip_draft_sync_hook field.
+	appcustominvoicingDescSkipDraftSyncHook := appcustominvoicingFields[0].Descriptor()
+	// appcustominvoicing.DefaultSkipDraftSyncHook holds the default value on creation for the skip_draft_sync_hook field.
+	appcustominvoicing.DefaultSkipDraftSyncHook = appcustominvoicingDescSkipDraftSyncHook.Default.(bool)
+	// appcustominvoicingDescSkipIssuingSyncHook is the schema descriptor for skip_issuing_sync_hook field.
+	appcustominvoicingDescSkipIssuingSyncHook := appcustominvoicingFields[1].Descriptor()
+	// appcustominvoicing.DefaultSkipIssuingSyncHook holds the default value on creation for the skip_issuing_sync_hook field.
+	appcustominvoicing.DefaultSkipIssuingSyncHook = appcustominvoicingDescSkipIssuingSyncHook.Default.(bool)
+	// appcustominvoicingDescID is the schema descriptor for id field.
+	appcustominvoicingDescID := appcustominvoicingMixinFields0[0].Descriptor()
+	// appcustominvoicing.DefaultID holds the default value on creation for the id field.
+	appcustominvoicing.DefaultID = appcustominvoicingDescID.Default.(func() string)
+	appcustominvoicingcustomerMixin := schema.AppCustomInvoicingCustomer{}.Mixin()
+	appcustominvoicingcustomerMixinFields0 := appcustominvoicingcustomerMixin[0].Fields()
+	_ = appcustominvoicingcustomerMixinFields0
+	appcustominvoicingcustomerMixinFields1 := appcustominvoicingcustomerMixin[1].Fields()
+	_ = appcustominvoicingcustomerMixinFields1
+	appcustominvoicingcustomerFields := schema.AppCustomInvoicingCustomer{}.Fields()
+	_ = appcustominvoicingcustomerFields
+	// appcustominvoicingcustomerDescNamespace is the schema descriptor for namespace field.
+	appcustominvoicingcustomerDescNamespace := appcustominvoicingcustomerMixinFields0[0].Descriptor()
+	// appcustominvoicingcustomer.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	appcustominvoicingcustomer.NamespaceValidator = appcustominvoicingcustomerDescNamespace.Validators[0].(func(string) error)
+	// appcustominvoicingcustomerDescCreatedAt is the schema descriptor for created_at field.
+	appcustominvoicingcustomerDescCreatedAt := appcustominvoicingcustomerMixinFields1[0].Descriptor()
+	// appcustominvoicingcustomer.DefaultCreatedAt holds the default value on creation for the created_at field.
+	appcustominvoicingcustomer.DefaultCreatedAt = appcustominvoicingcustomerDescCreatedAt.Default.(func() time.Time)
+	// appcustominvoicingcustomerDescUpdatedAt is the schema descriptor for updated_at field.
+	appcustominvoicingcustomerDescUpdatedAt := appcustominvoicingcustomerMixinFields1[1].Descriptor()
+	// appcustominvoicingcustomer.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	appcustominvoicingcustomer.DefaultUpdatedAt = appcustominvoicingcustomerDescUpdatedAt.Default.(func() time.Time)
+	// appcustominvoicingcustomer.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	appcustominvoicingcustomer.UpdateDefaultUpdatedAt = appcustominvoicingcustomerDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// appcustominvoicingcustomerDescAppID is the schema descriptor for app_id field.
+	appcustominvoicingcustomerDescAppID := appcustominvoicingcustomerFields[0].Descriptor()
+	// appcustominvoicingcustomer.AppIDValidator is a validator for the "app_id" field. It is called by the builders before save.
+	appcustominvoicingcustomer.AppIDValidator = appcustominvoicingcustomerDescAppID.Validators[0].(func(string) error)
+	// appcustominvoicingcustomerDescCustomerID is the schema descriptor for customer_id field.
+	appcustominvoicingcustomerDescCustomerID := appcustominvoicingcustomerFields[1].Descriptor()
+	// appcustominvoicingcustomer.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	appcustominvoicingcustomer.CustomerIDValidator = appcustominvoicingcustomerDescCustomerID.Validators[0].(func(string) error)
 	appcustomerMixin := schema.AppCustomer{}.Mixin()
 	appcustomerMixinFields0 := appcustomerMixin[0].Fields()
 	_ = appcustomerMixinFields0

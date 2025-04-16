@@ -279,6 +279,48 @@ func (u *AppUpdateOne) SetOrClearDescription(value *string) *AppUpdateOne {
 	return u.SetDescription(*value)
 }
 
+func (u *AppCustomInvoicingUpdate) SetOrClearDeletedAt(value *time.Time) *AppCustomInvoicingUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppCustomInvoicingUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppCustomInvoicingUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppCustomInvoicingCustomerUpdate) SetOrClearDeletedAt(value *time.Time) *AppCustomInvoicingCustomerUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppCustomInvoicingCustomerUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppCustomInvoicingCustomerUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppCustomInvoicingCustomerUpdate) SetOrClearMetadata(value *map[string]string) *AppCustomInvoicingCustomerUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *AppCustomInvoicingCustomerUpdateOne) SetOrClearMetadata(value *map[string]string) *AppCustomInvoicingCustomerUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
 func (u *AppCustomerUpdate) SetOrClearDeletedAt(value *time.Time) *AppCustomerUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

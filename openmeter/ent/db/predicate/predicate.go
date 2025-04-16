@@ -37,6 +37,12 @@ func AddonRateCardOrErr(p AddonRateCard, err error) AddonRateCard {
 // App is the predicate function for dbapp builders.
 type App func(*sql.Selector)
 
+// AppCustomInvoicing is the predicate function for appcustominvoicing builders.
+type AppCustomInvoicing func(*sql.Selector)
+
+// AppCustomInvoicingCustomer is the predicate function for appcustominvoicingcustomer builders.
+type AppCustomInvoicingCustomer func(*sql.Selector)
+
 // AppCustomer is the predicate function for appcustomer builders.
 type AppCustomer func(*sql.Selector)
 
