@@ -184,6 +184,14 @@ func (i UpdatePlanAddonInput) Equal(p PlanAddon) bool {
 		return false
 	}
 
+	// FIXME: annotations
+
+	if i.Metadata != nil {
+		if !i.Metadata.Equal(p.Metadata) {
+			return false
+		}
+	}
+
 	return true
 }
 
