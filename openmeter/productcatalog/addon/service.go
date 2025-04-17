@@ -203,9 +203,25 @@ func (i UpdateAddonInput) Validate() error {
 		}
 	}
 
-	// FIXME: validate ratecards
+	if i.RateCards != nil {
+		// Check for
+		// * duplicated rate card keys
+		// * invalid RateCards
+		rateCardKeys := make(map[string]productcatalog.RateCard)
+		for _, rateCard := range *i.RateCards {
+			if _, ok := rateCardKeys[rateCard.Key()]; ok {
+				errs = append(errs, fmt.Errorf("duplicated ratecard: %s", rateCard.Key()))
+			} else {
+				rateCardKeys[rateCard.Key()] = rateCard
+			}
 
-	return errors.Join(errs...)
+			if err := rateCard.Validate(); err != nil {
+				errs = append(errs, fmt.Errorf("invalid ratecard: %w", err))
+			}
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type GetAddonInput struct {
