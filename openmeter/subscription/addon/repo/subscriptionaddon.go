@@ -9,7 +9,6 @@ import (
 	dbsubscriptionaddonquantity "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -28,8 +27,8 @@ func NewSubscriptionAddonRepo(db *db.Client) *subscriptionAddonRepo {
 
 // Create creates a new subscription addon
 func (r *subscriptionAddonRepo) Create(ctx context.Context, namespace string, input subscriptionaddon.CreateSubscriptionAddonRepositoryInput) (*models.NamespacedID, error) {
-	return transaction.Run(ctx, r, func(ctx context.Context) (*models.NamespacedID, error) {
-		cmd := r.db.SubscriptionAddon.Create().
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionAddonRepo) (*models.NamespacedID, error) {
+		cmd := repo.db.SubscriptionAddon.Create().
 			SetNamespace(namespace).
 			SetAddonID(input.AddonID).
 			SetSubscriptionID(input.SubscriptionID)
