@@ -11,7 +11,6 @@ import (
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -50,24 +49,6 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 		// Let's get a clean spec by restoring the subscription
 		spec := subView.AsSpec()
 
-		calcTime := clock.Now()
-
-		diffs, err := slicesx.MapWithErr(subsAdds.Items, func(subAdd subscriptionaddon.SubscriptionAddon) (addondiff.Diffable, error) {
-			return addondiff.GetDiffableFromAddon(subView, subAdd)
-		})
-		if err != nil {
-			return def, fmt.Errorf("failed to get diffable from addon: %w", err)
-		}
-
-		for _, diff := range diffs {
-			if err := spec.Apply(diff.GetRestores(), subscription.ApplyContext{
-				CurrentTime: calcTime,
-			}); err != nil {
-				return def, fmt.Errorf("failed to restore subscription addon: %w", err)
-			}
-		}
-
-		// Now let's try to purchase the addon
 		// Let's try to decode when the subscription should be patched
 		if err := addonInp.Timing.ValidateForAction(subscription.SubscriptionActionChangeAddons, &subView); err != nil {
 			return def, models.NewGenericValidationError(fmt.Errorf("invalid timing for adding add-on: %w", err))
@@ -81,6 +62,23 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 		if !subView.Subscription.IsActiveAt(editTime) {
 			return def, models.NewGenericValidationError(fmt.Errorf("subscription is not active at the time of adding the addon"))
 		}
+
+		diffs, err := slicesx.MapWithErr(subsAdds.Items, func(subAdd subscriptionaddon.SubscriptionAddon) (addondiff.Diffable, error) {
+			return addondiff.GetDiffableFromAddon(subView, subAdd)
+		})
+		if err != nil {
+			return def, fmt.Errorf("failed to get diffable from addon: %w", err)
+		}
+
+		for _, diff := range diffs {
+			if err := spec.Apply(diff.GetRestores(), subscription.ApplyContext{
+				CurrentTime: editTime,
+			}); err != nil {
+				return def, fmt.Errorf("failed to restore subscription addon: %w", err)
+			}
+		}
+
+		// Now let's try to purchase the addon
 
 		subsAdd, err := s.AddonService.Create(ctx, subscriptionID.Namespace, subscriptionaddon.CreateSubscriptionAddonInput{
 			MetadataModel:  addonInp.MetadataModel,
@@ -102,7 +100,7 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 		// Now let's reapply and sync
 		for _, diff := range diffs {
 			if err := spec.Apply(diff.GetApplies(), subscription.ApplyContext{
-				CurrentTime: calcTime,
+				CurrentTime: editTime,
 			}); err != nil {
 				return def, fmt.Errorf("failed to apply diff: %w", err)
 			}
@@ -114,7 +112,7 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 		}
 
 		if err := spec.Apply(diff.GetApplies(), subscription.ApplyContext{
-			CurrentTime: calcTime,
+			CurrentTime: editTime,
 		}); err != nil {
 			return def, fmt.Errorf("failed to apply diff: %w", err)
 		}
