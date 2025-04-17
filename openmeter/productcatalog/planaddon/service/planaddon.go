@@ -154,7 +154,9 @@ func (s service) DeletePlanAddon(ctx context.Context, params planaddon.DeletePla
 			NamespacedModel: models.NamespacedModel{
 				Namespace: params.Namespace,
 			},
-			ID: params.ID,
+			ID:           params.ID,
+			PlanIDOrKey:  params.PlanID,
+			AddonIDOrKey: params.AddonID,
 		})
 		if err != nil {
 			if notFound := &(planaddon.NotFoundError{}); errors.As(err, &notFound) {
@@ -176,29 +178,27 @@ func (s service) DeletePlanAddon(ctx context.Context, params planaddon.DeletePla
 				params.Namespace, params.PlanID, params.AddonID, err)
 		}
 
-		logger.Debug("add-on deleted")
+		logger.Debug("plan add-on assignment deleted")
 
 		// Get the deleted add-on to emit the event
 		planAddon, err = s.adapter.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: params.Namespace,
 			},
-			ID: params.ID,
+			ID: planAddon.ID,
 		})
 		if err != nil {
-			var notfound *planaddon.NotFoundError
-
-			if errors.As(err, &notfound) {
+			if notFound := &(planaddon.NotFoundError{}); errors.As(err, &notFound) {
 				return models.NewGenericNotFoundError(err)
 			}
 
-			return fmt.Errorf("failed to get deleted add-on: %w", err)
+			return fmt.Errorf("failed to get deleted plan add-on assignment: %w", err)
 		}
 
 		// Emit deleted event
 		event := planaddon.NewPlanAddonDeleteEvent(ctx, planAddon)
 		if err = s.publisher.Publish(ctx, event); err != nil {
-			return fmt.Errorf("failed to publish add-on deleted event: %w", err)
+			return fmt.Errorf("failed to publish plan add-on assignment deleted event: %w", err)
 		}
 
 		return nil
