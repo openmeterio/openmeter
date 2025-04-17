@@ -37,6 +37,7 @@ interface AppStripe {
   /**
    * Update the Stripe API key.
    */
+  #deprecated "Use /api/v1/apps/{id} instead"
   @put
   @route("/api/v1/apps/{id}/stripe/api-key")
   @operationId("updateStripeAPIKey")
@@ -708,18 +709,27 @@ model StripeApp {
   /**
    * The Stripe account ID.
    */
+  @visibility(Lifecycle.Read)
   stripeAccountId: string;
 
   /**
    * Livemode, true if the app is in production mode.
    */
+  @visibility(Lifecycle.Read)
   livemode: boolean;
 
   /**
    * The masked API key.
    * Only shows the first 8 and last 3 characters.
    */
+  @visibility(Lifecycle.Read)
   maskedAPIKey: string;
+
+  /**
+   * The Stripe API key.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Update)
+  secretAPIKey?: string;
 }
 
 /**

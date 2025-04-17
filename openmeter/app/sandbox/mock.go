@@ -52,6 +52,10 @@ func (m *MockApp) DeleteCustomerData(ctx context.Context, input app.DeleteAppIns
 	return nil
 }
 
+func (m *MockApp) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) error {
+	return nil
+}
+
 func (m *MockApp) ValidateCustomer(appID string, customer *customer.Customer, capabilities []app.CapabilityType) error {
 	m.validateCustomerCalled = true
 	return m.validateCustomerResponse.MustGet()
@@ -177,6 +181,10 @@ func (m *mockAppInstance) UpsertCustomerData(ctx context.Context, input app.Upse
 
 func (m *mockAppInstance) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
 	return m.parent.DeleteCustomerData(ctx, input)
+}
+
+func (m *mockAppInstance) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) error {
+	return m.parent.UpdateAppConfig(ctx, input)
 }
 
 func (m *mockAppInstance) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {

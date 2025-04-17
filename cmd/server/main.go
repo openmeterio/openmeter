@@ -127,7 +127,7 @@ func main() {
 	}
 
 	// Provision sandbox app
-	err = app.AppSandboxProvisioner()
+	err = app.AppRegistry.SandboxProvisioner()
 	if err != nil {
 		logger.Error("failed to provision sandbox app", "error", err)
 		os.Exit(1)
@@ -149,8 +149,8 @@ func main() {
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
 			Addon:                       app.Addon,
-			App:                         app.App,
-			AppStripe:                   app.AppStripe,
+			App:                         app.AppRegistry.Service,
+			AppStripe:                   app.AppRegistry.Stripe,
 			Billing:                     app.Billing,
 			Customer:                    app.Customer,
 			DebugConnector:              debugConnector,

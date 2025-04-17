@@ -84,7 +84,7 @@ func main() {
 	}
 
 	// Provision sandbox app
-	err = app.AppSandboxProvisioner()
+	err = app.AppRegistry.SandboxProvisioner()
 	if err != nil {
 		logger.Error("failed to provision sandbox app", "error", err)
 		os.Exit(1)

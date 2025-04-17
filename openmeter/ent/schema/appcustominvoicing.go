@@ -32,7 +32,9 @@ func (AppCustomInvoicing) Fields() []ent.Field {
 }
 
 func (AppCustomInvoicing) Indexes() []ent.Index {
-	return []ent.Index{}
+	return []ent.Index{
+		index.Fields("namespace", "id").Unique(),
+	}
 }
 
 func (AppCustomInvoicing) Edges() []ent.Edge {

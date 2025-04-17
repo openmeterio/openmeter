@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
@@ -282,6 +283,24 @@ func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp 
 		}
 
 		return app, stripeCustomerData, nil
+	case string(app.AppTypeCustomInvoicing):
+		// Parse as custom invoicing app
+		apiCustomInvoicingCustomerData, err := apiApp.AsCustomInvoicingCustomerAppData()
+		if err != nil {
+			return nil, nil, fmt.Errorf("error converting to custom invoicing app: %w", err)
+		}
+
+		// Get app ID from API data or get default app
+		app, err := h.getApp(ctx, namespace, apiCustomInvoicingCustomerData.Id, app.AppTypeCustomInvoicing)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error getting custom invoicing app: %w", err)
+		}
+
+		customInvoicingCustomerData := appcustominvoicing.CustomerData{
+			Metadata: lo.FromPtrOr(apiCustomInvoicingCustomerData.Metadata, map[string]string{}),
+		}
+
+		return app, customInvoicingCustomerData, nil
 	}
 
 	return nil, nil, fmt.Errorf("unsupported app type: %s", appType)
@@ -326,7 +345,7 @@ func (h *handler) customerAppToAPI(a app.CustomerApp) (api.CustomerAppData, erro
 		apiStripeCustomerAppData := api.StripeCustomerAppData{
 			Id:                           &appId,
 			Type:                         api.StripeCustomerAppDataTypeStripe,
-			App:                          lo.ToPtr(h.appMapper.mapStripeAppToAPI(stripeApp)),
+			App:                          lo.ToPtr(mapStripeAppToAPI(stripeApp)),
 			StripeCustomerId:             customerApp.StripeCustomerID,
 			StripeDefaultPaymentMethodId: customerApp.StripeDefaultPaymentMethodID,
 		}
@@ -342,7 +361,7 @@ func (h *handler) customerAppToAPI(a app.CustomerApp) (api.CustomerAppData, erro
 			return apiCustomerAppData, fmt.Errorf("error casting app to sandbox app")
 		}
 
-		apiApp := h.appMapper.mapSandboxAppToAPI(sandboxApp)
+		apiApp := mapSandboxAppToAPI(sandboxApp)
 
 		apiSandboxCustomerAppData := api.SandboxCustomerAppData{
 			Id:   &appId,

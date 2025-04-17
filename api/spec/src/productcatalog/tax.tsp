@@ -19,6 +19,12 @@ model TaxConfig {
    */
   @summary("Stripe tax config")
   stripe?: StripeTaxConfig;
+
+  /**
+   * Custom invoicing tax config.
+   */
+  @summary("Custom invoicing tax config")
+  customInvoicing?: CustomInvoicingTaxConfig;
 }
 
 /**
@@ -53,4 +59,18 @@ enum TaxBehavior {
    * Tax is excluded from the price.
    */
   exclusive: "exclusive",
+}
+
+/**
+ * Custom invoicing tax config.
+ */
+@friendlyName("CustomInvoicingTaxConfig")
+model CustomInvoicingTaxConfig {
+  /**
+   * Tax code.
+   *
+   * The tax code should be interpreted by the custom invoicing provider.
+   */
+  @summary("Tax code")
+  code: string;
 }

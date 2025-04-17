@@ -11,8 +11,6 @@ import (
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
@@ -22,12 +20,10 @@ type Application struct {
 	common.Migrator
 	common.Runner
 
-	App                   app.Service
-	AppStripe             appstripe.Service
-	AppSandboxProvisioner common.AppSandboxProvisioner
-	Logger                *slog.Logger
-	Meter                 meter.Service
-	Streaming             streaming.Connector
+	AppRegistry common.AppRegistry
+	Logger      *slog.Logger
+	Meter       meter.Service
+	Streaming   streaming.Connector
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
