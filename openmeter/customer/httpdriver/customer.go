@@ -106,12 +106,12 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 			return pagination.MapPagedResponseError(resp, func(customer customer.Customer) (api.Customer, error) {
 				var item api.Customer
 
-				customerSubscriptions, ok := customerSubscriptions[customer.ID]
+				subs, ok := customerSubscriptions[customer.ID]
 				if !ok {
-					customerSubscriptions = []subscription.Subscription{}
+					subs = []subscription.Subscription{}
 				}
 
-				item, err = CustomerToAPI(customer, customerSubscriptions, request.Expand)
+				item, err = CustomerToAPI(customer, subs, request.Expand)
 				if err != nil {
 					return item, fmt.Errorf("failed to cast customer customer: %w", err)
 				}
