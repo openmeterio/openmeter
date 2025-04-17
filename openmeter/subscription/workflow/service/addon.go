@@ -78,6 +78,10 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 			return def, fmt.Errorf("failed to resolve timing: %w", err)
 		}
 
+		if !subView.Subscription.IsActiveAt(editTime) {
+			return def, models.NewGenericValidationError(fmt.Errorf("subscription is not active at the time of adding the addon"))
+		}
+
 		subsAdd, err := s.AddonService.Create(ctx, subscriptionID.Namespace, subscriptionaddon.CreateSubscriptionAddonInput{
 			MetadataModel:  addonInp.MetadataModel,
 			AddonID:        addonInp.AddonID,
