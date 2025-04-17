@@ -20,8 +20,6 @@ type Customer struct {
 	PrimaryEmail     *string                  `json:"primaryEmail,omitempty"`
 	Currency         *currencyx.Code          `json:"currency,omitempty"`
 	BillingAddress   *models.Address          `json:"billingAddress,omitempty"`
-
-	CurrentSubscriptionID *string `json:"currentSubscriptionId,omitempty"`
 }
 
 func (c Customer) Validate() error {
@@ -213,6 +211,9 @@ type GetCustomerInput struct {
 	CustomerID      *CustomerID
 	CustomerKey     *CustomerKey
 	CustomerIDOrKey *CustomerIDOrKey
+
+	// Expand
+	Expand []api.CustomerExpand
 }
 
 func (i GetCustomerInput) Validate() error {

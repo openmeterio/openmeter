@@ -7,6 +7,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -53,18 +55,18 @@ func MapAddress(apiAddress *api.Address) *models.Address {
 }
 
 // CustomerToAPI converts a Customer to an API Customer
-func CustomerToAPI(c customer.Customer) (api.Customer, error) {
+func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscription, expand []api.CustomerExpand) (api.Customer, error) {
+	// Map the customer to the API Customer
 	apiCustomer := api.Customer{
-		Id:                    c.ManagedResource.ID,
-		Key:                   c.Key,
-		Name:                  c.Name,
-		UsageAttribution:      api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
-		PrimaryEmail:          c.PrimaryEmail,
-		Description:           c.Description,
-		CreatedAt:             c.CreatedAt,
-		UpdatedAt:             c.UpdatedAt,
-		DeletedAt:             c.DeletedAt,
-		CurrentSubscriptionId: c.CurrentSubscriptionID,
+		Id:               c.ManagedResource.ID,
+		Key:              c.Key,
+		Name:             c.Name,
+		UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
+		PrimaryEmail:     c.PrimaryEmail,
+		Description:      c.Description,
+		CreatedAt:        c.CreatedAt,
+		UpdatedAt:        c.UpdatedAt,
+		DeletedAt:        c.DeletedAt,
 	}
 
 	if c.BillingAddress != nil {
@@ -86,6 +88,20 @@ func CustomerToAPI(c customer.Customer) (api.Customer, error) {
 
 	if c.Currency != nil {
 		apiCustomer.Currency = lo.ToPtr(string(*c.Currency))
+	}
+
+	// Map the subscriptions to the API Subscriptions
+	if len(subscriptions) > 0 {
+		// Let's find the active one
+		// FIXME: this will only work with single subscription per customer
+		apiCustomer.CurrentSubscriptionId = lo.ToPtr(subscriptions[0].ID)
+
+		// Map the subscriptions to the API Subscriptions if the expand is set
+		if lo.Contains(expand, api.CustomerExpandSubscriptions) {
+			apiCustomer.Subscriptions = lo.ToPtr(lo.Map(subscriptions, func(s subscription.Subscription, _ int) api.Subscription {
+				return subscriptionhttp.MapSubscriptionToAPI(s)
+			}))
+		}
 	}
 
 	return apiCustomer, nil
