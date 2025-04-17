@@ -242,18 +242,6 @@ func TestPlanAddonService(t *testing.T) {
 		planV1, err = env.Plan.CreatePlan(ctx, planV1Input)
 		require.NoErrorf(t, err, "creating plan must not fail")
 
-		planV1, err = env.Plan.PublishPlan(ctx, plan.PublishPlanInput{
-			NamespacedID: models.NamespacedID{
-				Namespace: namespace,
-				ID:        planV1.ID,
-			},
-			EffectivePeriod: productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(time.Now()),
-				EffectiveTo:   nil,
-			},
-		})
-		require.NoErrorf(t, err, "publishing plan must not fail")
-
 		addonV1Input.RateCards = productcatalog.RateCards{
 			&productcatalog.UsageBasedRateCard{
 				RateCardMeta: productcatalog.RateCardMeta{
@@ -463,6 +451,25 @@ func TestPlanAddonService(t *testing.T) {
 				require.NotNilf(t, getPlanAddon, "plan add-on assignment must not be nil")
 
 				assert.NotNilf(t, getPlanAddon.DeletedAt, "plan add-on assignment must be deleted")
+			})
+		})
+
+		t.Run("Invalid", func(t *testing.T) {
+			t.Run("Plan", func(t *testing.T) {
+				planV1, err = env.Plan.PublishPlan(ctx, plan.PublishPlanInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: namespace,
+						ID:        planV1.ID,
+					},
+					EffectivePeriod: productcatalog.EffectivePeriod{
+						EffectiveFrom: lo.ToPtr(time.Now()),
+						EffectiveTo:   nil,
+					},
+				})
+				require.NoErrorf(t, err, "publishing plan must not fail")
+
+				planAddon, err = planAddonService.CreatePlanAddon(ctx, planAddonInput)
+				require.Errorf(t, err, "creating new plan add-on assignment must fail if plan is published/active")
 			})
 		})
 	})

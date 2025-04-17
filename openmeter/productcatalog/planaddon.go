@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -65,11 +67,12 @@ func (c PlanAddon) Validate() error {
 
 	// Validate plan
 
-	// Plan must be active.
-	if c.Plan.Status() != PlanStatusActive {
+	// Check plan status
+	allowedPlanStatuses := []PlanStatus{PlanStatusDraft, PlanStatusScheduled}
+	if !lo.Contains(allowedPlanStatuses, c.Plan.Status()) {
 		errs = append(errs,
-			fmt.Errorf("invalid plan: status must be active [plan.key=%s plan.version=%d]",
-				c.Plan.Key, c.Plan.Version),
+			fmt.Errorf("invalid plan [plan.key=%s plan.version=%d]: invalid %s status, allowed statuses: %+v",
+				c.Plan.Key, c.Plan.Version, c.Plan.Status(), allowedPlanStatuses),
 		)
 	}
 
@@ -79,7 +82,7 @@ func (c PlanAddon) Validate() error {
 	// as we do not support scheduled changes for add-ons.
 	if c.Addon.Status() != AddonStatusActive || c.Addon.EffectiveTo != nil {
 		errs = append(errs,
-			fmt.Errorf("invalid add-on: status must be active [addon.key=%s addon.version=%d]",
+			fmt.Errorf("invalid add-on [addon.key=%s addon.version=%d]: status must be active",
 				c.Addon.Key, c.Addon.Version),
 		)
 	}
