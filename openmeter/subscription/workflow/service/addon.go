@@ -70,6 +70,13 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 			return def, fmt.Errorf("failed to get diffable from addon: %w", err)
 		}
 
+		diffs = lo.Filter(diffs, func(diff addondiff.Diffable, _ int) bool {
+			return diff != nil
+		})
+		if len(diffs) != len(subsAdds.Items) {
+			return def, fmt.Errorf("failed to get diffable from addons, got %d addons but %d diffs", len(subsAdds.Items), len(diffs))
+		}
+
 		for _, diff := range diffs {
 			if err := spec.Apply(diff.GetRestores(), subscription.ApplyContext{
 				CurrentTime: editTime,
