@@ -12,3 +12,8 @@ type Collector interface {
 	Ingest(ctx context.Context, namespace string, ev event.Event) error
 	Close()
 }
+
+// Service is the ingestion service.
+type Service interface {
+	IngestEvents(ctx context.Context, request IngestEventsRequest) (bool, error)
+}
