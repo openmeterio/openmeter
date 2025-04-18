@@ -9,7 +9,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -450,10 +449,13 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		pp, err := p.AsProductCatalogPlan(clock.Now())
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert Plan to ProductCatalog Plan: %w", err)
+		if p.DeletedAt != nil {
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("cannot publish a deleted Plan [namespace=%s, id=%s deleted_at=%s]", p.Namespace, p.ID, p.DeletedAt),
+			)
 		}
+
+		pp := p.AsProductCatalogPlan2()
 
 		// First, let's validate that the Subscription can successfully be created from this Plan
 
