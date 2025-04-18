@@ -14,10 +14,12 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/estimator"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/edge"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -53,8 +55,81 @@ type WorkerOptions struct {
 	Repo        BalanceWorkerRepository
 	// External connectors
 	SubjectResolver SubjectResolver
+	MeterService    meter.Service
 
 	Logger *slog.Logger
+
+	Estimator EstimatorOptions
+}
+
+func (o *WorkerOptions) Validate() error {
+	if err := o.Estimator.Validate(); err != nil {
+		return fmt.Errorf("failed to validate estimator options: %w", err)
+	}
+
+	if o.Entitlement == nil {
+		return errors.New("entitlement is required")
+	}
+
+	if o.Repo == nil {
+		return errors.New("repo is required")
+	}
+
+	if o.EventBus == nil {
+		return errors.New("event bus is required")
+	}
+
+	if o.Logger == nil {
+		return errors.New("logger is required")
+	}
+
+	if o.SystemEventsTopic == "" {
+		return errors.New("system events topic is required")
+	}
+
+	if o.IngestEventsTopic == "" {
+		return errors.New("ingest events topic is required")
+	}
+
+	if o.MeterService == nil {
+		return errors.New("meter service is required")
+	}
+
+	return nil
+}
+
+type EstimatorOptions struct {
+	Enabled            bool
+	RedisURL           string
+	ValidationRate     float64
+	LockTimeout        time.Duration
+	CacheTTL           time.Duration
+	ThresholdProviders []ThresholdProvider
+}
+
+func (o *EstimatorOptions) Validate() error {
+	if !o.Enabled {
+		return nil
+	}
+
+	if o.RedisURL == "" {
+		return errors.New("redis url is required")
+	}
+
+	if o.ValidationRate < 0 || o.ValidationRate > 1 {
+		return errors.New("validation rate must be between 0 and 1")
+	}
+
+	if o.LockTimeout <= 0 {
+		return errors.New("lock timeout must be greater than 0")
+	}
+
+	// Or we won't emit any events
+	if len(o.ThresholdProviders) == 0 {
+		return errors.New("threshold providers are required")
+	}
+
+	return nil
 }
 
 type highWatermarkCacheEntry struct {
@@ -62,41 +137,119 @@ type highWatermarkCacheEntry struct {
 	IsDeleted     bool
 }
 
+type estimatorConfig struct {
+	estimator.Estimator
+
+	enabled bool
+
+	thresholdProviders []ThresholdProvider
+	validationRate     float64
+
+	lockTimeout time.Duration
+}
+
 type Worker struct {
 	opts        WorkerOptions
 	entitlement *registry.Entitlement
+	meter       meter.Service
 	repo        BalanceWorkerRepository
 	router      *message.Router
 
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
 
+	// Estimator debounce engine
+	estimator estimatorConfig
+
 	metricRecalculationTime       metric.Int64Histogram
 	metricHighWatermarkCacheStats metric.Int64Counter
+
+	// Estimator metrics
+	metricEstimatorRequestsTotal         metric.Int64Counter
+	metricEstimatorValidationErrorsTotal metric.Int64Counter
+	metricEstimatorActionTotal           metric.Int64Counter
 
 	// Handlers
 	nonPublishingHandler *grouphandler.NoPublishingHandler
 }
 
+func (w *Worker) initMetrics() error {
+	var err error
+
+	w.metricRecalculationTime, err = w.opts.Router.MetricMeter.Int64Histogram(
+		metricNameRecalculationTime,
+		metric.WithDescription("Entitlement recalculation time"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create recalculation time histogram: %w", err)
+	}
+
+	w.metricHighWatermarkCacheStats, err = w.opts.Router.MetricMeter.Int64Counter(
+		metricNameHighWatermarkCacheStats,
+		metric.WithDescription("High watermark cache stats"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create high watermark cache stats counter: %w", err)
+	}
+
+	w.metricEstimatorRequestsTotal, err = w.opts.Router.MetricMeter.Int64Counter(
+		metricNameEstimatorRequestsTotal,
+		metric.WithDescription("Estimator requests total"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create estimator requests total counter: %w", err)
+	}
+
+	w.metricEstimatorValidationErrorsTotal, err = w.opts.Router.MetricMeter.Int64Counter(
+		metricNameEstimatorValidationErrorsTotal,
+		metric.WithDescription("Estimator validation errors total"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create estimator validation errors total counter: %w", err)
+	}
+
+	w.metricEstimatorActionTotal, err = w.opts.Router.MetricMeter.Int64Counter(
+		metricNameEstimatorActionTotal,
+		metric.WithDescription("Estimator action total"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create estimator action total counter: %w", err)
+	}
+	return nil
+}
+
 func New(opts WorkerOptions) (*Worker, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, fmt.Errorf("failed to validate  options: %w", err)
+	}
+
 	highWatermarkCache, err := lru.New[string, highWatermarkCacheEntry](defaultHighWatermarkCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create high watermark cache: %w", err)
 	}
 
-	metricRecalculationTime, err := opts.Router.MetricMeter.Int64Histogram(
-		metricNameRecalculationTime,
-		metric.WithDescription("Entitlement recalculation time"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create recalculation time histogram: %w", err)
-	}
+	// Let's setup estimator
+	var estCfg estimatorConfig
+	if opts.Estimator.Enabled {
+		estimatorInstance, err := estimator.New(estimator.Options{
+			RedisURL:    opts.Estimator.RedisURL,
+			LockTimeout: opts.Estimator.LockTimeout,
+			CacheTTL:    opts.Estimator.CacheTTL,
+			Logger:      opts.Logger,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create estimator: %w", err)
+		}
 
-	metricHighWatermarkCacheStats, err := opts.Router.MetricMeter.Int64Counter(
-		metricNameHighWatermarkCacheStats,
-		metric.WithDescription("High watermark cache stats"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create high watermark cache stats counter: %w", err)
+		estCfg = estimatorConfig{
+			Estimator: estimatorInstance,
+			enabled:   true,
+
+			thresholdProviders: opts.Estimator.ThresholdProviders,
+			validationRate:     opts.Estimator.ValidationRate,
+			lockTimeout:        opts.Estimator.LockTimeout,
+		}
+	} else {
+		estCfg.enabled = false
 	}
 
 	worker := &Worker{
@@ -104,9 +257,12 @@ func New(opts WorkerOptions) (*Worker, error) {
 		entitlement:        opts.Entitlement,
 		repo:               opts.Repo,
 		highWatermarkCache: highWatermarkCache,
+		estimator:          estCfg,
+		meter:              opts.MeterService,
+	}
 
-		metricRecalculationTime:       metricRecalculationTime,
-		metricHighWatermarkCacheStats: metricHighWatermarkCacheStats,
+	if err := worker.initMetrics(); err != nil {
+		return nil, fmt.Errorf("failed to init metrics: %w", err)
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)
@@ -159,8 +315,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
-					event.CreatedAt,
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
+					WithEventAt(event.CreatedAt),
 				))
 		}),
 
@@ -170,8 +326,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
-					lo.FromPtrOr(event.DeletedAt, time.Now()),
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
+					WithEventAt(lo.FromPtrOr(event.DeletedAt, time.Now())),
 				))
 		}),
 
@@ -182,8 +338,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID),
-					event.CreatedAt,
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
+					WithEventAt(event.CreatedAt),
 				))
 		}),
 
@@ -194,8 +350,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID),
-					event.UpdatedAt,
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
+					WithEventAt(event.UpdatedAt),
 				))
 		}),
 
@@ -206,8 +362,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID),
-					event.ResetRequestedAt,
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID)),
+					WithEventAt(event.ResetRequestedAt),
 				))
 		}),
 

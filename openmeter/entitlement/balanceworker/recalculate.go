@@ -32,6 +32,9 @@ const (
 	metricNameRecalculationTime               = "balance_worker.entitlement_recalculation_time_ms"
 	metricNameRecalculationJobCalculationTime = "balance_worker.entitlement_recalculation_job_calculation_time_ms"
 	metricNameHighWatermarkCacheStats         = "balance_worker.high_watermark_cache_stats"
+	metricNameEstimatorRequestsTotal          = "balance_worker.estimator_requests_total"
+	metricNameEstimatorValidationErrorsTotal  = "balance_worker.estimator_validation_errors_total"
+	metricNameEstimatorActionTotal            = "balance_worker.estimator_action_total"
 
 	metricAttributeKeyEntitltementType = "entitlement_type"
 )

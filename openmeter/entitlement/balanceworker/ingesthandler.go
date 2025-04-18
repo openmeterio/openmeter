@@ -30,8 +30,10 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 		event, err := w.handleEntitlementEvent(
 			ctx,
 			NamespacedID{Namespace: entitlement.Namespace, ID: entitlement.EntitlementID},
-			metadata.ComposeResourcePath(entitlement.Namespace, metadata.EntityEvent),
-			event.StoredAt,
+			WithEventAt(event.StoredAt),
+			WithSource(metadata.ComposeResourcePath(entitlement.Namespace, metadata.EntityEvent)),
+			WithRawIngestedEvents(event.RawEvents),
+			WithEstimator(true),
 		)
 		if err != nil {
 			err = fmt.Errorf("handling entitlement event for %s: %w", entitlement.EntitlementID, err)
