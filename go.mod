@@ -59,6 +59,7 @@ require (
 	github.com/redpanda-data/connect/public/bundle/free/v4 v4.49.1
 	github.com/rickb777/period v1.0.9
 	github.com/sagikazarmark/mapstructurex v0.1.0
+	github.com/samber/do v1.6.0
 	github.com/samber/lo v1.49.1
 	github.com/samber/mo v1.13.0
 	github.com/samber/slog-multi v1.4.0
