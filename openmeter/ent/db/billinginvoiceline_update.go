@@ -14,6 +14,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicecreditnoteline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
@@ -237,26 +238,6 @@ func (bilu *BillingInvoiceLineUpdate) SetNillableManagedBy(blmb *billing.Invoice
 	return bilu
 }
 
-// SetParentLineID sets the "parent_line_id" field.
-func (bilu *BillingInvoiceLineUpdate) SetParentLineID(s string) *BillingInvoiceLineUpdate {
-	bilu.mutation.SetParentLineID(s)
-	return bilu
-}
-
-// SetNillableParentLineID sets the "parent_line_id" field if the given value is not nil.
-func (bilu *BillingInvoiceLineUpdate) SetNillableParentLineID(s *string) *BillingInvoiceLineUpdate {
-	if s != nil {
-		bilu.SetParentLineID(*s)
-	}
-	return bilu
-}
-
-// ClearParentLineID clears the value of the "parent_line_id" field.
-func (bilu *BillingInvoiceLineUpdate) ClearParentLineID() *BillingInvoiceLineUpdate {
-	bilu.mutation.ClearParentLineID()
-	return bilu
-}
-
 // SetPeriodStart sets the "period_start" field.
 func (bilu *BillingInvoiceLineUpdate) SetPeriodStart(t time.Time) *BillingInvoiceLineUpdate {
 	bilu.mutation.SetPeriodStart(t)
@@ -313,6 +294,66 @@ func (bilu *BillingInvoiceLineUpdate) SetNillableStatus(bls *billing.InvoiceLine
 	return bilu
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (bilu *BillingInvoiceLineUpdate) SetInvoicingAppExternalID(s string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetInvoicingAppExternalID(s)
+	return bilu
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineUpdate {
+	if s != nil {
+		bilu.SetInvoicingAppExternalID(*s)
+	}
+	return bilu
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (bilu *BillingInvoiceLineUpdate) ClearInvoicingAppExternalID() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearInvoicingAppExternalID()
+	return bilu
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (bilu *BillingInvoiceLineUpdate) SetChildUniqueReferenceID(s string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetChildUniqueReferenceID(s)
+	return bilu
+}
+
+// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineUpdate {
+	if s != nil {
+		bilu.SetChildUniqueReferenceID(*s)
+	}
+	return bilu
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (bilu *BillingInvoiceLineUpdate) ClearChildUniqueReferenceID() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearChildUniqueReferenceID()
+	return bilu
+}
+
+// SetParentLineID sets the "parent_line_id" field.
+func (bilu *BillingInvoiceLineUpdate) SetParentLineID(s string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetParentLineID(s)
+	return bilu
+}
+
+// SetNillableParentLineID sets the "parent_line_id" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableParentLineID(s *string) *BillingInvoiceLineUpdate {
+	if s != nil {
+		bilu.SetParentLineID(*s)
+	}
+	return bilu
+}
+
+// ClearParentLineID clears the value of the "parent_line_id" field.
+func (bilu *BillingInvoiceLineUpdate) ClearParentLineID() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearParentLineID()
+	return bilu
+}
+
 // SetQuantity sets the "quantity" field.
 func (bilu *BillingInvoiceLineUpdate) SetQuantity(a alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
 	bilu.mutation.SetQuantity(a)
@@ -362,46 +403,6 @@ func (bilu *BillingInvoiceLineUpdate) SetRatecardDiscounts(b *billing.Discounts)
 // ClearRatecardDiscounts clears the value of the "ratecard_discounts" field.
 func (bilu *BillingInvoiceLineUpdate) ClearRatecardDiscounts() *BillingInvoiceLineUpdate {
 	bilu.mutation.ClearRatecardDiscounts()
-	return bilu
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (bilu *BillingInvoiceLineUpdate) SetInvoicingAppExternalID(s string) *BillingInvoiceLineUpdate {
-	bilu.mutation.SetInvoicingAppExternalID(s)
-	return bilu
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (bilu *BillingInvoiceLineUpdate) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineUpdate {
-	if s != nil {
-		bilu.SetInvoicingAppExternalID(*s)
-	}
-	return bilu
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (bilu *BillingInvoiceLineUpdate) ClearInvoicingAppExternalID() *BillingInvoiceLineUpdate {
-	bilu.mutation.ClearInvoicingAppExternalID()
-	return bilu
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (bilu *BillingInvoiceLineUpdate) SetChildUniqueReferenceID(s string) *BillingInvoiceLineUpdate {
-	bilu.mutation.SetChildUniqueReferenceID(s)
-	return bilu
-}
-
-// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (bilu *BillingInvoiceLineUpdate) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineUpdate {
-	if s != nil {
-		bilu.SetChildUniqueReferenceID(*s)
-	}
-	return bilu
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (bilu *BillingInvoiceLineUpdate) ClearChildUniqueReferenceID() *BillingInvoiceLineUpdate {
-	bilu.mutation.ClearChildUniqueReferenceID()
 	return bilu
 }
 
@@ -599,6 +600,21 @@ func (bilu *BillingInvoiceLineUpdate) SetSubscriptionItem(s *SubscriptionItem) *
 	return bilu.SetSubscriptionItemID(s.ID)
 }
 
+// AddBillingInvoiceCreditNoteLineIDs adds the "billing_invoice_credit_note_lines" edge to the BillingInvoiceCreditNoteLine entity by IDs.
+func (bilu *BillingInvoiceLineUpdate) AddBillingInvoiceCreditNoteLineIDs(ids ...string) *BillingInvoiceLineUpdate {
+	bilu.mutation.AddBillingInvoiceCreditNoteLineIDs(ids...)
+	return bilu
+}
+
+// AddBillingInvoiceCreditNoteLines adds the "billing_invoice_credit_note_lines" edges to the BillingInvoiceCreditNoteLine entity.
+func (bilu *BillingInvoiceLineUpdate) AddBillingInvoiceCreditNoteLines(b ...*BillingInvoiceCreditNoteLine) *BillingInvoiceLineUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bilu.AddBillingInvoiceCreditNoteLineIDs(ids...)
+}
+
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
 func (bilu *BillingInvoiceLineUpdate) Mutation() *BillingInvoiceLineMutation {
 	return bilu.mutation
@@ -707,6 +723,27 @@ func (bilu *BillingInvoiceLineUpdate) ClearSubscriptionPhase() *BillingInvoiceLi
 func (bilu *BillingInvoiceLineUpdate) ClearSubscriptionItem() *BillingInvoiceLineUpdate {
 	bilu.mutation.ClearSubscriptionItem()
 	return bilu
+}
+
+// ClearBillingInvoiceCreditNoteLines clears all "billing_invoice_credit_note_lines" edges to the BillingInvoiceCreditNoteLine entity.
+func (bilu *BillingInvoiceLineUpdate) ClearBillingInvoiceCreditNoteLines() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearBillingInvoiceCreditNoteLines()
+	return bilu
+}
+
+// RemoveBillingInvoiceCreditNoteLineIDs removes the "billing_invoice_credit_note_lines" edge to BillingInvoiceCreditNoteLine entities by IDs.
+func (bilu *BillingInvoiceLineUpdate) RemoveBillingInvoiceCreditNoteLineIDs(ids ...string) *BillingInvoiceLineUpdate {
+	bilu.mutation.RemoveBillingInvoiceCreditNoteLineIDs(ids...)
+	return bilu
+}
+
+// RemoveBillingInvoiceCreditNoteLines removes "billing_invoice_credit_note_lines" edges to BillingInvoiceCreditNoteLine entities.
+func (bilu *BillingInvoiceLineUpdate) RemoveBillingInvoiceCreditNoteLines(b ...*BillingInvoiceCreditNoteLine) *BillingInvoiceLineUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bilu.RemoveBillingInvoiceCreditNoteLineIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -840,6 +877,18 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 	if value, ok := bilu.mutation.Status(); ok {
 		_spec.SetField(billinginvoiceline.FieldStatus, field.TypeEnum, value)
 	}
+	if value, ok := bilu.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)
+	}
+	if bilu.mutation.InvoicingAppExternalIDCleared() {
+		_spec.ClearField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString)
+	}
+	if value, ok := bilu.mutation.ChildUniqueReferenceID(); ok {
+		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
+	}
+	if bilu.mutation.ChildUniqueReferenceIDCleared() {
+		_spec.ClearField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString)
+	}
 	if value, ok := bilu.mutation.Quantity(); ok {
 		_spec.SetField(billinginvoiceline.FieldQuantity, field.TypeOther, value)
 	}
@@ -861,18 +910,6 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 	}
 	if bilu.mutation.RatecardDiscountsCleared() {
 		_spec.ClearField(billinginvoiceline.FieldRatecardDiscounts, field.TypeString)
-	}
-	if value, ok := bilu.mutation.InvoicingAppExternalID(); ok {
-		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)
-	}
-	if bilu.mutation.InvoicingAppExternalIDCleared() {
-		_spec.ClearField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString)
-	}
-	if value, ok := bilu.mutation.ChildUniqueReferenceID(); ok {
-		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
-	}
-	if bilu.mutation.ChildUniqueReferenceIDCleared() {
-		_spec.ClearField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString)
 	}
 	if value, ok := bilu.mutation.LineIds(); ok {
 		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
@@ -1218,6 +1255,51 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if bilu.mutation.BillingInvoiceCreditNoteLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.BillingInvoiceCreditNoteLinesTable,
+			Columns: []string{billinginvoiceline.BillingInvoiceCreditNoteLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicecreditnoteline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bilu.mutation.RemovedBillingInvoiceCreditNoteLinesIDs(); len(nodes) > 0 && !bilu.mutation.BillingInvoiceCreditNoteLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.BillingInvoiceCreditNoteLinesTable,
+			Columns: []string{billinginvoiceline.BillingInvoiceCreditNoteLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicecreditnoteline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bilu.mutation.BillingInvoiceCreditNoteLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.BillingInvoiceCreditNoteLinesTable,
+			Columns: []string{billinginvoiceline.BillingInvoiceCreditNoteLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicecreditnoteline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, bilu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billinginvoiceline.Label}
@@ -1436,26 +1518,6 @@ func (biluo *BillingInvoiceLineUpdateOne) SetNillableManagedBy(blmb *billing.Inv
 	return biluo
 }
 
-// SetParentLineID sets the "parent_line_id" field.
-func (biluo *BillingInvoiceLineUpdateOne) SetParentLineID(s string) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.SetParentLineID(s)
-	return biluo
-}
-
-// SetNillableParentLineID sets the "parent_line_id" field if the given value is not nil.
-func (biluo *BillingInvoiceLineUpdateOne) SetNillableParentLineID(s *string) *BillingInvoiceLineUpdateOne {
-	if s != nil {
-		biluo.SetParentLineID(*s)
-	}
-	return biluo
-}
-
-// ClearParentLineID clears the value of the "parent_line_id" field.
-func (biluo *BillingInvoiceLineUpdateOne) ClearParentLineID() *BillingInvoiceLineUpdateOne {
-	biluo.mutation.ClearParentLineID()
-	return biluo
-}
-
 // SetPeriodStart sets the "period_start" field.
 func (biluo *BillingInvoiceLineUpdateOne) SetPeriodStart(t time.Time) *BillingInvoiceLineUpdateOne {
 	biluo.mutation.SetPeriodStart(t)
@@ -1512,6 +1574,66 @@ func (biluo *BillingInvoiceLineUpdateOne) SetNillableStatus(bls *billing.Invoice
 	return biluo
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetInvoicingAppExternalID(s string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetInvoicingAppExternalID(s)
+	return biluo
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineUpdateOne {
+	if s != nil {
+		biluo.SetInvoicingAppExternalID(*s)
+	}
+	return biluo
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) ClearInvoicingAppExternalID() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearInvoicingAppExternalID()
+	return biluo
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetChildUniqueReferenceID(s string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetChildUniqueReferenceID(s)
+	return biluo
+}
+
+// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineUpdateOne {
+	if s != nil {
+		biluo.SetChildUniqueReferenceID(*s)
+	}
+	return biluo
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) ClearChildUniqueReferenceID() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearChildUniqueReferenceID()
+	return biluo
+}
+
+// SetParentLineID sets the "parent_line_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetParentLineID(s string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetParentLineID(s)
+	return biluo
+}
+
+// SetNillableParentLineID sets the "parent_line_id" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableParentLineID(s *string) *BillingInvoiceLineUpdateOne {
+	if s != nil {
+		biluo.SetParentLineID(*s)
+	}
+	return biluo
+}
+
+// ClearParentLineID clears the value of the "parent_line_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) ClearParentLineID() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearParentLineID()
+	return biluo
+}
+
 // SetQuantity sets the "quantity" field.
 func (biluo *BillingInvoiceLineUpdateOne) SetQuantity(a alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
 	biluo.mutation.SetQuantity(a)
@@ -1561,46 +1683,6 @@ func (biluo *BillingInvoiceLineUpdateOne) SetRatecardDiscounts(b *billing.Discou
 // ClearRatecardDiscounts clears the value of the "ratecard_discounts" field.
 func (biluo *BillingInvoiceLineUpdateOne) ClearRatecardDiscounts() *BillingInvoiceLineUpdateOne {
 	biluo.mutation.ClearRatecardDiscounts()
-	return biluo
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (biluo *BillingInvoiceLineUpdateOne) SetInvoicingAppExternalID(s string) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.SetInvoicingAppExternalID(s)
-	return biluo
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (biluo *BillingInvoiceLineUpdateOne) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineUpdateOne {
-	if s != nil {
-		biluo.SetInvoicingAppExternalID(*s)
-	}
-	return biluo
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (biluo *BillingInvoiceLineUpdateOne) ClearInvoicingAppExternalID() *BillingInvoiceLineUpdateOne {
-	biluo.mutation.ClearInvoicingAppExternalID()
-	return biluo
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (biluo *BillingInvoiceLineUpdateOne) SetChildUniqueReferenceID(s string) *BillingInvoiceLineUpdateOne {
-	biluo.mutation.SetChildUniqueReferenceID(s)
-	return biluo
-}
-
-// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (biluo *BillingInvoiceLineUpdateOne) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineUpdateOne {
-	if s != nil {
-		biluo.SetChildUniqueReferenceID(*s)
-	}
-	return biluo
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (biluo *BillingInvoiceLineUpdateOne) ClearChildUniqueReferenceID() *BillingInvoiceLineUpdateOne {
-	biluo.mutation.ClearChildUniqueReferenceID()
 	return biluo
 }
 
@@ -1798,6 +1880,21 @@ func (biluo *BillingInvoiceLineUpdateOne) SetSubscriptionItem(s *SubscriptionIte
 	return biluo.SetSubscriptionItemID(s.ID)
 }
 
+// AddBillingInvoiceCreditNoteLineIDs adds the "billing_invoice_credit_note_lines" edge to the BillingInvoiceCreditNoteLine entity by IDs.
+func (biluo *BillingInvoiceLineUpdateOne) AddBillingInvoiceCreditNoteLineIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.AddBillingInvoiceCreditNoteLineIDs(ids...)
+	return biluo
+}
+
+// AddBillingInvoiceCreditNoteLines adds the "billing_invoice_credit_note_lines" edges to the BillingInvoiceCreditNoteLine entity.
+func (biluo *BillingInvoiceLineUpdateOne) AddBillingInvoiceCreditNoteLines(b ...*BillingInvoiceCreditNoteLine) *BillingInvoiceLineUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biluo.AddBillingInvoiceCreditNoteLineIDs(ids...)
+}
+
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
 func (biluo *BillingInvoiceLineUpdateOne) Mutation() *BillingInvoiceLineMutation {
 	return biluo.mutation
@@ -1906,6 +2003,27 @@ func (biluo *BillingInvoiceLineUpdateOne) ClearSubscriptionPhase() *BillingInvoi
 func (biluo *BillingInvoiceLineUpdateOne) ClearSubscriptionItem() *BillingInvoiceLineUpdateOne {
 	biluo.mutation.ClearSubscriptionItem()
 	return biluo
+}
+
+// ClearBillingInvoiceCreditNoteLines clears all "billing_invoice_credit_note_lines" edges to the BillingInvoiceCreditNoteLine entity.
+func (biluo *BillingInvoiceLineUpdateOne) ClearBillingInvoiceCreditNoteLines() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearBillingInvoiceCreditNoteLines()
+	return biluo
+}
+
+// RemoveBillingInvoiceCreditNoteLineIDs removes the "billing_invoice_credit_note_lines" edge to BillingInvoiceCreditNoteLine entities by IDs.
+func (biluo *BillingInvoiceLineUpdateOne) RemoveBillingInvoiceCreditNoteLineIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.RemoveBillingInvoiceCreditNoteLineIDs(ids...)
+	return biluo
+}
+
+// RemoveBillingInvoiceCreditNoteLines removes "billing_invoice_credit_note_lines" edges to BillingInvoiceCreditNoteLine entities.
+func (biluo *BillingInvoiceLineUpdateOne) RemoveBillingInvoiceCreditNoteLines(b ...*BillingInvoiceCreditNoteLine) *BillingInvoiceLineUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biluo.RemoveBillingInvoiceCreditNoteLineIDs(ids...)
 }
 
 // Where appends a list predicates to the BillingInvoiceLineUpdate builder.
@@ -2069,6 +2187,18 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 	if value, ok := biluo.mutation.Status(); ok {
 		_spec.SetField(billinginvoiceline.FieldStatus, field.TypeEnum, value)
 	}
+	if value, ok := biluo.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)
+	}
+	if biluo.mutation.InvoicingAppExternalIDCleared() {
+		_spec.ClearField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString)
+	}
+	if value, ok := biluo.mutation.ChildUniqueReferenceID(); ok {
+		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
+	}
+	if biluo.mutation.ChildUniqueReferenceIDCleared() {
+		_spec.ClearField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString)
+	}
 	if value, ok := biluo.mutation.Quantity(); ok {
 		_spec.SetField(billinginvoiceline.FieldQuantity, field.TypeOther, value)
 	}
@@ -2090,18 +2220,6 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 	}
 	if biluo.mutation.RatecardDiscountsCleared() {
 		_spec.ClearField(billinginvoiceline.FieldRatecardDiscounts, field.TypeString)
-	}
-	if value, ok := biluo.mutation.InvoicingAppExternalID(); ok {
-		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)
-	}
-	if biluo.mutation.InvoicingAppExternalIDCleared() {
-		_spec.ClearField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString)
-	}
-	if value, ok := biluo.mutation.ChildUniqueReferenceID(); ok {
-		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
-	}
-	if biluo.mutation.ChildUniqueReferenceIDCleared() {
-		_spec.ClearField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString)
 	}
 	if value, ok := biluo.mutation.LineIds(); ok {
 		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
@@ -2440,6 +2558,51 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if biluo.mutation.BillingInvoiceCreditNoteLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.BillingInvoiceCreditNoteLinesTable,
+			Columns: []string{billinginvoiceline.BillingInvoiceCreditNoteLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicecreditnoteline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biluo.mutation.RemovedBillingInvoiceCreditNoteLinesIDs(); len(nodes) > 0 && !biluo.mutation.BillingInvoiceCreditNoteLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.BillingInvoiceCreditNoteLinesTable,
+			Columns: []string{billinginvoiceline.BillingInvoiceCreditNoteLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicecreditnoteline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biluo.mutation.BillingInvoiceCreditNoteLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.BillingInvoiceCreditNoteLinesTable,
+			Columns: []string{billinginvoiceline.BillingInvoiceCreditNoteLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicecreditnoteline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicecreditnoteline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -33,6 +34,7 @@ type BillingInvoiceQuery struct {
 	withSourceBillingProfile           *BillingProfileQuery
 	withBillingWorkflowConfig          *BillingWorkflowConfigQuery
 	withBillingInvoiceLines            *BillingInvoiceLineQuery
+	withBillingInvoiceCreditNoteLines  *BillingInvoiceCreditNoteLineQuery
 	withBillingInvoiceValidationIssues *BillingInvoiceValidationIssueQuery
 	withBillingInvoiceCustomer         *CustomerQuery
 	withTaxApp                         *AppQuery
@@ -134,6 +136,28 @@ func (biq *BillingInvoiceQuery) QueryBillingInvoiceLines() *BillingInvoiceLineQu
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceLinesTable, billinginvoice.BillingInvoiceLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingInvoiceCreditNoteLines chains the current query on the "billing_invoice_credit_note_lines" edge.
+func (biq *BillingInvoiceQuery) QueryBillingInvoiceCreditNoteLines() *BillingInvoiceCreditNoteLineQuery {
+	query := (&BillingInvoiceCreditNoteLineClient{config: biq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := biq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := biq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
+			sqlgraph.To(billinginvoicecreditnoteline.Table, billinginvoicecreditnoteline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceCreditNoteLinesTable, billinginvoice.BillingInvoiceCreditNoteLinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
 		return fromU, nil
@@ -446,6 +470,7 @@ func (biq *BillingInvoiceQuery) Clone() *BillingInvoiceQuery {
 		withSourceBillingProfile:           biq.withSourceBillingProfile.Clone(),
 		withBillingWorkflowConfig:          biq.withBillingWorkflowConfig.Clone(),
 		withBillingInvoiceLines:            biq.withBillingInvoiceLines.Clone(),
+		withBillingInvoiceCreditNoteLines:  biq.withBillingInvoiceCreditNoteLines.Clone(),
 		withBillingInvoiceValidationIssues: biq.withBillingInvoiceValidationIssues.Clone(),
 		withBillingInvoiceCustomer:         biq.withBillingInvoiceCustomer.Clone(),
 		withTaxApp:                         biq.withTaxApp.Clone(),
@@ -487,6 +512,17 @@ func (biq *BillingInvoiceQuery) WithBillingInvoiceLines(opts ...func(*BillingInv
 		opt(query)
 	}
 	biq.withBillingInvoiceLines = query
+	return biq
+}
+
+// WithBillingInvoiceCreditNoteLines tells the query-builder to eager-load the nodes that are connected to
+// the "billing_invoice_credit_note_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (biq *BillingInvoiceQuery) WithBillingInvoiceCreditNoteLines(opts ...func(*BillingInvoiceCreditNoteLineQuery)) *BillingInvoiceQuery {
+	query := (&BillingInvoiceCreditNoteLineClient{config: biq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	biq.withBillingInvoiceCreditNoteLines = query
 	return biq
 }
 
@@ -623,10 +659,11 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	var (
 		nodes       = []*BillingInvoice{}
 		_spec       = biq.querySpec()
-		loadedTypes = [8]bool{
+		loadedTypes = [9]bool{
 			biq.withSourceBillingProfile != nil,
 			biq.withBillingWorkflowConfig != nil,
 			biq.withBillingInvoiceLines != nil,
+			biq.withBillingInvoiceCreditNoteLines != nil,
 			biq.withBillingInvoiceValidationIssues != nil,
 			biq.withBillingInvoiceCustomer != nil,
 			biq.withTaxApp != nil,
@@ -672,6 +709,15 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 			func(n *BillingInvoice) { n.Edges.BillingInvoiceLines = []*BillingInvoiceLine{} },
 			func(n *BillingInvoice, e *BillingInvoiceLine) {
 				n.Edges.BillingInvoiceLines = append(n.Edges.BillingInvoiceLines, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := biq.withBillingInvoiceCreditNoteLines; query != nil {
+		if err := biq.loadBillingInvoiceCreditNoteLines(ctx, query, nodes,
+			func(n *BillingInvoice) { n.Edges.BillingInvoiceCreditNoteLines = []*BillingInvoiceCreditNoteLine{} },
+			func(n *BillingInvoice, e *BillingInvoiceCreditNoteLine) {
+				n.Edges.BillingInvoiceCreditNoteLines = append(n.Edges.BillingInvoiceCreditNoteLines, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -786,6 +832,36 @@ func (biq *BillingInvoiceQuery) loadBillingInvoiceLines(ctx context.Context, que
 	}
 	query.Where(predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(billinginvoice.BillingInvoiceLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.InvoiceID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "invoice_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (biq *BillingInvoiceQuery) loadBillingInvoiceCreditNoteLines(ctx context.Context, query *BillingInvoiceCreditNoteLineQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingInvoiceCreditNoteLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoice)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoicecreditnoteline.FieldInvoiceID)
+	}
+	query.Where(predicate.BillingInvoiceCreditNoteLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoice.BillingInvoiceCreditNoteLinesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

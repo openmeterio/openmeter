@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicecreditnoteline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
@@ -28,22 +29,23 @@ import (
 // BillingInvoiceLineQuery is the builder for querying BillingInvoiceLine entities.
 type BillingInvoiceLineQuery struct {
 	config
-	ctx                     *QueryContext
-	order                   []billinginvoiceline.OrderOption
-	inters                  []Interceptor
-	predicates              []predicate.BillingInvoiceLine
-	withBillingInvoice      *BillingInvoiceQuery
-	withFlatFeeLine         *BillingInvoiceFlatFeeLineConfigQuery
-	withUsageBasedLine      *BillingInvoiceUsageBasedLineConfigQuery
-	withParentLine          *BillingInvoiceLineQuery
-	withDetailedLines       *BillingInvoiceLineQuery
-	withLineUsageDiscounts  *BillingInvoiceLineUsageDiscountQuery
-	withLineAmountDiscounts *BillingInvoiceLineDiscountQuery
-	withSubscription        *SubscriptionQuery
-	withSubscriptionPhase   *SubscriptionPhaseQuery
-	withSubscriptionItem    *SubscriptionItemQuery
-	withFKs                 bool
-	modifiers               []func(*sql.Selector)
+	ctx                               *QueryContext
+	order                             []billinginvoiceline.OrderOption
+	inters                            []Interceptor
+	predicates                        []predicate.BillingInvoiceLine
+	withBillingInvoice                *BillingInvoiceQuery
+	withFlatFeeLine                   *BillingInvoiceFlatFeeLineConfigQuery
+	withUsageBasedLine                *BillingInvoiceUsageBasedLineConfigQuery
+	withParentLine                    *BillingInvoiceLineQuery
+	withDetailedLines                 *BillingInvoiceLineQuery
+	withLineUsageDiscounts            *BillingInvoiceLineUsageDiscountQuery
+	withLineAmountDiscounts           *BillingInvoiceLineDiscountQuery
+	withSubscription                  *SubscriptionQuery
+	withSubscriptionPhase             *SubscriptionPhaseQuery
+	withSubscriptionItem              *SubscriptionItemQuery
+	withBillingInvoiceCreditNoteLines *BillingInvoiceCreditNoteLineQuery
+	withFKs                           bool
+	modifiers                         []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -300,6 +302,28 @@ func (bilq *BillingInvoiceLineQuery) QuerySubscriptionItem() *SubscriptionItemQu
 	return query
 }
 
+// QueryBillingInvoiceCreditNoteLines chains the current query on the "billing_invoice_credit_note_lines" edge.
+func (bilq *BillingInvoiceLineQuery) QueryBillingInvoiceCreditNoteLines() *BillingInvoiceCreditNoteLineQuery {
+	query := (&BillingInvoiceCreditNoteLineClient{config: bilq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := bilq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := bilq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
+			sqlgraph.To(billinginvoicecreditnoteline.Table, billinginvoicecreditnoteline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.BillingInvoiceCreditNoteLinesTable, billinginvoiceline.BillingInvoiceCreditNoteLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(bilq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first BillingInvoiceLine entity from the query.
 // Returns a *NotFoundError when no BillingInvoiceLine was found.
 func (bilq *BillingInvoiceLineQuery) First(ctx context.Context) (*BillingInvoiceLine, error) {
@@ -487,21 +511,22 @@ func (bilq *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		return nil
 	}
 	return &BillingInvoiceLineQuery{
-		config:                  bilq.config,
-		ctx:                     bilq.ctx.Clone(),
-		order:                   append([]billinginvoiceline.OrderOption{}, bilq.order...),
-		inters:                  append([]Interceptor{}, bilq.inters...),
-		predicates:              append([]predicate.BillingInvoiceLine{}, bilq.predicates...),
-		withBillingInvoice:      bilq.withBillingInvoice.Clone(),
-		withFlatFeeLine:         bilq.withFlatFeeLine.Clone(),
-		withUsageBasedLine:      bilq.withUsageBasedLine.Clone(),
-		withParentLine:          bilq.withParentLine.Clone(),
-		withDetailedLines:       bilq.withDetailedLines.Clone(),
-		withLineUsageDiscounts:  bilq.withLineUsageDiscounts.Clone(),
-		withLineAmountDiscounts: bilq.withLineAmountDiscounts.Clone(),
-		withSubscription:        bilq.withSubscription.Clone(),
-		withSubscriptionPhase:   bilq.withSubscriptionPhase.Clone(),
-		withSubscriptionItem:    bilq.withSubscriptionItem.Clone(),
+		config:                            bilq.config,
+		ctx:                               bilq.ctx.Clone(),
+		order:                             append([]billinginvoiceline.OrderOption{}, bilq.order...),
+		inters:                            append([]Interceptor{}, bilq.inters...),
+		predicates:                        append([]predicate.BillingInvoiceLine{}, bilq.predicates...),
+		withBillingInvoice:                bilq.withBillingInvoice.Clone(),
+		withFlatFeeLine:                   bilq.withFlatFeeLine.Clone(),
+		withUsageBasedLine:                bilq.withUsageBasedLine.Clone(),
+		withParentLine:                    bilq.withParentLine.Clone(),
+		withDetailedLines:                 bilq.withDetailedLines.Clone(),
+		withLineUsageDiscounts:            bilq.withLineUsageDiscounts.Clone(),
+		withLineAmountDiscounts:           bilq.withLineAmountDiscounts.Clone(),
+		withSubscription:                  bilq.withSubscription.Clone(),
+		withSubscriptionPhase:             bilq.withSubscriptionPhase.Clone(),
+		withSubscriptionItem:              bilq.withSubscriptionItem.Clone(),
+		withBillingInvoiceCreditNoteLines: bilq.withBillingInvoiceCreditNoteLines.Clone(),
 		// clone intermediate query.
 		sql:  bilq.sql.Clone(),
 		path: bilq.path,
@@ -618,6 +643,17 @@ func (bilq *BillingInvoiceLineQuery) WithSubscriptionItem(opts ...func(*Subscrip
 	return bilq
 }
 
+// WithBillingInvoiceCreditNoteLines tells the query-builder to eager-load the nodes that are connected to
+// the "billing_invoice_credit_note_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (bilq *BillingInvoiceLineQuery) WithBillingInvoiceCreditNoteLines(opts ...func(*BillingInvoiceCreditNoteLineQuery)) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceCreditNoteLineClient{config: bilq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	bilq.withBillingInvoiceCreditNoteLines = query
+	return bilq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -697,7 +733,7 @@ func (bilq *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryH
 		nodes       = []*BillingInvoiceLine{}
 		withFKs     = bilq.withFKs
 		_spec       = bilq.querySpec()
-		loadedTypes = [10]bool{
+		loadedTypes = [11]bool{
 			bilq.withBillingInvoice != nil,
 			bilq.withFlatFeeLine != nil,
 			bilq.withUsageBasedLine != nil,
@@ -708,6 +744,7 @@ func (bilq *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryH
 			bilq.withSubscription != nil,
 			bilq.withSubscriptionPhase != nil,
 			bilq.withSubscriptionItem != nil,
+			bilq.withBillingInvoiceCreditNoteLines != nil,
 		}
 	)
 	if bilq.withFlatFeeLine != nil || bilq.withUsageBasedLine != nil {
@@ -803,6 +840,15 @@ func (bilq *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryH
 	if query := bilq.withSubscriptionItem; query != nil {
 		if err := bilq.loadSubscriptionItem(ctx, query, nodes, nil,
 			func(n *BillingInvoiceLine, e *SubscriptionItem) { n.Edges.SubscriptionItem = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := bilq.withBillingInvoiceCreditNoteLines; query != nil {
+		if err := bilq.loadBillingInvoiceCreditNoteLines(ctx, query, nodes,
+			func(n *BillingInvoiceLine) { n.Edges.BillingInvoiceCreditNoteLines = []*BillingInvoiceCreditNoteLine{} },
+			func(n *BillingInvoiceLine, e *BillingInvoiceCreditNoteLine) {
+				n.Edges.BillingInvoiceCreditNoteLines = append(n.Edges.BillingInvoiceCreditNoteLines, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -1121,6 +1167,36 @@ func (bilq *BillingInvoiceLineQuery) loadSubscriptionItem(ctx context.Context, q
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (bilq *BillingInvoiceLineQuery) loadBillingInvoiceCreditNoteLines(ctx context.Context, query *BillingInvoiceCreditNoteLineQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceCreditNoteLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoiceLine)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoicecreditnoteline.FieldParentLineID)
+	}
+	query.Where(predicate.BillingInvoiceCreditNoteLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoiceline.BillingInvoiceCreditNoteLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ParentLineID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "parent_line_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

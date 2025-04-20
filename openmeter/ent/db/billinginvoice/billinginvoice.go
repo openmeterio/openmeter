@@ -128,6 +128,8 @@ const (
 	EdgeBillingWorkflowConfig = "billing_workflow_config"
 	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
 	EdgeBillingInvoiceLines = "billing_invoice_lines"
+	// EdgeBillingInvoiceCreditNoteLines holds the string denoting the billing_invoice_credit_note_lines edge name in mutations.
+	EdgeBillingInvoiceCreditNoteLines = "billing_invoice_credit_note_lines"
 	// EdgeBillingInvoiceValidationIssues holds the string denoting the billing_invoice_validation_issues edge name in mutations.
 	EdgeBillingInvoiceValidationIssues = "billing_invoice_validation_issues"
 	// EdgeBillingInvoiceCustomer holds the string denoting the billing_invoice_customer edge name in mutations.
@@ -161,6 +163,13 @@ const (
 	BillingInvoiceLinesInverseTable = "billing_invoice_lines"
 	// BillingInvoiceLinesColumn is the table column denoting the billing_invoice_lines relation/edge.
 	BillingInvoiceLinesColumn = "invoice_id"
+	// BillingInvoiceCreditNoteLinesTable is the table that holds the billing_invoice_credit_note_lines relation/edge.
+	BillingInvoiceCreditNoteLinesTable = "billing_invoice_credit_note_lines"
+	// BillingInvoiceCreditNoteLinesInverseTable is the table name for the BillingInvoiceCreditNoteLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoicecreditnoteline" package.
+	BillingInvoiceCreditNoteLinesInverseTable = "billing_invoice_credit_note_lines"
+	// BillingInvoiceCreditNoteLinesColumn is the table column denoting the billing_invoice_credit_note_lines relation/edge.
+	BillingInvoiceCreditNoteLinesColumn = "invoice_id"
 	// BillingInvoiceValidationIssuesTable is the table that holds the billing_invoice_validation_issues relation/edge.
 	BillingInvoiceValidationIssuesTable = "billing_invoice_validation_issues"
 	// BillingInvoiceValidationIssuesInverseTable is the table name for the BillingInvoiceValidationIssue entity.
@@ -601,6 +610,20 @@ func ByBillingInvoiceLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOpti
 	}
 }
 
+// ByBillingInvoiceCreditNoteLinesCount orders the results by billing_invoice_credit_note_lines count.
+func ByBillingInvoiceCreditNoteLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingInvoiceCreditNoteLinesStep(), opts...)
+	}
+}
+
+// ByBillingInvoiceCreditNoteLines orders the results by billing_invoice_credit_note_lines terms.
+func ByBillingInvoiceCreditNoteLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceCreditNoteLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByBillingInvoiceValidationIssuesCount orders the results by billing_invoice_validation_issues count.
 func ByBillingInvoiceValidationIssuesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -661,6 +684,13 @@ func newBillingInvoiceLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceLinesTable, BillingInvoiceLinesColumn),
+	)
+}
+func newBillingInvoiceCreditNoteLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoiceCreditNoteLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceCreditNoteLinesTable, BillingInvoiceCreditNoteLinesColumn),
 	)
 }
 func newBillingInvoiceValidationIssuesStep() *sqlgraph.Step {

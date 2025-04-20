@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicecreditnoteline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -644,6 +645,21 @@ func (bic *BillingInvoiceCreate) AddBillingInvoiceLines(b ...*BillingInvoiceLine
 	return bic.AddBillingInvoiceLineIDs(ids...)
 }
 
+// AddBillingInvoiceCreditNoteLineIDs adds the "billing_invoice_credit_note_lines" edge to the BillingInvoiceCreditNoteLine entity by IDs.
+func (bic *BillingInvoiceCreate) AddBillingInvoiceCreditNoteLineIDs(ids ...string) *BillingInvoiceCreate {
+	bic.mutation.AddBillingInvoiceCreditNoteLineIDs(ids...)
+	return bic
+}
+
+// AddBillingInvoiceCreditNoteLines adds the "billing_invoice_credit_note_lines" edges to the BillingInvoiceCreditNoteLine entity.
+func (bic *BillingInvoiceCreate) AddBillingInvoiceCreditNoteLines(b ...*BillingInvoiceCreditNoteLine) *BillingInvoiceCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bic.AddBillingInvoiceCreditNoteLineIDs(ids...)
+}
+
 // AddBillingInvoiceValidationIssueIDs adds the "billing_invoice_validation_issues" edge to the BillingInvoiceValidationIssue entity by IDs.
 func (bic *BillingInvoiceCreate) AddBillingInvoiceValidationIssueIDs(ids ...string) *BillingInvoiceCreate {
 	bic.mutation.AddBillingInvoiceValidationIssueIDs(ids...)
@@ -1144,6 +1160,22 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bic.mutation.BillingInvoiceCreditNoteLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingInvoiceCreditNoteLinesTable,
+			Columns: []string{billinginvoice.BillingInvoiceCreditNoteLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicecreditnoteline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

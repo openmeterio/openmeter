@@ -951,6 +951,90 @@ func (u *BillingInvoiceUpdateOne) SetOrClearCollectionAt(value *time.Time) *Bill
 	return u.SetCollectionAt(*value)
 }
 
+func (u *BillingInvoiceCreditNoteLineUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceCreditNoteLineUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingInvoiceCreditNoteLineUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingInvoiceCreditNoteLineUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingInvoiceCreditNoteLineUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceCreditNoteLineUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingInvoiceCreditNoteLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceCreditNoteLineUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingInvoiceCreditNoteLineUpdate) SetOrClearDescription(value *string) *BillingInvoiceCreditNoteLineUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingInvoiceCreditNoteLineUpdateOne) SetOrClearDescription(value *string) *BillingInvoiceCreditNoteLineUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingInvoiceCreditNoteLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceCreditNoteLineUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceCreditNoteLineUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceCreditNoteLineUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceCreditNoteLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceCreditNoteLineUpdate {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *BillingInvoiceCreditNoteLineUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceCreditNoteLineUpdateOne {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *BillingInvoiceCreditNoteLineUpdate) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *BillingInvoiceCreditNoteLineUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *BillingInvoiceCreditNoteLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *BillingInvoiceCreditNoteLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
 func (u *BillingInvoiceLineUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearMetadata()
@@ -991,6 +1075,34 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearDescription(value *string) *Bill
 		return u.ClearDescription()
 	}
 	return u.SetDescription(*value)
+}
+
+func (u *BillingInvoiceLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
 }
 
 func (u *BillingInvoiceLineUpdate) SetOrClearParentLineID(value *string) *BillingInvoiceLineUpdate {
@@ -1047,34 +1159,6 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearRatecardDiscounts(value **billin
 		return u.ClearRatecardDiscounts()
 	}
 	return u.SetRatecardDiscounts(*value)
-}
-
-func (u *BillingInvoiceLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUpdate {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *BillingInvoiceLineUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUpdateOne {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *BillingInvoiceLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineUpdate {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
-}
-
-func (u *BillingInvoiceLineUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineUpdateOne {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
 }
 
 func (u *BillingInvoiceLineUpdate) SetOrClearSubscriptionID(value *string) *BillingInvoiceLineUpdate {
