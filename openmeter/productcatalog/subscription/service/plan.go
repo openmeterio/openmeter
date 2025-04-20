@@ -74,7 +74,7 @@ func PlanFromPlanInput(input plan.CreatePlanInput) (subscription.Plan, error) {
 
 func PlanFromPlan(p plan.Plan) subscription.Plan {
 	return &plansubscription.Plan{
-		Plan: p.AsProductCatalogPlan2(),
+		Plan: p.AsProductCatalogPlan(),
 		Ref:  &p.NamespacedID,
 	}
 }

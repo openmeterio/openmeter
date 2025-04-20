@@ -100,7 +100,7 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 					MaxQuantity:   params.MaxQuantity,
 				},
 			},
-			Plan:  p.AsProductCatalogPlan2(),
+			Plan:  p.AsProductCatalogPlan(),
 			Addon: a.AsProductCatalogAddon(),
 		}
 
@@ -319,7 +319,7 @@ func (s service) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePla
 					MaxQuantity:   params.MaxQuantity,
 				},
 			},
-			Plan:  p.AsProductCatalogPlan2(),
+			Plan:  p.AsProductCatalogPlan(),
 			Addon: a.AsProductCatalogAddon(),
 		}
 

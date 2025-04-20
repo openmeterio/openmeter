@@ -53,7 +53,7 @@ func (a PlanAddon) Validate() error {
 func (a PlanAddon) AsProductCatalogPlanAddon() productcatalog.PlanAddon {
 	return productcatalog.PlanAddon{
 		PlanAddonMeta: a.PlanAddonMeta,
-		Plan:          a.Plan.AsProductCatalogPlan2(),
+		Plan:          a.Plan.AsProductCatalogPlan(),
 		Addon:         a.Addon.AsProductCatalogAddon(),
 	}
 }
