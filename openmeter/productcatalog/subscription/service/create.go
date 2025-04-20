@@ -6,6 +6,7 @@ import (
 
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -32,12 +33,13 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 			return def, err
 		}
 
-		pp, err := PlanFromPlan(*p)
-		if err != nil {
-			return def, err
+		if p.DeletedAt != nil && !clock.Now().Before(*p.DeletedAt) {
+			return def, models.NewGenericValidationError(
+				fmt.Errorf("plan is deleted [namespace=%s, key=%s, version=%d, deleted_at=%s]", p.Namespace, p.Key, p.Version, p.DeletedAt),
+			)
 		}
 
-		plan = pp
+		plan = PlanFromPlan(*p)
 	} else {
 		return def, fmt.Errorf("plan or plan reference must be provided, should have validated already")
 	}

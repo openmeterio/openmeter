@@ -109,11 +109,10 @@ func (h *planHelper) CreatePlan(t *testing.T, input plan.CreatePlanInput) subscr
 	require.Nil(t, err)
 	require.NotNil(t, p)
 
-	pp, err := p.AsProductCatalogPlan(clock.Now())
-	require.Nil(t, err)
+	require.Nilf(t, p.DeletedAt, "plan %s should not be deleted", p.NamespacedID.ID)
 
 	return &plansubscription.Plan{
-		Plan: pp,
+		Plan: p.AsProductCatalogPlan2(),
 		Ref:  &p.NamespacedID,
 	}
 }

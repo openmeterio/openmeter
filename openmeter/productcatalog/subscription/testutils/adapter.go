@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -61,13 +62,12 @@ func (a *adapter) GetVersion(ctx context.Context, namespace string, ref plansubs
 		return nil, subscription.NewPlanNotFoundError(planKey, version)
 	}
 
-	pp, err := p.AsProductCatalogPlan(clock.Now())
-	if err != nil {
-		return nil, err
+	if p.DeletedAt != nil && !clock.Now().Before(*p.DeletedAt) {
+		return nil, fmt.Errorf("plan is deleted [namespace=%s, key=%s, version=%d, deleted_at=%s]", p.Namespace, p.Key, p.Version, p.DeletedAt)
 	}
 
 	return &plansubscription.Plan{
-		Plan: pp,
+		Plan: p.AsProductCatalogPlan2(),
 		Ref:  &p.NamespacedID,
 	}, nil
 }
