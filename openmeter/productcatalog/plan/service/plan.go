@@ -465,7 +465,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			)
 		}
 
-		pp := p.AsProductCatalogPlan2()
+		pp := p.AsProductCatalogPlan()
 
 		// Check if the plan has valid status for publishing
 

@@ -9,6 +9,7 @@ import (
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -36,20 +37,24 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 		return def, err
 	}
 
+	if plan == nil {
+		return def, fmt.Errorf("plan is nil")
+	}
+
 	if plan.Version <= sub.PlanRef.Version {
 		return def, models.NewGenericValidationError(
 			fmt.Errorf("subscription %s is already at version %d, cannot migrate to version %d", request.ID.ID, sub.PlanRef.Version, request.TargetVersion),
 		)
 	}
 
-	if plan == nil {
-		return def, fmt.Errorf("plan is nil")
+	if plan.DeletedAt != nil && !clock.Now().Before(*plan.DeletedAt) {
+		return def, models.NewGenericValidationError(
+			fmt.Errorf("plan is deleted [namespace=%s, key=%s, version=%d, deleted_at=%s]",
+				plan.Namespace, plan.Key, plan.Version, plan.DeletedAt),
+		)
 	}
 
-	pp, err := PlanFromPlan(*plan)
-	if err != nil {
-		return def, err
-	}
+	pp := PlanFromPlan(*plan)
 
 	currView, err := s.SubscriptionService.GetView(ctx, request.ID)
 	if err != nil {

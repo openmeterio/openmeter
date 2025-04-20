@@ -9,7 +9,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -73,14 +72,9 @@ func PlanFromPlanInput(input plan.CreatePlanInput) (subscription.Plan, error) {
 	}, nil
 }
 
-func PlanFromPlan(p plan.Plan) (subscription.Plan, error) {
-	pp, err := p.AsProductCatalogPlan(clock.Now())
-	if err != nil {
-		return nil, err
-	}
-
+func PlanFromPlan(p plan.Plan) subscription.Plan {
 	return &plansubscription.Plan{
-		Plan: pp,
+		Plan: p.AsProductCatalogPlan(),
 		Ref:  &p.NamespacedID,
-	}, nil
+	}
 }
