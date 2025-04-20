@@ -114,20 +114,19 @@ func FromPlanAddonRow(a entdb.PlanAddon) (*plan.Addon, error) {
 	}
 
 	// Set Addon
-	planAddon.Addon = productcatalog.Addon{}
 
-	if a.Edges.Addon == nil {
-		return nil, errors.New("failed to cast add-on: add-on is nil")
+	addon, err := a.Edges.AddonOrErr()
+	if err != nil {
+		return nil, errors.New("failed to cast add-on: add-on is not loaded")
 	}
 
-	aa, err := FromAddonRow(*a.Edges.Addon)
+	aa, err := FromAddonRow(*addon)
 	if err != nil {
 		return nil, fmt.Errorf("failed to cast add-on: %w", err)
 	}
 
 	planAddon.Addon = *aa
 
-	// FIXME:
 	if err := planAddon.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid add-on [namespace=%s id=%s]: %w", planAddon.Namespace, planAddon.ID, err)
 	}
