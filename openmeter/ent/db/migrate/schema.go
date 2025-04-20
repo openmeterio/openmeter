@@ -1032,6 +1032,50 @@ var (
 			},
 		},
 	}
+	// BillingLedgersColumns holds the columns for the "billing_ledgers" table.
+	BillingLedgersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingLedgersTable holds the schema information for the "billing_ledgers" table.
+	BillingLedgersTable = &schema.Table{
+		Name:       "billing_ledgers",
+		Columns:    BillingLedgersColumns,
+		PrimaryKey: []*schema.Column{BillingLedgersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_ledgers_customers_billing_ledger",
+				Columns:    []*schema.Column{BillingLedgersColumns[6]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingledger_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingLedgersColumns[0]},
+			},
+			{
+				Name:    "billingledger_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingLedgersColumns[1]},
+			},
+			{
+				Name:    "billingledger_namespace_customer_id_currency",
+				Unique:  true,
+				Columns: []*schema.Column{BillingLedgersColumns[1], BillingLedgersColumns[6], BillingLedgersColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
 	// BillingProfilesColumns holds the columns for the "billing_profiles" table.
 	BillingProfilesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1136,6 +1180,122 @@ var (
 				Name:    "billingsequencenumbers_namespace_scope",
 				Unique:  true,
 				Columns: []*schema.Column{BillingSequenceNumbersColumns[1], BillingSequenceNumbersColumns[2]},
+			},
+		},
+	}
+	// BillingSubledgersColumns holds the columns for the "billing_subledgers" table.
+	BillingSubledgersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "priority", Type: field.TypeInt64, Default: 0},
+		{Name: "ledger_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingSubledgersTable holds the schema information for the "billing_subledgers" table.
+	BillingSubledgersTable = &schema.Table{
+		Name:       "billing_subledgers",
+		Columns:    BillingSubledgersColumns,
+		PrimaryKey: []*schema.Column{BillingSubledgersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_subledgers_billing_ledgers_subledgers",
+				Columns:    []*schema.Column{BillingSubledgersColumns[10]},
+				RefColumns: []*schema.Column{BillingLedgersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingsubledger_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingSubledgersColumns[0]},
+			},
+			{
+				Name:    "billingsubledger_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingSubledgersColumns[1]},
+			},
+			{
+				Name:    "billingsubledger_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingSubledgersColumns[1], BillingSubledgersColumns[0]},
+			},
+			{
+				Name:    "billingsubledger_namespace_ledger_id_key",
+				Unique:  true,
+				Columns: []*schema.Column{BillingSubledgersColumns[1], BillingSubledgersColumns[10], BillingSubledgersColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
+	// BillingSubledgerTransactionsColumns holds the columns for the "billing_subledger_transactions" table.
+	BillingSubledgerTransactionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "owner_type", Type: field.TypeString, Nullable: true},
+		{Name: "owner_id", Type: field.TypeString, Nullable: true},
+		{Name: "ledger_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subledger_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingSubledgerTransactionsTable holds the schema information for the "billing_subledger_transactions" table.
+	BillingSubledgerTransactionsTable = &schema.Table{
+		Name:       "billing_subledger_transactions",
+		Columns:    BillingSubledgerTransactionsColumns,
+		PrimaryKey: []*schema.Column{BillingSubledgerTransactionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_subledger_transactions_billing_ledgers_transactions",
+				Columns:    []*schema.Column{BillingSubledgerTransactionsColumns[11]},
+				RefColumns: []*schema.Column{BillingLedgersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "billing_subledger_transactions_billing_subledgers_transactions",
+				Columns:    []*schema.Column{BillingSubledgerTransactionsColumns[12]},
+				RefColumns: []*schema.Column{BillingSubledgersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingsubledgertransaction_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingSubledgerTransactionsColumns[0]},
+			},
+			{
+				Name:    "billingsubledgertransaction_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingSubledgerTransactionsColumns[1]},
+			},
+			{
+				Name:    "billingsubledgertransaction_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingSubledgerTransactionsColumns[1], BillingSubledgerTransactionsColumns[0]},
+			},
+			{
+				Name:    "billingsubledgertransaction_subledger_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingSubledgerTransactionsColumns[12]},
+			},
+			{
+				Name:    "billingsubledgertransaction_ledger_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingSubledgerTransactionsColumns[11]},
 			},
 		},
 	}
@@ -2356,8 +2516,11 @@ var (
 		BillingInvoiceLineUsageDiscountsTable,
 		BillingInvoiceUsageBasedLineConfigsTable,
 		BillingInvoiceValidationIssuesTable,
+		BillingLedgersTable,
 		BillingProfilesTable,
 		BillingSequenceNumbersTable,
+		BillingSubledgersTable,
+		BillingSubledgerTransactionsTable,
 		BillingWorkflowConfigsTable,
 		CustomersTable,
 		CustomerSubjectsTable,
@@ -2414,10 +2577,14 @@ func init() {
 	BillingInvoiceLineDiscountsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	BillingInvoiceLineUsageDiscountsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	BillingInvoiceValidationIssuesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
+	BillingLedgersTable.ForeignKeys[0].RefTable = CustomersTable
 	BillingProfilesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[1].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[2].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[3].RefTable = BillingWorkflowConfigsTable
+	BillingSubledgersTable.ForeignKeys[0].RefTable = BillingLedgersTable
+	BillingSubledgerTransactionsTable.ForeignKeys[0].RefTable = BillingLedgersTable
+	BillingSubledgerTransactionsTable.ForeignKeys[1].RefTable = BillingSubledgersTable
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = FeaturesTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable

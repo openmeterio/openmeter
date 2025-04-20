@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingledger"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -337,6 +338,21 @@ func (cc *CustomerCreate) AddSubscription(s ...*Subscription) *CustomerCreate {
 	return cc.AddSubscriptionIDs(ids...)
 }
 
+// AddBillingLedgerIDs adds the "billing_ledger" edge to the BillingLedger entity by IDs.
+func (cc *CustomerCreate) AddBillingLedgerIDs(ids ...string) *CustomerCreate {
+	cc.mutation.AddBillingLedgerIDs(ids...)
+	return cc
+}
+
+// AddBillingLedger adds the "billing_ledger" edges to the BillingLedger entity.
+func (cc *CustomerCreate) AddBillingLedger(b ...*BillingLedger) *CustomerCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cc.AddBillingLedgerIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cc *CustomerCreate) Mutation() *CustomerMutation {
 	return cc.mutation
@@ -592,6 +608,22 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := cc.mutation.BillingLedgerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingLedgerTable,
+			Columns: []string{customer.BillingLedgerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingledger.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

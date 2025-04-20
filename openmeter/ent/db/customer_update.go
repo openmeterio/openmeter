@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingledger"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -386,6 +387,21 @@ func (cu *CustomerUpdate) AddSubscription(s ...*Subscription) *CustomerUpdate {
 	return cu.AddSubscriptionIDs(ids...)
 }
 
+// AddBillingLedgerIDs adds the "billing_ledger" edge to the BillingLedger entity by IDs.
+func (cu *CustomerUpdate) AddBillingLedgerIDs(ids ...string) *CustomerUpdate {
+	cu.mutation.AddBillingLedgerIDs(ids...)
+	return cu
+}
+
+// AddBillingLedger adds the "billing_ledger" edges to the BillingLedger entity.
+func (cu *CustomerUpdate) AddBillingLedger(b ...*BillingLedger) *CustomerUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cu.AddBillingLedgerIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cu *CustomerUpdate) Mutation() *CustomerMutation {
 	return cu.mutation
@@ -479,6 +495,27 @@ func (cu *CustomerUpdate) RemoveSubscription(s ...*Subscription) *CustomerUpdate
 		ids[i] = s[i].ID
 	}
 	return cu.RemoveSubscriptionIDs(ids...)
+}
+
+// ClearBillingLedger clears all "billing_ledger" edges to the BillingLedger entity.
+func (cu *CustomerUpdate) ClearBillingLedger() *CustomerUpdate {
+	cu.mutation.ClearBillingLedger()
+	return cu
+}
+
+// RemoveBillingLedgerIDs removes the "billing_ledger" edge to BillingLedger entities by IDs.
+func (cu *CustomerUpdate) RemoveBillingLedgerIDs(ids ...string) *CustomerUpdate {
+	cu.mutation.RemoveBillingLedgerIDs(ids...)
+	return cu
+}
+
+// RemoveBillingLedger removes "billing_ledger" edges to BillingLedger entities.
+func (cu *CustomerUpdate) RemoveBillingLedger(b ...*BillingLedger) *CustomerUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cu.RemoveBillingLedgerIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -830,6 +867,51 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cu.mutation.BillingLedgerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingLedgerTable,
+			Columns: []string{customer.BillingLedgerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingledger.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.RemovedBillingLedgerIDs(); len(nodes) > 0 && !cu.mutation.BillingLedgerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingLedgerTable,
+			Columns: []string{customer.BillingLedgerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingledger.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.BillingLedgerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingLedgerTable,
+			Columns: []string{customer.BillingLedgerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingledger.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1208,6 +1290,21 @@ func (cuo *CustomerUpdateOne) AddSubscription(s ...*Subscription) *CustomerUpdat
 	return cuo.AddSubscriptionIDs(ids...)
 }
 
+// AddBillingLedgerIDs adds the "billing_ledger" edge to the BillingLedger entity by IDs.
+func (cuo *CustomerUpdateOne) AddBillingLedgerIDs(ids ...string) *CustomerUpdateOne {
+	cuo.mutation.AddBillingLedgerIDs(ids...)
+	return cuo
+}
+
+// AddBillingLedger adds the "billing_ledger" edges to the BillingLedger entity.
+func (cuo *CustomerUpdateOne) AddBillingLedger(b ...*BillingLedger) *CustomerUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cuo.AddBillingLedgerIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (cuo *CustomerUpdateOne) Mutation() *CustomerMutation {
 	return cuo.mutation
@@ -1301,6 +1398,27 @@ func (cuo *CustomerUpdateOne) RemoveSubscription(s ...*Subscription) *CustomerUp
 		ids[i] = s[i].ID
 	}
 	return cuo.RemoveSubscriptionIDs(ids...)
+}
+
+// ClearBillingLedger clears all "billing_ledger" edges to the BillingLedger entity.
+func (cuo *CustomerUpdateOne) ClearBillingLedger() *CustomerUpdateOne {
+	cuo.mutation.ClearBillingLedger()
+	return cuo
+}
+
+// RemoveBillingLedgerIDs removes the "billing_ledger" edge to BillingLedger entities by IDs.
+func (cuo *CustomerUpdateOne) RemoveBillingLedgerIDs(ids ...string) *CustomerUpdateOne {
+	cuo.mutation.RemoveBillingLedgerIDs(ids...)
+	return cuo
+}
+
+// RemoveBillingLedger removes "billing_ledger" edges to BillingLedger entities.
+func (cuo *CustomerUpdateOne) RemoveBillingLedger(b ...*BillingLedger) *CustomerUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return cuo.RemoveBillingLedgerIDs(ids...)
 }
 
 // Where appends a list predicates to the CustomerUpdate builder.
@@ -1682,6 +1800,51 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.BillingLedgerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingLedgerTable,
+			Columns: []string{customer.BillingLedgerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingledger.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.RemovedBillingLedgerIDs(); len(nodes) > 0 && !cuo.mutation.BillingLedgerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingLedgerTable,
+			Columns: []string{customer.BillingLedgerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingledger.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.BillingLedgerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingLedgerTable,
+			Columns: []string{customer.BillingLedgerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingledger.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

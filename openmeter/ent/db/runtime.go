@@ -24,8 +24,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingledger"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsubledger"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsubledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -671,6 +674,33 @@ func init() {
 	billinginvoicevalidationissueDescID := billinginvoicevalidationissueMixinFields0[0].Descriptor()
 	// billinginvoicevalidationissue.DefaultID holds the default value on creation for the id field.
 	billinginvoicevalidationissue.DefaultID = billinginvoicevalidationissueDescID.Default.(func() string)
+	billingledgerMixin := schema.BillingLedger{}.Mixin()
+	billingledgerMixinFields0 := billingledgerMixin[0].Fields()
+	_ = billingledgerMixinFields0
+	billingledgerMixinFields1 := billingledgerMixin[1].Fields()
+	_ = billingledgerMixinFields1
+	billingledgerMixinFields2 := billingledgerMixin[2].Fields()
+	_ = billingledgerMixinFields2
+	billingledgerFields := schema.BillingLedger{}.Fields()
+	_ = billingledgerFields
+	// billingledgerDescNamespace is the schema descriptor for namespace field.
+	billingledgerDescNamespace := billingledgerMixinFields1[0].Descriptor()
+	// billingledger.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billingledger.NamespaceValidator = billingledgerDescNamespace.Validators[0].(func(string) error)
+	// billingledgerDescCreatedAt is the schema descriptor for created_at field.
+	billingledgerDescCreatedAt := billingledgerMixinFields2[0].Descriptor()
+	// billingledger.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billingledger.DefaultCreatedAt = billingledgerDescCreatedAt.Default.(func() time.Time)
+	// billingledgerDescUpdatedAt is the schema descriptor for updated_at field.
+	billingledgerDescUpdatedAt := billingledgerMixinFields2[1].Descriptor()
+	// billingledger.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billingledger.DefaultUpdatedAt = billingledgerDescUpdatedAt.Default.(func() time.Time)
+	// billingledger.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billingledger.UpdateDefaultUpdatedAt = billingledgerDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billingledgerDescID is the schema descriptor for id field.
+	billingledgerDescID := billingledgerMixinFields0[0].Descriptor()
+	// billingledger.DefaultID holds the default value on creation for the id field.
+	billingledger.DefaultID = billingledgerDescID.Default.(func() string)
 	billingprofileMixin := schema.BillingProfile{}.Mixin()
 	billingprofileMixinFields0 := billingprofileMixin[0].Fields()
 	_ = billingprofileMixinFields0
@@ -735,6 +765,62 @@ func init() {
 	billingsequencenumbersDescNamespace := billingsequencenumbersMixinFields0[0].Descriptor()
 	// billingsequencenumbers.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	billingsequencenumbers.NamespaceValidator = billingsequencenumbersDescNamespace.Validators[0].(func(string) error)
+	billingsubledgerMixin := schema.BillingSubledger{}.Mixin()
+	billingsubledgerMixinFields0 := billingsubledgerMixin[0].Fields()
+	_ = billingsubledgerMixinFields0
+	billingsubledgerMixinFields1 := billingsubledgerMixin[1].Fields()
+	_ = billingsubledgerMixinFields1
+	billingsubledgerFields := schema.BillingSubledger{}.Fields()
+	_ = billingsubledgerFields
+	// billingsubledgerDescNamespace is the schema descriptor for namespace field.
+	billingsubledgerDescNamespace := billingsubledgerMixinFields0[1].Descriptor()
+	// billingsubledger.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billingsubledger.NamespaceValidator = billingsubledgerDescNamespace.Validators[0].(func(string) error)
+	// billingsubledgerDescCreatedAt is the schema descriptor for created_at field.
+	billingsubledgerDescCreatedAt := billingsubledgerMixinFields0[3].Descriptor()
+	// billingsubledger.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billingsubledger.DefaultCreatedAt = billingsubledgerDescCreatedAt.Default.(func() time.Time)
+	// billingsubledgerDescUpdatedAt is the schema descriptor for updated_at field.
+	billingsubledgerDescUpdatedAt := billingsubledgerMixinFields0[4].Descriptor()
+	// billingsubledger.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billingsubledger.DefaultUpdatedAt = billingsubledgerDescUpdatedAt.Default.(func() time.Time)
+	// billingsubledger.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billingsubledger.UpdateDefaultUpdatedAt = billingsubledgerDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billingsubledgerDescKey is the schema descriptor for key field.
+	billingsubledgerDescKey := billingsubledgerMixinFields1[0].Descriptor()
+	// billingsubledger.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	billingsubledger.KeyValidator = billingsubledgerDescKey.Validators[0].(func(string) error)
+	// billingsubledgerDescPriority is the schema descriptor for priority field.
+	billingsubledgerDescPriority := billingsubledgerFields[1].Descriptor()
+	// billingsubledger.DefaultPriority holds the default value on creation for the priority field.
+	billingsubledger.DefaultPriority = billingsubledgerDescPriority.Default.(int64)
+	// billingsubledgerDescID is the schema descriptor for id field.
+	billingsubledgerDescID := billingsubledgerMixinFields0[0].Descriptor()
+	// billingsubledger.DefaultID holds the default value on creation for the id field.
+	billingsubledger.DefaultID = billingsubledgerDescID.Default.(func() string)
+	billingsubledgertransactionMixin := schema.BillingSubledgerTransaction{}.Mixin()
+	billingsubledgertransactionMixinFields0 := billingsubledgertransactionMixin[0].Fields()
+	_ = billingsubledgertransactionMixinFields0
+	billingsubledgertransactionFields := schema.BillingSubledgerTransaction{}.Fields()
+	_ = billingsubledgertransactionFields
+	// billingsubledgertransactionDescNamespace is the schema descriptor for namespace field.
+	billingsubledgertransactionDescNamespace := billingsubledgertransactionMixinFields0[1].Descriptor()
+	// billingsubledgertransaction.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billingsubledgertransaction.NamespaceValidator = billingsubledgertransactionDescNamespace.Validators[0].(func(string) error)
+	// billingsubledgertransactionDescCreatedAt is the schema descriptor for created_at field.
+	billingsubledgertransactionDescCreatedAt := billingsubledgertransactionMixinFields0[3].Descriptor()
+	// billingsubledgertransaction.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billingsubledgertransaction.DefaultCreatedAt = billingsubledgertransactionDescCreatedAt.Default.(func() time.Time)
+	// billingsubledgertransactionDescUpdatedAt is the schema descriptor for updated_at field.
+	billingsubledgertransactionDescUpdatedAt := billingsubledgertransactionMixinFields0[4].Descriptor()
+	// billingsubledgertransaction.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billingsubledgertransaction.DefaultUpdatedAt = billingsubledgertransactionDescUpdatedAt.Default.(func() time.Time)
+	// billingsubledgertransaction.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billingsubledgertransaction.UpdateDefaultUpdatedAt = billingsubledgertransactionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billingsubledgertransactionDescID is the schema descriptor for id field.
+	billingsubledgertransactionDescID := billingsubledgertransactionMixinFields0[0].Descriptor()
+	// billingsubledgertransaction.DefaultID holds the default value on creation for the id field.
+	billingsubledgertransaction.DefaultID = billingsubledgertransactionDescID.Default.(func() string)
 	billingworkflowconfigMixin := schema.BillingWorkflowConfig{}.Mixin()
 	billingworkflowconfigMixinFields0 := billingworkflowconfigMixin[0].Fields()
 	_ = billingworkflowconfigMixinFields0

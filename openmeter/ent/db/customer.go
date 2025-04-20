@@ -73,9 +73,11 @@ type CustomerEdges struct {
 	BillingInvoice []*BillingInvoice `json:"billing_invoice,omitempty"`
 	// Subscription holds the value of the subscription edge.
 	Subscription []*Subscription `json:"subscription,omitempty"`
+	// BillingLedger holds the value of the billing_ledger edge.
+	BillingLedger []*BillingLedger `json:"billing_ledger,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // AppsOrErr returns the Apps value or an error if the edge
@@ -123,6 +125,15 @@ func (e CustomerEdges) SubscriptionOrErr() ([]*Subscription, error) {
 		return e.Subscription, nil
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
+}
+
+// BillingLedgerOrErr returns the BillingLedger value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomerEdges) BillingLedgerOrErr() ([]*BillingLedger, error) {
+	if e.loadedTypes[5] {
+		return e.BillingLedger, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_ledger"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -308,6 +319,11 @@ func (c *Customer) QueryBillingInvoice() *BillingInvoiceQuery {
 // QuerySubscription queries the "subscription" edge of the Customer entity.
 func (c *Customer) QuerySubscription() *SubscriptionQuery {
 	return NewCustomerClient(c.config).QuerySubscription(c)
+}
+
+// QueryBillingLedger queries the "billing_ledger" edge of the Customer entity.
+func (c *Customer) QueryBillingLedger() *BillingLedgerQuery {
+	return NewCustomerClient(c.config).QueryBillingLedger(c)
 }
 
 // Update returns a builder for updating this Customer.
