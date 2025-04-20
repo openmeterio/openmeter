@@ -138,11 +138,6 @@ func InvoiceID(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoiceID, v))
 }
 
-// ParentLineID applies equality check predicate on the "parent_line_id" field. It's identical to ParentLineIDEQ.
-func ParentLineID(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldParentLineID, v))
-}
-
 // PeriodStart applies equality check predicate on the "period_start" field. It's identical to PeriodStartEQ.
 func PeriodStart(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
@@ -164,11 +159,6 @@ func Currency(v currencyx.Code) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldCurrency, vc))
 }
 
-// Quantity applies equality check predicate on the "quantity" field. It's identical to QuantityEQ.
-func Quantity(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldQuantity, v))
-}
-
 // InvoicingAppExternalID applies equality check predicate on the "invoicing_app_external_id" field. It's identical to InvoicingAppExternalIDEQ.
 func InvoicingAppExternalID(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoicingAppExternalID, v))
@@ -177,6 +167,16 @@ func InvoicingAppExternalID(v string) predicate.BillingInvoiceLine {
 // ChildUniqueReferenceID applies equality check predicate on the "child_unique_reference_id" field. It's identical to ChildUniqueReferenceIDEQ.
 func ChildUniqueReferenceID(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldChildUniqueReferenceID, v))
+}
+
+// ParentLineID applies equality check predicate on the "parent_line_id" field. It's identical to ParentLineIDEQ.
+func ParentLineID(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldParentLineID, v))
+}
+
+// Quantity applies equality check predicate on the "quantity" field. It's identical to QuantityEQ.
+func Quantity(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldQuantity, v))
 }
 
 // SubscriptionID applies equality check predicate on the "subscription_id" field. It's identical to SubscriptionIDEQ.
@@ -919,81 +919,6 @@ func ManagedByNotIn(vs ...billing.InvoiceLineManagedBy) predicate.BillingInvoice
 	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldManagedBy, v...))
 }
 
-// ParentLineIDEQ applies the EQ predicate on the "parent_line_id" field.
-func ParentLineIDEQ(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldParentLineID, v))
-}
-
-// ParentLineIDNEQ applies the NEQ predicate on the "parent_line_id" field.
-func ParentLineIDNEQ(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldParentLineID, v))
-}
-
-// ParentLineIDIn applies the In predicate on the "parent_line_id" field.
-func ParentLineIDIn(vs ...string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIn(FieldParentLineID, vs...))
-}
-
-// ParentLineIDNotIn applies the NotIn predicate on the "parent_line_id" field.
-func ParentLineIDNotIn(vs ...string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldParentLineID, vs...))
-}
-
-// ParentLineIDGT applies the GT predicate on the "parent_line_id" field.
-func ParentLineIDGT(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGT(FieldParentLineID, v))
-}
-
-// ParentLineIDGTE applies the GTE predicate on the "parent_line_id" field.
-func ParentLineIDGTE(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldParentLineID, v))
-}
-
-// ParentLineIDLT applies the LT predicate on the "parent_line_id" field.
-func ParentLineIDLT(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLT(FieldParentLineID, v))
-}
-
-// ParentLineIDLTE applies the LTE predicate on the "parent_line_id" field.
-func ParentLineIDLTE(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldParentLineID, v))
-}
-
-// ParentLineIDContains applies the Contains predicate on the "parent_line_id" field.
-func ParentLineIDContains(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldContains(FieldParentLineID, v))
-}
-
-// ParentLineIDHasPrefix applies the HasPrefix predicate on the "parent_line_id" field.
-func ParentLineIDHasPrefix(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldParentLineID, v))
-}
-
-// ParentLineIDHasSuffix applies the HasSuffix predicate on the "parent_line_id" field.
-func ParentLineIDHasSuffix(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldParentLineID, v))
-}
-
-// ParentLineIDIsNil applies the IsNil predicate on the "parent_line_id" field.
-func ParentLineIDIsNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldParentLineID))
-}
-
-// ParentLineIDNotNil applies the NotNil predicate on the "parent_line_id" field.
-func ParentLineIDNotNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldParentLineID))
-}
-
-// ParentLineIDEqualFold applies the EqualFold predicate on the "parent_line_id" field.
-func ParentLineIDEqualFold(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldParentLineID, v))
-}
-
-// ParentLineIDContainsFold applies the ContainsFold predicate on the "parent_line_id" field.
-func ParentLineIDContainsFold(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldParentLineID, v))
-}
-
 // PeriodStartEQ applies the EQ predicate on the "period_start" field.
 func PeriodStartEQ(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
@@ -1114,36 +1039,6 @@ func InvoiceAtLTE(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldInvoiceAt, v))
 }
 
-// TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v billing.InvoiceLineType) predicate.BillingInvoiceLine {
-	vc := v
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldType, vc))
-}
-
-// TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v billing.InvoiceLineType) predicate.BillingInvoiceLine {
-	vc := v
-	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldType, vc))
-}
-
-// TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...billing.InvoiceLineType) predicate.BillingInvoiceLine {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingInvoiceLine(sql.FieldIn(FieldType, v...))
-}
-
-// TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...billing.InvoiceLineType) predicate.BillingInvoiceLine {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldType, v...))
-}
-
 // StatusEQ applies the EQ predicate on the "status" field.
 func StatusEQ(v billing.InvoiceLineStatus) predicate.BillingInvoiceLine {
 	vc := v
@@ -1256,76 +1151,6 @@ func CurrencyEqualFold(v currencyx.Code) predicate.BillingInvoiceLine {
 func CurrencyContainsFold(v currencyx.Code) predicate.BillingInvoiceLine {
 	vc := string(v)
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldCurrency, vc))
-}
-
-// QuantityEQ applies the EQ predicate on the "quantity" field.
-func QuantityEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldQuantity, v))
-}
-
-// QuantityNEQ applies the NEQ predicate on the "quantity" field.
-func QuantityNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldQuantity, v))
-}
-
-// QuantityIn applies the In predicate on the "quantity" field.
-func QuantityIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIn(FieldQuantity, vs...))
-}
-
-// QuantityNotIn applies the NotIn predicate on the "quantity" field.
-func QuantityNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldQuantity, vs...))
-}
-
-// QuantityGT applies the GT predicate on the "quantity" field.
-func QuantityGT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGT(FieldQuantity, v))
-}
-
-// QuantityGTE applies the GTE predicate on the "quantity" field.
-func QuantityGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldQuantity, v))
-}
-
-// QuantityLT applies the LT predicate on the "quantity" field.
-func QuantityLT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLT(FieldQuantity, v))
-}
-
-// QuantityLTE applies the LTE predicate on the "quantity" field.
-func QuantityLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldQuantity, v))
-}
-
-// QuantityIsNil applies the IsNil predicate on the "quantity" field.
-func QuantityIsNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldQuantity))
-}
-
-// QuantityNotNil applies the NotNil predicate on the "quantity" field.
-func QuantityNotNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldQuantity))
-}
-
-// TaxConfigIsNil applies the IsNil predicate on the "tax_config" field.
-func TaxConfigIsNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldTaxConfig))
-}
-
-// TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
-func TaxConfigNotNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldTaxConfig))
-}
-
-// RatecardDiscountsIsNil applies the IsNil predicate on the "ratecard_discounts" field.
-func RatecardDiscountsIsNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldRatecardDiscounts))
-}
-
-// RatecardDiscountsNotNil applies the NotNil predicate on the "ratecard_discounts" field.
-func RatecardDiscountsNotNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldRatecardDiscounts))
 }
 
 // InvoicingAppExternalIDEQ applies the EQ predicate on the "invoicing_app_external_id" field.
@@ -1476,6 +1301,181 @@ func ChildUniqueReferenceIDEqualFold(v string) predicate.BillingInvoiceLine {
 // ChildUniqueReferenceIDContainsFold applies the ContainsFold predicate on the "child_unique_reference_id" field.
 func ChildUniqueReferenceIDContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldChildUniqueReferenceID, v))
+}
+
+// TypeEQ applies the EQ predicate on the "type" field.
+func TypeEQ(v billing.InvoiceLineType) predicate.BillingInvoiceLine {
+	vc := v
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldType, vc))
+}
+
+// TypeNEQ applies the NEQ predicate on the "type" field.
+func TypeNEQ(v billing.InvoiceLineType) predicate.BillingInvoiceLine {
+	vc := v
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldType, vc))
+}
+
+// TypeIn applies the In predicate on the "type" field.
+func TypeIn(vs ...billing.InvoiceLineType) predicate.BillingInvoiceLine {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldType, v...))
+}
+
+// TypeNotIn applies the NotIn predicate on the "type" field.
+func TypeNotIn(vs ...billing.InvoiceLineType) predicate.BillingInvoiceLine {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldType, v...))
+}
+
+// ParentLineIDEQ applies the EQ predicate on the "parent_line_id" field.
+func ParentLineIDEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldParentLineID, v))
+}
+
+// ParentLineIDNEQ applies the NEQ predicate on the "parent_line_id" field.
+func ParentLineIDNEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldParentLineID, v))
+}
+
+// ParentLineIDIn applies the In predicate on the "parent_line_id" field.
+func ParentLineIDIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldParentLineID, vs...))
+}
+
+// ParentLineIDNotIn applies the NotIn predicate on the "parent_line_id" field.
+func ParentLineIDNotIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldParentLineID, vs...))
+}
+
+// ParentLineIDGT applies the GT predicate on the "parent_line_id" field.
+func ParentLineIDGT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldParentLineID, v))
+}
+
+// ParentLineIDGTE applies the GTE predicate on the "parent_line_id" field.
+func ParentLineIDGTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldParentLineID, v))
+}
+
+// ParentLineIDLT applies the LT predicate on the "parent_line_id" field.
+func ParentLineIDLT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldParentLineID, v))
+}
+
+// ParentLineIDLTE applies the LTE predicate on the "parent_line_id" field.
+func ParentLineIDLTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldParentLineID, v))
+}
+
+// ParentLineIDContains applies the Contains predicate on the "parent_line_id" field.
+func ParentLineIDContains(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContains(FieldParentLineID, v))
+}
+
+// ParentLineIDHasPrefix applies the HasPrefix predicate on the "parent_line_id" field.
+func ParentLineIDHasPrefix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldParentLineID, v))
+}
+
+// ParentLineIDHasSuffix applies the HasSuffix predicate on the "parent_line_id" field.
+func ParentLineIDHasSuffix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldParentLineID, v))
+}
+
+// ParentLineIDIsNil applies the IsNil predicate on the "parent_line_id" field.
+func ParentLineIDIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldParentLineID))
+}
+
+// ParentLineIDNotNil applies the NotNil predicate on the "parent_line_id" field.
+func ParentLineIDNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldParentLineID))
+}
+
+// ParentLineIDEqualFold applies the EqualFold predicate on the "parent_line_id" field.
+func ParentLineIDEqualFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldParentLineID, v))
+}
+
+// ParentLineIDContainsFold applies the ContainsFold predicate on the "parent_line_id" field.
+func ParentLineIDContainsFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldParentLineID, v))
+}
+
+// QuantityEQ applies the EQ predicate on the "quantity" field.
+func QuantityEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldQuantity, v))
+}
+
+// QuantityNEQ applies the NEQ predicate on the "quantity" field.
+func QuantityNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldQuantity, v))
+}
+
+// QuantityIn applies the In predicate on the "quantity" field.
+func QuantityIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldQuantity, vs...))
+}
+
+// QuantityNotIn applies the NotIn predicate on the "quantity" field.
+func QuantityNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldQuantity, vs...))
+}
+
+// QuantityGT applies the GT predicate on the "quantity" field.
+func QuantityGT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldQuantity, v))
+}
+
+// QuantityGTE applies the GTE predicate on the "quantity" field.
+func QuantityGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldQuantity, v))
+}
+
+// QuantityLT applies the LT predicate on the "quantity" field.
+func QuantityLT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldQuantity, v))
+}
+
+// QuantityLTE applies the LTE predicate on the "quantity" field.
+func QuantityLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldQuantity, v))
+}
+
+// QuantityIsNil applies the IsNil predicate on the "quantity" field.
+func QuantityIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldQuantity))
+}
+
+// QuantityNotNil applies the NotNil predicate on the "quantity" field.
+func QuantityNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldQuantity))
+}
+
+// TaxConfigIsNil applies the IsNil predicate on the "tax_config" field.
+func TaxConfigIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldTaxConfig))
+}
+
+// TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
+func TaxConfigNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldTaxConfig))
+}
+
+// RatecardDiscountsIsNil applies the IsNil predicate on the "ratecard_discounts" field.
+func RatecardDiscountsIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldRatecardDiscounts))
+}
+
+// RatecardDiscountsNotNil applies the NotNil predicate on the "ratecard_discounts" field.
+func RatecardDiscountsNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldRatecardDiscounts))
 }
 
 // SubscriptionIDEQ applies the EQ predicate on the "subscription_id" field.
@@ -2000,6 +2000,29 @@ func HasSubscriptionItem() predicate.BillingInvoiceLine {
 func HasSubscriptionItemWith(preds ...predicate.SubscriptionItem) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		step := newSubscriptionItemStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBillingInvoiceCreditNoteLines applies the HasEdge predicate on the "billing_invoice_credit_note_lines" edge.
+func HasBillingInvoiceCreditNoteLines() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceCreditNoteLinesTable, BillingInvoiceCreditNoteLinesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingInvoiceCreditNoteLinesWith applies the HasEdge predicate on the "billing_invoice_credit_note_lines" edge with a given conditions (other predicates).
+func HasBillingInvoiceCreditNoteLinesWith(preds ...predicate.BillingInvoiceCreditNoteLine) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := newBillingInvoiceCreditNoteLinesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

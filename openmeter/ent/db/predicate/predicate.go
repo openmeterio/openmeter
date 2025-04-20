@@ -64,6 +64,9 @@ type BillingCustomerOverride func(*sql.Selector)
 // BillingInvoice is the predicate function for billinginvoice builders.
 type BillingInvoice func(*sql.Selector)
 
+// BillingInvoiceCreditNoteLine is the predicate function for billinginvoicecreditnoteline builders.
+type BillingInvoiceCreditNoteLine func(*sql.Selector)
+
 // BillingInvoiceFlatFeeLineConfig is the predicate function for billinginvoiceflatfeelineconfig builders.
 type BillingInvoiceFlatFeeLineConfig func(*sql.Selector)
 

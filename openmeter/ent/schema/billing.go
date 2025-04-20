@@ -286,18 +286,11 @@ func (m TotalsMixin) Fields() []ent.Field {
 	}
 }
 
-type BillingInvoiceLine struct {
-	ent.Schema
+type BillingInvoiceLineBase struct {
+	mixin.Schema
 }
 
-func (BillingInvoiceLine) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		entutils.ResourceMixin{},
-		TotalsMixin{},
-	}
-}
-
-func (BillingInvoiceLine) Fields() []ent.Field {
+func (BillingInvoiceLineBase) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("invoice_id").
 			SchemaType(map[string]string{
@@ -307,20 +300,9 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 		field.Enum("managed_by").
 			GoType(billing.InvoiceLineManagedBy("")),
 
-		field.String("parent_line_id").
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}).Optional().Nillable(),
-
 		field.Time("period_start"),
 		field.Time("period_end"),
 		field.Time("invoice_at"),
-
-		// TODO[dependency]: overrides (as soon as plan override entities are ready)
-
-		field.Enum("type").
-			GoType(billing.InvoiceLineType("")).
-			Immutable(),
 
 		field.Enum("status").
 			GoType(billing.InvoiceLineStatus("")),
@@ -332,6 +314,52 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(3)",
 			}),
+
+		// ID of the line in the external invoicing app
+		// For example, Stripe invoice line item ID
+		field.String("invoicing_app_external_id").
+			Optional().
+			Nillable(),
+
+		// child_unique_reference_id is uniqe per parent line, can be used for upserting
+		// and identifying lines created for the same reason (e.g. tiered price tier)
+		// between different invoices.
+		field.String("child_unique_reference_id").
+			Optional().
+			Nillable(),
+	}
+}
+
+func (BillingInvoiceLineBase) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "invoice_id"),
+	}
+}
+
+type BillingInvoiceLine struct {
+	ent.Schema
+}
+
+func (BillingInvoiceLine) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.ResourceMixin{},
+		TotalsMixin{},
+		BillingInvoiceLineBase{},
+	}
+}
+
+func (BillingInvoiceLine) Fields() []ent.Field {
+	return []ent.Field{
+		// TODO[dependency]: overrides (as soon as plan override entities are ready)
+
+		field.Enum("type").
+			GoType(billing.InvoiceLineType("")).
+			Immutable(),
+
+		field.String("parent_line_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).Optional().Nillable(),
 
 		// Quantity is optional as for usage-based billing we can only persist this value,
 		// when the invoice is issued
@@ -354,19 +382,6 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
-			Optional().
-			Nillable(),
-
-		// ID of the line in the external invoicing app
-		// For example, Stripe invoice line item ID
-		field.String("invoicing_app_external_id").
-			Optional().
-			Nillable(),
-
-		// child_unique_reference_id is uniqe per parent line, can be used for upserting
-		// and identifying lines created for the same reason (e.g. tiered price tier)
-		// between different invoices.
-		field.String("child_unique_reference_id").
 			Optional().
 			Nillable(),
 
@@ -396,7 +411,6 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 
 func (BillingInvoiceLine) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "invoice_id"),
 		index.Fields("namespace", "parent_line_id"),
 		index.Fields("namespace", "parent_line_id", "child_unique_reference_id").
 			Annotations(
@@ -442,6 +456,8 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Ref("billing_lines").
 			Field("subscription_item_id").
 			Unique(),
+		edge.To("billing_invoice_credit_note_lines", BillingInvoiceCreditNoteLine.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
@@ -513,6 +529,60 @@ func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
+	}
+}
+
+type BillingInvoiceCreditNoteLine struct {
+	ent.Schema
+}
+
+func (BillingInvoiceCreditNoteLine) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.ResourceMixin{},
+		TotalsMixin{},
+		BillingInvoiceLineBase{},
+	}
+}
+
+func (BillingInvoiceCreditNoteLine) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("parent_line_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.Other("credit_note_amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+		field.JSON("tax_config", billing.TaxConfig{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
+	}
+}
+
+func (BillingInvoiceCreditNoteLine) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "parent_line_id", "child_unique_reference_id").
+			Annotations(
+				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+			).Unique(),
+	}
+}
+
+func (BillingInvoiceCreditNoteLine) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("billing_invoice", BillingInvoice.Type).
+			Ref("billing_invoice_credit_note_lines").
+			Field("invoice_id").
+			Unique().
+			Required(),
+		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
+			Ref("billing_invoice_credit_note_lines").
+			Field("parent_line_id").
+			Unique().
+			Required(),
 	}
 }
 
@@ -869,6 +939,8 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("billing_invoice_credit_note_lines", BillingInvoiceCreditNoteLine.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("billing_invoice_validation_issues", BillingInvoiceValidationIssue.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),

@@ -690,6 +690,86 @@ var (
 			},
 		},
 	}
+	// BillingInvoiceCreditNoteLinesColumns holds the columns for the "billing_invoice_credit_note_lines" table.
+	BillingInvoiceCreditNoteLinesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "taxes_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "taxes_inclusive_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "taxes_exclusive_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "charges_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "discounts_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "managed_by", Type: field.TypeEnum, Enums: []string{"subscription", "system", "manual"}},
+		{Name: "period_start", Type: field.TypeTime},
+		{Name: "period_end", Type: field.TypeTime},
+		{Name: "invoice_at", Type: field.TypeTime},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"valid", "split", "detailed"}},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
+		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
+		{Name: "credit_note_amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "tax_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "parent_line_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingInvoiceCreditNoteLinesTable holds the schema information for the "billing_invoice_credit_note_lines" table.
+	BillingInvoiceCreditNoteLinesTable = &schema.Table{
+		Name:       "billing_invoice_credit_note_lines",
+		Columns:    BillingInvoiceCreditNoteLinesColumns,
+		PrimaryKey: []*schema.Column{BillingInvoiceCreditNoteLinesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_invoice_credit_note_lines_billing_invoices_billing_invoice_credit_note_lines",
+				Columns:    []*schema.Column{BillingInvoiceCreditNoteLinesColumns[25]},
+				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "billing_invoice_credit_note_lines_billing_invoice_lines_billing_invoice_credit_note_lines",
+				Columns:    []*schema.Column{BillingInvoiceCreditNoteLinesColumns[26]},
+				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billinginvoicecreditnoteline_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoiceCreditNoteLinesColumns[0]},
+			},
+			{
+				Name:    "billinginvoicecreditnoteline_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceCreditNoteLinesColumns[1]},
+			},
+			{
+				Name:    "billinginvoicecreditnoteline_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoiceCreditNoteLinesColumns[1], BillingInvoiceCreditNoteLinesColumns[0]},
+			},
+			{
+				Name:    "billinginvoicecreditnoteline_namespace_invoice_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceCreditNoteLinesColumns[1], BillingInvoiceCreditNoteLinesColumns[25]},
+			},
+			{
+				Name:    "billinginvoicecreditnoteline_namespace_parent_line_id_child_unique_reference_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoiceCreditNoteLinesColumns[1], BillingInvoiceCreditNoteLinesColumns[26], BillingInvoiceCreditNoteLinesColumns[22]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
+				},
+			},
+		},
+	}
 	// BillingInvoiceFlatFeeLineConfigsColumns holds the columns for the "billing_invoice_flat_fee_line_configs" table.
 	BillingInvoiceFlatFeeLineConfigsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -737,14 +817,14 @@ var (
 		{Name: "period_start", Type: field.TypeTime},
 		{Name: "period_end", Type: field.TypeTime},
 		{Name: "invoice_at", Type: field.TypeTime},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"flat_fee", "usage_based"}},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"valid", "split", "detailed"}},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
+		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"flat_fee", "usage_based"}},
 		{Name: "quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "tax_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "ratecard_discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
-		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
 		{Name: "line_ids", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "fee_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -832,7 +912,7 @@ var (
 			{
 				Name:    "billinginvoiceline_namespace_parent_line_id_child_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[31], BillingInvoiceLinesColumns[26]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[31], BillingInvoiceLinesColumns[22]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -2350,6 +2430,7 @@ var (
 		BillingCustomerLocksTable,
 		BillingCustomerOverridesTable,
 		BillingInvoicesTable,
+		BillingInvoiceCreditNoteLinesTable,
 		BillingInvoiceFlatFeeLineConfigsTable,
 		BillingInvoiceLinesTable,
 		BillingInvoiceLineDiscountsTable,
@@ -2404,6 +2485,8 @@ func init() {
 	BillingInvoicesTable.ForeignKeys[3].RefTable = BillingProfilesTable
 	BillingInvoicesTable.ForeignKeys[4].RefTable = BillingWorkflowConfigsTable
 	BillingInvoicesTable.ForeignKeys[5].RefTable = CustomersTable
+	BillingInvoiceCreditNoteLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
+	BillingInvoiceCreditNoteLinesTable.ForeignKeys[1].RefTable = BillingInvoiceLinesTable
 	BillingInvoiceLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingInvoiceLinesTable.ForeignKeys[1].RefTable = BillingInvoiceFlatFeeLineConfigsTable
 	BillingInvoiceLinesTable.ForeignKeys[2].RefTable = BillingInvoiceUsageBasedLineConfigsTable

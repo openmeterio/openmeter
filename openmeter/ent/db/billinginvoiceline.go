@@ -60,30 +60,30 @@ type BillingInvoiceLine struct {
 	InvoiceID string `json:"invoice_id,omitempty"`
 	// ManagedBy holds the value of the "managed_by" field.
 	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
-	// ParentLineID holds the value of the "parent_line_id" field.
-	ParentLineID *string `json:"parent_line_id,omitempty"`
 	// PeriodStart holds the value of the "period_start" field.
 	PeriodStart time.Time `json:"period_start,omitempty"`
 	// PeriodEnd holds the value of the "period_end" field.
 	PeriodEnd time.Time `json:"period_end,omitempty"`
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
-	// Type holds the value of the "type" field.
-	Type billing.InvoiceLineType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
 	Status billing.InvoiceLineStatus `json:"status,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
+	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
+	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
+	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
+	ChildUniqueReferenceID *string `json:"child_unique_reference_id,omitempty"`
+	// Type holds the value of the "type" field.
+	Type billing.InvoiceLineType `json:"type,omitempty"`
+	// ParentLineID holds the value of the "parent_line_id" field.
+	ParentLineID *string `json:"parent_line_id,omitempty"`
 	// Quantity holds the value of the "quantity" field.
 	Quantity *alpacadecimal.Decimal `json:"quantity,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// RatecardDiscounts holds the value of the "ratecard_discounts" field.
 	RatecardDiscounts *billing.Discounts `json:"ratecard_discounts,omitempty"`
-	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
-	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
-	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
-	ChildUniqueReferenceID *string `json:"child_unique_reference_id,omitempty"`
 	// SubscriptionID holds the value of the "subscription_id" field.
 	SubscriptionID *string `json:"subscription_id,omitempty"`
 	// SubscriptionPhaseID holds the value of the "subscription_phase_id" field.
@@ -124,9 +124,11 @@ type BillingInvoiceLineEdges struct {
 	SubscriptionPhase *SubscriptionPhase `json:"subscription_phase,omitempty"`
 	// SubscriptionItem holds the value of the subscription_item edge.
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
+	// BillingInvoiceCreditNoteLines holds the value of the billing_invoice_credit_note_lines edge.
+	BillingInvoiceCreditNoteLines []*BillingInvoiceCreditNoteLine `json:"billing_invoice_credit_note_lines,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [10]bool
+	loadedTypes [11]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -233,6 +235,15 @@ func (e BillingInvoiceLineEdges) SubscriptionItemOrErr() (*SubscriptionItem, err
 	return nil, &NotLoadedError{edge: "subscription_item"}
 }
 
+// BillingInvoiceCreditNoteLinesOrErr returns the BillingInvoiceCreditNoteLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingInvoiceLineEdges) BillingInvoiceCreditNoteLinesOrErr() ([]*BillingInvoiceCreditNoteLine, error) {
+	if e.loadedTypes[10] {
+		return e.BillingInvoiceCreditNoteLines, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_invoice_credit_note_lines"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -244,7 +255,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldLineIds:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldType, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldLineIds:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -375,13 +386,6 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 			} else if value.Valid {
 				bil.ManagedBy = billing.InvoiceLineManagedBy(value.String)
 			}
-		case billinginvoiceline.FieldParentLineID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field parent_line_id", values[i])
-			} else if value.Valid {
-				bil.ParentLineID = new(string)
-				*bil.ParentLineID = value.String
-			}
 		case billinginvoiceline.FieldPeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field period_start", values[i])
@@ -400,12 +404,6 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 			} else if value.Valid {
 				bil.InvoiceAt = value.Time
 			}
-		case billinginvoiceline.FieldType:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field type", values[i])
-			} else if value.Valid {
-				bil.Type = billing.InvoiceLineType(value.String)
-			}
 		case billinginvoiceline.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
@@ -417,6 +415,33 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				bil.Currency = currencyx.Code(value.String)
+			}
+		case billinginvoiceline.FieldInvoicingAppExternalID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
+			} else if value.Valid {
+				bil.InvoicingAppExternalID = new(string)
+				*bil.InvoicingAppExternalID = value.String
+			}
+		case billinginvoiceline.FieldChildUniqueReferenceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field child_unique_reference_id", values[i])
+			} else if value.Valid {
+				bil.ChildUniqueReferenceID = new(string)
+				*bil.ChildUniqueReferenceID = value.String
+			}
+		case billinginvoiceline.FieldType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field type", values[i])
+			} else if value.Valid {
+				bil.Type = billing.InvoiceLineType(value.String)
+			}
+		case billinginvoiceline.FieldParentLineID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field parent_line_id", values[i])
+			} else if value.Valid {
+				bil.ParentLineID = new(string)
+				*bil.ParentLineID = value.String
 			}
 		case billinginvoiceline.FieldQuantity:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -438,20 +463,6 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 				return err
 			} else {
 				bil.RatecardDiscounts = value
-			}
-		case billinginvoiceline.FieldInvoicingAppExternalID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
-			} else if value.Valid {
-				bil.InvoicingAppExternalID = new(string)
-				*bil.InvoicingAppExternalID = value.String
-			}
-		case billinginvoiceline.FieldChildUniqueReferenceID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field child_unique_reference_id", values[i])
-			} else if value.Valid {
-				bil.ChildUniqueReferenceID = new(string)
-				*bil.ChildUniqueReferenceID = value.String
 			}
 		case billinginvoiceline.FieldSubscriptionID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -558,6 +569,11 @@ func (bil *BillingInvoiceLine) QuerySubscriptionItem() *SubscriptionItemQuery {
 	return NewBillingInvoiceLineClient(bil.config).QuerySubscriptionItem(bil)
 }
 
+// QueryBillingInvoiceCreditNoteLines queries the "billing_invoice_credit_note_lines" edge of the BillingInvoiceLine entity.
+func (bil *BillingInvoiceLine) QueryBillingInvoiceCreditNoteLines() *BillingInvoiceCreditNoteLineQuery {
+	return NewBillingInvoiceLineClient(bil.config).QueryBillingInvoiceCreditNoteLines(bil)
+}
+
 // Update returns a builder for updating this BillingInvoiceLine.
 // Note that you need to call BillingInvoiceLine.Unwrap() before calling this method if this BillingInvoiceLine
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -633,11 +649,6 @@ func (bil *BillingInvoiceLine) String() string {
 	builder.WriteString("managed_by=")
 	builder.WriteString(fmt.Sprintf("%v", bil.ManagedBy))
 	builder.WriteString(", ")
-	if v := bil.ParentLineID; v != nil {
-		builder.WriteString("parent_line_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
 	builder.WriteString("period_start=")
 	builder.WriteString(bil.PeriodStart.Format(time.ANSIC))
 	builder.WriteString(", ")
@@ -647,14 +658,29 @@ func (bil *BillingInvoiceLine) String() string {
 	builder.WriteString("invoice_at=")
 	builder.WriteString(bil.InvoiceAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("type=")
-	builder.WriteString(fmt.Sprintf("%v", bil.Type))
-	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", bil.Status))
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(fmt.Sprintf("%v", bil.Currency))
+	builder.WriteString(", ")
+	if v := bil.InvoicingAppExternalID; v != nil {
+		builder.WriteString("invoicing_app_external_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bil.ChildUniqueReferenceID; v != nil {
+		builder.WriteString("child_unique_reference_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("type=")
+	builder.WriteString(fmt.Sprintf("%v", bil.Type))
+	builder.WriteString(", ")
+	if v := bil.ParentLineID; v != nil {
+		builder.WriteString("parent_line_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	if v := bil.Quantity; v != nil {
 		builder.WriteString("quantity=")
@@ -667,16 +693,6 @@ func (bil *BillingInvoiceLine) String() string {
 	if v := bil.RatecardDiscounts; v != nil {
 		builder.WriteString("ratecard_discounts=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := bil.InvoicingAppExternalID; v != nil {
-		builder.WriteString("invoicing_app_external_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := bil.ChildUniqueReferenceID; v != nil {
-		builder.WriteString("child_unique_reference_id=")
-		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	if v := bil.SubscriptionID; v != nil {

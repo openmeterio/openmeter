@@ -15,6 +15,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicecreditnoteline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
@@ -163,20 +164,6 @@ func (bilc *BillingInvoiceLineCreate) SetManagedBy(blmb billing.InvoiceLineManag
 	return bilc
 }
 
-// SetParentLineID sets the "parent_line_id" field.
-func (bilc *BillingInvoiceLineCreate) SetParentLineID(s string) *BillingInvoiceLineCreate {
-	bilc.mutation.SetParentLineID(s)
-	return bilc
-}
-
-// SetNillableParentLineID sets the "parent_line_id" field if the given value is not nil.
-func (bilc *BillingInvoiceLineCreate) SetNillableParentLineID(s *string) *BillingInvoiceLineCreate {
-	if s != nil {
-		bilc.SetParentLineID(*s)
-	}
-	return bilc
-}
-
 // SetPeriodStart sets the "period_start" field.
 func (bilc *BillingInvoiceLineCreate) SetPeriodStart(t time.Time) *BillingInvoiceLineCreate {
 	bilc.mutation.SetPeriodStart(t)
@@ -195,12 +182,6 @@ func (bilc *BillingInvoiceLineCreate) SetInvoiceAt(t time.Time) *BillingInvoiceL
 	return bilc
 }
 
-// SetType sets the "type" field.
-func (bilc *BillingInvoiceLineCreate) SetType(blt billing.InvoiceLineType) *BillingInvoiceLineCreate {
-	bilc.mutation.SetType(blt)
-	return bilc
-}
-
 // SetStatus sets the "status" field.
 func (bilc *BillingInvoiceLineCreate) SetStatus(bls billing.InvoiceLineStatus) *BillingInvoiceLineCreate {
 	bilc.mutation.SetStatus(bls)
@@ -210,6 +191,54 @@ func (bilc *BillingInvoiceLineCreate) SetStatus(bls billing.InvoiceLineStatus) *
 // SetCurrency sets the "currency" field.
 func (bilc *BillingInvoiceLineCreate) SetCurrency(c currencyx.Code) *BillingInvoiceLineCreate {
 	bilc.mutation.SetCurrency(c)
+	return bilc
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (bilc *BillingInvoiceLineCreate) SetInvoicingAppExternalID(s string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetInvoicingAppExternalID(s)
+	return bilc
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineCreate {
+	if s != nil {
+		bilc.SetInvoicingAppExternalID(*s)
+	}
+	return bilc
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (bilc *BillingInvoiceLineCreate) SetChildUniqueReferenceID(s string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetChildUniqueReferenceID(s)
+	return bilc
+}
+
+// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineCreate {
+	if s != nil {
+		bilc.SetChildUniqueReferenceID(*s)
+	}
+	return bilc
+}
+
+// SetType sets the "type" field.
+func (bilc *BillingInvoiceLineCreate) SetType(blt billing.InvoiceLineType) *BillingInvoiceLineCreate {
+	bilc.mutation.SetType(blt)
+	return bilc
+}
+
+// SetParentLineID sets the "parent_line_id" field.
+func (bilc *BillingInvoiceLineCreate) SetParentLineID(s string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetParentLineID(s)
+	return bilc
+}
+
+// SetNillableParentLineID sets the "parent_line_id" field if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableParentLineID(s *string) *BillingInvoiceLineCreate {
+	if s != nil {
+		bilc.SetParentLineID(*s)
+	}
 	return bilc
 }
 
@@ -244,34 +273,6 @@ func (bilc *BillingInvoiceLineCreate) SetNillableTaxConfig(pc *productcatalog.Ta
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
 func (bilc *BillingInvoiceLineCreate) SetRatecardDiscounts(b *billing.Discounts) *BillingInvoiceLineCreate {
 	bilc.mutation.SetRatecardDiscounts(b)
-	return bilc
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (bilc *BillingInvoiceLineCreate) SetInvoicingAppExternalID(s string) *BillingInvoiceLineCreate {
-	bilc.mutation.SetInvoicingAppExternalID(s)
-	return bilc
-}
-
-// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (bilc *BillingInvoiceLineCreate) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineCreate {
-	if s != nil {
-		bilc.SetInvoicingAppExternalID(*s)
-	}
-	return bilc
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (bilc *BillingInvoiceLineCreate) SetChildUniqueReferenceID(s string) *BillingInvoiceLineCreate {
-	bilc.mutation.SetChildUniqueReferenceID(s)
-	return bilc
-}
-
-// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (bilc *BillingInvoiceLineCreate) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineCreate {
-	if s != nil {
-		bilc.SetChildUniqueReferenceID(*s)
-	}
 	return bilc
 }
 
@@ -459,6 +460,21 @@ func (bilc *BillingInvoiceLineCreate) SetSubscriptionItem(s *SubscriptionItem) *
 	return bilc.SetSubscriptionItemID(s.ID)
 }
 
+// AddBillingInvoiceCreditNoteLineIDs adds the "billing_invoice_credit_note_lines" edge to the BillingInvoiceCreditNoteLine entity by IDs.
+func (bilc *BillingInvoiceLineCreate) AddBillingInvoiceCreditNoteLineIDs(ids ...string) *BillingInvoiceLineCreate {
+	bilc.mutation.AddBillingInvoiceCreditNoteLineIDs(ids...)
+	return bilc
+}
+
+// AddBillingInvoiceCreditNoteLines adds the "billing_invoice_credit_note_lines" edges to the BillingInvoiceCreditNoteLine entity.
+func (bilc *BillingInvoiceLineCreate) AddBillingInvoiceCreditNoteLines(b ...*BillingInvoiceCreditNoteLine) *BillingInvoiceLineCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bilc.AddBillingInvoiceCreditNoteLineIDs(ids...)
+}
+
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
 func (bilc *BillingInvoiceLineCreate) Mutation() *BillingInvoiceLineMutation {
 	return bilc.mutation
@@ -568,14 +584,6 @@ func (bilc *BillingInvoiceLineCreate) check() error {
 	if _, ok := bilc.mutation.InvoiceAt(); !ok {
 		return &ValidationError{Name: "invoice_at", err: errors.New(`db: missing required field "BillingInvoiceLine.invoice_at"`)}
 	}
-	if _, ok := bilc.mutation.GetType(); !ok {
-		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "BillingInvoiceLine.type"`)}
-	}
-	if v, ok := bilc.mutation.GetType(); ok {
-		if err := billinginvoiceline.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.type": %w`, err)}
-		}
-	}
 	if _, ok := bilc.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "BillingInvoiceLine.status"`)}
 	}
@@ -590,6 +598,14 @@ func (bilc *BillingInvoiceLineCreate) check() error {
 	if v, ok := bilc.mutation.Currency(); ok {
 		if err := billinginvoiceline.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.currency": %w`, err)}
+		}
+	}
+	if _, ok := bilc.mutation.GetType(); !ok {
+		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "BillingInvoiceLine.type"`)}
+	}
+	if v, ok := bilc.mutation.GetType(); ok {
+		if err := billinginvoiceline.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.type": %w`, err)}
 		}
 	}
 	if v, ok := bilc.mutation.TaxConfig(); ok {
@@ -711,10 +727,6 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 		_spec.SetField(billinginvoiceline.FieldInvoiceAt, field.TypeTime, value)
 		_node.InvoiceAt = value
 	}
-	if value, ok := bilc.mutation.GetType(); ok {
-		_spec.SetField(billinginvoiceline.FieldType, field.TypeEnum, value)
-		_node.Type = value
-	}
 	if value, ok := bilc.mutation.Status(); ok {
 		_spec.SetField(billinginvoiceline.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
@@ -722,6 +734,18 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 	if value, ok := bilc.mutation.Currency(); ok {
 		_spec.SetField(billinginvoiceline.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
+	}
+	if value, ok := bilc.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)
+		_node.InvoicingAppExternalID = &value
+	}
+	if value, ok := bilc.mutation.ChildUniqueReferenceID(); ok {
+		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
+		_node.ChildUniqueReferenceID = &value
+	}
+	if value, ok := bilc.mutation.GetType(); ok {
+		_spec.SetField(billinginvoiceline.FieldType, field.TypeEnum, value)
+		_node.Type = value
 	}
 	if value, ok := bilc.mutation.Quantity(); ok {
 		_spec.SetField(billinginvoiceline.FieldQuantity, field.TypeOther, value)
@@ -738,14 +762,6 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 		}
 		_spec.SetField(billinginvoiceline.FieldRatecardDiscounts, field.TypeString, vv)
 		_node.RatecardDiscounts = value
-	}
-	if value, ok := bilc.mutation.InvoicingAppExternalID(); ok {
-		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)
-		_node.InvoicingAppExternalID = &value
-	}
-	if value, ok := bilc.mutation.ChildUniqueReferenceID(); ok {
-		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
-		_node.ChildUniqueReferenceID = &value
 	}
 	if value, ok := bilc.mutation.LineIds(); ok {
 		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
@@ -916,6 +932,22 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.SubscriptionItemID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bilc.mutation.BillingInvoiceCreditNoteLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.BillingInvoiceCreditNoteLinesTable,
+			Columns: []string{billinginvoiceline.BillingInvoiceCreditNoteLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicecreditnoteline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -1156,24 +1188,6 @@ func (u *BillingInvoiceLineUpsert) UpdateManagedBy() *BillingInvoiceLineUpsert {
 	return u
 }
 
-// SetParentLineID sets the "parent_line_id" field.
-func (u *BillingInvoiceLineUpsert) SetParentLineID(v string) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldParentLineID, v)
-	return u
-}
-
-// UpdateParentLineID sets the "parent_line_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdateParentLineID() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldParentLineID)
-	return u
-}
-
-// ClearParentLineID clears the value of the "parent_line_id" field.
-func (u *BillingInvoiceLineUpsert) ClearParentLineID() *BillingInvoiceLineUpsert {
-	u.SetNull(billinginvoiceline.FieldParentLineID)
-	return u
-}
-
 // SetPeriodStart sets the "period_start" field.
 func (u *BillingInvoiceLineUpsert) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldPeriodStart, v)
@@ -1219,6 +1233,60 @@ func (u *BillingInvoiceLineUpsert) SetStatus(v billing.InvoiceLineStatus) *Billi
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *BillingInvoiceLineUpsert) UpdateStatus() *BillingInvoiceLineUpsert {
 	u.SetExcluded(billinginvoiceline.FieldStatus)
+	return u
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineUpsert) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldInvoicingAppExternalID, v)
+	return u
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateInvoicingAppExternalID() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldInvoicingAppExternalID)
+	return u
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineUpsert) ClearInvoicingAppExternalID() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldInvoicingAppExternalID)
+	return u
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineUpsert) SetChildUniqueReferenceID(v string) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldChildUniqueReferenceID, v)
+	return u
+}
+
+// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateChildUniqueReferenceID() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldChildUniqueReferenceID)
+	return u
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineUpsert) ClearChildUniqueReferenceID() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldChildUniqueReferenceID)
+	return u
+}
+
+// SetParentLineID sets the "parent_line_id" field.
+func (u *BillingInvoiceLineUpsert) SetParentLineID(v string) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldParentLineID, v)
+	return u
+}
+
+// UpdateParentLineID sets the "parent_line_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateParentLineID() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldParentLineID)
+	return u
+}
+
+// ClearParentLineID clears the value of the "parent_line_id" field.
+func (u *BillingInvoiceLineUpsert) ClearParentLineID() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldParentLineID)
 	return u
 }
 
@@ -1273,42 +1341,6 @@ func (u *BillingInvoiceLineUpsert) UpdateRatecardDiscounts() *BillingInvoiceLine
 // ClearRatecardDiscounts clears the value of the "ratecard_discounts" field.
 func (u *BillingInvoiceLineUpsert) ClearRatecardDiscounts() *BillingInvoiceLineUpsert {
 	u.SetNull(billinginvoiceline.FieldRatecardDiscounts)
-	return u
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineUpsert) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldInvoicingAppExternalID, v)
-	return u
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdateInvoicingAppExternalID() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldInvoicingAppExternalID)
-	return u
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineUpsert) ClearInvoicingAppExternalID() *BillingInvoiceLineUpsert {
-	u.SetNull(billinginvoiceline.FieldInvoicingAppExternalID)
-	return u
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (u *BillingInvoiceLineUpsert) SetChildUniqueReferenceID(v string) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldChildUniqueReferenceID, v)
-	return u
-}
-
-// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdateChildUniqueReferenceID() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldChildUniqueReferenceID)
-	return u
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *BillingInvoiceLineUpsert) ClearChildUniqueReferenceID() *BillingInvoiceLineUpsert {
-	u.SetNull(billinginvoiceline.FieldChildUniqueReferenceID)
 	return u
 }
 
@@ -1407,11 +1439,11 @@ func (u *BillingInvoiceLineUpsertOne) UpdateNewValues() *BillingInvoiceLineUpser
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(billinginvoiceline.FieldCreatedAt)
 		}
-		if _, exists := u.create.mutation.GetType(); exists {
-			s.SetIgnore(billinginvoiceline.FieldType)
-		}
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(billinginvoiceline.FieldCurrency)
+		}
+		if _, exists := u.create.mutation.GetType(); exists {
+			s.SetIgnore(billinginvoiceline.FieldType)
 		}
 	}))
 	return u
@@ -1661,27 +1693,6 @@ func (u *BillingInvoiceLineUpsertOne) UpdateManagedBy() *BillingInvoiceLineUpser
 	})
 }
 
-// SetParentLineID sets the "parent_line_id" field.
-func (u *BillingInvoiceLineUpsertOne) SetParentLineID(v string) *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetParentLineID(v)
-	})
-}
-
-// UpdateParentLineID sets the "parent_line_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdateParentLineID() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateParentLineID()
-	})
-}
-
-// ClearParentLineID clears the value of the "parent_line_id" field.
-func (u *BillingInvoiceLineUpsertOne) ClearParentLineID() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearParentLineID()
-	})
-}
-
 // SetPeriodStart sets the "period_start" field.
 func (u *BillingInvoiceLineUpsertOne) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
@@ -1735,6 +1746,69 @@ func (u *BillingInvoiceLineUpsertOne) SetStatus(v billing.InvoiceLineStatus) *Bi
 func (u *BillingInvoiceLineUpsertOne) UpdateStatus() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineUpsertOne) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetInvoicingAppExternalID(v)
+	})
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateInvoicingAppExternalID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateInvoicingAppExternalID()
+	})
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineUpsertOne) ClearInvoicingAppExternalID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearInvoicingAppExternalID()
+	})
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineUpsertOne) SetChildUniqueReferenceID(v string) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetChildUniqueReferenceID(v)
+	})
+}
+
+// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateChildUniqueReferenceID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateChildUniqueReferenceID()
+	})
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineUpsertOne) ClearChildUniqueReferenceID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearChildUniqueReferenceID()
+	})
+}
+
+// SetParentLineID sets the "parent_line_id" field.
+func (u *BillingInvoiceLineUpsertOne) SetParentLineID(v string) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetParentLineID(v)
+	})
+}
+
+// UpdateParentLineID sets the "parent_line_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateParentLineID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateParentLineID()
+	})
+}
+
+// ClearParentLineID clears the value of the "parent_line_id" field.
+func (u *BillingInvoiceLineUpsertOne) ClearParentLineID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearParentLineID()
 	})
 }
 
@@ -1798,48 +1872,6 @@ func (u *BillingInvoiceLineUpsertOne) UpdateRatecardDiscounts() *BillingInvoiceL
 func (u *BillingInvoiceLineUpsertOne) ClearRatecardDiscounts() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearRatecardDiscounts()
-	})
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineUpsertOne) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetInvoicingAppExternalID(v)
-	})
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdateInvoicingAppExternalID() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateInvoicingAppExternalID()
-	})
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineUpsertOne) ClearInvoicingAppExternalID() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearInvoicingAppExternalID()
-	})
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (u *BillingInvoiceLineUpsertOne) SetChildUniqueReferenceID(v string) *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetChildUniqueReferenceID(v)
-	})
-}
-
-// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdateChildUniqueReferenceID() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateChildUniqueReferenceID()
-	})
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *BillingInvoiceLineUpsertOne) ClearChildUniqueReferenceID() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearChildUniqueReferenceID()
 	})
 }
 
@@ -2119,11 +2151,11 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateNewValues() *BillingInvoiceLineUpse
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(billinginvoiceline.FieldCreatedAt)
 			}
-			if _, exists := b.mutation.GetType(); exists {
-				s.SetIgnore(billinginvoiceline.FieldType)
-			}
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(billinginvoiceline.FieldCurrency)
+			}
+			if _, exists := b.mutation.GetType(); exists {
+				s.SetIgnore(billinginvoiceline.FieldType)
 			}
 		}
 	}))
@@ -2374,27 +2406,6 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateManagedBy() *BillingInvoiceLineUpse
 	})
 }
 
-// SetParentLineID sets the "parent_line_id" field.
-func (u *BillingInvoiceLineUpsertBulk) SetParentLineID(v string) *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetParentLineID(v)
-	})
-}
-
-// UpdateParentLineID sets the "parent_line_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdateParentLineID() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateParentLineID()
-	})
-}
-
-// ClearParentLineID clears the value of the "parent_line_id" field.
-func (u *BillingInvoiceLineUpsertBulk) ClearParentLineID() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearParentLineID()
-	})
-}
-
 // SetPeriodStart sets the "period_start" field.
 func (u *BillingInvoiceLineUpsertBulk) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
@@ -2448,6 +2459,69 @@ func (u *BillingInvoiceLineUpsertBulk) SetStatus(v billing.InvoiceLineStatus) *B
 func (u *BillingInvoiceLineUpsertBulk) UpdateStatus() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineUpsertBulk) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetInvoicingAppExternalID(v)
+	})
+}
+
+// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateInvoicingAppExternalID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateInvoicingAppExternalID()
+	})
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearInvoicingAppExternalID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearInvoicingAppExternalID()
+	})
+}
+
+// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineUpsertBulk) SetChildUniqueReferenceID(v string) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetChildUniqueReferenceID(v)
+	})
+}
+
+// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateChildUniqueReferenceID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateChildUniqueReferenceID()
+	})
+}
+
+// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearChildUniqueReferenceID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearChildUniqueReferenceID()
+	})
+}
+
+// SetParentLineID sets the "parent_line_id" field.
+func (u *BillingInvoiceLineUpsertBulk) SetParentLineID(v string) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetParentLineID(v)
+	})
+}
+
+// UpdateParentLineID sets the "parent_line_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateParentLineID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateParentLineID()
+	})
+}
+
+// ClearParentLineID clears the value of the "parent_line_id" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearParentLineID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearParentLineID()
 	})
 }
 
@@ -2511,48 +2585,6 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateRatecardDiscounts() *BillingInvoice
 func (u *BillingInvoiceLineUpsertBulk) ClearRatecardDiscounts() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearRatecardDiscounts()
-	})
-}
-
-// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineUpsertBulk) SetInvoicingAppExternalID(v string) *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetInvoicingAppExternalID(v)
-	})
-}
-
-// UpdateInvoicingAppExternalID sets the "invoicing_app_external_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdateInvoicingAppExternalID() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateInvoicingAppExternalID()
-	})
-}
-
-// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (u *BillingInvoiceLineUpsertBulk) ClearInvoicingAppExternalID() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearInvoicingAppExternalID()
-	})
-}
-
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (u *BillingInvoiceLineUpsertBulk) SetChildUniqueReferenceID(v string) *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetChildUniqueReferenceID(v)
-	})
-}
-
-// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdateChildUniqueReferenceID() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateChildUniqueReferenceID()
-	})
-}
-
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *BillingInvoiceLineUpsertBulk) ClearChildUniqueReferenceID() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearChildUniqueReferenceID()
 	})
 }
 

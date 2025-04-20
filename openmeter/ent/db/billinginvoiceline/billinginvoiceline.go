@@ -49,30 +49,30 @@ const (
 	FieldInvoiceID = "invoice_id"
 	// FieldManagedBy holds the string denoting the managed_by field in the database.
 	FieldManagedBy = "managed_by"
-	// FieldParentLineID holds the string denoting the parent_line_id field in the database.
-	FieldParentLineID = "parent_line_id"
 	// FieldPeriodStart holds the string denoting the period_start field in the database.
 	FieldPeriodStart = "period_start"
 	// FieldPeriodEnd holds the string denoting the period_end field in the database.
 	FieldPeriodEnd = "period_end"
 	// FieldInvoiceAt holds the string denoting the invoice_at field in the database.
 	FieldInvoiceAt = "invoice_at"
-	// FieldType holds the string denoting the type field in the database.
-	FieldType = "type"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
+	FieldInvoicingAppExternalID = "invoicing_app_external_id"
+	// FieldChildUniqueReferenceID holds the string denoting the child_unique_reference_id field in the database.
+	FieldChildUniqueReferenceID = "child_unique_reference_id"
+	// FieldType holds the string denoting the type field in the database.
+	FieldType = "type"
+	// FieldParentLineID holds the string denoting the parent_line_id field in the database.
+	FieldParentLineID = "parent_line_id"
 	// FieldQuantity holds the string denoting the quantity field in the database.
 	FieldQuantity = "quantity"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
 	// FieldRatecardDiscounts holds the string denoting the ratecard_discounts field in the database.
 	FieldRatecardDiscounts = "ratecard_discounts"
-	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
-	FieldInvoicingAppExternalID = "invoicing_app_external_id"
-	// FieldChildUniqueReferenceID holds the string denoting the child_unique_reference_id field in the database.
-	FieldChildUniqueReferenceID = "child_unique_reference_id"
 	// FieldSubscriptionID holds the string denoting the subscription_id field in the database.
 	FieldSubscriptionID = "subscription_id"
 	// FieldSubscriptionPhaseID holds the string denoting the subscription_phase_id field in the database.
@@ -101,6 +101,8 @@ const (
 	EdgeSubscriptionPhase = "subscription_phase"
 	// EdgeSubscriptionItem holds the string denoting the subscription_item edge name in mutations.
 	EdgeSubscriptionItem = "subscription_item"
+	// EdgeBillingInvoiceCreditNoteLines holds the string denoting the billing_invoice_credit_note_lines edge name in mutations.
+	EdgeBillingInvoiceCreditNoteLines = "billing_invoice_credit_note_lines"
 	// Table holds the table name of the billinginvoiceline in the database.
 	Table = "billing_invoice_lines"
 	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
@@ -167,6 +169,13 @@ const (
 	SubscriptionItemInverseTable = "subscription_items"
 	// SubscriptionItemColumn is the table column denoting the subscription_item relation/edge.
 	SubscriptionItemColumn = "subscription_item_id"
+	// BillingInvoiceCreditNoteLinesTable is the table that holds the billing_invoice_credit_note_lines relation/edge.
+	BillingInvoiceCreditNoteLinesTable = "billing_invoice_credit_note_lines"
+	// BillingInvoiceCreditNoteLinesInverseTable is the table name for the BillingInvoiceCreditNoteLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoicecreditnoteline" package.
+	BillingInvoiceCreditNoteLinesInverseTable = "billing_invoice_credit_note_lines"
+	// BillingInvoiceCreditNoteLinesColumn is the table column denoting the billing_invoice_credit_note_lines relation/edge.
+	BillingInvoiceCreditNoteLinesColumn = "parent_line_id"
 )
 
 // Columns holds all SQL columns for billinginvoiceline fields.
@@ -188,18 +197,18 @@ var Columns = []string{
 	FieldTotal,
 	FieldInvoiceID,
 	FieldManagedBy,
-	FieldParentLineID,
 	FieldPeriodStart,
 	FieldPeriodEnd,
 	FieldInvoiceAt,
-	FieldType,
 	FieldStatus,
 	FieldCurrency,
+	FieldInvoicingAppExternalID,
+	FieldChildUniqueReferenceID,
+	FieldType,
+	FieldParentLineID,
 	FieldQuantity,
 	FieldTaxConfig,
 	FieldRatecardDiscounts,
-	FieldInvoicingAppExternalID,
-	FieldChildUniqueReferenceID,
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
 	FieldSubscriptionItemID,
@@ -261,16 +270,6 @@ func ManagedByValidator(mb billing.InvoiceLineManagedBy) error {
 	}
 }
 
-// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type billing.InvoiceLineType) error {
-	switch _type {
-	case "flat_fee", "usage_based":
-		return nil
-	default:
-		return fmt.Errorf("billinginvoiceline: invalid enum value for type field: %q", _type)
-	}
-}
-
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s billing.InvoiceLineStatus) error {
 	switch s {
@@ -278,6 +277,16 @@ func StatusValidator(s billing.InvoiceLineStatus) error {
 		return nil
 	default:
 		return fmt.Errorf("billinginvoiceline: invalid enum value for status field: %q", s)
+	}
+}
+
+// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
+func TypeValidator(_type billing.InvoiceLineType) error {
+	switch _type {
+	case "flat_fee", "usage_based":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoiceline: invalid enum value for type field: %q", _type)
 	}
 }
 
@@ -364,11 +373,6 @@ func ByManagedBy(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldManagedBy, opts...).ToFunc()
 }
 
-// ByParentLineID orders the results by the parent_line_id field.
-func ByParentLineID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldParentLineID, opts...).ToFunc()
-}
-
 // ByPeriodStart orders the results by the period_start field.
 func ByPeriodStart(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPeriodStart, opts...).ToFunc()
@@ -384,11 +388,6 @@ func ByInvoiceAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceAt, opts...).ToFunc()
 }
 
-// ByType orders the results by the type field.
-func ByType(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldType, opts...).ToFunc()
-}
-
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
@@ -399,16 +398,6 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
 }
 
-// ByQuantity orders the results by the quantity field.
-func ByQuantity(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldQuantity, opts...).ToFunc()
-}
-
-// ByRatecardDiscounts orders the results by the ratecard_discounts field.
-func ByRatecardDiscounts(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRatecardDiscounts, opts...).ToFunc()
-}
-
 // ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.
 func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoicingAppExternalID, opts...).ToFunc()
@@ -417,6 +406,26 @@ func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
 // ByChildUniqueReferenceID orders the results by the child_unique_reference_id field.
 func ByChildUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldChildUniqueReferenceID, opts...).ToFunc()
+}
+
+// ByType orders the results by the type field.
+func ByType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldType, opts...).ToFunc()
+}
+
+// ByParentLineID orders the results by the parent_line_id field.
+func ByParentLineID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldParentLineID, opts...).ToFunc()
+}
+
+// ByQuantity orders the results by the quantity field.
+func ByQuantity(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldQuantity, opts...).ToFunc()
+}
+
+// ByRatecardDiscounts orders the results by the ratecard_discounts field.
+func ByRatecardDiscounts(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRatecardDiscounts, opts...).ToFunc()
 }
 
 // BySubscriptionID orders the results by the subscription_id field.
@@ -529,6 +538,20 @@ func BySubscriptionItemField(field string, opts ...sql.OrderTermOption) OrderOpt
 		sqlgraph.OrderByNeighborTerms(s, newSubscriptionItemStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByBillingInvoiceCreditNoteLinesCount orders the results by billing_invoice_credit_note_lines count.
+func ByBillingInvoiceCreditNoteLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingInvoiceCreditNoteLinesStep(), opts...)
+	}
+}
+
+// ByBillingInvoiceCreditNoteLines orders the results by billing_invoice_credit_note_lines terms.
+func ByBillingInvoiceCreditNoteLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceCreditNoteLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newBillingInvoiceStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -597,5 +620,12 @@ func newSubscriptionItemStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubscriptionItemInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionItemTable, SubscriptionItemColumn),
+	)
+}
+func newBillingInvoiceCreditNoteLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoiceCreditNoteLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceCreditNoteLinesTable, BillingInvoiceCreditNoteLinesColumn),
 	)
 }

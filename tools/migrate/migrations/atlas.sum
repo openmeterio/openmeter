@@ -1,4 +1,4 @@
-h1:+rB/uxN5iaUJ4aTnh92ULN8MPEl5VZnaizECkkLsp9I=
+h1:rRO/5duGFYDST92UEDz8kZuwjEbWqxq3a1vKeR9CFaI=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -179,3 +179,5 @@ h1:+rB/uxN5iaUJ4aTnh92ULN8MPEl5VZnaizECkkLsp9I=
 20250416094534_delete-subsadd-ratecards.up.sql h1:MJTMvAfsTQox7ZydlKXFYALvwZeSzw02QL/yG0mgcRk=
 20250416191201_app-custominvoicing.down.sql h1:lfmO7hlVzyBHduW+eq/JhysDLJjdxjWSwENcuoTlHiY=
 20250416191201_app-custominvoicing.up.sql h1:fcN+vqKAUnsQlHPlpZiuQhYavkMyWbm2dxCOAXHYzQ0=
+20250420071109_billing-credit-notes.down.sql h1:3eAADyqUDtl++GudMRF1PsbnLhSD9qloEHgImDfF8w4=
+20250420071109_billing-credit-notes.up.sql h1:DZg2PyPjsLwx1txrNVH55yQecoGa80h6dP4Hh+oH4Cg=
