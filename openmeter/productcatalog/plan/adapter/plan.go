@@ -10,6 +10,7 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	planaddondb "github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	phasedb "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	ratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -365,6 +366,12 @@ func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.
 			planPhaseEagerLoadRateCardsFn,
 		)
 
+		if params.Expand.PlanAddons {
+			query = query.WithAddons(
+				planEagerLoadActiveAddons,
+			)
+		}
+
 		planRow, err := query.First(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
@@ -491,6 +498,19 @@ func planPhaseIncludeDeleted(include bool) func(*entdb.PlanPhaseQuery) {
 			q.Where(phasedb.Or(phasedb.DeletedAtIsNil(), phasedb.DeletedAtGT(clock.Now().UTC())))
 		}
 	}
+}
+
+var planEagerLoadActiveAddons = func(paq *entdb.PlanAddonQuery) {
+	paq.Where(
+		planaddondb.Or(
+			planaddondb.DeletedAtIsNil(),
+			planaddondb.DeletedAtGT(clock.Now().UTC()),
+		),
+	).WithAddon(func(aq *entdb.AddonQuery) {
+		aq.WithRatecards(func(arq *entdb.AddonRateCardQuery) {
+			arq.WithFeatures()
+		})
+	})
 }
 
 var planPhaseEagerLoadRateCardsFn = func(q *entdb.PlanPhaseQuery) {

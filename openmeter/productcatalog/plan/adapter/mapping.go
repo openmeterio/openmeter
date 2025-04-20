@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/invopop/gobl/currency"
@@ -60,11 +61,166 @@ func FromPlanRow(p entdb.Plan) (*plan.Plan, error) {
 		}
 	}
 
+	// Check whether the addons were loaded or not.
+	addons, err := p.Edges.AddonsOrErr()
+	if err != nil {
+		// Set addons to nil signaling that the addons were not loaded.
+		pp.Addons = nil
+	} else {
+		planAddons := make([]plan.Addon, 0, len(addons))
+
+		for _, addon := range addons {
+			if addon == nil {
+				continue
+			}
+
+			planAddon, err := FromPlanAddonRow(*addon)
+			if err != nil {
+				return nil, fmt.Errorf("invalid plan add-on assignment %s: %w", addon.ID, err)
+			}
+
+			planAddons = append(planAddons, *planAddon)
+		}
+
+		pp.Addons = &planAddons
+	}
+
 	if err := pp.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid plan %s: %w", pp.ID, err)
 	}
 
 	return pp, nil
+}
+
+func FromPlanAddonRow(a entdb.PlanAddon) (*plan.Addon, error) {
+	planAddon := &plan.Addon{
+		NamespacedID: models.NamespacedID{
+			Namespace: a.Namespace,
+			ID:        a.ID,
+		},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: a.CreatedAt,
+			UpdatedAt: a.UpdatedAt,
+			DeletedAt: a.DeletedAt,
+		},
+		PlanAddonMeta: productcatalog.PlanAddonMeta{
+			Metadata:    a.Metadata,
+			Annotations: a.Annotations,
+			PlanAddonConfig: productcatalog.PlanAddonConfig{
+				FromPlanPhase: a.FromPlanPhase,
+				MaxQuantity:   a.MaxQuantity,
+			},
+		},
+	}
+
+	// Set Addon
+	planAddon.Addon = productcatalog.Addon{}
+
+	if a.Edges.Addon == nil {
+		return nil, errors.New("failed to cast add-on: add-on is nil")
+	}
+
+	aa, err := FromAddonRow(*a.Edges.Addon)
+	if err != nil {
+		return nil, fmt.Errorf("failed to cast add-on: %w", err)
+	}
+
+	planAddon.Addon = *aa
+
+	// FIXME:
+	if err := planAddon.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid add-on [namespace=%s id=%s]: %w", planAddon.Namespace, planAddon.ID, err)
+	}
+
+	return planAddon, nil
+}
+
+func FromAddonRow(a entdb.Addon) (*productcatalog.Addon, error) {
+	aa := &productcatalog.Addon{
+		AddonMeta: productcatalog.AddonMeta{
+			Key:          a.Key,
+			Name:         a.Name,
+			Description:  a.Description,
+			Metadata:     a.Metadata,
+			Annotations:  a.Annotations,
+			Version:      a.Version,
+			Currency:     currency.Code(a.Currency),
+			InstanceType: a.InstanceType,
+			EffectivePeriod: productcatalog.EffectivePeriod{
+				EffectiveFrom: a.EffectiveFrom,
+				EffectiveTo:   a.EffectiveTo,
+			},
+		},
+	}
+
+	// Set Rate Cards
+
+	if len(a.Edges.Ratecards) > 0 {
+		aa.RateCards = make(productcatalog.RateCards, 0, len(a.Edges.Ratecards))
+		for _, edge := range a.Edges.Ratecards {
+			if edge == nil {
+				continue
+			}
+
+			ratecard, err := FromAddonRateCardRow(*edge)
+			if err != nil {
+				return nil, fmt.Errorf("invalid ratecard [namespace=%s key=%s]: %w", a.Namespace, edge.Key, err)
+			}
+
+			aa.RateCards = append(aa.RateCards, ratecard)
+		}
+	}
+
+	if err := aa.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid add-on [namespace=%s key=%s]: %w", a.Namespace, aa.Key, err)
+	}
+
+	return aa, nil
+}
+
+func FromAddonRateCardRow(r entdb.AddonRateCard) (productcatalog.RateCard, error) {
+	meta := productcatalog.RateCardMeta{
+		Key:                 r.Key,
+		Name:                r.Name,
+		Description:         r.Description,
+		Metadata:            r.Metadata,
+		EntitlementTemplate: r.EntitlementTemplate,
+		FeatureKey:          r.FeatureKey,
+		FeatureID:           r.FeatureID,
+		TaxConfig:           r.TaxConfig,
+		Price:               r.Price,
+		Discounts:           lo.FromPtr(r.Discounts),
+	}
+
+	// Get billing cadence
+
+	billingCadence, err := r.BillingCadence.ParsePtrOrNil()
+	if err != nil {
+		return nil, fmt.Errorf("invalid ratecard [namespace=%s key=%s]: billing cadence: %w", r.Namespace, r.Key, err)
+	}
+
+	var ratecard productcatalog.RateCard
+
+	switch r.Type {
+	case productcatalog.FlatFeeRateCardType:
+		ratecard = &productcatalog.FlatFeeRateCard{
+			RateCardMeta:   meta,
+			BillingCadence: billingCadence,
+		}
+	case productcatalog.UsageBasedRateCardType:
+		ratecard = &productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta,
+			BillingCadence: lo.FromPtr(billingCadence),
+		}
+	default:
+		return nil, fmt.Errorf("invalid ratecard [namespace=%s key=%s]: invalid type %s: %w", r.Namespace, r.Key, r.Type, err)
+	}
+
+	if err = ratecard.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid ratecard [namespace=%s key=%s]: %w", r.Namespace, r.Key, err)
+	}
+
+	return ratecard, nil
 }
 
 func fromPlanPhaseRow(p entdb.PlanPhase) (*plan.Phase, error) {

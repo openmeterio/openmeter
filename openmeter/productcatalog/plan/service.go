@@ -221,6 +221,11 @@ func (i UpdatePlanInput) Validate() error {
 	return nil
 }
 
+// ExpandFields defines which fields to expand when returning the Plan.
+type ExpandFields struct {
+	PlanAddons bool `json:"addons,omitempty"`
+}
+
 type GetPlanInput struct {
 	models.NamespacedID
 
@@ -234,6 +239,8 @@ type GetPlanInput struct {
 	// IncludeLatest defines whether return the latest version regardless of its PlanStatus or with ActiveStatus only if
 	// Version is not set.
 	IncludeLatest bool `json:"includeLatest,omitempty"`
+
+	Expand ExpandFields `json:"expand,omitempty"`
 }
 
 func (i GetPlanInput) Validate() error {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -444,10 +445,19 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 				Namespace: params.Namespace,
 				ID:        params.ID,
 			},
+			Expand: plan.ExpandFields{
+				PlanAddons: true, // This is needed for plan add-on validation
+			},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
+
+		//
+		// Validate the plan before publishing it
+		//
+
+		// Check if the plan is already deleted
 
 		if p.DeletedAt != nil {
 			return nil, models.NewGenericValidationError(
@@ -457,23 +467,59 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 
 		pp := p.AsProductCatalogPlan2()
 
-		// First, let's validate that the Subscription can successfully be created from this Plan
+		// Check if the plan has valid status for publishing
 
-		if err := pp.ValidForCreatingSubscriptions(); err != nil {
-			return nil, models.NewGenericValidationError(fmt.Errorf("invalid Plan for creating subscriptions: %w", err))
-		}
-
-		// Second, let's validate that the plan status and the version history is correct
 		allowedPlanStatuses := []productcatalog.PlanStatus{
 			productcatalog.PlanStatusDraft,
 			productcatalog.PlanStatusScheduled,
 		}
+
 		planStatus := pp.Status()
 		if !lo.Contains(allowedPlanStatuses, pp.Status()) {
 			return nil, models.NewGenericValidationError(
 				fmt.Errorf("invalid Plan: only Plans in %+v can be published/rescheduled, but it has %s state", allowedPlanStatuses, planStatus),
 			)
 		}
+
+		// Check for incompatible add-ons assigned to this plan
+
+		if p.Addons == nil {
+			return nil, fmt.Errorf("cannot check plan add-on compatibility as add-on assignments were not fetch for plan")
+		}
+
+		if len(*p.Addons) > 0 {
+			var errs []error
+
+			for _, addon := range *p.Addons {
+				planAddon := productcatalog.PlanAddon{
+					PlanAddonMeta: addon.PlanAddonMeta,
+					Plan:          pp,
+					Addon:         addon.Addon,
+				}
+
+				if err = planAddon.Validate(); err != nil {
+					errs = append(errs,
+						fmt.Errorf("incompatible add-on [namespace=%s addon.id=%s, addon.key=%s]: %w", addon.Namespace, addon.ID, addon.Key, err),
+					)
+				}
+			}
+
+			if err = errors.Join(errs...); err != nil {
+				return nil, models.NewGenericValidationError(
+					fmt.Errorf("invalid Plan [namespace=%s plan.id=%s plan.key=%s]: incompatible add-on assignements: %w", p.Namespace, p.ID, p.Key, err),
+				)
+			}
+		}
+
+		// Validate that the Subscription can successfully be created from this Plan
+
+		if err := pp.ValidForCreatingSubscriptions(); err != nil {
+			return nil, models.NewGenericValidationError(fmt.Errorf("invalid Plan for creating subscriptions: %w", err))
+		}
+
+		//
+		// Publish the plan
+		//
 
 		// Find and archive Plan version with plan.ActiveStatus if there is one. Only perform lookup if
 		// the Plan to be published has higher version then 1 meaning that it has previous versions,
@@ -504,8 +550,6 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 				}
 			}
 		}
-
-		// Publish new Plan version
 
 		input := plan.UpdatePlanInput{
 			NamespacedID: params.NamespacedID,

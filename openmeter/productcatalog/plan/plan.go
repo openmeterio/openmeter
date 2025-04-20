@@ -21,6 +21,10 @@ type Plan struct {
 
 	// Phases
 	Phases []Phase `json:"phases"`
+
+	// Addons contains the list of Addons assigned to this plan. It is only provided if the Plan was fetched
+	// with Addons being expanded.
+	Addons *[]Addon `json:"addons,omitempty"`
 }
 
 func (p Plan) Validate() error {
