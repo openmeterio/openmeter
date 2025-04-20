@@ -21,6 +21,10 @@ type Plan struct {
 
 	// Phases
 	Phases []Phase `json:"phases"`
+
+	// Addons contains the list of Addons assigned to this plan. It is only provided if the Plan was fetched
+	// with Addons being expanded.
+	Addons *[]Addon `json:"addons,omitempty"`
 }
 
 func (p Plan) Validate() error {
@@ -39,6 +43,8 @@ func (p Plan) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// Deprecated: use AsProductCatalogPlan2 instead which will replace this method in a future release.
+// The callers responsibility to check whether the Plan is marked as deleted or not.
 func (p Plan) AsProductCatalogPlan(at time.Time) (productcatalog.Plan, error) {
 	// We filter out deleted resources. Its an interesting mind-bender why we'd have deleted resources in the first place...
 	// Let's start with the plan itself

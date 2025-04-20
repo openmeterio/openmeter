@@ -1,33 +1,33 @@
-package service
+package service_test
 
 import (
 	"context"
-	"crypto/rand"
 	"slices"
-	"sync"
 	"testing"
 	"time"
 
 	decimal "github.com/alpacahq/alpacadecimal"
-	"github.com/invopop/gobl/currency"
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+)
+
+var (
+	MonthPeriod    = isodate.FromDuration(30 * 24 * time.Hour)
+	TwoMonthPeriod = isodate.FromDuration(60 * 24 * time.Hour)
+	SixMonthPeriod = isodate.FromDuration(180 * 24 * time.Hour)
 )
 
 func TestPlanService(t *testing.T) {
@@ -35,60 +35,215 @@ func TestPlanService(t *testing.T) {
 	defer cancel()
 
 	// Setup test environment
-	env := newTestEnv(t)
-	defer env.Close(t)
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
 
 	// Run database migrations
 	env.DBSchemaMigrate(t)
 
 	// Get new namespace ID
-	namespace := NewTestNamespace(t)
+	namespace := pctestutils.NewTestNamespace(t)
 
 	// Setup meter repository
-	err := env.Meter.ReplaceMeters(ctx, NewTestMeters(t, namespace))
-	require.NoError(t, err, "replacing Meters must not fail")
+	err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
+	require.NoError(t, err, "replacing meters must not fail")
 
 	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+		Page: pagination.Page{
+			PageSize:   1000,
+			PageNumber: 1,
+		},
 		Namespace: namespace,
-		Page:      pagination.NewPage(1, 100),
 	})
+	require.NoErrorf(t, err, "listing meters must not fail")
+
 	meters := result.Items
-	require.NoErrorf(t, err, "listing Meters must not fail")
 	require.NotEmptyf(t, meters, "list of Meters must not be empty")
 
-	// Set Feature for each Meter
-	features := make(map[string]feature.Feature, len(meters))
+	// Set a feature for each meter
+	features := make([]feature.Feature, 0, len(meters))
 	for _, m := range meters {
-		input := feature.CreateFeatureInputs{
-			Name:                m.Key,
-			Key:                 m.Key,
-			Namespace:           namespace,
-			MeterSlug:           lo.ToPtr(m.Key),
-			MeterGroupByFilters: m.GroupBy,
-			Metadata:            map[string]string{},
-		}
+		input := pctestutils.NewTestFeatureFromMeter(t, &m)
 
 		feat, err := env.Feature.CreateFeature(ctx, input)
-		require.NoErrorf(t, err, "creating Feature must not fail")
-		require.NotNil(t, feat, "Feature must not be empty")
+		require.NoErrorf(t, err, "creating feature must not fail")
+		require.NotNil(t, feat, "feature must not be empty")
 
-		features[feat.Key] = feat
+		features = append(features, feat)
 	}
+
+	addonV1Input := pctestutils.NewTestAddon(t, namespace)
+
+	addonV1Input.RateCards = productcatalog.RateCards{
+		&productcatalog.UsageBasedRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:                 features[0].Key,
+				Name:                features[0].Name,
+				Description:         lo.ToPtr("RateCard 1"),
+				Metadata:            models.Metadata{"name": features[0].Name},
+				FeatureKey:          lo.ToPtr(features[0].Key),
+				FeatureID:           lo.ToPtr(features[0].ID),
+				EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
+				TaxConfig: &productcatalog.TaxConfig{
+					Stripe: &productcatalog.StripeTaxConfig{
+						Code: "txcd_10000000",
+					},
+				},
+				Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+					Mode: productcatalog.VolumeTieredPrice,
+					Tiers: []productcatalog.PriceTier{
+						{
+							UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+							FlatPrice: &productcatalog.PriceTierFlatPrice{
+								Amount: decimal.NewFromInt(100),
+							},
+							UnitPrice: &productcatalog.PriceTierUnitPrice{
+								Amount: decimal.NewFromInt(50),
+							},
+						},
+						{
+							UpToAmount: nil,
+							FlatPrice: &productcatalog.PriceTierFlatPrice{
+								Amount: decimal.NewFromInt(5),
+							},
+							UnitPrice: &productcatalog.PriceTierUnitPrice{
+								Amount: decimal.NewFromInt(25),
+							},
+						},
+					},
+					Commitments: productcatalog.Commitments{
+						MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+						MaximumAmount: nil,
+					},
+				}),
+			},
+			BillingCadence: MonthPeriod,
+		},
+	}
+
+	addonV1, err := env.Addon.CreateAddon(ctx, addonV1Input)
+	require.NoErrorf(t, err, "creating add-on must not fail")
+
+	addonV1, err = env.Addon.PublishAddon(ctx, addon.PublishAddonInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: namespace,
+			ID:        addonV1.ID,
+		},
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: lo.ToPtr(time.Now()),
+			EffectiveTo:   nil,
+		},
+	})
+	require.NoErrorf(t, err, "publishing add-on must not fail")
 
 	t.Run("Plan", func(t *testing.T) {
 		t.Run("Create", func(t *testing.T) {
-			planInput := NewProPlan(t, namespace)
+			planInput := pctestutils.NewTestPlan(t, namespace, []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:         "trial",
+						Name:        "Trial",
+						Description: lo.ToPtr("Trial phase"),
+						Metadata:    map[string]string{"name": "trial"},
+						Duration:    &TwoMonthPeriod,
+					},
+					RateCards: []productcatalog.RateCard{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:         features[0].Key,
+								Name:        features[0].Name,
+								Description: lo.ToPtr("RateCard 1"),
+								Metadata:    models.Metadata{"name": features[0].Name},
+								FeatureKey:  lo.ToPtr(features[0].Key),
+								FeatureID:   lo.ToPtr(features[0].ID),
+								TaxConfig: &productcatalog.TaxConfig{
+									Stripe: &productcatalog.StripeTaxConfig{
+										Code: "txcd_10000000",
+									},
+								},
+								Price: productcatalog.NewPriceFrom(
+									productcatalog.FlatPrice{
+										Amount:      decimal.NewFromInt(0),
+										PaymentTerm: productcatalog.InArrearsPaymentTerm,
+									}),
+							},
+							BillingCadence: &MonthPeriod,
+						},
+					},
+				},
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:         "pro",
+						Name:        "Pro",
+						Description: lo.ToPtr("Pro phase"),
+						Metadata:    models.Metadata{"name": "pro"},
+					},
+					RateCards: []productcatalog.RateCard{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:         features[0].Key,
+								Name:        features[0].Name,
+								Description: lo.ToPtr("RateCard 1"),
+								Metadata:    models.Metadata{"name": features[0].Name},
+								FeatureKey:  lo.ToPtr(features[0].Key),
+								FeatureID:   lo.ToPtr(features[0].ID),
+								TaxConfig: &productcatalog.TaxConfig{
+									Stripe: &productcatalog.StripeTaxConfig{
+										Code: "txcd_10000000",
+									},
+								},
+								Price: productcatalog.NewPriceFrom(
+									productcatalog.TieredPrice{
+										Mode: productcatalog.VolumeTieredPrice,
+										Tiers: []productcatalog.PriceTier{
+											{
+												UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+												FlatPrice: &productcatalog.PriceTierFlatPrice{
+													Amount: decimal.NewFromInt(100),
+												},
+												UnitPrice: &productcatalog.PriceTierUnitPrice{
+													Amount: decimal.NewFromInt(50),
+												},
+											},
+											{
+												UpToAmount: nil,
+												FlatPrice: &productcatalog.PriceTierFlatPrice{
+													Amount: decimal.NewFromInt(75),
+												},
+												UnitPrice: &productcatalog.PriceTierUnitPrice{
+													Amount: decimal.NewFromInt(25),
+												},
+											},
+										},
+										Commitments: productcatalog.Commitments{
+											MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+											MaximumAmount: nil,
+										},
+									}),
+							},
+							BillingCadence: MonthPeriod,
+						},
+					},
+				},
+			}...)
 
-			draftPlan, err := env.Plan.CreatePlan(ctx, planInput)
+			var draftPlanV1 *plan.Plan
+
+			draftPlanV1, err = env.Plan.CreatePlan(ctx, planInput)
 			require.NoErrorf(t, err, "creating Plan must not fail")
-			require.NotNil(t, draftPlan, "Plan must not be empty")
+			require.NotNil(t, draftPlanV1, "Plan must not be empty")
 
-			plan.AssertPlanCreateInputEqual(t, planInput, *draftPlan)
-			assert.Equalf(t, productcatalog.PlanStatusDraft, draftPlan.Status(),
-				"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, draftPlan.Status())
+			plan.AssertPlanCreateInputEqual(t, planInput, *draftPlanV1)
+
+			assert.Equalf(t, productcatalog.PlanStatusDraft, draftPlanV1.Status(),
+				"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, draftPlanV1.Status())
 
 			t.Run("Get", func(t *testing.T) {
-				getPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
+				var getPlanV1 *plan.Plan
+
+				getPlanV1, err = env.Plan.GetPlan(ctx, plan.GetPlanInput{
 					NamespacedID: models.NamespacedID{
 						Namespace: planInput.Namespace,
 					},
@@ -96,32 +251,34 @@ func TestPlanService(t *testing.T) {
 					IncludeLatest: true,
 				})
 				require.NoErrorf(t, err, "getting draft Plan must not fail")
-				require.NotNil(t, getPlan, "draft Plan must not be empty")
+				require.NotNil(t, getPlanV1, "draft Plan must not be empty")
 
-				assert.Equalf(t, draftPlan.ID, getPlan.ID,
-					"Plan ID mismatch: %s = %s", draftPlan.ID, getPlan.ID)
-				assert.Equalf(t, draftPlan.Key, getPlan.Key,
-					"Plan Key mismatch: %s = %s", draftPlan.Key, getPlan.Key)
-				assert.Equalf(t, draftPlan.Version, getPlan.Version,
-					"Plan Version mismatch: %d = %d", draftPlan.Version, getPlan.Version)
-				assert.Equalf(t, productcatalog.PlanStatusDraft, getPlan.Status(),
-					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, getPlan.Status())
+				assert.Equalf(t, draftPlanV1.ID, getPlanV1.ID, "Plan ID mismatch: %s = %s", draftPlanV1.ID, getPlanV1.ID)
+
+				assert.Equalf(t, draftPlanV1.Key, getPlanV1.Key, "Plan Key mismatch: %s = %s", draftPlanV1.Key, getPlanV1.Key)
+
+				assert.Equalf(t, draftPlanV1.Version, getPlanV1.Version, "Plan Version mismatch: %d = %d",
+					draftPlanV1.Version, getPlanV1.Version)
+
+				assert.Equalf(t, productcatalog.PlanStatusDraft, getPlanV1.Status(), "Plan Status mismatch: expected=%s, actual=%s",
+					productcatalog.PlanStatusDraft, getPlanV1.Status())
 			})
 
 			t.Run("NewPhase", func(t *testing.T) {
-				updatedPhases := lo.Map(slices.Clone(draftPlan.Phases), func(p plan.Phase, idx int) plan.Phase {
-					if idx == len(draftPlan.Phases)-1 {
+				updatedPhases := lo.Map(slices.Clone(draftPlanV1.Phases), func(p plan.Phase, idx int) plan.Phase {
+					if idx == len(draftPlanV1.Phases)-1 {
 						p.Duration = &SixMonthPeriod
 					}
 
 					return p
 				})
+
 				updatedPhases = append(updatedPhases, plan.Phase{
 					PhaseManagedFields: plan.PhaseManagedFields{
 						NamespacedID: models.NamespacedID{
 							Namespace: namespace,
 						},
-						PlanID: draftPlan.ID,
+						PlanID: draftPlanV1.ID,
 					},
 					Phase: productcatalog.Phase{
 						PhaseMeta: productcatalog.PhaseMeta{
@@ -132,14 +289,14 @@ func TestPlanService(t *testing.T) {
 							Duration:    nil,
 						},
 						RateCards: []productcatalog.RateCard{
-							&productcatalog.FlatFeeRateCard{
+							&productcatalog.UsageBasedRateCard{
 								RateCardMeta: productcatalog.RateCardMeta{
-									Key:         "api_requests_total",
-									Name:        "Pro-2 RateCard 1",
-									Description: lo.ToPtr("Pro-2 RateCard 1"),
-									Metadata:    models.Metadata{"name": "pro-2-ratecard-1"},
-									FeatureKey:  lo.ToPtr("api_requests_total"),
-									FeatureID:   lo.ToPtr(features["api_requests_total"].ID),
+									Key:         features[0].Key,
+									Name:        features[0].Name,
+									Description: lo.ToPtr("RateCard 1"),
+									Metadata:    models.Metadata{"name": features[0].Name},
+									FeatureKey:  lo.ToPtr(features[0].Key),
+									FeatureID:   lo.ToPtr(features[0].ID),
 									EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 										productcatalog.MeteredEntitlementTemplate{
 											Metadata:                nil,
@@ -182,7 +339,7 @@ func TestPlanService(t *testing.T) {
 										},
 									}),
 								},
-								BillingCadence: nil,
+								BillingCadence: MonthPeriod,
 							},
 						},
 					},
@@ -191,7 +348,7 @@ func TestPlanService(t *testing.T) {
 				updateInput := plan.UpdatePlanInput{
 					NamespacedID: models.NamespacedID{
 						Namespace: planInput.Namespace,
-						ID:        draftPlan.ID,
+						ID:        draftPlanV1.ID,
 					},
 					Phases: func(p []plan.Phase) *[]productcatalog.Phase {
 						if len(p) == 0 {
@@ -211,32 +368,35 @@ func TestPlanService(t *testing.T) {
 					}(updatedPhases),
 				}
 
-				updatedPlan, err := env.Plan.UpdatePlan(ctx, updateInput)
+				var updatedPlanV1 *plan.Plan
+
+				updatedPlanV1, err = env.Plan.UpdatePlan(ctx, updateInput)
 				require.NoErrorf(t, err, "updating draft Plan must not fail")
-				require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
-				require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
+				require.NotNil(t, updatedPlanV1, "updated draft Plan must not be empty")
+				require.NotNil(t, updatedPlanV1, "updated draft Plan must not be empty")
 
-				assert.Equalf(t, productcatalog.PlanStatusDraft, updatedPlan.Status(),
-					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, updatedPlan.Status())
+				assert.Equalf(t, productcatalog.PlanStatusDraft, updatedPlanV1.Status(),
+					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, updatedPlanV1.Status())
 
-				plan.AssertPlanPhasesEqual(t, updatedPhases, updatedPlan.Phases)
+				plan.AssertPlanPhasesEqual(t, updatedPhases, updatedPlanV1.Phases)
 
 				t.Run("Update", func(t *testing.T) {
 					t.Run("PhaseAndRateCards", func(t *testing.T) {
-						updatedPhases := lo.Map(slices.Clone(draftPlan.Phases), func(p plan.Phase, idx int) plan.Phase {
-							if idx == len(draftPlan.Phases)-1 {
+						updatedPhases = lo.Map(slices.Clone(draftPlanV1.Phases), func(p plan.Phase, idx int) plan.Phase {
+							if idx == len(draftPlanV1.Phases)-1 {
 								p.Duration = &SixMonthPeriod
 							}
 
 							return p
 						})
+
 						updatedPhases = append(updatedPhases, plan.Phase{
 							PhaseManagedFields: plan.PhaseManagedFields{
 								ManagedModel: models.ManagedModel{},
 								NamespacedID: models.NamespacedID{
 									Namespace: namespace,
 								},
-								PlanID: draftPlan.ID,
+								PlanID: draftPlanV1.ID,
 							},
 							Phase: productcatalog.Phase{
 								PhaseMeta: productcatalog.PhaseMeta{
@@ -249,13 +409,12 @@ func TestPlanService(t *testing.T) {
 								RateCards: []productcatalog.RateCard{
 									&productcatalog.UsageBasedRateCard{
 										RateCardMeta: productcatalog.RateCardMeta{
-											Key:                 "pro-2-ratecard-1",
-											Name:                "Pro-2 RateCard 1",
-											Description:         lo.ToPtr("Pro-2 RateCard 1"),
-											Metadata:            models.Metadata{"name": "pro-ratecard-1"},
-											FeatureKey:          nil,
-											FeatureID:           nil,
-											EntitlementTemplate: nil,
+											Key:         features[0].Key,
+											Name:        features[0].Name,
+											Description: lo.ToPtr("RateCard 1"),
+											Metadata:    models.Metadata{"name": features[0].Name},
+											FeatureKey:  lo.ToPtr(features[0].Key),
+											FeatureID:   lo.ToPtr(features[0].ID),
 											TaxConfig: &productcatalog.TaxConfig{
 												Stripe: &productcatalog.StripeTaxConfig{
 													Code: "txcd_10000000",
@@ -299,7 +458,7 @@ func TestPlanService(t *testing.T) {
 						updateInput = plan.UpdatePlanInput{
 							NamespacedID: models.NamespacedID{
 								Namespace: planInput.Namespace,
-								ID:        draftPlan.ID,
+								ID:        draftPlanV1.ID,
 							},
 							Phases: lo.ToPtr(lo.Map(updatedPhases, func(p plan.Phase, idx int) productcatalog.Phase {
 								return productcatalog.Phase{
@@ -309,27 +468,28 @@ func TestPlanService(t *testing.T) {
 							})),
 						}
 
-						updatedPlan, err = env.Plan.UpdatePlan(ctx, updateInput)
+						updatedPlanV1, err = env.Plan.UpdatePlan(ctx, updateInput)
 						require.NoErrorf(t, err, "updating draft Plan must not fail")
-						require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
+						require.NotNil(t, updatedPlanV1, "updated draft Plan must not be empty")
 
-						plan.AssertPlanPhasesEqual(t, updatedPhases, updatedPlan.Phases)
+						plan.AssertPlanPhasesEqual(t, updatedPhases, updatedPlanV1.Phases)
 					})
 
 					t.Run("EmptyRateCards", func(t *testing.T) {
-						updatedPhases := lo.Map(slices.Clone(draftPlan.Phases), func(p plan.Phase, idx int) plan.Phase {
-							if idx == len(draftPlan.Phases)-1 {
+						updatedPhases = lo.Map(slices.Clone(draftPlanV1.Phases), func(p plan.Phase, idx int) plan.Phase {
+							if idx == len(draftPlanV1.Phases)-1 {
 								p.Duration = &SixMonthPeriod
 							}
 
 							return p
 						})
+
 						updatedPhases = append(updatedPhases, plan.Phase{
 							PhaseManagedFields: plan.PhaseManagedFields{
 								NamespacedID: models.NamespacedID{
 									Namespace: namespace,
 								},
-								PlanID: draftPlan.ID,
+								PlanID: draftPlanV1.ID,
 							},
 							Phase: productcatalog.Phase{
 								PhaseMeta: productcatalog.PhaseMeta{
@@ -346,7 +506,7 @@ func TestPlanService(t *testing.T) {
 						updateInput = plan.UpdatePlanInput{
 							NamespacedID: models.NamespacedID{
 								Namespace: planInput.Namespace,
-								ID:        draftPlan.ID,
+								ID:        draftPlanV1.ID,
 							},
 							Phases: lo.ToPtr(lo.Map(updatedPhases, func(p plan.Phase, _ int) productcatalog.Phase {
 								return productcatalog.Phase{
@@ -356,11 +516,11 @@ func TestPlanService(t *testing.T) {
 							})),
 						}
 
-						updatedPlan, err = env.Plan.UpdatePlan(ctx, updateInput)
+						updatedPlanV1, err = env.Plan.UpdatePlan(ctx, updateInput)
 						require.NoErrorf(t, err, "updating draft Plan must not fail")
-						require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
+						require.NotNil(t, updatedPlanV1, "updated draft Plan must not be empty")
 
-						plan.AssertPlanPhasesEqual(t, updatedPhases, updatedPlan.Phases)
+						plan.AssertPlanPhasesEqual(t, updatedPhases, updatedPlanV1.Phases)
 					})
 				})
 
@@ -368,9 +528,9 @@ func TestPlanService(t *testing.T) {
 					updateInput = plan.UpdatePlanInput{
 						NamespacedID: models.NamespacedID{
 							Namespace: planInput.Namespace,
-							ID:        draftPlan.ID,
+							ID:        draftPlanV1.ID,
 						},
-						Phases: lo.ToPtr(lo.Map(draftPlan.Phases, func(p plan.Phase, _ int) productcatalog.Phase {
+						Phases: lo.ToPtr(lo.Map(draftPlanV1.Phases, func(p plan.Phase, _ int) productcatalog.Phase {
 							return productcatalog.Phase{
 								PhaseMeta: p.PhaseMeta,
 								RateCards: p.RateCards,
@@ -378,44 +538,44 @@ func TestPlanService(t *testing.T) {
 						})),
 					}
 
-					updatedPlan, err = env.Plan.UpdatePlan(ctx, updateInput)
+					updatedPlanV1, err = env.Plan.UpdatePlan(ctx, updateInput)
 					require.NoErrorf(t, err, "updating draft Plan must not fail")
-					require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
+					require.NotNil(t, updatedPlanV1, "updated draft Plan must not be empty")
 
-					plan.AssertPlanEqual(t, *updatedPlan, *draftPlan)
+					plan.AssertPlanEqual(t, *updatedPlanV1, *draftPlanV1)
 				})
 			})
 
-			var publishedPlan *plan.Plan
+			var publishedPlanV1 *plan.Plan
+
 			t.Run("Publish", func(t *testing.T) {
 				publishAt := time.Now().Truncate(time.Microsecond)
 
 				publishInput := plan.PublishPlanInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: draftPlan.Namespace,
-						ID:        draftPlan.ID,
-					},
+					NamespacedID: draftPlanV1.NamespacedID,
 					EffectivePeriod: productcatalog.EffectivePeriod{
 						EffectiveFrom: &publishAt,
 						EffectiveTo:   nil,
 					},
 				}
 
-				publishedPlan, err = env.Plan.PublishPlan(ctx, publishInput)
+				publishedPlanV1, err = env.Plan.PublishPlan(ctx, publishInput)
 				require.NoErrorf(t, err, "publishing draft Plan must not fail")
-				require.NotNil(t, publishedPlan, "published Plan must not be empty")
-				require.NotNil(t, publishedPlan.EffectiveFrom, "EffectiveFrom for published Plan must not be empty")
+				require.NotNil(t, publishedPlanV1, "published Plan must not be empty")
 
-				assert.Equalf(t, publishAt, *publishedPlan.EffectiveFrom,
-					"EffectiveFrom for published Plan mismatch: expected=%s, actual=%s", publishAt, *publishedPlan.EffectiveFrom)
-				assert.Equalf(t, productcatalog.PlanStatusActive, publishedPlan.Status(),
-					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusActive, publishedPlan.Status())
+				require.NotNil(t, publishedPlanV1.EffectiveFrom, "EffectiveFrom for published Plan must not be empty")
+
+				assert.Equalf(t, publishAt, *publishedPlanV1.EffectiveFrom,
+					"EffectiveFrom for published Plan mismatch: expected=%s, actual=%s", publishAt, *publishedPlanV1.EffectiveFrom)
+
+				assert.Equalf(t, productcatalog.PlanStatusActive, publishedPlanV1.Status(),
+					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusActive, publishedPlanV1.Status())
 
 				t.Run("Update", func(t *testing.T) {
 					updateInput := plan.UpdatePlanInput{
 						NamespacedID: models.NamespacedID{
-							Namespace: draftPlan.Namespace,
-							ID:        draftPlan.ID,
+							Namespace: draftPlanV1.Namespace,
+							ID:        draftPlanV1.ID,
 						},
 						Name: lo.ToPtr("Invalid Update"),
 					}
@@ -425,16 +585,21 @@ func TestPlanService(t *testing.T) {
 				})
 			})
 
-			var nextPlan *plan.Plan
-			t.Run("NewVersion", func(t *testing.T) {
-				nextPlan, err = env.Plan.CreatePlan(ctx, planInput)
-				require.NoErrorf(t, err, "creating a new draft Plan from active must not fail")
-				require.NotNil(t, nextPlan, "new draft Plan must not be empty")
+			var (
+				planV2          *plan.Plan
+				publishedPlanV2 *plan.Plan
+			)
 
-				assert.Equalf(t, publishedPlan.Version+1, nextPlan.Version,
+			t.Run("V2", func(t *testing.T) {
+				planV2, err = env.Plan.CreatePlan(ctx, planInput)
+				require.NoErrorf(t, err, "creating a new draft Plan from active must not fail")
+				require.NotNil(t, planV2, "new draft Plan must not be empty")
+
+				assert.Equalf(t, publishedPlanV1.Version+1, planV2.Version,
 					"new draft Plan must have higher version number")
-				assert.Equalf(t, productcatalog.PlanStatusDraft, nextPlan.Status(),
-					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, nextPlan.Status())
+
+				assert.Equalf(t, productcatalog.PlanStatusDraft, planV2.Status(),
+					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, planV2.Status())
 
 				// Let's update the plan to enforce alignment
 				t.Run("Update to enforce alignment", func(t *testing.T) {
@@ -442,31 +607,32 @@ func TestPlanService(t *testing.T) {
 						AlignmentUpdate: productcatalog.AlignmentUpdate{
 							BillablesMustAlign: lo.ToPtr(true),
 						},
-						NamespacedID: nextPlan.NamespacedID,
+						NamespacedID: planV2.NamespacedID,
 					}
 
-					_, err := env.Plan.UpdatePlan(ctx, updateInput)
+					_, err = env.Plan.UpdatePlan(ctx, updateInput)
 					require.NoError(t, err)
 
 					// Get the updated plan
-					updatedPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
-						NamespacedID: nextPlan.NamespacedID,
+					updatedPlanV2, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
+						NamespacedID: planV2.NamespacedID,
 					})
 					require.NoError(t, err)
 
-					assert.Equal(t, true, updatedPlan.Alignment.BillablesMustAlign)
+					assert.Equal(t, true, updatedPlanV2.Alignment.BillablesMustAlign)
 				})
 
 				t.Run("Should not allow publishing draft plan with alignment issues", func(t *testing.T) {
 					// Let's update the plan to have a misaligned phase
-					oldPhases := lo.Map(nextPlan.Phases, func(p plan.Phase, idx int) productcatalog.Phase {
+					oldPhases := lo.Map(planV2.Phases, func(p plan.Phase, idx int) productcatalog.Phase {
 						return productcatalog.Phase{
 							PhaseMeta: p.PhaseMeta,
 							RateCards: p.RateCards,
 						}
 					})
+
 					updateInput := plan.UpdatePlanInput{
-						NamespacedID: nextPlan.NamespacedID,
+						NamespacedID: planV2.NamespacedID,
 						Phases: lo.ToPtr(append(oldPhases, productcatalog.Phase{
 							PhaseMeta: productcatalog.PhaseMeta{
 								Key:  "misaligned",
@@ -499,12 +665,12 @@ func TestPlanService(t *testing.T) {
 						})),
 					}
 
-					_, err := env.Plan.UpdatePlan(ctx, updateInput)
+					_, err = env.Plan.UpdatePlan(ctx, updateInput)
 					require.NoError(t, err)
 
 					// Get the updated plan
 					_, err = env.Plan.GetPlan(ctx, plan.GetPlanInput{
-						NamespacedID: nextPlan.NamespacedID,
+						NamespacedID: planV2.NamespacedID,
 					})
 					require.NoError(t, err)
 
@@ -512,21 +678,19 @@ func TestPlanService(t *testing.T) {
 					publishAt := time.Now().Truncate(time.Microsecond)
 
 					publishInput := plan.PublishPlanInput{
-						NamespacedID: models.NamespacedID{
-							Namespace: nextPlan.Namespace,
-							ID:        nextPlan.ID,
-						},
+						NamespacedID: planV2.NamespacedID,
 						EffectivePeriod: productcatalog.EffectivePeriod{
 							EffectiveFrom: &publishAt,
 							EffectiveTo:   nil,
 						},
 					}
+
 					_, err = env.Plan.PublishPlan(ctx, publishInput)
 					require.Error(t, err, "publishing draft Plan with alignment issues must fail")
 
 					// Let's update the plan to fix the alignment issue by removing the last phase
 					_, err = env.Plan.UpdatePlan(ctx, plan.UpdatePlanInput{
-						NamespacedID: nextPlan.NamespacedID,
+						NamespacedID: planV2.NamespacedID,
 						Phases:       lo.ToPtr(oldPhases),
 					})
 					require.NoError(t, err)
@@ -535,364 +699,139 @@ func TestPlanService(t *testing.T) {
 				t.Run("Publish", func(t *testing.T) {
 					publishAt := time.Now().Truncate(time.Microsecond)
 
-					publishInput := plan.PublishPlanInput{
-						NamespacedID: models.NamespacedID{
-							Namespace: nextPlan.Namespace,
-							ID:        nextPlan.ID,
-						},
+					publishPlanV2Input := plan.PublishPlanInput{
+						NamespacedID: planV2.NamespacedID,
 						EffectivePeriod: productcatalog.EffectivePeriod{
 							EffectiveFrom: &publishAt,
 							EffectiveTo:   nil,
 						},
 					}
 
-					publishedNextPlan, err := env.Plan.PublishPlan(ctx, publishInput)
+					publishedPlanV2, err = env.Plan.PublishPlan(ctx, publishPlanV2Input)
 					require.NoErrorf(t, err, "publishing draft Plan must not fail")
-					require.NotNil(t, publishedNextPlan, "published Plan must not be empty")
-					require.NotNil(t, publishedNextPlan.EffectiveFrom, "EffectiveFrom for published Plan must not be empty")
+					require.NotNil(t, publishedPlanV2, "published Plan must not be empty")
+					require.NotNil(t, publishedPlanV2.EffectiveFrom, "EffectiveFrom for published Plan must not be empty")
 
-					assert.Equalf(t, publishAt, *publishedNextPlan.EffectiveFrom,
-						"EffectiveFrom for published Plan mismatch: expected=%s, actual=%s", publishAt, *publishedPlan.EffectiveFrom)
-					assert.Equalf(t, productcatalog.PlanStatusActive, publishedNextPlan.Status(),
-						"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusActive, publishedNextPlan.Status())
+					assert.Equalf(t, publishAt, *publishedPlanV2.EffectiveFrom,
+						"EffectiveFrom for published Plan mismatch: expected=%s, actual=%s", publishAt, *publishedPlanV1.EffectiveFrom)
 
-					prevPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
-						NamespacedID: models.NamespacedID{
-							Namespace: publishedPlan.Namespace,
-							ID:        publishedPlan.ID,
-						},
+					assert.Equalf(t, productcatalog.PlanStatusActive, publishedPlanV2.Status(),
+						"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusActive, publishedPlanV2.Status())
+
+					prevPlanV1, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
+						NamespacedID: publishedPlanV1.NamespacedID,
 					})
 					require.NoErrorf(t, err, "getting previous Plan version must not fail")
-					require.NotNil(t, prevPlan, "previous Plan version must not be empty")
+					require.NotNil(t, prevPlanV1, "previous Plan version must not be empty")
 
-					assert.Equalf(t, productcatalog.PlanStatusArchived, prevPlan.Status(),
-						"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusArchived, prevPlan.Status())
+					assert.Equalf(t, productcatalog.PlanStatusArchived, prevPlanV1.Status(),
+						"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusArchived, prevPlanV1.Status())
+				})
+			})
 
-					t.Run("Archive", func(t *testing.T) {
-						archiveAt := time.Now().Truncate(time.Microsecond)
+			var planV3 *plan.Plan
 
-						archiveInput := plan.ArchivePlanInput{
-							NamespacedID: models.NamespacedID{
-								Namespace: nextPlan.Namespace,
-								ID:        nextPlan.ID,
+			t.Run("V3", func(t *testing.T) {
+				planV3, err = env.Plan.CreatePlan(ctx, planInput)
+				require.NoErrorf(t, err, "creating a new draft Plan from active must not fail")
+				require.NotNil(t, planV3, "new draft Plan must not be empty")
+
+				assert.Equalf(t, publishedPlanV2.Version+1, planV3.Version, "new draft Plan must have higher version number")
+
+				assert.Equalf(t, productcatalog.PlanStatusDraft, planV3.Status(),
+					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, planV3.Status())
+
+				t.Run("Addon", func(t *testing.T) {
+					var planAddonV3 *planaddon.PlanAddon
+
+					t.Run("Assign", func(t *testing.T) {
+						planAddonV3, err = env.PlanAddon.CreatePlanAddon(ctx, planaddon.CreatePlanAddonInput{
+							NamespacedModel: models.NamespacedModel{
+								Namespace: namespace,
 							},
-							EffectiveTo: archiveAt,
+							PlanID:        planV3.ID,
+							AddonID:       addonV1.ID,
+							FromPlanPhase: planV3.Phases[1].Key,
+						})
+
+						require.NoErrorf(t, err, "creating a new PlanAddon from active must not fail")
+						require.NotNil(t, planAddonV3, "new PlanAddon must not be empty")
+
+						assert.Equalf(t, addonV1.ID, planAddonV3.Addon.ID, "Addon ID mismatch: expected=%s, actual=%s", addonV1.ID, planAddonV3.Addon.ID)
+					})
+
+					t.Run("Publish", func(t *testing.T) {
+						publishAt := time.Now().Truncate(time.Microsecond)
+
+						publishPlanV3Input := plan.PublishPlanInput{
+							NamespacedID: planV3.NamespacedID,
+							EffectivePeriod: productcatalog.EffectivePeriod{
+								EffectiveFrom: &publishAt,
+								EffectiveTo:   nil,
+							},
 						}
 
-						archivedPlan, err := env.Plan.ArchivePlan(ctx, archiveInput)
-						require.NoErrorf(t, err, "archiving Plan must not fail")
-						require.NotNil(t, archivedPlan, "archived Plan must not be empty")
-						require.NotNil(t, archivedPlan.EffectiveTo, "EffectiveFrom for archived Plan must not be empty")
+						publishedPlanV3, err := env.Plan.PublishPlan(ctx, publishPlanV3Input)
+						require.NoErrorf(t, err, "publishing draft Plan must not fail")
+						require.NotNil(t, publishedPlanV3, "published Plan must not be empty")
+						require.NotNil(t, publishedPlanV3.EffectiveFrom, "EffectiveFrom for published Plan must not be empty")
 
-						assert.Equalf(t, archiveAt, *archivedPlan.EffectiveTo,
-							"EffectiveTo for published Plan mismatch: expected=%s, actual=%s", archiveAt, *archivedPlan.EffectiveTo)
-						assert.Equalf(t, productcatalog.PlanStatusArchived, archivedPlan.Status(),
-							"Status mismatch for archived Plan: expected=%s, actual=%s", productcatalog.PlanStatusArchived, archivedPlan.Status())
+						assert.Equalf(t, publishAt, *publishedPlanV3.EffectiveFrom,
+							"EffectiveFrom for published Plan mismatch: expected=%s, actual=%s", publishAt, *publishedPlanV1.EffectiveFrom)
+
+						assert.Equalf(t, productcatalog.PlanStatusActive, publishedPlanV3.Status(),
+							"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusActive, publishedPlanV3.Status())
+
+						prevPlanV2, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
+							NamespacedID: publishedPlanV2.NamespacedID,
+						})
+						require.NoErrorf(t, err, "getting previous Plan version must not fail")
+						require.NotNil(t, prevPlanV2, "previous Plan version must not be empty")
+
+						assert.Equalf(t, productcatalog.PlanStatusArchived, prevPlanV2.Status(),
+							"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusArchived, prevPlanV2.Status())
+
+						t.Run("Archive", func(t *testing.T) {
+							archiveAt := time.Now().Truncate(time.Microsecond)
+
+							archivePlanV3Input := plan.ArchivePlanInput{
+								NamespacedID: planV3.NamespacedID,
+								EffectiveTo:  archiveAt,
+							}
+
+							var archivedPlanV3 *plan.Plan
+
+							archivedPlanV3, err = env.Plan.ArchivePlan(ctx, archivePlanV3Input)
+							require.NoErrorf(t, err, "archiving Plan must not fail")
+							require.NotNil(t, archivedPlanV3, "archived Plan must not be empty")
+							require.NotNil(t, archivedPlanV3.EffectiveTo, "EffectiveFrom for archived Plan must not be empty")
+
+							assert.Equalf(t, archiveAt, *archivedPlanV3.EffectiveTo,
+								"EffectiveTo for published Plan mismatch: expected=%s, actual=%s", archiveAt, *archivedPlanV3.EffectiveTo)
+
+							assert.Equalf(t, productcatalog.PlanStatusArchived, archivedPlanV3.Status(),
+								"Status mismatch for archived Plan: expected=%s, actual=%s", productcatalog.PlanStatusArchived, archivedPlanV3.Status())
+						})
 					})
 				})
 
 				t.Run("Delete", func(t *testing.T) {
 					deleteInput := plan.DeletePlanInput{
-						NamespacedID: models.NamespacedID{
-							Namespace: nextPlan.Namespace,
-							ID:        nextPlan.ID,
-						},
+						NamespacedID: planV3.NamespacedID,
 					}
 
 					err = env.Plan.DeletePlan(ctx, deleteInput)
 					require.NoErrorf(t, err, "deleting Plan must not fail")
 
-					deletedPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
-						NamespacedID: models.NamespacedID{
-							Namespace: nextPlan.Namespace,
-							ID:        nextPlan.ID,
-						},
+					deletedPlanV3, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
+						NamespacedID: planV3.NamespacedID,
 					})
 					require.NoErrorf(t, err, "getting deleted Plan version must not fail")
-					require.NotNil(t, deletedPlan, "deleted Plan version must not be empty")
+					require.NotNil(t, deletedPlanV3, "deleted Plan version must not be empty")
 
-					assert.NotNilf(t, deletedPlan.DeletedAt, "deletedAt must not be empty")
+					assert.NotNilf(t, deletedPlanV3.DeletedAt, "deletedAt must not be empty")
 				})
 			})
 		})
 	})
-}
-
-var (
-	MonthPeriod      = isodate.FromDuration(30 * 24 * time.Hour)
-	TwoMonthPeriod   = isodate.FromDuration(60 * 24 * time.Hour)
-	ThreeMonthPeriod = isodate.FromDuration(90 * 24 * time.Hour)
-	SixMonthPeriod   = isodate.FromDuration(180 * 24 * time.Hour)
-)
-
-func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
-	t.Helper()
-
-	return plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: namespace,
-		},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Key:         "pro",
-				Name:        "Pro",
-				Description: lo.ToPtr("Pro plan v1"),
-				Metadata:    models.Metadata{"name": "pro"},
-				Currency:    currency.USD,
-			},
-			Phases: []productcatalog.Phase{
-				{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:         "trial",
-						Name:        "Trial",
-						Description: lo.ToPtr("Trial phase"),
-						Metadata:    map[string]string{"name": "trial"},
-						Duration:    &TwoMonthPeriod,
-					},
-					RateCards: []productcatalog.RateCard{
-						&productcatalog.FlatFeeRateCard{
-							RateCardMeta: productcatalog.RateCardMeta{
-								Key:                 "trial-ratecard-1",
-								Name:                "Trial RateCard 1",
-								Description:         lo.ToPtr("Trial RateCard 1"),
-								Metadata:            models.Metadata{"name": "trial-ratecard-1"},
-								FeatureKey:          nil,
-								FeatureID:           nil,
-								EntitlementTemplate: nil,
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-								},
-								Price: productcatalog.NewPriceFrom(
-									productcatalog.FlatPrice{
-										Amount:      decimal.NewFromInt(0),
-										PaymentTerm: productcatalog.InArrearsPaymentTerm,
-									}),
-							},
-							BillingCadence: &MonthPeriod,
-						},
-					},
-				},
-				{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:         "pro",
-						Name:        "Pro",
-						Description: lo.ToPtr("Pro phase"),
-						Metadata:    models.Metadata{"name": "pro"},
-					},
-					RateCards: []productcatalog.RateCard{
-						&productcatalog.UsageBasedRateCard{
-							RateCardMeta: productcatalog.RateCardMeta{
-								Key:                 "pro-ratecard-1",
-								Name:                "Pro RateCard 1",
-								Description:         lo.ToPtr("Pro RateCard 1"),
-								Metadata:            models.Metadata{"name": "pro-ratecard-1"},
-								FeatureKey:          nil,
-								FeatureID:           nil,
-								EntitlementTemplate: nil,
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-								},
-								Price: productcatalog.NewPriceFrom(
-									productcatalog.TieredPrice{
-										Mode: productcatalog.VolumeTieredPrice,
-										Tiers: []productcatalog.PriceTier{
-											{
-												UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-												FlatPrice: &productcatalog.PriceTierFlatPrice{
-													Amount: decimal.NewFromInt(100),
-												},
-												UnitPrice: &productcatalog.PriceTierUnitPrice{
-													Amount: decimal.NewFromInt(50),
-												},
-											},
-											{
-												UpToAmount: nil,
-												FlatPrice: &productcatalog.PriceTierFlatPrice{
-													Amount: decimal.NewFromInt(75),
-												},
-												UnitPrice: &productcatalog.PriceTierUnitPrice{
-													Amount: decimal.NewFromInt(25),
-												},
-											},
-										},
-										Commitments: productcatalog.Commitments{
-											MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-											MaximumAmount: nil,
-										},
-									}),
-							},
-							BillingCadence: MonthPeriod,
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func NewTestULID(t *testing.T) string {
-	t.Helper()
-
-	return ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String()
-}
-
-var NewTestNamespace = NewTestULID
-
-func NewTestMeters(t *testing.T, namespace string) []meter.Meter {
-	t.Helper()
-
-	return []meter.Meter{
-		{
-			ManagedResource: models.ManagedResource{
-				ID: NewTestULID(t),
-				NamespacedModel: models.NamespacedModel{
-					Namespace: namespace,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
-				Name: "Test meter",
-			},
-			Key:         "api_requests_total",
-			Aggregation: meter.MeterAggregationCount,
-			EventType:   "request",
-			GroupBy: map[string]string{
-				"method": "$.method",
-				"path":   "$.path",
-			},
-		},
-		{
-			ManagedResource: models.ManagedResource{
-				ID: NewTestULID(t),
-				NamespacedModel: models.NamespacedModel{
-					Namespace: namespace,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
-				Name: "Test meter",
-			},
-			Key:           "tokens_total",
-			Aggregation:   meter.MeterAggregationSum,
-			EventType:     "prompt",
-			ValueProperty: lo.ToPtr("$.tokens"),
-			GroupBy: map[string]string{
-				"model": "$.model",
-				"type":  "$.type",
-			},
-		},
-		{
-			ManagedResource: models.ManagedResource{
-				ID: NewTestULID(t),
-				NamespacedModel: models.NamespacedModel{
-					Namespace: namespace,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
-				Name: "Test meter",
-			},
-			Key:           "workload_runtime_duration_seconds",
-			Aggregation:   meter.MeterAggregationSum,
-			EventType:     "workload",
-			ValueProperty: lo.ToPtr("$.duration_seconds"),
-			GroupBy: map[string]string{
-				"region":        "$.region",
-				"zone":          "$.zone",
-				"instance_type": "$.instance_type",
-			},
-		},
-	}
-}
-
-type testEnv struct {
-	Meter   *meteradapter.TestAdapter
-	Feature feature.FeatureConnector
-	Plan    plan.Service
-
-	db     *testutils.TestDB
-	client *entdb.Client
-
-	close sync.Once
-}
-
-func (e *testEnv) DBSchemaMigrate(t *testing.T) {
-	require.NotNilf(t, e.db, "database must be initialized")
-
-	err := e.db.EntDriver.Client().Schema.Create(context.Background())
-	require.NoErrorf(t, err, "schema migration must not fail")
-}
-
-func (e *testEnv) Close(t *testing.T) {
-	t.Helper()
-
-	e.close.Do(func() {
-		if e.db != nil {
-			if err := e.db.EntDriver.Close(); err != nil {
-				t.Errorf("failed to close ent driver: %v", err)
-			}
-
-			if err := e.db.PGDriver.Close(); err != nil {
-				t.Errorf("failed to postgres driver: %v", err)
-			}
-		}
-
-		if e.client != nil {
-			if err := e.client.Close(); err != nil {
-				t.Errorf("failed to close ent client: %v", err)
-			}
-		}
-	})
-}
-
-func newTestEnv(t *testing.T) *testEnv {
-	t.Helper()
-
-	logger := testutils.NewLogger(t)
-
-	db := testutils.InitPostgresDB(t)
-	client := db.EntDriver.Client()
-
-	publisher := eventbus.NewMock(t)
-
-	meterAdapter, err := meteradapter.New(nil)
-	require.NoErrorf(t, err, "initializing Meter adapter must not fail")
-	require.NotNilf(t, meterAdapter, "Meter adapter must not be nil")
-
-	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)
-	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher)
-
-	planAdapter, err := adapter.New(adapter.Config{
-		Client: client,
-		Logger: logger,
-	})
-	require.NoErrorf(t, err, "initializing Plan adapter must not fail")
-	require.NotNilf(t, planAdapter, "Plan adapter must not be nil")
-
-	config := Config{
-		Feature:   featureService,
-		Adapter:   planAdapter,
-		Logger:    logger,
-		Publisher: publisher,
-	}
-
-	planService, err := New(config)
-	require.NoErrorf(t, err, "initializing Plan service must not fail")
-	require.NotNilf(t, planService, "Plan service must not be nil")
-
-	return &testEnv{
-		Meter:   meterAdapter,
-		Feature: featureService,
-		Plan:    planService,
-		db:      db,
-		client:  client,
-		close:   sync.Once{},
-	}
 }
