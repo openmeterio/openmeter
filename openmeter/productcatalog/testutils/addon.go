@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func NewTestAddon(t *testing.T, namespace string) addon.CreateAddonInput {
+func NewTestAddon(t *testing.T, namespace string, rateCards ...productcatalog.RateCard) addon.CreateAddonInput {
 	t.Helper()
 
 	return addon.CreateAddonInput{
@@ -20,15 +20,15 @@ func NewTestAddon(t *testing.T, namespace string) addon.CreateAddonInput {
 		},
 		Addon: productcatalog.Addon{
 			AddonMeta: productcatalog.AddonMeta{
-				Key:          "addon1",
-				Name:         "Addon v1",
-				Description:  lo.ToPtr("Addon v1"),
-				Metadata:     models.Metadata{"name": "addon1"},
-				Annotations:  models.Annotations{"key": "value"},
+				Key:          "test-addon",
+				Name:         "Test Addon",
+				Description:  lo.ToPtr("Test Addon"),
+				Metadata:     models.Metadata{"name": "test-addon"},
+				Annotations:  models.Annotations{"name": "test-addon"},
 				Currency:     currency.USD,
 				InstanceType: productcatalog.AddonInstanceTypeSingle,
 			},
-			RateCards: nil,
+			RateCards: rateCards,
 		},
 	}
 }
