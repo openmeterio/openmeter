@@ -85,7 +85,7 @@ require (
 	go.opentelemetry.io/proto/otlp v1.5.0
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8
 	golang.org/x/net v0.39.0
-	google.golang.org/grpc v1.71.1
+	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
 	gotest.tools/gotestsum v1.12.1
 	k8s.io/api v0.32.3
@@ -144,10 +144,12 @@ require (
 	github.com/qdrant/go-client v1.12.0 // indirect
 	github.com/questdb/go-questdb-client/v3 v3.2.0 // indirect
 	github.com/redpanda-data/connect/v4 v4.49.1 // indirect
+	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
 	github.com/timeplus-io/proton-go-driver/v2 v2.0.17 // indirect
 	github.com/twmb/franz-go/pkg/kadm v1.13.0 // indirect
 	github.com/twmb/franz-go/pkg/sr v1.3.0 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
+	github.com/zeebo/errs v1.4.0 // indirect
 	go.etcd.io/bbolt v1.3.11 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.1.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
