@@ -1,4 +1,4 @@
-package adapter
+package adapter_test
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
-	planaddontestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/testutils"
+	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -28,287 +28,275 @@ func TestPostgresAdapter(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Setup test environment
-	env := planaddontestutils.NewTestEnv(t)
-	defer env.Close(t)
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
 
-	// Run database migrations
 	env.DBSchemaMigrate(t)
 
-	// Get new namespace ID
-	namespace := planaddontestutils.NewTestNamespace(t)
-
-	// Setup meter repository
-	err := env.Meter.ReplaceMeters(ctx, planaddontestutils.NewTestMeters(t, namespace))
-	require.NoError(t, err, "replacing meters must not fail")
-
-	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
-		Page: pagination.Page{
-			PageSize:   1000,
-			PageNumber: 1,
-		},
-		Namespace: namespace,
-	})
-	require.NoErrorf(t, err, "listing meters must not fail")
-
-	meters := result.Items
-	require.NotEmptyf(t, meters, "list of Meters must not be empty")
-
-	// Set feature for each meter
-	features := make([]feature.Feature, 0, len(meters))
-	for _, m := range meters {
-		input := planaddontestutils.NewTestFeatureFromMeter(t, &m)
-
-		feat, err := env.Feature.CreateFeature(ctx, input)
-		require.NoErrorf(t, err, "creating feature must not fail")
-		require.NotNil(t, feat, "feature must not be empty")
-
-		features = append(features, feat)
-	}
-
-	planV1Input := planaddontestutils.NewTestPlan(t, namespace)
-
-	addonV1Input := planaddontestutils.NewTestAddon(t, namespace)
-
-	planAddonRepo := &adapter{
-		db:     env.Client,
-		logger: env.Logger,
-	}
-
 	t.Run("Addon", func(t *testing.T) {
-		var (
-			feature1  feature.Feature
-			planV1    *plan.Plan
-			addonV1   *addon.Addon
-			planAddon *planaddon.PlanAddon
-		)
-
-		feature1 = features[0]
-
-		planV1Input.Phases = []productcatalog.Phase{
-			{
-				PhaseMeta: productcatalog.PhaseMeta{
-					Key:         "invalid",
-					Name:        "Invalid",
-					Description: lo.ToPtr("Invalid invalid"),
-					Metadata:    models.Metadata{"name": "trial"},
-					Duration:    &MonthPeriod,
-				},
-				RateCards: []productcatalog.RateCard{
-					&productcatalog.FlatFeeRateCard{
-						RateCardMeta: productcatalog.RateCardMeta{
-							Key:                 feature1.Key,
-							Name:                feature1.Name,
-							Description:         lo.ToPtr("invalid RateCard 1"),
-							Metadata:            models.Metadata{"name": feature1.Name},
-							FeatureKey:          lo.ToPtr(feature1.Key),
-							FeatureID:           lo.ToPtr(feature1.ID),
-							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "txcd_10000000",
-								},
-							},
-							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-								Amount:      decimal.NewFromInt(0),
-								PaymentTerm: productcatalog.InArrearsPaymentTerm,
-							}),
-						},
-						BillingCadence: &MonthPeriod,
-					},
-				},
-			},
-			{
-				PhaseMeta: productcatalog.PhaseMeta{
-					Key:         "trial",
-					Name:        "Trial",
-					Description: lo.ToPtr("Trial phase"),
-					Metadata:    models.Metadata{"name": "trial"},
-					Duration:    &MonthPeriod,
-				},
-				RateCards: []productcatalog.RateCard{
-					&productcatalog.FlatFeeRateCard{
-						RateCardMeta: productcatalog.RateCardMeta{
-							Key:                 feature1.Key,
-							Name:                feature1.Name,
-							Description:         lo.ToPtr("Trial RateCard 1"),
-							Metadata:            models.Metadata{"name": feature1.Name},
-							FeatureKey:          lo.ToPtr(feature1.Key),
-							FeatureID:           lo.ToPtr(feature1.ID),
-							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "txcd_10000000",
-								},
-							},
-							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-								Mode: productcatalog.VolumeTieredPrice,
-								Tiers: []productcatalog.PriceTier{
-									{
-										UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-										FlatPrice: &productcatalog.PriceTierFlatPrice{
-											Amount: decimal.NewFromInt(100),
-										},
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: decimal.NewFromInt(50),
-										},
-									},
-									{
-										UpToAmount: nil,
-										FlatPrice: &productcatalog.PriceTierFlatPrice{
-											Amount: decimal.NewFromInt(5),
-										},
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: decimal.NewFromInt(25),
-										},
-									},
-								},
-								Commitments: productcatalog.Commitments{
-									MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-									MaximumAmount: nil,
-								},
-							}),
-						},
-						BillingCadence: &MonthPeriod,
-					},
-				},
-			},
-			{
-				PhaseMeta: productcatalog.PhaseMeta{
-					Key:         "pro",
-					Name:        "Pro",
-					Description: lo.ToPtr("Pro phase"),
-					Metadata:    models.Metadata{"name": "pro"},
-					Duration:    nil,
-				},
-				RateCards: []productcatalog.RateCard{
-					&productcatalog.UsageBasedRateCard{
-						RateCardMeta: productcatalog.RateCardMeta{
-							Key:                 feature1.Key,
-							Name:                feature1.Name,
-							Description:         lo.ToPtr("Pro RateCard 1"),
-							Metadata:            models.Metadata{"name": feature1.Name},
-							FeatureKey:          lo.ToPtr(feature1.Key),
-							FeatureID:           lo.ToPtr(feature1.ID),
-							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "txcd_10000000",
-								},
-							},
-							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-								Mode: productcatalog.VolumeTieredPrice,
-								Tiers: []productcatalog.PriceTier{
-									{
-										UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-										FlatPrice: &productcatalog.PriceTierFlatPrice{
-											Amount: decimal.NewFromInt(100),
-										},
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: decimal.NewFromInt(50),
-										},
-									},
-									{
-										UpToAmount: nil,
-										FlatPrice: &productcatalog.PriceTierFlatPrice{
-											Amount: decimal.NewFromInt(5),
-										},
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: decimal.NewFromInt(25),
-										},
-									},
-								},
-								Commitments: productcatalog.Commitments{
-									MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-									MaximumAmount: nil,
-								},
-							}),
-						},
-						BillingCadence: MonthPeriod,
-					},
-				},
-			},
-		}
-
-		planV1, err = env.Plan.CreatePlan(ctx, planV1Input)
-		require.NoErrorf(t, err, "creating plan must not fail")
-
-		addonV1Input.RateCards = productcatalog.RateCards{
-			&productcatalog.UsageBasedRateCard{
-				RateCardMeta: productcatalog.RateCardMeta{
-					Key:                 feature1.Key,
-					Name:                feature1.Name,
-					Description:         lo.ToPtr(feature1.Name),
-					Metadata:            models.Metadata{"name": feature1.Name},
-					FeatureKey:          lo.ToPtr(feature1.Key),
-					FeatureID:           lo.ToPtr(feature1.ID),
-					EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-					TaxConfig: &productcatalog.TaxConfig{
-						Stripe: &productcatalog.StripeTaxConfig{
-							Code: "txcd_10000000",
-						},
-					},
-					Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-						Mode: productcatalog.VolumeTieredPrice,
-						Tiers: []productcatalog.PriceTier{
-							{
-								UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-								FlatPrice: &productcatalog.PriceTierFlatPrice{
-									Amount: decimal.NewFromInt(100),
-								},
-								UnitPrice: &productcatalog.PriceTierUnitPrice{
-									Amount: decimal.NewFromInt(50),
-								},
-							},
-							{
-								UpToAmount: nil,
-								FlatPrice: &productcatalog.PriceTierFlatPrice{
-									Amount: decimal.NewFromInt(5),
-								},
-								UnitPrice: &productcatalog.PriceTierUnitPrice{
-									Amount: decimal.NewFromInt(25),
-								},
-							},
-						},
-						Commitments: productcatalog.Commitments{
-							MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-							MaximumAmount: nil,
-						},
-					}),
-				},
-				BillingCadence: MonthPeriod,
-			},
-		}
-
-		addonV1, err = env.Addon.CreateAddon(ctx, addonV1Input)
-		require.NoErrorf(t, err, "creating add-on must not fail")
-
-		addonV1, err = env.Addon.PublishAddon(ctx, addon.PublishAddonInput{
-			NamespacedID: models.NamespacedID{
-				Namespace: namespace,
-				ID:        addonV1.ID,
-			},
-			EffectivePeriod: productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(time.Now()),
-				EffectiveTo:   nil,
-			},
-		})
-		require.NoErrorf(t, err, "publishing add-on must not fail")
-
-		planAddonInput := planaddon.CreatePlanAddonInput{
-			NamespacedModel: models.NamespacedModel{
-				Namespace: namespace,
-			},
-			Annotations: map[string]interface{}{
-				"openmeter.key": "openmeter.value",
-			},
-			PlanID:        planV1.ID,
-			AddonID:       addonV1.ID,
-			FromPlanPhase: planV1.Phases[1].Key,
-		}
-
 		t.Run("Create", func(t *testing.T) {
-			planAddon, err = planAddonRepo.CreatePlanAddon(ctx, planAddonInput)
+			// Get new namespace ID
+			namespace := pctestutils.NewTestNamespace(t)
+
+			// Setup meter repository
+			err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
+			require.NoError(t, err, "replacing meters must not fail")
+
+			result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+				Page: pagination.Page{
+					PageSize:   1000,
+					PageNumber: 1,
+				},
+				Namespace: namespace,
+			})
+			require.NoErrorf(t, err, "listing meters must not fail")
+
+			meters := result.Items
+			require.NotEmptyf(t, meters, "list of Meters must not be empty")
+
+			// Set a feature for each meter
+			features := make([]feature.Feature, 0, len(meters))
+			for _, m := range meters {
+				input := pctestutils.NewTestFeatureFromMeter(t, &m)
+
+				feat, err := env.Feature.CreateFeature(ctx, input)
+				require.NoErrorf(t, err, "creating feature must not fail")
+				require.NotNil(t, feat, "feature must not be empty")
+
+				features = append(features, feat)
+			}
+
+			planV1Input := pctestutils.NewTestPlan(t, namespace, []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:         "invalid",
+						Name:        "Invalid",
+						Description: lo.ToPtr("Invalid invalid"),
+						Metadata:    models.Metadata{"name": "trial"},
+						Duration:    &MonthPeriod,
+					},
+					RateCards: []productcatalog.RateCard{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:                 features[0].Key,
+								Name:                features[0].Name,
+								Description:         lo.ToPtr("invalid RateCard 1"),
+								Metadata:            models.Metadata{"name": features[0].Name},
+								FeatureKey:          lo.ToPtr(features[0].Key),
+								FeatureID:           lo.ToPtr(features[0].ID),
+								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
+								TaxConfig: &productcatalog.TaxConfig{
+									Stripe: &productcatalog.StripeTaxConfig{
+										Code: "txcd_10000000",
+									},
+								},
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      decimal.NewFromInt(0),
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+							},
+							BillingCadence: &MonthPeriod,
+						},
+					},
+				},
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:         "trial",
+						Name:        "Trial",
+						Description: lo.ToPtr("Trial phase"),
+						Metadata:    models.Metadata{"name": "trial"},
+						Duration:    &MonthPeriod,
+					},
+					RateCards: []productcatalog.RateCard{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:                 features[0].Key,
+								Name:                features[0].Name,
+								Description:         lo.ToPtr("Trial RateCard 1"),
+								Metadata:            models.Metadata{"name": features[0].Name},
+								FeatureKey:          lo.ToPtr(features[0].Key),
+								FeatureID:           lo.ToPtr(features[0].ID),
+								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
+								TaxConfig: &productcatalog.TaxConfig{
+									Stripe: &productcatalog.StripeTaxConfig{
+										Code: "txcd_10000000",
+									},
+								},
+								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+									Mode: productcatalog.VolumeTieredPrice,
+									Tiers: []productcatalog.PriceTier{
+										{
+											UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+											FlatPrice: &productcatalog.PriceTierFlatPrice{
+												Amount: decimal.NewFromInt(100),
+											},
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: decimal.NewFromInt(50),
+											},
+										},
+										{
+											UpToAmount: nil,
+											FlatPrice: &productcatalog.PriceTierFlatPrice{
+												Amount: decimal.NewFromInt(5),
+											},
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: decimal.NewFromInt(25),
+											},
+										},
+									},
+									Commitments: productcatalog.Commitments{
+										MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+										MaximumAmount: nil,
+									},
+								}),
+							},
+							BillingCadence: &MonthPeriod,
+						},
+					},
+				},
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:         "pro",
+						Name:        "Pro",
+						Description: lo.ToPtr("Pro phase"),
+						Metadata:    models.Metadata{"name": "pro"},
+						Duration:    nil,
+					},
+					RateCards: []productcatalog.RateCard{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:                 features[0].Key,
+								Name:                features[0].Name,
+								Description:         lo.ToPtr("Pro RateCard 1"),
+								Metadata:            models.Metadata{"name": features[0].Name},
+								FeatureKey:          lo.ToPtr(features[0].Key),
+								FeatureID:           lo.ToPtr(features[0].ID),
+								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
+								TaxConfig: &productcatalog.TaxConfig{
+									Stripe: &productcatalog.StripeTaxConfig{
+										Code: "txcd_10000000",
+									},
+								},
+								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+									Mode: productcatalog.VolumeTieredPrice,
+									Tiers: []productcatalog.PriceTier{
+										{
+											UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+											FlatPrice: &productcatalog.PriceTierFlatPrice{
+												Amount: decimal.NewFromInt(100),
+											},
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: decimal.NewFromInt(50),
+											},
+										},
+										{
+											UpToAmount: nil,
+											FlatPrice: &productcatalog.PriceTierFlatPrice{
+												Amount: decimal.NewFromInt(5),
+											},
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: decimal.NewFromInt(25),
+											},
+										},
+									},
+									Commitments: productcatalog.Commitments{
+										MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+										MaximumAmount: nil,
+									},
+								}),
+							},
+							BillingCadence: MonthPeriod,
+						},
+					},
+				},
+			}...)
+
+			var planV1 *plan.Plan
+
+			planV1, err = env.Plan.CreatePlan(ctx, planV1Input)
+			require.NoErrorf(t, err, "creating plan must not fail")
+
+			addonV1Input := pctestutils.NewTestAddon(t, namespace, productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:                 features[0].Key,
+						Name:                features[0].Name,
+						Description:         lo.ToPtr(features[0].Name),
+						Metadata:            models.Metadata{"name": features[0].Name},
+						FeatureKey:          lo.ToPtr(features[0].Key),
+						FeatureID:           lo.ToPtr(features[0].ID),
+						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
+						TaxConfig: &productcatalog.TaxConfig{
+							Stripe: &productcatalog.StripeTaxConfig{
+								Code: "txcd_10000000",
+							},
+						},
+						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							Mode: productcatalog.VolumeTieredPrice,
+							Tiers: []productcatalog.PriceTier{
+								{
+									UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+									FlatPrice: &productcatalog.PriceTierFlatPrice{
+										Amount: decimal.NewFromInt(100),
+									},
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: decimal.NewFromInt(50),
+									},
+								},
+								{
+									UpToAmount: nil,
+									FlatPrice: &productcatalog.PriceTierFlatPrice{
+										Amount: decimal.NewFromInt(5),
+									},
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: decimal.NewFromInt(25),
+									},
+								},
+							},
+							Commitments: productcatalog.Commitments{
+								MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+								MaximumAmount: nil,
+							},
+						}),
+					},
+					BillingCadence: MonthPeriod,
+				},
+			}...)
+
+			var addonV1 *addon.Addon
+
+			addonV1, err = env.Addon.CreateAddon(ctx, addonV1Input)
+			require.NoErrorf(t, err, "creating add-on must not fail")
+
+			addonV1, err = env.Addon.PublishAddon(ctx, addon.PublishAddonInput{
+				NamespacedID: models.NamespacedID{
+					Namespace: namespace,
+					ID:        addonV1.ID,
+				},
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: lo.ToPtr(time.Now()),
+					EffectiveTo:   nil,
+				},
+			})
+			require.NoErrorf(t, err, "publishing add-on must not fail")
+
+			planAddonInput := planaddon.CreatePlanAddonInput{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				Annotations: map[string]interface{}{
+					"openmeter.key": "openmeter.value",
+				},
+				PlanID:        planV1.ID,
+				AddonID:       addonV1.ID,
+				FromPlanPhase: planV1.Phases[1].Key,
+			}
+
+			var planAddon *planaddon.PlanAddon
+
+			planAddon, err = env.PlanAddonRepository.CreatePlanAddon(ctx, planAddonInput)
 			require.NoErrorf(t, err, "creating new plan add-on assignment must not fail")
 
 			require.NotNilf(t, planAddon, "plan add-on assignment must not be nil")
@@ -317,7 +305,7 @@ func TestPostgresAdapter(t *testing.T) {
 
 			t.Run("Get", func(t *testing.T) {
 				t.Run("ById", func(t *testing.T) {
-					getPlanAddon, err := planAddonRepo.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
+					getPlanAddon, err := env.PlanAddonRepository.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
 						NamespacedModel: models.NamespacedModel{
 							Namespace: namespace,
 						},
@@ -331,7 +319,7 @@ func TestPostgresAdapter(t *testing.T) {
 				})
 
 				t.Run("ByKey", func(t *testing.T) {
-					getPlanAddon, err := planAddonRepo.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
+					getPlanAddon, err := env.PlanAddonRepository.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
 						NamespacedModel: models.NamespacedModel{
 							Namespace: namespace,
 						},
@@ -348,7 +336,7 @@ func TestPostgresAdapter(t *testing.T) {
 
 			t.Run("List", func(t *testing.T) {
 				t.Run("ById", func(t *testing.T) {
-					listPlanAddons, err := planAddonRepo.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
+					listPlanAddons, err := env.PlanAddonRepository.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
 						Namespaces: []string{namespace},
 						IDs:        []string{planAddon.ID},
 					})
@@ -360,7 +348,7 @@ func TestPostgresAdapter(t *testing.T) {
 				})
 
 				t.Run("ByResourceKey", func(t *testing.T) {
-					listPlanAddons, err := planAddonRepo.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
+					listPlanAddons, err := env.PlanAddonRepository.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
 						Namespaces: []string{namespace},
 						PlanKeys:   []string{planV1.Key},
 						AddonKeys:  []string{addonV1.Key},
@@ -374,7 +362,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("Update", func(t *testing.T) {
-				planAddonV1Update := planaddon.UpdatePlanAddonInput{
+				planAddonUpdate := planaddon.UpdatePlanAddonInput{
 					NamespacedModel: models.NamespacedModel{
 						Namespace: namespace,
 					},
@@ -388,16 +376,16 @@ func TestPostgresAdapter(t *testing.T) {
 					FromPlanPhase: &planV1.Phases[2].Key,
 				}
 
-				updatedPlanAddon, err := planAddonRepo.UpdatePlanAddon(ctx, planAddonV1Update)
+				updatedPlanAddon, err := env.PlanAddonRepository.UpdatePlanAddon(ctx, planAddonUpdate)
 				require.NoErrorf(t, err, "updating plan add-on assignment must not fail")
 
 				require.NotNilf(t, updatedPlanAddon, "plan add-on assignment must not be nil")
 
-				planaddon.AssertPlanAddonUpdateInputEqual(t, planAddonV1Update, *updatedPlanAddon)
+				planaddon.AssertPlanAddonUpdateInputEqual(t, planAddonUpdate, *updatedPlanAddon)
 			})
 
 			t.Run("Delete", func(t *testing.T) {
-				err = planAddonRepo.DeletePlanAddon(ctx, planaddon.DeletePlanAddonInput{
+				err = env.PlanAddonRepository.DeletePlanAddon(ctx, planaddon.DeletePlanAddonInput{
 					NamespacedModel: models.NamespacedModel{
 						Namespace: namespace,
 					},
@@ -405,7 +393,7 @@ func TestPostgresAdapter(t *testing.T) {
 				})
 				require.NoErrorf(t, err, "deleting plan add-on assignment must not fail")
 
-				getPlanAddon, err := planAddonRepo.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
+				getPlanAddon, err := env.PlanAddonRepository.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
 					NamespacedModel: models.NamespacedModel{
 						Namespace: namespace,
 					},
