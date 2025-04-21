@@ -1,120 +1,158 @@
-package service
+package service_test
 
 import (
 	"context"
-	"crypto/rand"
-	"sync"
 	"testing"
 	"time"
 
 	decimal "github.com/alpacahq/alpacadecimal"
-	"github.com/invopop/gobl/currency"
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
+var MonthPeriod = isodate.FromDuration(30 * 24 * time.Hour)
+
 func TestAddonService(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Setup test environment
-	env := newTestEnv(t)
-	defer env.Close(t)
-
-	// Run database migrations
-	env.DBSchemaMigrate(t)
-
-	// Get new namespace ID
-	namespace := NewTestNamespace(t)
-
-	// Setup meter repository
-	err := env.Meter.ReplaceMeters(ctx, NewTestMeters(t, namespace))
-	require.NoError(t, err, "replacing Meters must not fail")
-
-	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
-		Namespace: namespace,
-		Page:      pagination.NewPage(1, 100),
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
 	})
-	require.NoErrorf(t, err, "listing Meters must not fail")
 
-	meters := result.Items
-	require.NotEmptyf(t, meters, "list of Meters must not be empty")
-
-	// Set Feature for each Meter
-	features := make(map[string]feature.Feature, len(meters))
-	for _, m := range meters {
-		input := feature.CreateFeatureInputs{
-			Name:                m.Key,
-			Key:                 m.Key,
-			Namespace:           namespace,
-			MeterSlug:           lo.ToPtr(m.Key),
-			MeterGroupByFilters: m.GroupBy,
-			Metadata:            map[string]string{},
-		}
-
-		feat, err := env.Feature.CreateFeature(ctx, input)
-		require.NoErrorf(t, err, "creating Feature must not fail")
-		require.NotNil(t, feat, "Feature must not be empty")
-
-		features[feat.Key] = feat
-	}
+	env.DBSchemaMigrate(t)
 
 	t.Run("Addon", func(t *testing.T) {
 		t.Run("Create", func(t *testing.T) {
-			addonInput := NewAddon(t, namespace)
+			// Get new namespace ID
+			namespace := pctestutils.NewTestNamespace(t)
 
-			draftAddon, err := env.Addon.CreateAddon(ctx, addonInput)
+			// Setup meter repository
+			err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
+			require.NoError(t, err, "replacing meters must not fail")
+
+			result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+				Page: pagination.Page{
+					PageSize:   1000,
+					PageNumber: 1,
+				},
+				Namespace: namespace,
+			})
+			require.NoErrorf(t, err, "listing meters must not fail")
+
+			meters := result.Items
+			require.NotEmptyf(t, meters, "list of Meters must not be empty")
+
+			// Set a feature for each meter
+			features := make([]feature.Feature, 0, len(meters))
+			for _, m := range meters {
+				input := pctestutils.NewTestFeatureFromMeter(t, &m)
+
+				feat, err := env.Feature.CreateFeature(ctx, input)
+				require.NoErrorf(t, err, "creating feature must not fail")
+				require.NotNil(t, feat, "feature must not be empty")
+
+				features = append(features, feat)
+			}
+
+			addonV1Input := pctestutils.NewTestAddon(t, namespace, productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:                 features[0].Key,
+						Name:                features[0].Name,
+						Description:         lo.ToPtr(features[0].Name),
+						Metadata:            models.Metadata{"name": features[0].Name},
+						FeatureKey:          lo.ToPtr(features[0].Key),
+						FeatureID:           lo.ToPtr(features[0].ID),
+						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
+						TaxConfig: &productcatalog.TaxConfig{
+							Stripe: &productcatalog.StripeTaxConfig{
+								Code: "txcd_10000000",
+							},
+						},
+						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							Mode: productcatalog.VolumeTieredPrice,
+							Tiers: []productcatalog.PriceTier{
+								{
+									UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+									FlatPrice: &productcatalog.PriceTierFlatPrice{
+										Amount: decimal.NewFromInt(100),
+									},
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: decimal.NewFromInt(50),
+									},
+								},
+								{
+									UpToAmount: nil,
+									FlatPrice: &productcatalog.PriceTierFlatPrice{
+										Amount: decimal.NewFromInt(5),
+									},
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: decimal.NewFromInt(25),
+									},
+								},
+							},
+							Commitments: productcatalog.Commitments{
+								MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+								MaximumAmount: nil,
+							},
+						}),
+					},
+					BillingCadence: MonthPeriod,
+				},
+			}...)
+
+			var addonV1 *addon.Addon
+
+			addonV1, err = env.Addon.CreateAddon(ctx, addonV1Input)
 			require.NoErrorf(t, err, "creating add-on must not fail")
-			require.NotNil(t, draftAddon, "add-on must not be empty")
+			require.NotNil(t, addonV1, "add-on must not be empty")
 
-			addon.AssertAddonCreateInputEqual(t, addonInput, *draftAddon)
-			assert.Equalf(t, productcatalog.AddonStatusDraft, draftAddon.Status(),
-				"add-on status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusDraft, draftAddon.Status())
+			addon.AssertAddonCreateInputEqual(t, addonV1Input, *addonV1)
+
+			assert.Equalf(t, productcatalog.AddonStatusDraft, addonV1.Status(),
+				"add-on status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusDraft, addonV1.Status())
 
 			t.Run("Get", func(t *testing.T) {
 				getAddon, err := env.Addon.GetAddon(ctx, addon.GetAddonInput{
 					NamespacedID: models.NamespacedID{
-						Namespace: addonInput.Namespace,
+						Namespace: addonV1Input.Namespace,
 					},
-					Key:           addonInput.Key,
+					Key:           addonV1Input.Key,
 					IncludeLatest: true,
 				})
 				require.NoErrorf(t, err, "getting draft add-on must not fail")
 				require.NotNil(t, getAddon, "draft add-on must not be empty")
 
-				assert.Equalf(t, draftAddon.ID, getAddon.ID,
-					"Plan ID mismatch: %s = %s", draftAddon.ID, getAddon.ID)
-				assert.Equalf(t, draftAddon.Key, getAddon.Key,
-					"Plan Key mismatch: %s = %s", draftAddon.Key, getAddon.Key)
-				assert.Equalf(t, draftAddon.Version, getAddon.Version,
-					"Plan Version mismatch: %d = %d", draftAddon.Version, getAddon.Version)
+				assert.Equalf(t, addonV1.ID, getAddon.ID,
+					"Plan ID mismatch: %s = %s", addonV1.ID, getAddon.ID)
+
+				assert.Equalf(t, addonV1.Key, getAddon.Key,
+					"Plan Key mismatch: %s = %s", addonV1.Key, getAddon.Key)
+
+				assert.Equalf(t, addonV1.Version, getAddon.Version,
+					"Plan Version mismatch: %d = %d", addonV1.Version, getAddon.Version)
+
 				assert.Equalf(t, productcatalog.AddonStatusDraft, getAddon.Status(),
 					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusDraft, getAddon.Status())
 			})
 
 			t.Run("Update", func(t *testing.T) {
 				updateInput := addon.UpdateAddonInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: addonInput.Namespace,
-						ID:        draftAddon.ID,
-					},
-					RateCards: &productcatalog.RateCards{},
+					NamespacedID: addonV1.NamespacedID,
+					RateCards:    &productcatalog.RateCards{},
 				}
 
 				updatedAddon, err := env.Addon.UpdateAddon(ctx, updateInput)
@@ -124,31 +162,33 @@ func TestAddonService(t *testing.T) {
 				addon.AssertAddonUpdateInputEqual(t, updateInput, *updatedAddon)
 			})
 
-			var publishedAddon *addon.Addon
+			var publishedAddonV1 *addon.Addon
+
 			t.Run("Publish", func(t *testing.T) {
 				publishAt := time.Now().Truncate(time.Microsecond)
 
 				publishInput := addon.PublishAddonInput{
-					NamespacedID: draftAddon.NamespacedID,
+					NamespacedID: addonV1.NamespacedID,
 					EffectivePeriod: productcatalog.EffectivePeriod{
 						EffectiveFrom: &publishAt,
 						EffectiveTo:   nil,
 					},
 				}
 
-				publishedAddon, err = env.Addon.PublishAddon(ctx, publishInput)
+				publishedAddonV1, err = env.Addon.PublishAddon(ctx, publishInput)
 				require.NoErrorf(t, err, "publishing draft add-on must not fail")
-				require.NotNil(t, publishedAddon, "published add-on must not be empty")
-				require.NotNil(t, publishedAddon.EffectiveFrom, "EffectiveFrom for published add-on must not be empty")
+				require.NotNil(t, publishedAddonV1, "published add-on must not be empty")
+				require.NotNil(t, publishedAddonV1.EffectiveFrom, "EffectiveFrom for published add-on must not be empty")
 
-				assert.Equalf(t, publishAt, *publishedAddon.EffectiveFrom,
-					"EffectiveFrom for published add-on mismatch: expected=%s, actual=%s", publishAt, *publishedAddon.EffectiveFrom)
-				assert.Equalf(t, productcatalog.AddonStatusActive, publishedAddon.Status(),
-					"add-on Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusActive, publishedAddon.Status())
+				assert.Equalf(t, publishAt, *publishedAddonV1.EffectiveFrom,
+					"EffectiveFrom for published add-on mismatch: expected=%s, actual=%s", publishAt, *publishedAddonV1.EffectiveFrom)
+
+				assert.Equalf(t, productcatalog.AddonStatusActive, publishedAddonV1.Status(),
+					"add-on Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusActive, publishedAddonV1.Status())
 
 				t.Run("Update", func(t *testing.T) {
 					updateInput := addon.UpdateAddonInput{
-						NamespacedID: draftAddon.NamespacedID,
+						NamespacedID: addonV1.NamespacedID,
 						Name:         lo.ToPtr("Invalid Update"),
 					}
 
@@ -157,20 +197,22 @@ func TestAddonService(t *testing.T) {
 				})
 			})
 
-			var nextAddon *addon.Addon
-			t.Run("NewVersion", func(t *testing.T) {
-				nextAddon, err = env.Addon.CreateAddon(ctx, addonInput)
-				require.NoErrorf(t, err, "creating a new draft add-on from active must not fail")
-				require.NotNil(t, nextAddon, "new draft add-on must not be empty")
+			var addonV2 *addon.Addon
 
-				assert.Equalf(t, publishedAddon.Version+1, nextAddon.Version,
+			t.Run("V2", func(t *testing.T) {
+				addonV2, err = env.Addon.CreateAddon(ctx, addonV1Input)
+				require.NoErrorf(t, err, "creating a new draft add-on from active must not fail")
+				require.NotNil(t, addonV2, "new draft add-on must not be empty")
+
+				assert.Equalf(t, publishedAddonV1.Version+1, addonV2.Version,
 					"new draft add-on must have higher version number")
-				assert.Equalf(t, productcatalog.AddonStatusDraft, nextAddon.Status(),
-					"add-on Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusDraft, nextAddon.Status())
+
+				assert.Equalf(t, productcatalog.AddonStatusDraft, addonV2.Status(),
+					"add-on Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusDraft, addonV2.Status())
 
 				t.Run("PublishUnaligned", func(t *testing.T) {
 					updateInput := addon.UpdateAddonInput{
-						NamespacedID: nextAddon.NamespacedID,
+						NamespacedID: addonV2.NamespacedID,
 						RateCards: &productcatalog.RateCards{
 							&productcatalog.FlatFeeRateCard{
 								RateCardMeta: productcatalog.RateCardMeta{
@@ -202,7 +244,7 @@ func TestAddonService(t *testing.T) {
 
 					// Get the updated add-on
 					_, err = env.Addon.GetAddon(ctx, addon.GetAddonInput{
-						NamespacedID: nextAddon.NamespacedID,
+						NamespacedID: addonV2.NamespacedID,
 					})
 					require.NoError(t, err)
 
@@ -210,7 +252,7 @@ func TestAddonService(t *testing.T) {
 					publishAt := time.Now().Truncate(time.Microsecond)
 
 					publishInput := addon.PublishAddonInput{
-						NamespacedID: nextAddon.NamespacedID,
+						NamespacedID: addonV2.NamespacedID,
 						EffectivePeriod: productcatalog.EffectivePeriod{
 							EffectiveFrom: &publishAt,
 							EffectiveTo:   nil,
@@ -222,8 +264,8 @@ func TestAddonService(t *testing.T) {
 
 					// Let's update the plan to fix the alignment issue
 					_, err = env.Addon.UpdateAddon(ctx, addon.UpdateAddonInput{
-						NamespacedID: nextAddon.NamespacedID,
-						RateCards:    lo.ToPtr(publishedAddon.RateCards.AsProductCatalogRateCards()),
+						NamespacedID: addonV2.NamespacedID,
+						RateCards:    lo.ToPtr(publishedAddonV1.RateCards.AsProductCatalogRateCards()),
 					})
 					require.NoError(t, err)
 				})
@@ -232,260 +274,71 @@ func TestAddonService(t *testing.T) {
 					publishAt := time.Now().Truncate(time.Microsecond)
 
 					publishInput := addon.PublishAddonInput{
-						NamespacedID: nextAddon.NamespacedID,
+						NamespacedID: addonV2.NamespacedID,
 						EffectivePeriod: productcatalog.EffectivePeriod{
 							EffectiveFrom: &publishAt,
 							EffectiveTo:   nil,
 						},
 					}
 
-					publishedNextAddon, err := env.Addon.PublishAddon(ctx, publishInput)
+					publishedAddonV2, err := env.Addon.PublishAddon(ctx, publishInput)
 					require.NoErrorf(t, err, "publishing draft add-on must not fail")
-					require.NotNil(t, publishedNextAddon, "published add-on must not be empty")
-					require.NotNil(t, publishedNextAddon.EffectiveFrom, "EffectiveFrom for published add-on must not be empty")
+					require.NotNil(t, publishedAddonV2, "published add-on must not be empty")
+					require.NotNil(t, publishedAddonV2.EffectiveFrom, "EffectiveFrom for published add-on must not be empty")
 
-					assert.Equalf(t, publishAt, *publishedNextAddon.EffectiveFrom,
-						"EffectiveFrom for published add-on mismatch: expected=%s, actual=%s", publishAt, *publishedNextAddon.EffectiveFrom)
-					assert.Equalf(t, productcatalog.AddonStatusActive, publishedNextAddon.Status(),
-						"add-on Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusActive, publishedNextAddon.Status())
+					assert.Equalf(t, publishAt, *publishedAddonV2.EffectiveFrom,
+						"EffectiveFrom for published add-on mismatch: expected=%s, actual=%s", publishAt, *publishedAddonV2.EffectiveFrom)
 
-					prevAddon, err := env.Addon.GetAddon(ctx, addon.GetAddonInput{
-						NamespacedID: publishedAddon.NamespacedID,
+					assert.Equalf(t, productcatalog.AddonStatusActive, publishedAddonV2.Status(),
+						"add-on Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusActive, publishedAddonV2.Status())
+
+					getAddonV1, err := env.Addon.GetAddon(ctx, addon.GetAddonInput{
+						NamespacedID: publishedAddonV1.NamespacedID,
 					})
 					require.NoErrorf(t, err, "getting previous add-on version must not fail")
-					require.NotNil(t, prevAddon, "previous add version must not be empty")
+					require.NotNil(t, getAddonV1, "previous add version must not be empty")
 
-					assert.Equalf(t, productcatalog.AddonStatusArchived, prevAddon.Status(),
-						"add Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusArchived, prevAddon.Status())
+					assert.Equalf(t, productcatalog.AddonStatusArchived, getAddonV1.Status(),
+						"add Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusArchived, getAddonV1.Status())
 
 					t.Run("Archive", func(t *testing.T) {
 						archiveAt := time.Now().Truncate(time.Microsecond)
 
 						archiveInput := addon.ArchiveAddonInput{
-							NamespacedID: nextAddon.NamespacedID,
+							NamespacedID: addonV2.NamespacedID,
 							EffectiveTo:  archiveAt,
 						}
 
-						archivedAddon, err := env.Addon.ArchiveAddon(ctx, archiveInput)
+						archivedAddonV2, err := env.Addon.ArchiveAddon(ctx, archiveInput)
 						require.NoErrorf(t, err, "archiving add-on must not fail")
-						require.NotNil(t, archivedAddon, "archived add-on must not be empty")
-						require.NotNil(t, archivedAddon.EffectiveTo, "EffectiveFrom for archived add-on must not be empty")
+						require.NotNil(t, archivedAddonV2, "archived add-on must not be empty")
+						require.NotNil(t, archivedAddonV2.EffectiveTo, "EffectiveFrom for archived add-on must not be empty")
 
-						assert.Equalf(t, archiveAt, *archivedAddon.EffectiveTo,
-							"EffectiveTo for published add-on mismatch: expected=%s, actual=%s", archiveAt, *archivedAddon.EffectiveTo)
-						assert.Equalf(t, productcatalog.AddonStatusArchived, archivedAddon.Status(),
-							"Status mismatch for archived add-on: expected=%s, actual=%s", productcatalog.AddonStatusArchived, archivedAddon.Status())
+						assert.Equalf(t, archiveAt, *archivedAddonV2.EffectiveTo,
+							"EffectiveTo for published add-on mismatch: expected=%s, actual=%s", archiveAt, *archivedAddonV2.EffectiveTo)
+
+						assert.Equalf(t, productcatalog.AddonStatusArchived, archivedAddonV2.Status(),
+							"Status mismatch for archived add-on: expected=%s, actual=%s", productcatalog.AddonStatusArchived, archivedAddonV2.Status())
 					})
 				})
 
 				t.Run("Delete", func(t *testing.T) {
 					deleteInput := addon.DeleteAddonInput{
-						NamespacedID: nextAddon.NamespacedID,
+						NamespacedID: addonV2.NamespacedID,
 					}
 
 					err = env.Addon.DeleteAddon(ctx, deleteInput)
 					require.NoErrorf(t, err, "deleting add-on must not fail")
 
-					deletedAddon, err := env.Addon.GetAddon(ctx, addon.GetAddonInput{
-						NamespacedID: nextAddon.NamespacedID,
+					deletedAddonV2, err := env.Addon.GetAddon(ctx, addon.GetAddonInput{
+						NamespacedID: addonV2.NamespacedID,
 					})
 					require.NoErrorf(t, err, "getting deleted add-on version must not fail")
-					require.NotNil(t, deletedAddon, "deleted add-on version must not be empty")
+					require.NotNil(t, deletedAddonV2, "deleted add-on version must not be empty")
 
-					assert.NotNilf(t, deletedAddon.DeletedAt, "deletedAt must not be empty")
+					assert.NotNilf(t, deletedAddonV2.DeletedAt, "deletedAt must not be empty")
 				})
 			})
 		})
 	})
-}
-
-var (
-	MonthPeriod      = isodate.FromDuration(30 * 24 * time.Hour)
-	TwoMonthPeriod   = isodate.FromDuration(60 * 24 * time.Hour)
-	ThreeMonthPeriod = isodate.FromDuration(90 * 24 * time.Hour)
-	SixMonthPeriod   = isodate.FromDuration(180 * 24 * time.Hour)
-)
-
-func NewAddon(t *testing.T, namespace string) addon.CreateAddonInput {
-	t.Helper()
-
-	return addon.CreateAddonInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: namespace,
-		},
-		Addon: productcatalog.Addon{
-			AddonMeta: productcatalog.AddonMeta{
-				Key:          "security",
-				Name:         "Security",
-				Description:  lo.ToPtr("Security add-on"),
-				InstanceType: productcatalog.AddonInstanceTypeSingle,
-				Currency:     currency.USD,
-				Metadata:     models.Metadata{"name": "security"},
-				Annotations:  models.Annotations{"name": "security"},
-			},
-		},
-	}
-}
-
-func NewTestULID(t *testing.T) string {
-	t.Helper()
-
-	return ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String()
-}
-
-var NewTestNamespace = NewTestULID
-
-func NewTestMeters(t *testing.T, namespace string) []meter.Meter {
-	t.Helper()
-
-	return []meter.Meter{
-		{
-			ManagedResource: models.ManagedResource{
-				ID: NewTestULID(t),
-				NamespacedModel: models.NamespacedModel{
-					Namespace: namespace,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
-				Name: "Test meter",
-			},
-			Key:         "api_requests_total",
-			Aggregation: meter.MeterAggregationCount,
-			EventType:   "request",
-			GroupBy: map[string]string{
-				"method": "$.method",
-				"path":   "$.path",
-			},
-		},
-		{
-			ManagedResource: models.ManagedResource{
-				ID: NewTestULID(t),
-				NamespacedModel: models.NamespacedModel{
-					Namespace: namespace,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
-				Name: "Test meter",
-			},
-			Key:           "tokens_total",
-			Aggregation:   meter.MeterAggregationSum,
-			EventType:     "prompt",
-			ValueProperty: lo.ToPtr("$.tokens"),
-			GroupBy: map[string]string{
-				"model": "$.model",
-				"type":  "$.type",
-			},
-		},
-		{
-			ManagedResource: models.ManagedResource{
-				ID: NewTestULID(t),
-				NamespacedModel: models.NamespacedModel{
-					Namespace: namespace,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
-				Name: "Test meter",
-			},
-			Key:           "workload_runtime_duration_seconds",
-			Aggregation:   meter.MeterAggregationSum,
-			EventType:     "workload",
-			ValueProperty: lo.ToPtr("$.duration_seconds"),
-			GroupBy: map[string]string{
-				"region":        "$.region",
-				"zone":          "$.zone",
-				"instance_type": "$.instance_type",
-			},
-		},
-	}
-}
-
-type testEnv struct {
-	Meter   *meteradapter.TestAdapter
-	Feature feature.FeatureConnector
-	Addon   addon.Service
-
-	db     *testutils.TestDB
-	client *entdb.Client
-
-	close sync.Once
-}
-
-func (e *testEnv) DBSchemaMigrate(t *testing.T) {
-	require.NotNilf(t, e.db, "database must be initialized")
-
-	err := e.db.EntDriver.Client().Schema.Create(context.Background())
-	require.NoErrorf(t, err, "schema migration must not fail")
-}
-
-func (e *testEnv) Close(t *testing.T) {
-	t.Helper()
-
-	e.close.Do(func() {
-		if e.db != nil {
-			if err := e.db.EntDriver.Close(); err != nil {
-				t.Errorf("failed to close ent driver: %v", err)
-			}
-
-			if err := e.db.PGDriver.Close(); err != nil {
-				t.Errorf("failed to postgres driver: %v", err)
-			}
-		}
-
-		if e.client != nil {
-			if err := e.client.Close(); err != nil {
-				t.Errorf("failed to close ent client: %v", err)
-			}
-		}
-	})
-}
-
-func newTestEnv(t *testing.T) *testEnv {
-	t.Helper()
-
-	logger := testutils.NewLogger(t)
-
-	db := testutils.InitPostgresDB(t)
-	client := db.EntDriver.Client()
-
-	publisher := eventbus.NewMock(t)
-
-	meterAdapter, err := meteradapter.New(nil)
-	require.NoErrorf(t, err, "initializing Meter adapter must not fail")
-	require.NotNilf(t, meterAdapter, "Meter adapter must not be nil")
-
-	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)
-	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher)
-
-	addonAdapter, err := adapter.New(adapter.Config{
-		Client: client,
-		Logger: logger,
-	})
-	require.NoErrorf(t, err, "initializing add-on adapter must not fail")
-	require.NotNilf(t, addonAdapter, "add-on adapter must not be nil")
-
-	config := Config{
-		Feature:   featureService,
-		Adapter:   addonAdapter,
-		Logger:    logger,
-		Publisher: publisher,
-	}
-
-	addonService, err := New(config)
-	require.NoErrorf(t, err, "initializing add-on service must not fail")
-	require.NotNilf(t, addonService, "add-on service must not be nil")
-
-	return &testEnv{
-		Meter:   meterAdapter,
-		Feature: featureService,
-		Addon:   addonService,
-		db:      db,
-		client:  client,
-		close:   sync.Once{},
-	}
 }
