@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"maps"
 	"strconv"
 	"strings"
 	"time"
@@ -92,13 +92,13 @@ func (s *Service) GetWorkloadMetrics(ctx context.Context, workloadID string, par
 		return m, err
 	}
 
-	if resp.StatusCode() != http.StatusOK {
-		return m, fmt.Errorf("failed to get workload metrics, status code: %d", resp.StatusCode())
+	if resp.StatusCode() >= 400 {
+		return m, fmt.Errorf("failed to get workload metrics after %d retries, status: %d %s", s.client.RetryCount, resp.StatusCode(), resp.Status())
 	}
 
-	result := resp.Result().(*MeasurementResponse)
-	if result == nil {
-		return m, fmt.Errorf("failed to get workload metrics, result is nil")
+	result, ok := resp.Result().(*MeasurementResponse)
+	if !ok || result == nil {
+		return m, fmt.Errorf("failed to get workload metrics due to invalid response")
 	}
 
 	for _, measurement := range result.Measurements {
@@ -149,8 +149,8 @@ func (s *Service) GetAllWorkloadWithMetrics(ctx context.Context, params Measurem
 		return nil, err
 	}
 
-	workloadsWithMetrics := make([]WorkloadWithMetrics, len(workloads))
-	for i, workload := range workloads {
+	workloadsWithMetrics := make([]WorkloadWithMetrics, 0, len(workloads))
+	for _, workload := range workloads {
 		metrics := Metrics{
 			Timestamp: params.EndTime.UTC(),
 			Values:    make(map[MetricType]float64),
@@ -164,17 +164,21 @@ func (s *Service) GetAllWorkloadWithMetrics(ctx context.Context, params Measurem
 				EndTime:    params.EndTime.UTC(),
 			})
 			if err != nil {
-				return nil, err
+				// We don't want to fail the whole operation if one workload fails to get metrics
+				s.logger.With("startTime", params.StartTime.UTC(), "endTime", params.EndTime.UTC(), "workloadID", workload.ID, "metricTypes", metricTypes).Errorf("failed to get workload metrics: %w", err)
+				continue
 			}
 
-			for mt, v := range m.Values {
-				metrics.Values[mt] = v
-			}
+			// Copy the metrics into the metrics struct
+			maps.Copy(metrics.Values, m.Values)
 		}
 
-		workloadsWithMetrics[i] = WorkloadWithMetrics{
-			Workload: workload,
-			Metrics:  metrics,
+		// Only add the workload to the list if it has metrics
+		if len(metrics.Values) > 0 {
+			workloadsWithMetrics = append(workloadsWithMetrics, WorkloadWithMetrics{
+				Workload: workload,
+				Metrics:  metrics,
+			})
 		}
 	}
 
@@ -228,13 +232,13 @@ func (s *Service) GetPodMetrics(ctx context.Context, workloadID string, podID st
 		return m, err
 	}
 
-	if resp.StatusCode() != http.StatusOK {
-		return m, fmt.Errorf("failed to get pod metrics, status code: %d", resp.StatusCode())
+	if resp.StatusCode() >= 400 {
+		return m, fmt.Errorf("failed to get pod metrics after %d retries, status: %d %s", s.client.RetryCount, resp.StatusCode(), resp.Status())
 	}
 
-	result := resp.Result().(*MeasurementResponse)
-	if result == nil {
-		return m, fmt.Errorf("failed to get pod metrics, result is nil")
+	result, ok := resp.Result().(*MeasurementResponse)
+	if !ok || result == nil {
+		return m, fmt.Errorf("failed to get pod metrics due to invalid response")
 	}
 
 	for _, measurement := range result.Measurements {
@@ -285,8 +289,8 @@ func (s *Service) GetAllPodWithMetrics(ctx context.Context, params MeasurementPa
 		return nil, err
 	}
 
-	podsWithMetrics := make([]PodWithMetrics, len(pods))
-	for i, pod := range pods {
+	podsWithMetrics := make([]PodWithMetrics, 0, len(pods))
+	for _, pod := range pods {
 		metrics := Metrics{
 			Timestamp: params.EndTime.UTC(),
 			Values:    make(map[MetricType]float64),
@@ -300,17 +304,21 @@ func (s *Service) GetAllPodWithMetrics(ctx context.Context, params MeasurementPa
 				EndTime:    params.EndTime.UTC(),
 			})
 			if err != nil {
-				return nil, err
+				// We don't want to fail the whole operation if one pod fails to get metrics
+				s.logger.With("startTime", params.StartTime.UTC(), "endTime", params.EndTime.UTC(), "workloadID", pod.WorkloadID, "podID", pod.ID, "metricTypes", metricTypes).Errorf("failed to get pod metrics: %w", err)
+				continue
 			}
 
-			for mt, v := range m.Values {
-				metrics.Values[mt] = v
-			}
+			// Copy the metrics into the metrics struct
+			maps.Copy(metrics.Values, m.Values)
 		}
 
-		podsWithMetrics[i] = PodWithMetrics{
-			Pod:     pod,
-			Metrics: metrics,
+		// Only add the pod to the list if it has metrics
+		if len(metrics.Values) > 0 {
+			podsWithMetrics = append(podsWithMetrics, PodWithMetrics{
+				Pod:     pod,
+				Metrics: metrics,
+			})
 		}
 	}
 
