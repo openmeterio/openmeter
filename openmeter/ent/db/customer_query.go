@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingledger"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -34,6 +35,7 @@ type CustomerQuery struct {
 	withBillingCustomerOverride *BillingCustomerOverrideQuery
 	withBillingInvoice          *BillingInvoiceQuery
 	withSubscription            *SubscriptionQuery
+	withBillingLedger           *BillingLedgerQuery
 	modifiers                   []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -174,6 +176,28 @@ func (cq *CustomerQuery) QuerySubscription() *SubscriptionQuery {
 			sqlgraph.From(customer.Table, customer.FieldID, selector),
 			sqlgraph.To(subscription.Table, subscription.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.SubscriptionTable, customer.SubscriptionColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingLedger chains the current query on the "billing_ledger" edge.
+func (cq *CustomerQuery) QueryBillingLedger() *BillingLedgerQuery {
+	query := (&BillingLedgerClient{config: cq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := cq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := cq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, selector),
+			sqlgraph.To(billingledger.Table, billingledger.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingLedgerTable, customer.BillingLedgerColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
 		return fromU, nil
@@ -378,6 +402,7 @@ func (cq *CustomerQuery) Clone() *CustomerQuery {
 		withBillingCustomerOverride: cq.withBillingCustomerOverride.Clone(),
 		withBillingInvoice:          cq.withBillingInvoice.Clone(),
 		withSubscription:            cq.withSubscription.Clone(),
+		withBillingLedger:           cq.withBillingLedger.Clone(),
 		// clone intermediate query.
 		sql:  cq.sql.Clone(),
 		path: cq.path,
@@ -436,6 +461,17 @@ func (cq *CustomerQuery) WithSubscription(opts ...func(*SubscriptionQuery)) *Cus
 		opt(query)
 	}
 	cq.withSubscription = query
+	return cq
+}
+
+// WithBillingLedger tells the query-builder to eager-load the nodes that are connected to
+// the "billing_ledger" edge. The optional arguments are used to configure the query builder of the edge.
+func (cq *CustomerQuery) WithBillingLedger(opts ...func(*BillingLedgerQuery)) *CustomerQuery {
+	query := (&BillingLedgerClient{config: cq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	cq.withBillingLedger = query
 	return cq
 }
 
@@ -517,12 +553,13 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 	var (
 		nodes       = []*Customer{}
 		_spec       = cq.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			cq.withApps != nil,
 			cq.withSubjects != nil,
 			cq.withBillingCustomerOverride != nil,
 			cq.withBillingInvoice != nil,
 			cq.withSubscription != nil,
+			cq.withBillingLedger != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -577,6 +614,13 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 		if err := cq.loadSubscription(ctx, query, nodes,
 			func(n *Customer) { n.Edges.Subscription = []*Subscription{} },
 			func(n *Customer, e *Subscription) { n.Edges.Subscription = append(n.Edges.Subscription, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := cq.withBillingLedger; query != nil {
+		if err := cq.loadBillingLedger(ctx, query, nodes,
+			func(n *Customer) { n.Edges.BillingLedger = []*BillingLedger{} },
+			func(n *Customer, e *BillingLedger) { n.Edges.BillingLedger = append(n.Edges.BillingLedger, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -715,6 +759,36 @@ func (cq *CustomerQuery) loadSubscription(ctx context.Context, query *Subscripti
 	}
 	query.Where(predicate.Subscription(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(customer.SubscriptionColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "customer_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (cq *CustomerQuery) loadBillingLedger(ctx context.Context, query *BillingLedgerQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *BillingLedger)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Customer)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billingledger.FieldCustomerID)
+	}
+	query.Where(predicate.BillingLedger(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customer.BillingLedgerColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

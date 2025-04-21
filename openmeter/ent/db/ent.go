@@ -31,8 +31,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingledger"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsubledger"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsubledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -134,8 +137,11 @@ func checkColumn(table, column string) error {
 			billinginvoicelineusagediscount.Table:    billinginvoicelineusagediscount.ValidColumn,
 			billinginvoiceusagebasedlineconfig.Table: billinginvoiceusagebasedlineconfig.ValidColumn,
 			billinginvoicevalidationissue.Table:      billinginvoicevalidationissue.ValidColumn,
+			billingledger.Table:                      billingledger.ValidColumn,
 			billingprofile.Table:                     billingprofile.ValidColumn,
 			billingsequencenumbers.Table:             billingsequencenumbers.ValidColumn,
+			billingsubledger.Table:                   billingsubledger.ValidColumn,
+			billingsubledgertransaction.Table:        billingsubledgertransaction.ValidColumn,
 			billingworkflowconfig.Table:              billingworkflowconfig.ValidColumn,
 			customer.Table:                           customer.ValidColumn,
 			customersubjects.Table:                   customersubjects.ValidColumn,

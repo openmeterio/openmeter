@@ -1427,6 +1427,20 @@ func (u *BillingInvoiceValidationIssueUpdateOne) SetOrClearPath(value *string) *
 	return u.SetPath(*value)
 }
 
+func (u *BillingLedgerUpdate) SetOrClearDeletedAt(value *time.Time) *BillingLedgerUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingLedgerUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingLedgerUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *BillingProfileUpdate) SetOrClearMetadata(value *map[string]string) *BillingProfileUpdate {
 	if value == nil {
 		return u.ClearMetadata()
@@ -1579,6 +1593,118 @@ func (u *BillingProfileUpdateOne) SetOrClearSupplierTaxCode(value *string) *Bill
 		return u.ClearSupplierTaxCode()
 	}
 	return u.SetSupplierTaxCode(*value)
+}
+
+func (u *BillingSubledgerUpdate) SetOrClearMetadata(value *map[string]string) *BillingSubledgerUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingSubledgerUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingSubledgerUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingSubledgerUpdate) SetOrClearDeletedAt(value *time.Time) *BillingSubledgerUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingSubledgerUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingSubledgerUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingSubledgerUpdate) SetOrClearDescription(value *string) *BillingSubledgerUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingSubledgerUpdateOne) SetOrClearDescription(value *string) *BillingSubledgerUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingSubledgerTransactionUpdate) SetOrClearMetadata(value *map[string]string) *BillingSubledgerTransactionUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingSubledgerTransactionUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingSubledgerTransactionUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingSubledgerTransactionUpdate) SetOrClearDeletedAt(value *time.Time) *BillingSubledgerTransactionUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingSubledgerTransactionUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingSubledgerTransactionUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingSubledgerTransactionUpdate) SetOrClearDescription(value *string) *BillingSubledgerTransactionUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingSubledgerTransactionUpdateOne) SetOrClearDescription(value *string) *BillingSubledgerTransactionUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingSubledgerTransactionUpdate) SetOrClearOwnerType(value *string) *BillingSubledgerTransactionUpdate {
+	if value == nil {
+		return u.ClearOwnerType()
+	}
+	return u.SetOwnerType(*value)
+}
+
+func (u *BillingSubledgerTransactionUpdateOne) SetOrClearOwnerType(value *string) *BillingSubledgerTransactionUpdateOne {
+	if value == nil {
+		return u.ClearOwnerType()
+	}
+	return u.SetOwnerType(*value)
+}
+
+func (u *BillingSubledgerTransactionUpdate) SetOrClearOwnerID(value *string) *BillingSubledgerTransactionUpdate {
+	if value == nil {
+		return u.ClearOwnerID()
+	}
+	return u.SetOwnerID(*value)
+}
+
+func (u *BillingSubledgerTransactionUpdateOne) SetOrClearOwnerID(value *string) *BillingSubledgerTransactionUpdateOne {
+	if value == nil {
+		return u.ClearOwnerID()
+	}
+	return u.SetOwnerID(*value)
 }
 
 func (u *BillingWorkflowConfigUpdate) SetOrClearDeletedAt(value *time.Time) *BillingWorkflowConfigUpdate {

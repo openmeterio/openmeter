@@ -225,6 +225,18 @@ func (f BillingInvoiceValidationIssueFunc) Mutate(ctx context.Context, m db.Muta
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceValidationIssueMutation", m)
 }
 
+// The BillingLedgerFunc type is an adapter to allow the use of ordinary
+// function as BillingLedger mutator.
+type BillingLedgerFunc func(context.Context, *db.BillingLedgerMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingLedgerFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingLedgerMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingLedgerMutation", m)
+}
+
 // The BillingProfileFunc type is an adapter to allow the use of ordinary
 // function as BillingProfile mutator.
 type BillingProfileFunc func(context.Context, *db.BillingProfileMutation) (db.Value, error)
@@ -247,6 +259,30 @@ func (f BillingSequenceNumbersFunc) Mutate(ctx context.Context, m db.Mutation) (
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingSequenceNumbersMutation", m)
+}
+
+// The BillingSubledgerFunc type is an adapter to allow the use of ordinary
+// function as BillingSubledger mutator.
+type BillingSubledgerFunc func(context.Context, *db.BillingSubledgerMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingSubledgerFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingSubledgerMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingSubledgerMutation", m)
+}
+
+// The BillingSubledgerTransactionFunc type is an adapter to allow the use of ordinary
+// function as BillingSubledgerTransaction mutator.
+type BillingSubledgerTransactionFunc func(context.Context, *db.BillingSubledgerTransactionMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingSubledgerTransactionFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingSubledgerTransactionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingSubledgerTransactionMutation", m)
 }
 
 // The BillingWorkflowConfigFunc type is an adapter to allow the use of ordinary

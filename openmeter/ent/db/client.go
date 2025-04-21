@@ -33,8 +33,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingledger"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsubledger"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsubledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -101,10 +104,16 @@ type Client struct {
 	BillingInvoiceUsageBasedLineConfig *BillingInvoiceUsageBasedLineConfigClient
 	// BillingInvoiceValidationIssue is the client for interacting with the BillingInvoiceValidationIssue builders.
 	BillingInvoiceValidationIssue *BillingInvoiceValidationIssueClient
+	// BillingLedger is the client for interacting with the BillingLedger builders.
+	BillingLedger *BillingLedgerClient
 	// BillingProfile is the client for interacting with the BillingProfile builders.
 	BillingProfile *BillingProfileClient
 	// BillingSequenceNumbers is the client for interacting with the BillingSequenceNumbers builders.
 	BillingSequenceNumbers *BillingSequenceNumbersClient
+	// BillingSubledger is the client for interacting with the BillingSubledger builders.
+	BillingSubledger *BillingSubledgerClient
+	// BillingSubledgerTransaction is the client for interacting with the BillingSubledgerTransaction builders.
+	BillingSubledgerTransaction *BillingSubledgerTransactionClient
 	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
 	BillingWorkflowConfig *BillingWorkflowConfigClient
 	// Customer is the client for interacting with the Customer builders.
@@ -176,8 +185,11 @@ func (c *Client) init() {
 	c.BillingInvoiceLineUsageDiscount = NewBillingInvoiceLineUsageDiscountClient(c.config)
 	c.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(c.config)
 	c.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(c.config)
+	c.BillingLedger = NewBillingLedgerClient(c.config)
 	c.BillingProfile = NewBillingProfileClient(c.config)
 	c.BillingSequenceNumbers = NewBillingSequenceNumbersClient(c.config)
+	c.BillingSubledger = NewBillingSubledgerClient(c.config)
+	c.BillingSubledgerTransaction = NewBillingSubledgerTransactionClient(c.config)
 	c.BillingWorkflowConfig = NewBillingWorkflowConfigClient(c.config)
 	c.Customer = NewCustomerClient(c.config)
 	c.CustomerSubjects = NewCustomerSubjectsClient(c.config)
@@ -309,8 +321,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BillingInvoiceLineUsageDiscount:    NewBillingInvoiceLineUsageDiscountClient(cfg),
 		BillingInvoiceUsageBasedLineConfig: NewBillingInvoiceUsageBasedLineConfigClient(cfg),
 		BillingInvoiceValidationIssue:      NewBillingInvoiceValidationIssueClient(cfg),
+		BillingLedger:                      NewBillingLedgerClient(cfg),
 		BillingProfile:                     NewBillingProfileClient(cfg),
 		BillingSequenceNumbers:             NewBillingSequenceNumbersClient(cfg),
+		BillingSubledger:                   NewBillingSubledgerClient(cfg),
+		BillingSubledgerTransaction:        NewBillingSubledgerTransactionClient(cfg),
 		BillingWorkflowConfig:              NewBillingWorkflowConfigClient(cfg),
 		Customer:                           NewCustomerClient(cfg),
 		CustomerSubjects:                   NewCustomerSubjectsClient(cfg),
@@ -369,8 +384,11 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BillingInvoiceLineUsageDiscount:    NewBillingInvoiceLineUsageDiscountClient(cfg),
 		BillingInvoiceUsageBasedLineConfig: NewBillingInvoiceUsageBasedLineConfigClient(cfg),
 		BillingInvoiceValidationIssue:      NewBillingInvoiceValidationIssueClient(cfg),
+		BillingLedger:                      NewBillingLedgerClient(cfg),
 		BillingProfile:                     NewBillingProfileClient(cfg),
 		BillingSequenceNumbers:             NewBillingSequenceNumbersClient(cfg),
+		BillingSubledger:                   NewBillingSubledgerClient(cfg),
+		BillingSubledgerTransaction:        NewBillingSubledgerTransactionClient(cfg),
 		BillingWorkflowConfig:              NewBillingWorkflowConfigClient(cfg),
 		Customer:                           NewCustomerClient(cfg),
 		CustomerSubjects:                   NewCustomerSubjectsClient(cfg),
@@ -427,7 +445,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
 		c.BillingInvoiceLineDiscount, c.BillingInvoiceLineUsageDiscount,
 		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
-		c.BillingProfile, c.BillingSequenceNumbers, c.BillingWorkflowConfig,
+		c.BillingLedger, c.BillingProfile, c.BillingSequenceNumbers,
+		c.BillingSubledger, c.BillingSubledgerTransaction, c.BillingWorkflowConfig,
 		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
 		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
 		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
@@ -448,7 +467,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
 		c.BillingInvoiceLineDiscount, c.BillingInvoiceLineUsageDiscount,
 		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
-		c.BillingProfile, c.BillingSequenceNumbers, c.BillingWorkflowConfig,
+		c.BillingLedger, c.BillingProfile, c.BillingSequenceNumbers,
+		c.BillingSubledger, c.BillingSubledgerTransaction, c.BillingWorkflowConfig,
 		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
 		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
 		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
@@ -498,10 +518,16 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BillingInvoiceUsageBasedLineConfig.mutate(ctx, m)
 	case *BillingInvoiceValidationIssueMutation:
 		return c.BillingInvoiceValidationIssue.mutate(ctx, m)
+	case *BillingLedgerMutation:
+		return c.BillingLedger.mutate(ctx, m)
 	case *BillingProfileMutation:
 		return c.BillingProfile.mutate(ctx, m)
 	case *BillingSequenceNumbersMutation:
 		return c.BillingSequenceNumbers.mutate(ctx, m)
+	case *BillingSubledgerMutation:
+		return c.BillingSubledger.mutate(ctx, m)
+	case *BillingSubledgerTransactionMutation:
+		return c.BillingSubledgerTransaction.mutate(ctx, m)
 	case *BillingWorkflowConfigMutation:
 		return c.BillingWorkflowConfig.mutate(ctx, m)
 	case *CustomerMutation:
@@ -3679,6 +3705,187 @@ func (c *BillingInvoiceValidationIssueClient) mutate(ctx context.Context, m *Bil
 	}
 }
 
+// BillingLedgerClient is a client for the BillingLedger schema.
+type BillingLedgerClient struct {
+	config
+}
+
+// NewBillingLedgerClient returns a client for the BillingLedger from the given config.
+func NewBillingLedgerClient(c config) *BillingLedgerClient {
+	return &BillingLedgerClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billingledger.Hooks(f(g(h())))`.
+func (c *BillingLedgerClient) Use(hooks ...Hook) {
+	c.hooks.BillingLedger = append(c.hooks.BillingLedger, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billingledger.Intercept(f(g(h())))`.
+func (c *BillingLedgerClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingLedger = append(c.inters.BillingLedger, interceptors...)
+}
+
+// Create returns a builder for creating a BillingLedger entity.
+func (c *BillingLedgerClient) Create() *BillingLedgerCreate {
+	mutation := newBillingLedgerMutation(c.config, OpCreate)
+	return &BillingLedgerCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingLedger entities.
+func (c *BillingLedgerClient) CreateBulk(builders ...*BillingLedgerCreate) *BillingLedgerCreateBulk {
+	return &BillingLedgerCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingLedgerClient) MapCreateBulk(slice any, setFunc func(*BillingLedgerCreate, int)) *BillingLedgerCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingLedgerCreateBulk{err: fmt.Errorf("calling to BillingLedgerClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingLedgerCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingLedgerCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingLedger.
+func (c *BillingLedgerClient) Update() *BillingLedgerUpdate {
+	mutation := newBillingLedgerMutation(c.config, OpUpdate)
+	return &BillingLedgerUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingLedgerClient) UpdateOne(bl *BillingLedger) *BillingLedgerUpdateOne {
+	mutation := newBillingLedgerMutation(c.config, OpUpdateOne, withBillingLedger(bl))
+	return &BillingLedgerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingLedgerClient) UpdateOneID(id string) *BillingLedgerUpdateOne {
+	mutation := newBillingLedgerMutation(c.config, OpUpdateOne, withBillingLedgerID(id))
+	return &BillingLedgerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingLedger.
+func (c *BillingLedgerClient) Delete() *BillingLedgerDelete {
+	mutation := newBillingLedgerMutation(c.config, OpDelete)
+	return &BillingLedgerDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingLedgerClient) DeleteOne(bl *BillingLedger) *BillingLedgerDeleteOne {
+	return c.DeleteOneID(bl.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingLedgerClient) DeleteOneID(id string) *BillingLedgerDeleteOne {
+	builder := c.Delete().Where(billingledger.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingLedgerDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingLedger.
+func (c *BillingLedgerClient) Query() *BillingLedgerQuery {
+	return &BillingLedgerQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingLedger},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingLedger entity by its id.
+func (c *BillingLedgerClient) Get(ctx context.Context, id string) (*BillingLedger, error) {
+	return c.Query().Where(billingledger.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingLedgerClient) GetX(ctx context.Context, id string) *BillingLedger {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySubledgers queries the subledgers edge of a BillingLedger.
+func (c *BillingLedgerClient) QuerySubledgers(bl *BillingLedger) *BillingSubledgerQuery {
+	query := (&BillingSubledgerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingledger.Table, billingledger.FieldID, id),
+			sqlgraph.To(billingsubledger.Table, billingsubledger.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billingledger.SubledgersTable, billingledger.SubledgersColumn),
+		)
+		fromV = sqlgraph.Neighbors(bl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTransactions queries the transactions edge of a BillingLedger.
+func (c *BillingLedgerClient) QueryTransactions(bl *BillingLedger) *BillingSubledgerTransactionQuery {
+	query := (&BillingSubledgerTransactionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingledger.Table, billingledger.FieldID, id),
+			sqlgraph.To(billingsubledgertransaction.Table, billingsubledgertransaction.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billingledger.TransactionsTable, billingledger.TransactionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(bl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomer queries the customer edge of a BillingLedger.
+func (c *BillingLedgerClient) QueryCustomer(bl *BillingLedger) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingledger.Table, billingledger.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingledger.CustomerTable, billingledger.CustomerColumn),
+		)
+		fromV = sqlgraph.Neighbors(bl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BillingLedgerClient) Hooks() []Hook {
+	return c.hooks.BillingLedger
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingLedgerClient) Interceptors() []Interceptor {
+	return c.inters.BillingLedger
+}
+
+func (c *BillingLedgerClient) mutate(ctx context.Context, m *BillingLedgerMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingLedgerCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingLedgerUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingLedgerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingLedgerDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingLedger mutation op: %q", m.Op())
+	}
+}
+
 // BillingProfileClient is a client for the BillingProfile schema.
 type BillingProfileClient struct {
 	config
@@ -4041,6 +4248,336 @@ func (c *BillingSequenceNumbersClient) mutate(ctx context.Context, m *BillingSeq
 	}
 }
 
+// BillingSubledgerClient is a client for the BillingSubledger schema.
+type BillingSubledgerClient struct {
+	config
+}
+
+// NewBillingSubledgerClient returns a client for the BillingSubledger from the given config.
+func NewBillingSubledgerClient(c config) *BillingSubledgerClient {
+	return &BillingSubledgerClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billingsubledger.Hooks(f(g(h())))`.
+func (c *BillingSubledgerClient) Use(hooks ...Hook) {
+	c.hooks.BillingSubledger = append(c.hooks.BillingSubledger, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billingsubledger.Intercept(f(g(h())))`.
+func (c *BillingSubledgerClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingSubledger = append(c.inters.BillingSubledger, interceptors...)
+}
+
+// Create returns a builder for creating a BillingSubledger entity.
+func (c *BillingSubledgerClient) Create() *BillingSubledgerCreate {
+	mutation := newBillingSubledgerMutation(c.config, OpCreate)
+	return &BillingSubledgerCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingSubledger entities.
+func (c *BillingSubledgerClient) CreateBulk(builders ...*BillingSubledgerCreate) *BillingSubledgerCreateBulk {
+	return &BillingSubledgerCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingSubledgerClient) MapCreateBulk(slice any, setFunc func(*BillingSubledgerCreate, int)) *BillingSubledgerCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingSubledgerCreateBulk{err: fmt.Errorf("calling to BillingSubledgerClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingSubledgerCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingSubledgerCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingSubledger.
+func (c *BillingSubledgerClient) Update() *BillingSubledgerUpdate {
+	mutation := newBillingSubledgerMutation(c.config, OpUpdate)
+	return &BillingSubledgerUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingSubledgerClient) UpdateOne(bs *BillingSubledger) *BillingSubledgerUpdateOne {
+	mutation := newBillingSubledgerMutation(c.config, OpUpdateOne, withBillingSubledger(bs))
+	return &BillingSubledgerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingSubledgerClient) UpdateOneID(id string) *BillingSubledgerUpdateOne {
+	mutation := newBillingSubledgerMutation(c.config, OpUpdateOne, withBillingSubledgerID(id))
+	return &BillingSubledgerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingSubledger.
+func (c *BillingSubledgerClient) Delete() *BillingSubledgerDelete {
+	mutation := newBillingSubledgerMutation(c.config, OpDelete)
+	return &BillingSubledgerDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingSubledgerClient) DeleteOne(bs *BillingSubledger) *BillingSubledgerDeleteOne {
+	return c.DeleteOneID(bs.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingSubledgerClient) DeleteOneID(id string) *BillingSubledgerDeleteOne {
+	builder := c.Delete().Where(billingsubledger.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingSubledgerDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingSubledger.
+func (c *BillingSubledgerClient) Query() *BillingSubledgerQuery {
+	return &BillingSubledgerQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingSubledger},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingSubledger entity by its id.
+func (c *BillingSubledgerClient) Get(ctx context.Context, id string) (*BillingSubledger, error) {
+	return c.Query().Where(billingsubledger.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingSubledgerClient) GetX(ctx context.Context, id string) *BillingSubledger {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryLedger queries the ledger edge of a BillingSubledger.
+func (c *BillingSubledgerClient) QueryLedger(bs *BillingSubledger) *BillingLedgerQuery {
+	query := (&BillingLedgerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bs.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingsubledger.Table, billingsubledger.FieldID, id),
+			sqlgraph.To(billingledger.Table, billingledger.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingsubledger.LedgerTable, billingsubledger.LedgerColumn),
+		)
+		fromV = sqlgraph.Neighbors(bs.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTransactions queries the transactions edge of a BillingSubledger.
+func (c *BillingSubledgerClient) QueryTransactions(bs *BillingSubledger) *BillingSubledgerTransactionQuery {
+	query := (&BillingSubledgerTransactionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bs.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingsubledger.Table, billingsubledger.FieldID, id),
+			sqlgraph.To(billingsubledgertransaction.Table, billingsubledgertransaction.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billingsubledger.TransactionsTable, billingsubledger.TransactionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(bs.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BillingSubledgerClient) Hooks() []Hook {
+	return c.hooks.BillingSubledger
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingSubledgerClient) Interceptors() []Interceptor {
+	return c.inters.BillingSubledger
+}
+
+func (c *BillingSubledgerClient) mutate(ctx context.Context, m *BillingSubledgerMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingSubledgerCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingSubledgerUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingSubledgerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingSubledgerDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingSubledger mutation op: %q", m.Op())
+	}
+}
+
+// BillingSubledgerTransactionClient is a client for the BillingSubledgerTransaction schema.
+type BillingSubledgerTransactionClient struct {
+	config
+}
+
+// NewBillingSubledgerTransactionClient returns a client for the BillingSubledgerTransaction from the given config.
+func NewBillingSubledgerTransactionClient(c config) *BillingSubledgerTransactionClient {
+	return &BillingSubledgerTransactionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billingsubledgertransaction.Hooks(f(g(h())))`.
+func (c *BillingSubledgerTransactionClient) Use(hooks ...Hook) {
+	c.hooks.BillingSubledgerTransaction = append(c.hooks.BillingSubledgerTransaction, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billingsubledgertransaction.Intercept(f(g(h())))`.
+func (c *BillingSubledgerTransactionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingSubledgerTransaction = append(c.inters.BillingSubledgerTransaction, interceptors...)
+}
+
+// Create returns a builder for creating a BillingSubledgerTransaction entity.
+func (c *BillingSubledgerTransactionClient) Create() *BillingSubledgerTransactionCreate {
+	mutation := newBillingSubledgerTransactionMutation(c.config, OpCreate)
+	return &BillingSubledgerTransactionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingSubledgerTransaction entities.
+func (c *BillingSubledgerTransactionClient) CreateBulk(builders ...*BillingSubledgerTransactionCreate) *BillingSubledgerTransactionCreateBulk {
+	return &BillingSubledgerTransactionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingSubledgerTransactionClient) MapCreateBulk(slice any, setFunc func(*BillingSubledgerTransactionCreate, int)) *BillingSubledgerTransactionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingSubledgerTransactionCreateBulk{err: fmt.Errorf("calling to BillingSubledgerTransactionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingSubledgerTransactionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingSubledgerTransactionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingSubledgerTransaction.
+func (c *BillingSubledgerTransactionClient) Update() *BillingSubledgerTransactionUpdate {
+	mutation := newBillingSubledgerTransactionMutation(c.config, OpUpdate)
+	return &BillingSubledgerTransactionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingSubledgerTransactionClient) UpdateOne(bst *BillingSubledgerTransaction) *BillingSubledgerTransactionUpdateOne {
+	mutation := newBillingSubledgerTransactionMutation(c.config, OpUpdateOne, withBillingSubledgerTransaction(bst))
+	return &BillingSubledgerTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingSubledgerTransactionClient) UpdateOneID(id string) *BillingSubledgerTransactionUpdateOne {
+	mutation := newBillingSubledgerTransactionMutation(c.config, OpUpdateOne, withBillingSubledgerTransactionID(id))
+	return &BillingSubledgerTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingSubledgerTransaction.
+func (c *BillingSubledgerTransactionClient) Delete() *BillingSubledgerTransactionDelete {
+	mutation := newBillingSubledgerTransactionMutation(c.config, OpDelete)
+	return &BillingSubledgerTransactionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingSubledgerTransactionClient) DeleteOne(bst *BillingSubledgerTransaction) *BillingSubledgerTransactionDeleteOne {
+	return c.DeleteOneID(bst.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingSubledgerTransactionClient) DeleteOneID(id string) *BillingSubledgerTransactionDeleteOne {
+	builder := c.Delete().Where(billingsubledgertransaction.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingSubledgerTransactionDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingSubledgerTransaction.
+func (c *BillingSubledgerTransactionClient) Query() *BillingSubledgerTransactionQuery {
+	return &BillingSubledgerTransactionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingSubledgerTransaction},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingSubledgerTransaction entity by its id.
+func (c *BillingSubledgerTransactionClient) Get(ctx context.Context, id string) (*BillingSubledgerTransaction, error) {
+	return c.Query().Where(billingsubledgertransaction.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingSubledgerTransactionClient) GetX(ctx context.Context, id string) *BillingSubledgerTransaction {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySubledger queries the subledger edge of a BillingSubledgerTransaction.
+func (c *BillingSubledgerTransactionClient) QuerySubledger(bst *BillingSubledgerTransaction) *BillingSubledgerQuery {
+	query := (&BillingSubledgerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bst.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingsubledgertransaction.Table, billingsubledgertransaction.FieldID, id),
+			sqlgraph.To(billingsubledger.Table, billingsubledger.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingsubledgertransaction.SubledgerTable, billingsubledgertransaction.SubledgerColumn),
+		)
+		fromV = sqlgraph.Neighbors(bst.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryLedger queries the ledger edge of a BillingSubledgerTransaction.
+func (c *BillingSubledgerTransactionClient) QueryLedger(bst *BillingSubledgerTransaction) *BillingLedgerQuery {
+	query := (&BillingLedgerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bst.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingsubledgertransaction.Table, billingsubledgertransaction.FieldID, id),
+			sqlgraph.To(billingledger.Table, billingledger.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingsubledgertransaction.LedgerTable, billingsubledgertransaction.LedgerColumn),
+		)
+		fromV = sqlgraph.Neighbors(bst.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BillingSubledgerTransactionClient) Hooks() []Hook {
+	return c.hooks.BillingSubledgerTransaction
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingSubledgerTransactionClient) Interceptors() []Interceptor {
+	return c.inters.BillingSubledgerTransaction
+}
+
+func (c *BillingSubledgerTransactionClient) mutate(ctx context.Context, m *BillingSubledgerTransactionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingSubledgerTransactionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingSubledgerTransactionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingSubledgerTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingSubledgerTransactionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingSubledgerTransaction mutation op: %q", m.Op())
+	}
+}
+
 // BillingWorkflowConfigClient is a client for the BillingWorkflowConfig schema.
 type BillingWorkflowConfigClient struct {
 	config
@@ -4387,6 +4924,22 @@ func (c *CustomerClient) QuerySubscription(cu *Customer) *SubscriptionQuery {
 			sqlgraph.From(customer.Table, customer.FieldID, id),
 			sqlgraph.To(subscription.Table, subscription.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.SubscriptionTable, customer.SubscriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingLedger queries the billing_ledger edge of a Customer.
+func (c *CustomerClient) QueryBillingLedger(cu *Customer) *BillingLedgerQuery {
+	query := (&BillingLedgerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := cu.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, id),
+			sqlgraph.To(billingledger.Table, billingledger.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingLedgerTable, customer.BillingLedgerColumn),
 		)
 		fromV = sqlgraph.Neighbors(cu.driver.Dialect(), step)
 		return fromV, nil
@@ -7611,12 +8164,12 @@ type (
 		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
 		BillingInvoiceLineDiscount, BillingInvoiceLineUsageDiscount,
 		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
-		BillingProfile, BillingSequenceNumbers, BillingWorkflowConfig, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, Subscription, SubscriptionAddon,
-		SubscriptionAddonQuantity, SubscriptionItem, SubscriptionPhase,
-		UsageReset []ent.Hook
+		BillingLedger, BillingProfile, BillingSequenceNumbers, BillingSubledger,
+		BillingSubledgerTransaction, BillingWorkflowConfig, Customer, CustomerSubjects,
+		Entitlement, Feature, Grant, Meter, NotificationChannel, NotificationEvent,
+		NotificationEventDeliveryStatus, NotificationRule, Plan, PlanAddon, PlanPhase,
+		PlanRateCard, Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
+		SubscriptionItem, SubscriptionPhase, UsageReset []ent.Hook
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
@@ -7625,12 +8178,12 @@ type (
 		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
 		BillingInvoiceLineDiscount, BillingInvoiceLineUsageDiscount,
 		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
-		BillingProfile, BillingSequenceNumbers, BillingWorkflowConfig, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, Subscription, SubscriptionAddon,
-		SubscriptionAddonQuantity, SubscriptionItem, SubscriptionPhase,
-		UsageReset []ent.Interceptor
+		BillingLedger, BillingProfile, BillingSequenceNumbers, BillingSubledger,
+		BillingSubledgerTransaction, BillingWorkflowConfig, Customer, CustomerSubjects,
+		Entitlement, Feature, Grant, Meter, NotificationChannel, NotificationEvent,
+		NotificationEventDeliveryStatus, NotificationRule, Plan, PlanAddon, PlanPhase,
+		PlanRateCard, Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
+		SubscriptionItem, SubscriptionPhase, UsageReset []ent.Interceptor
 	}
 )
 

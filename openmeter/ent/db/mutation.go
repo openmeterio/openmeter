@@ -34,8 +34,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingledger"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsubledger"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsubledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -93,8 +96,11 @@ const (
 	TypeBillingInvoiceLineUsageDiscount    = "BillingInvoiceLineUsageDiscount"
 	TypeBillingInvoiceUsageBasedLineConfig = "BillingInvoiceUsageBasedLineConfig"
 	TypeBillingInvoiceValidationIssue      = "BillingInvoiceValidationIssue"
+	TypeBillingLedger                      = "BillingLedger"
 	TypeBillingProfile                     = "BillingProfile"
 	TypeBillingSequenceNumbers             = "BillingSequenceNumbers"
+	TypeBillingSubledger                   = "BillingSubledger"
+	TypeBillingSubledgerTransaction        = "BillingSubledgerTransaction"
 	TypeBillingWorkflowConfig              = "BillingWorkflowConfig"
 	TypeCustomer                           = "Customer"
 	TypeCustomerSubjects                   = "CustomerSubjects"
@@ -23100,6 +23106,852 @@ func (m *BillingInvoiceValidationIssueMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown BillingInvoiceValidationIssue edge %s", name)
 }
 
+// BillingLedgerMutation represents an operation that mutates the BillingLedger nodes in the graph.
+type BillingLedgerMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *string
+	namespace           *string
+	created_at          *time.Time
+	updated_at          *time.Time
+	deleted_at          *time.Time
+	currency            *currencyx.Code
+	clearedFields       map[string]struct{}
+	subledgers          map[string]struct{}
+	removedsubledgers   map[string]struct{}
+	clearedsubledgers   bool
+	transactions        map[string]struct{}
+	removedtransactions map[string]struct{}
+	clearedtransactions bool
+	customer            *string
+	clearedcustomer     bool
+	done                bool
+	oldValue            func(context.Context) (*BillingLedger, error)
+	predicates          []predicate.BillingLedger
+}
+
+var _ ent.Mutation = (*BillingLedgerMutation)(nil)
+
+// billingledgerOption allows management of the mutation configuration using functional options.
+type billingledgerOption func(*BillingLedgerMutation)
+
+// newBillingLedgerMutation creates new mutation for the BillingLedger entity.
+func newBillingLedgerMutation(c config, op Op, opts ...billingledgerOption) *BillingLedgerMutation {
+	m := &BillingLedgerMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBillingLedger,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBillingLedgerID sets the ID field of the mutation.
+func withBillingLedgerID(id string) billingledgerOption {
+	return func(m *BillingLedgerMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BillingLedger
+		)
+		m.oldValue = func(ctx context.Context) (*BillingLedger, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BillingLedger.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBillingLedger sets the old BillingLedger of the mutation.
+func withBillingLedger(node *BillingLedger) billingledgerOption {
+	return func(m *BillingLedgerMutation) {
+		m.oldValue = func(context.Context) (*BillingLedger, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BillingLedgerMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BillingLedgerMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of BillingLedger entities.
+func (m *BillingLedgerMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BillingLedgerMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BillingLedgerMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BillingLedger.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *BillingLedgerMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *BillingLedgerMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the BillingLedger entity.
+// If the BillingLedger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingLedgerMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *BillingLedgerMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BillingLedgerMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BillingLedgerMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the BillingLedger entity.
+// If the BillingLedger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingLedgerMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BillingLedgerMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *BillingLedgerMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *BillingLedgerMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the BillingLedger entity.
+// If the BillingLedger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingLedgerMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *BillingLedgerMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *BillingLedgerMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *BillingLedgerMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the BillingLedger entity.
+// If the BillingLedger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingLedgerMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *BillingLedgerMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[billingledger.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *BillingLedgerMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[billingledger.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *BillingLedgerMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, billingledger.FieldDeletedAt)
+}
+
+// SetCustomerID sets the "customer_id" field.
+func (m *BillingLedgerMutation) SetCustomerID(s string) {
+	m.customer = &s
+}
+
+// CustomerID returns the value of the "customer_id" field in the mutation.
+func (m *BillingLedgerMutation) CustomerID() (r string, exists bool) {
+	v := m.customer
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerID returns the old "customer_id" field's value of the BillingLedger entity.
+// If the BillingLedger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingLedgerMutation) OldCustomerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerID: %w", err)
+	}
+	return oldValue.CustomerID, nil
+}
+
+// ResetCustomerID resets all changes to the "customer_id" field.
+func (m *BillingLedgerMutation) ResetCustomerID() {
+	m.customer = nil
+}
+
+// SetCurrency sets the "currency" field.
+func (m *BillingLedgerMutation) SetCurrency(c currencyx.Code) {
+	m.currency = &c
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *BillingLedgerMutation) Currency() (r currencyx.Code, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the BillingLedger entity.
+// If the BillingLedger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingLedgerMutation) OldCurrency(ctx context.Context) (v currencyx.Code, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *BillingLedgerMutation) ResetCurrency() {
+	m.currency = nil
+}
+
+// AddSubledgerIDs adds the "subledgers" edge to the BillingSubledger entity by ids.
+func (m *BillingLedgerMutation) AddSubledgerIDs(ids ...string) {
+	if m.subledgers == nil {
+		m.subledgers = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.subledgers[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSubledgers clears the "subledgers" edge to the BillingSubledger entity.
+func (m *BillingLedgerMutation) ClearSubledgers() {
+	m.clearedsubledgers = true
+}
+
+// SubledgersCleared reports if the "subledgers" edge to the BillingSubledger entity was cleared.
+func (m *BillingLedgerMutation) SubledgersCleared() bool {
+	return m.clearedsubledgers
+}
+
+// RemoveSubledgerIDs removes the "subledgers" edge to the BillingSubledger entity by IDs.
+func (m *BillingLedgerMutation) RemoveSubledgerIDs(ids ...string) {
+	if m.removedsubledgers == nil {
+		m.removedsubledgers = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.subledgers, ids[i])
+		m.removedsubledgers[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSubledgers returns the removed IDs of the "subledgers" edge to the BillingSubledger entity.
+func (m *BillingLedgerMutation) RemovedSubledgersIDs() (ids []string) {
+	for id := range m.removedsubledgers {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SubledgersIDs returns the "subledgers" edge IDs in the mutation.
+func (m *BillingLedgerMutation) SubledgersIDs() (ids []string) {
+	for id := range m.subledgers {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSubledgers resets all changes to the "subledgers" edge.
+func (m *BillingLedgerMutation) ResetSubledgers() {
+	m.subledgers = nil
+	m.clearedsubledgers = false
+	m.removedsubledgers = nil
+}
+
+// AddTransactionIDs adds the "transactions" edge to the BillingSubledgerTransaction entity by ids.
+func (m *BillingLedgerMutation) AddTransactionIDs(ids ...string) {
+	if m.transactions == nil {
+		m.transactions = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.transactions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTransactions clears the "transactions" edge to the BillingSubledgerTransaction entity.
+func (m *BillingLedgerMutation) ClearTransactions() {
+	m.clearedtransactions = true
+}
+
+// TransactionsCleared reports if the "transactions" edge to the BillingSubledgerTransaction entity was cleared.
+func (m *BillingLedgerMutation) TransactionsCleared() bool {
+	return m.clearedtransactions
+}
+
+// RemoveTransactionIDs removes the "transactions" edge to the BillingSubledgerTransaction entity by IDs.
+func (m *BillingLedgerMutation) RemoveTransactionIDs(ids ...string) {
+	if m.removedtransactions == nil {
+		m.removedtransactions = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.transactions, ids[i])
+		m.removedtransactions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTransactions returns the removed IDs of the "transactions" edge to the BillingSubledgerTransaction entity.
+func (m *BillingLedgerMutation) RemovedTransactionsIDs() (ids []string) {
+	for id := range m.removedtransactions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TransactionsIDs returns the "transactions" edge IDs in the mutation.
+func (m *BillingLedgerMutation) TransactionsIDs() (ids []string) {
+	for id := range m.transactions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTransactions resets all changes to the "transactions" edge.
+func (m *BillingLedgerMutation) ResetTransactions() {
+	m.transactions = nil
+	m.clearedtransactions = false
+	m.removedtransactions = nil
+}
+
+// ClearCustomer clears the "customer" edge to the Customer entity.
+func (m *BillingLedgerMutation) ClearCustomer() {
+	m.clearedcustomer = true
+	m.clearedFields[billingledger.FieldCustomerID] = struct{}{}
+}
+
+// CustomerCleared reports if the "customer" edge to the Customer entity was cleared.
+func (m *BillingLedgerMutation) CustomerCleared() bool {
+	return m.clearedcustomer
+}
+
+// CustomerIDs returns the "customer" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomerID instead. It exists only for internal usage by the builders.
+func (m *BillingLedgerMutation) CustomerIDs() (ids []string) {
+	if id := m.customer; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomer resets all changes to the "customer" edge.
+func (m *BillingLedgerMutation) ResetCustomer() {
+	m.customer = nil
+	m.clearedcustomer = false
+}
+
+// Where appends a list predicates to the BillingLedgerMutation builder.
+func (m *BillingLedgerMutation) Where(ps ...predicate.BillingLedger) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BillingLedgerMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BillingLedgerMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BillingLedger, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BillingLedgerMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BillingLedgerMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BillingLedger).
+func (m *BillingLedgerMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BillingLedgerMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.namespace != nil {
+		fields = append(fields, billingledger.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, billingledger.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, billingledger.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, billingledger.FieldDeletedAt)
+	}
+	if m.customer != nil {
+		fields = append(fields, billingledger.FieldCustomerID)
+	}
+	if m.currency != nil {
+		fields = append(fields, billingledger.FieldCurrency)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BillingLedgerMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case billingledger.FieldNamespace:
+		return m.Namespace()
+	case billingledger.FieldCreatedAt:
+		return m.CreatedAt()
+	case billingledger.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case billingledger.FieldDeletedAt:
+		return m.DeletedAt()
+	case billingledger.FieldCustomerID:
+		return m.CustomerID()
+	case billingledger.FieldCurrency:
+		return m.Currency()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BillingLedgerMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case billingledger.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case billingledger.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case billingledger.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case billingledger.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case billingledger.FieldCustomerID:
+		return m.OldCustomerID(ctx)
+	case billingledger.FieldCurrency:
+		return m.OldCurrency(ctx)
+	}
+	return nil, fmt.Errorf("unknown BillingLedger field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingLedgerMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case billingledger.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case billingledger.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case billingledger.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case billingledger.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case billingledger.FieldCustomerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerID(v)
+		return nil
+	case billingledger.FieldCurrency:
+		v, ok := value.(currencyx.Code)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BillingLedger field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BillingLedgerMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BillingLedgerMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingLedgerMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown BillingLedger numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BillingLedgerMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(billingledger.FieldDeletedAt) {
+		fields = append(fields, billingledger.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BillingLedgerMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BillingLedgerMutation) ClearField(name string) error {
+	switch name {
+	case billingledger.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingLedger nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BillingLedgerMutation) ResetField(name string) error {
+	switch name {
+	case billingledger.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case billingledger.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case billingledger.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case billingledger.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case billingledger.FieldCustomerID:
+		m.ResetCustomerID()
+		return nil
+	case billingledger.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingLedger field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BillingLedgerMutation) AddedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.subledgers != nil {
+		edges = append(edges, billingledger.EdgeSubledgers)
+	}
+	if m.transactions != nil {
+		edges = append(edges, billingledger.EdgeTransactions)
+	}
+	if m.customer != nil {
+		edges = append(edges, billingledger.EdgeCustomer)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BillingLedgerMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case billingledger.EdgeSubledgers:
+		ids := make([]ent.Value, 0, len(m.subledgers))
+		for id := range m.subledgers {
+			ids = append(ids, id)
+		}
+		return ids
+	case billingledger.EdgeTransactions:
+		ids := make([]ent.Value, 0, len(m.transactions))
+		for id := range m.transactions {
+			ids = append(ids, id)
+		}
+		return ids
+	case billingledger.EdgeCustomer:
+		if id := m.customer; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BillingLedgerMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.removedsubledgers != nil {
+		edges = append(edges, billingledger.EdgeSubledgers)
+	}
+	if m.removedtransactions != nil {
+		edges = append(edges, billingledger.EdgeTransactions)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BillingLedgerMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case billingledger.EdgeSubledgers:
+		ids := make([]ent.Value, 0, len(m.removedsubledgers))
+		for id := range m.removedsubledgers {
+			ids = append(ids, id)
+		}
+		return ids
+	case billingledger.EdgeTransactions:
+		ids := make([]ent.Value, 0, len(m.removedtransactions))
+		for id := range m.removedtransactions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BillingLedgerMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.clearedsubledgers {
+		edges = append(edges, billingledger.EdgeSubledgers)
+	}
+	if m.clearedtransactions {
+		edges = append(edges, billingledger.EdgeTransactions)
+	}
+	if m.clearedcustomer {
+		edges = append(edges, billingledger.EdgeCustomer)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BillingLedgerMutation) EdgeCleared(name string) bool {
+	switch name {
+	case billingledger.EdgeSubledgers:
+		return m.clearedsubledgers
+	case billingledger.EdgeTransactions:
+		return m.clearedtransactions
+	case billingledger.EdgeCustomer:
+		return m.clearedcustomer
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BillingLedgerMutation) ClearEdge(name string) error {
+	switch name {
+	case billingledger.EdgeCustomer:
+		m.ClearCustomer()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingLedger unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BillingLedgerMutation) ResetEdge(name string) error {
+	switch name {
+	case billingledger.EdgeSubledgers:
+		m.ResetSubledgers()
+		return nil
+	case billingledger.EdgeTransactions:
+		m.ResetTransactions()
+		return nil
+	case billingledger.EdgeCustomer:
+		m.ResetCustomer()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingLedger edge %s", name)
+}
+
 // BillingProfileMutation represents an operation that mutates the BillingProfile nodes in the graph.
 type BillingProfileMutation struct {
 	config
@@ -25518,6 +26370,2183 @@ func (m *BillingSequenceNumbersMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown BillingSequenceNumbers edge %s", name)
 }
 
+// BillingSubledgerMutation represents an operation that mutates the BillingSubledger nodes in the graph.
+type BillingSubledgerMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *string
+	namespace           *string
+	metadata            *map[string]string
+	created_at          *time.Time
+	updated_at          *time.Time
+	deleted_at          *time.Time
+	name                *string
+	description         *string
+	key                 *string
+	priority            *int64
+	addpriority         *int64
+	clearedFields       map[string]struct{}
+	ledger              *string
+	clearedledger       bool
+	transactions        map[string]struct{}
+	removedtransactions map[string]struct{}
+	clearedtransactions bool
+	done                bool
+	oldValue            func(context.Context) (*BillingSubledger, error)
+	predicates          []predicate.BillingSubledger
+}
+
+var _ ent.Mutation = (*BillingSubledgerMutation)(nil)
+
+// billingsubledgerOption allows management of the mutation configuration using functional options.
+type billingsubledgerOption func(*BillingSubledgerMutation)
+
+// newBillingSubledgerMutation creates new mutation for the BillingSubledger entity.
+func newBillingSubledgerMutation(c config, op Op, opts ...billingsubledgerOption) *BillingSubledgerMutation {
+	m := &BillingSubledgerMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBillingSubledger,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBillingSubledgerID sets the ID field of the mutation.
+func withBillingSubledgerID(id string) billingsubledgerOption {
+	return func(m *BillingSubledgerMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BillingSubledger
+		)
+		m.oldValue = func(ctx context.Context) (*BillingSubledger, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BillingSubledger.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBillingSubledger sets the old BillingSubledger of the mutation.
+func withBillingSubledger(node *BillingSubledger) billingsubledgerOption {
+	return func(m *BillingSubledgerMutation) {
+		m.oldValue = func(context.Context) (*BillingSubledger, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BillingSubledgerMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BillingSubledgerMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of BillingSubledger entities.
+func (m *BillingSubledgerMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BillingSubledgerMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BillingSubledgerMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BillingSubledger.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *BillingSubledgerMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *BillingSubledgerMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the BillingSubledger entity.
+// If the BillingSubledger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *BillingSubledgerMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *BillingSubledgerMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *BillingSubledgerMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the BillingSubledger entity.
+// If the BillingSubledger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *BillingSubledgerMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[billingsubledger.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *BillingSubledgerMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[billingsubledger.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *BillingSubledgerMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, billingsubledger.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BillingSubledgerMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BillingSubledgerMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the BillingSubledger entity.
+// If the BillingSubledger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BillingSubledgerMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *BillingSubledgerMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *BillingSubledgerMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the BillingSubledger entity.
+// If the BillingSubledger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *BillingSubledgerMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *BillingSubledgerMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *BillingSubledgerMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the BillingSubledger entity.
+// If the BillingSubledger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *BillingSubledgerMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[billingsubledger.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *BillingSubledgerMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[billingsubledger.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *BillingSubledgerMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, billingsubledger.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *BillingSubledgerMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *BillingSubledgerMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the BillingSubledger entity.
+// If the BillingSubledger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *BillingSubledgerMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *BillingSubledgerMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *BillingSubledgerMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the BillingSubledger entity.
+// If the BillingSubledger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *BillingSubledgerMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[billingsubledger.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *BillingSubledgerMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[billingsubledger.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *BillingSubledgerMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, billingsubledger.FieldDescription)
+}
+
+// SetKey sets the "key" field.
+func (m *BillingSubledgerMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *BillingSubledgerMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the BillingSubledger entity.
+// If the BillingSubledger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerMutation) OldKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *BillingSubledgerMutation) ResetKey() {
+	m.key = nil
+}
+
+// SetLedgerID sets the "ledger_id" field.
+func (m *BillingSubledgerMutation) SetLedgerID(s string) {
+	m.ledger = &s
+}
+
+// LedgerID returns the value of the "ledger_id" field in the mutation.
+func (m *BillingSubledgerMutation) LedgerID() (r string, exists bool) {
+	v := m.ledger
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLedgerID returns the old "ledger_id" field's value of the BillingSubledger entity.
+// If the BillingSubledger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerMutation) OldLedgerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLedgerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLedgerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLedgerID: %w", err)
+	}
+	return oldValue.LedgerID, nil
+}
+
+// ResetLedgerID resets all changes to the "ledger_id" field.
+func (m *BillingSubledgerMutation) ResetLedgerID() {
+	m.ledger = nil
+}
+
+// SetPriority sets the "priority" field.
+func (m *BillingSubledgerMutation) SetPriority(i int64) {
+	m.priority = &i
+	m.addpriority = nil
+}
+
+// Priority returns the value of the "priority" field in the mutation.
+func (m *BillingSubledgerMutation) Priority() (r int64, exists bool) {
+	v := m.priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPriority returns the old "priority" field's value of the BillingSubledger entity.
+// If the BillingSubledger object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerMutation) OldPriority(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPriority is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPriority requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPriority: %w", err)
+	}
+	return oldValue.Priority, nil
+}
+
+// AddPriority adds i to the "priority" field.
+func (m *BillingSubledgerMutation) AddPriority(i int64) {
+	if m.addpriority != nil {
+		*m.addpriority += i
+	} else {
+		m.addpriority = &i
+	}
+}
+
+// AddedPriority returns the value that was added to the "priority" field in this mutation.
+func (m *BillingSubledgerMutation) AddedPriority() (r int64, exists bool) {
+	v := m.addpriority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPriority resets all changes to the "priority" field.
+func (m *BillingSubledgerMutation) ResetPriority() {
+	m.priority = nil
+	m.addpriority = nil
+}
+
+// ClearLedger clears the "ledger" edge to the BillingLedger entity.
+func (m *BillingSubledgerMutation) ClearLedger() {
+	m.clearedledger = true
+	m.clearedFields[billingsubledger.FieldLedgerID] = struct{}{}
+}
+
+// LedgerCleared reports if the "ledger" edge to the BillingLedger entity was cleared.
+func (m *BillingSubledgerMutation) LedgerCleared() bool {
+	return m.clearedledger
+}
+
+// LedgerIDs returns the "ledger" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// LedgerID instead. It exists only for internal usage by the builders.
+func (m *BillingSubledgerMutation) LedgerIDs() (ids []string) {
+	if id := m.ledger; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetLedger resets all changes to the "ledger" edge.
+func (m *BillingSubledgerMutation) ResetLedger() {
+	m.ledger = nil
+	m.clearedledger = false
+}
+
+// AddTransactionIDs adds the "transactions" edge to the BillingSubledgerTransaction entity by ids.
+func (m *BillingSubledgerMutation) AddTransactionIDs(ids ...string) {
+	if m.transactions == nil {
+		m.transactions = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.transactions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTransactions clears the "transactions" edge to the BillingSubledgerTransaction entity.
+func (m *BillingSubledgerMutation) ClearTransactions() {
+	m.clearedtransactions = true
+}
+
+// TransactionsCleared reports if the "transactions" edge to the BillingSubledgerTransaction entity was cleared.
+func (m *BillingSubledgerMutation) TransactionsCleared() bool {
+	return m.clearedtransactions
+}
+
+// RemoveTransactionIDs removes the "transactions" edge to the BillingSubledgerTransaction entity by IDs.
+func (m *BillingSubledgerMutation) RemoveTransactionIDs(ids ...string) {
+	if m.removedtransactions == nil {
+		m.removedtransactions = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.transactions, ids[i])
+		m.removedtransactions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTransactions returns the removed IDs of the "transactions" edge to the BillingSubledgerTransaction entity.
+func (m *BillingSubledgerMutation) RemovedTransactionsIDs() (ids []string) {
+	for id := range m.removedtransactions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TransactionsIDs returns the "transactions" edge IDs in the mutation.
+func (m *BillingSubledgerMutation) TransactionsIDs() (ids []string) {
+	for id := range m.transactions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTransactions resets all changes to the "transactions" edge.
+func (m *BillingSubledgerMutation) ResetTransactions() {
+	m.transactions = nil
+	m.clearedtransactions = false
+	m.removedtransactions = nil
+}
+
+// Where appends a list predicates to the BillingSubledgerMutation builder.
+func (m *BillingSubledgerMutation) Where(ps ...predicate.BillingSubledger) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BillingSubledgerMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BillingSubledgerMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BillingSubledger, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BillingSubledgerMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BillingSubledgerMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BillingSubledger).
+func (m *BillingSubledgerMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BillingSubledgerMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.namespace != nil {
+		fields = append(fields, billingsubledger.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, billingsubledger.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, billingsubledger.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, billingsubledger.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, billingsubledger.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, billingsubledger.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, billingsubledger.FieldDescription)
+	}
+	if m.key != nil {
+		fields = append(fields, billingsubledger.FieldKey)
+	}
+	if m.ledger != nil {
+		fields = append(fields, billingsubledger.FieldLedgerID)
+	}
+	if m.priority != nil {
+		fields = append(fields, billingsubledger.FieldPriority)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BillingSubledgerMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case billingsubledger.FieldNamespace:
+		return m.Namespace()
+	case billingsubledger.FieldMetadata:
+		return m.Metadata()
+	case billingsubledger.FieldCreatedAt:
+		return m.CreatedAt()
+	case billingsubledger.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case billingsubledger.FieldDeletedAt:
+		return m.DeletedAt()
+	case billingsubledger.FieldName:
+		return m.Name()
+	case billingsubledger.FieldDescription:
+		return m.Description()
+	case billingsubledger.FieldKey:
+		return m.Key()
+	case billingsubledger.FieldLedgerID:
+		return m.LedgerID()
+	case billingsubledger.FieldPriority:
+		return m.Priority()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BillingSubledgerMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case billingsubledger.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case billingsubledger.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case billingsubledger.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case billingsubledger.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case billingsubledger.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case billingsubledger.FieldName:
+		return m.OldName(ctx)
+	case billingsubledger.FieldDescription:
+		return m.OldDescription(ctx)
+	case billingsubledger.FieldKey:
+		return m.OldKey(ctx)
+	case billingsubledger.FieldLedgerID:
+		return m.OldLedgerID(ctx)
+	case billingsubledger.FieldPriority:
+		return m.OldPriority(ctx)
+	}
+	return nil, fmt.Errorf("unknown BillingSubledger field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingSubledgerMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case billingsubledger.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case billingsubledger.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case billingsubledger.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case billingsubledger.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case billingsubledger.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case billingsubledger.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case billingsubledger.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case billingsubledger.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
+		return nil
+	case billingsubledger.FieldLedgerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLedgerID(v)
+		return nil
+	case billingsubledger.FieldPriority:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPriority(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BillingSubledger field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BillingSubledgerMutation) AddedFields() []string {
+	var fields []string
+	if m.addpriority != nil {
+		fields = append(fields, billingsubledger.FieldPriority)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BillingSubledgerMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case billingsubledger.FieldPriority:
+		return m.AddedPriority()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingSubledgerMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case billingsubledger.FieldPriority:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPriority(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BillingSubledger numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BillingSubledgerMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(billingsubledger.FieldMetadata) {
+		fields = append(fields, billingsubledger.FieldMetadata)
+	}
+	if m.FieldCleared(billingsubledger.FieldDeletedAt) {
+		fields = append(fields, billingsubledger.FieldDeletedAt)
+	}
+	if m.FieldCleared(billingsubledger.FieldDescription) {
+		fields = append(fields, billingsubledger.FieldDescription)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BillingSubledgerMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BillingSubledgerMutation) ClearField(name string) error {
+	switch name {
+	case billingsubledger.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case billingsubledger.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case billingsubledger.FieldDescription:
+		m.ClearDescription()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingSubledger nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BillingSubledgerMutation) ResetField(name string) error {
+	switch name {
+	case billingsubledger.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case billingsubledger.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case billingsubledger.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case billingsubledger.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case billingsubledger.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case billingsubledger.FieldName:
+		m.ResetName()
+		return nil
+	case billingsubledger.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case billingsubledger.FieldKey:
+		m.ResetKey()
+		return nil
+	case billingsubledger.FieldLedgerID:
+		m.ResetLedgerID()
+		return nil
+	case billingsubledger.FieldPriority:
+		m.ResetPriority()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingSubledger field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BillingSubledgerMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.ledger != nil {
+		edges = append(edges, billingsubledger.EdgeLedger)
+	}
+	if m.transactions != nil {
+		edges = append(edges, billingsubledger.EdgeTransactions)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BillingSubledgerMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case billingsubledger.EdgeLedger:
+		if id := m.ledger; id != nil {
+			return []ent.Value{*id}
+		}
+	case billingsubledger.EdgeTransactions:
+		ids := make([]ent.Value, 0, len(m.transactions))
+		for id := range m.transactions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BillingSubledgerMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedtransactions != nil {
+		edges = append(edges, billingsubledger.EdgeTransactions)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BillingSubledgerMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case billingsubledger.EdgeTransactions:
+		ids := make([]ent.Value, 0, len(m.removedtransactions))
+		for id := range m.removedtransactions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BillingSubledgerMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedledger {
+		edges = append(edges, billingsubledger.EdgeLedger)
+	}
+	if m.clearedtransactions {
+		edges = append(edges, billingsubledger.EdgeTransactions)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BillingSubledgerMutation) EdgeCleared(name string) bool {
+	switch name {
+	case billingsubledger.EdgeLedger:
+		return m.clearedledger
+	case billingsubledger.EdgeTransactions:
+		return m.clearedtransactions
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BillingSubledgerMutation) ClearEdge(name string) error {
+	switch name {
+	case billingsubledger.EdgeLedger:
+		m.ClearLedger()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingSubledger unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BillingSubledgerMutation) ResetEdge(name string) error {
+	switch name {
+	case billingsubledger.EdgeLedger:
+		m.ResetLedger()
+		return nil
+	case billingsubledger.EdgeTransactions:
+		m.ResetTransactions()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingSubledger edge %s", name)
+}
+
+// BillingSubledgerTransactionMutation represents an operation that mutates the BillingSubledgerTransaction nodes in the graph.
+type BillingSubledgerTransactionMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *string
+	namespace        *string
+	metadata         *map[string]string
+	created_at       *time.Time
+	updated_at       *time.Time
+	deleted_at       *time.Time
+	name             *string
+	description      *string
+	amount           *alpacadecimal.Decimal
+	owner_type       *string
+	owner_id         *string
+	clearedFields    map[string]struct{}
+	subledger        *string
+	clearedsubledger bool
+	ledger           *string
+	clearedledger    bool
+	done             bool
+	oldValue         func(context.Context) (*BillingSubledgerTransaction, error)
+	predicates       []predicate.BillingSubledgerTransaction
+}
+
+var _ ent.Mutation = (*BillingSubledgerTransactionMutation)(nil)
+
+// billingsubledgertransactionOption allows management of the mutation configuration using functional options.
+type billingsubledgertransactionOption func(*BillingSubledgerTransactionMutation)
+
+// newBillingSubledgerTransactionMutation creates new mutation for the BillingSubledgerTransaction entity.
+func newBillingSubledgerTransactionMutation(c config, op Op, opts ...billingsubledgertransactionOption) *BillingSubledgerTransactionMutation {
+	m := &BillingSubledgerTransactionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBillingSubledgerTransaction,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBillingSubledgerTransactionID sets the ID field of the mutation.
+func withBillingSubledgerTransactionID(id string) billingsubledgertransactionOption {
+	return func(m *BillingSubledgerTransactionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BillingSubledgerTransaction
+		)
+		m.oldValue = func(ctx context.Context) (*BillingSubledgerTransaction, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BillingSubledgerTransaction.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBillingSubledgerTransaction sets the old BillingSubledgerTransaction of the mutation.
+func withBillingSubledgerTransaction(node *BillingSubledgerTransaction) billingsubledgertransactionOption {
+	return func(m *BillingSubledgerTransactionMutation) {
+		m.oldValue = func(context.Context) (*BillingSubledgerTransaction, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BillingSubledgerTransactionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BillingSubledgerTransactionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of BillingSubledgerTransaction entities.
+func (m *BillingSubledgerTransactionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BillingSubledgerTransactionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BillingSubledgerTransactionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BillingSubledgerTransaction.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *BillingSubledgerTransactionMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *BillingSubledgerTransactionMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the BillingSubledgerTransaction entity.
+// If the BillingSubledgerTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerTransactionMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *BillingSubledgerTransactionMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *BillingSubledgerTransactionMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *BillingSubledgerTransactionMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the BillingSubledgerTransaction entity.
+// If the BillingSubledgerTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerTransactionMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *BillingSubledgerTransactionMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[billingsubledgertransaction.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *BillingSubledgerTransactionMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[billingsubledgertransaction.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *BillingSubledgerTransactionMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, billingsubledgertransaction.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BillingSubledgerTransactionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BillingSubledgerTransactionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the BillingSubledgerTransaction entity.
+// If the BillingSubledgerTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerTransactionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BillingSubledgerTransactionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *BillingSubledgerTransactionMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *BillingSubledgerTransactionMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the BillingSubledgerTransaction entity.
+// If the BillingSubledgerTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerTransactionMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *BillingSubledgerTransactionMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *BillingSubledgerTransactionMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *BillingSubledgerTransactionMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the BillingSubledgerTransaction entity.
+// If the BillingSubledgerTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerTransactionMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *BillingSubledgerTransactionMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[billingsubledgertransaction.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *BillingSubledgerTransactionMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[billingsubledgertransaction.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *BillingSubledgerTransactionMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, billingsubledgertransaction.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *BillingSubledgerTransactionMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *BillingSubledgerTransactionMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the BillingSubledgerTransaction entity.
+// If the BillingSubledgerTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerTransactionMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *BillingSubledgerTransactionMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *BillingSubledgerTransactionMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *BillingSubledgerTransactionMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the BillingSubledgerTransaction entity.
+// If the BillingSubledgerTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerTransactionMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *BillingSubledgerTransactionMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[billingsubledgertransaction.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *BillingSubledgerTransactionMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[billingsubledgertransaction.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *BillingSubledgerTransactionMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, billingsubledgertransaction.FieldDescription)
+}
+
+// SetSubledgerID sets the "subledger_id" field.
+func (m *BillingSubledgerTransactionMutation) SetSubledgerID(s string) {
+	m.subledger = &s
+}
+
+// SubledgerID returns the value of the "subledger_id" field in the mutation.
+func (m *BillingSubledgerTransactionMutation) SubledgerID() (r string, exists bool) {
+	v := m.subledger
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubledgerID returns the old "subledger_id" field's value of the BillingSubledgerTransaction entity.
+// If the BillingSubledgerTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerTransactionMutation) OldSubledgerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubledgerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubledgerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubledgerID: %w", err)
+	}
+	return oldValue.SubledgerID, nil
+}
+
+// ResetSubledgerID resets all changes to the "subledger_id" field.
+func (m *BillingSubledgerTransactionMutation) ResetSubledgerID() {
+	m.subledger = nil
+}
+
+// SetLedgerID sets the "ledger_id" field.
+func (m *BillingSubledgerTransactionMutation) SetLedgerID(s string) {
+	m.ledger = &s
+}
+
+// LedgerID returns the value of the "ledger_id" field in the mutation.
+func (m *BillingSubledgerTransactionMutation) LedgerID() (r string, exists bool) {
+	v := m.ledger
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLedgerID returns the old "ledger_id" field's value of the BillingSubledgerTransaction entity.
+// If the BillingSubledgerTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerTransactionMutation) OldLedgerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLedgerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLedgerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLedgerID: %w", err)
+	}
+	return oldValue.LedgerID, nil
+}
+
+// ResetLedgerID resets all changes to the "ledger_id" field.
+func (m *BillingSubledgerTransactionMutation) ResetLedgerID() {
+	m.ledger = nil
+}
+
+// SetAmount sets the "amount" field.
+func (m *BillingSubledgerTransactionMutation) SetAmount(a alpacadecimal.Decimal) {
+	m.amount = &a
+}
+
+// Amount returns the value of the "amount" field in the mutation.
+func (m *BillingSubledgerTransactionMutation) Amount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmount returns the old "amount" field's value of the BillingSubledgerTransaction entity.
+// If the BillingSubledgerTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerTransactionMutation) OldAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// ResetAmount resets all changes to the "amount" field.
+func (m *BillingSubledgerTransactionMutation) ResetAmount() {
+	m.amount = nil
+}
+
+// SetOwnerType sets the "owner_type" field.
+func (m *BillingSubledgerTransactionMutation) SetOwnerType(s string) {
+	m.owner_type = &s
+}
+
+// OwnerType returns the value of the "owner_type" field in the mutation.
+func (m *BillingSubledgerTransactionMutation) OwnerType() (r string, exists bool) {
+	v := m.owner_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOwnerType returns the old "owner_type" field's value of the BillingSubledgerTransaction entity.
+// If the BillingSubledgerTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerTransactionMutation) OldOwnerType(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOwnerType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOwnerType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOwnerType: %w", err)
+	}
+	return oldValue.OwnerType, nil
+}
+
+// ClearOwnerType clears the value of the "owner_type" field.
+func (m *BillingSubledgerTransactionMutation) ClearOwnerType() {
+	m.owner_type = nil
+	m.clearedFields[billingsubledgertransaction.FieldOwnerType] = struct{}{}
+}
+
+// OwnerTypeCleared returns if the "owner_type" field was cleared in this mutation.
+func (m *BillingSubledgerTransactionMutation) OwnerTypeCleared() bool {
+	_, ok := m.clearedFields[billingsubledgertransaction.FieldOwnerType]
+	return ok
+}
+
+// ResetOwnerType resets all changes to the "owner_type" field.
+func (m *BillingSubledgerTransactionMutation) ResetOwnerType() {
+	m.owner_type = nil
+	delete(m.clearedFields, billingsubledgertransaction.FieldOwnerType)
+}
+
+// SetOwnerID sets the "owner_id" field.
+func (m *BillingSubledgerTransactionMutation) SetOwnerID(s string) {
+	m.owner_id = &s
+}
+
+// OwnerID returns the value of the "owner_id" field in the mutation.
+func (m *BillingSubledgerTransactionMutation) OwnerID() (r string, exists bool) {
+	v := m.owner_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOwnerID returns the old "owner_id" field's value of the BillingSubledgerTransaction entity.
+// If the BillingSubledgerTransaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingSubledgerTransactionMutation) OldOwnerID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOwnerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOwnerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOwnerID: %w", err)
+	}
+	return oldValue.OwnerID, nil
+}
+
+// ClearOwnerID clears the value of the "owner_id" field.
+func (m *BillingSubledgerTransactionMutation) ClearOwnerID() {
+	m.owner_id = nil
+	m.clearedFields[billingsubledgertransaction.FieldOwnerID] = struct{}{}
+}
+
+// OwnerIDCleared returns if the "owner_id" field was cleared in this mutation.
+func (m *BillingSubledgerTransactionMutation) OwnerIDCleared() bool {
+	_, ok := m.clearedFields[billingsubledgertransaction.FieldOwnerID]
+	return ok
+}
+
+// ResetOwnerID resets all changes to the "owner_id" field.
+func (m *BillingSubledgerTransactionMutation) ResetOwnerID() {
+	m.owner_id = nil
+	delete(m.clearedFields, billingsubledgertransaction.FieldOwnerID)
+}
+
+// ClearSubledger clears the "subledger" edge to the BillingSubledger entity.
+func (m *BillingSubledgerTransactionMutation) ClearSubledger() {
+	m.clearedsubledger = true
+	m.clearedFields[billingsubledgertransaction.FieldSubledgerID] = struct{}{}
+}
+
+// SubledgerCleared reports if the "subledger" edge to the BillingSubledger entity was cleared.
+func (m *BillingSubledgerTransactionMutation) SubledgerCleared() bool {
+	return m.clearedsubledger
+}
+
+// SubledgerIDs returns the "subledger" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SubledgerID instead. It exists only for internal usage by the builders.
+func (m *BillingSubledgerTransactionMutation) SubledgerIDs() (ids []string) {
+	if id := m.subledger; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSubledger resets all changes to the "subledger" edge.
+func (m *BillingSubledgerTransactionMutation) ResetSubledger() {
+	m.subledger = nil
+	m.clearedsubledger = false
+}
+
+// ClearLedger clears the "ledger" edge to the BillingLedger entity.
+func (m *BillingSubledgerTransactionMutation) ClearLedger() {
+	m.clearedledger = true
+	m.clearedFields[billingsubledgertransaction.FieldLedgerID] = struct{}{}
+}
+
+// LedgerCleared reports if the "ledger" edge to the BillingLedger entity was cleared.
+func (m *BillingSubledgerTransactionMutation) LedgerCleared() bool {
+	return m.clearedledger
+}
+
+// LedgerIDs returns the "ledger" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// LedgerID instead. It exists only for internal usage by the builders.
+func (m *BillingSubledgerTransactionMutation) LedgerIDs() (ids []string) {
+	if id := m.ledger; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetLedger resets all changes to the "ledger" edge.
+func (m *BillingSubledgerTransactionMutation) ResetLedger() {
+	m.ledger = nil
+	m.clearedledger = false
+}
+
+// Where appends a list predicates to the BillingSubledgerTransactionMutation builder.
+func (m *BillingSubledgerTransactionMutation) Where(ps ...predicate.BillingSubledgerTransaction) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BillingSubledgerTransactionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BillingSubledgerTransactionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BillingSubledgerTransaction, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BillingSubledgerTransactionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BillingSubledgerTransactionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BillingSubledgerTransaction).
+func (m *BillingSubledgerTransactionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BillingSubledgerTransactionMutation) Fields() []string {
+	fields := make([]string, 0, 12)
+	if m.namespace != nil {
+		fields = append(fields, billingsubledgertransaction.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, billingsubledgertransaction.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, billingsubledgertransaction.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, billingsubledgertransaction.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, billingsubledgertransaction.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, billingsubledgertransaction.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, billingsubledgertransaction.FieldDescription)
+	}
+	if m.subledger != nil {
+		fields = append(fields, billingsubledgertransaction.FieldSubledgerID)
+	}
+	if m.ledger != nil {
+		fields = append(fields, billingsubledgertransaction.FieldLedgerID)
+	}
+	if m.amount != nil {
+		fields = append(fields, billingsubledgertransaction.FieldAmount)
+	}
+	if m.owner_type != nil {
+		fields = append(fields, billingsubledgertransaction.FieldOwnerType)
+	}
+	if m.owner_id != nil {
+		fields = append(fields, billingsubledgertransaction.FieldOwnerID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BillingSubledgerTransactionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case billingsubledgertransaction.FieldNamespace:
+		return m.Namespace()
+	case billingsubledgertransaction.FieldMetadata:
+		return m.Metadata()
+	case billingsubledgertransaction.FieldCreatedAt:
+		return m.CreatedAt()
+	case billingsubledgertransaction.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case billingsubledgertransaction.FieldDeletedAt:
+		return m.DeletedAt()
+	case billingsubledgertransaction.FieldName:
+		return m.Name()
+	case billingsubledgertransaction.FieldDescription:
+		return m.Description()
+	case billingsubledgertransaction.FieldSubledgerID:
+		return m.SubledgerID()
+	case billingsubledgertransaction.FieldLedgerID:
+		return m.LedgerID()
+	case billingsubledgertransaction.FieldAmount:
+		return m.Amount()
+	case billingsubledgertransaction.FieldOwnerType:
+		return m.OwnerType()
+	case billingsubledgertransaction.FieldOwnerID:
+		return m.OwnerID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BillingSubledgerTransactionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case billingsubledgertransaction.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case billingsubledgertransaction.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case billingsubledgertransaction.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case billingsubledgertransaction.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case billingsubledgertransaction.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case billingsubledgertransaction.FieldName:
+		return m.OldName(ctx)
+	case billingsubledgertransaction.FieldDescription:
+		return m.OldDescription(ctx)
+	case billingsubledgertransaction.FieldSubledgerID:
+		return m.OldSubledgerID(ctx)
+	case billingsubledgertransaction.FieldLedgerID:
+		return m.OldLedgerID(ctx)
+	case billingsubledgertransaction.FieldAmount:
+		return m.OldAmount(ctx)
+	case billingsubledgertransaction.FieldOwnerType:
+		return m.OldOwnerType(ctx)
+	case billingsubledgertransaction.FieldOwnerID:
+		return m.OldOwnerID(ctx)
+	}
+	return nil, fmt.Errorf("unknown BillingSubledgerTransaction field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingSubledgerTransactionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case billingsubledgertransaction.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case billingsubledgertransaction.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case billingsubledgertransaction.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case billingsubledgertransaction.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case billingsubledgertransaction.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case billingsubledgertransaction.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case billingsubledgertransaction.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case billingsubledgertransaction.FieldSubledgerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubledgerID(v)
+		return nil
+	case billingsubledgertransaction.FieldLedgerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLedgerID(v)
+		return nil
+	case billingsubledgertransaction.FieldAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmount(v)
+		return nil
+	case billingsubledgertransaction.FieldOwnerType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOwnerType(v)
+		return nil
+	case billingsubledgertransaction.FieldOwnerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOwnerID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BillingSubledgerTransaction field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BillingSubledgerTransactionMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BillingSubledgerTransactionMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingSubledgerTransactionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown BillingSubledgerTransaction numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BillingSubledgerTransactionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(billingsubledgertransaction.FieldMetadata) {
+		fields = append(fields, billingsubledgertransaction.FieldMetadata)
+	}
+	if m.FieldCleared(billingsubledgertransaction.FieldDeletedAt) {
+		fields = append(fields, billingsubledgertransaction.FieldDeletedAt)
+	}
+	if m.FieldCleared(billingsubledgertransaction.FieldDescription) {
+		fields = append(fields, billingsubledgertransaction.FieldDescription)
+	}
+	if m.FieldCleared(billingsubledgertransaction.FieldOwnerType) {
+		fields = append(fields, billingsubledgertransaction.FieldOwnerType)
+	}
+	if m.FieldCleared(billingsubledgertransaction.FieldOwnerID) {
+		fields = append(fields, billingsubledgertransaction.FieldOwnerID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BillingSubledgerTransactionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BillingSubledgerTransactionMutation) ClearField(name string) error {
+	switch name {
+	case billingsubledgertransaction.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case billingsubledgertransaction.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case billingsubledgertransaction.FieldDescription:
+		m.ClearDescription()
+		return nil
+	case billingsubledgertransaction.FieldOwnerType:
+		m.ClearOwnerType()
+		return nil
+	case billingsubledgertransaction.FieldOwnerID:
+		m.ClearOwnerID()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingSubledgerTransaction nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BillingSubledgerTransactionMutation) ResetField(name string) error {
+	switch name {
+	case billingsubledgertransaction.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case billingsubledgertransaction.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case billingsubledgertransaction.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case billingsubledgertransaction.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case billingsubledgertransaction.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case billingsubledgertransaction.FieldName:
+		m.ResetName()
+		return nil
+	case billingsubledgertransaction.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case billingsubledgertransaction.FieldSubledgerID:
+		m.ResetSubledgerID()
+		return nil
+	case billingsubledgertransaction.FieldLedgerID:
+		m.ResetLedgerID()
+		return nil
+	case billingsubledgertransaction.FieldAmount:
+		m.ResetAmount()
+		return nil
+	case billingsubledgertransaction.FieldOwnerType:
+		m.ResetOwnerType()
+		return nil
+	case billingsubledgertransaction.FieldOwnerID:
+		m.ResetOwnerID()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingSubledgerTransaction field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BillingSubledgerTransactionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.subledger != nil {
+		edges = append(edges, billingsubledgertransaction.EdgeSubledger)
+	}
+	if m.ledger != nil {
+		edges = append(edges, billingsubledgertransaction.EdgeLedger)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BillingSubledgerTransactionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case billingsubledgertransaction.EdgeSubledger:
+		if id := m.subledger; id != nil {
+			return []ent.Value{*id}
+		}
+	case billingsubledgertransaction.EdgeLedger:
+		if id := m.ledger; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BillingSubledgerTransactionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BillingSubledgerTransactionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BillingSubledgerTransactionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedsubledger {
+		edges = append(edges, billingsubledgertransaction.EdgeSubledger)
+	}
+	if m.clearedledger {
+		edges = append(edges, billingsubledgertransaction.EdgeLedger)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BillingSubledgerTransactionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case billingsubledgertransaction.EdgeSubledger:
+		return m.clearedsubledger
+	case billingsubledgertransaction.EdgeLedger:
+		return m.clearedledger
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BillingSubledgerTransactionMutation) ClearEdge(name string) error {
+	switch name {
+	case billingsubledgertransaction.EdgeSubledger:
+		m.ClearSubledger()
+		return nil
+	case billingsubledgertransaction.EdgeLedger:
+		m.ClearLedger()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingSubledgerTransaction unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BillingSubledgerTransactionMutation) ResetEdge(name string) error {
+	switch name {
+	case billingsubledgertransaction.EdgeSubledger:
+		m.ResetSubledger()
+		return nil
+	case billingsubledgertransaction.EdgeLedger:
+		m.ResetLedger()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingSubledgerTransaction edge %s", name)
+}
+
 // BillingWorkflowConfigMutation represents an operation that mutates the BillingWorkflowConfig nodes in the graph.
 type BillingWorkflowConfigMutation struct {
 	config
@@ -26649,6 +29678,9 @@ type CustomerMutation struct {
 	subscription                     map[string]struct{}
 	removedsubscription              map[string]struct{}
 	clearedsubscription              bool
+	billing_ledger                   map[string]struct{}
+	removedbilling_ledger            map[string]struct{}
+	clearedbilling_ledger            bool
 	done                             bool
 	oldValue                         func(context.Context) (*Customer, error)
 	predicates                       []predicate.Customer
@@ -27794,6 +30826,60 @@ func (m *CustomerMutation) ResetSubscription() {
 	m.removedsubscription = nil
 }
 
+// AddBillingLedgerIDs adds the "billing_ledger" edge to the BillingLedger entity by ids.
+func (m *CustomerMutation) AddBillingLedgerIDs(ids ...string) {
+	if m.billing_ledger == nil {
+		m.billing_ledger = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.billing_ledger[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBillingLedger clears the "billing_ledger" edge to the BillingLedger entity.
+func (m *CustomerMutation) ClearBillingLedger() {
+	m.clearedbilling_ledger = true
+}
+
+// BillingLedgerCleared reports if the "billing_ledger" edge to the BillingLedger entity was cleared.
+func (m *CustomerMutation) BillingLedgerCleared() bool {
+	return m.clearedbilling_ledger
+}
+
+// RemoveBillingLedgerIDs removes the "billing_ledger" edge to the BillingLedger entity by IDs.
+func (m *CustomerMutation) RemoveBillingLedgerIDs(ids ...string) {
+	if m.removedbilling_ledger == nil {
+		m.removedbilling_ledger = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.billing_ledger, ids[i])
+		m.removedbilling_ledger[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBillingLedger returns the removed IDs of the "billing_ledger" edge to the BillingLedger entity.
+func (m *CustomerMutation) RemovedBillingLedgerIDs() (ids []string) {
+	for id := range m.removedbilling_ledger {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BillingLedgerIDs returns the "billing_ledger" edge IDs in the mutation.
+func (m *CustomerMutation) BillingLedgerIDs() (ids []string) {
+	for id := range m.billing_ledger {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBillingLedger resets all changes to the "billing_ledger" edge.
+func (m *CustomerMutation) ResetBillingLedger() {
+	m.billing_ledger = nil
+	m.clearedbilling_ledger = false
+	m.removedbilling_ledger = nil
+}
+
 // Where appends a list predicates to the CustomerMutation builder.
 func (m *CustomerMutation) Where(ps ...predicate.Customer) {
 	m.predicates = append(m.predicates, ps...)
@@ -28280,7 +31366,7 @@ func (m *CustomerMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CustomerMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.apps != nil {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -28295,6 +31381,9 @@ func (m *CustomerMutation) AddedEdges() []string {
 	}
 	if m.subscription != nil {
 		edges = append(edges, customer.EdgeSubscription)
+	}
+	if m.billing_ledger != nil {
+		edges = append(edges, customer.EdgeBillingLedger)
 	}
 	return edges
 }
@@ -28331,13 +31420,19 @@ func (m *CustomerMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customer.EdgeBillingLedger:
+		ids := make([]ent.Value, 0, len(m.billing_ledger))
+		for id := range m.billing_ledger {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CustomerMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedapps != nil {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -28349,6 +31444,9 @@ func (m *CustomerMutation) RemovedEdges() []string {
 	}
 	if m.removedsubscription != nil {
 		edges = append(edges, customer.EdgeSubscription)
+	}
+	if m.removedbilling_ledger != nil {
+		edges = append(edges, customer.EdgeBillingLedger)
 	}
 	return edges
 }
@@ -28381,13 +31479,19 @@ func (m *CustomerMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customer.EdgeBillingLedger:
+		ids := make([]ent.Value, 0, len(m.removedbilling_ledger))
+		for id := range m.removedbilling_ledger {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CustomerMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedapps {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -28402,6 +31506,9 @@ func (m *CustomerMutation) ClearedEdges() []string {
 	}
 	if m.clearedsubscription {
 		edges = append(edges, customer.EdgeSubscription)
+	}
+	if m.clearedbilling_ledger {
+		edges = append(edges, customer.EdgeBillingLedger)
 	}
 	return edges
 }
@@ -28420,6 +31527,8 @@ func (m *CustomerMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoice
 	case customer.EdgeSubscription:
 		return m.clearedsubscription
+	case customer.EdgeBillingLedger:
+		return m.clearedbilling_ledger
 	}
 	return false
 }
@@ -28453,6 +31562,9 @@ func (m *CustomerMutation) ResetEdge(name string) error {
 		return nil
 	case customer.EdgeSubscription:
 		m.ResetSubscription()
+		return nil
+	case customer.EdgeBillingLedger:
+		m.ResetBillingLedger()
 		return nil
 	}
 	return fmt.Errorf("unknown Customer edge %s", name)

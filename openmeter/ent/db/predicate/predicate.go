@@ -126,11 +126,20 @@ func BillingInvoiceUsageBasedLineConfigOrErr(p BillingInvoiceUsageBasedLineConfi
 // BillingInvoiceValidationIssue is the predicate function for billinginvoicevalidationissue builders.
 type BillingInvoiceValidationIssue func(*sql.Selector)
 
+// BillingLedger is the predicate function for billingledger builders.
+type BillingLedger func(*sql.Selector)
+
 // BillingProfile is the predicate function for billingprofile builders.
 type BillingProfile func(*sql.Selector)
 
 // BillingSequenceNumbers is the predicate function for billingsequencenumbers builders.
 type BillingSequenceNumbers func(*sql.Selector)
+
+// BillingSubledger is the predicate function for billingsubledger builders.
+type BillingSubledger func(*sql.Selector)
+
+// BillingSubledgerTransaction is the predicate function for billingsubledgertransaction builders.
+type BillingSubledgerTransaction func(*sql.Selector)
 
 // BillingWorkflowConfig is the predicate function for billingworkflowconfig builders.
 type BillingWorkflowConfig func(*sql.Selector)

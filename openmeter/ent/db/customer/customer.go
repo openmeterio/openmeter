@@ -58,6 +58,8 @@ const (
 	EdgeBillingInvoice = "billing_invoice"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
 	EdgeSubscription = "subscription"
+	// EdgeBillingLedger holds the string denoting the billing_ledger edge name in mutations.
+	EdgeBillingLedger = "billing_ledger"
 	// Table holds the table name of the customer in the database.
 	Table = "customers"
 	// AppsTable is the table that holds the apps relation/edge.
@@ -95,6 +97,13 @@ const (
 	SubscriptionInverseTable = "subscriptions"
 	// SubscriptionColumn is the table column denoting the subscription relation/edge.
 	SubscriptionColumn = "customer_id"
+	// BillingLedgerTable is the table that holds the billing_ledger relation/edge.
+	BillingLedgerTable = "billing_ledgers"
+	// BillingLedgerInverseTable is the table name for the BillingLedger entity.
+	// It exists in this package in order to avoid circular dependency with the "billingledger" package.
+	BillingLedgerInverseTable = "billing_ledgers"
+	// BillingLedgerColumn is the table column denoting the billing_ledger relation/edge.
+	BillingLedgerColumn = "customer_id"
 )
 
 // Columns holds all SQL columns for customer fields.
@@ -296,6 +305,20 @@ func BySubscription(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newSubscriptionStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByBillingLedgerCount orders the results by billing_ledger count.
+func ByBillingLedgerCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingLedgerStep(), opts...)
+	}
+}
+
+// ByBillingLedger orders the results by billing_ledger terms.
+func ByBillingLedger(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingLedgerStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAppsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -329,5 +352,12 @@ func newSubscriptionStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubscriptionInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionTable, SubscriptionColumn),
+	)
+}
+func newBillingLedgerStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingLedgerInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingLedgerTable, BillingLedgerColumn),
 	)
 }

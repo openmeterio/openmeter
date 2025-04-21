@@ -50,10 +50,16 @@ type Tx struct {
 	BillingInvoiceUsageBasedLineConfig *BillingInvoiceUsageBasedLineConfigClient
 	// BillingInvoiceValidationIssue is the client for interacting with the BillingInvoiceValidationIssue builders.
 	BillingInvoiceValidationIssue *BillingInvoiceValidationIssueClient
+	// BillingLedger is the client for interacting with the BillingLedger builders.
+	BillingLedger *BillingLedgerClient
 	// BillingProfile is the client for interacting with the BillingProfile builders.
 	BillingProfile *BillingProfileClient
 	// BillingSequenceNumbers is the client for interacting with the BillingSequenceNumbers builders.
 	BillingSequenceNumbers *BillingSequenceNumbersClient
+	// BillingSubledger is the client for interacting with the BillingSubledger builders.
+	BillingSubledger *BillingSubledgerClient
+	// BillingSubledgerTransaction is the client for interacting with the BillingSubledgerTransaction builders.
+	BillingSubledgerTransaction *BillingSubledgerTransactionClient
 	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
 	BillingWorkflowConfig *BillingWorkflowConfigClient
 	// Customer is the client for interacting with the Customer builders.
@@ -245,8 +251,11 @@ func (tx *Tx) init() {
 	tx.BillingInvoiceLineUsageDiscount = NewBillingInvoiceLineUsageDiscountClient(tx.config)
 	tx.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(tx.config)
 	tx.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(tx.config)
+	tx.BillingLedger = NewBillingLedgerClient(tx.config)
 	tx.BillingProfile = NewBillingProfileClient(tx.config)
 	tx.BillingSequenceNumbers = NewBillingSequenceNumbersClient(tx.config)
+	tx.BillingSubledger = NewBillingSubledgerClient(tx.config)
+	tx.BillingSubledgerTransaction = NewBillingSubledgerTransactionClient(tx.config)
 	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)
 	tx.Customer = NewCustomerClient(tx.config)
 	tx.CustomerSubjects = NewCustomerSubjectsClient(tx.config)
