@@ -8,6 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
@@ -38,17 +41,22 @@ func TestAddAddon(t *testing.T) {
 	}
 
 	t.Run("Should error on invalid input", runWithDeps(func(t *testing.T, deps testCaseDeps) {
-		_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
+		p, add := subscriptiontestutils.CreatePlanWithAddon(
+			t,
+			deps.deps,
+			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.BuildAddonForTesting(t,
+				productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+					EffectiveTo:   nil,
+				},
+				productcatalog.AddonInstanceTypeSingle,
+				subscriptiontestutils.ExampleAddonRateCard2.Clone(),
+				subscriptiontestutils.ExampleAddonRateCard4.Clone(),
+			),
+		)
 
-		add := deps.deps.AddonService.CreateTestAddon(t, subscriptiontestutils.BuildAddonForTesting(t,
-			productcatalog.EffectivePeriod{
-				EffectiveFrom: &now,
-				EffectiveTo:   nil,
-			},
-			productcatalog.AddonInstanceTypeSingle,
-			subscriptiontestutils.ExampleAddonRateCard2.Clone(), // This will add a new item
-			subscriptiontestutils.ExampleAddonRateCard4.Clone(), // This will extend existing items
-		))
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
 
 		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
 			AddonID:         add.ID,
@@ -69,9 +77,15 @@ func TestAddAddon(t *testing.T) {
 	}))
 
 	t.Run("Should error with not implemented if the subscription already has addons", runWithDeps(func(t *testing.T, deps testCaseDeps) {
-		_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
+		_ = deps.deps.FeatureConnector.CreateExampleFeatures(t)
 
-		addInp := subscriptiontestutils.BuildAddonForTesting(t,
+		// Let's create a plan
+		p, err := deps.deps.PlanService.CreatePlan(context.Background(), subscriptiontestutils.GetExamplePlanInput(t))
+		require.Nil(t, err)
+		require.NotNil(t, p)
+
+		// Let's create two addons that are compatible
+		addonInp := subscriptiontestutils.BuildAddonForTesting(t,
 			productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
 				EffectiveTo:   nil,
@@ -80,15 +94,62 @@ func TestAddAddon(t *testing.T) {
 			subscriptiontestutils.ExampleAddonRateCard2.Clone(),
 			subscriptiontestutils.ExampleAddonRateCard4.Clone(),
 		)
-		_, _ = subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, addInp)
 
-		addInp.Key = "some-new-key"
+		add1 := deps.deps.AddonService.CreateTestAddon(t, addonInp)
 
-		// We need a new addon to avoid conflicts
-		add := deps.deps.AddonService.CreateTestAddon(t, addInp)
+		addonInp.Key = "some-new-key"
 
-		_, _, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionworkflow.AddAddonWorkflowInput{
-			AddonID:         add.ID,
+		add2 := deps.deps.AddonService.CreateTestAddon(t, addonInp)
+
+		// Let's link both addons to the plan
+		_, err = deps.deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: subscriptiontestutils.ExampleNamespace,
+			},
+			PlanID:        p.ID,
+			AddonID:       add1.ID,
+			FromPlanPhase: p.Phases[0].Key,
+		})
+		require.Nil(t, err, "received error: %s", err)
+
+		_, err = deps.deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: subscriptiontestutils.ExampleNamespace,
+			},
+			PlanID:        p.ID,
+			AddonID:       add2.ID,
+			FromPlanPhase: p.Phases[0].Key,
+		})
+		require.Nil(t, err, "received error: %s", err)
+
+		// Let's publish the plan
+
+		p, err = deps.deps.PlanService.PublishPlan(context.Background(), plan.PublishPlanInput{
+			NamespacedID: p.NamespacedID,
+			EffectivePeriod: productcatalog.EffectivePeriod{
+				EffectiveFrom: lo.ToPtr(clock.Now()),
+				EffectiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2099-01-01T00:00:00Z")),
+			},
+		})
+		require.Nil(t, err, "received error: %s", err)
+
+		// Let's create a subscription from the plan
+
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, &plansubscription.Plan{
+			Plan: p.AsProductCatalogPlan(),
+			Ref:  &p.NamespacedID,
+		}, now)
+
+		// Let's add the first addon
+		_ = subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, add1.NamespacedID, models.CadencedModel{
+			ActiveFrom: now,
+			ActiveTo:   nil,
+		})
+
+		// Now let's try to add the second addon and see it fail
+
+		_, _, err = deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add2.ID,
 			InitialQuantity: 1,
 			Timing: subscription.Timing{
 				Custom: &now,
@@ -101,22 +162,28 @@ func TestAddAddon(t *testing.T) {
 	}))
 
 	t.Run("Should sync subscription with new addons contents", runWithDeps(func(t *testing.T, deps testCaseDeps) {
-		_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
+		p, add := subscriptiontestutils.CreatePlanWithAddon(
+			t,
+			deps.deps,
+			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.BuildAddonForTesting(t,
+				productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+					EffectiveTo:   nil,
+				},
+				productcatalog.AddonInstanceTypeSingle,
+				subscriptiontestutils.ExampleAddonRateCard2.Clone(), // This will add a new item
+				subscriptiontestutils.ExampleAddonRateCard4.Clone(), // This will extend existing items
+			),
+		)
+
+		// Let's create a subscription from the plan
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
 
 		ogView := subView
 		require.NotNil(t, ogView)
 
 		spec := subView.AsSpec()
-
-		add := deps.deps.AddonService.CreateTestAddon(t, subscriptiontestutils.BuildAddonForTesting(t,
-			productcatalog.EffectivePeriod{
-				EffectiveFrom: &now,
-				EffectiveTo:   nil,
-			},
-			productcatalog.AddonInstanceTypeSingle,
-			subscriptiontestutils.ExampleAddonRateCard2.Clone(), // This will add a new item
-			subscriptiontestutils.ExampleAddonRateCard4.Clone(), // This will extend existing items
-		))
 
 		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
 			AddonID:         add.ID,
@@ -150,17 +217,22 @@ func TestAddAddon(t *testing.T) {
 	}))
 
 	t.Run("Should return conflict error if subscription already has that addon purchased", runWithDeps(func(t *testing.T, deps testCaseDeps) {
-		_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
+		p, add := subscriptiontestutils.CreatePlanWithAddon(
+			t,
+			deps.deps,
+			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.BuildAddonForTesting(t,
+				productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+					EffectiveTo:   nil,
+				},
+				productcatalog.AddonInstanceTypeSingle,
+				subscriptiontestutils.ExampleAddonRateCard2.Clone(), // This will add a new item
+				subscriptiontestutils.ExampleAddonRateCard4.Clone(), // This will extend existing items
+			),
+		)
 
-		add := deps.deps.AddonService.CreateTestAddon(t, subscriptiontestutils.BuildAddonForTesting(t,
-			productcatalog.EffectivePeriod{
-				EffectiveFrom: &now,
-				EffectiveTo:   nil,
-			},
-			productcatalog.AddonInstanceTypeSingle,
-			subscriptiontestutils.ExampleAddonRateCard2.Clone(), // This will add a new item
-			subscriptiontestutils.ExampleAddonRateCard4.Clone(), // This will extend existing items
-		))
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
 
 		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
 			AddonID:         add.ID,

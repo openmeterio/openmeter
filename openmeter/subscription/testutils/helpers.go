@@ -5,21 +5,66 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func CreateSubscriptionFromPlan(t *testing.T, deps *SubscriptionDependencies, planInp plan.CreatePlanInput, startAt time.Time) (subscription.Plan, subscription.SubscriptionView) {
-	deps.FeatureConnector.CreateExampleFeatures(t)
+func CreatePlanWithAddon(
+	t *testing.T,
+	deps SubscriptionDependencies,
+	planInp plan.CreatePlanInput,
+	addonInp addon.CreateAddonInput,
+) (subscription.Plan, addon.Addon) {
+	t.Helper()
+
+	_ = deps.FeatureConnector.CreateExampleFeatures(t)
+
+	p, err := deps.PlanService.CreatePlan(context.Background(), planInp)
+	require.Nil(t, err)
+	require.NotNil(t, p)
+
+	add := deps.AddonService.CreateTestAddon(t, addonInp)
+
+	_, err = deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: ExampleNamespace,
+		},
+		PlanID:        p.ID,
+		AddonID:       add.ID,
+		FromPlanPhase: p.Phases[0].Key,
+	})
+	require.Nil(t, err, "received error: %s", err)
+
+	p, err = deps.PlanService.PublishPlan(context.Background(), plan.PublishPlanInput{
+		NamespacedID: p.NamespacedID,
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: lo.ToPtr(clock.Now()),
+			EffectiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2099-01-01T00:00:00Z")),
+		},
+	})
+	require.Nil(t, err, "received error: %s", err)
+
+	return &plansubscription.Plan{
+		Plan: p.AsProductCatalogPlan(),
+		Ref:  &p.NamespacedID,
+	}, add
+}
+
+func CreateSubscriptionFromPlan(t *testing.T, deps *SubscriptionDependencies, plan subscription.Plan, startAt time.Time) subscription.SubscriptionView {
 	cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 
-	plan := deps.PlanHelper.CreatePlan(t, planInp)
 	subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
 		Namespace:  cust.Namespace,
 		CustomerID: cust.ID,
@@ -32,17 +77,15 @@ func CreateSubscriptionFromPlan(t *testing.T, deps *SubscriptionDependencies, pl
 	}, plan)
 	require.NoError(t, err)
 
-	return plan, subView
+	return subView
 }
 
 // For most cases, use the workflow service instead!
-func CreateMultiInstanceAddonForSubscription(t *testing.T, deps *SubscriptionDependencies, subID models.NamespacedID, addonInp addon.CreateAddonInput, quants []subscriptionaddon.CreateSubscriptionAddonQuantityInput) (addon.Addon, subscriptionaddon.SubscriptionAddon) {
+func CreateMultiInstanceAddonForSubscription(t *testing.T, deps *SubscriptionDependencies, subID models.NamespacedID, addonID models.NamespacedID, quants []subscriptionaddon.CreateSubscriptionAddonQuantityInput) subscriptionaddon.SubscriptionAddon {
 	t.Helper()
 
-	add := deps.AddonService.CreateTestAddon(t, addonInp)
-
 	subAdd, err := deps.SubscriptionAddonService.Create(context.Background(), subID.Namespace, subscriptionaddon.CreateSubscriptionAddonInput{
-		AddonID:        add.ID,
+		AddonID:        addonID.ID,
 		SubscriptionID: subID.ID,
 		InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 			ActiveFrom: quants[0].ActiveFrom,
@@ -52,7 +95,7 @@ func CreateMultiInstanceAddonForSubscription(t *testing.T, deps *SubscriptionDep
 	require.NoError(t, err)
 
 	if len(quants) == 1 {
-		return add, *subAdd
+		return *subAdd
 	}
 
 	for _, quant := range quants[1:] {
@@ -60,27 +103,25 @@ func CreateMultiInstanceAddonForSubscription(t *testing.T, deps *SubscriptionDep
 		require.NoError(t, err)
 	}
 
-	return add, *subAdd
+	return *subAdd
 }
 
-// this is a bit hacky, we reuse the addon's effective period as cadence for the subscriptionaddon
-// For most cases, use the workflow service instead!
-func CreateAddonForSubscription(t *testing.T, deps *SubscriptionDependencies, subID models.NamespacedID, addonInp addon.CreateAddonInput) (addon.Addon, subscriptionaddon.SubscriptionAddon) {
+func CreateAddonForSubscription(t *testing.T, deps *SubscriptionDependencies, subID models.NamespacedID, addonID models.NamespacedID, cadence models.CadencedModel) subscriptionaddon.SubscriptionAddon {
 	t.Helper()
 
 	quants := []subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 		{
-			ActiveFrom: *addonInp.EffectivePeriod.EffectiveFrom,
+			ActiveFrom: cadence.ActiveFrom,
 			Quantity:   1,
 		},
 	}
 
-	if addonInp.EffectiveTo != nil {
+	if cadence.ActiveTo != nil {
 		quants = append(quants, subscriptionaddon.CreateSubscriptionAddonQuantityInput{
-			ActiveFrom: *addonInp.EffectiveTo,
+			ActiveFrom: *cadence.ActiveTo,
 			Quantity:   0,
 		})
 	}
 
-	return CreateMultiInstanceAddonForSubscription(t, deps, subID, addonInp, quants)
+	return CreateMultiInstanceAddonForSubscription(t, deps, subID, addonID, quants)
 }
