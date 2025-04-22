@@ -20,6 +20,10 @@ type Addon struct {
 
 	// RateCards
 	RateCards RateCards `json:"rateCards"`
+
+	// Plans contains the list of Plans assigned to this Addon. It is only provided if the Addon was fetched
+	// with Plans being expanded.
+	Plans *[]Plan `json:"plans,omitempty"`
 }
 
 func (a Addon) ValidateWith(validators ...models.ValidatorFunc[Addon]) error {

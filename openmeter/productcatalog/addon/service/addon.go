@@ -317,9 +317,23 @@ func (s service) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput)
 				Namespace: params.Namespace,
 				ID:        params.ID,
 			},
+			Expand: addon.ExpandFields{
+				PlanAddons: true,
+			},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get add-on: %w", err)
+		}
+
+		if add.Plans == nil {
+			return nil, fmt.Errorf("cannot check whether add-on has plans enabled as plans were not dfetched for add-on [namespace=%s id=%s key=%s]",
+				add.Namespace, add.ID, add.Key)
+		}
+
+		if len(*add.Plans) > 0 {
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("failed to delete add-on [namespace=%s id=%s key=%s]: add-on has active assignments", add.Namespace, add.ID, add.Key),
+			)
 		}
 
 		// Run validations prior deleting add-on.

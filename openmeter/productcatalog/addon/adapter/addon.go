@@ -11,6 +11,9 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	addondb "github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	addonratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	planaddondb "github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
+	phasedb "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
+	ratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -374,6 +377,12 @@ func (a *adapter) GetAddon(ctx context.Context, params addon.GetAddonInput) (*ad
 			AddonEagerLoadRateCardsFn,
 		)
 
+		if params.Expand.PlanAddons {
+			query = query.WithPlans(
+				addonEagerLoadActivePlans,
+			)
+		}
+
 		addonRow, err := query.First(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
@@ -401,6 +410,31 @@ func (a *adapter) GetAddon(ctx context.Context, params addon.GetAddonInput) (*ad
 	}
 
 	return entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)
+}
+
+var addonEagerLoadActivePlans = func(paq *entdb.PlanAddonQuery) {
+	paq.Where(
+		planaddondb.Or(
+			planaddondb.DeletedAtIsNil(),
+			planaddondb.DeletedAtGT(clock.Now().UTC()),
+		),
+	).WithPlan(func(pq *entdb.PlanQuery) {
+		pq.WithPhases(func(ppq *entdb.PlanPhaseQuery) {
+			ppq.Where(
+				phasedb.Or(
+					phasedb.DeletedAtIsNil(),
+					phasedb.DeletedAtGT(clock.Now().UTC()),
+				),
+			).WithRatecards(func(prcq *entdb.PlanRateCardQuery) {
+				prcq.Where(
+					ratecarddb.Or(
+						ratecarddb.DeletedAtIsNil(),
+						ratecarddb.DeletedAtGT(clock.Now().UTC()),
+					),
+				).WithFeatures()
+			})
+		})
+	})
 }
 
 func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput) (*addon.Addon, error) {
