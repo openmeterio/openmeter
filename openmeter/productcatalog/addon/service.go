@@ -224,6 +224,10 @@ func (i UpdateAddonInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type ExpandFields struct {
+	PlanAddons bool `json:"plans,omitempty"`
+}
+
 type GetAddonInput struct {
 	models.NamespacedID
 
@@ -237,6 +241,8 @@ type GetAddonInput struct {
 	// IncludeLatest defines whether return the latest version regardless of its AddonStatus or with ActiveStatus only if
 	// Version is not set.
 	IncludeLatest bool `json:"includeLatest,omitempty"`
+
+	Expand ExpandFields `json:"expand,omitempty"`
 }
 
 func (i GetAddonInput) Validate() error {
