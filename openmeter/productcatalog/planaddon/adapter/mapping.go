@@ -77,9 +77,5 @@ func FromPlanAddonRow(a entdb.PlanAddon) (*planaddon.PlanAddon, error) {
 		planAddon.Addon = *aa
 	}
 
-	if err := planAddon.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid add-on [namespace=%s id=%s]: %w", planAddon.Namespace, planAddon.ID, err)
-	}
-
 	return planAddon, nil
 }

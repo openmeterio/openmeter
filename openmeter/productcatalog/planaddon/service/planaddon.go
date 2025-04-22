@@ -88,11 +88,11 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 				params.Namespace, params.PlanID, err)
 		}
 
-		if err = p.ValidateWith([]models.ValidatorFunc[plan.Plan]{
+		if err = p.ValidateWith(
 			plan.IsPlanDeleted(clock.Now()),
 			plan.HasPlanStatus(productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled),
-		}...); err != nil {
-			return nil, models.NewGenericValidationError(err)
+		); err != nil {
+			return nil, err
 		}
 
 		//
@@ -114,11 +114,11 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 				params.Namespace, params.AddonID, err)
 		}
 
-		if err = a.ValidateWith([]models.ValidatorFunc[addon.Addon]{
+		if err = a.ValidateWith(
 			addon.IsAddonDeleted(clock.Now()),
 			addon.HasAddonStatus(productcatalog.AddonStatusActive),
-		}...); err != nil {
-			return nil, models.NewGenericValidationError(err)
+		); err != nil {
+			return nil, err
 		}
 
 		//
@@ -203,6 +203,16 @@ func (s service) DeletePlanAddon(ctx context.Context, params planaddon.DeletePla
 
 		if planAddon.DeletedAt != nil {
 			return nil
+		}
+
+		if err = planAddon.Plan.ValidateWith(
+			plan.IsPlanDeleted(clock.Now()),
+			plan.HasPlanStatus(productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled),
+		); err != nil {
+			return models.NewGenericNotFoundError(
+				fmt.Errorf("failed to delete plan add-on assignment [namespace=%s plan.id=%s addon.id=%s]: %w",
+					params.Namespace, params.PlanID, params.AddonID, err),
+			)
 		}
 
 		// Delete the plan add-on assignment
@@ -293,6 +303,10 @@ func (s service) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePla
 
 		logger.Debug("updating plan add-on assignment")
 
+		//
+		// Check whether plan add-on assignment already exists or not
+		//
+
 		planAddon, err := s.adapter.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: params.Namespace,
@@ -310,39 +324,21 @@ func (s service) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePla
 				params.Namespace, params.PlanID, params.AddonID, err)
 		}
 
+		//
+		// Validate plan
+		//
+
+		if err = planAddon.Plan.ValidateWith(
+			plan.IsPlanDeleted(clock.Now()),
+			plan.HasPlanStatus(productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled),
+		); err != nil {
+			return nil, models.NewGenericNotFoundError(
+				fmt.Errorf("failed to udpate plan add-on assignment [namespace=%s plan.id=%s addon.id=%s]: %w",
+					params.Namespace, params.PlanID, params.AddonID, err),
+			)
+		}
+
 		logger.Debug("validating plan add-on assignment")
-
-		p, err := s.plan.GetPlan(ctx, plan.GetPlanInput{
-			NamespacedID: models.NamespacedID{
-				Namespace: params.Namespace,
-				ID:        planAddon.Plan.ID,
-			},
-		})
-		if err != nil {
-			if err != nil {
-				if notFound := &(plan.NotFoundError{}); errors.As(err, &notFound) {
-					return nil, models.NewGenericNotFoundError(err)
-				}
-
-				return nil, fmt.Errorf("failed to get plan [namespace=%s plan.id=%s]: %w",
-					params.Namespace, params.PlanID, err)
-			}
-		}
-
-		a, err := s.addon.GetAddon(ctx, addon.GetAddonInput{
-			NamespacedID: models.NamespacedID{
-				Namespace: params.Namespace,
-				ID:        planAddon.Addon.ID,
-			},
-		})
-		if err != nil {
-			if notFound := &(addon.NotFoundError{}); errors.As(err, &notFound) {
-				return nil, models.NewGenericNotFoundError(err)
-			}
-
-			return nil, fmt.Errorf("failed to get add-on [namespace=%s addon.id=%s]: %w",
-				params.Namespace, params.AddonID, err)
-		}
 
 		planAddonAssignment := productcatalog.PlanAddon{
 			PlanAddonMeta: productcatalog.PlanAddonMeta{
@@ -353,8 +349,8 @@ func (s service) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePla
 					MaxQuantity:   params.MaxQuantity,
 				},
 			},
-			Plan:  p.AsProductCatalogPlan(),
-			Addon: a.AsProductCatalogAddon(),
+			Plan:  planAddon.Plan.AsProductCatalogPlan(),
+			Addon: planAddon.Addon.AsProductCatalogAddon(),
 		}
 
 		if err = planAddonAssignment.Validate(); err != nil {

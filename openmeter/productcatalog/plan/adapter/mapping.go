@@ -85,10 +85,6 @@ func FromPlanRow(p entdb.Plan) (*plan.Plan, error) {
 		pp.Addons = &planAddons
 	}
 
-	if err := pp.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid plan %s: %w", pp.ID, err)
-	}
-
 	return pp, nil
 }
 
@@ -127,10 +123,6 @@ func FromPlanAddonRow(a entdb.PlanAddon) (*plan.Addon, error) {
 
 	planAddon.Addon = *aa
 
-	if err := planAddon.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid add-on [namespace=%s id=%s]: %w", planAddon.Namespace, planAddon.ID, err)
-	}
-
 	return planAddon, nil
 }
 
@@ -168,10 +160,6 @@ func FromAddonRow(a entdb.Addon) (*productcatalog.Addon, error) {
 
 			aa.RateCards = append(aa.RateCards, ratecard)
 		}
-	}
-
-	if err := aa.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid add-on [namespace=%s key=%s]: %w", a.Namespace, aa.Key, err)
 	}
 
 	return aa, nil
@@ -213,10 +201,6 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (productcatalog.RateCard, error
 		}
 	default:
 		return nil, fmt.Errorf("invalid ratecard [namespace=%s key=%s]: invalid type %s: %w", r.Namespace, r.Key, r.Type, err)
-	}
-
-	if err = ratecard.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid ratecard [namespace=%s key=%s]: %w", r.Namespace, r.Key, err)
 	}
 
 	return ratecard, nil
@@ -271,10 +255,6 @@ func fromPlanPhaseRow(p entdb.PlanPhase) (*plan.Phase, error) {
 
 			pp.RateCards = append(pp.RateCards, ratecard)
 		}
-	}
-
-	if err = pp.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid plan phase %s: %w", pp.ID, err)
 	}
 
 	return pp, nil
@@ -337,10 +317,6 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		}
 	default:
 		return nil, fmt.Errorf("invalid RateCard type %s: %w", r.Type, err)
-	}
-
-	if err = ratecard.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid RateCard %s: %w", r.ID, err)
 	}
 
 	return ratecard, nil
