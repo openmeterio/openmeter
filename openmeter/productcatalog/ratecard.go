@@ -670,8 +670,8 @@ func rateCardsCompatible(r, v RateCard) error {
 
 	// Validate  Entitlement
 
-	if rMeta.EntitlementTemplate != nil {
-		if vMeta.EntitlementTemplate == nil || rMeta.EntitlementTemplate.Type() != vMeta.EntitlementTemplate.Type() {
+	if rMeta.EntitlementTemplate != nil && vMeta.EntitlementTemplate != nil {
+		if rMeta.EntitlementTemplate.Type() != vMeta.EntitlementTemplate.Type() {
 			errs = append(errs, errors.New("incompatible entitlement template type"))
 		} else {
 			switch rMeta.EntitlementTemplate.Type() {
@@ -692,10 +692,6 @@ func rateCardsCompatible(r, v RateCard) error {
 					errs = append(errs, fmt.Errorf("incompatible usage period for metered entitlement [%s, %s]",
 						rMetered.UsagePeriod.ISOString(), vMetered.UsagePeriod.ISOString()),
 					)
-				}
-
-				if lo.FromPtr(rMetered.IssueAfterReset) > lo.FromPtr(vMetered.IssueAfterReset) {
-					errs = append(errs, errors.New("incompatible issue after reset for metered entitlement"))
 				}
 			case entitlement.EntitlementTypeBoolean:
 			}
