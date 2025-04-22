@@ -57,10 +57,6 @@ func FromAddonRow(a entdb.Addon) (*addon.Addon, error) {
 		}
 	}
 
-	if err := aa.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid add-on [namespace=%s key=%s]: %w", aa.Namespace, aa.Key, err)
-	}
-
 	return aa, nil
 }
 
@@ -121,10 +117,6 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		}
 	default:
 		return nil, fmt.Errorf("invalid ratecard [namespace=%s key=%s]: invalid type %s: %w", r.Namespace, r.Key, r.Type, err)
-	}
-
-	if err = ratecard.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid ratecard [namespace=%s key=%s]: %w", r.Namespace, r.Key, err)
 	}
 
 	return ratecard, nil
