@@ -92,7 +92,7 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 			plan.IsPlanDeleted(clock.Now()),
 			plan.HasPlanStatus(productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled),
 		); err != nil {
-			return nil, models.NewGenericValidationError(err)
+			return nil, err
 		}
 
 		//
@@ -118,7 +118,7 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 			addon.IsAddonDeleted(clock.Now()),
 			addon.HasAddonStatus(productcatalog.AddonStatusActive),
 		); err != nil {
-			return nil, models.NewGenericValidationError(err)
+			return nil, err
 		}
 
 		//
