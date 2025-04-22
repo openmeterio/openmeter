@@ -88,10 +88,10 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 				params.Namespace, params.PlanID, err)
 		}
 
-		if err = p.ValidateWith([]models.ValidatorFunc[plan.Plan]{
+		if err = p.ValidateWith(
 			plan.IsPlanDeleted(clock.Now()),
 			plan.HasPlanStatus(productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled),
-		}...); err != nil {
+		); err != nil {
 			return nil, models.NewGenericValidationError(err)
 		}
 
@@ -114,10 +114,10 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 				params.Namespace, params.AddonID, err)
 		}
 
-		if err = a.ValidateWith([]models.ValidatorFunc[addon.Addon]{
+		if err = a.ValidateWith(
 			addon.IsAddonDeleted(clock.Now()),
 			addon.HasAddonStatus(productcatalog.AddonStatusActive),
-		}...); err != nil {
+		); err != nil {
 			return nil, models.NewGenericValidationError(err)
 		}
 
