@@ -402,10 +402,5 @@ func (in *runAIInput) ReadBatch(ctx context.Context) (service.MessageBatch, serv
 }
 
 func (in *runAIInput) Close(ctx context.Context) error {
-	err := in.scheduler.StopJobs()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return in.scheduler.Shutdown()
 }
