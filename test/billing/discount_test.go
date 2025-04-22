@@ -200,6 +200,11 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.Equal(discountCorrelationID, rcDiscounts.Percentage.CorrelationID)
 		s.NotEqual(discountCorrelationID, rcDiscounts.Usage.CorrelationID)
 	})
+
+	s.Run("Deleting the invoice works without errors", func() {
+		err := s.BillingService.DeleteInvoice(ctx, draftInvoiceID)
+		s.NoError(err)
+	})
 }
 
 func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {

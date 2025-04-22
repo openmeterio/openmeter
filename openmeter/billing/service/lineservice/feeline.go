@@ -35,41 +35,57 @@ func (l feeLine) SnapshotQuantity(context.Context, *billing.Invoice) error {
 func (l feeLine) CalculateDetailedLines() error {
 	// Fee lines only have percentage discounts, but no commitments, so it's fine to not to reuse the whole
 	// middleware line for now.
-	return l.applyPercentageDiscounts()
+	pctDiscount, err := l.getPercentageDiscounts()
+	if err != nil {
+		return err
+	}
+
+	// The merge should happen in an idempotent way, or we end up with multiple discounts for the same line
+	// due to recalculations.
+
+	targetDiscountState := billing.LineDiscounts{}
+
+	if pctDiscount != nil {
+		targetDiscountState.Amount = append(targetDiscountState.Amount, *pctDiscount)
+	}
+
+	l.line.Discounts, err = targetDiscountState.ReuseIDsFrom(l.line.Discounts)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (l feeLine) applyPercentageDiscounts() error {
+func (l feeLine) getPercentageDiscounts() (*billing.AmountLineDiscountManaged, error) {
 	discountPercentageMutator := discountPercentageMutator{}
 
 	discount, err := discountPercentageMutator.getDiscount(l.line.RateCardDiscounts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if discount == nil {
-		return nil
+		return nil, nil
 	}
 
 	currencyCalc, err := l.line.Currency.Calculator()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	amount := TotalAmount(getTotalAmountInput{
 		Currency:      currencyCalc,
 		PerUnitAmount: l.line.FlatFee.PerUnitAmount,
 		Quantity:      l.line.FlatFee.Quantity,
-		Discounts:     l.line.Discounts,
 	})
 
 	lineDiscount, err := discountPercentageMutator.getLineDiscount(amount, currencyCalc, *discount)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	l.line.Discounts.Amount = append(l.line.Discounts.Amount, lineDiscount)
-
-	return nil
+	return &lineDiscount, nil
 }
 
 func (l *feeLine) UpdateTotals() error {

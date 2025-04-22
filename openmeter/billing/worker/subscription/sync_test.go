@@ -3069,6 +3069,117 @@ func (s *SubscriptionHandlerTestSuite) expectValidationIssueForLine(line *billin
 	s.Equal(fmt.Sprintf("lines/%s", line.ID), issue.Path)
 }
 
+func (s *SubscriptionHandlerTestSuite) TestDiscountSyncronization() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("first-phase", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "in-advance",
+						Name: "in-advance",
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(6),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+						Discounts: productcatalog.Discounts{
+							Percentage: &productcatalog.PercentageDiscount{
+								Percentage: models.NewPercentage(100),
+							},
+						},
+					},
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
+				},
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:        s.APIRequestsTotalFeature.Key,
+						Name:       s.APIRequestsTotalFeature.Key,
+						FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+						FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(10),
+						}),
+					},
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Handler.HandleSubscriptionCreated(ctx, subsView, clock.Now()))
+
+	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Customers: []string{s.Customer.ID},
+		Expand:    billing.InvoiceExpandAll,
+	})
+	s.NoError(err)
+	s.Len(invoices.Items, 2)
+
+	var gatheringInvoice *billing.Invoice
+	var instantInvoice *billing.Invoice
+
+	for _, invoice := range invoices.Items {
+		if invoice.Status == billing.InvoiceStatusGathering {
+			gatheringInvoice = &invoice
+			continue
+		}
+
+		instantInvoice = &invoice
+	}
+
+	s.NotNil(gatheringInvoice, "gathering invoice should be present")
+	s.NotNil(instantInvoice, "instant invoice should be present")
+
+	s.DebugDumpInvoice("gathering invoice", *gatheringInvoice)
+	s.DebugDumpInvoice("instant invoice", *instantInvoice)
+
+	// Gathering invoice should have the UBP line
+	s.expectLines(*gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  s.APIRequestsTotalFeature.Key,
+			},
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
+			})),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z")},
+		},
+	})
+
+	// Instant invoice should have the in advance fee
+	s.expectLines(*instantInvoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-advance",
+			},
+			Qty:       mo.Some[float64](1),
+			UnitPrice: mo.Some[float64](6),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+		},
+	})
+
+	// The advance fee should have 100% discount
+	line := instantInvoice.Lines.OrEmpty()[0]
+	s.Equal(float64(6), line.Discounts.Amount[0].Amount.InexactFloat64())
+}
+
 type expectedLine struct {
 	Matcher   lineMatcher
 	Qty       mo.Option[float64]
