@@ -412,6 +412,10 @@ model InvoiceListParams {
 enum InvoiceExpand {
   lines: "lines",
   preceding: "preceding",
+
+  /**
+   * @deprecated We are always expanding the workflow apps.
+   */
   workflowApps: "workflow.apps",
 }
 

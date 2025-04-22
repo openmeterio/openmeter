@@ -125,6 +125,7 @@ func NewAppCustomInvoicingService(logger *slog.Logger, db *entdb.Client, appsCon
 	_, err = appcustominvoicing.NewFactory(appcustominvoicing.FactoryConfig{
 		AppService:             appService,
 		CustomInvoicingService: service,
+		BillingService:         billingService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appcustominvoicing factory: %w", err)

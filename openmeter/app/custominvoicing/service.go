@@ -4,12 +4,13 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 type Service interface {
 	CustomerDataService
-
 	FactoryService
+	SyncService
 }
 
 type CustomerDataService interface {
@@ -23,4 +24,11 @@ type FactoryService interface {
 	DeleteApp(ctx context.Context, input app.UninstallAppInput) error
 	UpsertAppConfiguration(ctx context.Context, input UpsertAppConfigurationInput) error
 	GetAppConfiguration(ctx context.Context, appID app.AppID) (Configuration, error)
+}
+
+type SyncService interface {
+	SyncDraftInvoice(ctx context.Context, input SyncDraftInvoiceInput) (billing.Invoice, error)
+	SyncIssuingInvoice(ctx context.Context, input SyncIssuingInvoiceInput) (billing.Invoice, error)
+
+	HandlePaymentTrigger(ctx context.Context, input HandlePaymentTriggerInput) (billing.Invoice, error)
 }

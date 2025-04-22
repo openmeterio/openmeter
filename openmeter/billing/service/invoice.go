@@ -54,17 +54,15 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 }
 
 func (s *Service) resolveWorkflowApps(ctx context.Context, invoice billing.Invoice) (billing.Invoice, error) {
-	if invoice.ExpandedFields.WorkflowApps {
-		resolvedApps, err := s.resolveApps(ctx, invoice.Namespace, invoice.Workflow.AppReferences)
-		if err != nil {
-			return invoice, fmt.Errorf("error resolving apps for invoice [%s]: %w", invoice.ID, err)
-		}
+	resolvedApps, err := s.resolveApps(ctx, invoice.Namespace, invoice.Workflow.AppReferences)
+	if err != nil {
+		return invoice, fmt.Errorf("error resolving apps for invoice [%s]: %w", invoice.ID, err)
+	}
 
-		invoice.Workflow.Apps = &billing.ProfileApps{
-			Tax:       resolvedApps.Tax.App,
-			Invoicing: resolvedApps.Invoicing.App,
-			Payment:   resolvedApps.Payment.App,
-		}
+	invoice.Workflow.Apps = &billing.ProfileApps{
+		Tax:       resolvedApps.Tax.App,
+		Invoicing: resolvedApps.Invoicing.App,
+		Payment:   resolvedApps.Payment.App,
 	}
 
 	return invoice, nil
@@ -320,6 +318,12 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				})
 				if err != nil {
 					return nil, fmt.Errorf("creating invoice: %w", err)
+				}
+
+				// let's resolve the workflow apps as some checks such as CanDraftSyncAdvance depends on the apps
+				invoice, err = s.resolveWorkflowApps(ctx, invoice)
+				if err != nil {
+					return nil, fmt.Errorf("error adding fields to invoice [%s]: %w", invoice.ID, err)
 				}
 
 				// let's associate the invoice lines to the invoice

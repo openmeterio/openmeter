@@ -9,6 +9,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type UpsertResults struct {
@@ -16,13 +17,13 @@ type UpsertResults struct {
 	externalID    string
 
 	lineExternalIDs         map[string]string
-	LineDiscountExternalIDs map[string]string
+	lineDiscountExternalIDs map[string]string
 }
 
 func NewUpsertResults() *UpsertResults {
 	return &UpsertResults{
 		lineExternalIDs:         make(map[string]string),
-		LineDiscountExternalIDs: make(map[string]string),
+		lineDiscountExternalIDs: make(map[string]string),
 	}
 }
 
@@ -59,17 +60,17 @@ func (u *UpsertResults) GetLineExternalIDs() map[string]string {
 }
 
 func (u *UpsertResults) AddLineDiscountExternalID(lineDiscountID string, externalID string) *UpsertResults {
-	u.LineDiscountExternalIDs[lineDiscountID] = externalID
+	u.lineDiscountExternalIDs[lineDiscountID] = externalID
 	return u
 }
 
 func (u *UpsertResults) GetLineDiscountExternalID(lineDiscountID string) (string, bool) {
-	externalID, ok := u.LineDiscountExternalIDs[lineDiscountID]
+	externalID, ok := u.lineDiscountExternalIDs[lineDiscountID]
 	return externalID, ok
 }
 
 func (u *UpsertResults) GetLineDiscountExternalIDs() map[string]string {
-	return u.LineDiscountExternalIDs
+	return u.lineDiscountExternalIDs
 }
 
 type UpsertInvoiceResult = UpsertResults
@@ -113,6 +114,22 @@ func (f *FinalizeInvoiceResult) GetSentToCustomerAt() (time.Time, bool) {
 func (f *FinalizeInvoiceResult) SetSentToCustomerAt(sentToCustomerAt time.Time) *FinalizeInvoiceResult {
 	f.sentToCustomerAt = mo.Some(sentToCustomerAt)
 	return f
+}
+
+func (f *FinalizeInvoiceResult) MergeIntoInvoice(invoice *Invoice) error {
+	if paymentExternalID, ok := f.GetPaymentExternalID(); ok {
+		invoice.ExternalIDs.Payment = paymentExternalID
+	}
+
+	if invoiceNumber, ok := f.GetInvoiceNumber(); ok {
+		invoice.Number = invoiceNumber
+	}
+
+	if sentToCustomerAt, ok := f.GetSentToCustomerAt(); ok {
+		invoice.SentToCustomerAt = &sentToCustomerAt
+	}
+
+	return nil
 }
 
 type PostAdvanceHookResult struct {
@@ -172,6 +189,14 @@ type InvoicingAppPostAdvanceHook interface {
 	PostAdvanceInvoiceHook(ctx context.Context, invoice Invoice) (*PostAdvanceHookResult, error)
 }
 
+// InvoicingAppAsyncSyncer is an optional interface that can be implemented by the app to support
+// asynchronous syncing of the invoice (e.g. when we are receiving the payload such as with custominvoicing app)
+type InvoicingAppAsyncSyncer interface {
+	CanDraftSyncAdvance(invoice Invoice) (bool, error)
+	CanIssuingSyncAdvance(invoice Invoice) (bool, error)
+	// TODO: finalization check
+}
+
 // GetApp returns the app from the app entity
 func GetApp(app app.App) (InvoicingApp, error) {
 	customerApp, ok := app.(InvoicingApp)
@@ -186,25 +211,25 @@ func GetApp(app app.App) (InvoicingApp, error) {
 	return customerApp, nil
 }
 
-// MergeUpsertInvoiceResult merges the upsert invoice result into the invoice.
-func MergeUpsertInvoiceResult(invoice *Invoice, result *UpsertInvoiceResult) error {
+// MergeIntoInvoice merges the upsert invoice result into the invoice.
+func (r UpsertInvoiceResult) MergeIntoInvoice(invoice *Invoice) error {
 	// Let's merge the results into the invoice
-	if invoiceNumber, ok := result.GetInvoiceNumber(); ok {
+	if invoiceNumber, ok := r.GetInvoiceNumber(); ok {
 		invoice.Number = invoiceNumber
 	}
 
-	if externalID, ok := result.GetExternalID(); ok {
+	if externalID, ok := r.GetExternalID(); ok {
 		invoice.ExternalIDs.Invoicing = externalID
 	}
 
 	var outErr error
 
 	// Let's merge the line IDs
-	if len(result.GetLineExternalIDs()) > 0 {
+	if len(r.GetLineExternalIDs()) > 0 {
 		flattenedLines := invoice.FlattenLinesByID()
 
 		// Merge the line IDs
-		for lineID, externalID := range result.GetLineExternalIDs() {
+		for lineID, externalID := range r.GetLineExternalIDs() {
 			if line, ok := flattenedLines[lineID]; ok {
 				line.ExternalIDs.Invoicing = externalID
 			} else {
@@ -213,7 +238,7 @@ func MergeUpsertInvoiceResult(invoice *Invoice, result *UpsertInvoiceResult) err
 		}
 
 		// Let's merge the line discount IDs
-		dicountIDToExternalID := result.GetLineDiscountExternalIDs()
+		dicountIDToExternalID := r.GetLineDiscountExternalIDs()
 
 		for _, line := range flattenedLines {
 			for idx, discount := range line.Discounts.Amount {
@@ -231,4 +256,80 @@ func MergeUpsertInvoiceResult(invoice *Invoice, result *UpsertInvoiceResult) err
 	}
 
 	return outErr
+}
+
+type SyncInput interface {
+	models.Validator
+
+	MergeIntoInvoice(invoice *Invoice) error
+	GetAdditionalMetadata() map[string]string
+	GetInvoiceID() InvoiceID
+}
+
+var _ SyncInput = (*SyncDraftInvoiceInput)(nil)
+
+type SyncDraftInvoiceInput struct {
+	InvoiceID            InvoiceID
+	UpsertInvoiceResults *UpsertInvoiceResult
+	AdditionalMetadata   map[string]string
+}
+
+func (i SyncDraftInvoiceInput) Validate() error {
+	var errs []error
+
+	if err := i.InvoiceID.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.AdditionalMetadata == nil {
+		errs = append(errs, fmt.Errorf("additional metadata is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i SyncDraftInvoiceInput) MergeIntoInvoice(invoice *Invoice) error {
+	return i.UpsertInvoiceResults.MergeIntoInvoice(invoice)
+}
+
+func (i SyncDraftInvoiceInput) GetAdditionalMetadata() map[string]string {
+	return i.AdditionalMetadata
+}
+
+func (i SyncDraftInvoiceInput) GetInvoiceID() InvoiceID {
+	return i.InvoiceID
+}
+
+var _ SyncInput = (*SyncIssuingInvoiceInput)(nil)
+
+type SyncIssuingInvoiceInput struct {
+	InvoiceID             InvoiceID
+	FinalizeInvoiceResult *FinalizeInvoiceResult
+	AdditionalMetadata    map[string]string
+}
+
+func (i SyncIssuingInvoiceInput) Validate() error {
+	var errs []error
+
+	if err := i.InvoiceID.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.AdditionalMetadata == nil {
+		errs = append(errs, fmt.Errorf("additional metadata is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i SyncIssuingInvoiceInput) MergeIntoInvoice(invoice *Invoice) error {
+	return i.FinalizeInvoiceResult.MergeIntoInvoice(invoice)
+}
+
+func (i SyncIssuingInvoiceInput) GetAdditionalMetadata() map[string]string {
+	return i.AdditionalMetadata
+}
+
+func (i SyncIssuingInvoiceInput) GetInvoiceID() InvoiceID {
+	return i.InvoiceID
 }

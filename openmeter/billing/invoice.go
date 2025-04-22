@@ -211,8 +211,7 @@ func (i InvoiceID) Validate() error {
 }
 
 type InvoiceExpand struct {
-	Preceding    bool
-	WorkflowApps bool
+	Preceding bool
 
 	Lines        bool
 	DeletedLines bool
@@ -225,7 +224,6 @@ type InvoiceExpand struct {
 
 var InvoiceExpandAll = InvoiceExpand{
 	Preceding:    true,
-	WorkflowApps: true,
 	Lines:        true,
 	DeletedLines: false,
 	SplitLines:   false,

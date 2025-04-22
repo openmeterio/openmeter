@@ -773,7 +773,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		// We merge external IDs into the invoice manually to simulate the update.
 		// Normally this is done by the state machine.
-		err = billing.MergeUpsertInvoiceResult(&updateInvoice, results)
+		err = results.MergeIntoInvoice(&updateInvoice)
 		s.NoError(err)
 
 		// Remove a line item.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -20,6 +21,7 @@ type InvoiceStateMachine struct {
 	Invoice      billing.Invoice
 	Calculator   invoicecalc.Calculator
 	StateMachine *stateless.StateMachine
+	Logger       *slog.Logger
 }
 
 var invoiceStateMachineCache = sync.Pool{
@@ -108,12 +110,14 @@ func allocateStateMachine() *InvoiceStateMachine {
 			billing.InvoiceStatusDraftManualApprovalNeeded,
 			boolFn(not(out.isAutoAdvanceEnabled)),
 			boolFn(out.noCriticalValidationErrors),
+			boolFn(out.canDraftSyncAdvance),
 		).
 		Permit(
 			billing.TriggerNext,
 			billing.InvoiceStatusDraftWaitingAutoApproval,
 			boolFn(out.isAutoAdvanceEnabled),
 			boolFn(out.noCriticalValidationErrors),
+			boolFn(out.canDraftSyncAdvance),
 		).
 		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerFailed, billing.InvoiceStatusDraftSyncFailed).
@@ -170,7 +174,10 @@ func allocateStateMachine() *InvoiceStateMachine {
 	// Issuing state
 
 	stateMachine.Configure(billing.InvoiceStatusIssuingSyncing).
-		Permit(billing.TriggerNext, billing.InvoiceStatusIssued). // TODO: Do we need the interim state?
+		Permit(billing.TriggerNext,
+			billing.InvoiceStatusIssued,
+			boolFn(out.canIssuingSyncAdvance),
+		).
 		Permit(billing.TriggerFailed, billing.InvoiceStatusIssuingSyncFailed).
 		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress).
 		OnActive(out.finalizeInvoice)
@@ -236,7 +243,7 @@ type InvoiceStateMachineCallback func(context.Context, *InvoiceStateMachine) err
 
 func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.Invoice, cb InvoiceStateMachineCallback) (billing.Invoice, error) {
 	sm := invoiceStateMachineCache.Get().(*InvoiceStateMachine)
-
+	sm.Logger = s.logger
 	// Stateless doesn't store any state in the state machine, so it's fine to reuse the state machine itself
 	sm.Invoice = invoice
 	sm.Calculator = s.invoiceCalculator
@@ -504,7 +511,7 @@ func (m *InvoiceStateMachine) HandleInvoiceTrigger(ctx context.Context, trigger 
 }
 
 func (m *InvoiceStateMachine) mergeUpsertInvoiceResult(result *billing.UpsertInvoiceResult) error {
-	return billing.MergeUpsertInvoiceResult(&m.Invoice, result)
+	return result.MergeIntoInvoice(&m.Invoice)
 }
 
 // validateDraftInvoice validates the draft invoice using the apps referenced in the invoice.
@@ -557,16 +564,8 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 		}
 
 		if results != nil {
-			if paymentExternalID, ok := results.GetPaymentExternalID(); ok {
-				m.Invoice.ExternalIDs.Payment = paymentExternalID
-			}
-
-			if invoiceNumber, ok := results.GetInvoiceNumber(); ok {
-				m.Invoice.Number = invoiceNumber
-			}
-
-			if sentToCustomerAt, ok := results.GetSentToCustomerAt(); ok {
-				m.Invoice.SentToCustomerAt = &sentToCustomerAt
+			if err := results.MergeIntoInvoice(&m.Invoice); err != nil {
+				return nil, err
 			}
 		}
 
@@ -602,6 +601,32 @@ func (m *InvoiceStateMachine) shouldAutoAdvance() bool {
 	}
 
 	return !clock.Now().In(time.UTC).Before(*m.Invoice.DraftUntil)
+}
+
+func (m *InvoiceStateMachine) canDraftSyncAdvance() bool {
+	if invoicingApp, ok := m.Invoice.Workflow.Apps.Invoicing.(billing.InvoicingAppAsyncSyncer); ok {
+		can, err := invoicingApp.CanDraftSyncAdvance(m.Invoice)
+		if err != nil {
+			m.Logger.Error("error checking if we can advance the draft invoice", "error", err)
+			return false
+		}
+		return can
+	}
+
+	return true
+}
+
+func (m *InvoiceStateMachine) canIssuingSyncAdvance() bool {
+	if invoicingApp, ok := m.Invoice.Workflow.Apps.Invoicing.(billing.InvoicingAppAsyncSyncer); ok {
+		can, err := invoicingApp.CanIssuingSyncAdvance(m.Invoice)
+		if err != nil {
+			m.Logger.Error("error checking if we can advance the issuing invoice", "error", err)
+			return false
+		}
+		return can
+	}
+
+	return true
 }
 
 func boolFn(fn func() bool) func(context.Context, ...any) bool {

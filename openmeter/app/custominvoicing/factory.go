@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 var (
@@ -47,11 +48,13 @@ var (
 type Factory struct {
 	appService             app.Service
 	customInvoicingService Service
+	billingService         billing.Service
 }
 
 type FactoryConfig struct {
 	AppService             app.Service
 	CustomInvoicingService Service
+	BillingService         billing.Service
 }
 
 func (c FactoryConfig) Validate() error {
@@ -61,6 +64,10 @@ func (c FactoryConfig) Validate() error {
 
 	if c.CustomInvoicingService == nil {
 		return fmt.Errorf("custom invoicing service is required")
+	}
+
+	if c.BillingService == nil {
+		return fmt.Errorf("billing service is required")
 	}
 
 	return nil
@@ -74,6 +81,7 @@ func NewFactory(config FactoryConfig) (*Factory, error) {
 	fact := &Factory{
 		appService:             config.AppService,
 		customInvoicingService: config.CustomInvoicingService,
+		billingService:         config.BillingService,
 	}
 
 	err := config.AppService.RegisterMarketplaceListing(app.RegistryItem{
@@ -98,6 +106,7 @@ func (f *Factory) NewApp(ctx context.Context, appBase app.AppBase) (app.App, err
 		AppBase:                appBase,
 		Configuration:          cfg,
 		customInvoicingService: f.customInvoicingService,
+		billingService:         f.billingService,
 	}, nil
 }
 

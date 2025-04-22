@@ -396,7 +396,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		)
 	})
 
-	s.T().Run("Expand scenarios - no  expand", func(t *testing.T) {
+	s.T().Run("Expand scenarios", func(t *testing.T) {
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 			Page: pagination.Page{
 				PageNumber: 1,
@@ -415,27 +415,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 		require.False(s.T(), invoice.Lines.IsPresent(), "no lines should be returned")
 		require.NotNil(s.T(), invoice.Workflow, "workflow should be returned")
-		require.Nil(s.T(), invoice.Workflow.Apps, "apps should not be resolved")
-	})
-
-	s.T().Run("Expand scenarios - app expand", func(t *testing.T) {
-		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Page: pagination.Page{
-				PageNumber: 1,
-				PageSize:   10,
-			},
-
-			Namespaces: []string{namespace},
-			Customers:  []string{customerEntity.ID},
-			Expand: billing.InvoiceExpand{
-				WorkflowApps: true,
-			},
-			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
-			Currencies:       []currencyx.Code{currencyx.Code(currency.USD)},
-		})
-		require.NoError(s.T(), err)
-		require.Len(s.T(), invoices.Items, 1)
-		invoice := invoices.Items[0]
 
 		require.False(s.T(), invoice.Lines.IsPresent(), "no lines should be returned")
 		require.NotNil(s.T(), invoice.Workflow, "workflow should be returned")
