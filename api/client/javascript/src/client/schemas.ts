@@ -151,6 +151,7 @@ export interface paths {
     get?: never
     /**
      * Update Stripe API key
+     * @deprecated
      * @description Update the Stripe API key.
      */
     put: operations['updateStripeAPIKey']
@@ -2264,27 +2265,7 @@ export interface components {
     App:
       | components['schemas']['StripeApp']
       | components['schemas']['SandboxApp']
-    /** @description Resource update operation model. */
-    AppBaseReplaceUpdate: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata'] | null
-      /** @description Default for the app type
-       *     Only one app of each type can be default. */
-      default: boolean
-    }
+      | components['schemas']['CustomInvoicingApp']
     /**
      * @description App capability.
      *
@@ -2346,6 +2327,11 @@ export interface components {
        */
       id: string
     }
+    /** @description App ReplaceUpdate Model */
+    AppReplaceUpdate:
+      | components['schemas']['StripeAppReplaceUpdate']
+      | components['schemas']['SandboxAppReplaceUpdate']
+      | components['schemas']['CustomInvoicingAppReplaceUpdate']
     /**
      * @description App installed status.
      * @enum {string}
@@ -2355,7 +2341,7 @@ export interface components {
      * @description Type of the app.
      * @enum {string}
      */
-    AppType: 'stripe' | 'sandbox'
+    AppType: 'stripe' | 'sandbox' | 'custom_invoicing'
     /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
     BadRequestProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description The balance history window. */
@@ -3143,6 +3129,137 @@ export interface components {
      * @example USD
      */
     CurrencyCode: string
+    /** @description Custom Invoicing app can be used for interface with any invoicing or payment system.
+     *
+     *     This app provides ways to manipulate invoices and payments, however the integration
+     *     must rely on Notifications API to get notified about invoice changes. */
+    CustomInvoicingApp: {
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly id: string
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /** @description The marketplace listing that this installed app is based on. */
+      readonly listing: components['schemas']['MarketplaceListing']
+      /** @description Status of the app connection. */
+      readonly status: components['schemas']['AppStatus']
+      /** @description Default for the app type
+       *     Only one app of each type can be default. */
+      default: boolean
+      /**
+       * @description The app's type is CustomInvoicing. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'custom_invoicing'
+      /** @description Skip draft.sync hook.
+       *
+       *     The hook will auto progress to the next state of the invoice. */
+      skipDraftSyncHook: boolean
+      /** @description Skip issuing.sync hook.
+       *
+       *     The hook will auto progress to the next state of the invoice. */
+      skipIssuingSyncHook: boolean
+    }
+    /** @description Resource update operation model. */
+    CustomInvoicingAppReplaceUpdate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /** @description Default for the app type
+       *     Only one app of each type can be default. */
+      default: boolean
+      /**
+       * @description The app's type is CustomInvoicing. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'custom_invoicing'
+      /** @description Skip draft.sync hook.
+       *
+       *     The hook will auto progress to the next state of the invoice. */
+      skipDraftSyncHook: boolean
+      /** @description Skip issuing.sync hook.
+       *
+       *     The hook will auto progress to the next state of the invoice. */
+      skipIssuingSyncHook: boolean
+    }
+    /** @description Custom Invoicing Customer App Data. */
+    CustomInvoicingCustomerAppData: {
+      /** @description The installed custom invoicing app this data belongs to. */
+      readonly app?: components['schemas']['CustomInvoicingApp']
+      /**
+       * App ID
+       * @description The app ID.
+       *     If not provided, it will use the global default for the app type.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id?: string
+      /**
+       * @description The app name. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'custom_invoicing'
+      /** @description Metadata to be used by the custom invoicing provider. */
+      metadata?: components['schemas']['Metadata']
+    }
+    /** @description Custom invoicing tax config. */
+    CustomInvoicingTaxConfig: {
+      /**
+       * Tax code
+       * @description Tax code.
+       *
+       *     The tax code should be interpreted by the custom invoicing provider.
+       */
+      code: string
+    }
     /** @description Plan input for custom subscription creation (without key and version). */
     CustomPlanInput: {
       /**
@@ -3310,10 +3427,18 @@ export interface components {
     }
     /** @description CustomerAppData
      *     Stores the app specific data for the customer.
-     *     One of: stripe, sandbox */
+     *     One of: stripe, sandbox, custom_invoicing */
     CustomerAppData:
       | components['schemas']['StripeCustomerAppData']
       | components['schemas']['SandboxCustomerAppData']
+      | components['schemas']['CustomInvoicingCustomerAppData']
+    /** @description CustomerAppData
+     *     Stores the app specific data for the customer.
+     *     One of: stripe, sandbox, custom_invoicing */
+    CustomerAppDataCreateOrUpdateItem:
+      | components['schemas']['StripeCustomerAppDataCreateOrUpdateItem']
+      | components['schemas']['SandboxCustomerAppData']
+      | components['schemas']['CustomInvoicingCustomerAppData']
     /** @description Paginated response */
     CustomerAppDataPaginatedResponse: {
       /**
@@ -7966,6 +8091,32 @@ export interface components {
        */
       type: 'sandbox'
     }
+    /** @description Resource update operation model. */
+    SandboxAppReplaceUpdate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /** @description Default for the app type
+       *     Only one app of each type can be default. */
+      default: boolean
+      /**
+       * @description The app's type is Sandbox. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'sandbox'
+    }
     /** @description Sandbox Customer App Data. */
     SandboxCustomerAppData: {
       /** @description The installed sandbox app this data belongs to. */
@@ -8095,12 +8246,43 @@ export interface components {
        */
       type: 'stripe'
       /** @description The Stripe account ID. */
-      stripeAccountId: string
+      readonly stripeAccountId: string
       /** @description Livemode, true if the app is in production mode. */
-      livemode: boolean
+      readonly livemode: boolean
       /** @description The masked API key.
        *     Only shows the first 8 and last 3 characters. */
-      maskedAPIKey: string
+      readonly maskedAPIKey: string
+    }
+    /** @description Resource update operation model. */
+    StripeAppReplaceUpdate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /** @description Default for the app type
+       *     Only one app of each type can be default. */
+      default: boolean
+      /**
+       * @description The app's type is Stripe. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'stripe'
+      /**
+       * Format: password
+       * @description The Stripe API key.
+       */
+      secretAPIKey?: string
     }
     /**
      * @description Stripe CheckoutSession.mode
@@ -8129,6 +8311,31 @@ export interface components {
       type: 'stripe'
       /** @description The installed stripe app this data belongs to. */
       readonly app?: components['schemas']['StripeApp']
+      /** @description The Stripe customer ID. */
+      stripeCustomerId: string
+      /** @description The Stripe default payment method ID. */
+      stripeDefaultPaymentMethodId?: string
+    }
+    /**
+     * @description Stripe Customer App Data.
+     * @example {
+     *       "type": "stripe",
+     *       "stripeCustomerId": "cus_xxxxxxxxxxxxxx"
+     *     }
+     */
+    StripeCustomerAppDataCreateOrUpdateItem: {
+      /**
+       * App ID
+       * @description The app ID.
+       *     If not provided, it will use the global default for the app type.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id?: string
+      /**
+       * @description The app name. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'stripe'
       /** @description The Stripe customer ID. */
       stripeCustomerId: string
       /** @description The Stripe default payment method ID. */
@@ -9020,6 +9227,11 @@ export interface components {
        * @description Stripe tax config.
        */
       stripe?: components['schemas']['StripeTaxConfig']
+      /**
+       * Custom invoicing tax config
+       * @description Custom invoicing tax config.
+       */
+      customInvoicing?: components['schemas']['CustomInvoicingTaxConfig']
     }
     /**
      * @description The mode of the tiered price.
@@ -9492,11 +9704,11 @@ export type Address = components['schemas']['Address']
 export type Alignment = components['schemas']['Alignment']
 export type Annotations = components['schemas']['Annotations']
 export type App = components['schemas']['App']
-export type AppBaseReplaceUpdate = components['schemas']['AppBaseReplaceUpdate']
 export type AppCapability = components['schemas']['AppCapability']
 export type AppCapabilityType = components['schemas']['AppCapabilityType']
 export type AppPaginatedResponse = components['schemas']['AppPaginatedResponse']
 export type AppReference = components['schemas']['AppReference']
+export type AppReplaceUpdate = components['schemas']['AppReplaceUpdate']
 export type AppStatus = components['schemas']['AppStatus']
 export type AppType = components['schemas']['AppType']
 export type BadRequestProblemResponse =
@@ -9600,6 +9812,13 @@ export type CreditNoteOriginalInvoiceRef =
   components['schemas']['CreditNoteOriginalInvoiceRef']
 export type Currency = components['schemas']['Currency']
 export type CurrencyCode = components['schemas']['CurrencyCode']
+export type CustomInvoicingApp = components['schemas']['CustomInvoicingApp']
+export type CustomInvoicingAppReplaceUpdate =
+  components['schemas']['CustomInvoicingAppReplaceUpdate']
+export type CustomInvoicingCustomerAppData =
+  components['schemas']['CustomInvoicingCustomerAppData']
+export type CustomInvoicingTaxConfig =
+  components['schemas']['CustomInvoicingTaxConfig']
 export type CustomPlanInput = components['schemas']['CustomPlanInput']
 export type CustomSubscriptionChange =
   components['schemas']['CustomSubscriptionChange']
@@ -9608,6 +9827,8 @@ export type CustomSubscriptionCreate =
 export type Customer = components['schemas']['Customer']
 export type CustomerAccess = components['schemas']['CustomerAccess']
 export type CustomerAppData = components['schemas']['CustomerAppData']
+export type CustomerAppDataCreateOrUpdateItem =
+  components['schemas']['CustomerAppDataCreateOrUpdateItem']
 export type CustomerAppDataPaginatedResponse =
   components['schemas']['CustomerAppDataPaginatedResponse']
 export type CustomerCreate = components['schemas']['CustomerCreate']
@@ -9912,6 +10133,8 @@ export type RemovePhaseShifting = components['schemas']['RemovePhaseShifting']
 export type ResetEntitlementUsageInput =
   components['schemas']['ResetEntitlementUsageInput']
 export type SandboxApp = components['schemas']['SandboxApp']
+export type SandboxAppReplaceUpdate =
+  components['schemas']['SandboxAppReplaceUpdate']
 export type SandboxCustomerAppData =
   components['schemas']['SandboxCustomerAppData']
 export type ServiceUnavailableProblemResponse =
@@ -9919,10 +10142,14 @@ export type ServiceUnavailableProblemResponse =
 export type SortOrder = components['schemas']['SortOrder']
 export type StripeApiKeyInput = components['schemas']['StripeAPIKeyInput']
 export type StripeApp = components['schemas']['StripeApp']
+export type StripeAppReplaceUpdate =
+  components['schemas']['StripeAppReplaceUpdate']
 export type StripeCheckoutSessionMode =
   components['schemas']['StripeCheckoutSessionMode']
 export type StripeCustomerAppData =
   components['schemas']['StripeCustomerAppData']
+export type StripeCustomerAppDataCreateOrUpdateItem =
+  components['schemas']['StripeCustomerAppDataCreateOrUpdateItem']
 export type StripeTaxConfig = components['schemas']['StripeTaxConfig']
 export type StripeWebhookEvent = components['schemas']['StripeWebhookEvent']
 export type StripeWebhookResponse =
@@ -11027,7 +11254,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['AppBaseReplaceUpdate']
+        'application/json': components['schemas']['AppReplaceUpdate']
       }
     }
     responses: {
@@ -14094,7 +14321,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['CustomerAppData'][]
+        'application/json': components['schemas']['CustomerAppDataCreateOrUpdateItem'][]
       }
     }
     responses: {

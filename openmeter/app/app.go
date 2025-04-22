@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -19,6 +20,8 @@ type App interface {
 	GetStatus() AppStatus
 	GetMetadata() map[string]string
 	GetListing() MarketplaceListing
+
+	UpdateAppConfig(ctx context.Context, input AppConfigUpdate) error
 
 	// ValidateCapabilities validates if the app can run for the given capabilities
 	ValidateCapabilities(capabilities ...CapabilityType) error
@@ -91,13 +94,18 @@ func (i GetDefaultAppInput) Validate() error {
 	return nil
 }
 
+type AppConfigUpdate interface {
+	models.Validator
+}
+
 // UpdateAppInput is the input for setting an app as default for a type
 type UpdateAppInput struct {
-	AppID       AppID
-	Name        string
-	Description *string
-	Default     bool
-	Metadata    *map[string]string
+	AppID           AppID
+	Name            string
+	Description     *string
+	Default         bool
+	Metadata        *map[string]string
+	AppConfigUpdate AppConfigUpdate
 }
 
 func (i UpdateAppInput) Validate() error {
@@ -124,6 +132,12 @@ func (i UpdateAppInput) Validate() error {
 			if v == "" {
 				return errors.New("metadata value is required")
 			}
+		}
+	}
+
+	if i.AppConfigUpdate != nil {
+		if err := i.AppConfigUpdate.Validate(); err != nil {
+			return fmt.Errorf("error validating app entity update: %w", err)
 		}
 	}
 

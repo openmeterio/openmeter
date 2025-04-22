@@ -125,6 +125,7 @@ services:
     configs:
       - source: svix_sql
         target: /docker-entrypoint-initdb.d/svix.sql
+        mode: 0444
     command: ["postgres", "-c", "wal_level=logical"]
     healthcheck:
       test: ["CMD", "pg_isready", "-d", "postgres", "-U", "postgres"]

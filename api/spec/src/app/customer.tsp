@@ -11,7 +11,7 @@ namespace OpenMeter.App;
 /**
  * CustomerAppData
  * Stores the app specific data for the customer.
- * One of: stripe, sandbox
+ * One of: stripe, sandbox, custom_invoicing
  */
 @friendlyName("CustomerAppData")
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
@@ -21,6 +21,9 @@ union CustomerAppData {
 
   @summary("Sandbox")
   sandbox: SandboxCustomerAppData,
+
+  @summary("Custom Invoicing")
+  custom_invoicing: CustomInvoicingCustomerAppData,
 }
 
 /**
@@ -79,4 +82,23 @@ model StripeCustomerAppData {
    * The Stripe default payment method ID.
    */
   stripeDefaultPaymentMethodId?: string;
+}
+
+/**
+ * Custom Invoicing Customer App Data.
+ */
+@friendlyName("CustomInvoicingCustomerAppData")
+model CustomInvoicingCustomerAppData {
+  /**
+   * The installed custom invoicing app this data belongs to.
+   */
+  @visibility(Lifecycle.Read)
+  app?: CustomInvoicingApp;
+
+  ...CustomerAppBase<Type.CustomInvoicing>;
+
+  /**
+   * Metadata to be used by the custom invoicing provider.
+   */
+  metadata?: Metadata;
 }

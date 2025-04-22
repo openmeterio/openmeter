@@ -10,8 +10,6 @@ import (
 	"context"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/app"
-	"github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
@@ -297,28 +295,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Group:  group,
 		Logger: logger,
 	}
-	secretserviceService, err := common.NewUnsafeSecretService(logger, client)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingService, eventbusPublisher)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(kafkaIngestConfiguration)
 	if err != nil {
 		cleanup7()
@@ -365,16 +341,48 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	secretserviceService, err := common.NewUnsafeSecretService(logger, client)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingService, eventbusPublisher)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appcustominvoicingService, err := common.NewAppCustomInvoicingService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingService, eventbusPublisher)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appRegistry := common.NewAppRegistry(service, appSandboxProvisioner, appstripeService, appcustominvoicingService)
 	application := Application{
-		GlobalInitializer:     globalInitializer,
-		Migrator:              migrator,
-		Runner:                runner,
-		App:                   service,
-		AppStripe:             appstripeService,
-		AppSandboxProvisioner: appSandboxProvisioner,
-		Logger:                logger,
-		Meter:                 meterService,
-		Streaming:             connector,
+		GlobalInitializer: globalInitializer,
+		Migrator:          migrator,
+		Runner:            runner,
+		AppRegistry:       appRegistry,
+		Logger:            logger,
+		Meter:             meterService,
+		Streaming:         connector,
 	}
 	return application, func() {
 		cleanup7()
@@ -394,12 +402,10 @@ type Application struct {
 	common.Migrator
 	common.Runner
 
-	App                   app.Service
-	AppStripe             appstripe.Service
-	AppSandboxProvisioner common.AppSandboxProvisioner
-	Logger                *slog.Logger
-	Meter                 meter.Service
-	Streaming             streaming.Connector
+	AppRegistry common.AppRegistry
+	Logger      *slog.Logger
+	Meter       meter.Service
+	Streaming   streaming.Connector
 }
 
 func metadata(conf config.Configuration) common.Metadata {

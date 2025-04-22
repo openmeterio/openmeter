@@ -810,7 +810,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AppBaseReplaceUpdate'
+              $ref: '#/components/schemas/AppReplaceUpdate'
     delete:
       operationId: uninstallApp
       summary: Uninstall app
@@ -942,6 +942,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/StripeAPIKeyInput'
+      deprecated: true
   /api/v1/apps/{id}/stripe/webhook:
     post:
       operationId: appStripeWebhook
@@ -3141,7 +3142,7 @@ paths:
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/CustomerAppData'
+                $ref: '#/components/schemas/CustomerAppDataCreateOrUpdateItem'
   /api/v1/customers/{customerIdOrKey}/apps/{appId}:
     delete:
       operationId: deleteCustomerAppData
@@ -11112,44 +11113,16 @@ components:
       oneOf:
         - $ref: '#/components/schemas/StripeApp'
         - $ref: '#/components/schemas/SandboxApp'
+        - $ref: '#/components/schemas/CustomInvoicingApp'
       discriminator:
         propertyName: type
         mapping:
           stripe: '#/components/schemas/StripeApp'
           sandbox: '#/components/schemas/SandboxApp'
+          custom_invoicing: '#/components/schemas/CustomInvoicingApp'
       description: |-
         App.
         One of: stripe
-    AppBaseReplaceUpdate:
-      type: object
-      required:
-        - name
-        - default
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
-      description: Resource update operation model.
     AppCapability:
       type: object
       required:
@@ -11232,6 +11205,19 @@ components:
         App reference
 
         Can be used as a short reference to an app if the full app object is not needed.
+    AppReplaceUpdate:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/StripeAppReplaceUpdate'
+        - $ref: '#/components/schemas/SandboxAppReplaceUpdate'
+        - $ref: '#/components/schemas/CustomInvoicingAppReplaceUpdate'
+      discriminator:
+        propertyName: type
+        mapping:
+          stripe: '#/components/schemas/StripeAppReplaceUpdate'
+          sandbox: '#/components/schemas/SandboxAppReplaceUpdate'
+          custom_invoicing: '#/components/schemas/CustomInvoicingAppReplaceUpdate'
+      description: App ReplaceUpdate Model
     AppStatus:
       type: string
       enum:
@@ -11243,6 +11229,7 @@ components:
       enum:
         - stripe
         - sandbox
+        - custom_invoicing
       description: Type of the app.
     BadRequestProblemResponse:
       type: object
@@ -12404,6 +12391,195 @@ components:
         Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
         Custom three-letter currency codes are also supported for convenience.
       example: USD
+    CustomInvoicingApp:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - listing
+        - status
+        - default
+        - type
+        - skipDraftSyncHook
+        - skipIssuingSyncHook
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        listing:
+          allOf:
+            - $ref: '#/components/schemas/MarketplaceListing'
+          description: The marketplace listing that this installed app is based on.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/AppStatus'
+          description: Status of the app connection.
+          readOnly: true
+        default:
+          type: boolean
+          description: |-
+            Default for the app type
+            Only one app of each type can be default.
+        type:
+          type: string
+          enum:
+            - custom_invoicing
+          description: The app's type is CustomInvoicing.
+        skipDraftSyncHook:
+          type: boolean
+          description: |-
+            Skip draft.sync hook.
+
+            The hook will auto progress to the next state of the invoice.
+        skipIssuingSyncHook:
+          type: boolean
+          description: |-
+            Skip issuing.sync hook.
+
+            The hook will auto progress to the next state of the invoice.
+      description: |-
+        Custom Invoicing app can be used for interface with any invoicing or payment system.
+
+        This app provides ways to manipulate invoices and payments, however the integration
+        must rely on Notifications API to get notified about invoice changes.
+    CustomInvoicingAppReplaceUpdate:
+      type: object
+      required:
+        - name
+        - default
+        - type
+        - skipDraftSyncHook
+        - skipIssuingSyncHook
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        default:
+          type: boolean
+          description: |-
+            Default for the app type
+            Only one app of each type can be default.
+        type:
+          type: string
+          enum:
+            - custom_invoicing
+          description: The app's type is CustomInvoicing.
+        skipDraftSyncHook:
+          type: boolean
+          description: |-
+            Skip draft.sync hook.
+
+            The hook will auto progress to the next state of the invoice.
+        skipIssuingSyncHook:
+          type: boolean
+          description: |-
+            Skip issuing.sync hook.
+
+            The hook will auto progress to the next state of the invoice.
+      description: Resource update operation model.
+    CustomInvoicingCustomerAppData:
+      type: object
+      required:
+        - type
+      properties:
+        app:
+          allOf:
+            - $ref: '#/components/schemas/CustomInvoicingApp'
+          description: The installed custom invoicing app this data belongs to.
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            The app ID.
+            If not provided, it will use the global default for the app type.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          title: App ID
+        type:
+          type: string
+          enum:
+            - custom_invoicing
+          description: The app name.
+          title: App Type
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Metadata to be used by the custom invoicing provider.
+      description: Custom Invoicing Customer App Data.
+    CustomInvoicingTaxConfig:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          description: |-
+            Tax code.
+
+            The tax code should be interpreted by the custom invoicing provider.
+          title: Tax code
+      description: Custom invoicing tax config.
     CustomPlanInput:
       type: object
       allOf:
@@ -12627,15 +12803,33 @@ components:
       oneOf:
         - $ref: '#/components/schemas/StripeCustomerAppData'
         - $ref: '#/components/schemas/SandboxCustomerAppData'
+        - $ref: '#/components/schemas/CustomInvoicingCustomerAppData'
       discriminator:
         propertyName: type
         mapping:
           stripe: '#/components/schemas/StripeCustomerAppData'
           sandbox: '#/components/schemas/SandboxCustomerAppData'
+          custom_invoicing: '#/components/schemas/CustomInvoicingCustomerAppData'
       description: |-
         CustomerAppData
         Stores the app specific data for the customer.
-        One of: stripe, sandbox
+        One of: stripe, sandbox, custom_invoicing
+    CustomerAppDataCreateOrUpdateItem:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/StripeCustomerAppDataCreateOrUpdateItem'
+        - $ref: '#/components/schemas/SandboxCustomerAppData'
+        - $ref: '#/components/schemas/CustomInvoicingCustomerAppData'
+      discriminator:
+        propertyName: type
+        mapping:
+          stripe: '#/components/schemas/StripeCustomerAppDataCreateOrUpdateItem'
+          sandbox: '#/components/schemas/SandboxCustomerAppData'
+          custom_invoicing: '#/components/schemas/CustomInvoicingCustomerAppData'
+      description: |-
+        CustomerAppData
+        Stores the app specific data for the customer.
+        One of: stripe, sandbox, custom_invoicing
     CustomerAppDataPaginatedResponse:
       type: object
       required:
@@ -18920,6 +19114,42 @@ components:
 
         The app is not creating anything in external systems, thus it is safe to use for
         verifying OpenMeter features.
+    SandboxAppReplaceUpdate:
+      type: object
+      required:
+        - name
+        - default
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        default:
+          type: boolean
+          description: |-
+            Default for the app type
+            Only one app of each type can be default.
+        type:
+          type: string
+          enum:
+            - sandbox
+          description: The app's type is Sandbox.
+      description: Resource update operation model.
     SandboxCustomerAppData:
       type: object
       required:
@@ -19050,14 +19280,17 @@ components:
         stripeAccountId:
           type: string
           description: The Stripe account ID.
+          readOnly: true
         livemode:
           type: boolean
           description: Livemode, true if the app is in production mode.
+          readOnly: true
         maskedAPIKey:
           type: string
           description: |-
             The masked API key.
             Only shows the first 8 and last 3 characters.
+          readOnly: true
       description: A installed Stripe app object.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -19090,6 +19323,46 @@ components:
         stripeAccountId: acct_123456789
         livemode: true
         maskedAPIKey: sk_live_************abc
+    StripeAppReplaceUpdate:
+      type: object
+      required:
+        - name
+        - default
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        default:
+          type: boolean
+          description: |-
+            Default for the app type
+            Only one app of each type can be default.
+        type:
+          type: string
+          enum:
+            - stripe
+          description: The app's type is Stripe.
+        secretAPIKey:
+          type: string
+          format: password
+          description: The Stripe API key.
+      description: Resource update operation model.
     StripeCheckoutSessionMode:
       type: string
       enum:
@@ -19120,6 +19393,36 @@ components:
             - $ref: '#/components/schemas/StripeApp'
           description: The installed stripe app this data belongs to.
           readOnly: true
+        stripeCustomerId:
+          type: string
+          description: The Stripe customer ID.
+        stripeDefaultPaymentMethodId:
+          type: string
+          description: The Stripe default payment method ID.
+      description: Stripe Customer App Data.
+      example:
+        type: stripe
+        stripeCustomerId: cus_xxxxxxxxxxxxxx
+    StripeCustomerAppDataCreateOrUpdateItem:
+      type: object
+      required:
+        - type
+        - stripeCustomerId
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            The app ID.
+            If not provided, it will use the global default for the app type.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          title: App ID
+        type:
+          type: string
+          enum:
+            - stripe
+          description: The app name.
+          title: App Type
         stripeCustomerId:
           type: string
           description: The Stripe customer ID.
@@ -20249,6 +20552,11 @@ components:
             - $ref: '#/components/schemas/StripeTaxConfig'
           description: Stripe tax config.
           title: Stripe tax config
+        customInvoicing:
+          allOf:
+            - $ref: '#/components/schemas/CustomInvoicingTaxConfig'
+          description: Custom invoicing tax config.
+          title: Custom invoicing tax config
       description: Set of provider specific tax configs.
     TieredPriceMode:
       type: string

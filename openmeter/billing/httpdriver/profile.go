@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -463,17 +464,17 @@ func (h *handler) mapProfileAppsToAPI(a *billing.ProfileApps) (*api.BillingProfi
 		return nil, nil
 	}
 
-	tax, err := h.appMapper.MapAppToAPI(a.Tax)
+	tax, err := apphttpdriver.MapAppToAPI(a.Tax)
 	if err != nil {
 		return nil, fmt.Errorf("cannot map tax app: %w", err)
 	}
 
-	invoicing, err := h.appMapper.MapAppToAPI(a.Invoicing)
+	invoicing, err := apphttpdriver.MapAppToAPI(a.Invoicing)
 	if err != nil {
 		return nil, fmt.Errorf("cannot map invoicing app: %w", err)
 	}
 
-	payment, err := h.appMapper.MapAppToAPI(a.Payment)
+	payment, err := apphttpdriver.MapAppToAPI(a.Payment)
 	if err != nil {
 		return nil, fmt.Errorf("cannot map payment app: %w", err)
 	}
