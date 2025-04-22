@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type PlanAddonMeta struct {
@@ -108,16 +109,43 @@ func (c PlanAddon) Validate() error {
 		} else {
 			// Validate ratecards from plan phases and addon.
 			for _, phase := range c.Plan.Phases[phaseIdx:] {
-				// If ratecards can be merged then they are compatible.
-				if err := phase.RateCards.Compatible(c.Addon.RateCards); err != nil {
-					errs = append(errs,
-						fmt.Errorf("invalid phase [phase.key=%s]: ratecards are not compatible: %w", phase.Key, err),
-					)
+				if err := c.validateRateCardsInPhase(phase.RateCards, c.Addon.RateCards); err != nil {
+					errs = append(errs, fmt.Errorf("invalid phase [phase.key=%s]: ratecards are not compatible: %w", phase.Key, err))
 				}
 			}
 		}
 	} else {
 		errs = append(errs, errors.New("invalid plan: has no phases"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (c PlanAddon) validateRateCardsInPhase(phaseRateCards, addonRateCards RateCards) error {
+	var errs []error
+
+	// We'll assume phaseRateCards and addonRateCards are otherwise valid by unique constraints and formal contents...
+	for _, phaseRateCard := range phaseRateCards {
+		affectingRateCards := lo.Filter(addonRateCards, slicesx.AsFilterIteratee(AddonRateCardMatcherForAGivenPlanRateCard(phaseRateCard)))
+
+		// No RateCards affect this plan RateCard
+		if len(affectingRateCards) == 0 {
+			continue
+		}
+
+		// For now we only support a single RateCard per addon effecting a single plan RateCard.
+		if len(affectingRateCards) > 1 {
+			errs = append(errs, fmt.Errorf("multiple add-on ratecards affect plan ratecard [plan.ratecard.key=%s]: affecting add-on ratecard keys: %+v", phaseRateCard.Key(), lo.Map(affectingRateCards, func(item RateCard, index int) string {
+				return item.Key()
+			})))
+
+			continue
+		}
+
+		// Finally, let's check that they are compatible
+		if err := rateCardsCompatible(phaseRateCard, affectingRateCards[0]); err != nil {
+			errs = append(errs, fmt.Errorf("plan ratecard is not compatible with add-on ratecard [plan.ratecard.key=%s add-on.ratecard.key=%s]: %w", phaseRateCard.Key(), affectingRateCards[0].Key(), err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

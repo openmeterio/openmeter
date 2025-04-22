@@ -560,46 +560,6 @@ func (c RateCards) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (c RateCards) Compatible(overlays RateCards) error {
-	if err := c.Validate(); err != nil {
-		return err
-	}
-
-	if err := overlays.Validate(); err != nil {
-		return err
-	}
-
-	var errs []error
-
-	m := make(map[string]rateCardWithOverlays)
-
-	// Collect ratecards by their keys
-	for _, rc := range lo.Union(c, overlays) {
-		_, ok := m[rc.Key()]
-		if !ok {
-			m[rc.Key()] = rateCardWithOverlays{base: rc}
-		}
-
-		m[rc.Key()] = rateCardWithOverlays{
-			base:     m[rc.Key()].base,
-			overlays: append(m[rc.Key()].overlays, rc),
-		}
-	}
-
-	for key, rc := range m {
-		// Skip compatibility check
-		if len(rc.overlays) == 0 {
-			continue
-		}
-
-		if err := rc.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("incompatible ratecards [key=%s]: %w", key, err))
-		}
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
 type rateCardWithOverlays struct {
 	base     RateCard
 	overlays []RateCard
