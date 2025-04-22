@@ -102,7 +102,7 @@ func mapCustomInvoicingAppToAPI(app appcustominvoicing.App) api.CustomInvoicingA
 		UpdatedAt:   app.UpdatedAt,
 		DeletedAt:   app.DeletedAt,
 
-		SkipDraftSyncHook:   app.Configuration.SkipDraftSyncHook,
-		SkipIssuingSyncHook: app.Configuration.SkipIssuingSyncHook,
+		EnableDraftSyncHook:   app.Configuration.EnableDraftSyncHook,
+		EnableIssuingSyncHook: app.Configuration.EnableIssuingSyncHook,
 	}
 }

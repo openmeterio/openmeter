@@ -191,14 +191,14 @@ func init() {
 	appcustominvoicing.DefaultUpdatedAt = appcustominvoicingDescUpdatedAt.Default.(func() time.Time)
 	// appcustominvoicing.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	appcustominvoicing.UpdateDefaultUpdatedAt = appcustominvoicingDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// appcustominvoicingDescSkipDraftSyncHook is the schema descriptor for skip_draft_sync_hook field.
-	appcustominvoicingDescSkipDraftSyncHook := appcustominvoicingFields[0].Descriptor()
-	// appcustominvoicing.DefaultSkipDraftSyncHook holds the default value on creation for the skip_draft_sync_hook field.
-	appcustominvoicing.DefaultSkipDraftSyncHook = appcustominvoicingDescSkipDraftSyncHook.Default.(bool)
-	// appcustominvoicingDescSkipIssuingSyncHook is the schema descriptor for skip_issuing_sync_hook field.
-	appcustominvoicingDescSkipIssuingSyncHook := appcustominvoicingFields[1].Descriptor()
-	// appcustominvoicing.DefaultSkipIssuingSyncHook holds the default value on creation for the skip_issuing_sync_hook field.
-	appcustominvoicing.DefaultSkipIssuingSyncHook = appcustominvoicingDescSkipIssuingSyncHook.Default.(bool)
+	// appcustominvoicingDescEnableDraftSyncHook is the schema descriptor for enable_draft_sync_hook field.
+	appcustominvoicingDescEnableDraftSyncHook := appcustominvoicingFields[0].Descriptor()
+	// appcustominvoicing.DefaultEnableDraftSyncHook holds the default value on creation for the enable_draft_sync_hook field.
+	appcustominvoicing.DefaultEnableDraftSyncHook = appcustominvoicingDescEnableDraftSyncHook.Default.(bool)
+	// appcustominvoicingDescEnableIssuingSyncHook is the schema descriptor for enable_issuing_sync_hook field.
+	appcustominvoicingDescEnableIssuingSyncHook := appcustominvoicingFields[1].Descriptor()
+	// appcustominvoicing.DefaultEnableIssuingSyncHook holds the default value on creation for the enable_issuing_sync_hook field.
+	appcustominvoicing.DefaultEnableIssuingSyncHook = appcustominvoicingDescEnableIssuingSyncHook.Default.(bool)
 	// appcustominvoicingDescID is the schema descriptor for id field.
 	appcustominvoicingDescID := appcustominvoicingMixinFields0[0].Descriptor()
 	// appcustominvoicing.DefaultID holds the default value on creation for the id field.

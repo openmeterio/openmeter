@@ -12308,8 +12308,8 @@ components:
         - status
         - default
         - type
-        - skipDraftSyncHook
-        - skipIssuingSyncHook
+        - enableDraftSyncHook
+        - enableIssuingSyncHook
       properties:
         id:
           type: string
@@ -12377,18 +12377,18 @@ components:
           enum:
             - custom_invoicing
           description: The app's type is CustomInvoicing.
-        skipDraftSyncHook:
+        enableDraftSyncHook:
           type: boolean
           description: |-
-            Skip draft.sync hook.
+            Enable draft.sync hook.
 
-            The hook will auto progress to the next state of the invoice.
-        skipIssuingSyncHook:
+            If the hook is not enabled, the invoice will be progressed to the next state automatically.
+        enableIssuingSyncHook:
           type: boolean
           description: |-
-            Skip issuing.sync hook.
+            Enable issuing.sync hook.
 
-            The hook will auto progress to the next state of the invoice.
+            If the hook is not enabled, the invoice will be progressed to the next state automatically.
       description: |-
         Custom Invoicing app can be used for interface with any invoicing or payment system.
 
@@ -12400,8 +12400,8 @@ components:
         - name
         - default
         - type
-        - skipDraftSyncHook
-        - skipIssuingSyncHook
+        - enableDraftSyncHook
+        - enableIssuingSyncHook
       properties:
         name:
           type: string
@@ -12431,18 +12431,18 @@ components:
           enum:
             - custom_invoicing
           description: The app's type is CustomInvoicing.
-        skipDraftSyncHook:
+        enableDraftSyncHook:
           type: boolean
           description: |-
-            Skip draft.sync hook.
+            Enable draft.sync hook.
 
-            The hook will auto progress to the next state of the invoice.
-        skipIssuingSyncHook:
+            If the hook is not enabled, the invoice will be progressed to the next state automatically.
+        enableIssuingSyncHook:
           type: boolean
           description: |-
-            Skip issuing.sync hook.
+            Enable issuing.sync hook.
 
-            The hook will auto progress to the next state of the invoice.
+            If the hook is not enabled, the invoice will be progressed to the next state automatically.
       description: Resource update operation model.
     CustomInvoicingCustomerAppData:
       type: object

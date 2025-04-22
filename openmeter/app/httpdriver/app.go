@@ -194,8 +194,8 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 					Description: payload.Description,
 					Metadata:    payload.Metadata,
 					AppConfigUpdate: appcustominvoicing.Configuration{
-						SkipDraftSyncHook:   payload.SkipDraftSyncHook,
-						SkipIssuingSyncHook: payload.SkipIssuingSyncHook,
+						EnableDraftSyncHook:   payload.EnableDraftSyncHook,
+						EnableIssuingSyncHook: payload.EnableIssuingSyncHook,
 					},
 				}, nil
 			default:

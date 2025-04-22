@@ -3188,14 +3188,14 @@ export interface components {
        * @enum {string}
        */
       type: 'custom_invoicing'
-      /** @description Skip draft.sync hook.
+      /** @description Enable draft.sync hook.
        *
-       *     The hook will auto progress to the next state of the invoice. */
-      skipDraftSyncHook: boolean
-      /** @description Skip issuing.sync hook.
+       *     If the hook is not enabled, the invoice will be progressed to the next state automatically. */
+      enableDraftSyncHook: boolean
+      /** @description Enable issuing.sync hook.
        *
-       *     The hook will auto progress to the next state of the invoice. */
-      skipIssuingSyncHook: boolean
+       *     If the hook is not enabled, the invoice will be progressed to the next state automatically. */
+      enableIssuingSyncHook: boolean
     }
     /** @description Resource update operation model. */
     CustomInvoicingAppReplaceUpdate: {
@@ -3222,14 +3222,14 @@ export interface components {
        * @enum {string}
        */
       type: 'custom_invoicing'
-      /** @description Skip draft.sync hook.
+      /** @description Enable draft.sync hook.
        *
-       *     The hook will auto progress to the next state of the invoice. */
-      skipDraftSyncHook: boolean
-      /** @description Skip issuing.sync hook.
+       *     If the hook is not enabled, the invoice will be progressed to the next state automatically. */
+      enableDraftSyncHook: boolean
+      /** @description Enable issuing.sync hook.
        *
-       *     The hook will auto progress to the next state of the invoice. */
-      skipIssuingSyncHook: boolean
+       *     If the hook is not enabled, the invoice will be progressed to the next state automatically. */
+      enableIssuingSyncHook: boolean
     }
     /** @description Custom Invoicing Customer App Data. */
     CustomInvoicingCustomerAppData: {

@@ -16,8 +16,8 @@ var _ customerapp.App = (*App)(nil)
 // _ billing.InvoicingAppPostAdvanceHook = (*App)(nil)
 
 type Configuration struct {
-	SkipDraftSyncHook   bool `json:"skip_draft_sync_hook"`
-	SkipIssuingSyncHook bool `json:"skip_issuing_sync_hook"`
+	EnableDraftSyncHook   bool `json:"enable_draft_sync_hook"`
+	EnableIssuingSyncHook bool `json:"enable_issuing_sync_hook"`
 }
 
 func (c Configuration) Validate() error {

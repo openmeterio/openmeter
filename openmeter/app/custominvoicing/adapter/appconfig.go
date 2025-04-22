@@ -39,13 +39,12 @@ func (a *adapter) UpsertAppConfiguration(ctx context.Context, input custominvoic
 		return tx.db.AppCustomInvoicing.Create().
 			SetID(input.AppID.ID).
 			SetNamespace(input.AppID.Namespace).
-			SetSkipDraftSyncHook(input.Configuration.SkipDraftSyncHook).
-			SetSkipIssuingSyncHook(input.Configuration.SkipIssuingSyncHook).
+			SetEnableDraftSyncHook(input.Configuration.EnableDraftSyncHook).
+			SetEnableIssuingSyncHook(input.Configuration.EnableIssuingSyncHook).
 
 			// Upsert
 			OnConflictColumns(appcustominvoicing.FieldID, appcustominvoicing.FieldNamespace).
-			UpdateSkipDraftSyncHook().
-			UpdateSkipIssuingSyncHook().
+			UpdateNewValues().
 			Exec(ctx)
 	})
 }
@@ -65,7 +64,7 @@ func (a *adapter) DeleteAppConfiguration(ctx context.Context, input app.AppID) e
 
 func mapDBToAppConfiguration(appConfig *db.AppCustomInvoicing) custominvoicing.Configuration {
 	return custominvoicing.Configuration{
-		SkipDraftSyncHook:   appConfig.SkipDraftSyncHook,
-		SkipIssuingSyncHook: appConfig.SkipIssuingSyncHook,
+		EnableDraftSyncHook:   appConfig.EnableDraftSyncHook,
+		EnableIssuingSyncHook: appConfig.EnableIssuingSyncHook,
 	}
 }

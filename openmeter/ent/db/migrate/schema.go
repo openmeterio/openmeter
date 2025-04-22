@@ -209,8 +209,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "skip_draft_sync_hook", Type: field.TypeBool, Default: false},
-		{Name: "skip_issuing_sync_hook", Type: field.TypeBool, Default: false},
+		{Name: "enable_draft_sync_hook", Type: field.TypeBool, Default: false},
+		{Name: "enable_issuing_sync_hook", Type: field.TypeBool, Default: false},
 	}
 	// AppCustomInvoicingsTable holds the schema information for the "app_custom_invoicings" table.
 	AppCustomInvoicingsTable = &schema.Table{
