@@ -26,10 +26,10 @@ type AppCustomInvoicing struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// SkipDraftSyncHook holds the value of the "skip_draft_sync_hook" field.
-	SkipDraftSyncHook bool `json:"skip_draft_sync_hook,omitempty"`
-	// SkipIssuingSyncHook holds the value of the "skip_issuing_sync_hook" field.
-	SkipIssuingSyncHook bool `json:"skip_issuing_sync_hook,omitempty"`
+	// EnableDraftSyncHook holds the value of the "enable_draft_sync_hook" field.
+	EnableDraftSyncHook bool `json:"enable_draft_sync_hook,omitempty"`
+	// EnableIssuingSyncHook holds the value of the "enable_issuing_sync_hook" field.
+	EnableIssuingSyncHook bool `json:"enable_issuing_sync_hook,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AppCustomInvoicingQuery when eager-loading is set.
 	Edges        AppCustomInvoicingEdges `json:"edges"`
@@ -72,7 +72,7 @@ func (*AppCustomInvoicing) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case appcustominvoicing.FieldSkipDraftSyncHook, appcustominvoicing.FieldSkipIssuingSyncHook:
+		case appcustominvoicing.FieldEnableDraftSyncHook, appcustominvoicing.FieldEnableIssuingSyncHook:
 			values[i] = new(sql.NullBool)
 		case appcustominvoicing.FieldID, appcustominvoicing.FieldNamespace:
 			values[i] = new(sql.NullString)
@@ -124,17 +124,17 @@ func (aci *AppCustomInvoicing) assignValues(columns []string, values []any) erro
 				aci.DeletedAt = new(time.Time)
 				*aci.DeletedAt = value.Time
 			}
-		case appcustominvoicing.FieldSkipDraftSyncHook:
+		case appcustominvoicing.FieldEnableDraftSyncHook:
 			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field skip_draft_sync_hook", values[i])
+				return fmt.Errorf("unexpected type %T for field enable_draft_sync_hook", values[i])
 			} else if value.Valid {
-				aci.SkipDraftSyncHook = value.Bool
+				aci.EnableDraftSyncHook = value.Bool
 			}
-		case appcustominvoicing.FieldSkipIssuingSyncHook:
+		case appcustominvoicing.FieldEnableIssuingSyncHook:
 			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field skip_issuing_sync_hook", values[i])
+				return fmt.Errorf("unexpected type %T for field enable_issuing_sync_hook", values[i])
 			} else if value.Valid {
-				aci.SkipIssuingSyncHook = value.Bool
+				aci.EnableIssuingSyncHook = value.Bool
 			}
 		default:
 			aci.selectValues.Set(columns[i], values[i])
@@ -196,11 +196,11 @@ func (aci *AppCustomInvoicing) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("skip_draft_sync_hook=")
-	builder.WriteString(fmt.Sprintf("%v", aci.SkipDraftSyncHook))
+	builder.WriteString("enable_draft_sync_hook=")
+	builder.WriteString(fmt.Sprintf("%v", aci.EnableDraftSyncHook))
 	builder.WriteString(", ")
-	builder.WriteString("skip_issuing_sync_hook=")
-	builder.WriteString(fmt.Sprintf("%v", aci.SkipIssuingSyncHook))
+	builder.WriteString("enable_issuing_sync_hook=")
+	builder.WriteString(fmt.Sprintf("%v", aci.EnableIssuingSyncHook))
 	builder.WriteByte(')')
 	return builder.String()
 }

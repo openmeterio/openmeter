@@ -85,14 +85,14 @@ func DeletedAt(v time.Time) predicate.AppCustomInvoicing {
 	return predicate.AppCustomInvoicing(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// SkipDraftSyncHook applies equality check predicate on the "skip_draft_sync_hook" field. It's identical to SkipDraftSyncHookEQ.
-func SkipDraftSyncHook(v bool) predicate.AppCustomInvoicing {
-	return predicate.AppCustomInvoicing(sql.FieldEQ(FieldSkipDraftSyncHook, v))
+// EnableDraftSyncHook applies equality check predicate on the "enable_draft_sync_hook" field. It's identical to EnableDraftSyncHookEQ.
+func EnableDraftSyncHook(v bool) predicate.AppCustomInvoicing {
+	return predicate.AppCustomInvoicing(sql.FieldEQ(FieldEnableDraftSyncHook, v))
 }
 
-// SkipIssuingSyncHook applies equality check predicate on the "skip_issuing_sync_hook" field. It's identical to SkipIssuingSyncHookEQ.
-func SkipIssuingSyncHook(v bool) predicate.AppCustomInvoicing {
-	return predicate.AppCustomInvoicing(sql.FieldEQ(FieldSkipIssuingSyncHook, v))
+// EnableIssuingSyncHook applies equality check predicate on the "enable_issuing_sync_hook" field. It's identical to EnableIssuingSyncHookEQ.
+func EnableIssuingSyncHook(v bool) predicate.AppCustomInvoicing {
+	return predicate.AppCustomInvoicing(sql.FieldEQ(FieldEnableIssuingSyncHook, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -290,24 +290,24 @@ func DeletedAtNotNil() predicate.AppCustomInvoicing {
 	return predicate.AppCustomInvoicing(sql.FieldNotNull(FieldDeletedAt))
 }
 
-// SkipDraftSyncHookEQ applies the EQ predicate on the "skip_draft_sync_hook" field.
-func SkipDraftSyncHookEQ(v bool) predicate.AppCustomInvoicing {
-	return predicate.AppCustomInvoicing(sql.FieldEQ(FieldSkipDraftSyncHook, v))
+// EnableDraftSyncHookEQ applies the EQ predicate on the "enable_draft_sync_hook" field.
+func EnableDraftSyncHookEQ(v bool) predicate.AppCustomInvoicing {
+	return predicate.AppCustomInvoicing(sql.FieldEQ(FieldEnableDraftSyncHook, v))
 }
 
-// SkipDraftSyncHookNEQ applies the NEQ predicate on the "skip_draft_sync_hook" field.
-func SkipDraftSyncHookNEQ(v bool) predicate.AppCustomInvoicing {
-	return predicate.AppCustomInvoicing(sql.FieldNEQ(FieldSkipDraftSyncHook, v))
+// EnableDraftSyncHookNEQ applies the NEQ predicate on the "enable_draft_sync_hook" field.
+func EnableDraftSyncHookNEQ(v bool) predicate.AppCustomInvoicing {
+	return predicate.AppCustomInvoicing(sql.FieldNEQ(FieldEnableDraftSyncHook, v))
 }
 
-// SkipIssuingSyncHookEQ applies the EQ predicate on the "skip_issuing_sync_hook" field.
-func SkipIssuingSyncHookEQ(v bool) predicate.AppCustomInvoicing {
-	return predicate.AppCustomInvoicing(sql.FieldEQ(FieldSkipIssuingSyncHook, v))
+// EnableIssuingSyncHookEQ applies the EQ predicate on the "enable_issuing_sync_hook" field.
+func EnableIssuingSyncHookEQ(v bool) predicate.AppCustomInvoicing {
+	return predicate.AppCustomInvoicing(sql.FieldEQ(FieldEnableIssuingSyncHook, v))
 }
 
-// SkipIssuingSyncHookNEQ applies the NEQ predicate on the "skip_issuing_sync_hook" field.
-func SkipIssuingSyncHookNEQ(v bool) predicate.AppCustomInvoicing {
-	return predicate.AppCustomInvoicing(sql.FieldNEQ(FieldSkipIssuingSyncHook, v))
+// EnableIssuingSyncHookNEQ applies the NEQ predicate on the "enable_issuing_sync_hook" field.
+func EnableIssuingSyncHookNEQ(v bool) predicate.AppCustomInvoicing {
+	return predicate.AppCustomInvoicing(sql.FieldNEQ(FieldEnableIssuingSyncHook, v))
 }
 
 // HasCustomerApps applies the HasEdge predicate on the "customer_apps" edge.

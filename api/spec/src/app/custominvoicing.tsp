@@ -16,16 +16,16 @@ model CustomInvoicingApp {
   type: Type.CustomInvoicing;
 
   /**
-   * Skip draft.sync hook.
+   * Enable draft.sync hook.
    *
-   * The hook will auto progress to the next state of the invoice.
+   * If the hook is not enabled, the invoice will be progressed to the next state automatically.
    */
-  skipDraftSyncHook: boolean;
+  enableDraftSyncHook: boolean;
 
   /**
-   * Skip issuing.sync hook.
+   * Enable issuing.sync hook.
    *
-   * The hook will auto progress to the next state of the invoice.
+   * If the hook is not enabled, the invoice will be progressed to the next state automatically.
    */
-  skipIssuingSyncHook: boolean;
+  enableIssuingSyncHook: boolean;
 }

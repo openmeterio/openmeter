@@ -26,8 +26,8 @@ func (AppCustomInvoicing) Mixin() []ent.Mixin {
 
 func (AppCustomInvoicing) Fields() []ent.Field {
 	return []ent.Field{
-		field.Bool("skip_draft_sync_hook").Default(false),
-		field.Bool("skip_issuing_sync_hook").Default(false),
+		field.Bool("enable_draft_sync_hook").Default(false),
+		field.Bool("enable_issuing_sync_hook").Default(false),
 	}
 }
 

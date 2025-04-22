@@ -55,30 +55,30 @@ func (aciu *AppCustomInvoicingUpdate) ClearDeletedAt() *AppCustomInvoicingUpdate
 	return aciu
 }
 
-// SetSkipDraftSyncHook sets the "skip_draft_sync_hook" field.
-func (aciu *AppCustomInvoicingUpdate) SetSkipDraftSyncHook(b bool) *AppCustomInvoicingUpdate {
-	aciu.mutation.SetSkipDraftSyncHook(b)
+// SetEnableDraftSyncHook sets the "enable_draft_sync_hook" field.
+func (aciu *AppCustomInvoicingUpdate) SetEnableDraftSyncHook(b bool) *AppCustomInvoicingUpdate {
+	aciu.mutation.SetEnableDraftSyncHook(b)
 	return aciu
 }
 
-// SetNillableSkipDraftSyncHook sets the "skip_draft_sync_hook" field if the given value is not nil.
-func (aciu *AppCustomInvoicingUpdate) SetNillableSkipDraftSyncHook(b *bool) *AppCustomInvoicingUpdate {
+// SetNillableEnableDraftSyncHook sets the "enable_draft_sync_hook" field if the given value is not nil.
+func (aciu *AppCustomInvoicingUpdate) SetNillableEnableDraftSyncHook(b *bool) *AppCustomInvoicingUpdate {
 	if b != nil {
-		aciu.SetSkipDraftSyncHook(*b)
+		aciu.SetEnableDraftSyncHook(*b)
 	}
 	return aciu
 }
 
-// SetSkipIssuingSyncHook sets the "skip_issuing_sync_hook" field.
-func (aciu *AppCustomInvoicingUpdate) SetSkipIssuingSyncHook(b bool) *AppCustomInvoicingUpdate {
-	aciu.mutation.SetSkipIssuingSyncHook(b)
+// SetEnableIssuingSyncHook sets the "enable_issuing_sync_hook" field.
+func (aciu *AppCustomInvoicingUpdate) SetEnableIssuingSyncHook(b bool) *AppCustomInvoicingUpdate {
+	aciu.mutation.SetEnableIssuingSyncHook(b)
 	return aciu
 }
 
-// SetNillableSkipIssuingSyncHook sets the "skip_issuing_sync_hook" field if the given value is not nil.
-func (aciu *AppCustomInvoicingUpdate) SetNillableSkipIssuingSyncHook(b *bool) *AppCustomInvoicingUpdate {
+// SetNillableEnableIssuingSyncHook sets the "enable_issuing_sync_hook" field if the given value is not nil.
+func (aciu *AppCustomInvoicingUpdate) SetNillableEnableIssuingSyncHook(b *bool) *AppCustomInvoicingUpdate {
 	if b != nil {
-		aciu.SetSkipIssuingSyncHook(*b)
+		aciu.SetEnableIssuingSyncHook(*b)
 	}
 	return aciu
 }
@@ -178,11 +178,11 @@ func (aciu *AppCustomInvoicingUpdate) sqlSave(ctx context.Context) (n int, err e
 	if aciu.mutation.DeletedAtCleared() {
 		_spec.ClearField(appcustominvoicing.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := aciu.mutation.SkipDraftSyncHook(); ok {
-		_spec.SetField(appcustominvoicing.FieldSkipDraftSyncHook, field.TypeBool, value)
+	if value, ok := aciu.mutation.EnableDraftSyncHook(); ok {
+		_spec.SetField(appcustominvoicing.FieldEnableDraftSyncHook, field.TypeBool, value)
 	}
-	if value, ok := aciu.mutation.SkipIssuingSyncHook(); ok {
-		_spec.SetField(appcustominvoicing.FieldSkipIssuingSyncHook, field.TypeBool, value)
+	if value, ok := aciu.mutation.EnableIssuingSyncHook(); ok {
+		_spec.SetField(appcustominvoicing.FieldEnableIssuingSyncHook, field.TypeBool, value)
 	}
 	if aciu.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -275,30 +275,30 @@ func (aciuo *AppCustomInvoicingUpdateOne) ClearDeletedAt() *AppCustomInvoicingUp
 	return aciuo
 }
 
-// SetSkipDraftSyncHook sets the "skip_draft_sync_hook" field.
-func (aciuo *AppCustomInvoicingUpdateOne) SetSkipDraftSyncHook(b bool) *AppCustomInvoicingUpdateOne {
-	aciuo.mutation.SetSkipDraftSyncHook(b)
+// SetEnableDraftSyncHook sets the "enable_draft_sync_hook" field.
+func (aciuo *AppCustomInvoicingUpdateOne) SetEnableDraftSyncHook(b bool) *AppCustomInvoicingUpdateOne {
+	aciuo.mutation.SetEnableDraftSyncHook(b)
 	return aciuo
 }
 
-// SetNillableSkipDraftSyncHook sets the "skip_draft_sync_hook" field if the given value is not nil.
-func (aciuo *AppCustomInvoicingUpdateOne) SetNillableSkipDraftSyncHook(b *bool) *AppCustomInvoicingUpdateOne {
+// SetNillableEnableDraftSyncHook sets the "enable_draft_sync_hook" field if the given value is not nil.
+func (aciuo *AppCustomInvoicingUpdateOne) SetNillableEnableDraftSyncHook(b *bool) *AppCustomInvoicingUpdateOne {
 	if b != nil {
-		aciuo.SetSkipDraftSyncHook(*b)
+		aciuo.SetEnableDraftSyncHook(*b)
 	}
 	return aciuo
 }
 
-// SetSkipIssuingSyncHook sets the "skip_issuing_sync_hook" field.
-func (aciuo *AppCustomInvoicingUpdateOne) SetSkipIssuingSyncHook(b bool) *AppCustomInvoicingUpdateOne {
-	aciuo.mutation.SetSkipIssuingSyncHook(b)
+// SetEnableIssuingSyncHook sets the "enable_issuing_sync_hook" field.
+func (aciuo *AppCustomInvoicingUpdateOne) SetEnableIssuingSyncHook(b bool) *AppCustomInvoicingUpdateOne {
+	aciuo.mutation.SetEnableIssuingSyncHook(b)
 	return aciuo
 }
 
-// SetNillableSkipIssuingSyncHook sets the "skip_issuing_sync_hook" field if the given value is not nil.
-func (aciuo *AppCustomInvoicingUpdateOne) SetNillableSkipIssuingSyncHook(b *bool) *AppCustomInvoicingUpdateOne {
+// SetNillableEnableIssuingSyncHook sets the "enable_issuing_sync_hook" field if the given value is not nil.
+func (aciuo *AppCustomInvoicingUpdateOne) SetNillableEnableIssuingSyncHook(b *bool) *AppCustomInvoicingUpdateOne {
 	if b != nil {
-		aciuo.SetSkipIssuingSyncHook(*b)
+		aciuo.SetEnableIssuingSyncHook(*b)
 	}
 	return aciuo
 }
@@ -428,11 +428,11 @@ func (aciuo *AppCustomInvoicingUpdateOne) sqlSave(ctx context.Context) (_node *A
 	if aciuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(appcustominvoicing.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := aciuo.mutation.SkipDraftSyncHook(); ok {
-		_spec.SetField(appcustominvoicing.FieldSkipDraftSyncHook, field.TypeBool, value)
+	if value, ok := aciuo.mutation.EnableDraftSyncHook(); ok {
+		_spec.SetField(appcustominvoicing.FieldEnableDraftSyncHook, field.TypeBool, value)
 	}
-	if value, ok := aciuo.mutation.SkipIssuingSyncHook(); ok {
-		_spec.SetField(appcustominvoicing.FieldSkipIssuingSyncHook, field.TypeBool, value)
+	if value, ok := aciuo.mutation.EnableIssuingSyncHook(); ok {
+		_spec.SetField(appcustominvoicing.FieldEnableIssuingSyncHook, field.TypeBool, value)
 	}
 	if aciuo.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -4538,24 +4538,24 @@ func (m *AppMutation) ResetEdge(name string) error {
 // AppCustomInvoicingMutation represents an operation that mutates the AppCustomInvoicing nodes in the graph.
 type AppCustomInvoicingMutation struct {
 	config
-	op                     Op
-	typ                    string
-	id                     *string
-	namespace              *string
-	created_at             *time.Time
-	updated_at             *time.Time
-	deleted_at             *time.Time
-	skip_draft_sync_hook   *bool
-	skip_issuing_sync_hook *bool
-	clearedFields          map[string]struct{}
-	customer_apps          map[int]struct{}
-	removedcustomer_apps   map[int]struct{}
-	clearedcustomer_apps   bool
-	app                    *string
-	clearedapp             bool
-	done                   bool
-	oldValue               func(context.Context) (*AppCustomInvoicing, error)
-	predicates             []predicate.AppCustomInvoicing
+	op                       Op
+	typ                      string
+	id                       *string
+	namespace                *string
+	created_at               *time.Time
+	updated_at               *time.Time
+	deleted_at               *time.Time
+	enable_draft_sync_hook   *bool
+	enable_issuing_sync_hook *bool
+	clearedFields            map[string]struct{}
+	customer_apps            map[int]struct{}
+	removedcustomer_apps     map[int]struct{}
+	clearedcustomer_apps     bool
+	app                      *string
+	clearedapp               bool
+	done                     bool
+	oldValue                 func(context.Context) (*AppCustomInvoicing, error)
+	predicates               []predicate.AppCustomInvoicing
 }
 
 var _ ent.Mutation = (*AppCustomInvoicingMutation)(nil)
@@ -4819,76 +4819,76 @@ func (m *AppCustomInvoicingMutation) ResetDeletedAt() {
 	delete(m.clearedFields, appcustominvoicing.FieldDeletedAt)
 }
 
-// SetSkipDraftSyncHook sets the "skip_draft_sync_hook" field.
-func (m *AppCustomInvoicingMutation) SetSkipDraftSyncHook(b bool) {
-	m.skip_draft_sync_hook = &b
+// SetEnableDraftSyncHook sets the "enable_draft_sync_hook" field.
+func (m *AppCustomInvoicingMutation) SetEnableDraftSyncHook(b bool) {
+	m.enable_draft_sync_hook = &b
 }
 
-// SkipDraftSyncHook returns the value of the "skip_draft_sync_hook" field in the mutation.
-func (m *AppCustomInvoicingMutation) SkipDraftSyncHook() (r bool, exists bool) {
-	v := m.skip_draft_sync_hook
+// EnableDraftSyncHook returns the value of the "enable_draft_sync_hook" field in the mutation.
+func (m *AppCustomInvoicingMutation) EnableDraftSyncHook() (r bool, exists bool) {
+	v := m.enable_draft_sync_hook
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldSkipDraftSyncHook returns the old "skip_draft_sync_hook" field's value of the AppCustomInvoicing entity.
+// OldEnableDraftSyncHook returns the old "enable_draft_sync_hook" field's value of the AppCustomInvoicing entity.
 // If the AppCustomInvoicing object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppCustomInvoicingMutation) OldSkipDraftSyncHook(ctx context.Context) (v bool, err error) {
+func (m *AppCustomInvoicingMutation) OldEnableDraftSyncHook(ctx context.Context) (v bool, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSkipDraftSyncHook is only allowed on UpdateOne operations")
+		return v, errors.New("OldEnableDraftSyncHook is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSkipDraftSyncHook requires an ID field in the mutation")
+		return v, errors.New("OldEnableDraftSyncHook requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSkipDraftSyncHook: %w", err)
+		return v, fmt.Errorf("querying old value for OldEnableDraftSyncHook: %w", err)
 	}
-	return oldValue.SkipDraftSyncHook, nil
+	return oldValue.EnableDraftSyncHook, nil
 }
 
-// ResetSkipDraftSyncHook resets all changes to the "skip_draft_sync_hook" field.
-func (m *AppCustomInvoicingMutation) ResetSkipDraftSyncHook() {
-	m.skip_draft_sync_hook = nil
+// ResetEnableDraftSyncHook resets all changes to the "enable_draft_sync_hook" field.
+func (m *AppCustomInvoicingMutation) ResetEnableDraftSyncHook() {
+	m.enable_draft_sync_hook = nil
 }
 
-// SetSkipIssuingSyncHook sets the "skip_issuing_sync_hook" field.
-func (m *AppCustomInvoicingMutation) SetSkipIssuingSyncHook(b bool) {
-	m.skip_issuing_sync_hook = &b
+// SetEnableIssuingSyncHook sets the "enable_issuing_sync_hook" field.
+func (m *AppCustomInvoicingMutation) SetEnableIssuingSyncHook(b bool) {
+	m.enable_issuing_sync_hook = &b
 }
 
-// SkipIssuingSyncHook returns the value of the "skip_issuing_sync_hook" field in the mutation.
-func (m *AppCustomInvoicingMutation) SkipIssuingSyncHook() (r bool, exists bool) {
-	v := m.skip_issuing_sync_hook
+// EnableIssuingSyncHook returns the value of the "enable_issuing_sync_hook" field in the mutation.
+func (m *AppCustomInvoicingMutation) EnableIssuingSyncHook() (r bool, exists bool) {
+	v := m.enable_issuing_sync_hook
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldSkipIssuingSyncHook returns the old "skip_issuing_sync_hook" field's value of the AppCustomInvoicing entity.
+// OldEnableIssuingSyncHook returns the old "enable_issuing_sync_hook" field's value of the AppCustomInvoicing entity.
 // If the AppCustomInvoicing object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppCustomInvoicingMutation) OldSkipIssuingSyncHook(ctx context.Context) (v bool, err error) {
+func (m *AppCustomInvoicingMutation) OldEnableIssuingSyncHook(ctx context.Context) (v bool, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSkipIssuingSyncHook is only allowed on UpdateOne operations")
+		return v, errors.New("OldEnableIssuingSyncHook is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSkipIssuingSyncHook requires an ID field in the mutation")
+		return v, errors.New("OldEnableIssuingSyncHook requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSkipIssuingSyncHook: %w", err)
+		return v, fmt.Errorf("querying old value for OldEnableIssuingSyncHook: %w", err)
 	}
-	return oldValue.SkipIssuingSyncHook, nil
+	return oldValue.EnableIssuingSyncHook, nil
 }
 
-// ResetSkipIssuingSyncHook resets all changes to the "skip_issuing_sync_hook" field.
-func (m *AppCustomInvoicingMutation) ResetSkipIssuingSyncHook() {
-	m.skip_issuing_sync_hook = nil
+// ResetEnableIssuingSyncHook resets all changes to the "enable_issuing_sync_hook" field.
+func (m *AppCustomInvoicingMutation) ResetEnableIssuingSyncHook() {
+	m.enable_issuing_sync_hook = nil
 }
 
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppCustomInvoicingCustomer entity by ids.
@@ -5031,11 +5031,11 @@ func (m *AppCustomInvoicingMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, appcustominvoicing.FieldDeletedAt)
 	}
-	if m.skip_draft_sync_hook != nil {
-		fields = append(fields, appcustominvoicing.FieldSkipDraftSyncHook)
+	if m.enable_draft_sync_hook != nil {
+		fields = append(fields, appcustominvoicing.FieldEnableDraftSyncHook)
 	}
-	if m.skip_issuing_sync_hook != nil {
-		fields = append(fields, appcustominvoicing.FieldSkipIssuingSyncHook)
+	if m.enable_issuing_sync_hook != nil {
+		fields = append(fields, appcustominvoicing.FieldEnableIssuingSyncHook)
 	}
 	return fields
 }
@@ -5053,10 +5053,10 @@ func (m *AppCustomInvoicingMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case appcustominvoicing.FieldDeletedAt:
 		return m.DeletedAt()
-	case appcustominvoicing.FieldSkipDraftSyncHook:
-		return m.SkipDraftSyncHook()
-	case appcustominvoicing.FieldSkipIssuingSyncHook:
-		return m.SkipIssuingSyncHook()
+	case appcustominvoicing.FieldEnableDraftSyncHook:
+		return m.EnableDraftSyncHook()
+	case appcustominvoicing.FieldEnableIssuingSyncHook:
+		return m.EnableIssuingSyncHook()
 	}
 	return nil, false
 }
@@ -5074,10 +5074,10 @@ func (m *AppCustomInvoicingMutation) OldField(ctx context.Context, name string) 
 		return m.OldUpdatedAt(ctx)
 	case appcustominvoicing.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case appcustominvoicing.FieldSkipDraftSyncHook:
-		return m.OldSkipDraftSyncHook(ctx)
-	case appcustominvoicing.FieldSkipIssuingSyncHook:
-		return m.OldSkipIssuingSyncHook(ctx)
+	case appcustominvoicing.FieldEnableDraftSyncHook:
+		return m.OldEnableDraftSyncHook(ctx)
+	case appcustominvoicing.FieldEnableIssuingSyncHook:
+		return m.OldEnableIssuingSyncHook(ctx)
 	}
 	return nil, fmt.Errorf("unknown AppCustomInvoicing field %s", name)
 }
@@ -5115,19 +5115,19 @@ func (m *AppCustomInvoicingMutation) SetField(name string, value ent.Value) erro
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case appcustominvoicing.FieldSkipDraftSyncHook:
+	case appcustominvoicing.FieldEnableDraftSyncHook:
 		v, ok := value.(bool)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetSkipDraftSyncHook(v)
+		m.SetEnableDraftSyncHook(v)
 		return nil
-	case appcustominvoicing.FieldSkipIssuingSyncHook:
+	case appcustominvoicing.FieldEnableIssuingSyncHook:
 		v, ok := value.(bool)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetSkipIssuingSyncHook(v)
+		m.SetEnableIssuingSyncHook(v)
 		return nil
 	}
 	return fmt.Errorf("unknown AppCustomInvoicing field %s", name)
@@ -5199,11 +5199,11 @@ func (m *AppCustomInvoicingMutation) ResetField(name string) error {
 	case appcustominvoicing.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case appcustominvoicing.FieldSkipDraftSyncHook:
-		m.ResetSkipDraftSyncHook()
+	case appcustominvoicing.FieldEnableDraftSyncHook:
+		m.ResetEnableDraftSyncHook()
 		return nil
-	case appcustominvoicing.FieldSkipIssuingSyncHook:
-		m.ResetSkipIssuingSyncHook()
+	case appcustominvoicing.FieldEnableIssuingSyncHook:
+		m.ResetEnableIssuingSyncHook()
 		return nil
 	}
 	return fmt.Errorf("unknown AppCustomInvoicing field %s", name)

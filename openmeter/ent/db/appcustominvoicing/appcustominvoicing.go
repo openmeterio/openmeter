@@ -22,10 +22,10 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldSkipDraftSyncHook holds the string denoting the skip_draft_sync_hook field in the database.
-	FieldSkipDraftSyncHook = "skip_draft_sync_hook"
-	// FieldSkipIssuingSyncHook holds the string denoting the skip_issuing_sync_hook field in the database.
-	FieldSkipIssuingSyncHook = "skip_issuing_sync_hook"
+	// FieldEnableDraftSyncHook holds the string denoting the enable_draft_sync_hook field in the database.
+	FieldEnableDraftSyncHook = "enable_draft_sync_hook"
+	// FieldEnableIssuingSyncHook holds the string denoting the enable_issuing_sync_hook field in the database.
+	FieldEnableIssuingSyncHook = "enable_issuing_sync_hook"
 	// EdgeCustomerApps holds the string denoting the customer_apps edge name in mutations.
 	EdgeCustomerApps = "customer_apps"
 	// EdgeApp holds the string denoting the app edge name in mutations.
@@ -55,8 +55,8 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldSkipDraftSyncHook,
-	FieldSkipIssuingSyncHook,
+	FieldEnableDraftSyncHook,
+	FieldEnableIssuingSyncHook,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -78,10 +78,10 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// DefaultSkipDraftSyncHook holds the default value on creation for the "skip_draft_sync_hook" field.
-	DefaultSkipDraftSyncHook bool
-	// DefaultSkipIssuingSyncHook holds the default value on creation for the "skip_issuing_sync_hook" field.
-	DefaultSkipIssuingSyncHook bool
+	// DefaultEnableDraftSyncHook holds the default value on creation for the "enable_draft_sync_hook" field.
+	DefaultEnableDraftSyncHook bool
+	// DefaultEnableIssuingSyncHook holds the default value on creation for the "enable_issuing_sync_hook" field.
+	DefaultEnableIssuingSyncHook bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -114,14 +114,14 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// BySkipDraftSyncHook orders the results by the skip_draft_sync_hook field.
-func BySkipDraftSyncHook(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSkipDraftSyncHook, opts...).ToFunc()
+// ByEnableDraftSyncHook orders the results by the enable_draft_sync_hook field.
+func ByEnableDraftSyncHook(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEnableDraftSyncHook, opts...).ToFunc()
 }
 
-// BySkipIssuingSyncHook orders the results by the skip_issuing_sync_hook field.
-func BySkipIssuingSyncHook(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSkipIssuingSyncHook, opts...).ToFunc()
+// ByEnableIssuingSyncHook orders the results by the enable_issuing_sync_hook field.
+func ByEnableIssuingSyncHook(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEnableIssuingSyncHook, opts...).ToFunc()
 }
 
 // ByCustomerAppsCount orders the results by customer_apps count.
