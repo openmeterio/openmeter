@@ -1,7 +1,7 @@
 import { transformResponse } from './utils.js'
 import type { RequestOptions } from './common.js'
 import type {
-  AppBaseReplaceUpdate,
+  AppReplaceUpdate,
   CreateStripeCheckoutSessionRequest,
   operations,
   paths,
@@ -66,7 +66,7 @@ export class Apps {
    */
   public async update(
     id: operations['updateApp']['parameters']['path']['id'],
-    body: AppBaseReplaceUpdate,
+    body: AppReplaceUpdate,
     options?: RequestOptions
   ) {
     const resp = await this.client.PUT('/api/v1/apps/{id}', {
@@ -102,7 +102,7 @@ export class Apps {
  * Available apps from the OpenMeter Marketplace.
  */
 export class AppMarketplace {
-  constructor(private client: Client<paths, `${string}/${string}`>) {}
+  constructor(private client: Client<paths, `${string}/${string}`>) { }
 
   /**
    * List available apps
@@ -210,7 +210,7 @@ export class AppMarketplace {
  * Stripe App
  */
 export class AppStripe {
-  constructor(private client: Client<paths, `${string}/${string}`>) {}
+  constructor(private client: Client<paths, `${string}/${string}`>) { }
 
   /**
    * Create a checkout session

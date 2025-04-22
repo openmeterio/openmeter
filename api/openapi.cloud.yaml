@@ -12546,7 +12546,7 @@ components:
         app:
           allOf:
             - $ref: '#/components/schemas/CustomInvoicingApp'
-          description: The installed sandbox app this data belongs to.
+          description: The installed custom invoicing app this data belongs to.
           readOnly: true
         id:
           type: string
