@@ -205,6 +205,16 @@ func (s service) DeletePlanAddon(ctx context.Context, params planaddon.DeletePla
 			return nil
 		}
 
+		if err = planAddon.Plan.ValidateWith(
+			plan.IsPlanDeleted(clock.Now()),
+			plan.HasPlanStatus(productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled),
+		); err != nil {
+			return models.NewGenericNotFoundError(
+				fmt.Errorf("failed to delete plan add-on assignment [namespace=%s plan.id=%s addon.id=%s]: %w",
+					params.Namespace, params.PlanID, params.AddonID, err),
+			)
+		}
+
 		// Delete the plan add-on assignment
 		err = s.adapter.DeletePlanAddon(ctx, params)
 		if err != nil {
