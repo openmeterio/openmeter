@@ -92,7 +92,10 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 			plan.IsPlanDeleted(clock.Now()),
 			plan.HasPlanStatus(productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled),
 		); err != nil {
-			return nil, err
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("invalid plan [namespace=%s plan.id=%s]: %w",
+					params.Namespace, params.PlanID, err),
+			)
 		}
 
 		//
@@ -118,7 +121,10 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 			addon.IsAddonDeleted(clock.Now()),
 			addon.HasAddonStatus(productcatalog.AddonStatusActive),
 		); err != nil {
-			return nil, err
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("invalid add-on [namespace=%s addon.id=%s]: %w",
+					params.Namespace, params.AddonID, err),
+			)
 		}
 
 		//
