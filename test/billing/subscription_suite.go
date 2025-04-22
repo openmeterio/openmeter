@@ -27,6 +27,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
+	planaddonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
+	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/testutils"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -146,16 +148,32 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	})
 	require.NoError(t, err)
 
+	planAddonRepo, err := planaddonrepo.New(planaddonrepo.Config{
+		Client: deps.DBClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
+	planAddonService, err := planaddonservice.New(planaddonservice.Config{
+		Adapter:   planAddonRepo,
+		Logger:    slog.Default(),
+		Plan:      planService,
+		Addon:     addonService,
+		Publisher: publisher,
+	})
+	require.NoError(t, err)
+
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(deps.DBClient)
 	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(deps.DBClient)
 
 	s.SubscriptionAddonService = subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
-		TxManager:     subsItemRepo,
-		Logger:        slog.Default(),
-		AddonService:  addonService,
-		SubService:    s.SubscriptionService,
-		SubAddRepo:    subAddRepo,
-		SubAddQtyRepo: subAddQtyRepo,
+		TxManager:        subsItemRepo,
+		Logger:           slog.Default(),
+		AddonService:     addonService,
+		SubService:       s.SubscriptionService,
+		SubAddRepo:       subAddRepo,
+		SubAddQtyRepo:    subAddQtyRepo,
+		PlanAddonService: planAddonService,
 	})
 
 	s.SubscriptionPlanAdapter = subscriptiontestutils.NewPlanSubscriptionAdapter(subscriptiontestutils.PlanSubscriptionAdapterConfig{

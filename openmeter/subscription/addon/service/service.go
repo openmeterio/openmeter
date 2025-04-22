@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -23,9 +24,10 @@ type Config struct {
 	TxManager transaction.Creator
 
 	// external
-	AddonService addon.Service
-	SubService   subscription.Service
-	Logger       *slog.Logger
+	AddonService     addon.Service
+	PlanAddonService planaddon.Service
+	SubService       subscription.Service
+	Logger           *slog.Logger
 }
 
 type service struct {
@@ -65,12 +67,31 @@ func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon
 		return nil, models.NewGenericValidationError(errors.New("invalid input: single instance add-on must have initial quantity of 1"))
 	}
 
-	_, err = s.cfg.SubService.GetView(ctx, models.NamespacedID{
+	sView, err := s.cfg.SubService.GetView(ctx, models.NamespacedID{
 		Namespace: ns,
 		ID:        input.SubscriptionID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	if sView.Subscription.PlanRef == nil {
+		return nil, models.NewGenericValidationError(errors.New("cannot add addon to a custom subscription"))
+	}
+
+	_, err = s.cfg.PlanAddonService.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: ns,
+		},
+		PlanIDOrKey:  sView.Subscription.PlanRef.Id,
+		AddonIDOrKey: input.AddonID,
+	})
+	if err != nil {
+		if models.IsGenericNotFoundError(err) {
+			return nil, models.NewGenericValidationError(fmt.Errorf("addon %s@%d is not linked to the plan %s@%d", add.Key, add.Version, sView.Subscription.PlanRef.Key, sView.Subscription.PlanRef.Version))
+		}
+
+		return nil, fmt.Errorf("failed to get plan add-on: %w", err)
 	}
 
 	return transaction.Run(ctx, s.cfg.TxManager, func(ctx context.Context) (*subscriptionaddon.SubscriptionAddon, error) {
