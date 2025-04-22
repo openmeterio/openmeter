@@ -7,7 +7,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var _ models.Validator = (*Addon)(nil)
+var (
+	_ models.Validator              = (*Addon)(nil)
+	_ models.CustomValidator[Addon] = (*Addon)(nil)
+)
 
 type Addon struct {
 	models.NamespacedID
@@ -17,6 +20,10 @@ type Addon struct {
 
 	// RateCards
 	RateCards RateCards `json:"rateCards"`
+}
+
+func (a Addon) ValidateWith(validators ...models.ValidatorFunc[Addon]) error {
+	return models.Validate(a, validators...)
 }
 
 func (a Addon) Validate() error {

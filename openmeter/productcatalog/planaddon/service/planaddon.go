@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -42,24 +43,35 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 			"addon.id", params.AddonID,
 		)
 
+		//
 		// Check whether plan add-on assignment already exists or not
-		planAddons, err := s.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
-			Namespaces: []string{params.Namespace},
-			PlanIDs:    []string{params.PlanID},
-			AddonIDs:   []string{params.AddonID},
+		//
+
+		planAddon, err := s.adapter.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: params.Namespace,
+			},
+			PlanIDOrKey:  params.PlanID,
+			AddonIDOrKey: params.AddonID,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get plan add-on assignment: %w", err)
+			if !models.IsGenericNotFoundError(err) {
+				return nil, fmt.Errorf("failed to get plan add-on assignment: %w", err)
+			}
 		}
 
-		if len(planAddons.Items) > 0 {
+		if planAddon != nil && planAddon.Plan.ID == params.PlanID && planAddon.Addon.ID == params.AddonID {
 			return nil, models.NewGenericConflictError(
-				fmt.Errorf("plan add-on assignment already exists [namespace=%s plan.id=%s addon.id=%s]: %w",
-					params.Namespace, params.PlanID, params.AddonID, err),
+				fmt.Errorf("plan add-on assignment already exists [namespace=%s plan.id=%s addon.id=%s]",
+					params.Namespace, params.PlanID, params.AddonID),
 			)
 		}
 
 		logger.Debug("validating plan add-on assignment")
+
+		//
+		// Get and validate plan
+		//
 
 		p, err := s.plan.GetPlan(ctx, plan.GetPlanInput{
 			NamespacedID: models.NamespacedID{
@@ -76,6 +88,17 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 				params.Namespace, params.PlanID, err)
 		}
 
+		if err = p.ValidateWith([]models.ValidatorFunc[plan.Plan]{
+			plan.IsPlanDeleted(clock.Now()),
+			plan.HasPlanStatus(productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled),
+		}...); err != nil {
+			return nil, models.NewGenericValidationError(err)
+		}
+
+		//
+		// Get and validate add-on
+		//
+
 		a, err := s.addon.GetAddon(ctx, addon.GetAddonInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
@@ -83,13 +106,24 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 			},
 		})
 		if err != nil {
-			if notFound := &(plan.NotFoundError{}); errors.As(err, &notFound) {
+			if notFound := &(addon.NotFoundError{}); errors.As(err, &notFound) {
 				return nil, models.NewGenericNotFoundError(err)
 			}
 
 			return nil, fmt.Errorf("failed to get add-on [namespace=%s addon.id=%s]: %w",
 				params.Namespace, params.AddonID, err)
 		}
+
+		if err = a.ValidateWith([]models.ValidatorFunc[addon.Addon]{
+			addon.IsAddonDeleted(clock.Now()),
+			addon.HasAddonStatus(productcatalog.AddonStatusActive),
+		}...); err != nil {
+			return nil, models.NewGenericValidationError(err)
+		}
+
+		//
+		// Create and validate plan add-on assignment
+		//
 
 		planAddonAssignment := productcatalog.PlanAddon{
 			PlanAddonMeta: productcatalog.PlanAddonMeta{
@@ -113,7 +147,7 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 
 		logger.Debug("creating plan add-on assignment")
 
-		planAddon, err := s.adapter.CreatePlanAddon(ctx, params)
+		planAddon, err = s.adapter.CreatePlanAddon(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create plan add-on assignment [namespace=%s plan.id=%s addon.id=%s]: %w",
 				params.Namespace, params.PlanID, params.AddonID, err)
