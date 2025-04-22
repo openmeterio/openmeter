@@ -72,15 +72,18 @@
 
               # Kafka build dependencies
               # https://github.com/confluentinc/confluent-kafka-go#librdkafka
+              # Check actual version via:
+              # $ pkg-config --modversion rdkafka++
               (rdkafka.overrideAttrs (_: rec {
-                version = "2.8.0";
+                version = "2.10.0";
                 src = fetchFromGitHub {
                   owner = "confluentinc";
                   repo = "librdkafka";
                   rev = "v${version}";
-                  sha256 = "sha256-OCCsxgEO8UvCcC0XwzqpqmaT8dV0Klrspp+2o1FbH2Y=";
+                  sha256 = "sha256-u4+qskNw18TD59aiSTyv1XOYT2DI24uZnGEAzJ4YBJU=";
                 };
               }))
+
               cyrus_sasl
               pkg-config
               # confluent-platform
