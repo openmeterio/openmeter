@@ -79,7 +79,7 @@ func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon
 		return nil, models.NewGenericValidationError(errors.New("cannot add addon to a custom subscription"))
 	}
 
-	_, err = s.cfg.PlanAddonService.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
+	compatibility, err := s.cfg.PlanAddonService.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: ns,
 		},
@@ -92,6 +92,26 @@ func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon
 		}
 
 		return nil, fmt.Errorf("failed to get plan add-on: %w", err)
+	}
+
+	phaseAtAddonStart, ok := sView.Spec.GetCurrentPhaseAt(input.InitialQuantity.ActiveFrom)
+	if !ok {
+		return nil, models.NewGenericValidationError(fmt.Errorf("subscription doesn't have an active phase at %s", input.InitialQuantity.ActiveFrom))
+	}
+
+	for _, phase := range sView.Phases {
+		if phase.SubscriptionPhase.Key == compatibility.FromPlanPhase {
+			// We reached the compatible start time first
+			break
+		}
+
+		if phase.SubscriptionPhase.Key == phaseAtAddonStart.PhaseKey {
+			return nil, models.NewGenericValidationError(fmt.Errorf("addon %s@%d can be only added starting with phase %s, current phase is %s", add.Key, add.Version, compatibility.FromPlanPhase, phaseAtAddonStart.PhaseKey))
+		}
+	}
+
+	if compatibility.MaxQuantity != nil && input.InitialQuantity.Quantity > *compatibility.MaxQuantity {
+		return nil, models.NewGenericValidationError(fmt.Errorf("addon %s@%d can be added a maximum of %d times", add.Key, add.Version, *compatibility.MaxQuantity))
 	}
 
 	return transaction.Run(ctx, s.cfg.TxManager, func(ctx context.Context) (*subscriptionaddon.SubscriptionAddon, error) {
@@ -166,6 +186,35 @@ func (s *service) ChangeQuantity(ctx context.Context, id models.NamespacedID, in
 
 	if add.InstanceType == productcatalog.AddonInstanceTypeSingle && input.Quantity > 1 {
 		return nil, models.NewGenericValidationError(errors.New("invalid input: single instance addon must have quantity of 1"))
+	}
+
+	sView, err := s.cfg.SubService.GetView(ctx, models.NamespacedID{
+		Namespace: subAdd.Namespace,
+		ID:        subAdd.SubscriptionID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	compatibility, err := s.cfg.PlanAddonService.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: subAdd.Namespace,
+		},
+		PlanIDOrKey:  sView.Subscription.PlanRef.Id,
+		AddonIDOrKey: subAdd.Addon.ID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get plan add-on: %w", err)
+	}
+
+	inst, ok := subAdd.GetInstanceAt(input.ActiveFrom)
+	quant := 0
+	if ok {
+		quant = inst.Quantity
+	}
+
+	if compatibility.MaxQuantity != nil && quant+input.Quantity > *compatibility.MaxQuantity {
+		return nil, models.NewGenericValidationError(fmt.Errorf("addon %s@%d can be added a maximum of %d times", add.Key, add.Version, *compatibility.MaxQuantity))
 	}
 
 	return transaction.Run(ctx, s.cfg.TxManager, func(ctx context.Context) (*subscriptionaddon.SubscriptionAddon, error) {

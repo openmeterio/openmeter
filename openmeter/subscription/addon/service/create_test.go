@@ -240,11 +240,154 @@ func TestAddonServiceCreate(t *testing.T) {
 	})
 
 	t.Run("Should validate addon can be purchased in target phase", func(t *testing.T) {
-		t.Skip("TODO: Implement this")
+		withDeps(t, func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+			clock.SetTime(now)
+			defer clock.ResetTime()
+
+			// Let's create a plan with addon thats only available in a later phase
+			planInp := subscriptiontestutils.GetExamplePlanInput(t)
+			addonInp := subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
+				EffectiveFrom: lo.ToPtr(now),
+			})
+
+			_ = deps.FeatureConnector.CreateExampleFeatures(t)
+
+			p, err := deps.PlanService.CreatePlan(context.Background(), planInp)
+			require.Nil(t, err)
+			require.NotNil(t, p)
+
+			add := deps.AddonService.CreateTestAddon(t, addonInp)
+
+			_, err = deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: subscriptiontestutils.ExampleNamespace,
+				},
+				PlanID:        p.ID,
+				AddonID:       add.ID,
+				FromPlanPhase: p.Phases[len(p.Phases)-1].Key, // let's start from last phase
+			})
+			require.Nil(t, err, "received error: %s", err)
+
+			p, err = deps.PlanService.PublishPlan(context.Background(), plan.PublishPlanInput{
+				NamespacedID: p.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: lo.ToPtr(clock.Now()),
+					EffectiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2099-01-01T00:00:00Z")),
+				},
+			})
+			require.Nil(t, err, "received error: %s", err)
+
+			// Let's create a subscription
+			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+			spec1, err := subscription.NewSpecFromPlan(&plansubscription.Plan{
+				Plan: p.AsProductCatalogPlan(),
+				Ref:  &p.NamespacedID,
+			}, subscription.CreateSubscriptionCustomerInput{
+				CustomerId: cust.ID,
+				Currency:   "USD",
+				ActiveFrom: now,
+				Name:       "Test Subscription",
+			})
+			require.Nil(t, err)
+
+			sub, err := deps.SubscriptionService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, spec1)
+			require.Nil(t, err)
+
+			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
+			require.Len(t, aRCIDs, 1)
+
+			// Now, let's create a SubscriptionAddon
+			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
+				AddonID:        add.ID,
+				SubscriptionID: sub.ID,
+				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
+					ActiveFrom: now,
+					Quantity:   1,
+				},
+			}
+			_, err = deps.SubscriptionAddonService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, subAddonInp)
+			require.Error(t, err)
+			require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
+			require.ErrorContains(t, err, fmt.Sprintf("addon %s@%d can be only added starting with phase %s, current phase is %s", add.Key, add.Version, "test_phase_3", "test_phase_1"))
+		})
 	})
 
-	t.Run("Should validate addon quantity after purchase doesnt exceed maximum quantity", func(t *testing.T) {
-		t.Skip("TODO: Implement this")
+	t.Run("Should validate addon quantity doesnt exceed maximum quantity", func(t *testing.T) {
+		withDeps(t, func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+			clock.SetTime(now)
+			defer clock.ResetTime()
+
+			// Let's create a plan with addon thats only available in a later phase
+			planInp := subscriptiontestutils.GetExamplePlanInput(t)
+			addonInp := subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
+				EffectiveFrom: lo.ToPtr(now),
+			}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard1)
+
+			_ = deps.FeatureConnector.CreateExampleFeatures(t)
+
+			p, err := deps.PlanService.CreatePlan(context.Background(), planInp)
+			require.Nil(t, err)
+			require.NotNil(t, p)
+
+			add := deps.AddonService.CreateTestAddon(t, addonInp)
+
+			_, err = deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: subscriptiontestutils.ExampleNamespace,
+				},
+				PlanID:        p.ID,
+				AddonID:       add.ID,
+				FromPlanPhase: p.Phases[0].Key,
+				MaxQuantity:   lo.ToPtr(2),
+			})
+			require.Nil(t, err, "received error: %s", err)
+
+			p, err = deps.PlanService.PublishPlan(context.Background(), plan.PublishPlanInput{
+				NamespacedID: p.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: lo.ToPtr(clock.Now()),
+					EffectiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2099-01-01T00:00:00Z")),
+				},
+			})
+			require.Nil(t, err, "received error: %s", err)
+
+			// Let's create a subscription
+			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+			spec1, err := subscription.NewSpecFromPlan(&plansubscription.Plan{
+				Plan: p.AsProductCatalogPlan(),
+				Ref:  &p.NamespacedID,
+			}, subscription.CreateSubscriptionCustomerInput{
+				CustomerId: cust.ID,
+				Currency:   "USD",
+				ActiveFrom: now,
+				Name:       "Test Subscription",
+			})
+			require.Nil(t, err)
+
+			sub, err := deps.SubscriptionService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, spec1)
+			require.Nil(t, err)
+
+			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
+			require.Len(t, aRCIDs, 1)
+
+			// Now, let's create a SubscriptionAddon
+			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
+				AddonID:        add.ID,
+				SubscriptionID: sub.ID,
+				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
+					ActiveFrom: now,
+					Quantity:   3,
+				},
+			}
+			_, err = deps.SubscriptionAddonService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, subAddonInp)
+			require.Error(t, err)
+			require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
+			require.ErrorContains(t, err, fmt.Sprintf("addon %s@%d can be added a maximum of %d times", add.Key, add.Version, 2))
+		})
 	})
 
 	t.Run("Should not allow purchasing Addon for a custom Subscription", func(t *testing.T) {
