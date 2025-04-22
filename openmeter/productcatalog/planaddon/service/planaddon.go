@@ -43,20 +43,27 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 			"addon.id", params.AddonID,
 		)
 
+		//
 		// Check whether plan add-on assignment already exists or not
-		planAddons, err := s.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
-			Namespaces: []string{params.Namespace},
-			PlanIDs:    []string{params.PlanID},
-			AddonIDs:   []string{params.AddonID},
+		//
+
+		planAddon, err := s.adapter.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: params.Namespace,
+			},
+			PlanIDOrKey:  params.PlanID,
+			AddonIDOrKey: params.AddonID,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get plan add-on assignment: %w", err)
+			if !models.IsGenericNotFoundError(err) {
+				return nil, fmt.Errorf("failed to get plan add-on assignment: %w", err)
+			}
 		}
 
-		if len(planAddons.Items) > 0 {
+		if planAddon != nil && planAddon.Plan.ID == params.PlanID && planAddon.Addon.ID == params.AddonID {
 			return nil, models.NewGenericConflictError(
-				fmt.Errorf("plan add-on assignment already exists [namespace=%s plan.id=%s addon.id=%s]: %w",
-					params.Namespace, params.PlanID, params.AddonID, err),
+				fmt.Errorf("plan add-on assignment already exists [namespace=%s plan.id=%s addon.id=%s]",
+					params.Namespace, params.PlanID, params.AddonID),
 			)
 		}
 
@@ -140,7 +147,7 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 
 		logger.Debug("creating plan add-on assignment")
 
-		planAddon, err := s.adapter.CreatePlanAddon(ctx, params)
+		planAddon, err = s.adapter.CreatePlanAddon(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create plan add-on assignment [namespace=%s plan.id=%s addon.id=%s]: %w",
 				params.Namespace, params.PlanID, params.AddonID, err)
