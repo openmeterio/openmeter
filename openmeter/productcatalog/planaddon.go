@@ -68,7 +68,7 @@ func (c PlanAddon) Validate() error {
 	// Validate plan
 
 	// Check plan status
-	allowedPlanStatuses := []PlanStatus{PlanStatusDraft, PlanStatusScheduled}
+	allowedPlanStatuses := []PlanStatus{PlanStatusDraft, PlanStatusActive, PlanStatusScheduled}
 	if !lo.Contains(allowedPlanStatuses, c.Plan.Status()) {
 		errs = append(errs,
 			fmt.Errorf("invalid plan [plan.key=%s plan.version=%d]: invalid %s status, allowed statuses: %+v",

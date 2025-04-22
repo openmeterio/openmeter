@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -61,6 +62,10 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 
 		logger.Debug("validating plan add-on assignment")
 
+		//
+		// Get and validate plan
+		//
+
 		p, err := s.plan.GetPlan(ctx, plan.GetPlanInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
@@ -76,6 +81,17 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 				params.Namespace, params.PlanID, err)
 		}
 
+		if err = p.ValidateWith([]models.ValidatorFunc[plan.Plan]{
+			plan.IsPlanDeleted(clock.Now()),
+			plan.HasPlanStatus(productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled),
+		}...); err != nil {
+			return nil, models.NewGenericValidationError(err)
+		}
+
+		//
+		// Get and validate add-on
+		//
+
 		a, err := s.addon.GetAddon(ctx, addon.GetAddonInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
@@ -83,13 +99,24 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 			},
 		})
 		if err != nil {
-			if notFound := &(plan.NotFoundError{}); errors.As(err, &notFound) {
+			if notFound := &(addon.NotFoundError{}); errors.As(err, &notFound) {
 				return nil, models.NewGenericNotFoundError(err)
 			}
 
 			return nil, fmt.Errorf("failed to get add-on [namespace=%s addon.id=%s]: %w",
 				params.Namespace, params.AddonID, err)
 		}
+
+		if err = a.ValidateWith([]models.ValidatorFunc[addon.Addon]{
+			addon.IsAddonDeleted(clock.Now()),
+			addon.HasAddonStatus(productcatalog.AddonStatusActive),
+		}...); err != nil {
+			return nil, models.NewGenericValidationError(err)
+		}
+
+		//
+		// Create and validate plan add-on assignment
+		//
 
 		planAddonAssignment := productcatalog.PlanAddon{
 			PlanAddonMeta: productcatalog.PlanAddonMeta{

@@ -10,7 +10,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var _ models.Validator = (*Plan)(nil)
+var (
+	_ models.Validator             = (*Plan)(nil)
+	_ models.CustomValidator[Plan] = (*Plan)(nil)
+)
 
 type Plan struct {
 	models.NamespacedID
@@ -24,6 +27,10 @@ type Plan struct {
 	// Addons contains the list of Addons assigned to this plan. It is only provided if the Plan was fetched
 	// with Addons being expanded.
 	Addons *[]Addon `json:"addons,omitempty"`
+}
+
+func (p Plan) ValidateWith(validators ...models.ValidatorFunc[Plan]) error {
+	return models.Validate(p, validators...)
 }
 
 func (p Plan) Validate() error {
