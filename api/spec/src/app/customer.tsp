@@ -11,7 +11,7 @@ namespace OpenMeter.App;
 /**
  * CustomerAppData
  * Stores the app specific data for the customer.
- * One of: stripe, sandbox
+ * One of: stripe, sandbox, custom_invoicing
  */
 @friendlyName("CustomerAppData")
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
@@ -90,7 +90,7 @@ model StripeCustomerAppData {
 @friendlyName("CustomInvoicingCustomerAppData")
 model CustomInvoicingCustomerAppData {
   /**
-   * The installed sandbox app this data belongs to.
+   * The installed custom invoicing app this data belongs to.
    */
   @visibility(Lifecycle.Read)
   app?: CustomInvoicingApp;

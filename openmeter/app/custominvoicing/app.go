@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 )
@@ -29,7 +28,6 @@ type App struct {
 	app.AppBase
 	Configuration
 
-	billingService         billing.Service
 	customInvoicingService Service
 }
 

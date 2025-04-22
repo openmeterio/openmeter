@@ -68,12 +68,10 @@ func (s *Service) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.
 				return nil, err
 			}
 
-			app, err := s.adapter.GetApp(ctx, input.AppID)
+			updatedApp, err = s.adapter.GetApp(ctx, input.AppID)
 			if err != nil {
 				return nil, err
 			}
-
-			return app, nil
 		}
 
 		// Emit the app updated event

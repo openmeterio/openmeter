@@ -26,6 +26,10 @@ func (a App) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) err
 		return errors.New("invalid config update")
 	}
 
+	if err := configUpdate.Validate(); err != nil {
+		return err
+	}
+
 	if configUpdate.SecretAPIKey != nil {
 		return a.StripeAppService.UpdateAPIKey(ctx, appstripeentity.UpdateAPIKeyInput{
 			AppID:  a.GetID(),

@@ -37,6 +37,10 @@ func (a *adapter) GetCustomerData(ctx context.Context, input appcustominvoicing.
 }
 
 func (a *adapter) UpsertCustomerData(ctx context.Context, input appcustominvoicing.UpsertCustomerDataInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
 		return tx.db.AppCustomInvoicingCustomer.Create().
 			SetMetadata(input.Data.Metadata).

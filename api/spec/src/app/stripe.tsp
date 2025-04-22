@@ -729,6 +729,7 @@ model StripeApp {
    * The Stripe API key.
    */
   @visibility(Lifecycle.Create, Lifecycle.Update)
+  @secret
   secretAPIKey?: string;
 }
 

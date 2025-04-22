@@ -12719,7 +12719,7 @@ components:
       description: |-
         CustomerAppData
         Stores the app specific data for the customer.
-        One of: stripe, sandbox
+        One of: stripe, sandbox, custom_invoicing
     CustomerAppDataCreateOrUpdateItem:
       type: object
       oneOf:
@@ -12735,7 +12735,7 @@ components:
       description: |-
         CustomerAppData
         Stores the app specific data for the customer.
-        One of: stripe, sandbox
+        One of: stripe, sandbox, custom_invoicing
     CustomerAppDataPaginatedResponse:
       type: object
       required:
@@ -19862,6 +19862,7 @@ components:
           readOnly: true
         secretAPIKey:
           type: string
+          format: password
           description: The Stripe API key.
       description: A installed Stripe app object.
       example:
@@ -19932,6 +19933,7 @@ components:
           description: The app's type is Stripe.
         secretAPIKey:
           type: string
+          format: password
           description: The Stripe API key.
       description: Resource update operation model.
     StripeCheckoutSessionMode:

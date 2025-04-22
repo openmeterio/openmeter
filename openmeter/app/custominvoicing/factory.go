@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 var (
@@ -47,7 +46,6 @@ var (
 
 type Factory struct {
 	appService             app.Service
-	billingService         billing.Service
 	customInvoicingService Service
 }
 
@@ -99,7 +97,6 @@ func (f *Factory) NewApp(ctx context.Context, appBase app.AppBase) (app.App, err
 	return App{
 		AppBase:                appBase,
 		Configuration:          cfg,
-		billingService:         f.billingService,
 		customInvoicingService: f.customInvoicingService,
 	}, nil
 }
