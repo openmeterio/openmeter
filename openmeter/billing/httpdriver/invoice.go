@@ -86,7 +86,7 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 			}
 
 			for _, invoice := range invoices.Items {
-				invoice, err := h.mapInvoiceToAPI(invoice)
+				invoice, err := MapInvoiceToAPI(invoice)
 				if err != nil {
 					return ListInvoicesResponse{}, err
 				}
@@ -149,7 +149,7 @@ func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 			out := make([]api.Invoice, 0, len(invoices))
 
 			for _, invoice := range invoices {
-				invoice, err := h.mapInvoiceToAPI(invoice)
+				invoice, err := MapInvoiceToAPI(invoice)
 				if err != nil {
 					return nil, err
 				}
@@ -205,7 +205,7 @@ func (h *handler) GetInvoice() GetInvoiceHandler {
 				return GetInvoiceResponse{}, err
 			}
 
-			return h.mapInvoiceToAPI(invoice)
+			return MapInvoiceToAPI(invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -286,7 +286,7 @@ func (h *handler) ProgressInvoice(action ProgressAction) ProgressInvoiceHandler 
 				return ProgressInvoiceResponse{}, err
 			}
 
-			return h.mapInvoiceToAPI(invoice)
+			return MapInvoiceToAPI(invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ProgressInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -381,7 +381,7 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 				return SimulateInvoiceResponse{}, err
 			}
 
-			return h.mapInvoiceToAPI(invoice)
+			return MapInvoiceToAPI(invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[SimulateInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -456,7 +456,7 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 				return UpdateInvoiceResponse{}, err
 			}
 
-			return h.mapInvoiceToAPI(invoice)
+			return MapInvoiceToAPI(invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -467,12 +467,12 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 	)
 }
 
-func (h *handler) mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
+func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 	var apps *api.BillingProfileAppsOrReference
 	var err error
 
 	if invoice.Workflow.Apps != nil {
-		apps, err = h.mapProfileAppsToAPI(invoice.Workflow.Apps)
+		apps, err = mapProfileAppsToAPI(invoice.Workflow.Apps)
 		if err != nil {
 			return api.Invoice{}, fmt.Errorf("failed to map profile apps to API: %w", err)
 		}

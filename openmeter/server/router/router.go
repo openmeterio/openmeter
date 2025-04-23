@@ -13,6 +13,8 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
+	appcustominvoicinghttpdriver "github.com/openmeterio/openmeter/openmeter/app/custominvoicing/httpdriver"
 	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/app/stripe/httpdriver"
@@ -82,6 +84,7 @@ type Config struct {
 	Addon                       addon.Service
 	App                         app.Service
 	AppStripe                   appstripe.Service
+	AppCustomInvoicing          appcustominvoicing.Service
 	Billing                     billing.Service
 	Customer                    customer.Service
 	DebugConnector              debug.DebugConnector
@@ -133,6 +136,10 @@ func (c Config) Validate() error {
 
 	if c.AppStripe == nil {
 		return errors.New("app stripe service is required")
+	}
+
+	if c.AppCustomInvoicing == nil {
+		return errors.New("app custom invoicing service is required")
 	}
 
 	if c.Customer == nil {
@@ -204,6 +211,7 @@ type Router struct {
 	addonHandler              addonhttpdriver.AddonHandler
 	appHandler                apphttpdriver.Handler
 	appStripeHandler          appstripehttpdriver.AppStripeHandler
+	appCustomInvocingHandler  appcustominvoicinghttpdriver.Handler
 	billingHandler            billinghttpdriver.Handler
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	planHandler               planhttpdriver.Handler
@@ -321,6 +329,13 @@ func NewRouter(config Config) (*Router, error) {
 	router.appStripeHandler = appstripehttpdriver.New(
 		staticNamespaceDecoder,
 		config.AppStripe,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	// App Custom Invoicing
+	router.appCustomInvocingHandler = appcustominvoicinghttpdriver.New(
+		config.AppCustomInvoicing,
+		staticNamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

@@ -261,6 +261,7 @@ func (r UpsertInvoiceResult) MergeIntoInvoice(invoice *Invoice) error {
 type SyncInput interface {
 	models.Validator
 
+	ValidateWithInvoice(invoice Invoice) error
 	MergeIntoInvoice(invoice *Invoice) error
 	GetAdditionalMetadata() map[string]string
 	GetInvoiceID() InvoiceID
@@ -272,6 +273,7 @@ type SyncDraftInvoiceInput struct {
 	InvoiceID            InvoiceID
 	UpsertInvoiceResults *UpsertInvoiceResult
 	AdditionalMetadata   map[string]string
+	InvoiceValidator     func(invoice Invoice) error
 }
 
 func (i SyncDraftInvoiceInput) Validate() error {
@@ -307,12 +309,21 @@ func (i SyncDraftInvoiceInput) GetInvoiceID() InvoiceID {
 	return i.InvoiceID
 }
 
+func (i SyncDraftInvoiceInput) ValidateWithInvoice(invoice Invoice) error {
+	if i.InvoiceValidator != nil {
+		return i.InvoiceValidator(invoice)
+	}
+
+	return nil
+}
+
 var _ SyncInput = (*SyncIssuingInvoiceInput)(nil)
 
 type SyncIssuingInvoiceInput struct {
 	InvoiceID             InvoiceID
 	FinalizeInvoiceResult *FinalizeInvoiceResult
 	AdditionalMetadata    map[string]string
+	InvoiceValidator      func(invoice Invoice) error
 }
 
 func (i SyncIssuingInvoiceInput) Validate() error {
@@ -347,4 +358,12 @@ func (i SyncIssuingInvoiceInput) GetAdditionalMetadata() map[string]string {
 
 func (i SyncIssuingInvoiceInput) GetInvoiceID() InvoiceID {
 	return i.InvoiceID
+}
+
+func (i SyncIssuingInvoiceInput) ValidateWithInvoice(invoice Invoice) error {
+	if i.InvoiceValidator != nil {
+		return i.InvoiceValidator(invoice)
+	}
+
+	return nil
 }
