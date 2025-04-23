@@ -1440,6 +1440,14 @@ func (n NoopBillingService) UpdateInvoiceFields(ctx context.Context, input billi
 	return nil
 }
 
+func (n NoopBillingService) SyncDraftInvoice(ctx context.Context, input billing.SyncDraftInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) SyncIssuingInvoice(ctx context.Context, input billing.SyncIssuingInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
 // ConfigIntrospectionService methods
 func (n NoopBillingService) GetAdvancementStrategy() billing.AdvancementStrategy {
 	return billing.ForegroundAdvancementStrategy

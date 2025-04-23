@@ -15,7 +15,7 @@ type Service interface {
 
 	InvoiceAppService
 
-	ConfigIntrospectionService
+	ConfigService
 }
 
 type ProfileService interface {
@@ -79,8 +79,12 @@ type InvoiceAppService interface {
 	// UpdateInvoiceFields updates the fields of an invoice which are not managed by the state machine
 	// These are usually metadata fields settable after the invoice has been finalized
 	UpdateInvoiceFields(ctx context.Context, input UpdateInvoiceFieldsInput) error
+
+	// Async sync support
+	SyncDraftInvoice(ctx context.Context, input SyncDraftInvoiceInput) (Invoice, error)
+	SyncIssuingInvoice(ctx context.Context, input SyncIssuingInvoiceInput) (Invoice, error)
 }
 
-type ConfigIntrospectionService interface {
+type ConfigService interface {
 	GetAdvancementStrategy() AdvancementStrategy
 }
