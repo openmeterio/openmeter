@@ -14,6 +14,7 @@ import (
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	subscriptiondb "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -34,13 +35,15 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			}
 
 			// Build the database query
+			now := clock.Now().UTC()
+
 			query := repo.db.Customer.
 				Query().
 				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
 					query.Where(customersubjectsdb.DeletedAtIsNil())
 				}).
 				WithSubscription(func(sq *entdb.SubscriptionQuery) {
-					applyActiveSubscriptionFilter(sq, clock.Now().UTC())
+					applyActiveSubscriptionFilter(sq, now)
 					sq.WithPlan()
 				}).
 				Where(customerdb.Namespace(input.Namespace))
@@ -68,7 +71,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			}
 
 			if input.PlanKey != nil {
-				query = query.Where(customerdb.HasSubscriptionWith(subscriptiondb.HasPlanWith(plandb.Key(*input.PlanKey))))
+				applyActiveSubscriptionFilterWithPlanKey(query, now, *input.PlanKey)
 			}
 
 			if len(input.CustomerIDs) > 0 {
@@ -608,7 +611,23 @@ func (a *adapter) CustomerExists(ctx context.Context, customerID customer.Custom
 }
 
 func applyActiveSubscriptionFilter(query *entdb.SubscriptionQuery, at time.Time) {
+	query.Where(activeSubscriptionFilter(at)...)
+}
+
+func applyActiveSubscriptionFilterWithPlanKey(query *entdb.CustomerQuery, at time.Time, planKey string) {
+	predicates := activeSubscriptionFilter(at)
+
+	predicates = append(predicates, subscriptiondb.HasPlanWith(
+		plandb.Key(planKey),
+	))
+
 	query.Where(
+		customerdb.HasSubscriptionWith(predicates...),
+	)
+}
+
+func activeSubscriptionFilter(at time.Time) []predicate.Subscription {
+	return []predicate.Subscription{
 		subscriptiondb.ActiveFromLTE(at),
 		subscriptiondb.Or(
 			subscriptiondb.ActiveToIsNil(),
@@ -619,5 +638,5 @@ func applyActiveSubscriptionFilter(query *entdb.SubscriptionQuery, at time.Time)
 			subscriptiondb.DeletedAtGT(at),
 		),
 		subscriptiondb.CreatedAtLTE(at),
-	)
+	}
 }
