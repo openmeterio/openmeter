@@ -76,7 +76,7 @@ func AsCreatePlanAddonRequest(a api.PlanAddonCreate, namespace string, planID st
 		PlanID:        planID,
 		AddonID:       a.Addon.Id,
 		FromPlanPhase: a.FromPlanPhase,
-		MaxQuantity:   nil,
+		MaxQuantity:   a.MaxQuantity,
 	}
 
 	return req, nil
