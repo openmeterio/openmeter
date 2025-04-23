@@ -289,7 +289,14 @@ func (i SyncDraftInvoiceInput) Validate() error {
 }
 
 func (i SyncDraftInvoiceInput) MergeIntoInvoice(invoice *Invoice) error {
-	return i.UpsertInvoiceResults.MergeIntoInvoice(invoice)
+	if invoice == nil {
+		return fmt.Errorf("invoice is required")
+	}
+	if i.UpsertInvoiceResults != nil {
+		return i.UpsertInvoiceResults.MergeIntoInvoice(invoice)
+	}
+
+	return nil
 }
 
 func (i SyncDraftInvoiceInput) GetAdditionalMetadata() map[string]string {
@@ -323,7 +330,15 @@ func (i SyncIssuingInvoiceInput) Validate() error {
 }
 
 func (i SyncIssuingInvoiceInput) MergeIntoInvoice(invoice *Invoice) error {
-	return i.FinalizeInvoiceResult.MergeIntoInvoice(invoice)
+	if invoice == nil {
+		return fmt.Errorf("invoice is required")
+	}
+
+	if i.FinalizeInvoiceResult != nil {
+		return i.FinalizeInvoiceResult.MergeIntoInvoice(invoice)
+	}
+
+	return nil
 }
 
 func (i SyncIssuingInvoiceInput) GetAdditionalMetadata() map[string]string {
