@@ -2,6 +2,7 @@ package billing
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -24,13 +25,18 @@ func (n NextSequenceNumberInput) Validate() error {
 }
 
 type SequenceDefinition struct {
-	Template string
-	Scope    string
+	Prefix         string
+	SuffixTemplate string
+	Scope          string
 }
 
 func (d SequenceDefinition) Validate() error {
-	if d.Template == "" {
+	if d.Prefix == "" {
 		return fmt.Errorf("prefix is required")
+	}
+
+	if d.SuffixTemplate == "" {
+		return fmt.Errorf("suffix template is required")
 	}
 
 	if d.Scope == "" {
@@ -40,14 +46,20 @@ func (d SequenceDefinition) Validate() error {
 	return nil
 }
 
+func (d SequenceDefinition) PrefixMatches(s string) bool {
+	return strings.HasPrefix(s, d.Prefix+"-")
+}
+
 var (
 	GatheringInvoiceSequenceNumber = SequenceDefinition{
-		Template: "GATHER-{{.CustomerPrefix}}-{{.Currency}}-{{.NextSequenceNumber}}",
-		Scope:    "invoices/gathering",
+		Prefix:         "GATHER",
+		SuffixTemplate: "{{.CustomerPrefix}}-{{.Currency}}-{{.NextSequenceNumber}}",
+		Scope:          "invoices/gathering",
 	}
 	DraftInvoiceSequenceNumber = SequenceDefinition{
-		Template: "DRAFT-{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
-		Scope:    "invoices/draft",
+		Prefix:         "DRAFT",
+		SuffixTemplate: "{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
+		Scope:          "invoices/draft",
 	}
 )
 
