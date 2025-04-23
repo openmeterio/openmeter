@@ -3,6 +3,7 @@ package billingservice
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"strings"
 	"text/template"
 
@@ -41,7 +42,7 @@ func (s *Service) GenerateInvoiceSequenceNumber(ctx context.Context, in billing.
 		NextSequenceNumber: nextSequenceNumber.String(),
 	}
 
-	tmpl, err := template.New("invoiceseq").Parse(def.Template)
+	tmpl, err := template.New("invoiceseq").Parse(def.SuffixTemplate)
 	if err != nil {
 		return "", err
 	}
@@ -52,7 +53,7 @@ func (s *Service) GenerateInvoiceSequenceNumber(ctx context.Context, in billing.
 		return "", err
 	}
 
-	return out.String(), nil
+	return fmt.Sprintf("%s-%s", def.Prefix, out.String()), nil
 }
 
 func getCustomerPrefix(name string) string {

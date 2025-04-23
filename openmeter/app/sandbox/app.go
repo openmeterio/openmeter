@@ -27,8 +27,9 @@ var (
 	_ app.CustomerData                    = (*CustomerData)(nil)
 
 	InvoiceSequenceNumber = billing.SequenceDefinition{
-		Template: "OM-SANDBOX-{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
-		Scope:    "invoices/app/sandbox",
+		Prefix:         "OM-SANDBOX",
+		SuffixTemplate: "{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
+		Scope:          "invoices/app/sandbox",
 	}
 )
 

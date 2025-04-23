@@ -3,7 +3,6 @@ package appcustominvoicing
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -18,8 +17,9 @@ var (
 )
 
 var DefaultInvoiceSequenceNumber = billing.SequenceDefinition{
-	Template: "INV-{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
-	Scope:    "invoices/custom-invoicing",
+	Prefix:         "INV",
+	SuffixTemplate: "{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
+	Scope:          "invoices/custom-invoicing",
 }
 
 type Configuration struct {
@@ -88,7 +88,7 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*bil
 	// If we are done with the hook work, let's make sure that the invoice has a non-draft invoice number
 	if canAdvance {
 		// If the invoice still has a draft invoice number, let's generate a non-draft one
-		if strings.HasPrefix(invoice.Number, "DRAFT-") {
+		if billing.DraftInvoiceSequenceNumber.PrefixMatches(invoice.Number) {
 			invoiceNumber, err := a.billingService.GenerateInvoiceSequenceNumber(ctx,
 				billing.SequenceGenerationInput{
 					Namespace:    invoice.Namespace,
