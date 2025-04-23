@@ -47,18 +47,18 @@ model CustomInvoicingApp {
 @tag("Apps")
 interface AppCustomInvoicing {
   @post
-  @route("/api/v1/apps/custom-invoicing/{invoiceId}/draft/syncronized")
+  @route("/api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized")
   @operationId("appCustomInvoicingDraftSyncronized")
-  @summary("Submit draft syncronization results")
+  @summary("Submit draft synchronization results")
   draftSyncronized(
     @path invoiceId: ULID,
     @body body: CustomInvoicingDraftSyncronizedRequest,
   ): void | CommonErrors;
 
   @post
-  @route("/api/v1/apps/custom-invoicing/{invoiceId}/issuing/syncronized")
+  @route("/api/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized")
   @operationId("appCustomInvoicingIssuingSyncronized")
-  @summary("Submit issuing syncronization results")
+  @summary("Submit issuing synchronization results")
   finalized(
     @path invoiceId: ULID,
     @body body: CustomInvoicingFinalizedRequest,
@@ -157,7 +157,7 @@ model CustomInvoicingFinalizedPaymentRequest {
 @friendlyName("CustomInvoicingDraftSyncronizedRequest")
 model CustomInvoicingDraftSyncronizedRequest {
   /**
-   * The result of the syncronization.
+   * The result of the synchronization.
    */
   invoicing?: CustomInvoicingSyncResult;
 }
@@ -186,12 +186,12 @@ model CustomInvoicingFinalizedInvoicingRequest {
 @friendlyName("CustomInvoicingFinalizedRequest")
 model CustomInvoicingFinalizedRequest {
   /**
-   * The result of the syncronization.
+   * The result of the synchronization.
    */
   invoicing?: CustomInvoicingFinalizedInvoicingRequest;
 
   /**
-   * The result of the payment syncronization.
+   * The result of the payment synchronization.
    */
   payment?: CustomInvoicingFinalizedPaymentRequest;
 }

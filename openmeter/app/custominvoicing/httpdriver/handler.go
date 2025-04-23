@@ -24,7 +24,7 @@ type AppHandler interface {
 var _ Handler = (*handler)(nil)
 
 type handler struct {
-	service appcustominvoicing.Service
+	service appcustominvoicing.SyncService
 
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
@@ -40,7 +40,7 @@ func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
 }
 
 func New(
-	service appcustominvoicing.Service,
+	service appcustominvoicing.SyncService,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
 ) Handler {

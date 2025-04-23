@@ -665,10 +665,10 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
-  /api/v1/apps/custom-invoicing/{invoiceId}/draft/syncronized:
+  /api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized:
     post:
       operationId: appCustomInvoicingDraftSyncronized
-      summary: Submit draft syncronization results
+      summary: Submit draft synchronization results
       parameters:
         - name: invoiceId
           in: path
@@ -730,10 +730,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CustomInvoicingDraftSyncronizedRequest'
-  /api/v1/apps/custom-invoicing/{invoiceId}/issuing/syncronized:
+  /api/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized:
     post:
       operationId: appCustomInvoicingIssuingSyncronized
-      summary: Submit issuing syncronization results
+      summary: Submit issuing synchronization results
       parameters:
         - name: invoiceId
           in: path
@@ -12674,7 +12674,7 @@ components:
         invoicing:
           allOf:
             - $ref: '#/components/schemas/CustomInvoicingSyncResult'
-          description: The result of the syncronization.
+          description: The result of the synchronization.
       description: Information to finalize the draft details of an invoice.
     CustomInvoicingFinalizedInvoicingRequest:
       type: object
@@ -12702,11 +12702,11 @@ components:
         invoicing:
           allOf:
             - $ref: '#/components/schemas/CustomInvoicingFinalizedInvoicingRequest'
-          description: The result of the syncronization.
+          description: The result of the synchronization.
         payment:
           allOf:
             - $ref: '#/components/schemas/CustomInvoicingFinalizedPaymentRequest'
-          description: The result of the payment syncronization.
+          description: The result of the payment synchronization.
       description: |-
         Information to finalize the invoice.
 

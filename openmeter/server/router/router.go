@@ -84,7 +84,7 @@ type Config struct {
 	Addon                       addon.Service
 	App                         app.Service
 	AppStripe                   appstripe.Service
-	AppCustomInvoicing          appcustominvoicing.Service
+	AppCustomInvoicing          appcustominvoicing.SyncService
 	Billing                     billing.Service
 	Customer                    customer.Service
 	DebugConnector              debug.DebugConnector
@@ -211,7 +211,7 @@ type Router struct {
 	addonHandler              addonhttpdriver.AddonHandler
 	appHandler                apphttpdriver.Handler
 	appStripeHandler          appstripehttpdriver.AppStripeHandler
-	appCustomInvocingHandler  appcustominvoicinghttpdriver.Handler
+	appCustomInvoicingHandler appcustominvoicinghttpdriver.Handler
 	billingHandler            billinghttpdriver.Handler
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	planHandler               planhttpdriver.Handler
@@ -333,7 +333,7 @@ func NewRouter(config Config) (*Router, error) {
 	)
 
 	// App Custom Invoicing
-	router.appCustomInvocingHandler = appcustominvoicinghttpdriver.New(
+	router.appCustomInvoicingHandler = appcustominvoicinghttpdriver.New(
 		config.AppCustomInvoicing,
 		staticNamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),

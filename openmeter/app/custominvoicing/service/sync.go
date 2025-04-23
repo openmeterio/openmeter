@@ -52,6 +52,10 @@ func (s *Service) ValidateInvoiceApp(invoice billing.Invoice) error {
 		return models.NewGenericValidationError(fmt.Errorf("invoice %s has no apps", invoice.ID))
 	}
 
+	if invoice.Workflow.Apps.Invoicing == nil {
+		return models.NewGenericValidationError(fmt.Errorf("invoice %s has no invoicing app", invoice.ID))
+	}
+
 	if invoice.Workflow.Apps.Invoicing.GetType() != app.AppTypeCustomInvoicing {
 		return models.NewGenericValidationError(fmt.Errorf("invoice %s is not managed by the custom invoicing app", invoice.ID))
 	}

@@ -3069,7 +3069,7 @@ func (s *SubscriptionHandlerTestSuite) expectValidationIssueForLine(line *billin
 	s.Equal(fmt.Sprintf("lines/%s", line.ID), issue.Path)
 }
 
-func (s *SubscriptionHandlerTestSuite) TestDiscountSyncronization() {
+func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 	ctx := s.Context
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 

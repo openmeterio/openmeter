@@ -20,6 +20,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
@@ -463,7 +464,7 @@ func getTestServer(t *testing.T) *Server {
 	// Create app service
 	appService := &NoopAppService{}
 	appStripeService := &NoopAppStripeService{}
-
+	appCustomInvoicingService := &NoopAppCustomInvoicingService{}
 	// Create customer service
 	customerService := &NoopCustomerService{}
 
@@ -490,6 +491,7 @@ func getTestServer(t *testing.T) *Server {
 			Addon:                       addonService,
 			App:                         appService,
 			AppStripe:                   appStripeService,
+			AppCustomInvoicing:          appCustomInvoicingService,
 			Billing:                     billingService,
 			Customer:                    customerService,
 			DebugConnector:              MockDebugHandler{},
@@ -1001,6 +1003,22 @@ func (n NoopAppStripeService) HandleInvoiceStateTransition(ctx context.Context, 
 
 func (n NoopAppStripeService) HandleInvoiceSentEvent(ctx context.Context, input appstripeentity.HandleInvoiceSentEventInput) error {
 	return nil
+}
+
+var _ appcustominvoicing.SyncService = (*NoopAppCustomInvoicingService)(nil)
+
+type NoopAppCustomInvoicingService struct{}
+
+func (n NoopAppCustomInvoicingService) SyncDraftInvoice(ctx context.Context, input appcustominvoicing.SyncDraftInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopAppCustomInvoicingService) SyncIssuingInvoice(ctx context.Context, input appcustominvoicing.SyncIssuingInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopAppCustomInvoicingService) HandlePaymentTrigger(ctx context.Context, input appcustominvoicing.HandlePaymentTriggerInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
 }
 
 var _ customer.Service = (*NoopCustomerService)(nil)

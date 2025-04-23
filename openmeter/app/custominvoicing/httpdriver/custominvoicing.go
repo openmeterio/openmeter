@@ -32,7 +32,7 @@ func (h *handler) DraftSyncronized() DraftSyncronizedHandler {
 
 			var body api.CustomInvoicingDraftSyncronizedRequest
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return DraftSyncronizedRequest{}, fmt.Errorf("failed to decode draft syncronized request: %w", err)
+				return DraftSyncronizedRequest{}, fmt.Errorf("failed to decode draft synchronized request: %w", err)
 			}
 
 			return DraftSyncronizedRequest{
@@ -83,7 +83,7 @@ func (h *handler) IssuingSyncronized() IssuingSyncronizedHandler {
 
 			var body api.CustomInvoicingFinalizedRequest
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return IssuingSyncronizedRequest{}, fmt.Errorf("failed to decode issuing syncronized request: %w", err)
+				return IssuingSyncronizedRequest{}, fmt.Errorf("failed to decode issuing synchronized request: %w", err)
 			}
 
 			return IssuingSyncronizedRequest{
