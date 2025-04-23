@@ -48,7 +48,7 @@ model CustomInvoicingApp {
 interface AppCustomInvoicing {
   @post
   @route("/api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized")
-  @operationId("appCustomInvoicingDraftSyncronized")
+  @operationId("appCustomInvoicingDraftSynchronized")
   @summary("Submit draft synchronization results")
   draftSyncronized(
     @path invoiceId: ULID,
@@ -57,7 +57,7 @@ interface AppCustomInvoicing {
 
   @post
   @route("/api/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized")
-  @operationId("appCustomInvoicingIssuingSyncronized")
+  @operationId("appCustomInvoicingIssuingSynchronized")
   @summary("Submit issuing synchronization results")
   finalized(
     @path invoiceId: ULID,
@@ -75,7 +75,7 @@ interface AppCustomInvoicing {
 }
 
 /**
- * Information to syncronize the invoice.
+ * Information to synchronize the invoice.
  *
  * Can be used to store external app's IDs on the invoice or lines.
  */

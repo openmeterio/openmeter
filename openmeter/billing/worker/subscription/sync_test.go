@@ -2880,7 +2880,7 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 	// Given
 	//  we have tax information set in the rate card
 	// When
-	//  we syncronize the subscription phases
+	//  we synchronize the subscription phases
 	// Then
 	//  the gathering invoice will contain the tax details
 

@@ -110,7 +110,7 @@ This would yield the following lines:
   - Line quantity=50 per_unit_amount=1 total=50 (Tier3, per unit price)
   - Line quantity=50 per_unit_amount=15 total=759 (Tier4)
 
-Apps can choose to syncronize the original line (if the upstream system understands our pricing model) or can use the sublines to syncronize individual lines without having to understand billing details.
+Apps can choose to synchronize the original line (if the upstream system understands our pricing model) or can use the sublines to synchronize individual lines without having to understand billing details.
 
 ### Detailed Lines vs Splitting
 

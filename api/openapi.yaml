@@ -667,7 +667,7 @@ paths:
         - Apps
   /api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized:
     post:
-      operationId: appCustomInvoicingDraftSyncronized
+      operationId: appCustomInvoicingDraftSynchronized
       summary: Submit draft synchronization results
       parameters:
         - name: invoiceId
@@ -732,7 +732,7 @@ paths:
               $ref: '#/components/schemas/CustomInvoicingDraftSyncronizedRequest'
   /api/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized:
     post:
-      operationId: appCustomInvoicingIssuingSyncronized
+      operationId: appCustomInvoicingIssuingSynchronized
       summary: Submit issuing synchronization results
       parameters:
         - name: invoiceId
@@ -12780,7 +12780,7 @@ components:
             This can be used to reference the external system's entities in the
             invoice.
       description: |-
-        Information to syncronize the invoice.
+        Information to synchronize the invoice.
 
         Can be used to store external app's IDs on the invoice or lines.
     CustomInvoicingTaxConfig:

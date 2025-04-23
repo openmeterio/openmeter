@@ -165,7 +165,7 @@ type InvoicingApp interface {
 
 	// UpsertInvoice upserts the invoice on the remote system, the invoice is read-only, the app should not modify it
 	// the recommended behavior is that the invoices FlattenLinesByID is used to get all lines, then the app should
-	// syncronize all the fee lines and store the external IDs in the result.
+	// synchronize all the fee lines and store the external IDs in the result.
 	UpsertInvoice(ctx context.Context, invoice Invoice) (*UpsertInvoiceResult, error)
 
 	// FinalizeInvoice finalizes the invoice on the remote system, starts the payment flow. It is safe to assume

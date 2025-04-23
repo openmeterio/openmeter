@@ -8,7 +8,7 @@ import (
 
 // Submit draft synchronization results
 // (POST /api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized)
-func (a *Router) AppCustomInvoicingDraftSyncronized(w http.ResponseWriter, r *http.Request, invoiceId string) {
+func (a *Router) AppCustomInvoicingDraftSynchronized(w http.ResponseWriter, r *http.Request, invoiceId string) {
 	a.appCustomInvoicingHandler.DraftSyncronized().With(appcustominvoicinghttpdriver.DraftSyncronizedParams{
 		InvoiceID: invoiceId,
 	}).ServeHTTP(w, r)
@@ -16,7 +16,7 @@ func (a *Router) AppCustomInvoicingDraftSyncronized(w http.ResponseWriter, r *ht
 
 // Submit issuing synchronization results
 // (POST /api/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized)
-func (a *Router) AppCustomInvoicingIssuingSyncronized(w http.ResponseWriter, r *http.Request, invoiceId string) {
+func (a *Router) AppCustomInvoicingIssuingSynchronized(w http.ResponseWriter, r *http.Request, invoiceId string) {
 	a.appCustomInvoicingHandler.IssuingSyncronized().With(appcustominvoicinghttpdriver.IssuingSyncronizedParams{
 		InvoiceID: invoiceId,
 	}).ServeHTTP(w, r)
