@@ -165,7 +165,7 @@ type InvoicingApp interface {
 
 	// UpsertInvoice upserts the invoice on the remote system, the invoice is read-only, the app should not modify it
 	// the recommended behavior is that the invoices FlattenLinesByID is used to get all lines, then the app should
-	// syncronize all the fee lines and store the external IDs in the result.
+	// synchronize all the fee lines and store the external IDs in the result.
 	UpsertInvoice(ctx context.Context, invoice Invoice) (*UpsertInvoiceResult, error)
 
 	// FinalizeInvoice finalizes the invoice on the remote system, starts the payment flow. It is safe to assume
@@ -261,6 +261,7 @@ func (r UpsertInvoiceResult) MergeIntoInvoice(invoice *Invoice) error {
 type SyncInput interface {
 	models.Validator
 
+	ValidateWithInvoice(invoice Invoice) error
 	MergeIntoInvoice(invoice *Invoice) error
 	GetAdditionalMetadata() map[string]string
 	GetInvoiceID() InvoiceID
@@ -272,6 +273,7 @@ type SyncDraftInvoiceInput struct {
 	InvoiceID            InvoiceID
 	UpsertInvoiceResults *UpsertInvoiceResult
 	AdditionalMetadata   map[string]string
+	InvoiceValidator     func(invoice Invoice) error
 }
 
 func (i SyncDraftInvoiceInput) Validate() error {
@@ -307,12 +309,21 @@ func (i SyncDraftInvoiceInput) GetInvoiceID() InvoiceID {
 	return i.InvoiceID
 }
 
+func (i SyncDraftInvoiceInput) ValidateWithInvoice(invoice Invoice) error {
+	if i.InvoiceValidator != nil {
+		return i.InvoiceValidator(invoice)
+	}
+
+	return nil
+}
+
 var _ SyncInput = (*SyncIssuingInvoiceInput)(nil)
 
 type SyncIssuingInvoiceInput struct {
 	InvoiceID             InvoiceID
 	FinalizeInvoiceResult *FinalizeInvoiceResult
 	AdditionalMetadata    map[string]string
+	InvoiceValidator      func(invoice Invoice) error
 }
 
 func (i SyncIssuingInvoiceInput) Validate() error {
@@ -347,4 +358,12 @@ func (i SyncIssuingInvoiceInput) GetAdditionalMetadata() map[string]string {
 
 func (i SyncIssuingInvoiceInput) GetInvoiceID() InvoiceID {
 	return i.InvoiceID
+}
+
+func (i SyncIssuingInvoiceInput) ValidateWithInvoice(invoice Invoice) error {
+	if i.InvoiceValidator != nil {
+		return i.InvoiceValidator(invoice)
+	}
+
+	return nil
 }

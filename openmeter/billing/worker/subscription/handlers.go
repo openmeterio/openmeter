@@ -18,7 +18,7 @@ import (
 )
 
 // HandleCancelledEvent is a handler for the subscription cancel event, it will make sure that
-// we syncronize the
+// we synchronize the
 func (h *Handler) HandleCancelledEvent(ctx context.Context, event *subscription.CancelledEvent) error {
 	now := clock.Now()
 

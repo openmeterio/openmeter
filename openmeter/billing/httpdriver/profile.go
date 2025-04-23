@@ -437,7 +437,7 @@ func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (api.
 	}
 
 	if p.Apps != nil {
-		apps, err := h.mapProfileAppsToAPI(p.Apps)
+		apps, err := mapProfileAppsToAPI(p.Apps)
 		if err != nil {
 			return api.BillingProfile{}, fmt.Errorf("failed to map profile apps: %w", err)
 		}
@@ -459,7 +459,7 @@ func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (api.
 	return out, nil
 }
 
-func (h *handler) mapProfileAppsToAPI(a *billing.ProfileApps) (*api.BillingProfileAppsOrReference, error) {
+func mapProfileAppsToAPI(a *billing.ProfileApps) (*api.BillingProfileAppsOrReference, error) {
 	if a == nil {
 		return nil, nil
 	}

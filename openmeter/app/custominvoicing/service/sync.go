@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/samber/lo"
@@ -11,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ appcustominvoicing.SyncService = (*Service)(nil)
@@ -26,6 +28,7 @@ func (s *Service) SyncDraftInvoice(ctx context.Context, input appcustominvoicing
 		AdditionalMetadata: map[string]string{
 			appcustominvoicing.MetadataKeyDraftSyncedAt: clock.Now().Format(time.RFC3339),
 		},
+		InvoiceValidator: s.ValidateInvoiceApp,
 	})
 }
 
@@ -40,7 +43,24 @@ func (s *Service) SyncIssuingInvoice(ctx context.Context, input appcustominvoici
 		AdditionalMetadata: map[string]string{
 			appcustominvoicing.MetadataKeyFinalizedAt: clock.Now().Format(time.RFC3339),
 		},
+		InvoiceValidator: s.ValidateInvoiceApp,
 	})
+}
+
+func (s *Service) ValidateInvoiceApp(invoice billing.Invoice) error {
+	if invoice.Workflow.Apps == nil {
+		return models.NewGenericValidationError(fmt.Errorf("invoice %s has no apps", invoice.ID))
+	}
+
+	if invoice.Workflow.Apps.Invoicing == nil {
+		return models.NewGenericValidationError(fmt.Errorf("invoice %s has no invoicing app", invoice.ID))
+	}
+
+	if invoice.Workflow.Apps.Invoicing.GetType() != app.AppTypeCustomInvoicing {
+		return models.NewGenericValidationError(fmt.Errorf("invoice %s is not managed by the custom invoicing app", invoice.ID))
+	}
+
+	return nil
 }
 
 func (s *Service) HandlePaymentTrigger(ctx context.Context, input appcustominvoicing.HandlePaymentTriggerInput) (billing.Invoice, error) {
@@ -49,7 +69,18 @@ func (s *Service) HandlePaymentTrigger(ctx context.Context, input appcustominvoi
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
-		err := s.billingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
+		invoice, err := s.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+			Invoice: input.InvoiceID,
+		})
+		if err != nil {
+			return billing.Invoice{}, err
+		}
+
+		if err := s.ValidateInvoiceApp(invoice); err != nil {
+			return billing.Invoice{}, err
+		}
+
+		err = s.billingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
 			InvoiceTriggerInput: billing.InvoiceTriggerInput{
 				Invoice: input.InvoiceID,
 				Trigger: input.Trigger,
@@ -61,7 +92,7 @@ func (s *Service) HandlePaymentTrigger(ctx context.Context, input appcustominvoi
 			return billing.Invoice{}, err
 		}
 
-		invoice, err := s.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		invoice, err = s.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 			Invoice: input.InvoiceID,
 		})
 		if err != nil {

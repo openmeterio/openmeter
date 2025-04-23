@@ -151,6 +151,7 @@ func main() {
 			Addon:                       app.Addon,
 			App:                         app.AppRegistry.Service,
 			AppStripe:                   app.AppRegistry.Stripe,
+			AppCustomInvoicing:          app.AppRegistry.CustomInvoicing,
 			Billing:                     app.Billing,
 			Customer:                    app.Customer,
 			DebugConnector:              debugConnector,
