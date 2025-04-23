@@ -113,9 +113,10 @@ func NewAppCustomInvoicingService(logger *slog.Logger, db *entdb.Client, appsCon
 	}
 
 	service, err := appcustominvoicingservice.New(appcustominvoicingservice.Config{
-		Adapter:    appCustomInvoicingAdapter,
-		Logger:     logger,
-		AppService: appService,
+		Adapter:        appCustomInvoicingAdapter,
+		Logger:         logger,
+		AppService:     appService,
+		BillingService: billingService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appcustominvoicing service: %w", err)
