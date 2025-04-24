@@ -137,6 +137,9 @@ namespace OpenMeterCloud.App {
 
   @tag("Apps")
   interface AppStripe extends OpenMeter.App.AppStripe {}
+
+  @tag("Apps")
+  interface AppCustomInvoicing extends OpenMeter.App.AppCustomInvoicing {}
 }
 
 namespace OpenMeterCloud.Notification {
