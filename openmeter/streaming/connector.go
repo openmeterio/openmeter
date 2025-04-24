@@ -44,6 +44,7 @@ type Connector interface {
 	UpdateMeter(ctx context.Context, namespace string, meter meter.Meter) error
 	DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error
 	QueryMeter(ctx context.Context, namespace string, meter meter.Meter, params QueryParams) ([]meter.MeterQueryRow, error)
+	QueryMeterV2(ctx context.Context, namespace string, meter meter.Meter, params QueryParamsV2) ([]meter.MeterQueryRow, error)
 	ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params ListMeterSubjectsParams) ([]string, error)
 	BatchInsert(ctx context.Context, events []RawEvent) error
 	ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error)

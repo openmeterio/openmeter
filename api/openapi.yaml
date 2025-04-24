@@ -5353,9 +5353,10 @@ paths:
         - $ref: '#/components/parameters/MeterQuery.to'
         - $ref: '#/components/parameters/MeterQuery.windowSize'
         - $ref: '#/components/parameters/MeterQuery.windowTimeZone'
+        - $ref: '#/components/parameters/MeterQuery.groupBy'
         - $ref: '#/components/parameters/MeterQuery.subject'
         - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
-        - $ref: '#/components/parameters/MeterQuery.groupBy'
+        - $ref: '#/components/parameters/MeterQuery.filter'
       description: Query meter for usage.
       summary: Query meter
       responses:
@@ -7673,8 +7674,9 @@ paths:
         - $ref: '#/components/parameters/MeterQuery.to'
         - $ref: '#/components/parameters/MeterQuery.windowSize'
         - $ref: '#/components/parameters/MeterQuery.windowTimeZone'
-        - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
         - $ref: '#/components/parameters/MeterQuery.groupBy'
+        - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
+        - $ref: '#/components/parameters/MeterQuery.filter'
       description: Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers.
       summary: Query meter Query meter
       responses:
@@ -10359,6 +10361,28 @@ components:
         maxLength: 36
       explode: false
       style: form
+    MeterQuery.filter:
+      name: filter
+      in: query
+      required: false
+      description: |-
+        The filter for the events encoded as JSON string.
+        Can't be used together with `from`, `to`, `subject`, and `filterGroupBy`.
+      x-internal: true
+      content:
+        application/json:
+          schema:
+            properties:
+              groupBy:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/FilterString'
+              subject:
+                $ref: '#/components/schemas/FilterString'
+              time:
+                $ref: '#/components/schemas/FilterTime'
+            x-internal: true
+            format: application/json
     MeterQuery.filterGroupBy:
       name: filterGroupBy
       in: query

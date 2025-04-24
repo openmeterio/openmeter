@@ -8,8 +8,10 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/apiconverter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -126,6 +128,57 @@ func ToQueryMeterParams(m meter.Meter, apiParams api.QueryMeterParams) (streamin
 				err := fmt.Errorf("invalid group by filter: %s", k)
 				return params, models.NewGenericValidationError(err)
 			}
+		}
+	}
+
+	return params, nil
+}
+
+func ToQueryMeterParamsV2(m meter.Meter, apiParams api.QueryMeterParams) (streaming.QueryParamsV2, error) {
+	params := streaming.QueryParamsV2{
+		ClientID: apiParams.ClientId,
+	}
+
+	if apiParams.WindowSize != nil {
+		params.WindowSize = lo.ToPtr(meter.WindowSize(*apiParams.WindowSize))
+	}
+
+	if apiParams.WindowTimeZone != nil {
+		tz, err := time.LoadLocation(*apiParams.WindowTimeZone)
+		if err != nil {
+			err := fmt.Errorf("invalid time zone: %w", err)
+			return params, models.NewGenericValidationError(err)
+		}
+		params.WindowTimeZone = tz
+	}
+
+	if apiParams.GroupBy != nil {
+		for _, groupBy := range *apiParams.GroupBy {
+			// Validate group by, `subject` is a special group by
+			if ok := groupBy == "subject" || m.GroupBy[groupBy] != ""; !ok {
+				err := fmt.Errorf("invalid group by: %s", groupBy)
+				return params, models.NewGenericValidationError(err)
+			}
+
+			params.GroupBy = append(params.GroupBy, groupBy)
+		}
+	}
+
+	if apiParams.Filter != nil {
+		if apiParams.Filter.GroupBy != nil {
+			groupBy := map[string]filter.FilterString{}
+			for k, v := range *apiParams.Filter.GroupBy {
+				groupBy[k] = apiconverter.ConvertString(v)
+			}
+			params.Filter.GroupBy = &groupBy
+		}
+
+		params.Filter.Subject = apiconverter.ConvertStringPtr(apiParams.Filter.Subject)
+		params.Filter.Time = apiconverter.ConvertTimePtr(apiParams.Filter.Time)
+
+		// Add subject to group by if not already present
+		if params.Filter.Subject != nil && !slices.Contains(params.GroupBy, "subject") {
+			params.GroupBy = append(params.GroupBy, "subject")
 		}
 	}
 

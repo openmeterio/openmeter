@@ -9718,6 +9718,9 @@ export interface components {
     /** @description Client ID
      *     Useful to track progress of a query. */
     'MeterQuery.clientId': string
+    /** @description The filter for the events encoded as JSON string.
+     *     Can't be used together with `from`, `to`, `subject`, and `filterGroupBy`. */
+    'MeterQuery.filter': string
     /** @description Simple filter for group bys with exact match.
      *
      *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
@@ -10463,6 +10466,8 @@ export type ParameterMeterOrderByOrderingOrderBy =
   components['parameters']['MeterOrderByOrdering.orderBy']
 export type ParameterMeterQueryClientId =
   components['parameters']['MeterQuery.clientId']
+export type ParameterMeterQueryFilter =
+  components['parameters']['MeterQuery.filter']
 export type ParameterMeterQueryFilterGroupBy =
   components['parameters']['MeterQuery.filterGroupBy']
 export type ParameterMeterQueryFrom =
@@ -17425,6 +17430,11 @@ export interface operations {
          *
          *     For example: ?windowTimeZone=UTC */
         windowTimeZone?: components['parameters']['MeterQuery.windowTimeZone']
+        /** @description If not specified a single aggregate will be returned for each subject and time window.
+         *     `subject` is a reserved group by value.
+         *
+         *     For example: ?groupBy=subject&groupBy=model */
+        groupBy?: components['parameters']['MeterQuery.groupBy']
         /** @description Filtering by multiple subjects.
          *
          *     For example: ?subject=customer-1&subject=customer-2 */
@@ -17433,11 +17443,9 @@ export interface operations {
          *
          *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
         filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
-        /** @description If not specified a single aggregate will be returned for each subject and time window.
-         *     `subject` is a reserved group by value.
-         *
-         *     For example: ?groupBy=subject&groupBy=model */
-        groupBy?: components['parameters']['MeterQuery.groupBy']
+        /** @description The filter for the events encoded as JSON string.
+         *     Can't be used together with `from`, `to`, `subject`, and `filterGroupBy`. */
+        filter?: components['parameters']['MeterQuery.filter']
       }
       header?: never
       path: {
@@ -20280,15 +20288,18 @@ export interface operations {
          *
          *     For example: ?windowTimeZone=UTC */
         windowTimeZone?: components['parameters']['MeterQuery.windowTimeZone']
-        /** @description Simple filter for group bys with exact match.
-         *
-         *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
-        filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
         /** @description If not specified a single aggregate will be returned for each subject and time window.
          *     `subject` is a reserved group by value.
          *
          *     For example: ?groupBy=subject&groupBy=model */
         groupBy?: components['parameters']['MeterQuery.groupBy']
+        /** @description Simple filter for group bys with exact match.
+         *
+         *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
+        filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
+        /** @description The filter for the events encoded as JSON string.
+         *     Can't be used together with `from`, `to`, `subject`, and `filterGroupBy`. */
+        filter?: components['parameters']['MeterQuery.filter']
       }
       header?: never
       path: {

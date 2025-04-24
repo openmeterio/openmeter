@@ -354,6 +354,16 @@ model MeterQuery {
   windowTimeZone?: string = "UTC";
 
   /**
+   * If not specified a single aggregate will be returned for each subject and time window.
+   * `subject` is a reserved group by value.
+   *
+   * For example: ?groupBy=subject&groupBy=model
+   */
+  @query(#{ explode: true })
+  @example(#["model", "type"])
+  groupBy?: string[];
+
+  /**
    * Filtering by multiple subjects.
    *
    * For example: ?subject=customer-1&subject=customer-2
@@ -372,14 +382,27 @@ model MeterQuery {
   filterGroupBy?: Record<string>;
 
   /**
-   * If not specified a single aggregate will be returned for each subject and time window.
-   * `subject` is a reserved group by value.
-   *
-   * For example: ?groupBy=subject&groupBy=model
+   * The filter for the events encoded as JSON string.
+   * Can't be used together with `from`, `to`, `subject`, and `filterGroupBy`.
    */
-  @query(#{ explode: true })
-  @example(#["model", "type"])
-  groupBy?: string[];
+  @example(#{
+    groupBy: #{ `model`: #{ $eq: "gpt-4-turbo" }, type: #{ $eq: "prompt" } },
+    subject: #{ $eq: "my-event-subject" },
+    time: #{
+      $and: #[
+        #{ $gte: DateTime.fromISO("2025-01-01T00:00:00Z") },
+        #{ $lte: DateTime.fromISO("2025-01-02T00:00:00Z") }
+      ],
+    },
+  })
+  @query
+  @encode("application/json")
+  @extension("x-internal", true)
+  filter?: {
+    groupBy?: Record<OpenMeter.FilterString>;
+    subject?: OpenMeter.FilterString;
+    time?: OpenMeter.FilterTime;
+  };
 }
 
 /**

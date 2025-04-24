@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -23,8 +24,8 @@ type ListSubjectsParams struct {
 }
 
 type ListSubjectsRequest struct {
-	namespace string
-	idOrSlug  string
+	Namespace string
+	IdOrSlug  string
 }
 
 // ListSubjects returns a handler for query meter.
@@ -37,20 +38,20 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 			}
 
 			return ListSubjectsRequest{
-				namespace: ns,
-				idOrSlug:  params.IdOrSlug,
+				Namespace: ns,
+				IdOrSlug:  params.IdOrSlug,
 			}, nil
 		},
 		func(ctx context.Context, request ListSubjectsRequest) (ListSubjectsResponse, error) {
 			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-				Namespace: request.namespace,
-				IDOrSlug:  request.idOrSlug,
+				Namespace: request.Namespace,
+				IDOrSlug:  request.IdOrSlug,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			subjectKeys, err := h.streaming.ListMeterSubjects(ctx, request.namespace, meter, streaming.ListMeterSubjectsParams{})
+			subjectKeys, err := h.streaming.ListMeterSubjects(ctx, request.Namespace, meter, streaming.ListMeterSubjectsParams{})
 			if err != nil {
 				return nil, fmt.Errorf("failed to list subjects: %w", err)
 			}
@@ -76,9 +77,16 @@ type QueryMeterParams struct {
 }
 
 type QueryMeterRequest struct {
-	namespace string
-	idOrSlug  string
-	params    api.QueryMeterParams
+	Namespace string
+	Params    QueryMeterParams
+}
+
+func (p *QueryMeterParams) Validate() error {
+	if p.Filter != nil && (p.From != nil || p.To != nil || p.FilterGroupBy != nil || p.Subject != nil) {
+		return models.NewGenericValidationError(fmt.Errorf("filter and from, to, filter group by or subject cannot be set at the same time"))
+	}
+
+	return nil
 }
 
 // QueryMeter returns a handler for query meter.
@@ -90,32 +98,56 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return QueryMeterRequest{}, err
 			}
 
+			if err := params.Validate(); err != nil {
+				return QueryMeterRequest{}, err
+			}
+
 			return QueryMeterRequest{
-				namespace: ns,
-				idOrSlug:  params.IdOrSlug,
-				params:    params.QueryMeterParams,
+				Namespace: ns,
+				Params:    params,
 			}, nil
 		},
 		func(ctx context.Context, request QueryMeterRequest) (QueryMeterResponse, error) {
-			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-				Namespace: request.namespace,
-				IDOrSlug:  request.idOrSlug,
+			m, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+				Namespace: request.Namespace,
+				IDOrSlug:  request.Params.IdOrSlug,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to get meter: %w", err)
+				return nil, err
 			}
 
-			params, err := ToQueryMeterParams(meter, request.params)
-			if err != nil {
-				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
+			var rows []meter.MeterQueryRow
+			if request.Params.Filter != nil {
+				params, err := ToQueryMeterParamsV2(m, request.Params.QueryMeterParams)
+				if err != nil {
+					return nil, fmt.Errorf("failed to construct query meter params: %w", err)
+				}
+
+				if err := params.Validate(); err != nil {
+					return nil, err
+				}
+
+				rows, err = h.streaming.QueryMeterV2(ctx, request.Namespace, m, params)
+				if err != nil {
+					return nil, fmt.Errorf("failed to query meter: %w", err)
+				}
+			} else {
+				params, err := ToQueryMeterParams(m, request.Params.QueryMeterParams)
+				if err != nil {
+					return nil, fmt.Errorf("failed to construct query meter params: %w", err)
+				}
+
+				if err := params.Validate(); err != nil {
+					return nil, err
+				}
+
+				rows, err = h.streaming.QueryMeter(ctx, request.Namespace, m, params)
+				if err != nil {
+					return nil, fmt.Errorf("failed to query meter: %w", err)
+				}
 			}
 
-			rows, err := h.streaming.QueryMeter(ctx, request.namespace, meter, params)
-			if err != nil {
-				return nil, fmt.Errorf("failed to query meter: %w", err)
-			}
-
-			response := ToAPIMeterQueryResult(request.params, rows)
+			response := ToAPIMeterQueryResult(request.Params.QueryMeterParams, rows)
 
 			return &response, nil
 		},
@@ -143,32 +175,59 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 				return QueryMeterCSVRequest{}, err
 			}
 
+			if err := params.Validate(); err != nil {
+				return QueryMeterCSVRequest{}, err
+			}
+
 			return QueryMeterCSVRequest{
-				namespace: ns,
-				idOrSlug:  params.IdOrSlug,
-				params:    params.QueryMeterParams,
+				Namespace: ns,
+				Params:    params,
 			}, nil
 		},
 		func(ctx context.Context, request QueryMeterCSVRequest) (QueryMeterCSVResponse, error) {
-			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-				Namespace: request.namespace,
-				IDOrSlug:  request.idOrSlug,
+			m, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+				Namespace: request.Namespace,
+				IDOrSlug:  request.Params.IdOrSlug,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to get meter: %w", err)
+				return nil, err
 			}
 
-			params, err := ToQueryMeterParams(meter, request.params)
-			if err != nil {
-				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
+			var rows []meter.MeterQueryRow
+			var groupBy []string
+			if request.Params.Filter != nil {
+				params, err := ToQueryMeterParamsV2(m, request.Params.QueryMeterParams)
+				if err != nil {
+					return nil, fmt.Errorf("failed to construct query meter params: %w", err)
+				}
+
+				if err := params.Validate(); err != nil {
+					return nil, err
+				}
+
+				groupBy = params.GroupBy
+				rows, err = h.streaming.QueryMeterV2(ctx, request.Namespace, m, params)
+				if err != nil {
+					return nil, fmt.Errorf("failed to query meter: %w", err)
+				}
+			} else {
+				params, err := ToQueryMeterParams(m, request.Params.QueryMeterParams)
+				if err != nil {
+					return nil, fmt.Errorf("failed to construct query meter params: %w", err)
+				}
+
+				if err := params.Validate(); err != nil {
+					return nil, err
+				}
+
+				groupBy = params.GroupBy
+				rows, err = h.streaming.QueryMeter(ctx, request.Namespace, m, params)
+				if err != nil {
+					return nil, fmt.Errorf("failed to query meter: %w", err)
+				}
 			}
 
-			rows, err := h.streaming.QueryMeter(ctx, request.namespace, meter, params)
-			if err != nil {
-				return nil, fmt.Errorf("failed to query meter: %w", err)
-			}
-
-			response := NewQueryMeterCSVResult(meter.Key, params.GroupBy, rows)
+			response := NewQueryMeterCSVResult(m.Key, groupBy, rows)
 
 			return response, nil
 		},
