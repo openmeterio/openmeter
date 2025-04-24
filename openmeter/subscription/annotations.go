@@ -19,20 +19,6 @@ type annotationParser struct{}
 
 var AnnotationParser = annotationParser{}
 
-func (a annotationParser) GetSubscriptionID(annotations models.Annotations) (string, bool) {
-	subId, ok := annotations[AnnotationSubscriptionID]
-	if !ok {
-		return "", false
-	}
-
-	subIdStr, ok := subId.(string)
-	if !ok {
-		return "", false
-	}
-
-	return subIdStr, true
-}
-
 func (a annotationParser) HasSubscription(annotations models.Annotations) bool {
 	subId, ok := annotations[AnnotationSubscriptionID]
 	return ok && subId != nil
@@ -71,21 +57,11 @@ func (a annotationParser) AddOwnerSubSystem(annotations models.Annotations, syst
 	}
 
 	systems := a.ListOwnerSubSystems(annotations)
-	systems = append(systems, system)
-	annotations[AnnotationOwnerSubSystem] = systems
-
-	return annotations
-}
-
-func (a annotationParser) RemoveOwnerSubSystem(annotations models.Annotations, system string) models.Annotations {
-	if annotations == nil {
+	if lo.Contains(systems, system) {
 		return annotations
 	}
 
-	systems := a.ListOwnerSubSystems(annotations)
-	systems = lo.Filter(systems, func(s string, _ int) bool {
-		return s != system
-	})
+	systems = append(systems, system)
 	annotations[AnnotationOwnerSubSystem] = systems
 
 	return annotations

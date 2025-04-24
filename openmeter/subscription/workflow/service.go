@@ -16,6 +16,7 @@ type Service interface {
 	Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 
 	AddAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp AddAddonWorkflowInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error)
+	ChangeAddonQuantity(ctx context.Context, subscriptionID models.NamespacedID, changeInp ChangeAddonQuantityWorkflowInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error)
 }
 
 type CreateSubscriptionWorkflowInput struct {
@@ -50,5 +51,17 @@ func (i AddAddonWorkflowInput) Validate() error {
 		return errors.New("initialQuantity must be greater than 0")
 	}
 
+	return nil
+}
+
+type ChangeAddonQuantityWorkflowInput struct {
+	SubscriptionAddonID models.NamespacedID
+
+	Quantity int `json:"quantity"`
+
+	Timing subscription.Timing `json:"timing"`
+}
+
+func (i ChangeAddonQuantityWorkflowInput) Validate() error {
 	return nil
 }
