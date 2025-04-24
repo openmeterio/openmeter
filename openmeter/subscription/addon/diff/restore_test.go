@@ -422,9 +422,79 @@ func TestRestore(t *testing.T) {
 		subscriptiontestutils.SpecsEqual(t, ogSpec, spec)
 	}))
 
-	t.Run("Should not recombine two identical items if they have different annotations", withDeps(func(t *testing.T, deps *tcDeps) {
-		t.Skip("TODO")
-	}))
+	t.Run("Should successfully restore boolean entitlement value", func(t *testing.T) {
+		t.Run("When original item HAS boolean entitlement", withDeps(func(t *testing.T, deps *tcDeps) {
+			env := buildSubAndAddon(
+				t,
+				&deps.deps,
+				subscriptiontestutils.BuildTestPlan(t).
+					AddPhase(nil, &subscriptiontestutils.ExampleRateCard4ForAddons).
+					Build(),
+				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+				}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard6),
+				models.CadencedModel{
+					ActiveFrom: now,
+					ActiveTo:   nil,
+				},
+			)
+
+			spec := env.subView.Spec
+			ogSpec := env.subViewCopy.Spec
+
+			// Let's apply the diff twice
+			err := spec.Apply(env.diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err)
+
+			err = spec.Apply(env.diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err)
+
+			// Now let's restore it twice as well
+			err = spec.Apply(env.diffable.GetRestores(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err)
+
+			err = spec.Apply(env.diffable.GetRestores(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err)
+
+			subscriptiontestutils.SpecsEqual(t, ogSpec, spec)
+		}))
+
+		t.Run("When original item DOES NOT have boolean entitlement", withDeps(func(t *testing.T, deps *tcDeps) {
+			env := buildSubAndAddon(
+				t,
+				&deps.deps,
+				subscriptiontestutils.BuildTestPlan(t).
+					AddPhase(nil, &subscriptiontestutils.ExampleRateCard5ForAddons).
+					Build(),
+				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+				}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard6),
+				models.CadencedModel{
+					ActiveFrom: now,
+					ActiveTo:   nil,
+				},
+			)
+
+			spec := env.subView.Spec
+			ogSpec := env.subViewCopy.Spec
+
+			// Let's apply the diff twice
+			err := spec.Apply(env.diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err)
+
+			err = spec.Apply(env.diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err)
+
+			// Now let's restore it twice as well
+			err = spec.Apply(env.diffable.GetRestores(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err)
+
+			err = spec.Apply(env.diffable.GetRestores(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err)
+
+			subscriptiontestutils.SpecsEqual(t, ogSpec, spec)
+		}))
+	})
 }
 
 type buildRes struct {

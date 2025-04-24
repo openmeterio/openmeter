@@ -104,6 +104,18 @@ var ExampleAddonRateCard5 = productcatalog.FlatFeeRateCard{
 	BillingCadence: &ISOMonth,
 }
 
+// Adds a boolean entitlement to ExampleFeatureKey
+var ExampleAddonRateCard6 = productcatalog.FlatFeeRateCard{
+	RateCardMeta: productcatalog.RateCardMeta{
+		Name:                "Test Addon Rate Card 6",
+		Description:         lo.ToPtr("Test Addon Rate Card 6 Description"),
+		Key:                 ExampleFeatureKey,
+		FeatureKey:          lo.ToPtr(ExampleFeatureKey),
+		EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
+	},
+	BillingCadence: &ISOMonth,
+}
+
 func GetExampleAddonInput(t *testing.T, effectivePeriod productcatalog.EffectivePeriod) addon.CreateAddonInput {
 	return BuildAddonForTesting(t, effectivePeriod, productcatalog.AddonInstanceTypeSingle, &ExampleAddonRateCard1)
 }

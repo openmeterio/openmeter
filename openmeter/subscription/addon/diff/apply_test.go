@@ -278,6 +278,108 @@ func TestApply(t *testing.T) {
 		})
 	})
 
+	t.Run("Should add a boolean entitlement to an existing item without entitlement with proper annotations", func(t *testing.T) {
+		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			env := buildSubAndAddon(
+				t,
+				&deps.deps,
+				subscriptiontestutils.BuildTestPlan(t).
+					AddPhase(nil, &subscriptiontestutils.ExampleRateCard5ForAddons).
+					Build(),
+				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+				}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard6),
+				models.CadencedModel{
+					ActiveFrom: now,
+					ActiveTo:   nil,
+				},
+			)
+
+			spec := env.subView.Spec
+
+			// Let's apply the diff
+			err := spec.Apply(env.diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err)
+
+			// Let's assert that we have a boolean entitlement and the item has the proper annotations
+			items := spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleRateCard5ForAddons.Key()]
+			require.Len(t, items, 1)
+
+			item := items[0]
+
+			require.Equal(t, 1, subscription.AnnotationParser.GetBooleanEntitlementCount(item.Annotations))
+		})
+	})
+
+	t.Run("Should increment boolean entitlement count annotation", func(t *testing.T) {
+		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			env := buildSubAndAddon(
+				t,
+				&deps.deps,
+				subscriptiontestutils.BuildTestPlan(t).
+					AddPhase(nil, &subscriptiontestutils.ExampleRateCard4ForAddons).
+					Build(),
+				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+				}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard6),
+				models.CadencedModel{
+					ActiveFrom: now,
+					ActiveTo:   nil,
+				},
+			)
+
+			spec := env.subView.Spec
+
+			item := spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleAddonRateCard6.Key()][0]
+			require.Equal(t, 1, subscription.AnnotationParser.GetBooleanEntitlementCount(item.Annotations))
+
+			// Let's apply the diff
+			err := spec.Apply(env.diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err)
+
+			// Let's assert that we have a boolean entitlement and the item has the proper annotations
+			items := spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleAddonRateCard6.Key()]
+			require.Len(t, items, 1)
+
+			item = items[0]
+
+			require.Equal(t, 2, subscription.AnnotationParser.GetBooleanEntitlementCount(item.Annotations))
+		})
+	})
+
+	t.Run("Should add a new item for new key with boolean entitlement with proper annotations", func(t *testing.T) {
+		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			env := buildSubAndAddon(
+				t,
+				&deps.deps,
+				subscriptiontestutils.BuildTestPlan(t).
+					AddPhase(nil, &subscriptiontestutils.ExampleRateCard2).
+					Build(),
+				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+				}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard6),
+				models.CadencedModel{
+					ActiveFrom: now,
+					ActiveTo:   nil,
+				},
+			)
+
+			spec := env.subView.Spec
+
+			// Let's apply the diff
+			err := spec.Apply(env.diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err)
+
+			// Let's assert that we have a boolean entitlement and the item has the proper annotations
+			items := spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleAddonRateCard6.Key()]
+			require.Len(t, items, 1)
+
+			item := items[0]
+
+			require.Equal(t, 1, subscription.AnnotationParser.GetBooleanEntitlementCount(item.Annotations))
+		})
+	})
+
 	t.Run("Should update an existing Item that fills its entire phase", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
 			effPer := productcatalog.EffectivePeriod{

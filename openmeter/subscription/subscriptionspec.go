@@ -275,6 +275,17 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 	return period, nil
 }
 
+// SyncAnnotations serves as a central place where we can calculate annotation default for the Subscription contents
+func (s *SubscriptionSpec) SyncAnnotations() error {
+	for pKey, phase := range s.Phases {
+		if err := phase.SyncAnnotations(); err != nil {
+			return fmt.Errorf("failed to sync annotations for phase %s: %w", pKey, err)
+		}
+	}
+
+	return nil
+}
+
 func (s *SubscriptionSpec) Validate() error {
 	// All consistency checks should happen here
 	var errs []error
@@ -428,6 +439,18 @@ func (s SubscriptionPhaseSpec) GetBillingCadence() (isodate.Period, error) {
 	}
 
 	return durs[0], nil
+}
+
+func (s SubscriptionPhaseSpec) SyncAnnotations() error {
+	for _, items := range s.ItemsByKey {
+		for idx, item := range items {
+			if err := item.SyncAnnotations(); err != nil {
+				return fmt.Errorf("failed to sync annotations for item %s at index %d: %w", item.ItemKey, idx, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s SubscriptionPhaseSpec) Validate(
@@ -774,6 +797,19 @@ func (s SubscriptionItemSpec) GetRef(subId string) SubscriptionItemRef {
 	}
 }
 
+func (s *SubscriptionItemSpec) SyncAnnotations() error {
+	met := s.RateCard.AsMeta()
+
+	if met.EntitlementTemplate != nil && met.EntitlementTemplate.Type() == entitlement.EntitlementTypeBoolean {
+		count := AnnotationParser.GetBooleanEntitlementCount(s.Annotations)
+		if count == 0 {
+			AnnotationParser.SetBooleanEntitlementCount(s.Annotations, 1)
+		}
+	}
+
+	return nil
+}
+
 func (s *SubscriptionItemSpec) Validate() error {
 	var errs []error
 	// TODO: if the price is usage based, we have to validate that that the feature is metered
@@ -903,6 +939,11 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 		spec.Phases[phase.PhaseKey] = phase
 	}
 
+	// Lets sync annotations for the spec
+	if err := spec.SyncAnnotations(); err != nil {
+		return spec, fmt.Errorf("failed to sync annotations: %w", err)
+	}
+
 	// Lets validate the spec
 	if err := spec.Validate(); err != nil {
 		return spec, fmt.Errorf("spec validation failed: %w", err)
@@ -915,6 +956,10 @@ func (s *SubscriptionSpec) Apply(applies AppliesToSpec, context ApplyContext) er
 	err := applies.ApplyTo(s, context)
 	if err != nil {
 		return fmt.Errorf("apply failed: %w", err)
+	}
+
+	if err := s.SyncAnnotations(); err != nil {
+		return fmt.Errorf("failed to sync annotations: %w", err)
 	}
 
 	return s.Validate()

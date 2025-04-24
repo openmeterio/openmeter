@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -35,13 +36,13 @@ func TestValidations(t *testing.T) {
 		})
 
 		t.Run("Apply", func(t *testing.T) {
-			err := rc.Apply(nil)
+			err := rc.Apply(nil, nil)
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target must not be nil")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
-			err := rc.Restore(nil)
+			err := rc.Restore(nil, nil)
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target must not be nil")
 		})
@@ -53,15 +54,37 @@ func TestValidations(t *testing.T) {
 		})
 
 		t.Run("Apply", func(t *testing.T) {
-			err := rc.Apply(nonPointerRateCard{})
+			err := rc.Apply(nonPointerRateCard{}, nil)
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target must be a pointer")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
-			err := rc.Restore(nonPointerRateCard{})
+			err := rc.Restore(nonPointerRateCard{}, nil)
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target must be a pointer")
+		})
+	})
+
+	t.Run("Should error if provided annotations are nil", func(t *testing.T) {
+		rc := getTestAddonRateCard(&productcatalog.FlatFeeRateCard{
+			RateCardMeta: someMeta.Clone(),
+		})
+
+		t.Run("Apply", func(t *testing.T) {
+			err := rc.Apply(&productcatalog.FlatFeeRateCard{
+				RateCardMeta: someMeta.Clone(),
+			}, nil)
+			require.Error(t, err)
+			require.ErrorContains(t, err, "annotations must not be nil")
+		})
+
+		t.Run("Restore", func(t *testing.T) {
+			err := rc.Restore(&productcatalog.FlatFeeRateCard{
+				RateCardMeta: someMeta.Clone(),
+			}, nil)
+			require.Error(t, err)
+			require.ErrorContains(t, err, "annotations must not be nil")
 		})
 	})
 
@@ -78,7 +101,7 @@ func TestValidations(t *testing.T) {
 		t.Run("Apply", func(t *testing.T) {
 			err := rc.Apply(&productcatalog.UsageBasedRateCard{
 				RateCardMeta: meta,
-			})
+			}, models.Annotations{})
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target and addon rate card price types do not match")
 		})
@@ -86,7 +109,7 @@ func TestValidations(t *testing.T) {
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(&productcatalog.UsageBasedRateCard{
 				RateCardMeta: meta,
-			})
+			}, models.Annotations{})
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target and addon rate card price types do not match")
 		})
@@ -106,7 +129,7 @@ func TestValidations(t *testing.T) {
 		t.Run("Apply", func(t *testing.T) {
 			err := rc.Apply(&productcatalog.UsageBasedRateCard{
 				RateCardMeta: meta,
-			})
+			}, models.Annotations{})
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target and addon rate card entitlement types do not match")
 		})
@@ -114,7 +137,7 @@ func TestValidations(t *testing.T) {
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(&productcatalog.UsageBasedRateCard{
 				RateCardMeta: meta,
-			})
+			}, models.Annotations{})
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target and addon rate card entitlement types do not match")
 		})
@@ -131,7 +154,7 @@ func TestValidations(t *testing.T) {
 		t.Run("Apply", func(t *testing.T) {
 			err := rc.Apply(&productcatalog.FlatFeeRateCard{
 				RateCardMeta: meta,
-			})
+			}, models.Annotations{})
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target and addon rate card keys do not match")
 		})
@@ -139,7 +162,7 @@ func TestValidations(t *testing.T) {
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(&productcatalog.FlatFeeRateCard{
 				RateCardMeta: meta,
-			})
+			}, models.Annotations{})
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target and addon rate card keys do not match")
 		})
@@ -166,14 +189,14 @@ func TestValidations(t *testing.T) {
 		}
 
 		t.Run("Apply", func(t *testing.T) {
-			err := rc.Apply(target)
+			err := rc.Apply(target, models.Annotations{})
 
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target and addon rate card price payment terms do not match")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
-			err := rc.Restore(target)
+			err := rc.Restore(target, models.Annotations{})
 
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target and addon rate card price payment terms do not match")
@@ -208,7 +231,7 @@ func TestExtendApply(t *testing.T) {
 
 		targetClone := target.Clone()
 
-		err := rc.Apply(target)
+		err := rc.Apply(target, models.Annotations{})
 
 		require.NoError(t, err)
 		require.Equal(t, targetClone, target)
@@ -231,7 +254,7 @@ func TestExtendApply(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Apply(target)
+		err := rc.Apply(target, models.Annotations{})
 
 		require.NoError(t, err)
 		fp, err := target.AsMeta().Price.AsFlat()
@@ -259,7 +282,7 @@ func TestExtendApply(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Apply(target)
+		err := rc.Apply(target, models.Annotations{})
 
 		require.NoError(t, err)
 		fp, err := target.AsMeta().Price.AsFlat()
@@ -284,7 +307,7 @@ func TestExtendApply(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Apply(target)
+		err := rc.Apply(target, models.Annotations{})
 
 		require.NoError(t, err)
 		fp, err := target.AsMeta().Price.AsFlat()
@@ -306,7 +329,7 @@ func TestExtendApply(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Apply(target)
+		err := rc.Apply(target, models.Annotations{})
 
 		require.NoError(t, err)
 		require.Equal(t, string(entitlement.EntitlementTypeBoolean), string(target.AsMeta().EntitlementTemplate.Type()))
@@ -326,7 +349,7 @@ func TestExtendApply(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Apply(target)
+		err := rc.Apply(target, models.Annotations{})
 
 		require.NoError(t, err)
 		require.Equal(t, string(entitlement.EntitlementTypeBoolean), string(target.AsMeta().EntitlementTemplate.Type()))
@@ -348,7 +371,7 @@ func TestExtendApply(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Apply(target)
+		err := rc.Apply(target, models.Annotations{})
 
 		require.NoError(t, err)
 		me, err := target.AsMeta().EntitlementTemplate.AsMetered()
@@ -374,7 +397,7 @@ func TestExtendApply(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Apply(target)
+		err := rc.Apply(target, models.Annotations{})
 
 		require.NoError(t, err)
 		me, err := target.AsMeta().EntitlementTemplate.AsMetered()
@@ -382,7 +405,7 @@ func TestExtendApply(t *testing.T) {
 		require.NotNil(t, me.IssueAfterReset)
 		require.Equal(t, 100.0, *me.IssueAfterReset)
 
-		err = rc.Apply(target)
+		err = rc.Apply(target, models.Annotations{})
 
 		require.NoError(t, err)
 		me, err = target.AsMeta().EntitlementTemplate.AsMetered()
@@ -419,7 +442,7 @@ func TestExtendRestore(t *testing.T) {
 
 		targetClone := target.Clone()
 
-		err := rc.Restore(target)
+		err := rc.Restore(target, models.Annotations{})
 
 		require.NoError(t, err)
 		require.Equal(t, targetClone, target)
@@ -439,7 +462,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target)
+		err := rc.Restore(target, models.Annotations{})
 
 		require.Error(t, err)
 		require.ErrorContains(t, err, "target price is nil, cannot restore price without addon")
@@ -461,7 +484,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: someMeta.Clone(),
 		}
 
-		err := rc.Restore(target)
+		err := rc.Restore(target, models.Annotations{})
 
 		require.NoError(t, err)
 		fp, err := target.AsMeta().Price.AsFlat()
@@ -481,7 +504,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target)
+		err := rc.Restore(target, models.Annotations{})
 
 		require.NoError(t, err)
 		fp, err := target.AsMeta().Price.AsFlat()
@@ -506,14 +529,13 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target)
+		err := rc.Restore(target, models.Annotations{})
 
 		require.Error(t, err)
 		require.ErrorContains(t, err, "target entitlement template is nil, cannot restore entitlement template without addon")
 	})
 
-	// TODO: figure this out, we have a data loss situation here
-	t.Run("Should return NOT IMPLEMENTED when trying to restore a boolean entitlement template", func(t *testing.T) {
+	t.Run("Should error if target has boolean entitlement but no annotation", func(t *testing.T) {
 		meta := someMeta.Clone()
 		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{})
 
@@ -525,10 +547,95 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target)
+		err := rc.Restore(target, models.Annotations{})
 
 		require.Error(t, err)
-		require.ErrorAs(t, err, lo.ToPtr(&models.GenericNotImplementedError{}))
+		require.ErrorContains(t, err, "target doesn't have boolean entitlement count annotation while has a boolean entitlement template")
+	})
+
+	t.Run("Should error if target has boolean entitlement but annotation is invalid (negative count)", func(t *testing.T) {
+		meta := someMeta.Clone()
+		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{})
+
+		rc := getTestAddonRateCard(&productcatalog.FlatFeeRateCard{
+			RateCardMeta: meta.Clone(),
+		})
+
+		target := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: meta.Clone(),
+		}
+
+		ann := models.Annotations{}
+		subscription.AnnotationParser.SetBooleanEntitlementCount(ann, -1)
+
+		err := rc.Restore(target, ann)
+
+		require.Error(t, err)
+		require.ErrorContains(t, err, "received invalid entitlement count annotation value: -1")
+	})
+
+	t.Run("Should error if target has boolean entitlement with annotation value of 0", func(t *testing.T) {
+		meta := someMeta.Clone()
+		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{})
+
+		rc := getTestAddonRateCard(&productcatalog.FlatFeeRateCard{
+			RateCardMeta: meta.Clone(),
+		})
+
+		target := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: meta.Clone(),
+		}
+
+		ann := models.Annotations{}
+		subscription.AnnotationParser.SetBooleanEntitlementCount(ann, 0)
+
+		err := rc.Restore(target, ann)
+
+		require.Error(t, err)
+		require.ErrorContains(t, err, "target doesn't have boolean entitlement count annotation while has a boolean entitlement template")
+	})
+
+	t.Run("Should remove boolean entitlement if annotation value falls to 0", func(t *testing.T) {
+		meta := someMeta.Clone()
+		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{})
+
+		rc := getTestAddonRateCard(&productcatalog.FlatFeeRateCard{
+			RateCardMeta: meta.Clone(),
+		})
+
+		target := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: meta.Clone(),
+		}
+
+		ann := models.Annotations{}
+		subscription.AnnotationParser.SetBooleanEntitlementCount(ann, 1)
+
+		err := rc.Restore(target, ann)
+
+		require.NoError(t, err)
+		require.Nil(t, target.EntitlementTemplate)
+	})
+
+	t.Run("Should decrement boolean entitlement count", func(t *testing.T) {
+		meta := someMeta.Clone()
+		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{})
+
+		rc := getTestAddonRateCard(&productcatalog.FlatFeeRateCard{
+			RateCardMeta: meta.Clone(),
+		})
+
+		target := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: meta.Clone(),
+		}
+
+		ann := models.Annotations{}
+		subscription.AnnotationParser.SetBooleanEntitlementCount(ann, 2)
+
+		err := rc.Restore(target, ann)
+
+		require.NoError(t, err)
+		require.NotNil(t, target.EntitlementTemplate)
+		require.Equal(t, 1, subscription.AnnotationParser.GetBooleanEntitlementCount(ann))
 	})
 
 	t.Run("Should deduct issueAfterReset of addon from target", func(t *testing.T) {
@@ -551,7 +658,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target)
+		err := rc.Restore(target, models.Annotations{})
 
 		require.NoError(t, err)
 		me, err := target.AsMeta().EntitlementTemplate.AsMetered()
@@ -579,7 +686,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target)
+		err := rc.Restore(target, models.Annotations{})
 
 		require.Error(t, err)
 		require.ErrorContains(t, err, "restoring entitlement template would yield a negative issue after reset: 50 - 100 = -50")
@@ -600,7 +707,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target)
+		err := rc.Restore(target, models.Annotations{})
 
 		require.NoError(t, err)
 		me, err := target.AsMeta().EntitlementTemplate.AsMetered()

@@ -147,8 +147,12 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 					},
 				}
 
+				if inst.Annotations == nil {
+					inst.Annotations = models.Annotations{}
+				}
+
 				for range d.addon.Quantity {
-					err := rc.Apply(inst.RateCard)
+					err := rc.Apply(inst.RateCard, inst.Annotations)
 					if err != nil {
 						return fmt.Errorf("failed to extend rate card %s: %w", rc.AddonRateCard.Key(), err)
 					}
@@ -168,11 +172,12 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 							ItemKey:  rc.AddonRateCard.Key(),
 							RateCard: rc.AddonRateCard.RateCard.Clone(),
 						},
+						Annotations: models.Annotations{},
 					},
 				}
 
 				for range d.addon.Quantity - 1 {
-					err := rc.Apply(inst.RateCard)
+					err := rc.Apply(inst.RateCard, inst.Annotations)
 					if err != nil {
 						return fmt.Errorf("failed to extend rate card %s: %w", rc.AddonRateCard.Key(), err)
 					}

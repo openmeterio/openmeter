@@ -33,7 +33,7 @@ func GetDiffableFromAddon(
 
 			agg := subscription.NewAggregateAppliesToSpec(applieses)
 
-			return agg.ApplyTo(spec, actx)
+			return spec.Apply(agg, actx)
 		},
 		RestoreFn: func(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
 			applieses := lo.Map(diffs, func(diff Diffable, _ int) subscription.AppliesToSpec {
@@ -42,7 +42,7 @@ func GetDiffableFromAddon(
 
 			agg := subscription.NewAggregateAppliesToSpec(applieses)
 
-			return agg.ApplyTo(spec, actx)
+			return spec.Apply(agg, actx)
 		},
 	}, nil
 }

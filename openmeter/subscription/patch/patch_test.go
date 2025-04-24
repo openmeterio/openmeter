@@ -175,6 +175,8 @@ func (ts *testsuite[T]) Run(t *testing.T) {
 	for _, tc := range ts.TT {
 		t.Run(tc.Name, func(t *testing.T) {
 			spec := tc.GetSpec(t)
+
+			// It's safe to use patch.ApplyTo here as we're only testing the patch logic
 			err := tc.Patch.ApplyTo(spec, tc.Ctx)
 
 			if tc.ExpectedError == nil {

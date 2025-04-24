@@ -1,7 +1,6 @@
 package subscriptionaddon
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 
@@ -9,11 +8,12 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Apply applies the addon rate card to the target rate card
-func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard) error {
+func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard, annotations models.Annotations) error {
 	// Target has has to be implemented by a pointer otherwise we can't use it as a receiver. Let's check that
 	typ := reflect.TypeOf(target)
 	if typ == nil {
@@ -22,6 +22,10 @@ func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard) error {
 
 	if typ.Kind() != reflect.Ptr {
 		return fmt.Errorf("target must be a pointer")
+	}
+
+	if annotations == nil {
+		return fmt.Errorf("annotations must not be nil")
 	}
 
 	if a.AddonRateCard.AsMeta().Price == nil && a.AddonRateCard.AsMeta().EntitlementTemplate == nil {
@@ -59,8 +63,12 @@ func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard) error {
 			switch {
 			case tMeta.EntitlementTemplate == nil:
 				m.EntitlementTemplate = aMeta.EntitlementTemplate
+				if aMeta.EntitlementTemplate.Type() == entitlement.EntitlementTypeBoolean {
+					subscription.AnnotationParser.SetBooleanEntitlementCount(annotations, 1)
+				}
 			case tMeta.EntitlementTemplate.Type().String() == entitlement.EntitlementTypeBoolean.String():
-				// no-op
+				count := subscription.AnnotationParser.GetBooleanEntitlementCount(annotations)
+				annotations = subscription.AnnotationParser.SetBooleanEntitlementCount(annotations, count+1)
 			case tMeta.EntitlementTemplate.Type().String() == entitlement.EntitlementTypeMetered.String():
 				tMetered, _ := tMeta.EntitlementTemplate.AsMetered()
 				aMetered, _ := aMeta.EntitlementTemplate.AsMetered()
@@ -77,7 +85,7 @@ func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard) error {
 }
 
 // Restore restores the addon rate card to the target rate card
-func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard) error {
+func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annotations models.Annotations) error {
 	// Target has has to be implemented by a pointer otherwise we can't use it as a receiver. Let's check that
 	typ := reflect.TypeOf(target)
 	if typ == nil {
@@ -86,6 +94,10 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard) error
 
 	if typ.Kind() != reflect.Ptr {
 		return fmt.Errorf("target must be a pointer")
+	}
+
+	if annotations == nil {
+		return fmt.Errorf("annotations must not be nil")
 	}
 
 	if a.AddonRateCard.AsMeta().Price == nil && a.AddonRateCard.AsMeta().EntitlementTemplate == nil {
@@ -129,8 +141,17 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard) error
 			case tMeta.EntitlementTemplate == nil:
 				return m, fmt.Errorf("target entitlement template is nil, cannot restore entitlement template without addon")
 			case tMeta.EntitlementTemplate.Type().String() == entitlement.EntitlementTypeBoolean.String():
-				// TODO: figure this out, we have a data loss situation here
-				return m, models.NewGenericNotImplementedError(errors.New("boolean entitlement templates are not supported"))
+				count := subscription.AnnotationParser.GetBooleanEntitlementCount(annotations)
+				switch {
+				case count < 0:
+					return m, fmt.Errorf("received invalid entitlement count annotation value: %d", count)
+				case count == 0:
+					return m, fmt.Errorf("target doesn't have boolean entitlement count annotation while has a boolean entitlement template")
+				case count == 1:
+					m.EntitlementTemplate = nil
+				}
+
+				subscription.AnnotationParser.SetBooleanEntitlementCount(annotations, count-1)
 			case tMeta.EntitlementTemplate.Type().String() == entitlement.EntitlementTypeMetered.String():
 				tMetered, _ := tMeta.EntitlementTemplate.AsMetered()
 				aMetered, _ := aMeta.EntitlementTemplate.AsMetered()

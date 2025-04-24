@@ -116,6 +116,43 @@ func TestCreateFromPlan(t *testing.T) {
 			tc.Handler(t, tcDeps)
 		})
 	}
+
+	t.Run("Should add boolean entitlement count annotations", func(t *testing.T) {
+		now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+
+		clock.SetTime(now)
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		require.NotNil(t, dbDeps)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		deps.FeatureConnector.CreateExampleFeatures(t)
+
+		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlan(t).
+			AddPhase(nil, &subscriptiontestutils.ExampleRateCard3ForAddons, &subscriptiontestutils.ExampleRateCard4ForAddons).
+			Build())
+
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{
+					Custom: &now,
+				},
+			},
+			CustomerID: cust.ID,
+			Namespace:  subscriptiontestutils.ExampleNamespace,
+		}, p)
+		require.Nil(t, err)
+
+		nonBoolItem := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard3ForAddons.Key()][0]
+		require.NotNil(t, nonBoolItem)
+		require.Equal(t, 0, subscription.AnnotationParser.GetBooleanEntitlementCount(nonBoolItem.SubscriptionItem.Annotations))
+
+		boolItem := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard4ForAddons.Key()][0]
+		require.NotNil(t, boolItem)
+		require.Equal(t, 1, subscription.AnnotationParser.GetBooleanEntitlementCount(boolItem.SubscriptionItem.Annotations))
+	})
 }
 
 func TestEditRunning(t *testing.T) {
@@ -1067,6 +1104,49 @@ func TestEditCombinations(t *testing.T) {
 		require.Error(t, err)
 		require.ErrorAs(t, err, lo.ToPtr(&models.GenericForbiddenError{}))
 		require.True(t, models.IsGenericForbiddenError(err))
+	})
+
+	t.Run("Should add boolean entitlement count annotations", func(t *testing.T) {
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			plan := deps.SubsDeps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlan(t).
+				AddPhase(nil, &subscriptiontestutils.ExampleRateCard3ForAddons).
+				Build())
+
+			timingNow := subscription.Timing{
+				Enum: lo.ToPtr(subscription.TimingImmediate),
+			}
+
+			subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				Namespace:  deps.Customer.Namespace,
+				CustomerID: deps.Customer.ID,
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+					Name:   "test",
+					Timing: timingNow,
+				},
+			}, plan)
+			require.NoError(t, err)
+
+			subView, err = deps.WorkflowService.EditRunning(context.Background(), subView.Subscription.NamespacedID, []subscription.Patch{
+				patch.PatchAddItem{
+					PhaseKey: "test_phase_1",
+					ItemKey:  subscriptiontestutils.ExampleRateCard4ForAddons.Key(),
+					CreateInput: subscription.SubscriptionItemSpec{
+						CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+								PhaseKey: "test_phase_1",
+								ItemKey:  subscriptiontestutils.ExampleRateCard4ForAddons.Key(),
+								RateCard: &subscriptiontestutils.ExampleRateCard4ForAddons,
+							},
+						},
+					},
+				},
+			}, timingNow)
+			require.Nil(t, err)
+
+			boolItem := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard4ForAddons.Key()][0]
+			require.NotNil(t, boolItem)
+			require.Equal(t, 1, subscription.AnnotationParser.GetBooleanEntitlementCount(boolItem.SubscriptionItem.Annotations))
+		})
 	})
 
 	t.Run("Should be able to cancel an edited subscription", func(t *testing.T) {

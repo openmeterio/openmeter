@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (d *diffable) restore() subscription.AppliesToSpec {
@@ -43,7 +44,11 @@ func (d *diffable) restore() subscription.AppliesToSpec {
 					// Let's try to undo the effects of the addon RateCard
 					target := item.RateCard.Clone()
 
-					if err := affectingAddonRateCard.Restore(target); err != nil {
+					if item.Annotations == nil {
+						item.Annotations = models.Annotations{}
+					}
+
+					if err := affectingAddonRateCard.Restore(target, item.Annotations); err != nil {
 						return fmt.Errorf("failed to restore addon rate card %s: %w", affectingAddonRateCard.AddonRateCard.Key(), err)
 					}
 

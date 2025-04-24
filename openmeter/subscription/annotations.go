@@ -11,6 +11,8 @@ const (
 	AnnotationSubscriptionID = "subscription.id"
 
 	AnnotationOwnerSubSystem = "subscription.owner"
+
+	AnnotationBooleanEntitlementCount = "subscription.entitlement.boolean.count"
 )
 
 const OwnerSubscriptionSubSystem = "subscription"
@@ -64,5 +66,29 @@ func (a annotationParser) AddOwnerSubSystem(annotations models.Annotations, syst
 	systems = append(systems, system)
 	annotations[AnnotationOwnerSubSystem] = systems
 
+	return annotations
+}
+
+func (a annotationParser) GetBooleanEntitlementCount(annotations models.Annotations) int {
+	count, ok := annotations[AnnotationBooleanEntitlementCount]
+	if !ok {
+		return 0
+	}
+
+	countInt, ok := count.(int)
+	if !ok {
+		countFloat, ok := count.(float64)
+		if !ok {
+			return 0
+		}
+
+		countInt = int(countFloat)
+	}
+
+	return countInt
+}
+
+func (a annotationParser) SetBooleanEntitlementCount(annotations models.Annotations, count int) models.Annotations {
+	annotations[AnnotationBooleanEntitlementCount] = count
 	return annotations
 }
