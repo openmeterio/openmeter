@@ -10208,7 +10208,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Events
-      x-internal: true
 security:
   - CloudTokenAuth: []
   - CloudCookieAuth: []

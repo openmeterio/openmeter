@@ -9953,7 +9953,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Events
-      x-internal: true
 components:
   parameters:
     AddonOrderByOrdering.order:
