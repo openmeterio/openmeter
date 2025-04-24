@@ -63,6 +63,11 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 			return def, models.NewGenericValidationError(fmt.Errorf("subscription is not active at the time of adding the addon"))
 		}
 
+		if len(subsAdds.Items) > 0 {
+			// TODO: remove
+			return def, models.NewGenericNotImplementedError(fmt.Errorf("adding addons to a subscription with existing addons is not supported"))
+		}
+
 		diffs, err := slicesx.MapWithErr(subsAdds.Items, func(subAdd subscriptionaddon.SubscriptionAddon) (addondiff.Diffable, error) {
 			return addondiff.GetDiffableFromAddon(subView, subAdd)
 		})

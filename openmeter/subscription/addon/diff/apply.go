@@ -13,7 +13,7 @@ import (
 
 // getApplyForRateCard returns a function that applies a SubscriptionAddonRateCard to a SubscriptionSpec
 func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRateCard) subscription.AppliesToSpec {
-	return subscription.NewAppliesToSpec(func(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
+	return subscription.NewAppliesToSpec(func(spec *subscription.SubscriptionSpec, _ subscription.ApplyContext) error {
 		phaseAtCadenceStart, ok := spec.GetCurrentPhaseAt(d.addon.ActiveFrom)
 		if !ok {
 			return fmt.Errorf("no phase found at %s", d.addon.ActiveFrom)
