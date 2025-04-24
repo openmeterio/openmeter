@@ -139,7 +139,6 @@ interface EventsV2 {
   @list
   @operationId("listEventsV2")
   @summary("List ingested events")
-  @extension("x-internal", true)
   list(
     ...QueryCursorPagination,
 
