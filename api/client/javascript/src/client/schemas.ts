@@ -113,6 +113,57 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Submit draft synchronization results */
+    post: operations['appCustomInvoicingDraftSynchronized']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Submit issuing synchronization results */
+    post: operations['appCustomInvoicingIssuingSynchronized']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/apps/custom-invoicing/{invoiceId}/payment/status': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Update payment status */
+    post: operations['appCustomInvoicingUpdatePaymentStatus']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/apps/{id}': {
     parameters: {
       query?: never
@@ -3250,6 +3301,86 @@ export interface components {
       /** @description Metadata to be used by the custom invoicing provider. */
       metadata?: components['schemas']['Metadata']
     }
+    /** @description Information to finalize the draft details of an invoice. */
+    CustomInvoicingDraftSynchronizedRequest: {
+      /** @description The result of the synchronization. */
+      invoicing?: components['schemas']['CustomInvoicingSyncResult']
+    }
+    /** @description Information to finalize the invoicing details of an invoice. */
+    CustomInvoicingFinalizedInvoicingRequest: {
+      /** @description If set the invoice's number will be set to this value. */
+      invoiceNumber?: components['schemas']['InvoiceNumber']
+      /**
+       * Format: date-time
+       * @description If set the invoice's sent to customer at will be set to this value.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      sentToCustomerAt?: Date
+    }
+    /** @description Information to finalize the payment details of an invoice. */
+    CustomInvoicingFinalizedPaymentRequest: {
+      /** @description If set the invoice's payment external ID will be set to this value. */
+      externalId?: string
+    }
+    /** @description Information to finalize the invoice.
+     *
+     *     If invoicing.invoiceNumber is not set, then a new invoice number will be generated (INV- prefix). */
+    CustomInvoicingFinalizedRequest: {
+      /** @description The result of the synchronization. */
+      invoicing?: components['schemas']['CustomInvoicingFinalizedInvoicingRequest']
+      /** @description The result of the payment synchronization. */
+      payment?: components['schemas']['CustomInvoicingFinalizedPaymentRequest']
+    }
+    /** @description Mapping between line discounts and external IDs. */
+    CustomInvoicingLineDiscountExternalIdMapping: {
+      /**
+       * @description The line discount ID.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      lineDiscountId: string
+      /** @description The external ID (e.g. custom invoicing system's ID). */
+      externalId: string
+    }
+    /** @description Mapping between lines and external IDs. */
+    CustomInvoicingLineExternalIdMapping: {
+      /**
+       * @description The line ID.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      lineId: string
+      /** @description The external ID (e.g. custom invoicing system's ID). */
+      externalId: string
+    }
+    /**
+     * @description Payment trigger to execute on a finalized invoice.
+     * @enum {string}
+     */
+    CustomInvoicingPaymentTrigger:
+      | 'paid'
+      | 'payment_failed'
+      | 'payment_uncollectible'
+      | 'payment_overdue'
+      | 'action_required'
+      | 'void'
+    /** @description Information to synchronize the invoice.
+     *
+     *     Can be used to store external app's IDs on the invoice or lines. */
+    CustomInvoicingSyncResult: {
+      /** @description If set the invoice's number will be set to this value. */
+      invoiceNumber?: components['schemas']['InvoiceNumber']
+      /** @description If set the invoice's invoicing external ID will be set to this value. */
+      externalId?: string
+      /** @description If set the invoice's line external IDs will be set to this value.
+       *
+       *     This can be used to reference the external system's entities in the
+       *     invoice. */
+      lineExternalIds?: components['schemas']['CustomInvoicingLineExternalIdMapping'][]
+      /** @description If set the invoice's line discount external IDs will be set to this value.
+       *
+       *     This can be used to reference the external system's entities in the
+       *     invoice. */
+      lineDiscountExternalIds?: components['schemas']['CustomInvoicingLineDiscountExternalIdMapping'][]
+    }
     /** @description Custom invoicing tax config. */
     CustomInvoicingTaxConfig: {
       /**
@@ -3259,6 +3390,13 @@ export interface components {
        *     The tax code should be interpreted by the custom invoicing provider.
        */
       code: string
+    }
+    /** @description Update payment status request.
+     *
+     *     Can be used to manipulate invoice's payment status (when custominvoicing app is being used). */
+    CustomInvoicingUpdatePaymentStatusRequest: {
+      /** @description The trigger to be executed on the invoice. */
+      trigger: components['schemas']['CustomInvoicingPaymentTrigger']
     }
     /** @description Plan input for custom subscription creation (without key and version). */
     CustomPlanInput: {
@@ -9817,8 +9955,26 @@ export type CustomInvoicingAppReplaceUpdate =
   components['schemas']['CustomInvoicingAppReplaceUpdate']
 export type CustomInvoicingCustomerAppData =
   components['schemas']['CustomInvoicingCustomerAppData']
+export type CustomInvoicingDraftSynchronizedRequest =
+  components['schemas']['CustomInvoicingDraftSynchronizedRequest']
+export type CustomInvoicingFinalizedInvoicingRequest =
+  components['schemas']['CustomInvoicingFinalizedInvoicingRequest']
+export type CustomInvoicingFinalizedPaymentRequest =
+  components['schemas']['CustomInvoicingFinalizedPaymentRequest']
+export type CustomInvoicingFinalizedRequest =
+  components['schemas']['CustomInvoicingFinalizedRequest']
+export type CustomInvoicingLineDiscountExternalIdMapping =
+  components['schemas']['CustomInvoicingLineDiscountExternalIdMapping']
+export type CustomInvoicingLineExternalIdMapping =
+  components['schemas']['CustomInvoicingLineExternalIdMapping']
+export type CustomInvoicingPaymentTrigger =
+  components['schemas']['CustomInvoicingPaymentTrigger']
+export type CustomInvoicingSyncResult =
+  components['schemas']['CustomInvoicingSyncResult']
 export type CustomInvoicingTaxConfig =
   components['schemas']['CustomInvoicingTaxConfig']
+export type CustomInvoicingUpdatePaymentStatusRequest =
+  components['schemas']['CustomInvoicingUpdatePaymentStatusRequest']
 export type CustomPlanInput = components['schemas']['CustomPlanInput']
 export type CustomSubscriptionChange =
   components['schemas']['CustomSubscriptionChange']
@@ -11083,6 +11239,267 @@ export interface operations {
         content: {
           'application/json': components['schemas']['AppPaginatedResponse']
         }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  appCustomInvoicingDraftSynchronized: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        invoiceId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CustomInvoicingDraftSynchronizedRequest']
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful.  */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  appCustomInvoicingIssuingSynchronized: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        invoiceId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CustomInvoicingFinalizedRequest']
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful.  */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  appCustomInvoicingUpdatePaymentStatus: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        invoiceId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CustomInvoicingUpdatePaymentStatusRequest']
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful.  */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {

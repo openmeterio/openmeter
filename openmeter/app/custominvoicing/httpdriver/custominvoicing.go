@@ -30,7 +30,7 @@ func (h *handler) DraftSyncronized() DraftSyncronizedHandler {
 				return DraftSyncronizedRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			var body api.CustomInvoicingDraftSyncronizedRequest
+			var body api.CustomInvoicingDraftSynchronizedRequest
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return DraftSyncronizedRequest{}, fmt.Errorf("failed to decode draft synchronized request: %w", err)
 			}

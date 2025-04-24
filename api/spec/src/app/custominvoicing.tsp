@@ -52,7 +52,7 @@ interface AppCustomInvoicing {
   @summary("Submit draft synchronization results")
   draftSyncronized(
     @path invoiceId: ULID,
-    @body body: CustomInvoicingDraftSyncronizedRequest,
+    @body body: CustomInvoicingDraftSynchronizedRequest,
   ): void | CommonErrors;
 
   @post
@@ -154,8 +154,8 @@ model CustomInvoicingFinalizedPaymentRequest {
 /**
  * Information to finalize the draft details of an invoice.
  */
-@friendlyName("CustomInvoicingDraftSyncronizedRequest")
-model CustomInvoicingDraftSyncronizedRequest {
+@friendlyName("CustomInvoicingDraftSynchronizedRequest")
+model CustomInvoicingDraftSynchronizedRequest {
   /**
    * The result of the synchronization.
    */

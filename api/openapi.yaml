@@ -729,7 +729,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomInvoicingDraftSyncronizedRequest'
+              $ref: '#/components/schemas/CustomInvoicingDraftSynchronizedRequest'
   /api/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized:
     post:
       operationId: appCustomInvoicingIssuingSynchronized
@@ -12668,7 +12668,7 @@ components:
             - $ref: '#/components/schemas/Metadata'
           description: Metadata to be used by the custom invoicing provider.
       description: Custom Invoicing Customer App Data.
-    CustomInvoicingDraftSyncronizedRequest:
+    CustomInvoicingDraftSynchronizedRequest:
       type: object
       properties:
         invoicing:
