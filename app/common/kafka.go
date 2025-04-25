@@ -104,9 +104,7 @@ func NewKafkaTopicProvisionerConfig(
 }
 
 // TODO: do we need a separate constructor for the sake of a custom error message?
-func NewKafkaTopicProvisioner(
-	conf pkgkafka.TopicProvisionerConfig,
-) (pkgkafka.TopicProvisioner, error) {
+func NewKafkaTopicProvisioner(conf pkgkafka.TopicProvisionerConfig) (pkgkafka.TopicProvisioner, error) {
 	topicProvisioner, err := pkgkafka.NewTopicProvisioner(conf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize topic provisioner: %w", err)
