@@ -56,7 +56,6 @@ type Application struct {
 	MeterConfigInitializer  common.MeterConfigInitializer
 	MeterManageService      meter.ManageService
 	MeterEventService       meterevent.Service
-	NamespaceHandlers       []namespace.Handler
 	NamespaceManager        *namespace.Manager
 	Notification            notification.Service
 	Plan                    plan.Service

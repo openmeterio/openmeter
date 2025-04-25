@@ -51,6 +51,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.KafkaTopic,
 		common.KafkaNamespaceResolver,
 		common.Meter,
+		common.Namespace,
 		common.NewDefaultTextMapPropagator,
 		common.NewFlushHandler,
 		common.NewSinkWorkerPublisher,

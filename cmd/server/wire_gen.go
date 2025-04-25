@@ -168,7 +168,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(kafkaIngestConfiguration)
+	namespaceConfiguration := conf.Namespace
+	manager, err := common.NewNamespaceManager(namespaceConfiguration)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -178,7 +179,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	namespaceHandler, err := common.NewKafkaNamespaceHandler(namespacedTopicResolver, topicProvisioner, kafkaIngestConfiguration)
+	billingAdapter, err := common.BillingAdapter(logger, client)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -188,9 +189,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	tracer := common.NewTracer(tracerProvider, commonMetadata)
+	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
 	if err != nil {
 		cleanup6()
@@ -212,7 +214,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, progressmanagerService)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, progressmanagerService, manager)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -222,29 +224,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v3 := common.NewNamespaceHandlers(namespaceHandler, connector)
-	namespaceConfiguration := conf.Namespace
-	manager, err := common.NewNamespaceManager(v3, namespaceConfiguration)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	billingAdapter, err := common.BillingAdapter(logger, client)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	entitlementsConfiguration := conf.Entitlements
 	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, service, eventbusPublisher)
 	customerService, err := common.NewCustomerService(logger, client, entitlement, eventbusPublisher)
 	if err != nil {
@@ -350,6 +329,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(kafkaIngestConfiguration)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	collector, err := common.NewKafkaIngestCollector(kafkaIngestConfiguration, producer, namespacedTopicResolver, topicProvisioner, logger, tracer)
 	if err != nil {
 		cleanup6()
@@ -381,13 +370,13 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v4 := conf.Meters
+	v3 := conf.Meters
 	manageService := common.NewMeterManageService(ctx, adapter, entitlement, manager, connector, eventbusPublisher)
-	v5 := common.NewMeterConfigInitializer(logger, v4, manageService, manager)
+	v4 := common.NewMeterConfigInitializer(logger, v3, manageService, manager)
 	metereventService := common.NewMeterEventService(connector, service)
 	notificationConfiguration := conf.Notification
-	v6 := conf.Svix
-	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v6, featureConnector)
+	v5 := conf.Svix
+	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v5, featureConnector)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -421,7 +410,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v7 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
+	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
@@ -435,7 +424,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v8, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v7, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
@@ -465,21 +454,20 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaMetrics:            metrics,
 		Logger:                  logger,
 		MetricMeter:             meter,
-		MeterConfigInitializer:  v5,
+		MeterConfigInitializer:  v4,
 		MeterManageService:      manageService,
 		MeterEventService:       metereventService,
-		NamespaceHandlers:       v3,
 		NamespaceManager:        manager,
 		Notification:            notificationService,
 		Plan:                    planService,
 		PlanAddon:               planaddonService,
 		Portal:                  portalService,
 		ProgressManager:         progressmanagerService,
-		RouterHook:              v7,
+		RouterHook:              v6,
 		Secret:                  secretserviceService,
 		Subscription:            subscriptionServiceWithWorkflow,
 		StreamingConnector:      connector,
-		TelemetryServer:         v8,
+		TelemetryServer:         v7,
 		TerminationChecker:      terminationChecker,
 		RuntimeMetricsCollector: runtimeMetricsCollector,
 		Tracer:                  tracer,
@@ -518,7 +506,6 @@ type Application struct {
 	MeterConfigInitializer  common.MeterConfigInitializer
 	MeterManageService      meter.ManageService
 	MeterEventService       meterevent.Service
-	NamespaceHandlers       []namespace.Handler
 	NamespaceManager        *namespace.Manager
 	Notification            notification.Service
 	Plan                    plan.Service

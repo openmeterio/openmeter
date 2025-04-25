@@ -182,7 +182,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, progressmanagerService)
+	namespaceConfiguration := conf.Namespace
+	manager, err := common.NewNamespaceManager(namespaceConfiguration)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, progressmanagerService, manager)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -295,41 +306,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	runner := common.Runner{
 		Group:  group,
 		Logger: logger,
-	}
-	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(kafkaIngestConfiguration)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	namespaceHandler, err := common.NewKafkaNamespaceHandler(namespacedTopicResolver, topicProvisioner, kafkaIngestConfiguration)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	v4 := common.NewNamespaceHandlers(namespaceHandler, connector)
-	namespaceConfiguration := conf.Namespace
-	manager, err := common.NewNamespaceManager(v4, namespaceConfiguration)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
 	}
 	factory, err := common.NewAppSandboxFactory(appsConfiguration, service, billingService)
 	if err != nil {

@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
@@ -35,7 +34,6 @@ var KafkaNamespaceResolver = wire.NewSet(
 	wire.Bind(new(topicresolver.Resolver), new(*topicresolver.NamespacedTopicResolver)),
 
 	NewKafkaNamespaceHandler,
-	NewNamespaceHandlers,
 )
 
 // TODO: use ingest config directly?
@@ -114,27 +112,25 @@ func NewKafkaTopicProvisioner(conf pkgkafka.TopicProvisionerConfig) (pkgkafka.To
 	return topicProvisioner, nil
 }
 
-func NewNamespaceHandlers(
-	kafkaHandler *kafkaingest.NamespaceHandler,
-	clickHouseHandler streaming.Connector,
-) []namespace.Handler {
-	return []namespace.Handler{
-		kafkaHandler,
-		clickHouseHandler,
-	}
-}
-
 func NewKafkaNamespaceHandler(
+	namespaceManager *namespace.Manager,
 	topicResolver topicresolver.Resolver,
 	topicProvisioner pkgkafka.TopicProvisioner,
 	conf config.KafkaIngestConfiguration,
-) (*kafkaingest.NamespaceHandler, error) {
-	return &kafkaingest.NamespaceHandler{
+) error {
+	handler := &kafkaingest.NamespaceHandler{
 		TopicResolver:    topicResolver,
 		TopicProvisioner: topicProvisioner,
 		Partitions:       conf.Partitions,
 		DeletionEnabled:  conf.NamespaceDeletionEnabled,
-	}, nil
+	}
+
+	err := namespaceManager.RegisterHandler(handler)
+	if err != nil {
+		return fmt.Errorf("failed to register kafka namespace handler: %w", err)
+	}
+
+	return nil
 }
 
 func NewNamespacedTopicResolver(config config.KafkaIngestConfiguration) (*topicresolver.NamespacedTopicResolver, error) {

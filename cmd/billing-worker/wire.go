@@ -40,7 +40,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Database,
 		common.Framework,
 		common.KafkaTopic,
-		common.KafkaNamespaceResolver,
 		common.Meter,
 		common.Namespace,
 		common.NewDefaultTextMapPropagator,
