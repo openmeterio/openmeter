@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
@@ -17,20 +18,23 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func MapCreateSubscriptionAddonRequestToInput(req api.SubscriptionAddonCreate) subscriptionworkflow.AddAddonWorkflowInput {
+func MapCreateSubscriptionAddonRequestToInput(req api.SubscriptionAddonCreate) (subscriptionworkflow.AddAddonWorkflowInput, error) {
+	timing, err := subscriptionhttp.MapAPITimingToTiming(req.Timing)
+	if err != nil {
+		return subscriptionworkflow.AddAddonWorkflowInput{}, fmt.Errorf("failed to cast Timing: %w", err)
+	}
+
 	r := subscriptionworkflow.AddAddonWorkflowInput{
 		AddonID:         req.Addon.Id,
 		InitialQuantity: req.Quantity,
-		Timing: subscription.Timing{
-			Custom: &req.ActiveFrom,
-		},
+		Timing:          timing,
 	}
 
 	if req.Metadata != nil {
 		r.MetadataModel.Metadata = lo.FromPtr(req.Metadata)
 	}
 
-	return r
+	return r, nil
 }
 
 func MapSubscriptionAddonToResponse(view subscription.SubscriptionView, addon subscriptionaddon.SubscriptionAddon) (api.SubscriptionAddon, error) {
