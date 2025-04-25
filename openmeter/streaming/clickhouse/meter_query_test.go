@@ -292,6 +292,23 @@ func TestQueryMeter(t *testing.T) {
 			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value'))) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (JSON_VALUE(om_events.data, '$.group1') = 'g1v1' OR JSON_VALUE(om_events.data, '$.group1') = 'g1v2') AND (JSON_VALUE(om_events.data, '$.group2') = 'g2v1' OR JSON_VALUE(om_events.data, '$.group2') = 'g2v2')",
 			wantArgs: []interface{}{"my_namespace", "event1"},
 		},
+		{ // Aggregate data from the meter's event from time if from time is before the meter's event from time
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationSum,
+					ValueProperty: lo.ToPtr("$.value"),
+					EventFrom:     lo.ToPtr(from.Add(time.Minute * 10)),
+				},
+				From: &from,
+			},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value'))) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.time >= ?",
+			wantArgs: []interface{}{"my_namespace", "event1", from.Add(time.Minute * 10).Unix()},
+		},
 	}
 
 	for _, tt := range tests {

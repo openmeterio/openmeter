@@ -16,12 +16,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	progressmanagerentity "github.com/openmeterio/openmeter/openmeter/progressmanager/entity"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ streaming.Connector = (*Connector)(nil)
 
-// Connector implements `ingest.Connector“ and `namespace.Handler interfaces.
+// Connector implements `ingest.Connector` and `namespace.Handler interfaces.
 type Connector struct {
 	config Config
 }
@@ -641,4 +642,153 @@ func min[T constraints.Ordered](a, b T) T {
 		return a
 	}
 	return b
+}
+
+// QueryMeterV2 is similar to QueryMeter but uses the V2 parameters with advanced filtering
+func (c *Connector) QueryMeterV2(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParamsV2) ([]meterpkg.MeterQueryRow, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
+
+	// TODO: Add validation for params once we have ValidateV2 method
+	if err := params.Validate(); err != nil {
+		return nil, fmt.Errorf("validate params: %w", err)
+	}
+
+	values, err := c.queryMeterV2(ctx, namespace, meter, params)
+	if err != nil {
+		if meterpkg.IsMeterNotFoundError(err) {
+			return nil, err
+		}
+
+		return nil, err
+	}
+
+	// If the total usage is queried for a single period (no window size),
+	// replace the window start and end with the period for each row.
+	// We can still have multiple rows for a single period due to group bys.
+	if params.WindowSize == nil && params.Filter != nil && params.Filter.Time != nil {
+		from, to := getTimeRangeFromFilter(params.Filter.Time)
+		for i := range values {
+			if from != nil {
+				values[i].WindowStart = *from
+			}
+			if to != nil {
+				values[i].WindowEnd = *to
+			}
+		}
+	}
+
+	return values, nil
+}
+
+func getTimeRangeFromFilter(timeFilter *filter.FilterTime) (*time.Time, *time.Time) {
+	if timeFilter == nil {
+		return nil, nil
+	}
+
+	return timeFilter.Gte, timeFilter.Lte
+}
+
+func (c *Connector) queryMeterV2(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParamsV2) ([]meterpkg.MeterQueryRow, error) {
+	queryMeter := queryMeterTableV2{
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
+		Namespace:       namespace,
+		Meter:           meter,
+		Params:          params,
+	}
+
+	values := []meterpkg.MeterQueryRow{}
+
+	sql, args, err := queryMeter.toSQL()
+	if err != nil {
+		return values, fmt.Errorf("query meter view: %w", err)
+	}
+
+	// If the client ID is set, we track track the progress of the query
+	if params.ClientID != nil {
+		// Build SQL query to count the total number of rows
+		countSQL, countArgs := queryMeter.toCountRowSQL()
+
+		ctx, err = c.withProgressContext(ctx, namespace, *params.ClientID, countSQL, countArgs)
+		// Log error but don't return it
+		if err != nil {
+			c.config.Logger.Error("failed track progress", "error", err, "clientId", *params.ClientID)
+		}
+	}
+
+	start := time.Now()
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
+	if err != nil {
+		if strings.Contains(err.Error(), "code: 60") {
+			return nil, meterpkg.NewMeterNotFoundError(meter.Key)
+		}
+
+		return values, fmt.Errorf("query meter view query: %w", err)
+	}
+
+	defer rows.Close()
+
+	elapsed := time.Since(start)
+	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
+
+	for rows.Next() {
+		row := meterpkg.MeterQueryRow{
+			GroupBy: map[string]*string{},
+		}
+
+		var value *float64
+		args := []interface{}{&row.WindowStart, &row.WindowEnd, &value}
+		argCount := len(args)
+
+		for range params.GroupBy {
+			tmp := ""
+			args = append(args, &tmp)
+		}
+
+		if err := rows.Scan(args...); err != nil {
+			return values, fmt.Errorf("query meter view row scan: %w", err)
+		}
+
+		// If there is no value for the period, we skip the row
+		// This can happen when the event doesn't have the value field.
+		if value == nil {
+			continue
+		}
+
+		// TODO: should we use decimal all the way?
+		row.Value = *value
+
+		for i, key := range params.GroupBy {
+			if s, ok := args[i+argCount].(*string); ok {
+				// Subject is a top level field
+				if key == "subject" {
+					row.Subject = s
+					continue
+				}
+
+				// We treat empty string as nil
+				if s != nil && *s == "" {
+					row.GroupBy[key] = nil
+				} else {
+					row.GroupBy[key] = s
+				}
+			}
+		}
+
+		// an empty row is returned when there are no values for the meter
+		if row.WindowStart.IsZero() && row.WindowEnd.IsZero() && row.Value == 0 {
+			continue
+		}
+
+		values = append(values, row)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return values, fmt.Errorf("rows error: %w", err)
+	}
+
+	return values, nil
 }

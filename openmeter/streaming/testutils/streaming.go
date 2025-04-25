@@ -113,6 +113,11 @@ func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 	return rows, nil
 }
 
+func (m *MockStreamingConnector) QueryMeterV2(ctx context.Context, namespace string, mm meter.Meter, params streaming.QueryParamsV2) ([]meter.MeterQueryRow, error) {
+	rows := []meter.MeterQueryRow{}
+	return rows, nil
+}
+
 func (m *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent) error {
 	return nil
 }

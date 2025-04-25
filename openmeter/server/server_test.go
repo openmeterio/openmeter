@@ -648,6 +648,12 @@ func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 	return []meter.MeterQueryRow{value}, nil
 }
 
+func (c *MockStreamingConnector) QueryMeterV2(ctx context.Context, namespace string, m meter.Meter, params streaming.QueryParamsV2) ([]meter.MeterQueryRow, error) {
+	value := mockQueryValue
+
+	return []meter.MeterQueryRow{value}, nil
+}
+
 func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
 	return []string{"s1"}, nil
 }
