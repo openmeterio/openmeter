@@ -284,3 +284,11 @@ func AddonWithCompatiblePrices() models.ValidatorFunc[Addon] {
 		}
 	}
 }
+
+// Determines if an Addon RateCard will effect a given Plan RateCard
+// Right now we only support a single RateCard per addon effecting a single plan RateCard and we match them by key.
+func AddonRateCardMatcherForAGivenPlanRateCard(planRateCard RateCard) func(addonRateCard RateCard) bool {
+	return func(addonRateCard RateCard) bool {
+		return addonRateCard.Key() == planRateCard.Key()
+	}
+}
