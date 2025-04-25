@@ -127,7 +127,7 @@ func main() {
 	}
 
 	// Provision sandbox app
-	err = app.AppRegistry.SandboxProvisioner()
+	err = app.AppRegistry.SandboxProvisioner(ctx, app.NamespaceManager.GetDefaultNamespace())
 	if err != nil {
 		logger.Error("failed to provision sandbox app", "error", err)
 		os.Exit(1)
