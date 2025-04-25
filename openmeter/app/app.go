@@ -118,11 +118,6 @@ func (i UpdateAppInput) Validate() error {
 		return errors.New("name is required")
 	}
 
-	// Optional fields
-	if i.Description != nil && *i.Description == "" {
-		return errors.New("description is required")
-	}
-
 	if i.Metadata != nil {
 		for k, v := range *i.Metadata {
 			if k == "" {
