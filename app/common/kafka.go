@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
-	"github.com/openmeterio/openmeter/openmeter/namespace"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
@@ -29,11 +28,13 @@ var KafkaTopic = wire.NewSet(
 	NewKafkaTopicProvisioner,
 )
 
+var KafkaIngest = wire.NewSet(
+	NewKafkaIngestNamespaceHandler,
+)
+
 var KafkaNamespaceResolver = wire.NewSet(
 	NewNamespacedTopicResolver,
 	wire.Bind(new(topicresolver.Resolver), new(*topicresolver.NamespacedTopicResolver)),
-
-	NewKafkaNamespaceHandler,
 )
 
 // TODO: use ingest config directly?
@@ -103,34 +104,15 @@ func NewKafkaTopicProvisionerConfig(
 }
 
 // TODO: do we need a separate constructor for the sake of a custom error message?
-func NewKafkaTopicProvisioner(conf pkgkafka.TopicProvisionerConfig) (pkgkafka.TopicProvisioner, error) {
+func NewKafkaTopicProvisioner(
+	conf pkgkafka.TopicProvisionerConfig,
+) (pkgkafka.TopicProvisioner, error) {
 	topicProvisioner, err := pkgkafka.NewTopicProvisioner(conf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize topic provisioner: %w", err)
 	}
 
 	return topicProvisioner, nil
-}
-
-func NewKafkaNamespaceHandler(
-	namespaceManager *namespace.Manager,
-	topicResolver topicresolver.Resolver,
-	topicProvisioner pkgkafka.TopicProvisioner,
-	conf config.KafkaIngestConfiguration,
-) error {
-	handler := &kafkaingest.NamespaceHandler{
-		TopicResolver:    topicResolver,
-		TopicProvisioner: topicProvisioner,
-		Partitions:       conf.Partitions,
-		DeletionEnabled:  conf.NamespaceDeletionEnabled,
-	}
-
-	err := namespaceManager.RegisterHandler(handler)
-	if err != nil {
-		return fmt.Errorf("failed to register kafka namespace handler: %w", err)
-	}
-
-	return nil
 }
 
 func NewNamespacedTopicResolver(config config.KafkaIngestConfiguration) (*topicresolver.NamespacedTopicResolver, error) {
@@ -140,4 +122,19 @@ func NewNamespacedTopicResolver(config config.KafkaIngestConfiguration) (*topicr
 	}
 
 	return topicResolver, nil
+}
+
+func NewKafkaIngestNamespaceHandler(
+	topicResolver topicresolver.Resolver,
+	topicProvisioner pkgkafka.TopicProvisioner,
+	ingestConfig config.KafkaIngestConfiguration,
+) (*kafkaingest.NamespaceHandler, error) {
+	handler := &kafkaingest.NamespaceHandler{
+		TopicResolver:    topicResolver,
+		TopicProvisioner: topicProvisioner,
+		Partitions:       ingestConfig.Partitions,
+		DeletionEnabled:  ingestConfig.NamespaceDeletionEnabled,
+	}
+
+	return handler, nil
 }

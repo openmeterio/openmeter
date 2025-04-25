@@ -105,6 +105,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Register Kafka Ingest Namespace Handler
+	err = app.NamespaceManager.RegisterHandler(app.KafkaIngestNamespaceHandler)
+	if err != nil {
+		logger.Error("failed to register kafka ingest namespace handler", "error", err)
+		os.Exit(1)
+	}
+
 	// Initialize HTTP Ingest handler
 	ingestService := ingest.Service{
 		Collector: app.IngestCollector,
