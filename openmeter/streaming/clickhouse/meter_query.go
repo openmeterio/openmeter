@@ -8,7 +8,6 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/huandu/go-sqlbuilder"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
@@ -32,25 +31,33 @@ type queryMeter struct {
 
 // from returns the from time for the query.
 func (d *queryMeter) from() *time.Time {
+	// If the query from time is set, use it
+	from := d.From
+
+	// If the query from time is exclusive, use it
+	if d.FromExclusive != nil {
+		from = d.FromExclusive
+	}
+
 	// If none of the from times are set, return nil
-	if d.From == nil && d.Meter.EventFrom == nil {
+	if from == nil && d.Meter.EventFrom == nil {
 		return nil
 	}
 
 	// If only the event from time is set, use it
-	if d.From == nil && d.Meter.EventFrom != nil {
+	if from == nil && d.Meter.EventFrom != nil {
 		return d.Meter.EventFrom
 	}
 
 	// If only the query from time is set, use it
-	if d.From != nil && d.Meter.EventFrom == nil {
-		return d.From
+	if from != nil && d.Meter.EventFrom == nil {
+		return from
 	}
 
 	// If both the query from time and the event from time are set
 	// use the query from time if it's after the event from time
-	if d.From.After(*d.Meter.EventFrom) {
-		return d.From
+	if from.After(*d.Meter.EventFrom) {
+		return from
 	}
 
 	return d.Meter.EventFrom
@@ -62,6 +69,7 @@ func (d *queryMeter) from() *time.Time {
 func (d *queryMeter) toCountRowSQL() (string, []interface{}) {
 	tableName := getTableName(d.Database, d.EventsTableName)
 	getColumn := columnFactory(d.EventsTableName)
+	timeColumn := getColumn("time")
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select("count() AS total")
@@ -83,7 +91,11 @@ func (d *queryMeter) toCountRowSQL() (string, []interface{}) {
 	from := d.from()
 
 	if from != nil {
-		query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
+		if d.FromExclusive != nil {
+			query.Where(query.GreaterThan(timeColumn, from.Unix()))
+		} else {
+			query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
+		}
 	}
 
 	if d.To != nil {
@@ -161,7 +173,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	case meter.MeterAggregationCount:
 		sqlAggregation = "count"
 	default:
-		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Meter.Aggregation)
+		return "", []interface{}{}, fmt.Errorf("invalid aggregation type: %s", d.Meter.Aggregation)
 	}
 
 	switch d.Meter.Aggregation {
@@ -239,18 +251,19 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		}
 	}
 
+	// Apply the time where clause
 	from := d.from()
 
 	if from != nil {
-		where = append(where, query.GreaterEqualThan(timeColumn, from.Unix()))
+		if d.FromExclusive != nil {
+			query.Where(query.GreaterThan(timeColumn, from.Unix()))
+		} else {
+			query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
+		}
 	}
 
 	if d.To != nil {
-		where = append(where, query.LessEqualThan(timeColumn, d.To.Unix()))
-	}
-
-	if len(where) > 0 {
-		query.Where(where...)
+		query.Where(query.LessEqualThan(timeColumn, d.To.Unix()))
 	}
 
 	query.GroupBy(groupByColumns...)
@@ -263,31 +276,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	return sql, args, nil
 }
 
-// queryTimeWhere applies the time where clause to the sql query
-func (d *queryMeter) queryTimeWhere(query *sqlbuilder.SelectBuilder) {
-	getColumn := columnFactory(d.EventsTableName)
-	timeColumn := getColumn("time")
-
-	if d.From != nil || d.FromExclusive != nil || d.Meter.EventFrom != nil {
-		from, _ := lo.Coalesce(d.From, d.FromExclusive, d.Meter.EventFrom)
-
-		// We shouldn't pick up events from before the meter event from time
-		if d.Meter.EventFrom != nil && from.Before(*d.Meter.EventFrom) {
-			from = d.Meter.EventFrom
-		}
-
-		if d.FromExclusive != nil {
-			query.Where(query.GreaterThan(timeColumn, from.Unix()))
-		} else {
-			query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
-		}
-	}
-
-	if d.To != nil {
-		query.Where(query.LessEqualThan(timeColumn, d.To.Unix()))
-	}
-}
-
+// scanRows scans the rows from the query and returns a list of meter query rows.
 func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRow, error) {
 	values := []meterpkg.MeterQueryRow{}
 
