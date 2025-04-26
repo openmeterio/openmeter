@@ -6,9 +6,11 @@ import createClient, {
 import { Apps } from './apps.js'
 import { Billing } from './billing.js'
 import { Customers } from './customers.js'
+import { Debug } from './debug.js'
 import { Entitlements } from './entitlements.js'
 import { Events } from './events.js'
 import { Features } from './features.js'
+import { Info } from './info.js'
 import { Meters } from './meters.js'
 import { Notifications } from './notifications.js'
 import { Plans } from './plans.js'
@@ -47,9 +49,11 @@ export class OpenMeter {
   public apps: Apps
   public billing: Billing
   public customers: Customers
+  public debug: Debug
   public entitlements: Entitlements
   public events: Events
   public features: Features
+  public info: Info
   public meters: Meters
   public notifications: Notifications
   public plans: Plans
@@ -80,9 +84,11 @@ export class OpenMeter {
     this.apps = new Apps(this.client)
     this.billing = new Billing(this.client)
     this.customers = new Customers(this.client)
+    this.debug = new Debug(this.client)
     this.entitlements = new Entitlements(this.client)
     this.events = new Events(this.client)
     this.features = new Features(this.client)
+    this.info = new Info(this.client)
     this.meters = new Meters(this.client)
     this.notifications = new Notifications(this.client)
     this.plans = new Plans(this.client)

@@ -272,7 +272,6 @@ export class Grants {
   constructor(private client: Client<paths, `${string}/${string}`>) {}
 
   /**
-  /**
    * Grant usage to a subject for an entitlement
    *
    * @param subjectIdOrKey - The ID or key of the subject
@@ -331,6 +330,54 @@ export class Grants {
         ...options,
       }
     )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * List all grants
+   * List all grants for all the subjects and entitlements.
+   *
+   * @param query - The query parameters
+   * @param options - The request options
+   * @returns The grants
+   */
+  public async listAll(
+    query?: operations['listGrants']['parameters']['query'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.GET('/api/v1/grants', {
+      params: {
+        query,
+      },
+      ...options,
+    })
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Void a grant
+   * Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations.
+   * Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed
+   * to the grant will remain, but future usage cannot be burnt down from the grant.
+   *
+   * @param grantId - The ID of the grant
+   * @param options - The request options
+   * @returns The voided grant
+   */
+  public async void(
+    grantId: operations['voidGrant']['parameters']['path']['grantId'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.DELETE('/api/v1/grants/{grantId}', {
+      params: {
+        path: {
+          grantId,
+        },
+      },
+      ...options,
+    })
 
     return transformResponse(resp)
   }

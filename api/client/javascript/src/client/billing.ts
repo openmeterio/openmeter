@@ -113,6 +113,26 @@ export class BillingProfiles {
 
     return transformResponse(resp)
   }
+
+  /**
+   * Delete a billing profile
+   * @param id - The ID of the billing profile to delete
+   * @param options - The request options
+   * @returns The deleted billing profile
+   */
+  public async delete(
+    id: operations['deleteBillingProfile']['parameters']['path']['id'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.DELETE('/api/v1/billing/profiles/{id}', {
+      params: {
+        path: { id },
+      },
+      ...options,
+    })
+
+    return transformResponse(resp)
+  }
 }
 
 /**
@@ -179,6 +199,28 @@ export class BillingInvoices {
       params: { path: { invoiceId: id } },
       ...options,
     })
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Delete an invoice
+   * @description Only invoices that are in the draft (or earlier) status can be deleted.
+   * @param id - The ID of the invoice to delete
+   * @param options - The request options
+   * @returns The deleted invoice
+   */
+  public async delete(
+    id: operations['deleteInvoice']['parameters']['path']['invoiceId'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.DELETE(
+      '/api/v1/billing/invoices/{invoiceId}',
+      {
+        params: { path: { invoiceId: id } },
+        ...options,
+      }
+    )
 
     return transformResponse(resp)
   }
@@ -319,16 +361,36 @@ export class BillingInvoices {
   }
 
   /**
-   * Create pending invoice line items
-   * @param body - The pending invoice line items to create
+   * Create pending line items
+   * @description Create new pending line items (charges). If required, a new gathering invoice will be created.
+   * @param body - The line items to create
    * @param signal - An optional abort signal
-   * @returns The created pending invoice line items
+   * @returns The created line items
    */
   public async createLineItems(
     body: InvoicePendingLineCreate[],
     options?: RequestOptions
   ) {
     const resp = await this.client.POST('/api/v1/billing/invoices/lines', {
+      body,
+      ...options,
+    })
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Invoice a customer based on the pending line items
+   * @description Create a new invoice from the pending line items. This should only be called if for some reason we need to invoice a customer outside of the normal billing cycle.
+   * @param body - The invoice data
+   * @param options - The request options
+   * @returns The created invoices
+   */
+  public async invoicePendingLines(
+    body: operations['invoicePendingLinesAction']['requestBody']['content']['application/json'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.POST('/api/v1/billing/invoices/invoice', {
       body,
       ...options,
     })
