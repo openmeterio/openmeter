@@ -8,13 +8,12 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 // mergeMeterQueryRows merges cached rows with fresh rows
-func mergeMeterQueryRows(meterDef meter.Meter, queryParams streaming.QueryParams, cachedRows []meterpkg.MeterQueryRow, freshRows []meterpkg.MeterQueryRow) []meterpkg.MeterQueryRow {
+func mergeMeterQueryRows(meterDef meterpkg.Meter, queryParams streaming.QueryParams, cachedRows []meterpkg.MeterQueryRow, freshRows []meterpkg.MeterQueryRow) []meterpkg.MeterQueryRow {
 	if len(cachedRows) == 0 {
 		return freshRows
 	}
@@ -112,14 +111,15 @@ func aggregateRowsByAggregationType(aggregation meterpkg.MeterAggregation, rows 
 	}
 
 	// Apply appropriate aggregation based on meter type
-	if aggregation == meterpkg.MeterAggregationSum || aggregation == meterpkg.MeterAggregationCount {
+	switch aggregation {
+	case meterpkg.MeterAggregationSum, meterpkg.MeterAggregationCount:
 		var sum float64
 		for _, row := range rows {
 			sum += row.Value
 		}
 
 		aggregatedRow.Value = sum
-	} else if aggregation == meterpkg.MeterAggregationMin {
+	case meterpkg.MeterAggregationMin:
 		minValue := rows[0].Value
 
 		for _, row := range rows {
@@ -127,7 +127,7 @@ func aggregateRowsByAggregationType(aggregation meterpkg.MeterAggregation, rows 
 		}
 
 		aggregatedRow.Value = minValue
-	} else if aggregation == meterpkg.MeterAggregationMax {
+	case meterpkg.MeterAggregationMax:
 		maxValue := rows[0].Value
 
 		for _, row := range rows {

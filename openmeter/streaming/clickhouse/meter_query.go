@@ -9,7 +9,6 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/huandu/go-sqlbuilder"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -18,14 +17,14 @@ type queryMeter struct {
 	Database        string
 	EventsTableName string
 	Namespace       string
-	Meter           meter.Meter
+	Meter           meterpkg.Meter
 	Subject         []string
 	FilterGroupBy   map[string][]string
 	From            *time.Time
 	FromExclusive   *time.Time
 	To              *time.Time
 	GroupBy         []string
-	WindowSize      *meter.WindowSize
+	WindowSize      *meterpkg.WindowSize
 	WindowTimeZone  *time.Location
 }
 
@@ -123,21 +122,21 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 	if groupByWindowSize {
 		switch *d.WindowSize {
-		case meter.WindowSizeMinute:
+		case meterpkg.WindowSizeMinute:
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(%s, toIntervalMinute(1), '%s') AS windowstart", timeColumn, tz),
 				fmt.Sprintf("tumbleEnd(%s, toIntervalMinute(1), '%s') AS windowend", timeColumn, tz),
 			)
 
-		case meter.WindowSizeHour:
+		case meterpkg.WindowSizeHour:
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(%s, toIntervalHour(1), '%s') AS windowstart", timeColumn, tz),
 				fmt.Sprintf("tumbleEnd(%s, toIntervalHour(1), '%s') AS windowend", timeColumn, tz),
 			)
 
-		case meter.WindowSizeDay:
+		case meterpkg.WindowSizeDay:
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(%s, toIntervalDay(1), '%s') AS windowstart", timeColumn, tz),
@@ -160,26 +159,26 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	// Select Value
 	sqlAggregation := ""
 	switch d.Meter.Aggregation {
-	case meter.MeterAggregationSum:
+	case meterpkg.MeterAggregationSum:
 		sqlAggregation = "sum"
-	case meter.MeterAggregationAvg:
+	case meterpkg.MeterAggregationAvg:
 		sqlAggregation = "avg"
-	case meter.MeterAggregationMin:
+	case meterpkg.MeterAggregationMin:
 		sqlAggregation = "min"
-	case meter.MeterAggregationMax:
+	case meterpkg.MeterAggregationMax:
 		sqlAggregation = "max"
-	case meter.MeterAggregationUniqueCount:
+	case meterpkg.MeterAggregationUniqueCount:
 		sqlAggregation = "uniq"
-	case meter.MeterAggregationCount:
+	case meterpkg.MeterAggregationCount:
 		sqlAggregation = "count"
 	default:
 		return "", []interface{}{}, fmt.Errorf("invalid aggregation type: %s", d.Meter.Aggregation)
 	}
 
 	switch d.Meter.Aggregation {
-	case meter.MeterAggregationCount:
+	case meterpkg.MeterAggregationCount:
 		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(*)) AS value", sqlAggregation))
-	case meter.MeterAggregationUniqueCount:
+	case meterpkg.MeterAggregationUniqueCount:
 		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
 	default:
 		// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
@@ -344,7 +343,7 @@ type listMeterSubjectsQuery struct {
 	Database        string
 	EventsTableName string
 	Namespace       string
-	Meter           meter.Meter
+	Meter           meterpkg.Meter
 	From            *time.Time
 	To              *time.Time
 }

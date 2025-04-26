@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	progressmanager "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -47,14 +46,14 @@ func TestCanQueryBeCached(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		meterDef       meter.Meter
+		meterDef       meterpkg.Meter
 		queryParams    streaming.QueryParams
 		expectCachable bool
 	}{
 		{
 			name: "cachable is false",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{
 				From: lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
@@ -64,8 +63,8 @@ func TestCanQueryBeCached(t *testing.T) {
 		},
 		{
 			name: "no from time",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
@@ -75,8 +74,8 @@ func TestCanQueryBeCached(t *testing.T) {
 		},
 		{
 			name: "duration too short",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
@@ -87,8 +86,8 @@ func TestCanQueryBeCached(t *testing.T) {
 		},
 		{
 			name: "non cachable aggregation",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationUniqueCount,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationUniqueCount,
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
@@ -99,8 +98,8 @@ func TestCanQueryBeCached(t *testing.T) {
 		},
 		{
 			name: "cachable sum query",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
@@ -111,8 +110,8 @@ func TestCanQueryBeCached(t *testing.T) {
 		},
 		{
 			name: "cachable count query",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationCount,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationCount,
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
@@ -123,8 +122,8 @@ func TestCanQueryBeCached(t *testing.T) {
 		},
 		{
 			name: "cachable min query",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationMin,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationMin,
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
@@ -135,8 +134,8 @@ func TestCanQueryBeCached(t *testing.T) {
 		},
 		{
 			name: "cachable max query",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationMax,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationMax,
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
@@ -418,7 +417,7 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 		expectError    bool
 		expectedFrom   *time.Time
 		expectedTo     *time.Time
-		expectedWindow *meter.WindowSize
+		expectedWindow *meterpkg.WindowSize
 	}{
 		{
 			name: "missing from time",
@@ -436,7 +435,7 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 			expectError:    false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour * 24)),
-			expectedWindow: lo.ToPtr(meter.WindowSizeDay),
+			expectedWindow: lo.ToPtr(meterpkg.WindowSizeDay),
 		},
 		{
 			name: "cache `to` should be truncated to complete day",
@@ -447,7 +446,7 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 			expectError:    false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 			expectedTo:     lo.ToPtr(now.Add(-36 * time.Hour).Truncate(time.Hour * 24)),
-			expectedWindow: lo.ToPtr(meter.WindowSizeDay),
+			expectedWindow: lo.ToPtr(meterpkg.WindowSizeDay),
 		},
 		{
 			name: "set window size if not provided",
@@ -458,19 +457,19 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 			expectError:    false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour * 24)),
-			expectedWindow: lo.ToPtr(meter.WindowSizeDay),
+			expectedWindow: lo.ToPtr(meterpkg.WindowSizeDay),
 		},
 		{
 			name: "use provided window size",
 			originalQuery: queryMeter{
 				From:       lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 				To:         lo.ToPtr(now.Add(-12 * time.Hour)),
-				WindowSize: lo.ToPtr(meter.WindowSizeHour),
+				WindowSize: lo.ToPtr(meterpkg.WindowSizeHour),
 			},
 			expectError:    false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour * 24)),
-			expectedWindow: lo.ToPtr(meter.WindowSizeHour),
+			expectedWindow: lo.ToPtr(meterpkg.WindowSizeHour),
 		},
 	}
 

@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
@@ -23,11 +22,11 @@ func TestMergeMeterQueryRows(t *testing.T) {
 	windowStart2, _ := time.Parse(time.RFC3339, "2023-01-01T01:00:00Z")
 	windowEnd2, _ := time.Parse(time.RFC3339, "2023-01-01T02:00:00Z")
 
-	windowSize := meter.WindowSizeHour
+	windowSize := meterpkg.WindowSizeHour
 
 	tests := []struct {
 		name        string
-		meterDef    meter.Meter
+		meterDef    meterpkg.Meter
 		queryParams streaming.QueryParams
 		cachedRows  []meterpkg.MeterQueryRow
 		freshRows   []meterpkg.MeterQueryRow
@@ -35,8 +34,8 @@ func TestMergeMeterQueryRows(t *testing.T) {
 	}{
 		{
 			name: "empty cached rows",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{},
 			cachedRows:  []meterpkg.MeterQueryRow{},
@@ -52,8 +51,8 @@ func TestMergeMeterQueryRows(t *testing.T) {
 		},
 		{
 			name: "with window size, rows are concatenated",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{
 				WindowSize: &windowSize,
@@ -78,8 +77,8 @@ func TestMergeMeterQueryRows(t *testing.T) {
 		},
 		{
 			name: "without window size, sum aggregation",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{
 				GroupBy: []string{"subject"},
@@ -104,8 +103,8 @@ func TestMergeMeterQueryRows(t *testing.T) {
 		},
 		{
 			name: "without window size, different subjects",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{
 				GroupBy: []string{"subject"},
@@ -130,8 +129,8 @@ func TestMergeMeterQueryRows(t *testing.T) {
 		},
 		{
 			name: "without window size, with group by values",
-			meterDef: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{
 				GroupBy: []string{"subject", "group1", "group2"},
@@ -169,7 +168,7 @@ func TestMergeMeterQueryRows(t *testing.T) {
 			result := mergeMeterQueryRows(testCase.meterDef, testCase.queryParams, testCase.cachedRows, testCase.freshRows)
 			assert.Equal(t, testCase.wantCount, len(result))
 
-			if testCase.meterDef.Aggregation == meter.MeterAggregationSum && len(testCase.queryParams.GroupBy) > 0 && testCase.queryParams.WindowSize == nil {
+			if testCase.meterDef.Aggregation == meterpkg.MeterAggregationSum && len(testCase.queryParams.GroupBy) > 0 && testCase.queryParams.WindowSize == nil {
 				// If we're aggregating, check that values are summed
 				if len(result) == 1 && len(testCase.cachedRows) > 0 && len(testCase.freshRows) > 0 {
 					expectedSum := testCase.cachedRows[0].Value + testCase.freshRows[0].Value
@@ -262,35 +261,35 @@ func TestAggregateRowsByAggregationType(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		aggregation meter.MeterAggregation
+		aggregation meterpkg.MeterAggregation
 		rows        []meterpkg.MeterQueryRow
 		wantValue   float64
 		wantSubject string
 	}{
 		{
 			name:        "sum aggregation",
-			aggregation: meter.MeterAggregationSum,
+			aggregation: meterpkg.MeterAggregationSum,
 			rows:        testRows,
 			wantValue:   30, // 10 + 20
 			wantSubject: subject,
 		},
 		{
 			name:        "count aggregation",
-			aggregation: meter.MeterAggregationCount,
+			aggregation: meterpkg.MeterAggregationCount,
 			rows:        testRows,
 			wantValue:   30, // count should be the same as sum
 			wantSubject: subject,
 		},
 		{
 			name:        "min aggregation",
-			aggregation: meter.MeterAggregationMin,
+			aggregation: meterpkg.MeterAggregationMin,
 			rows:        testRows,
 			wantValue:   10, // min of 10 and 20
 			wantSubject: subject,
 		},
 		{
 			name:        "max aggregation",
-			aggregation: meter.MeterAggregationMax,
+			aggregation: meterpkg.MeterAggregationMax,
 			rows:        testRows,
 			wantValue:   20, // max of 10 and 20
 			wantSubject: subject,

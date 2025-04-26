@@ -7,13 +7,12 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 // canQueryBeCached returns true if the query params are cachable
-func (c *Connector) canQueryBeCached(meterDef meter.Meter, queryParams streaming.QueryParams) bool {
+func (c *Connector) canQueryBeCached(meterDef meterpkg.Meter, queryParams streaming.QueryParams) bool {
 	// If caching is disabled, we don't cache anything
 	if !c.config.QueryCacheEnabled {
 		return false
@@ -38,7 +37,7 @@ func (c *Connector) canQueryBeCached(meterDef meter.Meter, queryParams streaming
 		return false
 	}
 
-	return meterDef.Aggregation == meter.MeterAggregationSum || meterDef.Aggregation == meter.MeterAggregationCount || meterDef.Aggregation == meter.MeterAggregationMin || meterDef.Aggregation == meter.MeterAggregationMax
+	return meterDef.Aggregation == meterpkg.MeterAggregationSum || meterDef.Aggregation == meterpkg.MeterAggregationCount || meterDef.Aggregation == meterpkg.MeterAggregationMin || meterDef.Aggregation == meterpkg.MeterAggregationMax
 }
 
 // createRemainingQueryFactory returns a function that creates a new query meter starting from the end of the cached query meter
@@ -152,7 +151,7 @@ func (c *Connector) prepareCacheableQueryPeriod(originalQueryMeter queryMeter) (
 
 	// This is the window size that the cache will use if no window size is provided
 	if cacheableQueryMeter.WindowSize == nil {
-		cacheableQueryMeter.WindowSize = lo.ToPtr(meter.WindowSizeDay)
+		cacheableQueryMeter.WindowSize = lo.ToPtr(meterpkg.WindowSizeDay)
 	}
 
 	return cacheableQueryMeter, nil
