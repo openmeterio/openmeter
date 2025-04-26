@@ -46,6 +46,8 @@ func (c *Connector) createRemainingQueryFactory(originalQueryMeter queryMeter) f
 	newQueryMeter := originalQueryMeter
 
 	return func(cachedQueryMeter queryMeter) queryMeter {
+		newQueryMeter := newQueryMeter
+
 		newQueryMeter.From = nil
 		newQueryMeter.FromExclusive = cachedQueryMeter.To
 
@@ -246,6 +248,10 @@ func (c *Connector) findNamespacesToInvalidateCache(rawEvents []streaming.RawEve
 // - invalidate cache for a specific meter (event type)
 func (c *Connector) invalidateCache(ctx context.Context, namespaces []string) error {
 	if !c.config.QueryCacheEnabled {
+		return nil
+	}
+
+	if len(namespaces) == 0 {
 		return nil
 	}
 
