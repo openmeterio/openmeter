@@ -3,7 +3,6 @@ package clickhouse
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"sort"
 	"testing"
 	"time"
@@ -14,44 +13,31 @@ import (
 	"github.com/stretchr/testify/require"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
-	progressmanager "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-func GetMockConnector() (*Connector, *MockClickHouse) {
-	mockClickhouse := NewMockClickHouse()
-
-	config := Config{
-		Logger:                                slog.Default(),
-		ClickHouse:                            mockClickhouse,
-		Database:                              "testdb",
-		EventsTableName:                       "events",
-		ProgressManager:                       progressmanager.NewMockProgressManager(),
-		QueryCacheEnabled:                     true,
-		QueryCacheMinimumCacheableQueryPeriod: 3 * 24 * time.Hour,
-		QueryCacheMinimumCacheableUsageAge:    24 * time.Hour,
-	}
-
-	connector := &Connector{config: config}
-
-	return connector, mockClickhouse
-}
 
 // TestCanQueryBeCached tests the canQueryBeCached function
 func TestCanQueryBeCached(t *testing.T) {
 	now := time.Now().UTC()
 
-	connector, _ := GetMockConnector()
+	getConnector := func(opts ...MockConnectorOption) *Connector {
+		connector, _ := GetMockConnector(t, opts...)
+		return connector
+	}
 
 	tests := []struct {
 		name           string
+		connector      *Connector
+		namespace      string
 		meterDef       meterpkg.Meter
 		queryParams    streaming.QueryParams
 		expectCachable bool
 	}{
 		{
-			name: "cachable is false",
+			name:      "cachable is false",
+			connector: getConnector(),
+			namespace: "default",
 			meterDef: meterpkg.Meter{
 				Aggregation: meterpkg.MeterAggregationSum,
 			},
@@ -62,7 +48,37 @@ func TestCanQueryBeCached(t *testing.T) {
 			expectCachable: false,
 		},
 		{
-			name: "no from time",
+			name:      "namespace template does not match",
+			connector: getConnector(WithQueryCacheNamespaceTemplate("^test-")),
+			namespace: "default",
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationMax,
+			},
+			queryParams: streaming.QueryParams{
+				Cachable: true,
+				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
+				To:       lo.ToPtr(now),
+			},
+			expectCachable: false,
+		},
+		{
+			name:      "namespace template matches",
+			connector: getConnector(WithQueryCacheNamespaceTemplate("^test-[a-z]+$")),
+			namespace: "test-namespace",
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationMax,
+			},
+			queryParams: streaming.QueryParams{
+				Cachable: true,
+				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
+				To:       lo.ToPtr(now),
+			},
+			expectCachable: true,
+		},
+		{
+			name:      "no from time",
+			connector: getConnector(),
+			namespace: "default",
 			meterDef: meterpkg.Meter{
 				Aggregation: meterpkg.MeterAggregationSum,
 			},
@@ -73,7 +89,9 @@ func TestCanQueryBeCached(t *testing.T) {
 			expectCachable: false,
 		},
 		{
-			name: "duration too short",
+			name:      "duration too short",
+			connector: getConnector(),
+			namespace: "default",
 			meterDef: meterpkg.Meter{
 				Aggregation: meterpkg.MeterAggregationSum,
 			},
@@ -85,7 +103,9 @@ func TestCanQueryBeCached(t *testing.T) {
 			expectCachable: false,
 		},
 		{
-			name: "non cachable aggregation",
+			name:      "non cachable aggregation",
+			connector: getConnector(),
+			namespace: "default",
 			meterDef: meterpkg.Meter{
 				Aggregation: meterpkg.MeterAggregationUniqueCount,
 			},
@@ -97,7 +117,9 @@ func TestCanQueryBeCached(t *testing.T) {
 			expectCachable: false,
 		},
 		{
-			name: "cachable sum query",
+			name:      "cachable sum query",
+			connector: getConnector(),
+			namespace: "default",
 			meterDef: meterpkg.Meter{
 				Aggregation: meterpkg.MeterAggregationSum,
 			},
@@ -109,7 +131,9 @@ func TestCanQueryBeCached(t *testing.T) {
 			expectCachable: true,
 		},
 		{
-			name: "cachable count query",
+			name:      "cachable count query",
+			connector: getConnector(),
+			namespace: "default",
 			meterDef: meterpkg.Meter{
 				Aggregation: meterpkg.MeterAggregationCount,
 			},
@@ -121,7 +145,9 @@ func TestCanQueryBeCached(t *testing.T) {
 			expectCachable: true,
 		},
 		{
-			name: "cachable min query",
+			name:      "cachable min query",
+			connector: getConnector(),
+			namespace: "default",
 			meterDef: meterpkg.Meter{
 				Aggregation: meterpkg.MeterAggregationMin,
 			},
@@ -133,7 +159,9 @@ func TestCanQueryBeCached(t *testing.T) {
 			expectCachable: true,
 		},
 		{
-			name: "cachable max query",
+			name:      "cachable max query",
+			connector: getConnector(),
+			namespace: "default",
 			meterDef: meterpkg.Meter{
 				Aggregation: meterpkg.MeterAggregationMax,
 			},
@@ -148,7 +176,7 @@ func TestCanQueryBeCached(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			result := connector.canQueryBeCached(testCase.meterDef, testCase.queryParams)
+			result := testCase.connector.canQueryBeCached(testCase.namespace, testCase.meterDef, testCase.queryParams)
 			assert.Equal(t, testCase.expectCachable, result)
 		})
 	}
@@ -156,7 +184,7 @@ func TestCanQueryBeCached(t *testing.T) {
 
 // Integration test for executeQueryWithCaching
 func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
-	connector, mockClickHouse := GetMockConnector()
+	connector, mockClickHouse := GetMockConnector(t)
 
 	// Setup test data
 	now := time.Now().UTC()
@@ -280,7 +308,7 @@ func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
 }
 
 func TestConnector_FetchCachedMeterRows(t *testing.T) {
-	connector, mockClickHouse := GetMockConnector()
+	connector, mockClickHouse := GetMockConnector(t)
 
 	now := time.Now().UTC()
 	fromTime := now.Add(-24 * time.Hour)
@@ -343,7 +371,7 @@ func TestConnector_FetchCachedMeterRows(t *testing.T) {
 
 // TestStoreCachedMeterRows tests the storeCachedMeterRows function
 func TestConnector_StoreCachedMeterRows(t *testing.T) {
-	connector, mockClickHouse := GetMockConnector()
+	connector, mockClickHouse := GetMockConnector(t)
 
 	now := time.Now().UTC()
 	subject := "test-subject"
@@ -377,7 +405,7 @@ func TestConnector_StoreCachedMeterRows(t *testing.T) {
 
 // TestCreateRemainingQueryFactory tests the createRemainingQueryFactory function
 func TestCreateRemainingQueryFactory(t *testing.T) {
-	connector, _ := GetMockConnector()
+	connector, _ := GetMockConnector(t)
 
 	now := time.Now().UTC()
 	fromTime := now.Add(-4 * 24 * time.Hour)
@@ -408,7 +436,7 @@ func TestCreateRemainingQueryFactory(t *testing.T) {
 
 // TestPrepareCacheableQueryPeriod tests the prepareCacheableQueryPeriod function
 func TestPrepareCacheableQueryPeriod(t *testing.T) {
-	connector, _ := GetMockConnector()
+	connector, _ := GetMockConnector(t)
 
 	now := time.Now().UTC()
 	tests := []struct {
@@ -511,7 +539,7 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 }
 
 func TestInvalidateCache(t *testing.T) {
-	connector, mockClickHouse := GetMockConnector()
+	connector, mockClickHouse := GetMockConnector(t)
 
 	// Test case: single namespace
 	mockClickHouse.On("Exec", mock.Anything, "DELETE FROM testdb.meterqueryrow_cache WHERE namespace IN (?)", []interface{}{
@@ -540,7 +568,7 @@ func TestInvalidateCache(t *testing.T) {
 
 // TestFindNamespacesToInvalidateCache tests the findNamespacesToInvalidateCache function
 func TestFindNamespacesToInvalidateCache(t *testing.T) {
-	connector, _ := GetMockConnector()
+	connector, _ := GetMockConnector(t)
 
 	// Current time for the test
 	now := time.Now().UTC()
@@ -643,4 +671,11 @@ func TestFindNamespacesToInvalidateCache(t *testing.T) {
 			assert.Equal(t, testCase.expectedNamespaces, result)
 		})
 	}
+}
+
+// TestGetMockConnectorOptions verifies that the connector options work correctly
+func TestGetMockConnectorOptions(t *testing.T) {
+	template := "custom_template"
+	connector, _ := GetMockConnector(t, WithQueryCacheNamespaceTemplate(template))
+	assert.Equal(t, template, connector.config.QueryCacheNamespaceTemplate)
 }

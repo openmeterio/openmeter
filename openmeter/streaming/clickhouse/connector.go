@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -23,7 +24,8 @@ var _ streaming.Connector = (*Connector)(nil)
 
 // Connector implements `ingest.Connector" and `namespace.Handler interfaces.
 type Connector struct {
-	config Config
+	config            Config
+	namespaceTemplate *regexp.Regexp
 }
 
 type Config struct {
@@ -35,12 +37,14 @@ type Config struct {
 	AsyncInsertWait     bool
 	InsertQuerySettings map[string]string
 	ProgressManager     progressmanager.Service
-
-	QueryCacheEnabled bool
+	SkipCreateTables    bool
+	QueryCacheEnabled   bool
 	// Minimum query period that can be cached
 	QueryCacheMinimumCacheableQueryPeriod time.Duration
 	// Minimum age after usage data is cachable
 	QueryCacheMinimumCacheableUsageAge time.Duration
+	// Regexp to match namespaces that should be cached
+	QueryCacheNamespaceTemplate string
 }
 
 func (c Config) Validate() error {
@@ -78,24 +82,51 @@ func (c Config) Validate() error {
 }
 
 func New(ctx context.Context, config Config) (*Connector, error) {
+	// Validate the config
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
+	// Compile the namespace template
+	var namespaceTemplate *regexp.Regexp
+	var err error
+
+	if config.QueryCacheNamespaceTemplate != "" {
+		namespaceTemplate, err = regexp.Compile(config.QueryCacheNamespaceTemplate)
+		if err != nil {
+			return nil, fmt.Errorf("namespace template invalid regex: %w", err)
+		}
+	}
+
+	// Create the connector
 	connector := &Connector{
-		config: config,
+		config:            config,
+		namespaceTemplate: namespaceTemplate,
 	}
 
-	err := connector.createEventsTable(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("create events table in clickhouse: %w", err)
-	}
-
-	if err := connector.createMeterQueryCacheTable(ctx); err != nil {
-		return nil, fmt.Errorf("create meter query cache in clickhouse: %w", err)
+	if !config.SkipCreateTables {
+		if err := connector.createTable(ctx); err != nil {
+			return nil, fmt.Errorf("create tables: %w", err)
+		}
 	}
 
 	return connector, nil
+}
+
+// createTable creates the tables in ClickHouse
+func (c *Connector) createTable(ctx context.Context) error {
+	// Create the events table
+	err := c.createEventsTable(ctx)
+	if err != nil {
+		return fmt.Errorf("create events table in clickhouse: %w", err)
+	}
+
+	// Create the meter query cache table
+	if err := c.createMeterQueryCacheTable(ctx); err != nil {
+		return fmt.Errorf("create meter query cache in clickhouse: %w", err)
+	}
+
+	return nil
 }
 
 func (c *Connector) ListEvents(ctx context.Context, namespace string, params meterevent.ListEventsParams) ([]streaming.RawEvent, error) {
@@ -179,7 +210,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	// Load cached rows if any
 	var cached []meterpkg.MeterQueryRow
 
-	useCache := c.canQueryBeCached(meter, params)
+	useCache := c.canQueryBeCached(namespace, meter, params)
 
 	if useCache {
 		var err error

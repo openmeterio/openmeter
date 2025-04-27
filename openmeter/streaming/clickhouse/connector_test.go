@@ -17,6 +17,47 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
+// MockConnectorOption is a function that configures the Connector
+type MockConnectorOption func(Config) Config
+
+// WithQueryCacheNamespaceTemplate sets the QueryCacheNamespaceTemplate property
+func WithQueryCacheNamespaceTemplate(template string) MockConnectorOption {
+	return func(c Config) Config {
+		n := c
+		n.QueryCacheNamespaceTemplate = template
+
+		return n
+	}
+}
+
+// GetMockConnector returns a new Connector with a mock ClickHouse
+func GetMockConnector(t *testing.T, opts ...MockConnectorOption) (*Connector, *MockClickHouse) {
+	mockClickhouse := NewMockClickHouse()
+
+	config := Config{
+		Logger:                                slog.Default(),
+		ClickHouse:                            mockClickhouse,
+		Database:                              "testdb",
+		EventsTableName:                       "events",
+		ProgressManager:                       progressmanager.NewMockProgressManager(),
+		QueryCacheEnabled:                     true,
+		QueryCacheMinimumCacheableQueryPeriod: 3 * 24 * time.Hour,
+		QueryCacheMinimumCacheableUsageAge:    24 * time.Hour,
+		SkipCreateTables:                      true,
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		config = opt(config)
+	}
+
+	// Create the connector
+	connector, err := New(context.Background(), config)
+	require.NoError(t, err)
+
+	return connector, mockClickhouse
+}
+
 // TestConnector_QueryMeter tests the queryMeter function
 func TestConnector_QueryMeter(t *testing.T) {
 	mockCH := NewMockClickHouse()
@@ -143,7 +184,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 }
 
 func TestBatchInsertWithCacheInvalidation(t *testing.T) {
-	connector, mockCH := GetMockConnector()
+	connector, mockCH := GetMockConnector(t)
 
 	ctx := context.Background()
 	now := time.Now().UTC()
@@ -183,7 +224,7 @@ func TestBatchInsertWithCacheInvalidation(t *testing.T) {
 }
 
 func TestBatchInsertWithCacheDisabled(t *testing.T) {
-	connector, mockCH := GetMockConnector()
+	connector, mockCH := GetMockConnector(t)
 	connector.config.QueryCacheEnabled = false
 	connector.config.QueryCacheMinimumCacheableUsageAge = 24 * time.Hour
 

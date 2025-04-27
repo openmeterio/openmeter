@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -56,30 +57,43 @@ func (c AggregationConfiguration) Validate() error {
 
 // AggregationQueryCacheConfiguration is the cache configuration for the aggregation engine
 type AggregationQueryCacheConfiguration struct {
+	// Enabled for matching namespaces
 	Enabled bool
-
+	// Enabled for matching namespaces
+	NamespaceTemplate string
 	// Minimum query period that can be cached
 	MinimumCacheableQueryPeriod time.Duration
 	// Minimum age after usage data is cachable
 	MinimumCacheableUsageAge time.Duration
 }
 
+// Validate validates the configuration.
 func (c AggregationQueryCacheConfiguration) Validate() error {
+	var errs []error
+
 	if !c.Enabled {
 		return nil
 	}
 
+	if c.NamespaceTemplate != "" {
+		_, err := regexp.Compile(c.NamespaceTemplate)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("namespace template invalid regex: %w", err))
+		}
+	}
+
 	if c.MinimumCacheableQueryPeriod <= 0 {
-		return errors.New("minimum cacheable query period is required")
+		errs = append(errs, errors.New("minimum cacheable query period is required"))
 	}
 
 	if c.MinimumCacheableUsageAge <= 0 {
-		return errors.New("minimum cacheable usage age is required")
+		errs = append(errs, errors.New("minimum cacheable usage age is required"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
+// ClickHouseAggregationConfiguration is the configuration for the ClickHouse aggregation engine
 type ClickHouseAggregationConfiguration struct {
 	Address  string
 	TLS      bool
@@ -97,6 +111,7 @@ type ClickHouseAggregationConfiguration struct {
 	Tracing bool
 }
 
+// Validate validates the configuration.
 func (c ClickHouseAggregationConfiguration) Validate() error {
 	var errs []error
 

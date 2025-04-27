@@ -12,7 +12,7 @@ import (
 )
 
 // canQueryBeCached returns true if the query params are cachable
-func (c *Connector) canQueryBeCached(meterDef meterpkg.Meter, queryParams streaming.QueryParams) bool {
+func (c *Connector) canQueryBeCached(namespace string, meterDef meterpkg.Meter, queryParams streaming.QueryParams) bool {
 	// If caching is disabled, we don't cache anything
 	if !c.config.QueryCacheEnabled {
 		return false
@@ -20,6 +20,11 @@ func (c *Connector) canQueryBeCached(meterDef meterpkg.Meter, queryParams stream
 
 	// We only cache queries where cachable is set to true
 	if !queryParams.Cachable {
+		return false
+	}
+
+	// If the namespace template is provided and does not match the namespace, we don't cache anything
+	if c.namespaceTemplate != nil && !c.namespaceTemplate.MatchString(namespace) {
 		return false
 	}
 

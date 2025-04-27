@@ -35,6 +35,7 @@ func NewStreamingConnector(
 		InsertQuerySettings:                   conf.InsertQuerySettings,
 		ProgressManager:                       progressmanager,
 		QueryCacheEnabled:                     conf.QueryCache.Enabled,
+		QueryCacheNamespaceTemplate:           conf.QueryCache.NamespaceTemplate,
 		QueryCacheMinimumCacheableQueryPeriod: conf.QueryCache.MinimumCacheableQueryPeriod,
 		QueryCacheMinimumCacheableUsageAge:    conf.QueryCache.MinimumCacheableUsageAge,
 	})
