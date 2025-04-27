@@ -45,7 +45,7 @@ func TestApply(t *testing.T) {
 		})
 	}
 
-	t.Run("Should return a no-op when there's no quantities listed", func(t *testing.T) {
+	t.Run("Should return nil when there's no quantities listed", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,

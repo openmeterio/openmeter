@@ -48,8 +48,10 @@ func (d *diffable) restore() subscription.AppliesToSpec {
 						item.Annotations = models.Annotations{}
 					}
 
-					if err := affectingAddonRateCard.Restore(target, item.Annotations); err != nil {
-						return fmt.Errorf("failed to restore addon rate card %s: %w", affectingAddonRateCard.AddonRateCard.Key(), err)
+					for range d.addon.Quantity {
+						if err := affectingAddonRateCard.Restore(target, item.Annotations); err != nil {
+							return fmt.Errorf("failed to restore addon rate card %s: %w", affectingAddonRateCard.AddonRateCard.Key(), err)
+						}
 					}
 
 					item.RateCard = target

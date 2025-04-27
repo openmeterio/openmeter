@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
@@ -495,6 +496,52 @@ func TestRestore(t *testing.T) {
 			subscriptiontestutils.SpecsEqual(t, ogSpec, spec)
 		}))
 	})
+
+	t.Run("Should respect addon quantity when restoring", withDeps(func(t *testing.T, deps *tcDeps) {
+		env := buildSubAndMultiInstanceAddon(
+			t,
+			&deps.deps,
+			subscriptiontestutils.BuildTestPlan(t).
+				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
+				Build(),
+			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
+				EffectiveFrom: &now,
+			}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard5),
+			[]subscriptionaddon.CreateSubscriptionAddonQuantityInput{
+				{
+					ActiveFrom: now,
+					Quantity:   3,
+				},
+			},
+		)
+
+		spec := env.subView.Spec
+		ogSpec := env.subViewCopy.Spec
+
+		// Let's apply the diff
+		err := spec.Apply(env.diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now})
+		require.NoError(t, err)
+
+		item := spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleAddonRateCard5.Key()][0]
+		mt, err := item.RateCard.AsMeta().EntitlementTemplate.AsMetered()
+		require.NoError(t, err)
+
+		// Let's check it was properly applied
+		require.Equal(t, 250.0, *mt.IssueAfterReset)
+
+		// Now let's restore it
+		err = spec.Apply(env.diffable.GetRestores(), subscription.ApplyContext{CurrentTime: now})
+		require.NoError(t, err)
+
+		subscriptiontestutils.SpecsEqual(t, ogSpec, spec)
+
+		item = spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleAddonRateCard5.Key()][0]
+		mt, err = item.RateCard.AsMeta().EntitlementTemplate.AsMetered()
+		require.NoError(t, err)
+
+		// Let's check it was properly removed
+		require.Equal(t, 100.0, *mt.IssueAfterReset)
+	}))
 }
 
 type buildRes struct {
@@ -526,6 +573,39 @@ func buildSubAndAddon(
 	require.NoError(t, err)
 
 	subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, deps, subView.Subscription.NamespacedID, a.NamespacedID, subsAddCadence)
+
+	diffable, err := addondiff.GetDiffableFromAddon(subView, subsAdd)
+	require.NoError(t, err)
+
+	return &buildRes{
+		subView:     &subView,
+		subViewCopy: &subView2,
+		diffable:    diffable,
+	}
+}
+
+func buildSubAndMultiInstanceAddon(
+	t *testing.T,
+	deps *subscriptiontestutils.SubscriptionDependencies,
+	planInp plan.CreatePlanInput,
+	addonInp addon.CreateAddonInput,
+	quants []subscriptionaddon.CreateSubscriptionAddonQuantityInput,
+) *buildRes {
+	t.Helper()
+
+	p, a := subscriptiontestutils.CreatePlanWithAddon(
+		t,
+		*deps,
+		planInp,
+		addonInp,
+	)
+
+	subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, deps, p, now)
+
+	subView2, err := deps.SubscriptionService.GetView(context.Background(), subView.Subscription.NamespacedID)
+	require.NoError(t, err)
+
+	subsAdd := subscriptiontestutils.CreateMultiInstanceAddonForSubscription(t, deps, subView.Subscription.NamespacedID, a.NamespacedID, quants)
 
 	diffable, err := addondiff.GetDiffableFromAddon(subView, subsAdd)
 	require.NoError(t, err)
