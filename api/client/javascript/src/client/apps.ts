@@ -15,10 +15,12 @@ import type { Client } from 'openapi-fetch'
 export class Apps {
   public marketplace: AppMarketplace
   public stripe: AppStripe
+  public customInvoicing: AppCustomInvoicing
 
   constructor(private client: Client<paths, `${string}/${string}`>) {
     this.marketplace = new AppMarketplace(client)
     this.stripe = new AppStripe(client)
+    this.customInvoicing = new AppCustomInvoicing(client)
   }
 
   /**
@@ -102,7 +104,7 @@ export class Apps {
  * Available apps from the OpenMeter Marketplace.
  */
 export class AppMarketplace {
-  constructor(private client: Client<paths, `${string}/${string}`>) { }
+  constructor(private client: Client<paths, `${string}/${string}`>) {}
 
   /**
    * List available apps
@@ -210,7 +212,7 @@ export class AppMarketplace {
  * Stripe App
  */
 export class AppStripe {
-  constructor(private client: Client<paths, `${string}/${string}`>) { }
+  constructor(private client: Client<paths, `${string}/${string}`>) {}
 
   /**
    * Create a checkout session
@@ -226,6 +228,107 @@ export class AppStripe {
       body,
       ...options,
     })
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Update Stripe API key
+   * @param id - The ID of the app
+   * @param body - The API key data
+   * @param options - The request options
+   * @returns The updated API key
+   * @deprecated
+   */
+  public async updateApiKey(
+    id: string,
+    body: operations['updateStripeAPIKey']['requestBody']['content']['application/json'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.PUT('/api/v1/apps/{id}/stripe/api-key', {
+      body,
+      params: { path: { id } },
+      ...options,
+    })
+
+    return transformResponse(resp)
+  }
+}
+
+/**
+ * Custom Invoicing App
+ */
+export class AppCustomInvoicing {
+  constructor(private client: Client<paths, `${string}/${string}`>) {}
+
+  /**
+   * Submit draft synchronization results
+   * @param invoiceId - The ID of the invoice
+   * @param body - The body of the request
+   * @param options - The request options
+   * @returns The synchronization result
+   */
+  public async draftSynchronized(
+    invoiceId: string,
+    body: operations['appCustomInvoicingDraftSynchronized']['requestBody']['content']['application/json'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.POST(
+      '/api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized',
+      {
+        body,
+        params: { path: { invoiceId } },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Submit issuing synchronization results
+   * @param invoiceId - The ID of the invoice
+   * @param body - The body of the request
+   * @param options - The request options
+   * @returns The synchronization result
+   */
+  public async issuingSynchronized(
+    invoiceId: string,
+    body: operations['appCustomInvoicingIssuingSynchronized']['requestBody']['content']['application/json'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.POST(
+      '/api/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized',
+      {
+        body,
+        params: { path: { invoiceId } },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Update payment status
+   * @param invoiceId - The ID of the invoice
+   * @param body - The body of the request
+   * @param options - The request options
+   * @returns The payment status update result
+   */
+  public async updatePaymentStatus(
+    invoiceId: string,
+    body: operations['appCustomInvoicingUpdatePaymentStatus']['requestBody']['content']['application/json'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.POST(
+      '/api/v1/apps/custom-invoicing/{invoiceId}/payment/status',
+      {
+        body,
+        params: { path: { invoiceId } },
+        ...options,
+      }
+    )
 
     return transformResponse(resp)
   }
