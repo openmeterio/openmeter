@@ -190,7 +190,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 
 	// We sort the group by keys to ensure the order of the group by columns is deterministic
 	// It helps testing the SQL queries.
-	groupBy := params.GroupBy
+	groupBy := append([]string(nil), params.GroupBy...)
 	sort.Strings(groupBy)
 
 	query := queryMeter{
@@ -339,15 +339,18 @@ func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEv
 		return fmt.Errorf("failed to batch insert raw events: %w", err)
 	}
 
-	// Check if any events requires cache invalidation
-	namespacesToInvalidateCache := c.findNamespacesToInvalidateCache(rawEvents)
+	// If query cache is enabled, we invalidate the cache if any events are inserted
+	if c.config.QueryCacheEnabled {
+		// Check if any events requires cache invalidation
+		namespacesToInvalidateCache := c.findNamespacesToInvalidateCache(rawEvents)
 
-	if len(namespacesToInvalidateCache) > 0 {
-		if err := c.invalidateCache(ctx, namespacesToInvalidateCache); err != nil {
-			return fmt.Errorf("invalidate query cache: %w", err)
+		if len(namespacesToInvalidateCache) > 0 {
+			if err := c.invalidateCache(ctx, namespacesToInvalidateCache); err != nil {
+				return fmt.Errorf("invalidate query cache: %w", err)
+			}
+
+			c.config.Logger.Info("invalidated query cache for namespaces", "namespaces", namespacesToInvalidateCache)
 		}
-
-		c.config.Logger.Info("invalidated query cache for namespaces", "namespaces", namespacesToInvalidateCache)
 	}
 
 	return nil
