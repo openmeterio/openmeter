@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -33,9 +34,17 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 			return def, err
 		}
 
-		if p.DeletedAt != nil && !clock.Now().Before(*p.DeletedAt) {
+		now := clock.Now()
+
+		if p.DeletedAt != nil && !now.Before(*p.DeletedAt) {
 			return def, models.NewGenericValidationError(
 				fmt.Errorf("plan is deleted [namespace=%s, key=%s, version=%d, deleted_at=%s]", p.Namespace, p.Key, p.Version, p.DeletedAt),
+			)
+		}
+
+		if p.StatusAt(now) != productcatalog.PlanStatusActive {
+			return def, models.NewGenericValidationError(
+				fmt.Errorf("plan %s@%d is not active at %s", p.Key, p.Version, now),
 			)
 		}
 

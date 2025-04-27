@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -307,7 +307,7 @@ func (h *handler) PublishPlan() PublishPlanHandler {
 					ID:        planID,
 				},
 				EffectivePeriod: productcatalog.EffectivePeriod{
-					EffectiveFrom: lo.ToPtr(time.Now()),
+					EffectiveFrom: lo.ToPtr(clock.Now()),
 				},
 			}
 
@@ -351,7 +351,7 @@ func (h *handler) ArchivePlan() ArchivePlanHandler {
 					Namespace: ns,
 					ID:        planID,
 				},
-				EffectiveTo: time.Now(),
+				EffectiveTo: clock.Now(),
 			}
 
 			return req, nil

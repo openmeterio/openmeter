@@ -176,6 +176,10 @@ func (r RateCardMeta) Validate() error {
 	var errs []error
 
 	if r.EntitlementTemplate != nil {
+		if r.FeatureKey == nil {
+			errs = append(errs, errors.New("feature key is required for entitlement template"))
+		}
+
 		if err := r.EntitlementTemplate.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid EntitlementTemplate: %w", err))
 		}

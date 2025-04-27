@@ -106,7 +106,7 @@ func TestPlanStatus(t *testing.T) {
 			Expected: productcatalog.PlanStatusInvalid,
 		},
 		{
-			Name: "Invalid with no start with end in the past",
+			Name: "Archived with no start with end in the past",
 			Plan: productcatalog.Plan{
 				PlanMeta: productcatalog.PlanMeta{
 					EffectivePeriod: productcatalog.EffectivePeriod{
@@ -118,7 +118,7 @@ func TestPlanStatus(t *testing.T) {
 			Expected: productcatalog.PlanStatusArchived,
 		},
 		{
-			Name: "Invalid with no start with end in the future",
+			Name: "Actvive with no start with end in the future",
 			Plan: productcatalog.Plan{
 				PlanMeta: productcatalog.PlanMeta{
 					EffectivePeriod: productcatalog.EffectivePeriod{
