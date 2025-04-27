@@ -32,11 +32,14 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 			return def, err
 		}
 
-		if p.Status() != productcatalog.PlanStatusActive {
-			return def, models.NewGenericValidationError(fmt.Errorf("plan is not active"))
+		now := clock.Now()
+
+		pStatus := p.StatusAt(now)
+		if pStatus != productcatalog.PlanStatusActive {
+			return def, models.NewGenericValidationError(fmt.Errorf("plan %s@%d is not active at %s", p.Key, p.Version, now))
 		}
 
-		if p.DeletedAt != nil && !clock.Now().Before(*p.DeletedAt) {
+		if p.DeletedAt != nil && !now.Before(*p.DeletedAt) {
 			return def, models.NewGenericValidationError(
 				fmt.Errorf("plan is deleted [namespace=%s, key=%s, version=%d, deleted_at=%s]", p.Namespace, p.Key, p.Version, p.DeletedAt),
 			)

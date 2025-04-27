@@ -8,6 +8,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -229,11 +230,48 @@ func (p PlanMeta) Equal(o PlanMeta) bool {
 
 // Status returns the current status of the Plan
 func (p PlanMeta) Status() PlanStatus {
-	return p.StatusAt(time.Now())
+	return p.StatusAt(clock.Now())
 }
 
 // StatusAt returns the plan status relative to time t.
 func (p PlanMeta) StatusAt(t time.Time) PlanStatus {
+	from := p.EffectiveFrom
+	to := p.EffectiveTo
+
+	switch {
+	case from == nil && to == nil:
+		return PlanStatusDraft
+	case from != nil && to == nil:
+		if from.Before(t) {
+			return PlanStatusActive
+		}
+
+		return PlanStatusScheduled
+	case from == nil && to != nil:
+		if to.Before(t) {
+			return PlanStatusArchived
+		}
+
+		return PlanStatusActive
+	case from != nil && to != nil:
+		if from.Before(t) && to.After(t) {
+			return PlanStatusActive
+		}
+
+		if from.After(t) && to.After(t) {
+			return PlanStatusScheduled
+		}
+
+		if from.Before(t) && to.Before(t) {
+			return PlanStatusArchived
+		}
+	}
+
+	return PlanStatusInvalid
+}
+
+// StatusAt returns the plan status relative to time t.
+func (p PlanMeta) StatusAt2(t time.Time) PlanStatus {
 	from := lo.FromPtr(p.EffectiveFrom)
 	to := lo.FromPtr(p.EffectiveTo)
 

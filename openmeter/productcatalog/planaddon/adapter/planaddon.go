@@ -3,7 +3,6 @@ package adapter
 import (
 	"context"
 	"fmt"
-	"time"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	addondb "github.com/openmeterio/openmeter/openmeter/ent/db/addon"
@@ -12,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -253,7 +253,7 @@ func (a *adapter) DeletePlanAddon(ctx context.Context, params planaddon.DeletePl
 			return nil, fmt.Errorf("failed to get plan add-on assignment: %w", err)
 		}
 
-		deletedAt := time.Now().UTC()
+		deletedAt := clock.Now().UTC()
 		err = a.db.PlanAddon.UpdateOneID(planAddon.ID).
 			Where(planaddondb.Namespace(planAddon.Namespace)).
 			SetDeletedAt(deletedAt).

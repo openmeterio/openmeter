@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -28,8 +29,8 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 		)
 	}
 
-	// Let's fetch the version of the plan we should migrate to
-	plan, err := s.getPlanByVersion(ctx, request.ID.Namespace, plansubscription.PlanRefInput{
+	// Let's fetch the version of the p we should migrate to
+	p, err := s.getPlanByVersion(ctx, request.ID.Namespace, plansubscription.PlanRefInput{
 		Key:     sub.PlanRef.Key,
 		Version: request.TargetVersion,
 	})
@@ -37,24 +38,35 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 		return def, err
 	}
 
-	if plan == nil {
+	if p == nil {
 		return def, fmt.Errorf("plan is nil")
 	}
 
-	if plan.Version <= sub.PlanRef.Version {
+	if p.Version <= sub.PlanRef.Version {
 		return def, models.NewGenericValidationError(
 			fmt.Errorf("subscription %s is already at version %d, cannot migrate to version %d", request.ID.ID, sub.PlanRef.Version, request.TargetVersion),
 		)
 	}
 
-	if plan.DeletedAt != nil && !clock.Now().Before(*plan.DeletedAt) {
+	now := clock.Now()
+
+	if p.DeletedAt != nil && !now.Before(*p.DeletedAt) {
 		return def, models.NewGenericValidationError(
 			fmt.Errorf("plan is deleted [namespace=%s, key=%s, version=%d, deleted_at=%s]",
-				plan.Namespace, plan.Key, plan.Version, plan.DeletedAt),
+				p.Namespace, p.Key, p.Version, p.DeletedAt),
 		)
 	}
 
-	pp := PlanFromPlan(*plan)
+	if !lo.Contains([]productcatalog.PlanStatus{
+		productcatalog.PlanStatusActive,
+		productcatalog.PlanStatusArchived,
+	}, p.StatusAt(now)) {
+		return def, models.NewGenericValidationError(
+			fmt.Errorf("plan %s@%d is not active or archived at %s", p.Key, p.Version, now),
+		)
+	}
+
+	pp := PlanFromPlan(*p)
 
 	currView, err := s.SubscriptionService.GetView(ctx, request.ID)
 	if err != nil {
