@@ -40,7 +40,7 @@ require (
 	github.com/jmattheis/goverter v1.8.2
 	github.com/lmittmann/tint v1.0.7
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/oapi-codegen/nethttp-middleware v1.0.2
+	github.com/oapi-codegen/nethttp-middleware v1.1.1
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.1
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/oklog/run v1.1.1-0.20240127200640-eee6e044b77c
