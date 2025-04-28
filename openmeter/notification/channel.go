@@ -12,28 +12,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-// Channel represents a notification channel with specific type and configuration.
-type Channel struct {
-	models.NamespacedModel
-	models.ManagedModel
-
-	// ID is the unique identifier for Channel.
-	ID string `json:"id"`
-	// Type of the notification channel (e.g. webhook)
-	Type ChannelType `json:"type"`
-	// Name of is the user provided name of the Channel.
-	Name string `json:"name"`
-	// Disabled defines whether the Channel is disabled or not.
-	Disabled bool `json:"disabled"`
-	// Config stores the actual Channel configuration specific to the Type.
-	Config ChannelConfig `json:"config"`
-}
-
 const (
-	ChannelTypeWebhook = ChannelType(api.NotificationChannelTypeWebhook)
+	ChannelTypeWebhook ChannelType = "WEBHOOK"
 )
 
-type ChannelType api.NotificationChannelType
+type ChannelType string
 
 func (t ChannelType) Values() []string {
 	return []string{
@@ -50,6 +33,23 @@ func (t ChannelType) Validate() error {
 			Err: fmt.Errorf("invalid channel type: %s", t),
 		}
 	}
+}
+
+// Channel represents a notification channel with specific type and configuration.
+type Channel struct {
+	models.NamespacedModel
+	models.ManagedModel
+
+	// ID is the unique identifier for Channel.
+	ID string `json:"id"`
+	// Type of the notification channel (e.g. webhook)
+	Type ChannelType `json:"type"`
+	// Name of is the user provided name of the Channel.
+	Name string `json:"name"`
+	// Disabled defines whether the Channel is disabled or not.
+	Disabled bool `json:"disabled"`
+	// Config stores the actual Channel configuration specific to the Type.
+	Config ChannelConfig `json:"config"`
 }
 
 type ChannelConfigMeta struct {
