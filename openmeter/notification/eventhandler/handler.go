@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -139,7 +140,7 @@ func (h *Handler) dispatchWebhook(ctx context.Context, event *notification.Event
 
 	switch event.Type {
 	case notification.EventTypeBalanceThreshold:
-		payload := event.Payload.AsNotificationEventBalanceThresholdPayload(event.ID, event.CreatedAt)
+		payload := httpdriver.FromEventAsBalanceThresholdPayload(*event)
 		payloadMap, err := notification.PayloadToMapInterface(payload)
 		if err != nil {
 			return fmt.Errorf("failed to cast event payload: %w", err)

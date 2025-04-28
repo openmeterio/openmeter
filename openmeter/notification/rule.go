@@ -5,10 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -42,57 +39,6 @@ type Rule struct {
 	Config RuleConfig `json:"config"`
 	// Channels stores the list of channels the Rule send notification Events to.
 	Channels []Channel `json:"channels"`
-}
-
-func (r Rule) AsNotificationRule() (api.NotificationRule, error) {
-	var rule api.NotificationRule
-
-	switch r.Type {
-	case RuleTypeBalanceThreshold:
-		rule = r.AsNotificationRuleBalanceThreshold()
-	default:
-		return rule, ValidationError{
-			Err: fmt.Errorf("invalid rule type: %s", r.Type),
-		}
-	}
-
-	return rule, nil
-}
-
-func (r Rule) AsNotificationRuleBalanceThreshold() api.NotificationRuleBalanceThreshold {
-	channels := make([]api.NotificationChannelMeta, 0, len(r.Channels))
-	for _, channel := range r.Channels {
-		channels = append(channels, api.NotificationChannelMeta{
-			Id:   channel.ID,
-			Type: api.NotificationChannelType(channel.Type),
-		})
-	}
-
-	return api.NotificationRuleBalanceThreshold{
-		Channels:  channels,
-		CreatedAt: r.CreatedAt,
-		Disabled:  lo.ToPtr(r.Disabled),
-		Features: convert.SafeDeRef(&r.Config.BalanceThreshold.Features, func(featureIDs []string) *[]FeatureMeta {
-			var features []FeatureMeta
-			for _, id := range featureIDs {
-				features = append(features, FeatureMeta{
-					Id: id,
-				})
-			}
-
-			if len(features) == 0 {
-				return nil
-			}
-
-			return &features
-		}),
-		Id:         r.ID,
-		Name:       r.Name,
-		Thresholds: r.Config.BalanceThreshold.Thresholds,
-		Type:       api.NotificationRuleBalanceThresholdTypeEntitlementsBalanceThreshold,
-		UpdatedAt:  r.UpdatedAt,
-		DeletedAt:  r.DeletedAt,
-	}
 }
 
 func (r Rule) Validate(ctx context.Context, service Service) error {
@@ -320,27 +266,6 @@ func (i CreateRuleInput) Validate(ctx context.Context, service Service) error {
 	return nil
 }
 
-func (i CreateRuleInput) FromNotificationRuleBalanceThresholdCreateRequest(r api.NotificationRuleBalanceThresholdCreateRequest) CreateRuleInput {
-	return CreateRuleInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: i.Namespace,
-		},
-		Name:     r.Name,
-		Type:     RuleType(r.Type),
-		Disabled: lo.FromPtrOr(r.Disabled, DefaultDisabled),
-		Config: RuleConfig{
-			RuleConfigMeta: RuleConfigMeta{
-				Type: RuleType(r.Type),
-			},
-			BalanceThreshold: BalanceThresholdRuleConfig{
-				Features:   lo.FromPtr(r.Features),
-				Thresholds: r.Thresholds,
-			},
-		},
-		Channels: r.Channels,
-	}
-}
-
 var _ validator = (*UpdateRuleInput)(nil)
 
 type UpdateRuleInput struct {
@@ -395,28 +320,6 @@ func (i UpdateRuleInput) Validate(ctx context.Context, service Service) error {
 	}
 
 	return nil
-}
-
-func (i UpdateRuleInput) FromNotificationRuleBalanceThresholdCreateRequest(r api.NotificationRuleBalanceThresholdCreateRequest) UpdateRuleInput {
-	return UpdateRuleInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: i.Namespace,
-		},
-		Name:     r.Name,
-		Type:     RuleType(r.Type),
-		Disabled: lo.FromPtrOr(r.Disabled, DefaultDisabled),
-		Config: RuleConfig{
-			RuleConfigMeta: RuleConfigMeta{
-				Type: RuleType(r.Type),
-			},
-			BalanceThreshold: BalanceThresholdRuleConfig{
-				Features:   lo.FromPtr(r.Features),
-				Thresholds: r.Thresholds,
-			},
-		},
-		Channels: r.Channels,
-		ID:       i.ID,
-	}
 }
 
 var _ validator = (*GetRuleInput)(nil)

@@ -2,6 +2,7 @@ package httpdriver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -60,7 +61,7 @@ func (h *handler) ListEvents() ListEventsHandler {
 			for _, event := range resp.Items {
 				var item api.NotificationEvent
 
-				item, err = event.AsNotificationEvent()
+				item, err = FromEvent(event)
 				if err != nil {
 					return ListEventsResponse{}, fmt.Errorf("failed to cast event: %w", err)
 				}
@@ -113,7 +114,11 @@ func (h *handler) GetEvent() GetEventHandler {
 				return GetEventResponse{}, fmt.Errorf("failed to get event: %w", err)
 			}
 
-			return event.AsNotificationEvent()
+			if event == nil {
+				return GetEventResponse{}, errors.New("failed to create test event: nil event returned")
+			}
+
+			return FromEvent(*event)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetEventResponse](http.StatusOK),
 		httptransport.AppendOptions(
