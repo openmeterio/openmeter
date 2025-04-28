@@ -64,7 +64,8 @@ var ExampleAddonRateCard3 = productcatalog.FlatFeeRateCard{
 	RateCardMeta: productcatalog.RateCardMeta{
 		Name:                "Test Addon Rate Card 3",
 		Description:         lo.ToPtr("Test Addon Rate Card 3 Description"),
-		Key:                 "addon-rc-key-3",
+		Key:                 ExampleFeatureKey3,
+		FeatureKey:          lo.ToPtr(ExampleFeatureKey3),
 		EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 		Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 			Amount:      alpacadecimal.NewFromInt(100),

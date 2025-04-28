@@ -439,7 +439,7 @@ func TestApply(t *testing.T) {
 	t.Run("Should partially update an existing item in accordance with the cadence", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
 			effPer := productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now.AddDate(0, 0, 5)),
+				EffectiveFrom: lo.ToPtr(now),
 				EffectiveTo:   nil,
 			}
 
@@ -460,7 +460,7 @@ func TestApply(t *testing.T) {
 			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
 
 			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
-				ActiveFrom: *effPer.EffectiveFrom,
+				ActiveFrom: now.AddDate(0, 0, 5),
 				ActiveTo:   effPer.EffectiveTo,
 			})
 
@@ -505,7 +505,7 @@ func TestApply(t *testing.T) {
 	t.Run("Should partially update an existing item in accordance with the cadence - but for multi instance", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
 			effPer := productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now.AddDate(0, 0, 5)),
+				EffectiveFrom: lo.ToPtr(now),
 				EffectiveTo:   nil,
 			}
 
@@ -526,7 +526,7 @@ func TestApply(t *testing.T) {
 			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
 
 			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
-				ActiveFrom: *effPer.EffectiveFrom,
+				ActiveFrom: now.AddDate(0, 0, 5),
 				ActiveTo:   effPer.EffectiveTo,
 			})
 
@@ -599,7 +599,7 @@ func TestApply(t *testing.T) {
 	t.Run("Should guarantee access is continuous across changing items", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
 			t0 := now
-			clock.FreezeTime(t0)
+			clock.FreezeTime(t0.Add(time.Millisecond)) // Addons are written so that effective period is exclusive on both ends :)
 
 			defer clock.UnFreeze()
 
@@ -909,10 +909,22 @@ func compareRateCardsWithAmountChange(t *testing.T, baseTarget *productcatalog.F
 
 	msgX := fmt.Sprintf("item %s not equal to target %s", b1, b2)
 
+	left := target.Clone()
+	require.NoError(t, left.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		m.FeatureID = nil
+		return m, nil
+	}))
+
+	right := value.Clone()
+	require.NoError(t, right.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		m.FeatureID = nil
+		return m, nil
+	}))
+
 	if len(msgAndArgs) > 0 {
 		customMsg := fmt.Sprintf(msgAndArgs[0].(string), msgAndArgs[1:]...)
-		require.True(t, target.Equal(value.Clone()), "%s: %s", customMsg, msgX)
+		require.True(t, left.Equal(right), "%s: %s", customMsg, msgX)
 	} else {
-		require.True(t, target.Equal(value.Clone()), msgX)
+		require.True(t, left.Equal(right), msgX)
 	}
 }
