@@ -94,12 +94,12 @@ type IngestNotificationsConfiguration struct {
 func (c IngestNotificationsConfiguration) Validate() error {
 	var errs []error
 
-	if c.MaxEventsInBatch < 0 {
-		errs = append(errs, errors.New("ChunkSize must not be negative"))
+	if c.MaxEventsInBatch <= 0 {
+		errs = append(errs, errors.New("MaxEventsInBatch must be greater than 0"))
 	}
 
 	if c.MaxEventsInBatch > 1000 {
-		errs = append(errs, errors.New("ChunkSize must not be greater than 1000"))
+		errs = append(errs, errors.New("MaxEventsInBatch must not be greater than 1000"))
 	}
 
 	return errors.Join(errs...)
@@ -158,7 +158,7 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.namespaceRefetch", "15s")
 	v.SetDefault("sink.flushSuccessTimeout", "5s")
 	v.SetDefault("sink.drainTimeout", "10s")
-	v.SetDefault("sink.ingestNotifications.maxEventsInBatch", 500)
+	v.SetDefault("sink.ingestNotifications.maxEventsInBatch", 50)
 	v.SetDefault("sink.namespaceRefetchTimeout", "10s")
 	v.SetDefault("sink.namespaceTopicRegexp", "^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$")
 	v.SetDefault("sink.meterRefetchInterval", "15s")

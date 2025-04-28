@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/metric"
 
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
@@ -28,7 +30,19 @@ type HandlerConfig struct {
 	MaxEventsInBatch int
 }
 
+func (c HandlerConfig) Validate() error {
+	if c.MaxEventsInBatch <= 0 {
+		return errors.New("max_events_in_batch must be greater than 0")
+	}
+
+	return nil
+}
+
 func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher eventbus.Publisher, config HandlerConfig) (flushhandler.FlushEventHandler, error) {
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
 	handler := &handler{
 		publisher: publisher,
 		logger:    logger,
@@ -63,7 +77,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 
 	// Map the filtered events to the ingest event
 	iEvents := slicesx.Map(filtered, func(message sinkmodels.SinkMessage) ingestevents.EventBatchedIngest {
-		return ingestevents.EventBatchedIngest{
+		res := ingestevents.EventBatchedIngest{
 			Namespace:  eventmodels.NamespaceID{ID: message.Namespace},
 			SubjectKey: message.Serialized.Subject,
 			MeterSlugs: h.getMeterSlugsFromMeters(message.Meters),
@@ -71,6 +85,12 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 			// the event was stored at this time to clickhouse.
 			StoredAt: now,
 		}
+
+		if message.Serialized != nil {
+			res.RawEvents = append(res.RawEvents, *message.Serialized)
+		}
+
+		return res
 	})
 
 	// Let's group the events by subject
@@ -90,18 +110,31 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 			continue
 		}
 
-		meterSlugs := make([]string, 0, len(events))
+		chunkedEvents := lo.Chunk(events, h.config.MaxEventsInBatch)
 
-		for _, event := range events[1:] {
-			meterSlugs = append(meterSlugs, event.MeterSlugs...)
+		for _, chunk := range chunkedEvents {
+			event := ingestevents.EventBatchedIngest{
+				Namespace:  chunk[0].Namespace,
+				SubjectKey: chunk[0].SubjectKey,
+				StoredAt:   now,
+			}
+
+			event.MeterSlugs = lo.Uniq(
+				slices.Concat(
+					lo.Map(chunk, func(event ingestevents.EventBatchedIngest, _ int) []string {
+						return event.MeterSlugs
+					})...,
+				),
+			)
+
+			event.RawEvents = slices.Concat(
+				lo.Map(chunk, func(event ingestevents.EventBatchedIngest, _ int) []serializer.CloudEventsKafkaPayload {
+					return event.RawEvents
+				})...,
+			)
+
+			iEvents = append(iEvents, event)
 		}
-
-		iEvents = append(iEvents, ingestevents.EventBatchedIngest{
-			Namespace:  events[0].Namespace,
-			SubjectKey: events[0].SubjectKey,
-			MeterSlugs: lo.Uniq(meterSlugs),
-			StoredAt:   now,
-		})
 	}
 
 	// We need to chunk the events to not exceed message size limits

@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
@@ -22,7 +23,8 @@ type EventBatchedIngest struct {
 	// version, thus any code that is in opensource should not rely on them.
 	MeterSlugs []string `json:"meterSlugs"`
 
-	StoredAt time.Time `json:"storedAt"`
+	RawEvents []serializer.CloudEventsKafkaPayload `json:"rawEvents"`
+	StoredAt  time.Time                            `json:"storedAt"`
 }
 
 var (

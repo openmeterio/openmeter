@@ -193,7 +193,7 @@ func TestComplete(t *testing.T) {
 				},
 			},
 			IngestNotifications: IngestNotificationsConfiguration{
-				MaxEventsInBatch: 500,
+				MaxEventsInBatch: 50,
 			},
 			Kafka: KafkaConfig{
 				CommonConfigParams: pkgkafka.CommonConfigParams{
