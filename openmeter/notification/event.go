@@ -33,10 +33,10 @@ type Event struct {
 }
 
 const (
-	EventTypeBalanceThreshold = EventType(api.NotificationEventTypeEntitlementsBalanceThreshold)
+	EventTypeBalanceThreshold EventType = "entitlements.balance.threshold"
 )
 
-type EventType api.NotificationEventType
+type EventType string
 
 func (t EventType) Validate() error {
 	switch t {
