@@ -28,7 +28,7 @@ require (
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/go-slog/otelslog v0.3.0
 	github.com/go-viper/mapstructure/v2 v2.2.1
-	github.com/golang-cz/devslog v0.0.12
+	github.com/golang-cz/devslog v0.0.13
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/google/uuid v1.6.0
