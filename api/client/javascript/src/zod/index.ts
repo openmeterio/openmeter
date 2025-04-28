@@ -5018,10 +5018,6 @@ export const updateInvoiceParams = zod.object({
 
 export const updateInvoiceBodyDescriptionMax = 1024
 export const updateInvoiceBodySupplierTaxIdCodeMaxOne = 32
-
-export const updateInvoiceBodySupplierTaxIdCodeRegExpOne = new RegExp(
-  '^[A-Za-z0-9]+([\\.\\-\\/ _]?[A-Za-z0-9]+)*$'
-)
 export const updateInvoiceBodySupplierAddressesItemCountryMinOne = 2
 
 export const updateInvoiceBodySupplierAddressesItemCountryMaxOne = 2
@@ -5030,10 +5026,6 @@ export const updateInvoiceBodySupplierAddressesItemCountryRegExpOne =
   new RegExp('^[A-Z]{2}$')
 export const updateInvoiceBodySupplierAddressesMax = 1
 export const updateInvoiceBodyCustomerTaxIdCodeMaxOne = 32
-
-export const updateInvoiceBodyCustomerTaxIdCodeRegExpOne = new RegExp(
-  '^[A-Za-z0-9]+([\\.\\-\\/ _]?[A-Za-z0-9]+)*$'
-)
 export const updateInvoiceBodyCustomerAddressesItemCountryMinOne = 2
 
 export const updateInvoiceBodyCustomerAddressesItemCountryMaxOne = 2
@@ -5231,7 +5223,6 @@ export const updateInvoiceBody = zod
               .string()
               .min(1)
               .max(updateInvoiceBodyCustomerTaxIdCodeMaxOne)
-              .regex(updateInvoiceBodyCustomerTaxIdCodeRegExpOne)
               .describe(
                 'TaxIdentificationCode is a normalized tax code shown on the original identity document.'
               )
@@ -6317,7 +6308,6 @@ export const updateInvoiceBody = zod
               .string()
               .min(1)
               .max(updateInvoiceBodySupplierTaxIdCodeMaxOne)
-              .regex(updateInvoiceBodySupplierTaxIdCodeRegExpOne)
               .describe(
                 'TaxIdentificationCode is a normalized tax code shown on the original identity document.'
               )
@@ -6675,10 +6665,6 @@ can be applied to a billing profile to customize the billing behavior for a spec
 export const createBillingProfileBodyNameMax = 256
 export const createBillingProfileBodyDescriptionMax = 1024
 export const createBillingProfileBodySupplierTaxIdCodeMaxOne = 32
-
-export const createBillingProfileBodySupplierTaxIdCodeRegExpOne = new RegExp(
-  '^[A-Za-z0-9]+([\\.\\-\\/ _]?[A-Za-z0-9]+)*$'
-)
 export const createBillingProfileBodySupplierAddressesItemCountryMinOne = 2
 
 export const createBillingProfileBodySupplierAddressesItemCountryMaxOne = 2
@@ -6822,7 +6808,6 @@ export const createBillingProfileBody = zod
               .string()
               .min(1)
               .max(createBillingProfileBodySupplierTaxIdCodeMaxOne)
-              .regex(createBillingProfileBodySupplierTaxIdCodeRegExpOne)
               .describe(
                 'TaxIdentificationCode is a normalized tax code shown on the original identity document.'
               )
@@ -7027,10 +7012,6 @@ export const updateBillingProfileParams = zod.object({
 export const updateBillingProfileBodyNameMax = 256
 export const updateBillingProfileBodyDescriptionMax = 1024
 export const updateBillingProfileBodySupplierTaxIdCodeMaxOne = 32
-
-export const updateBillingProfileBodySupplierTaxIdCodeRegExpOne = new RegExp(
-  '^[A-Za-z0-9]+([\\.\\-\\/ _]?[A-Za-z0-9]+)*$'
-)
 export const updateBillingProfileBodySupplierAddressesItemCountryMinOne = 2
 
 export const updateBillingProfileBodySupplierAddressesItemCountryMaxOne = 2
@@ -7134,7 +7115,6 @@ export const updateBillingProfileBody = zod
               .string()
               .min(1)
               .max(updateBillingProfileBodySupplierTaxIdCodeMaxOne)
-              .regex(updateBillingProfileBodySupplierTaxIdCodeRegExpOne)
               .describe(
                 'TaxIdentificationCode is a normalized tax code shown on the original identity document.'
               )

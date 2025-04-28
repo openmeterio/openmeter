@@ -11915,7 +11915,6 @@ components:
       type: string
       minLength: 1
       maxLength: 32
-      pattern: ^[A-Za-z0-9]+([\.\-\/ _]?[A-Za-z0-9]+)*$
       description: TaxIdentificationCode is a normalized tax code shown on the original identity document.
     BillingWorkflow:
       type: object

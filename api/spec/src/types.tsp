@@ -402,7 +402,6 @@ scalar Unit extends string;
 /**
  * TaxIdentificationCode is a normalized tax code shown on the original identity document.
  */
-@pattern("^[A-Za-z0-9]+([\\.\\-\\/ _]?[A-Za-z0-9]+)*$")
 @minLength(1)
 @maxLength(32)
 @friendlyName("BillingTaxIdentificationCode")
