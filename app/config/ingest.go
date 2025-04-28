@@ -13,12 +13,17 @@ import (
 )
 
 type IngestConfiguration struct {
-	Kafka KafkaIngestConfiguration
+	Kafka            KafkaIngestConfiguration
+	ProcessBatchSize int
 }
 
 // Validate validates the configuration.
 func (c IngestConfiguration) Validate() error {
 	var errs []error
+
+	if c.ProcessBatchSize <= 0 {
+		errs = append(errs, errors.New("process batch size must be greater than 0"))
+	}
 
 	if err := c.Kafka.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "kafka"))
@@ -162,6 +167,7 @@ func (c KafkaConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 
 // Configure configures some defaults in the Viper instance.
 func ConfigureIngest(v *viper.Viper) {
+	v.SetDefault("ingest.processBatchSize", 20)
 	v.SetDefault("ingest.kafka.broker", "127.0.0.1:29092")
 	v.SetDefault("ingest.kafka.securityProtocol", "")
 	v.SetDefault("ingest.kafka.saslMechanisms", "")
