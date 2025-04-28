@@ -93,6 +93,7 @@ func NewBalanceWorkerOptions(
 		Repo:            repo,
 		SubjectResolver: subjectResolver,
 		Logger:          logger,
+		MetricMeter:     routerOptions.MetricMeter,
 	}
 }
 
