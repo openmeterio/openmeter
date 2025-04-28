@@ -6,9 +6,10 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/huandu/go-sqlbuilder"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
+	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -16,37 +17,46 @@ type queryMeter struct {
 	Database        string
 	EventsTableName string
 	Namespace       string
-	Meter           meter.Meter
+	Meter           meterpkg.Meter
 	Subject         []string
 	FilterGroupBy   map[string][]string
 	From            *time.Time
+	FromExclusive   *time.Time
 	To              *time.Time
 	GroupBy         []string
-	WindowSize      *meter.WindowSize
+	WindowSize      *meterpkg.WindowSize
 	WindowTimeZone  *time.Location
 }
 
 // from returns the from time for the query.
 func (d *queryMeter) from() *time.Time {
+	// If the query from time is set, use it
+	from := d.From
+
+	// If the query from time is exclusive, use it
+	if d.FromExclusive != nil {
+		from = d.FromExclusive
+	}
+
 	// If none of the from times are set, return nil
-	if d.From == nil && d.Meter.EventFrom == nil {
+	if from == nil && d.Meter.EventFrom == nil {
 		return nil
 	}
 
 	// If only the event from time is set, use it
-	if d.From == nil && d.Meter.EventFrom != nil {
+	if from == nil && d.Meter.EventFrom != nil {
 		return d.Meter.EventFrom
 	}
 
 	// If only the query from time is set, use it
-	if d.From != nil && d.Meter.EventFrom == nil {
-		return d.From
+	if from != nil && d.Meter.EventFrom == nil {
+		return from
 	}
 
 	// If both the query from time and the event from time are set
 	// use the query from time if it's after the event from time
-	if d.From.After(*d.Meter.EventFrom) {
-		return d.From
+	if from.After(*d.Meter.EventFrom) {
+		return from
 	}
 
 	return d.Meter.EventFrom
@@ -80,7 +90,11 @@ func (d *queryMeter) toCountRowSQL() (string, []interface{}) {
 	from := d.from()
 
 	if from != nil {
-		query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
+		if d.FromExclusive != nil {
+			query.Where(query.GreaterThan(timeColumn, from.Unix()))
+		} else {
+			query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
+		}
 	}
 
 	if d.To != nil {
@@ -96,7 +110,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	getColumn := columnFactory(d.EventsTableName)
 	timeColumn := getColumn("time")
 
-	var selectColumns, groupByColumns, where []string
+	var selectColumns, groupByColumns []string
 
 	// Select windows if any
 	groupByWindowSize := d.WindowSize != nil
@@ -108,21 +122,21 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 	if groupByWindowSize {
 		switch *d.WindowSize {
-		case meter.WindowSizeMinute:
+		case meterpkg.WindowSizeMinute:
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(%s, toIntervalMinute(1), '%s') AS windowstart", timeColumn, tz),
 				fmt.Sprintf("tumbleEnd(%s, toIntervalMinute(1), '%s') AS windowend", timeColumn, tz),
 			)
 
-		case meter.WindowSizeHour:
+		case meterpkg.WindowSizeHour:
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(%s, toIntervalHour(1), '%s') AS windowstart", timeColumn, tz),
 				fmt.Sprintf("tumbleEnd(%s, toIntervalHour(1), '%s') AS windowend", timeColumn, tz),
 			)
 
-		case meter.WindowSizeDay:
+		case meterpkg.WindowSizeDay:
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(%s, toIntervalDay(1), '%s') AS windowstart", timeColumn, tz),
@@ -145,26 +159,26 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	// Select Value
 	sqlAggregation := ""
 	switch d.Meter.Aggregation {
-	case meter.MeterAggregationSum:
+	case meterpkg.MeterAggregationSum:
 		sqlAggregation = "sum"
-	case meter.MeterAggregationAvg:
+	case meterpkg.MeterAggregationAvg:
 		sqlAggregation = "avg"
-	case meter.MeterAggregationMin:
+	case meterpkg.MeterAggregationMin:
 		sqlAggregation = "min"
-	case meter.MeterAggregationMax:
+	case meterpkg.MeterAggregationMax:
 		sqlAggregation = "max"
-	case meter.MeterAggregationUniqueCount:
+	case meterpkg.MeterAggregationUniqueCount:
 		sqlAggregation = "uniq"
-	case meter.MeterAggregationCount:
+	case meterpkg.MeterAggregationCount:
 		sqlAggregation = "count"
 	default:
 		return "", []interface{}{}, fmt.Errorf("invalid aggregation type: %s", d.Meter.Aggregation)
 	}
 
 	switch d.Meter.Aggregation {
-	case meter.MeterAggregationCount:
+	case meterpkg.MeterAggregationCount:
 		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(*)) AS value", sqlAggregation))
-	case meter.MeterAggregationUniqueCount:
+	case meterpkg.MeterAggregationUniqueCount:
 		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
 	default:
 		// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
@@ -199,7 +213,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 			return query.Equal(getColumn("subject"), subject)
 		}
 
-		where = append(where, query.Or(slicesx.Map(d.Subject, mapFunc)...))
+		query.Where(query.Or(slicesx.Map(d.Subject, mapFunc)...))
 	}
 
 	if len(d.FilterGroupBy) > 0 {
@@ -232,22 +246,23 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 				return fmt.Sprintf("%s = '%s'", column, sqlbuilder.Escape((value)))
 			}
 
-			where = append(where, query.Or(slicesx.Map(values, mapFunc)...))
+			query.Where(query.Or(slicesx.Map(values, mapFunc)...))
 		}
 	}
 
+	// Apply the time where clause
 	from := d.from()
 
 	if from != nil {
-		where = append(where, query.GreaterEqualThan(timeColumn, from.Unix()))
+		if d.FromExclusive != nil {
+			query.Where(query.GreaterThan(timeColumn, from.Unix()))
+		} else {
+			query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
+		}
 	}
 
 	if d.To != nil {
-		where = append(where, query.LessEqualThan(timeColumn, d.To.Unix()))
-	}
-
-	if len(where) > 0 {
-		query.Where(where...)
+		query.Where(query.LessEqualThan(timeColumn, d.To.Unix()))
 	}
 
 	query.GroupBy(groupByColumns...)
@@ -260,11 +275,75 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	return sql, args, nil
 }
 
+// scanRows scans the rows from the query and returns a list of meter query rows.
+func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRow, error) {
+	values := []meterpkg.MeterQueryRow{}
+
+	for rows.Next() {
+		row := meterpkg.MeterQueryRow{
+			GroupBy: map[string]*string{},
+		}
+
+		var value *float64
+		args := []interface{}{&row.WindowStart, &row.WindowEnd, &value}
+		argCount := len(args)
+
+		for range queryMeter.GroupBy {
+			tmp := ""
+			args = append(args, &tmp)
+		}
+
+		if err := rows.Scan(args...); err != nil {
+			return values, fmt.Errorf("query meter view row scan: %w", err)
+		}
+
+		// If there is no value for the period, we skip the row
+		// This can happen when the event doesn't have the value field.
+		if value == nil {
+			continue
+		}
+
+		// TODO: should we use decima all the way?
+		row.Value = *value
+
+		for i, key := range queryMeter.GroupBy {
+			if s, ok := args[i+argCount].(*string); ok {
+				// Subject is a top level field
+				if key == "subject" {
+					row.Subject = s
+					continue
+				}
+
+				// We treat empty string as nil
+				if s != nil && *s == "" {
+					row.GroupBy[key] = nil
+				} else {
+					row.GroupBy[key] = s
+				}
+			}
+		}
+
+		// an empty row is returned when there are no values for the meter
+		if row.WindowStart.IsZero() && row.WindowEnd.IsZero() && row.Value == 0 {
+			continue
+		}
+
+		values = append(values, row)
+	}
+
+	err := rows.Err()
+	if err != nil {
+		return values, fmt.Errorf("rows error: %w", err)
+	}
+
+	return values, nil
+}
+
 type listMeterSubjectsQuery struct {
 	Database        string
 	EventsTableName string
 	Namespace       string
-	Meter           meter.Meter
+	Meter           meterpkg.Meter
 	From            *time.Time
 	To              *time.Time
 }

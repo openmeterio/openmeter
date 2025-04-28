@@ -110,6 +110,11 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
 
+			// We allow caching queries for HTTP requests
+			// This alone is not enough for a query to be cached. The cache must be both enabled in the streaming connector,
+			// and if any namespace template is provided to the cache, the namespace must match the template regex.
+			params.Cachable = true
+
 			rows, err := h.streaming.QueryMeter(ctx, request.namespace, meter, params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to query meter: %w", err)

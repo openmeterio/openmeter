@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -21,9 +22,10 @@ import (
 
 var _ streaming.Connector = (*Connector)(nil)
 
-// Connector implements `ingest.Connector“ and `namespace.Handler interfaces.
+// Connector implements `ingest.Connector" and `namespace.Handler interfaces.
 type Connector struct {
-	config Config
+	config            Config
+	namespaceTemplate *regexp.Regexp
 }
 
 type Config struct {
@@ -35,6 +37,14 @@ type Config struct {
 	AsyncInsertWait     bool
 	InsertQuerySettings map[string]string
 	ProgressManager     progressmanager.Service
+	SkipCreateTables    bool
+	QueryCacheEnabled   bool
+	// Minimum query period that can be cached
+	QueryCacheMinimumCacheableQueryPeriod time.Duration
+	// Minimum age after usage data is cachable
+	QueryCacheMinimumCacheableUsageAge time.Duration
+	// Regexp to match namespaces that should be cached
+	QueryCacheNamespaceTemplate string
 }
 
 func (c Config) Validate() error {
@@ -58,24 +68,65 @@ func (c Config) Validate() error {
 		return fmt.Errorf("progress manager is required")
 	}
 
+	if c.QueryCacheEnabled {
+		if c.QueryCacheMinimumCacheableQueryPeriod <= 0 {
+			return fmt.Errorf("minimum cacheable query period is required")
+		}
+
+		if c.QueryCacheMinimumCacheableUsageAge <= 0 {
+			return fmt.Errorf("minimum cacheable usage age is required")
+		}
+	}
+
 	return nil
 }
 
 func New(ctx context.Context, config Config) (*Connector, error) {
+	// Validate the config
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
-	connector := &Connector{
-		config: config,
+	// Compile the namespace template
+	var namespaceTemplate *regexp.Regexp
+	var err error
+
+	if config.QueryCacheNamespaceTemplate != "" {
+		namespaceTemplate, err = regexp.Compile(config.QueryCacheNamespaceTemplate)
+		if err != nil {
+			return nil, fmt.Errorf("namespace template invalid regex: %w", err)
+		}
 	}
 
-	err := connector.createEventsTable(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("create events table in clickhouse: %w", err)
+	// Create the connector
+	connector := &Connector{
+		config:            config,
+		namespaceTemplate: namespaceTemplate,
+	}
+
+	if !config.SkipCreateTables {
+		if err := connector.createTable(ctx); err != nil {
+			return nil, fmt.Errorf("create tables: %w", err)
+		}
 	}
 
 	return connector, nil
+}
+
+// createTable creates the tables in ClickHouse
+func (c *Connector) createTable(ctx context.Context) error {
+	// Create the events table
+	err := c.createEventsTable(ctx)
+	if err != nil {
+		return fmt.Errorf("create events table in clickhouse: %w", err)
+	}
+
+	// Create the meter query cache table
+	if err := c.createMeterQueryCacheTable(ctx); err != nil {
+		return fmt.Errorf("create meter query cache in clickhouse: %w", err)
+	}
+
+	return nil
 }
 
 func (c *Connector) ListEvents(ctx context.Context, namespace string, params meterevent.ListEventsParams) ([]streaming.RawEvent, error) {
@@ -128,6 +179,7 @@ func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter met
 }
 
 func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
+	// Validate params
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -136,13 +188,61 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		return nil, fmt.Errorf("validate params: %w", err)
 	}
 
-	values, err := c.queryMeter(ctx, namespace, meter, params)
-	if err != nil {
-		if meterpkg.IsMeterNotFoundError(err) {
-			return nil, err
-		}
+	// We sort the group by keys to ensure the order of the group by columns is deterministic
+	// It helps testing the SQL queries.
+	groupBy := append([]string(nil), params.GroupBy...)
+	sort.Strings(groupBy)
 
-		return nil, err
+	query := queryMeter{
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
+		Namespace:       namespace,
+		Meter:           meter,
+		From:            params.From,
+		To:              params.To,
+		Subject:         params.FilterSubject,
+		FilterGroupBy:   params.FilterGroupBy,
+		GroupBy:         groupBy,
+		WindowSize:      params.WindowSize,
+		WindowTimeZone:  params.WindowTimeZone,
+	}
+
+	// Load cached rows if any
+	var cached []meterpkg.MeterQueryRow
+
+	useCache := c.canQueryBeCached(namespace, meter, params)
+
+	if useCache {
+		var err error
+
+		hash := fmt.Sprintf("%x", params.Hash())
+
+		query, cached, err = c.executeQueryWithCaching(ctx, hash, query)
+		if err != nil {
+			return cached, fmt.Errorf("query cached rows: %w", err)
+		}
+	}
+
+	//  Load fresh rows from events table
+	var err error
+	var values []meterpkg.MeterQueryRow
+
+	// If the client ID is set, we track track the progress of the query
+	if params.ClientID != nil {
+		values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
+		if err != nil {
+			return values, fmt.Errorf("query meter with progress: %w", err)
+		}
+	} else {
+		values, err = c.queryMeter(ctx, query)
+		if err != nil {
+			return values, fmt.Errorf("query meter: %w", err)
+		}
+	}
+
+	// Merge cached rows if any
+	if useCache {
+		values = mergeMeterQueryRows(meter, params, cached, values)
 	}
 
 	// If the total usage is queried for a single period (no window size),
@@ -237,6 +337,20 @@ func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEv
 
 	if err != nil {
 		return fmt.Errorf("failed to batch insert raw events: %w", err)
+	}
+
+	// If query cache is enabled, we invalidate the cache if any events are inserted
+	if c.config.QueryCacheEnabled {
+		// Check if any events requires cache invalidation
+		namespacesToInvalidateCache := c.findNamespacesToInvalidateCache(rawEvents)
+
+		if len(namespacesToInvalidateCache) > 0 {
+			if err := c.invalidateCache(ctx, namespacesToInvalidateCache); err != nil {
+				return fmt.Errorf("invalidate query cache: %w", err)
+			}
+
+			c.config.Logger.Info("invalidated query cache for namespaces", "namespaces", namespacesToInvalidateCache)
+		}
 	}
 
 	return nil
@@ -429,115 +543,57 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 	return results, nil
 }
 
-func (c *Connector) queryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
-	// We sort the group by keys to ensure the order of the group by columns is deterministic
-	// It helps testing the SQL queries.
-	groupBy := params.GroupBy
-	sort.Strings(groupBy)
+// queryMeterWithProgress queries the meter and returns the rows
+// It also tracks the progress of the query
+func (c *Connector) queryMeterWithProgress(ctx context.Context, namespace string, clientID string, query queryMeter) ([]meterpkg.MeterQueryRow, error) {
+	var err error
 
-	queryMeter := queryMeter{
-		Database:        c.config.Database,
-		EventsTableName: c.config.EventsTableName,
-		Namespace:       namespace,
-		Meter:           meter,
-		From:            params.From,
-		To:              params.To,
-		Subject:         params.FilterSubject,
-		FilterGroupBy:   params.FilterGroupBy,
-		GroupBy:         groupBy,
-		WindowSize:      params.WindowSize,
-		WindowTimeZone:  params.WindowTimeZone,
-	}
+	// Build SQL query to count the total number of rows
+	countSQL, countArgs := query.toCountRowSQL()
 
-	values := []meterpkg.MeterQueryRow{}
-
-	sql, args, err := queryMeter.toSQL()
+	ctx, err = c.withProgressContext(ctx, namespace, clientID, countSQL, countArgs)
+	// Log error but don't return it
 	if err != nil {
-		return values, fmt.Errorf("query meter view: %w", err)
+		c.config.Logger.Error("failed track progress", "error", err, "clientId", clientID)
 	}
 
-	// If the client ID is set, we track track the progress of the query
-	if params.ClientID != nil {
-		// Build SQL query to count the total number of rows
-		countSQL, countArgs := queryMeter.toCountRowSQL()
+	// Query the meter
+	values, err := c.queryMeter(ctx, query)
+	if err != nil {
+		return values, fmt.Errorf("query meter rows: %w", err)
+	}
 
-		ctx, err = c.withProgressContext(ctx, namespace, *params.ClientID, countSQL, countArgs)
-		// Log error but don't return it
-		if err != nil {
-			c.config.Logger.Error("failed track progress", "error", err, "clientId", *params.ClientID)
-		}
+	return values, nil
+}
+
+// queryMeter queries the meter and returns the rows
+func (c *Connector) queryMeter(ctx context.Context, query queryMeter) ([]meterpkg.MeterQueryRow, error) {
+	// Build the SQL query
+	sql, args, err := query.toSQL()
+	if err != nil {
+		return nil, fmt.Errorf("build sql query: %w", err)
 	}
 
 	start := time.Now()
+
+	// Query the meter view
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, meterpkg.NewMeterNotFoundError(meter.Key)
+			return nil, meterpkg.NewMeterNotFoundError(query.Meter.Key)
 		}
-
-		return values, fmt.Errorf("query meter view query: %w", err)
+		return nil, fmt.Errorf("clickhouse query: %w", err)
 	}
 
 	defer rows.Close()
 
 	elapsed := time.Since(start)
-	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
+	c.config.Logger.Debug("clickhouse query executed", "elapsed", elapsed.String(), "sql", sql, "args", args)
 
-	for rows.Next() {
-		row := meterpkg.MeterQueryRow{
-			GroupBy: map[string]*string{},
-		}
-
-		var value *float64
-		args := []interface{}{&row.WindowStart, &row.WindowEnd, &value}
-		argCount := len(args)
-
-		for range queryMeter.GroupBy {
-			tmp := ""
-			args = append(args, &tmp)
-		}
-
-		if err := rows.Scan(args...); err != nil {
-			return values, fmt.Errorf("query meter view row scan: %w", err)
-		}
-
-		// If there is no value for the period, we skip the row
-		// This can happen when the event doesn't have the value field.
-		if value == nil {
-			continue
-		}
-
-		// TODO: should we use decima all the way?
-		row.Value = *value
-
-		for i, key := range queryMeter.GroupBy {
-			if s, ok := args[i+argCount].(*string); ok {
-				// Subject is a top level field
-				if key == "subject" {
-					row.Subject = s
-					continue
-				}
-
-				// We treat empty string as nil
-				if s != nil && *s == "" {
-					row.GroupBy[key] = nil
-				} else {
-					row.GroupBy[key] = s
-				}
-			}
-		}
-
-		// an empty row is returned when there are no values for the meter
-		if row.WindowStart.IsZero() && row.WindowEnd.IsZero() && row.Value == 0 {
-			continue
-		}
-
-		values = append(values, row)
-	}
-
-	err = rows.Err()
+	// Scan the rows
+	values, err := query.scanRows(rows)
 	if err != nil {
-		return values, fmt.Errorf("rows error: %w", err)
+		return nil, fmt.Errorf("scan query rows: %w", err)
 	}
 
 	return values, nil
