@@ -168,7 +168,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, progressmanagerService)
+	namespaceConfiguration := conf.Namespace
+	manager, err := common.NewNamespaceManager(namespaceConfiguration)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, progressmanagerService, manager)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -274,7 +285,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(kafkaIngestConfiguration)
+	factory, err := common.NewAppSandboxFactory(appsConfiguration, service, billingService)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -284,29 +295,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	namespaceHandler, err := common.NewKafkaNamespaceHandler(namespacedTopicResolver, topicProvisioner, kafkaIngestConfiguration)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	v3 := common.NewNamespaceHandlers(namespaceHandler, connector)
-	namespaceConfiguration := conf.Namespace
-	manager, err := common.NewNamespaceManager(v3, namespaceConfiguration)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, service, manager, billingService)
+	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, service, manager, billingService, factory)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -395,7 +384,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaMetrics:                  metrics,
 		Logger:                        logger,
 		MeterService:                  meterService,
-		NamespaceHandlers:             v3,
 		NamespaceManager:              manager,
 		Meter:                         meter,
 		Plan:                          planService,
@@ -435,7 +423,6 @@ type Application struct {
 	KafkaMetrics                  *metrics.Metrics
 	Logger                        *slog.Logger
 	MeterService                  meter.Service
-	NamespaceHandlers             []namespace.Handler
 	NamespaceManager              *namespace.Manager
 	Meter                         metric.Meter
 	Plan                          plan.Service

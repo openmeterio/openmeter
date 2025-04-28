@@ -129,7 +129,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, service)
+	namespaceConfiguration := conf.Namespace
+	manager, err := common.NewNamespaceManager(namespaceConfiguration)
+	if err != nil {
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, service, manager)
 	if err != nil {
 		cleanup4()
 		cleanup3()

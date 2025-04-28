@@ -9,6 +9,7 @@ import (
 	"github.com/google/wire"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	clickhouseconnector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
@@ -24,6 +25,7 @@ func NewStreamingConnector(
 	clickHouse clickhouse.Conn,
 	logger *slog.Logger,
 	progressmanager progressmanager.Service,
+	namespaceManager *namespace.Manager,
 ) (streaming.Connector, error) {
 	connector, err := clickhouseconnector.New(ctx, clickhouseconnector.Config{
 		ClickHouse:          clickHouse,
@@ -37,6 +39,11 @@ func NewStreamingConnector(
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse connector: %w", err)
+	}
+
+	err = namespaceManager.RegisterHandler(connector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to register streaming namespace handler: %w", err)
 	}
 
 	return connector, nil

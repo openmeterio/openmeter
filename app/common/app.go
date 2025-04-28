@@ -30,11 +30,12 @@ var App = wire.NewSet(
 	NewAppRegistry,
 	NewAppService,
 	NewAppStripeService,
+	NewAppSandboxFactory,
 	NewAppSandboxProvisioner,
 	NewAppCustomInvoicingService,
 )
 
-type AppSandboxProvisioner func() error
+type AppSandboxProvisioner func(ctx context.Context, orgID string) error
 
 func NewAppService(
 	logger *slog.Logger,
@@ -79,8 +80,12 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 	})
 }
 
-func NewAppSandboxProvisioner(ctx context.Context, logger *slog.Logger, appsConfig config.AppsConfiguration, appService app.Service, namespaceManager *namespace.Manager, billingService billing.Service) (AppSandboxProvisioner, error) {
-	_, err := appsandbox.NewFactory(appsandbox.Config{
+func NewAppSandboxFactory(
+	appsConfig config.AppsConfiguration,
+	appService app.Service,
+	billingService billing.Service,
+) (*appsandbox.Factory, error) {
+	factory, err := appsandbox.NewFactory(appsandbox.Config{
 		AppService:     appService,
 		BillingService: billingService,
 	})
@@ -88,16 +93,21 @@ func NewAppSandboxProvisioner(ctx context.Context, logger *slog.Logger, appsConf
 		return nil, fmt.Errorf("failed to initialize app sandbox factory: %w", err)
 	}
 
-	return func() error {
+	return factory, nil
+}
+
+func NewAppSandboxProvisioner(ctx context.Context, logger *slog.Logger, appsConfig config.AppsConfiguration, appService app.Service, namespaceManager *namespace.Manager, billingService billing.Service, _ *appsandbox.Factory,
+) (AppSandboxProvisioner, error) {
+	return func(ctx context.Context, orgID string) error {
 		app, err := appsandbox.AutoProvision(ctx, appsandbox.AutoProvisionInput{
-			Namespace:  namespaceManager.GetDefaultNamespace(),
+			Namespace:  orgID,
 			AppService: appService,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to auto-provision sandbox app: %w", err)
 		}
 
-		logger.Info("sandbox app auto-provisioned", "app_id", app.GetID().ID)
+		logger.Info("sandbox app auto-provisioned", "app_id", app.GetID().ID, "org_id", orgID)
 
 		return nil
 	}, nil

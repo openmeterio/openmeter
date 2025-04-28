@@ -14,11 +14,9 @@ var Namespace = wire.NewSet(
 )
 
 func NewNamespaceManager(
-	handlers []namespace.Handler,
 	conf config.NamespaceConfiguration,
 ) (*namespace.Manager, error) {
 	manager, err := namespace.NewManager(namespace.ManagerConfig{
-		Handlers:          handlers,
 		DefaultNamespace:  conf.Default,
 		DisableManagement: conf.DisableManagement,
 	})

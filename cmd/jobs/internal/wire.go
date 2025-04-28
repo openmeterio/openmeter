@@ -52,7 +52,6 @@ type Application struct {
 	KafkaMetrics                  *kafkametrics.Metrics
 	Logger                        *slog.Logger
 	MeterService                  meter.Service
-	NamespaceHandlers             []namespace.Handler
 	NamespaceManager              *namespace.Manager
 	Meter                         metric.Meter
 	Plan                          plan.Service
@@ -73,7 +72,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Entitlement,
 		common.Framework,
 		common.Kafka,
-		common.KafkaNamespaceResolver,
 		common.Meter,
 		common.Namespace,
 		common.NewBillingAutoAdvancer,

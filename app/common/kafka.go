@@ -11,8 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
-	"github.com/openmeterio/openmeter/openmeter/namespace"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
@@ -30,12 +28,13 @@ var KafkaTopic = wire.NewSet(
 	NewKafkaTopicProvisioner,
 )
 
+var KafkaIngest = wire.NewSet(
+	NewKafkaIngestNamespaceHandler,
+)
+
 var KafkaNamespaceResolver = wire.NewSet(
 	NewNamespacedTopicResolver,
 	wire.Bind(new(topicresolver.Resolver), new(*topicresolver.NamespacedTopicResolver)),
-
-	NewKafkaNamespaceHandler,
-	NewNamespaceHandlers,
 )
 
 // TODO: use ingest config directly?
@@ -114,29 +113,6 @@ func NewKafkaTopicProvisioner(conf pkgkafka.TopicProvisionerConfig) (pkgkafka.To
 	return topicProvisioner, nil
 }
 
-func NewNamespaceHandlers(
-	kafkaHandler *kafkaingest.NamespaceHandler,
-	clickHouseHandler streaming.Connector,
-) []namespace.Handler {
-	return []namespace.Handler{
-		kafkaHandler,
-		clickHouseHandler,
-	}
-}
-
-func NewKafkaNamespaceHandler(
-	topicResolver topicresolver.Resolver,
-	topicProvisioner pkgkafka.TopicProvisioner,
-	conf config.KafkaIngestConfiguration,
-) (*kafkaingest.NamespaceHandler, error) {
-	return &kafkaingest.NamespaceHandler{
-		TopicResolver:    topicResolver,
-		TopicProvisioner: topicProvisioner,
-		Partitions:       conf.Partitions,
-		DeletionEnabled:  conf.NamespaceDeletionEnabled,
-	}, nil
-}
-
 func NewNamespacedTopicResolver(config config.KafkaIngestConfiguration) (*topicresolver.NamespacedTopicResolver, error) {
 	topicResolver, err := topicresolver.NewNamespacedTopicResolver(config.EventsTopicTemplate)
 	if err != nil {
@@ -144,4 +120,19 @@ func NewNamespacedTopicResolver(config config.KafkaIngestConfiguration) (*topicr
 	}
 
 	return topicResolver, nil
+}
+
+func NewKafkaIngestNamespaceHandler(
+	topicResolver topicresolver.Resolver,
+	topicProvisioner pkgkafka.TopicProvisioner,
+	ingestConfig config.KafkaIngestConfiguration,
+) (*kafkaingest.NamespaceHandler, error) {
+	handler := &kafkaingest.NamespaceHandler{
+		TopicResolver:    topicResolver,
+		TopicProvisioner: topicProvisioner,
+		Partitions:       ingestConfig.Partitions,
+		DeletionEnabled:  ingestConfig.NamespaceDeletionEnabled,
+	}
+
+	return handler, nil
 }
