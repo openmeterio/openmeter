@@ -8761,7 +8761,7 @@ export const createMeterBody = zod
       .record(zod.string(), zod.string())
       .optional()
       .describe(
-        'Named JSONPath expressions to extract the group by values from the event data.\n\nKeys must be unique and consist only alphanumeric and underscore characters.\n\nTODO: add key format enforcement'
+        'Named JSONPath expressions to extract the group by values from the event data.\n\nKeys must be unique and consist only alphanumeric and underscore characters.'
       ),
     metadata: zod
       .record(zod.string(), zod.string())
@@ -8848,7 +8848,7 @@ export const updateMeterBody = zod
       .record(zod.string(), zod.string())
       .optional()
       .describe(
-        'Named JSONPath expressions to extract the group by values from the event data.\n\nKeys must be unique and consist only alphanumeric and underscore characters.\n\nTODO: add key format enforcement'
+        'Named JSONPath expressions to extract the group by values from the event data.\n\nKeys must be unique and consist only alphanumeric and underscore characters.'
       ),
     metadata: zod
       .record(zod.string(), zod.string())
