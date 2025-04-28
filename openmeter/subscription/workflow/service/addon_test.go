@@ -81,7 +81,44 @@ func TestAddAddon(t *testing.T) {
 	}))
 
 	t.Run("Should error if the subscription is inactive or in wrong state", runWithDeps(func(t *testing.T, deps testCaseDeps) {
-		t.Skip("TODO")
+		p, add := subscriptiontestutils.CreatePlanWithAddon(
+			t,
+			deps.deps,
+			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.BuildAddonForTesting(t,
+				productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+					EffectiveTo:   nil,
+				},
+				productcatalog.AddonInstanceTypeSingle,
+				subscriptiontestutils.ExampleAddonRateCard2.Clone(), // This will add a new item
+				subscriptiontestutils.ExampleAddonRateCard4.Clone(), // This will extend existing items
+			),
+		)
+
+		// Let's create a subscription from the plan
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+		// Let's cancel the subscription
+		_, err := deps.deps.SubscriptionService.Cancel(context.Background(), subView.Subscription.NamespacedID, subscription.Timing{
+			Custom: lo.ToPtr(now.AddDate(0, 1, 0)),
+		})
+		require.NoError(t, err)
+
+		// Let's add an addon to the subscription
+		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add.ID,
+			InitialQuantity: 1,
+			Timing: subscription.Timing{
+				Custom: &now,
+			},
+		}
+
+		_, _, err = deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		require.Error(t, err)
+		require.ErrorAs(t, err, lo.ToPtr(&models.GenericForbiddenError{}))
+		require.True(t, models.IsGenericForbiddenError(err))
+		require.ErrorContains(t, err, "state canceled not allowed")
 	}))
 
 	t.Run("Should add a new addon to a subscription that already has a different addon", runWithDeps(func(t *testing.T, deps testCaseDeps) {
@@ -408,7 +445,56 @@ func TestChangeAddonQuantity(t *testing.T) {
 	}))
 
 	t.Run("Should error if the subscription is inactive or in wrong state", runWithDeps(func(t *testing.T, deps testCaseDeps) {
-		t.Skip("TODO")
+		p, add := subscriptiontestutils.CreatePlanWithAddon(
+			t,
+			deps.deps,
+			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.BuildAddonForTesting(t,
+				productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+					EffectiveTo:   nil,
+				},
+				productcatalog.AddonInstanceTypeMultiple,
+				subscriptiontestutils.ExampleAddonRateCard2.Clone(), // This will add a new item
+				subscriptiontestutils.ExampleAddonRateCard4.Clone(), // This will extend existing items
+			),
+		)
+
+		// Let's create a subscription from the plan
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+		// Let's add an addon to the subscription
+		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add.ID,
+			InitialQuantity: 1,
+			Timing: subscription.Timing{
+				Custom: &now,
+			},
+		}
+
+		_, subAdd, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		require.NoError(t, err)
+
+		// Let's cancel the subscription
+		_, err = deps.deps.SubscriptionService.Cancel(context.Background(), subView.Subscription.NamespacedID, subscription.Timing{
+			Custom: lo.ToPtr(now.AddDate(0, 1, 0)),
+		})
+		require.NoError(t, err)
+
+		// Now let's try to change the quantity of the addon
+		changeInp := subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
+			SubscriptionAddonID: subAdd.NamespacedID,
+			Quantity:            2,
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(now.AddDate(0, 0, 1)),
+			},
+		}
+
+		_, _, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
+		require.Error(t, err)
+		require.ErrorAs(t, err, lo.ToPtr(&models.GenericForbiddenError{}))
+		require.True(t, models.IsGenericForbiddenError(err))
+		require.ErrorContains(t, err, "state canceled not allowed")
 	}))
 
 	t.Run("Should update the quantity of the addon", runWithDeps(func(t *testing.T, deps testCaseDeps) {
