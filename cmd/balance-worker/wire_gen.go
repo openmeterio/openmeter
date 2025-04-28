@@ -66,6 +66,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	eventsConfiguration := conf.Events
 	balanceWorkerConfiguration := conf.BalanceWorker
+	estimatorConfiguration := balanceWorkerConfiguration.Estimator
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
@@ -192,7 +193,30 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher)
 	balanceWorkerEntitlementRepo := common.NewBalanceWorkerEntitlementRepo(client)
 	subjectResolver := common.BalanceWorkerSubjectResolver()
-	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, subjectResolver, logger)
+	notificationConfiguration := conf.Notification
+	v3 := conf.Svix
+	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
+	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v3, featureConnector)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	balanceThresholdEventHandler, err := common.NewNotificationBalanceThresholdEventHandler(notificationService, logger)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, estimatorConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, subjectResolver, balanceThresholdEventHandler, logger)
 	worker, err := common.NewBalanceWorker(workerOptions)
 	if err != nil {
 		cleanup6()
@@ -215,8 +239,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v3, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	group := common.BalanceWorkerGroup(ctx, worker, v3)
+	v4, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	group := common.BalanceWorkerGroup(ctx, worker, v4)
 	runner := common.Runner{
 		Group:  group,
 		Logger: logger,

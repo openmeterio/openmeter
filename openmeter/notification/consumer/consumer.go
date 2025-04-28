@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -25,6 +26,26 @@ type Options struct {
 	Logger *slog.Logger
 }
 
+func (o *Options) Validate() error {
+	if o.Notification == nil {
+		return errors.New("notification is required")
+	}
+
+	if o.Logger == nil {
+		return errors.New("logger is required")
+	}
+
+	if o.SystemEventsTopic == "" {
+		return errors.New("system events topic is required")
+	}
+
+	if o.Marshaler == nil {
+		return errors.New("marshaler is required")
+	}
+
+	return nil
+}
+
 type Consumer struct {
 	opts   Options
 	router *message.Router
@@ -32,10 +53,41 @@ type Consumer struct {
 	balanceThresholdHandler *BalanceThresholdEventHandler
 }
 
-func New(opts Options) (*Consumer, error) {
-	balanceThresholdEventHandler := &BalanceThresholdEventHandler{
+type BalanceThresholdEventHandlerOptions struct {
+	Notification notification.Service
+	Logger       *slog.Logger
+}
+
+func (o *BalanceThresholdEventHandlerOptions) Validate() error {
+	if o.Notification == nil {
+		return errors.New("notification is required")
+	}
+
+	if o.Logger == nil {
+		return errors.New("logger is required")
+	}
+
+	return nil
+}
+
+func NewBalanceThresholdEventHandler(opts BalanceThresholdEventHandlerOptions) (*BalanceThresholdEventHandler, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &BalanceThresholdEventHandler{
 		Notification: opts.Notification,
 		Logger:       opts.Logger.WithGroup("balance_threshold_event_handler"),
+	}, nil
+}
+
+func New(opts Options) (*Consumer, error) {
+	balanceThresholdEventHandler, err := NewBalanceThresholdEventHandler(BalanceThresholdEventHandlerOptions{
+		Notification: opts.Notification,
+		Logger:       opts.Logger.WithGroup("balance_threshold_event_handler"),
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)
