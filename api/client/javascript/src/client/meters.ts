@@ -91,6 +91,31 @@ export class Meters {
   }
 
   /**
+   * Update a meter by ID or slug
+   * @param idOrSlug - The ID or slug of the meter
+   * @param meter - The meter update data
+   * @param options - Optional request options
+   * @returns The updated meter
+   */
+  public async update(
+    idOrSlug: operations['updateMeter']['parameters']['path']['meterIdOrSlug'],
+    meter: operations['updateMeter']['requestBody']['content']['application/json'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.PUT('/api/v1/meters/{meterIdOrSlug}', {
+      body: meter,
+      params: {
+        path: {
+          meterIdOrSlug: idOrSlug,
+        },
+      },
+      ...options,
+    })
+
+    return transformResponse(resp)
+  }
+
+  /**
    * Delete a meter by ID or slug
    * @param idOrSlug - The ID or slug of the meter
    * @param signal - An optional abort signal
