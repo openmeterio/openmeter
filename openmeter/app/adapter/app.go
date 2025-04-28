@@ -256,12 +256,9 @@ func (a *adapter) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.
 					Where(appdb.Namespace(input.AppID.Namespace)).
 					Where(appdb.ID(input.AppID.ID)).
 					SetName(input.Name).
-					SetNillableDescription(input.Description).
+					SetOrClearDescription(input.Description).
+					SetOrClearMetadata(input.Metadata).
 					SetIsDefault(input.Default)
-
-				if input.Metadata != nil {
-					query.SetMetadata(*input.Metadata)
-				}
 
 				_, err = query.Save(ctx)
 				if err != nil {

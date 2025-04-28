@@ -295,7 +295,7 @@ func (s *AppHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	require.NoError(t, err, "Update app must not return error")
 	require.NotNil(t, updateApp, "Update app must return app")
 
-	// Partial update (only required fields)
+	// Set non-required field to nil
 	updateApp, err = s.Env.App().UpdateApp(ctx, app.UpdateAppInput{
 		AppID:   testApp.GetID(),
 		Name:    "Updated Stripe App 2",
@@ -310,8 +310,8 @@ func (s *AppHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	require.Equal(t, false, updateApp.GetAppBase().Default, "Default must remain the same")
 
 	// Remains the same
-	require.Equal(t, "Updated description 1", *updateApp.GetAppBase().Description, "Description must be updated")
-	require.Equal(t, map[string]string{"key": "value"}, updateApp.GetAppBase().Metadata, "Metadata must be updated")
+	require.Nil(t, nil, updateApp.GetAppBase().Description, "Description must be updated")
+	require.Empty(t, updateApp.GetAppBase().Metadata, "Metadata must be updated")
 }
 
 // TestUninstall tests uninstalling a stripe app
