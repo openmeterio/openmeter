@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
+	notificationadapter "github.com/openmeterio/openmeter/openmeter/notification/adapter"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -27,7 +27,7 @@ func NewNotificationService(
 	featureConnector feature.FeatureConnector,
 ) (notification.Service, error) {
 	var notificationRepo notification.Repository
-	notificationRepo, err := notificationrepository.New(notificationrepository.Config{
+	notificationRepo, err := notificationadapter.New(notificationadapter.Config{
 		Client: db,
 		Logger: logger.WithGroup("notification.postgres"),
 	})
