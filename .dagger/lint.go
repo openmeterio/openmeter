@@ -32,10 +32,10 @@ func (m *Lint) All(ctx context.Context) error {
 
 func (m *Lint) Go() *dagger.Container {
 	return dag.GolangciLint(dagger.GolangciLintOpts{
-		Version:     golangciLintVersion,
-		GoContainer: goModuleCross("").Container(),
+		Version:   golangciLintVersion,
+		Container: goModuleCross("").Container(),
+		Cache:     cacheVolume("golangci-lint"),
 	}).
-		WithLinterCache(cacheVolume("golangci-lint")).
 		Run(m.Source, dagger.GolangciLintRunOpts{
 			Verbose: true,
 		})

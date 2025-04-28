@@ -35,7 +35,7 @@ func (m *Openmeter) Release(ctx context.Context, version string, githubActor str
 			}).Release().Create(ctx, version, version, dagger.GhReleaseCreateOpts{
 				Files:         releaseAssets,
 				GenerateNotes: true,
-				Latest:        true,
+				Latest:        dagger.GhLatestLatestTrue,
 				VerifyTag:     true,
 			})
 		},

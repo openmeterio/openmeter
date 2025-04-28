@@ -13,8 +13,8 @@ down: ## Stop the dependencies via docker compose
 .PHONY: update-openapi
 update-openapi: ## Update OpenAPI spec
 	$(call print-target)
-	dagger call --source .:default generate openapi -o ./api/openapi.yaml
-	dagger call --source .:default generate openapicloud -o ./api/openapi.cloud.yaml
+	dagger call generate openapi -o ./api/openapi.yaml
+	dagger call generate openapicloud -o ./api/openapi.cloud.yaml
 	go generate ./api/...
 
 .PHONY: gen-api
@@ -26,7 +26,7 @@ gen-api: update-openapi ## Generate API and SDKs
 .PHONY: migrate-check
 migrate-check: ## Validate migrations
 	$(call print-target)
-	dagger call --source .:default migrate check
+	dagger call migrate check
 
 .PHONY: generate
 generate: ## Generate code
