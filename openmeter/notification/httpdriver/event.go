@@ -35,7 +35,7 @@ func (h *handler) ListEvents() ListEventsHandler {
 			req := ListEventsRequest{
 				Namespaces: []string{ns},
 				Order:      sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
-				OrderBy:    lo.FromPtrOr(params.OrderBy, notification.EventOrderByCreatedAt),
+				OrderBy:    notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationEventOrderByCreatedAt)),
 				Page: pagination.Page{
 					PageSize:   lo.FromPtrOr(params.PageSize, notification.DefaultPageSize),
 					PageNumber: lo.FromPtrOr(params.Page, notification.DefaultPageNumber),

@@ -36,7 +36,7 @@ func (h *handler) ListRules() ListRulesHandler {
 			req := ListRulesRequest{
 				Namespaces:      []string{ns},
 				IncludeDisabled: lo.FromPtrOr(params.IncludeDisabled, notification.DefaultDisabled),
-				OrderBy:         lo.FromPtrOr(params.OrderBy, api.NotificationRuleOrderById),
+				OrderBy:         notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationRuleOrderById)),
 				Order:           sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderASC)),
 				Page: pagination.Page{
 					PageSize:   lo.FromPtrOr(params.PageSize, notification.DefaultPageSize),

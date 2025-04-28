@@ -187,15 +187,6 @@ func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, service Servic
 	return nil
 }
 
-type RuleOrderBy string
-
-const (
-	RuleOrderByID        = api.NotificationRuleOrderById
-	RuleOrderByType      = api.NotificationRuleOrderByType
-	RuleOrderByCreatedAt = api.NotificationRuleOrderByCreatedAt
-	RuleOrderByUpdatedAt = api.NotificationRuleOrderByUpdatedAt
-)
-
 var _ validator = (*ListRulesInput)(nil)
 
 type ListRulesInput struct {
@@ -207,7 +198,7 @@ type ListRulesInput struct {
 	Types           []RuleType
 	Channels        []string
 
-	OrderBy api.NotificationRuleOrderBy
+	OrderBy OrderBy
 	Order   sortx.Order
 }
 

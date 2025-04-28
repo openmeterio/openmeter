@@ -38,13 +38,13 @@ func (r repository) ListChannels(ctx context.Context, params notification.ListCh
 	}
 
 	switch params.OrderBy {
-	case notification.ChannelOrderByCreatedAt:
+	case notification.OrderByCreatedAt:
 		query = query.Order(channeldb.ByCreatedAt(order...))
-	case notification.ChannelOrderByUpdatedAt:
+	case notification.OrderByUpdatedAt:
 		query = query.Order(channeldb.ByUpdatedAt(order...))
-	case notification.ChannelOrderByType:
+	case notification.OrderByType:
 		query = query.Order(channeldb.ByType(order...))
-	case notification.ChannelOrderByID:
+	case notification.OrderByID:
 		fallthrough
 	default:
 		query = query.Order(channeldb.ByID(order...))

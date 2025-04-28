@@ -34,7 +34,7 @@ func (h *handler) ListChannels() ListChannelsHandler {
 			req := ListChannelsRequest{
 				Namespaces:      []string{ns},
 				IncludeDisabled: lo.FromPtrOr(params.IncludeDisabled, notification.DefaultDisabled),
-				OrderBy:         lo.FromPtrOr(params.OrderBy, api.NotificationChannelOrderById),
+				OrderBy:         notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationChannelOrderById)),
 				Order:           sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
 				Page: pagination.Page{
 					PageSize:   lo.FromPtrOr(params.PageSize, notification.DefaultPageSize),

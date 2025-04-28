@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -110,18 +109,6 @@ func (w WebHookChannelConfig) Validate() error {
 	return nil
 }
 
-const (
-	ChannelOrderByID        = api.NotificationChannelOrderById
-	ChannelOrderByType      = api.NotificationChannelOrderByType
-	ChannelOrderByCreatedAt = api.NotificationChannelOrderByCreatedAt
-	ChannelOrderByUpdatedAt = api.NotificationChannelOrderByUpdatedAt
-)
-
-const (
-	ChannelOrderAsc  = sortx.OrderAsc
-	ChannelOrderDesc = sortx.OrderDesc
-)
-
 var _ validator = (*ListChannelsInput)(nil)
 
 type ListChannelsInput struct {
@@ -131,7 +118,7 @@ type ListChannelsInput struct {
 	Channels        []string
 	IncludeDisabled bool
 
-	OrderBy api.NotificationChannelOrderBy
+	OrderBy OrderBy
 	Order   sortx.Order
 }
 

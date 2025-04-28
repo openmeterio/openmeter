@@ -107,7 +107,7 @@ func (b *BalanceThresholdEventHandler) handleRule(ctx context.Context, balSnapsh
 		To:   balSnapshot.Entitlement.CurrentUsagePeriod.To,
 
 		DeduplicationHashes: []string{periodDedupeHash},
-		OrderBy:             notification.EventOrderByCreatedAt,
+		OrderBy:             notification.OrderByCreatedAt,
 		Order:               sortx.OrderDesc,
 	})
 	if err != nil {

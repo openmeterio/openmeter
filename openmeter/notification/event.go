@@ -93,11 +93,6 @@ func (b BalanceThresholdPayload) Validate() error {
 	return nil
 }
 
-const (
-	EventOrderByID        = api.NotificationEventOrderById
-	EventOrderByCreatedAt = api.NotificationEventOrderByCreatedAt
-)
-
 var _ validator = (*ListEventsInput)(nil)
 
 type ListEventsInput struct {
@@ -119,7 +114,7 @@ type ListEventsInput struct {
 
 	DeliveryStatusStates []EventDeliveryStatusState `json:"deliveryStatusStates,omitempty"`
 
-	OrderBy api.NotificationEventOrderBy
+	OrderBy OrderBy
 	Order   sortx.Order
 }
 
@@ -131,9 +126,9 @@ func (i *ListEventsInput) Validate(_ context.Context, _ Service) error {
 	}
 
 	switch i.OrderBy {
-	case EventOrderByID, EventOrderByCreatedAt:
+	case OrderByID, OrderByCreatedAt:
 	case "":
-		i.OrderBy = EventOrderByID
+		i.OrderBy = OrderByID
 	default:
 		return ValidationError{
 			Err: fmt.Errorf("invalid event order_by: %s", i.OrderBy),
@@ -219,8 +214,6 @@ func (e EventDeliveryStatusState) Values() []string {
 		string(EventDeliveryStatusStatePending),
 	}
 }
-
-type EventDeliveryStatusOrderBy string
 
 type EventDeliveryStatus struct {
 	models.NamespacedModel
