@@ -14,7 +14,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/entitlement/edge"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
@@ -54,7 +53,41 @@ type WorkerOptions struct {
 	// External connectors
 	SubjectResolver SubjectResolver
 
+	MetricMeter metric.Meter
+
 	Logger *slog.Logger
+}
+
+func (o *WorkerOptions) Validate() error {
+	if o.Entitlement == nil {
+		return errors.New("entitlement is required")
+	}
+
+	if o.Repo == nil {
+		return errors.New("repo is required")
+	}
+
+	if o.EventBus == nil {
+		return errors.New("event bus is required")
+	}
+
+	if o.Logger == nil {
+		return errors.New("logger is required")
+	}
+
+	if o.SystemEventsTopic == "" {
+		return errors.New("system events topic is required")
+	}
+
+	if o.IngestEventsTopic == "" {
+		return errors.New("ingest events topic is required")
+	}
+
+	if o.MetricMeter == nil {
+		return errors.New("metric meter is required")
+	}
+
+	return nil
 }
 
 type highWatermarkCacheEntry struct {
@@ -77,26 +110,36 @@ type Worker struct {
 	nonPublishingHandler *grouphandler.NoPublishingHandler
 }
 
-func New(opts WorkerOptions) (*Worker, error) {
-	highWatermarkCache, err := lru.New[string, highWatermarkCacheEntry](defaultHighWatermarkCacheSize)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create high watermark cache: %w", err)
-	}
+func (w *Worker) initMetrics() error {
+	var err error
 
-	metricRecalculationTime, err := opts.Router.MetricMeter.Int64Histogram(
+	w.metricRecalculationTime, err = w.opts.MetricMeter.Int64Histogram(
 		metricNameRecalculationTime,
 		metric.WithDescription("Entitlement recalculation time"),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create recalculation time histogram: %w", err)
+		return fmt.Errorf("failed to create recalculation time histogram: %w", err)
 	}
 
-	metricHighWatermarkCacheStats, err := opts.Router.MetricMeter.Int64Counter(
+	w.metricHighWatermarkCacheStats, err = w.opts.MetricMeter.Int64Counter(
 		metricNameHighWatermarkCacheStats,
 		metric.WithDescription("High watermark cache stats"),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create high watermark cache stats counter: %w", err)
+		return fmt.Errorf("failed to create high watermark cache stats counter: %w", err)
+	}
+
+	return nil
+}
+
+func New(opts WorkerOptions) (*Worker, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, fmt.Errorf("failed to validate worker options: %w", err)
+	}
+
+	highWatermarkCache, err := lru.New[string, highWatermarkCacheEntry](defaultHighWatermarkCacheSize)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create high watermark cache: %w", err)
 	}
 
 	worker := &Worker{
@@ -104,9 +147,10 @@ func New(opts WorkerOptions) (*Worker, error) {
 		entitlement:        opts.Entitlement,
 		repo:               opts.Repo,
 		highWatermarkCache: highWatermarkCache,
+	}
 
-		metricRecalculationTime:       metricRecalculationTime,
-		metricHighWatermarkCacheStats: metricHighWatermarkCacheStats,
+	if err := worker.initMetrics(); err != nil {
+		return nil, fmt.Errorf("failed to init metrics: %w", err)
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)
@@ -159,8 +203,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
-					event.CreatedAt,
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
+					WithEventAt(event.CreatedAt),
 				))
 		}),
 
@@ -170,8 +214,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
-					lo.FromPtrOr(event.DeletedAt, time.Now()),
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
+					WithEventAt(lo.FromPtrOr(event.DeletedAt, time.Now())),
 				))
 		}),
 
@@ -182,8 +226,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID),
-					event.CreatedAt,
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
+					WithEventAt(event.CreatedAt),
 				))
 		}),
 
@@ -194,8 +238,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID),
-					event.UpdatedAt,
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
+					WithEventAt(event.UpdatedAt),
 				))
 		}),
 
@@ -206,8 +250,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID),
-					event.ResetRequestedAt,
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID)),
+					WithEventAt(event.ResetRequestedAt),
 				))
 		}),
 
@@ -218,13 +262,6 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 			}
 
 			return w.handleBatchedIngestEvent(ctx, *event)
-		}),
-
-		// Edge Cache Miss Event
-		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *edge.EntitlementCacheMissEvent) error {
-			return w.opts.EventBus.
-				WithContext(ctx).
-				PublishIfNoError(w.handleCacheMissEvent(ctx, event, metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntitySubjectKey, event.SubjectKey)))
 		}),
 	)
 	if err != nil {
