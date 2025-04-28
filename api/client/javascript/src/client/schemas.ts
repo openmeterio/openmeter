@@ -6561,8 +6561,6 @@ export interface components {
        * @description Named JSONPath expressions to extract the group by values from the event data.
        *
        *     Keys must be unique and consist only alphanumeric and underscore characters.
-       *
-       *     TODO: add key format enforcement
        * @example {
        *       "type": "$.type"
        *     }
@@ -6645,8 +6643,6 @@ export interface components {
        * @description Named JSONPath expressions to extract the group by values from the event data.
        *
        *     Keys must be unique and consist only alphanumeric and underscore characters.
-       *
-       *     TODO: add key format enforcement
        * @example {
        *       "type": "$.type"
        *     }
@@ -6776,8 +6772,6 @@ export interface components {
        * @description Named JSONPath expressions to extract the group by values from the event data.
        *
        *     Keys must be unique and consist only alphanumeric and underscore characters.
-       *
-       *     TODO: add key format enforcement
        * @example {
        *       "type": "$.type"
        *     }

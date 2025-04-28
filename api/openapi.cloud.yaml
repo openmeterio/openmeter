@@ -17215,8 +17215,6 @@ components:
             Named JSONPath expressions to extract the group by values from the event data.
 
             Keys must be unique and consist only alphanumeric and underscore characters.
-
-            TODO: add key format enforcement
           example:
             type: $.type
       description: A meter is a configuration that defines how to match and aggregate events.
@@ -17322,8 +17320,6 @@ components:
             Named JSONPath expressions to extract the group by values from the event data.
 
             Keys must be unique and consist only alphanumeric and underscore characters.
-
-            TODO: add key format enforcement
           example:
             type: $.type
       description: A meter create model.
@@ -17466,8 +17462,6 @@ components:
             Named JSONPath expressions to extract the group by values from the event data.
 
             Keys must be unique and consist only alphanumeric and underscore characters.
-
-            TODO: add key format enforcement
           example:
             type: $.type
       description: |-

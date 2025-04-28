@@ -260,8 +260,8 @@ model Meter {
    *
    * Keys must be unique and consist only alphanumeric and underscore characters.
    *
-   * TODO: add key format enforcement
    */
+  // TODO: add key format enforcement
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @example(#{ type: "$.type" })
   groupBy?: Record<string>;
