@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/internal"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -33,12 +34,12 @@ func (h *handler) ListRules() ListRulesHandler {
 
 			req := ListRulesRequest{
 				Namespaces:      []string{ns},
-				IncludeDisabled: defaultx.WithDefault(params.IncludeDisabled, notification.DefaultDisabled),
-				OrderBy:         defaultx.WithDefault(params.OrderBy, api.NotificationRuleOrderById),
-				Order:           sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
+				IncludeDisabled: lo.FromPtrOr(params.IncludeDisabled, notification.DefaultDisabled),
+				OrderBy:         lo.FromPtrOr(params.OrderBy, api.NotificationRuleOrderById),
+				Order:           sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderASC)),
 				Page: pagination.Page{
-					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
-					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
+					PageSize:   lo.FromPtrOr(params.PageSize, notification.DefaultPageSize),
+					PageNumber: lo.FromPtrOr(params.Page, notification.DefaultPageNumber),
 				},
 			}
 

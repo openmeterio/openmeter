@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -55,17 +56,17 @@ func (c Channel) AsNotificationChannel() (api.NotificationChannel, error) {
 func (c Channel) AsNotificationChannelWebhook() api.NotificationChannelWebhook {
 	return api.NotificationChannelWebhook{
 		CreatedAt: c.CreatedAt,
-		CustomHeaders: convert.SafeDeRef(&c.Config.WebHook.CustomHeaders, func(m map[string]string) *map[string]string {
+		CustomHeaders: convert.SafeDeRef(&c.Config.WebHook.CustomHeaders, func(m map[string]string) *map[string]string { // FIXME:
 			if len(m) > 0 {
 				return &m
 			}
 
 			return nil
 		}),
-		Disabled:      convert.ToPointer(c.Disabled),
+		Disabled:      lo.ToPtr(c.Disabled),
 		Id:            c.ID,
 		Name:          c.Name,
-		SigningSecret: convert.ToPointer(c.Config.WebHook.SigningSecret),
+		SigningSecret: lo.ToPtr(c.Config.WebHook.SigningSecret),
 		Type:          api.NotificationChannelWebhookTypeWEBHOOK,
 		UpdatedAt:     c.UpdatedAt,
 		Url:           c.Config.WebHook.URL,
@@ -231,15 +232,15 @@ func (i CreateChannelInput) FromNotificationChannelWebhookCreateRequest(r api.No
 		},
 		Name:     r.Name,
 		Type:     ChannelType(r.Type),
-		Disabled: defaultx.WithDefault(r.Disabled, DefaultDisabled),
+		Disabled: lo.FromPtrOr(r.Disabled, DefaultDisabled),
 		Config: ChannelConfig{
 			ChannelConfigMeta: ChannelConfigMeta{
 				Type: ChannelType(r.Type),
 			},
 			WebHook: WebHookChannelConfig{
-				CustomHeaders: defaultx.WithDefault(r.CustomHeaders, nil),
+				CustomHeaders: lo.FromPtr(r.CustomHeaders),
 				URL:           r.Url,
-				SigningSecret: defaultx.WithDefault(r.SigningSecret, ""),
+				SigningSecret: lo.FromPtr(r.SigningSecret),
 			},
 		},
 	}
@@ -270,15 +271,15 @@ func (i UpdateChannelInput) FromNotificationChannelWebhookCreateRequest(r api.No
 		},
 		Name:     r.Name,
 		Type:     ChannelType(r.Type),
-		Disabled: defaultx.WithDefault(r.Disabled, DefaultDisabled),
+		Disabled: lo.FromPtrOr(r.Disabled, DefaultDisabled),
 		Config: ChannelConfig{
 			ChannelConfigMeta: ChannelConfigMeta{
 				Type: ChannelType(r.Type),
 			},
 			WebHook: WebHookChannelConfig{
-				CustomHeaders: defaultx.WithDefault(r.CustomHeaders, nil),
+				CustomHeaders: lo.FromPtr(r.CustomHeaders),
 				URL:           r.Url,
-				SigningSecret: defaultx.WithDefault(r.SigningSecret, ""),
+				SigningSecret: lo.FromPtr(r.SigningSecret),
 			},
 		},
 		ID: i.ID,

@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -70,7 +71,7 @@ func (r Rule) AsNotificationRuleBalanceThreshold() api.NotificationRuleBalanceTh
 	return api.NotificationRuleBalanceThreshold{
 		Channels:  channels,
 		CreatedAt: r.CreatedAt,
-		Disabled:  convert.ToPointer(r.Disabled),
+		Disabled:  lo.ToPtr(r.Disabled),
 		Features: convert.SafeDeRef(&r.Config.BalanceThreshold.Features, func(featureIDs []string) *[]FeatureMeta {
 			var features []FeatureMeta
 			for _, id := range featureIDs {
@@ -326,13 +327,13 @@ func (i CreateRuleInput) FromNotificationRuleBalanceThresholdCreateRequest(r api
 		},
 		Name:     r.Name,
 		Type:     RuleType(r.Type),
-		Disabled: defaultx.WithDefault(r.Disabled, DefaultDisabled),
+		Disabled: lo.FromPtrOr(r.Disabled, DefaultDisabled),
 		Config: RuleConfig{
 			RuleConfigMeta: RuleConfigMeta{
 				Type: RuleType(r.Type),
 			},
 			BalanceThreshold: BalanceThresholdRuleConfig{
-				Features:   defaultx.WithDefault(r.Features, nil),
+				Features:   lo.FromPtr(r.Features),
 				Thresholds: r.Thresholds,
 			},
 		},
@@ -403,13 +404,13 @@ func (i UpdateRuleInput) FromNotificationRuleBalanceThresholdCreateRequest(r api
 		},
 		Name:     r.Name,
 		Type:     RuleType(r.Type),
-		Disabled: defaultx.WithDefault(r.Disabled, DefaultDisabled),
+		Disabled: lo.FromPtrOr(r.Disabled, DefaultDisabled),
 		Config: RuleConfig{
 			RuleConfigMeta: RuleConfigMeta{
 				Type: RuleType(r.Type),
 			},
 			BalanceThreshold: BalanceThresholdRuleConfig{
-				Features:   defaultx.WithDefault(r.Features, nil),
+				Features:   lo.FromPtr(r.Features),
 				Thresholds: r.Thresholds,
 			},
 		},

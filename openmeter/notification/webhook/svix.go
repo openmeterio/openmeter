@@ -17,7 +17,6 @@ import (
 	"k8s.io/utils/strings/slices"
 
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 )
 
 const (
@@ -601,7 +600,7 @@ func WebhookFromSvixEndpointOut(e *svix.EndpointOut) *Webhook {
 	return &Webhook{
 		ID:          lo.FromPtr(e.Uid),
 		URL:         e.Url,
-		Disabled:    defaultx.WithDefault(e.Disabled, false),
+		Disabled:    lo.FromPtrOr(e.Disabled, false),
 		RateLimit:   e.RateLimit,
 		Description: e.Description,
 		EventTypes:  e.FilterTypes,

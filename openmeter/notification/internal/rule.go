@@ -3,9 +3,10 @@ package internal
 import (
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
 var (
@@ -34,16 +35,16 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 				FeatureId:               "01J5AVN2T6S0RDGJHVNN0BW3F5",
 				FeatureKey:              "test-feature-1",
 				Id:                      "01J5AVNM7H1PT65RDFWGXXPT47",
-				IsSoftLimit:             convert.ToPointer(false),
-				IsUnlimited:             convert.ToPointer(true),
-				IssueAfterReset:         convert.ToPointer(10.0),
-				IssueAfterResetPriority: convert.ToPointer[uint8](5),
+				IsSoftLimit:             lo.ToPtr(false),
+				IsUnlimited:             lo.ToPtr(true),
+				IssueAfterReset:         lo.ToPtr(10.0),
+				IssueAfterResetPriority: lo.ToPtr[uint8](5),
 				LastReset:               time.Time{},
 				MeasureUsageFrom:        time.Time{},
 				Metadata: &map[string]string{
 					"test-metadata-key": "test-metadata-value",
 				},
-				PreserveOverageAtReset: convert.ToPointer(true),
+				PreserveOverageAtReset: lo.ToPtr(true),
 				SubjectKey:             "test-subject-1",
 				Type:                   api.EntitlementMeteredTypeMetered,
 				UpdatedAt:              updatedAt,
@@ -63,30 +64,30 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 					"test-metadata-key": "test-metadata-value",
 				},
 				MeterGroupByFilters: nil,
-				MeterSlug:           convert.ToPointer("test-meter-1"),
+				MeterSlug:           lo.ToPtr("test-meter-1"),
 				Name:                "test-meter-1",
 				UpdatedAt:           updatedAt,
 			},
 			Subject: api.Subject{
-				CurrentPeriodEnd:   convert.ToPointer(from),
-				CurrentPeriodStart: convert.ToPointer(to),
-				DisplayName:        convert.ToPointer("Test Subject 1"),
+				CurrentPeriodEnd:   lo.ToPtr(from),
+				CurrentPeriodStart: lo.ToPtr(to),
+				DisplayName:        lo.ToPtr("Test Subject 1"),
 				Id:                 "01J5AW0ZD6T8624PCK0Q5TYX71",
 				Key:                "test-subject-1",
 				Metadata: &map[string]interface{}{
 					"test-metadata-key": "test-metadata-value",
 				},
-				StripeCustomerId: convert.ToPointer("01J5AW2XS6DYHH7E9PNJSQJ341"),
+				StripeCustomerId: lo.ToPtr("01J5AW2XS6DYHH7E9PNJSQJ341"),
 			},
 			Threshold: api.NotificationRuleBalanceThresholdValue{
 				Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
 				Value: 50,
 			},
 			Value: api.EntitlementValue{
-				Balance:   convert.ToPointer(10_000.0),
+				Balance:   lo.ToPtr(10_000.0),
 				HasAccess: true,
-				Overage:   convert.ToPointer(99.0),
-				Usage:     convert.ToPointer(5_001.0),
+				Overage:   lo.ToPtr(99.0),
+				Usage:     lo.ToPtr(5_001.0),
 			},
 		},
 	}
