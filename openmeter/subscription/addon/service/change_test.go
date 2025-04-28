@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,6 +11,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -65,6 +70,92 @@ func TestAddonServiceChangeQuantity(t *testing.T) {
 		})
 	})
 
+	t.Run("Should validate addon quantity after purchase doesnt exceed maximum quantity", func(t *testing.T) {
+		withDeps(t, func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+			clock.SetTime(now)
+			defer clock.ResetTime()
+
+			planInp := subscriptiontestutils.GetExamplePlanInput(t)
+
+			addonInp := subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
+				EffectiveFrom: lo.ToPtr(now),
+			}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard1)
+
+			_ = deps.FeatureConnector.CreateExampleFeatures(t)
+
+			p, err := deps.PlanService.CreatePlan(context.Background(), planInp)
+			require.Nil(t, err)
+			require.NotNil(t, p)
+
+			add := deps.AddonService.CreateTestAddon(t, addonInp)
+
+			_, err = deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: subscriptiontestutils.ExampleNamespace,
+				},
+				PlanID:        p.ID,
+				AddonID:       add.ID,
+				FromPlanPhase: p.Phases[0].Key,
+				MaxQuantity:   lo.ToPtr(2),
+			})
+			require.Nil(t, err, "received error: %s", err)
+
+			p, err = deps.PlanService.PublishPlan(context.Background(), plan.PublishPlanInput{
+				NamespacedID: p.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: lo.ToPtr(clock.Now()),
+					EffectiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2099-01-01T00:00:00Z")),
+				},
+			})
+			require.Nil(t, err, "received error: %s", err)
+
+			// Let's create a subscription
+			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+			spec1, err := subscription.NewSpecFromPlan(&plansubscription.Plan{
+				Plan: p.AsProductCatalogPlan(),
+				Ref:  &p.NamespacedID,
+			}, subscription.CreateSubscriptionCustomerInput{
+				CustomerId: cust.ID,
+				Currency:   "USD",
+				ActiveFrom: now,
+				Name:       "Test Subscription",
+			})
+			require.Nil(t, err)
+
+			sub, err := deps.SubscriptionService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, spec1)
+			require.Nil(t, err)
+
+			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
+				return rc.ID
+			})
+			require.Len(t, aRCIDs, 1)
+
+			// Now, let's create a SubscriptionAddon
+			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
+				AddonID:        add.ID,
+				SubscriptionID: sub.ID,
+				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
+					ActiveFrom: now,
+					Quantity:   1,
+				},
+			}
+			subAdd, err := deps.SubscriptionAddonService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, subAddonInp)
+			require.Nil(t, err)
+
+			changeTime := testutils.GetRFC3339Time(t, "2025-04-02T00:00:00Z")
+
+			createInp := subscriptionaddon.CreateSubscriptionAddonQuantityInput{
+				ActiveFrom: changeTime,
+				Quantity:   5,
+			}
+
+			_, err = deps.SubscriptionAddonService.ChangeQuantity(context.Background(), subAdd.NamespacedID, createInp)
+			require.Error(t, err)
+			require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
+			require.ErrorContains(t, err, fmt.Sprintf("addon %s@%d can be added a maximum of %d times", add.Key, add.Version, 2))
+		})
+	})
+
 	t.Run("Should update quantity", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 			clock.SetTime(now)
@@ -95,13 +186,27 @@ func createExampleSubscriptionAddon(t *testing.T, deps subscriptiontestutils.Sub
 	clock.SetTime(now)
 	defer clock.ResetTime()
 
-	// Let's create a subscription
-	sub := createExampleSubscription(t, deps, now)
+	p, add := createPlanWithAddon(
+		t,
+		deps,
+		subscriptiontestutils.GetExamplePlanInput(t),
+		subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
+			EffectiveFrom: lo.ToPtr(now),
+		}),
+	)
 
-	// Let's create an add
-	add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
-		EffectiveFrom: lo.ToPtr(now),
-	}))
+	// Let's create a subscription
+	cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+	spec1, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
+		CustomerId: cust.ID,
+		Currency:   "USD",
+		ActiveFrom: now,
+		Name:       "Test Subscription",
+	})
+	require.Nil(t, err)
+
+	sub, err := deps.SubscriptionService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, spec1)
+	require.Nil(t, err)
 
 	aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
 		return rc.ID
@@ -111,7 +216,7 @@ func createExampleSubscriptionAddon(t *testing.T, deps subscriptiontestutils.Sub
 	// Now, let's create a SubscriptionAddon
 	subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
 		AddonID:        add.ID,
-		SubscriptionID: sub.Subscription.ID,
+		SubscriptionID: sub.ID,
 		InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 			ActiveFrom: now,
 			Quantity:   1,

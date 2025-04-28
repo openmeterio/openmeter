@@ -9,10 +9,15 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -23,13 +28,27 @@ func TestAddonServiceGet(t *testing.T) {
 			clock.SetTime(now)
 			defer clock.ResetTime()
 
-			// Let's create a subscription
-			sub := createExampleSubscription(t, deps, now)
+			p, add := createPlanWithAddon(
+				t,
+				deps,
+				subscriptiontestutils.GetExamplePlanInput(t),
+				subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
+					EffectiveFrom: lo.ToPtr(now),
+				}),
+			)
 
-			// Let's create an add
-			add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now),
-			}))
+			// Let's create a subscription
+			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+			spec1, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
+				CustomerId: cust.ID,
+				Currency:   "USD",
+				ActiveFrom: now,
+				Name:       "Test Subscription",
+			})
+			require.Nil(t, err)
+
+			sub, err := deps.SubscriptionService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, spec1)
+			require.Nil(t, err)
 
 			aRCIDs := lo.Map(add.RateCards, func(rc addon.RateCard, _ int) string {
 				return rc.ID
@@ -39,7 +58,7 @@ func TestAddonServiceGet(t *testing.T) {
 			// Now, let's create a SubscriptionAddon
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
 				AddonID:        add.ID,
-				SubscriptionID: sub.Subscription.ID,
+				SubscriptionID: sub.ID,
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 					ActiveFrom: now,
 					Quantity:   1,
@@ -77,13 +96,20 @@ func TestAddonServiceList(t *testing.T) {
 
 			ctx := context.Background()
 
-			// Let's create a subscription
-			sub := createExampleSubscription(t, deps, now)
+			_ = deps.FeatureConnector.CreateExampleFeatures(t)
 
-			// Let's create two addons
+			// Let's create a plan
+
+			p, err := deps.PlanService.CreatePlan(context.Background(), subscriptiontestutils.GetExamplePlanInput(t))
+			require.Nil(t, err)
+			require.NotNil(t, p)
+
+			// And let's create two addons for it
+
 			per := productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 			}
+
 			add1 := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, per))
 
 			aRCIDs1 := lo.Map(add1.RateCards, func(rc addon.RateCard, _ int) string {
@@ -94,24 +120,68 @@ func TestAddonServiceList(t *testing.T) {
 			addInp := subscriptiontestutils.GetExampleAddonInput(t, per)
 			addInp.Addon.AddonMeta.Key = "addon-2"
 
-			addon2, err := deps.AddonService.CreateAddon(ctx, addInp)
+			add2 := deps.AddonService.CreateTestAddon(t, addInp)
 			require.NoError(t, err)
 
-			addon2, err = deps.AddonService.PublishAddon(ctx, addon.PublishAddonInput{
-				NamespacedID:    addon2.NamespacedID,
-				EffectivePeriod: per,
-			})
-			require.NoError(t, err)
-
-			aRCIDs2 := lo.Map(addon2.RateCards, func(rc addon.RateCard, _ int) string {
+			aRCIDs2 := lo.Map(add2.RateCards, func(rc addon.RateCard, _ int) string {
 				return rc.ID
 			})
 			require.Len(t, aRCIDs2, 1)
 
+			// Now let's link both to the plan
+
+			_, err = deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: subscriptiontestutils.ExampleNamespace,
+				},
+				PlanID:        p.ID,
+				AddonID:       add1.ID,
+				FromPlanPhase: p.Phases[0].Key,
+			})
+			require.Nil(t, err, "received error: %s", err)
+
+			_, err = deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: subscriptiontestutils.ExampleNamespace,
+				},
+				PlanID:        p.ID,
+				AddonID:       add2.ID,
+				FromPlanPhase: p.Phases[0].Key,
+			})
+			require.Nil(t, err, "received error: %s", err)
+
+			// Now let's publish the plan
+
+			p, err = deps.PlanService.PublishPlan(context.Background(), plan.PublishPlanInput{
+				NamespacedID: p.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: lo.ToPtr(clock.Now()),
+					EffectiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2099-01-01T00:00:00Z")),
+				},
+			})
+			require.Nil(t, err, "received error: %s", err)
+
+			// Let's create a subscription
+
+			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+			spec1, err := subscription.NewSpecFromPlan(&plansubscription.Plan{
+				Plan: p.AsProductCatalogPlan(),
+				Ref:  &p.NamespacedID,
+			}, subscription.CreateSubscriptionCustomerInput{
+				CustomerId: cust.ID,
+				Currency:   "USD",
+				ActiveFrom: now,
+				Name:       "Test Subscription",
+			})
+			require.Nil(t, err)
+
+			sub, err := deps.SubscriptionService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, spec1)
+			require.Nil(t, err)
+
 			// Let's create a SubscriptionAddon for the first addon
 			subAddonInp := subscriptionaddon.CreateSubscriptionAddonInput{
 				AddonID:        add1.ID,
-				SubscriptionID: sub.Subscription.ID,
+				SubscriptionID: sub.ID,
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 					ActiveFrom: now,
 					Quantity:   1,
@@ -122,8 +192,8 @@ func TestAddonServiceList(t *testing.T) {
 
 			// Let's create a SubscriptionAddon for the second addon
 			subAddonInp2 := subscriptionaddon.CreateSubscriptionAddonInput{
-				AddonID:        addon2.ID,
-				SubscriptionID: sub.Subscription.ID,
+				AddonID:        add2.ID,
+				SubscriptionID: sub.ID,
 				InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 					ActiveFrom: now,
 					Quantity:   1,
@@ -135,7 +205,7 @@ func TestAddonServiceList(t *testing.T) {
 
 			t.Run("Should return all addons for a subscription", func(t *testing.T) {
 				listInp := subscriptionaddon.ListSubscriptionAddonsInput{
-					SubscriptionID: sub.Subscription.ID,
+					SubscriptionID: sub.ID,
 				}
 				resp, err := deps.SubscriptionAddonService.List(ctx, subscriptiontestutils.ExampleNamespace, listInp)
 				require.NoError(t, err)
@@ -148,7 +218,7 @@ func TestAddonServiceList(t *testing.T) {
 
 			t.Run("Should paginate returned addons", func(t *testing.T) {
 				listInp := subscriptionaddon.ListSubscriptionAddonsInput{
-					SubscriptionID: sub.Subscription.ID,
+					SubscriptionID: sub.ID,
 					Page:           pagination.NewPage(1, 1),
 				}
 				resp, err := deps.SubscriptionAddonService.List(ctx, subscriptiontestutils.ExampleNamespace, listInp)

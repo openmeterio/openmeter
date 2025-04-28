@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	subscriptionchangeservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/registry"
@@ -45,6 +46,7 @@ func NewSubscriptionServices(
 	entitlementRegistry *registry.Entitlement,
 	customerService customer.Service,
 	planService plan.Service,
+	planAddonService planaddon.Service,
 	addonService addon.Service,
 	eventPublisher eventbus.Publisher,
 ) (SubscriptionServiceWithWorkflow, error) {
@@ -73,12 +75,13 @@ func NewSubscriptionServices(
 	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(db)
 
 	subAddSvc := subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
-		TxManager:     subAddRepo,
-		Logger:        logger,
-		AddonService:  addonService,
-		SubService:    subscriptionService,
-		SubAddRepo:    subAddRepo,
-		SubAddQtyRepo: subAddQtyRepo,
+		TxManager:        subAddRepo,
+		Logger:           logger,
+		AddonService:     addonService,
+		SubService:       subscriptionService,
+		SubAddRepo:       subAddRepo,
+		SubAddQtyRepo:    subAddQtyRepo,
+		PlanAddonService: planAddonService,
 	})
 
 	subscriptionWorkflowService := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{

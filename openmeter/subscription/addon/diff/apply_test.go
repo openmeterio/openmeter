@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -46,12 +47,22 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should return a no-op when there's no quantities listed", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
-			_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
+			p, a := subscriptiontestutils.CreatePlanWithAddon(
+				t,
+				deps.deps,
+				subscriptiontestutils.GetExamplePlanInput(t),
+				subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+					EffectiveTo:   nil,
+				}),
+			)
 
-			_, subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
-				EffectiveFrom: &now,
-				EffectiveTo:   nil,
-			}))
+			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
+				ActiveFrom: now,
+				ActiveTo:   nil,
+			})
 
 			// Let's manually overwrite the quantity, it will be fine now
 			subsAdd.Quantities = timeutil.NewTimeline([]timeutil.Timed[subscriptionaddon.SubscriptionAddonQuantity]{})
@@ -65,9 +76,10 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should add the new item to the subscription", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
-			_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
-
-			_, subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID,
+			p, a := subscriptiontestutils.CreatePlanWithAddon(
+				t,
+				deps.deps,
+				subscriptiontestutils.GetExamplePlanInput(t),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					productcatalog.EffectivePeriod{
 						EffectiveFrom: &now,
@@ -77,6 +89,13 @@ func TestApply(t *testing.T) {
 					subscriptiontestutils.ExampleAddonRateCard2.Clone(),
 				),
 			)
+
+			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
+				ActiveFrom: now,
+				ActiveTo:   nil,
+			})
 
 			diffable, err := addondiff.GetDiffableFromAddon(subView, subsAdd)
 			require.NoError(t, err)
@@ -117,9 +136,10 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should add multiple instances of new item to the subscription", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
-			_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
-
-			_, subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID,
+			p, a := subscriptiontestutils.CreatePlanWithAddon(
+				t,
+				deps.deps,
+				subscriptiontestutils.GetExamplePlanInput(t),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					productcatalog.EffectivePeriod{
 						EffectiveFrom: &now,
@@ -129,6 +149,13 @@ func TestApply(t *testing.T) {
 					subscriptiontestutils.ExampleAddonRateCard3.Clone(),
 				),
 			)
+
+			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
+				ActiveFrom: now,
+				ActiveTo:   nil,
+			})
 
 			// Let's just overwrite the quantity, it will be fine now
 			val := subsAdd.Quantities.GetAt(0).GetValue()
@@ -181,20 +208,28 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should add item for defined cadence of the addon", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
-			_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.GetExamplePlanInput(t), now)
-
 			effPer := productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now.AddDate(0, 0, 3)),
-				EffectiveTo:   lo.ToPtr(now.AddDate(0, 1, 8)),
+				EffectiveFrom: lo.ToPtr(now),
 			}
 
-			_, subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID,
+			p, a := subscriptiontestutils.CreatePlanWithAddon(
+				t,
+				deps.deps,
+				subscriptiontestutils.GetExamplePlanInput(t),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
 					productcatalog.AddonInstanceTypeSingle,
 					subscriptiontestutils.ExampleAddonRateCard3.Clone(),
 				),
 			)
+
+			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+			subAddCadence := models.CadencedModel{
+				ActiveFrom: now.AddDate(0, 0, 3),
+				ActiveTo:   lo.ToPtr(now.AddDate(0, 1, 8)),
+			}
+			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, subAddCadence)
 
 			diffable, err := addondiff.GetDiffableFromAddon(subView, subsAdd)
 			require.NoError(t, err)
@@ -233,11 +268,11 @@ func TestApply(t *testing.T) {
 				// Now lets be exact on how this should look
 				switch pIdx {
 				case 0:
-					require.True(t, cad.ActiveFrom.Equal(*effPer.EffectiveFrom))
+					require.True(t, cad.ActiveFrom.Equal(subAddCadence.ActiveFrom))
 					require.True(t, cad.ActiveTo.Equal(*pCad.ActiveTo))
 				case 1:
 					require.True(t, cad.ActiveFrom.Equal(pCad.ActiveFrom))
-					require.True(t, cad.ActiveTo.Equal(*effPer.EffectiveTo))
+					require.True(t, cad.ActiveTo.Equal(*subAddCadence.ActiveTo))
 				}
 			}
 		})
@@ -245,23 +280,31 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should update an existing Item that fills its entire phase", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
-			_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.BuildTestPlan(t).
-				AddPhase(lo.ToPtr(testutils.GetISODuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
-				Build(), now)
-
 			effPer := productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now.AddDate(0, 0, 0)),
 				EffectiveTo:   nil,
 			}
 
-			_, subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID,
+			p, a := subscriptiontestutils.CreatePlanWithAddon(
+				t,
+				deps.deps,
+				subscriptiontestutils.BuildTestPlan(t).
+					AddPhase(lo.ToPtr(testutils.GetISODuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
 					productcatalog.AddonInstanceTypeSingle,
 					subscriptiontestutils.ExampleAddonRateCard4.Clone(),
 				),
 			)
+
+			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
+				ActiveFrom: *effPer.EffectiveFrom,
+				ActiveTo:   effPer.EffectiveTo,
+			})
 
 			diffable, err := addondiff.GetDiffableFromAddon(subView, subsAdd)
 			require.NoError(t, err)
@@ -293,23 +336,31 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should partially update an existing item in accordance with the cadence", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
-			_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.BuildTestPlan(t).
-				AddPhase(lo.ToPtr(testutils.GetISODuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
-				Build(), now)
-
 			effPer := productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now.AddDate(0, 0, 5)),
 				EffectiveTo:   nil,
 			}
 
-			_, subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID,
+			p, a := subscriptiontestutils.CreatePlanWithAddon(
+				t,
+				deps.deps,
+				subscriptiontestutils.BuildTestPlan(t).
+					AddPhase(lo.ToPtr(testutils.GetISODuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
 					productcatalog.AddonInstanceTypeSingle,
 					subscriptiontestutils.ExampleAddonRateCard4.Clone(),
 				),
 			)
+
+			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
+				ActiveFrom: *effPer.EffectiveFrom,
+				ActiveTo:   effPer.EffectiveTo,
+			})
 
 			diffable, err := addondiff.GetDiffableFromAddon(subView, subsAdd)
 			require.NoError(t, err)
@@ -351,23 +402,31 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should partially update an existing item in accordance with the cadence - but for multi instance", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
-			_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.BuildTestPlan(t).
-				AddPhase(lo.ToPtr(testutils.GetISODuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
-				Build(), now)
-
 			effPer := productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now.AddDate(0, 0, 5)),
 				EffectiveTo:   nil,
 			}
 
-			_, subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID,
+			p, a := subscriptiontestutils.CreatePlanWithAddon(
+				t,
+				deps.deps,
+				subscriptiontestutils.BuildTestPlan(t).
+					AddPhase(lo.ToPtr(testutils.GetISODuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
 					productcatalog.AddonInstanceTypeSingle,
 					subscriptiontestutils.ExampleAddonRateCard4.Clone(),
 				),
 			)
+
+			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
+				ActiveFrom: *effPer.EffectiveFrom,
+				ActiveTo:   effPer.EffectiveTo,
+			})
 
 			// Lets just overwrite the quantity, it will be fine now
 			val := subsAdd.Quantities.GetAt(0).GetValue()
@@ -437,10 +496,6 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should guarantee access is continuous across changing items", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
-			_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.BuildTestPlan(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
-				Build(), now)
-
 			t0 := now
 			clock.FreezeTime(t0)
 
@@ -454,21 +509,34 @@ func TestApply(t *testing.T) {
 
 			t4 := t3.AddDate(0, 0, 9)
 
-			_, err := deps.deps.SubscriptionService.GetView(context.Background(), subView.Subscription.NamespacedID)
-			require.NoError(t, err)
-
 			effPer := productcatalog.EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(t1),
-				EffectiveTo:   lo.ToPtr(t4),
+				EffectiveFrom: &now,
 			}
 
-			_, subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID,
+			subAddCadence := models.CadencedModel{
+				ActiveFrom: t1,
+				ActiveTo:   lo.ToPtr(t4),
+			}
+
+			p, a := subscriptiontestutils.CreatePlanWithAddon(
+				t,
+				deps.deps,
+				subscriptiontestutils.BuildTestPlan(t).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
 					productcatalog.AddonInstanceTypeSingle,
 					subscriptiontestutils.ExampleAddonRateCard4.Clone(),
 				),
 			)
+
+			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+			_, err := deps.deps.SubscriptionService.GetView(context.Background(), subView.Subscription.NamespacedID)
+			require.NoError(t, err)
+
+			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, subAddCadence)
 
 			diffable, err := addondiff.GetDiffableFromAddon(subView, subsAdd)
 			require.NoError(t, err)
@@ -552,21 +620,32 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should create multiple rate cards in the addon", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
-			_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.BuildTestPlan(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
-				Build(), now)
-
+			// we'll reuse this for subsadd cadence too
 			effPer := productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 				EffectiveTo:   nil,
 			}
 
-			_, subAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, subscriptiontestutils.BuildAddonForTesting(t,
-				effPer,
-				productcatalog.AddonInstanceTypeMultiple,
-				subscriptiontestutils.ExampleAddonRateCard4.Clone(),
-				subscriptiontestutils.ExampleAddonRateCard3.Clone(),
-			))
+			pl, a := subscriptiontestutils.CreatePlanWithAddon(
+				t,
+				deps.deps,
+				subscriptiontestutils.BuildTestPlan(t).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					Build(),
+				subscriptiontestutils.BuildAddonForTesting(t,
+					effPer,
+					productcatalog.AddonInstanceTypeMultiple,
+					subscriptiontestutils.ExampleAddonRateCard4.Clone(),
+					subscriptiontestutils.ExampleAddonRateCard3.Clone(),
+				),
+			)
+
+			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, pl, now)
+
+			subAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
+				ActiveFrom: *effPer.EffectiveFrom,
+				ActiveTo:   effPer.EffectiveTo,
+			})
 
 			diffable, err := addondiff.GetDiffableFromAddon(subView, subAdd)
 			require.NoError(t, err)
@@ -632,10 +711,6 @@ func TestApplyWithMultiInstance(t *testing.T) {
 
 	t.Run("Should create items in phase according to quantities", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
-			_, subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, subscriptiontestutils.BuildTestPlan(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
-				Build(), now)
-
 			t0 := now
 
 			t1 := t0.AddDate(0, 0, 1)
@@ -647,11 +722,22 @@ func TestApplyWithMultiInstance(t *testing.T) {
 				EffectiveTo:   nil,
 			}
 
-			_, subAdd := subscriptiontestutils.CreateMultiInstanceAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, subscriptiontestutils.BuildAddonForTesting(t,
-				effPer,
-				productcatalog.AddonInstanceTypeMultiple,
-				subscriptiontestutils.ExampleAddonRateCard4.Clone(),
-			), []subscriptionaddon.CreateSubscriptionAddonQuantityInput{
+			pl, a := subscriptiontestutils.CreatePlanWithAddon(
+				t,
+				deps.deps,
+				subscriptiontestutils.BuildTestPlan(t).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					Build(),
+				subscriptiontestutils.BuildAddonForTesting(t,
+					effPer,
+					productcatalog.AddonInstanceTypeMultiple,
+					subscriptiontestutils.ExampleAddonRateCard4.Clone(),
+				),
+			)
+
+			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, pl, now)
+
+			subAdd := subscriptiontestutils.CreateMultiInstanceAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, []subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 				{
 					ActiveFrom: t1,
 					Quantity:   1,

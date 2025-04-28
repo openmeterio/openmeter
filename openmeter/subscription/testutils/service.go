@@ -18,6 +18,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	planaddonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
+	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -49,6 +52,7 @@ type SubscriptionDependencies struct {
 	WorkflowService          subscriptionworkflow.Service
 	SubscriptionAddonService subscriptionaddon.Service
 	AddonService             *testAddonService
+	PlanAddonService         planaddon.Service
 }
 
 func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
@@ -141,16 +145,31 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	})
 	require.NoError(t, err)
 
+	planAddonRepo, err := planaddonrepo.New(planaddonrepo.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger,
+	})
+	require.NoError(t, err)
+
+	planAddonService, err := planaddonservice.New(planaddonservice.Config{
+		Adapter:   planAddonRepo,
+		Logger:    logger,
+		Plan:      planService,
+		Addon:     addonService,
+		Publisher: publisher,
+	})
+	require.NoError(t, err)
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(dbDeps.DBClient)
 	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(dbDeps.DBClient)
 
 	subAddSvc := subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
-		TxManager:     subItemRepo,
-		Logger:        logger,
-		AddonService:  addonService,
-		SubService:    svc,
-		SubAddRepo:    subAddRepo,
-		SubAddQtyRepo: subAddQtyRepo,
+		TxManager:        subItemRepo,
+		Logger:           logger,
+		AddonService:     addonService,
+		SubService:       svc,
+		SubAddRepo:       subAddRepo,
+		SubAddQtyRepo:    subAddQtyRepo,
+		PlanAddonService: planAddonService,
 	})
 
 	workflowSvc := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
@@ -174,5 +193,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		EntitlementRegistry:      entitlementRegistry,
 		SubscriptionAddonService: subAddSvc,
 		AddonService:             NewTestAddonService(addonService),
+		PlanAddonService:         planAddonService,
 	}
 }

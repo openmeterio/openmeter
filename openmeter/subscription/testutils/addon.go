@@ -45,6 +45,7 @@ var ExampleAddonRateCard1 = productcatalog.FlatFeeRateCard{
 		Name:        "Test Addon Rate Card 1",
 		Description: lo.ToPtr("Test Addon Rate Card 1 Description"),
 		Key:         ExampleFeatureKey,
+		FeatureKey:  lo.ToPtr(ExampleFeatureKey),
 	},
 	BillingCadence: &ISOMonth,
 }

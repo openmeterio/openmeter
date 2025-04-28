@@ -1013,39 +1013,60 @@ func TestEditCombinations(t *testing.T) {
 	}
 
 	t.Run("Should error on edit if subscription has addons purchased", func(t *testing.T) {
-		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
-			subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
-				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
-					Timing: subscription.Timing{
-						Custom: &deps.CurrentTime,
-					},
-					Name: "Example Subscription",
-				},
-				CustomerID: deps.Customer.ID,
-				Namespace:  subscriptiontestutils.ExampleNamespace,
-			}, deps.Plan1)
-			require.Nil(t, err)
+		now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
 
-			_, _ = subscriptiontestutils.CreateAddonForSubscription(t, deps.SubsDeps, subView.Subscription.NamespacedID, subscriptiontestutils.BuildAddonForTesting(t,
+		clock.SetTime(now)
+
+		// Let's build the dependencies
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		require.NotNil(t, dbDeps)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+
+		p, add := subscriptiontestutils.CreatePlanWithAddon(
+			t,
+			deps,
+			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
-					EffectiveFrom: &deps.CurrentTime,
+					EffectiveFrom: &now,
 					EffectiveTo:   nil,
 				},
 				productcatalog.AddonInstanceTypeSingle,
-				subscriptiontestutils.ExampleAddonRateCard2.Clone(),
-				subscriptiontestutils.ExampleAddonRateCard4.Clone(),
-			))
+				subscriptiontestutils.ExampleAddonRateCard2.Clone(), // This will add a new item
+				subscriptiontestutils.ExampleAddonRateCard4.Clone(), // This will extend existing items
+			),
+		)
 
-			_, err = deps.WorkflowService.EditRunning(context.Background(), subView.Subscription.NamespacedID, []subscription.Patch{
-				patch.PatchRemoveItem{
-					PhaseKey: "test_phase_1",
-					ItemKey:  subscriptiontestutils.ExampleFeatureKey,
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{
+					Custom: &now,
 				},
-			}, immediate)
-			require.Error(t, err)
-			require.ErrorAs(t, err, lo.ToPtr(&models.GenericForbiddenError{}))
-			require.True(t, models.IsGenericForbiddenError(err))
+				Name: "Example Subscription",
+			},
+			CustomerID: cust.ID,
+			Namespace:  subscriptiontestutils.ExampleNamespace,
+		}, p)
+		require.Nil(t, err)
+
+		_ = subscriptiontestutils.CreateAddonForSubscription(t, &deps, subView.Subscription.NamespacedID, add.NamespacedID, models.CadencedModel{
+			ActiveFrom: now,
+			ActiveTo:   nil,
 		})
+
+		_, err = deps.WorkflowService.EditRunning(context.Background(), subView.Subscription.NamespacedID, []subscription.Patch{
+			patch.PatchRemoveItem{
+				PhaseKey: "test_phase_1",
+				ItemKey:  subscriptiontestutils.ExampleFeatureKey,
+			},
+		}, immediate)
+		require.Error(t, err)
+		require.ErrorAs(t, err, lo.ToPtr(&models.GenericForbiddenError{}))
+		require.True(t, models.IsGenericForbiddenError(err))
 	})
 
 	t.Run("Should be able to cancel an edited subscription", func(t *testing.T) {
