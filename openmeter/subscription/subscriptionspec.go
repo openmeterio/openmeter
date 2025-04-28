@@ -803,7 +803,9 @@ func (s *SubscriptionItemSpec) SyncAnnotations() error {
 	if met.EntitlementTemplate != nil && met.EntitlementTemplate.Type() == entitlement.EntitlementTypeBoolean {
 		count := AnnotationParser.GetBooleanEntitlementCount(s.Annotations)
 		if count == 0 {
-			AnnotationParser.SetBooleanEntitlementCount(s.Annotations, 1)
+			if _, err := AnnotationParser.SetBooleanEntitlementCount(s.Annotations, 1); err != nil {
+				return fmt.Errorf("failed to set boolean entitlement count: %w", err)
+			}
 		}
 	}
 
@@ -920,7 +922,9 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 			createSubscriptionItemPlanInput := rateCard.ToCreateSubscriptionItemPlanInput()
 
 			annotations := models.Annotations{}
-			AnnotationParser.AddOwnerSubSystem(annotations, OwnerSubscriptionSubSystem)
+			if _, err := AnnotationParser.AddOwnerSubSystem(annotations, OwnerSubscriptionSubSystem); err != nil {
+				return spec, fmt.Errorf("failed to add owner system to rate card %s of phase %s of %s: %w", rateCard.GetKey(), phase.PhaseKey, planRefName, err)
+			}
 
 			itemSpec := SubscriptionItemSpec{
 				CreateSubscriptionItemInput: CreateSubscriptionItemInput{

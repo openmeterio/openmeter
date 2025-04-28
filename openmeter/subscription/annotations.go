@@ -1,6 +1,8 @@
 package subscription
 
 import (
+	"errors"
+
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -53,20 +55,20 @@ func (a annotationParser) ListOwnerSubSystems(annotations models.Annotations) []
 	return systemsStr
 }
 
-func (a annotationParser) AddOwnerSubSystem(annotations models.Annotations, system string) models.Annotations {
+func (a annotationParser) AddOwnerSubSystem(annotations models.Annotations, system string) (models.Annotations, error) {
 	if annotations == nil {
-		annotations = models.Annotations{}
+		return nil, errors.New("annotations are nil")
 	}
 
 	systems := a.ListOwnerSubSystems(annotations)
 	if lo.Contains(systems, system) {
-		return annotations
+		return annotations, nil
 	}
 
 	systems = append(systems, system)
 	annotations[AnnotationOwnerSubSystem] = systems
 
-	return annotations
+	return annotations, nil
 }
 
 func (a annotationParser) GetBooleanEntitlementCount(annotations models.Annotations) int {
@@ -88,7 +90,10 @@ func (a annotationParser) GetBooleanEntitlementCount(annotations models.Annotati
 	return countInt
 }
 
-func (a annotationParser) SetBooleanEntitlementCount(annotations models.Annotations, count int) models.Annotations {
+func (a annotationParser) SetBooleanEntitlementCount(annotations models.Annotations, count int) (models.Annotations, error) {
+	if annotations == nil {
+		return nil, errors.New("annotations are nil")
+	}
 	annotations[AnnotationBooleanEntitlementCount] = count
-	return annotations
+	return annotations, nil
 }

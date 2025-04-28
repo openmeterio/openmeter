@@ -64,11 +64,17 @@ func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard, annotat
 			case tMeta.EntitlementTemplate == nil:
 				m.EntitlementTemplate = aMeta.EntitlementTemplate
 				if aMeta.EntitlementTemplate.Type() == entitlement.EntitlementTypeBoolean {
-					subscription.AnnotationParser.SetBooleanEntitlementCount(annotations, 1)
+					if _, err := subscription.AnnotationParser.SetBooleanEntitlementCount(annotations, 1); err != nil {
+						return m, err
+					}
 				}
 			case tMeta.EntitlementTemplate.Type().String() == entitlement.EntitlementTypeBoolean.String():
+				var err error
 				count := subscription.AnnotationParser.GetBooleanEntitlementCount(annotations)
-				annotations = subscription.AnnotationParser.SetBooleanEntitlementCount(annotations, count+1)
+				annotations, err = subscription.AnnotationParser.SetBooleanEntitlementCount(annotations, count+1)
+				if err != nil {
+					return m, err
+				}
 			case tMeta.EntitlementTemplate.Type().String() == entitlement.EntitlementTypeMetered.String():
 				tMetered, _ := tMeta.EntitlementTemplate.AsMetered()
 				aMetered, _ := aMeta.EntitlementTemplate.AsMetered()
@@ -151,7 +157,9 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annot
 					m.EntitlementTemplate = nil
 				}
 
-				subscription.AnnotationParser.SetBooleanEntitlementCount(annotations, count-1)
+				if _, err := subscription.AnnotationParser.SetBooleanEntitlementCount(annotations, count-1); err != nil {
+					return m, err
+				}
 			case tMeta.EntitlementTemplate.Type().String() == entitlement.EntitlementTypeMetered.String():
 				tMetered, _ := tMeta.EntitlementTemplate.AsMetered()
 				aMetered, _ := aMeta.EntitlementTemplate.AsMetered()

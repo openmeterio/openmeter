@@ -566,7 +566,9 @@ func TestExtendRestore(t *testing.T) {
 		}
 
 		ann := models.Annotations{}
-		subscription.AnnotationParser.SetBooleanEntitlementCount(ann, -1)
+		if _, err := subscription.AnnotationParser.SetBooleanEntitlementCount(ann, -1); err != nil {
+			t.Fatalf("failed to set boolean entitlement count: %s", err)
+		}
 
 		err := rc.Restore(target, ann)
 
@@ -587,7 +589,9 @@ func TestExtendRestore(t *testing.T) {
 		}
 
 		ann := models.Annotations{}
-		subscription.AnnotationParser.SetBooleanEntitlementCount(ann, 0)
+		if _, err := subscription.AnnotationParser.SetBooleanEntitlementCount(ann, 0); err != nil {
+			t.Fatalf("failed to set boolean entitlement count: %s", err)
+		}
 
 		err := rc.Restore(target, ann)
 
@@ -608,7 +612,9 @@ func TestExtendRestore(t *testing.T) {
 		}
 
 		ann := models.Annotations{}
-		subscription.AnnotationParser.SetBooleanEntitlementCount(ann, 1)
+		if _, err := subscription.AnnotationParser.SetBooleanEntitlementCount(ann, 1); err != nil {
+			t.Fatalf("failed to set boolean entitlement count: %s", err)
+		}
 
 		err := rc.Restore(target, ann)
 
@@ -629,7 +635,9 @@ func TestExtendRestore(t *testing.T) {
 		}
 
 		ann := models.Annotations{}
-		subscription.AnnotationParser.SetBooleanEntitlementCount(ann, 2)
+		if _, err := subscription.AnnotationParser.SetBooleanEntitlementCount(ann, 2); err != nil {
+			t.Fatalf("failed to set boolean entitlement count: %s", err)
+		}
 
 		err := rc.Restore(target, ann)
 
