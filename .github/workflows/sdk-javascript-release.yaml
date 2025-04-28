@@ -9,7 +9,7 @@ on:
     branches:
       - main
 env:
-  DAGGER_VERSION: 0.15.3
+  DAGGER_VERSION: 0.18.5
 
 jobs:
   generate:
