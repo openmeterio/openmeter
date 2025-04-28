@@ -1,16 +1,18 @@
 {
   "name": "openmeter",
-  "engineVersion": "v0.15.3",
-  "sdk": "go",
-  "exclude": [
-    ".devenv",
-    ".direnv",
-    ".github",
-    ".vscode",
-    "api/client/javascript/node_modules",
-    "tmp",
-    "go.work",
-    "go.work.sum"
+  "engineVersion": "v0.18.5",
+  "sdk": {
+    "source": "go"
+  },
+  "include": [
+    "!.devenv",
+    "!.direnv",
+    "!.github",
+    "!.vscode",
+    "!api/client/javascript/node_modules",
+    "!tmp",
+    "!go.work",
+    "!go.work.sum"
   ],
   "dependencies": [
     {
@@ -84,18 +86,5 @@
       "pin": "691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     }
   ],
-  "source": ".dagger",
-  "views": [
-    {
-      "name": "default",
-      "patterns": [
-        "!.devenv",
-        "!.direnv",
-        "!.github",
-        "!.vscode",
-        "!api/client/javascript/node_modules",
-        "!tmp"
-      ]
-    }
-  ]
+  "source": ".dagger"
 }
