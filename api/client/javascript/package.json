@@ -40,6 +40,17 @@
         "default": "./dist/src/react/context.js"
       },
       "default": "./dist/src/react/context.js"
+    },
+    "./zod": {
+      "import": {
+        "types": "./dist/src/zod/index.d.ts",
+        "default": "./dist/src/zod/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/src/zod/index.d.cts",
+        "default": "./dist/cjs/src/zod/index.cjs"
+      },
+      "default": "./dist/src/zod/index.js"
     }
   },
   "type": "module",
@@ -50,7 +61,7 @@
     "lint": "eslint . --format=pretty",
     "format": "prettier --write .",
     "build": "duel",
-    "generate": "node --experimental-strip-types scripts/generate.ts && prettier --write src/client/schemas.ts",
+    "generate": "tsx scripts/generate.ts && prettier --write ./src/client/schemas.ts && orval && eslint ./src/zod/index.ts --fix",
     "pretest": "pnpm run build",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
@@ -79,12 +90,15 @@
     "eslint-plugin-vitest": "0.5.4",
     "fetch-mock": "12.5.2",
     "openapi-typescript": "7.6.1",
+    "orval": "7.9.0",
     "prettier": "3.5.3",
     "react": "19.1.0",
     "rollup": "4.40.0",
     "tslib": "2.8.1",
+    "tsx": "4.19.3",
     "typescript": "5.8.3",
-    "vitest": "3.1.2"
+    "vitest": "3.1.2",
+    "zod": "3.24.3"
   },
   "browserslist": [
     "current node"
@@ -96,7 +110,7 @@
   "peerDependencies": {
     "react": ">=18.0.0"
   },
-  "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92",
+  "packageManager": "pnpm@10.10.0+sha512.d615db246fe70f25dcfea6d8d73dee782ce23e2245e3c4f6f888249fb568149318637dca73c2c5c8ef2a4ca0d5657fb9567188bfab47f566d1ee6ce987815c39",
   "pnpm": {
     "patchedDependencies": {
       "openapi-typescript": "patches/openapi-typescript.patch"
