@@ -72,14 +72,14 @@ func (h *Handler) HandleCancelledEvent(ctx context.Context, event *subscription.
 
 // HandleInvoiceCreation is a handler for the invoice creation event, it will make sure that
 // we are backfilling the items consumed by invoice creation into the gathering invoice.
-func (h *Handler) HandleInvoiceCreation(ctx context.Context, invoice billing.EventInvoice) error {
-	if invoice.Status == billing.InvoiceStatusGathering {
+func (h *Handler) HandleInvoiceCreation(ctx context.Context, event billing.EventInvoice) error {
+	if event.Invoice.Status == billing.InvoiceStatusGathering {
 		return nil
 	}
 
 	affectedSubscriptions := lo.Uniq(
 		lo.Map(
-			lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
+			lo.Filter(event.Invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
 				return line.Status == billing.InvoiceLineStatusValid &&
 					line.Subscription != nil
 			}),
@@ -90,7 +90,7 @@ func (h *Handler) HandleInvoiceCreation(ctx context.Context, invoice billing.Eve
 
 	for _, subscriptionID := range affectedSubscriptions {
 		subsView, err := h.subscriptionService.GetView(ctx, models.NamespacedID{
-			Namespace: invoice.Namespace,
+			Namespace: event.Invoice.Namespace,
 			ID:        subscriptionID,
 		})
 		if err != nil {
