@@ -44,13 +44,8 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			)
 		}
 
-		// Eager load DeliveryStatus, Rules (including Channels)
 		if len(params.DeliveryStatusStates) > 0 {
-			query = query.WithDeliveryStatuses(func(query *entdb.NotificationEventDeliveryStatusQuery) {
-				query.Where(statusdb.StateIn(params.DeliveryStatusStates...))
-			})
-		} else {
-			query = query.WithDeliveryStatuses()
+			query = query.Where(eventdb.HasDeliveryStatusesWith(statusdb.StateIn(params.DeliveryStatusStates...)))
 		}
 
 		if len(params.Features) > 0 {
@@ -79,9 +74,11 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			query = query.Where(eventdb.HasRulesWith(ruledb.HasChannelsWith(channeldb.IDIn(params.Channels...))))
 		}
 
-		query = query.WithRules(func(query *entdb.NotificationRuleQuery) {
-			query.WithChannels()
-		})
+		query = query.
+			WithRules(func(query *entdb.NotificationRuleQuery) {
+				query.WithChannels()
+			}).
+			WithDeliveryStatuses()
 
 		order := entutils.GetOrdering(sortx.OrderDesc)
 		if !params.Order.IsDefaultValue() {
