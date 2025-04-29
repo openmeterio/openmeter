@@ -235,43 +235,6 @@ func (p PlanMeta) Status() PlanStatus {
 
 // StatusAt returns the plan status relative to time t.
 func (p PlanMeta) StatusAt(t time.Time) PlanStatus {
-	from := p.EffectiveFrom
-	to := p.EffectiveTo
-
-	switch {
-	case from == nil && to == nil:
-		return PlanStatusDraft
-	case from != nil && to == nil:
-		if from.Before(t) {
-			return PlanStatusActive
-		}
-
-		return PlanStatusScheduled
-	case from == nil && to != nil:
-		if to.Before(t) {
-			return PlanStatusArchived
-		}
-
-		return PlanStatusActive
-	case from != nil && to != nil:
-		if from.Before(t) && to.After(t) {
-			return PlanStatusActive
-		}
-
-		if from.After(t) && to.After(t) {
-			return PlanStatusScheduled
-		}
-
-		if from.Before(t) && to.Before(t) {
-			return PlanStatusArchived
-		}
-	}
-
-	return PlanStatusInvalid
-}
-
-// StatusAt returns the plan status relative to time t.
-func (p PlanMeta) StatusAt2(t time.Time) PlanStatus {
 	from := lo.FromPtr(p.EffectiveFrom)
 	to := lo.FromPtr(p.EffectiveTo)
 
