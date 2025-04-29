@@ -211,7 +211,7 @@ func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEve
 		}
 
 		if _, err = ruleRow.Edges.ChannelsOrErr(); err != nil {
-			return nil, fmt.Errorf("invalid query result: failed to load notification chnnaels for rule: %w", err)
+			return nil, fmt.Errorf("invalid query result: failed to load notification channels for rule: %w", err)
 		}
 
 		eventRow.Edges.Rules = ruleRow
