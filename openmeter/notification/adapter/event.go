@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func (r repository) ListEvents(ctx context.Context, params notification.ListEventsInput) (pagination.PagedResponse[notification.Event], error) {
+func (r adapter) ListEvents(ctx context.Context, params notification.ListEventsInput) (pagination.PagedResponse[notification.Event], error) {
 	db := r.client()
 
 	query := db.NotificationEvent.Query()
@@ -128,7 +128,7 @@ func (r repository) ListEvents(ctx context.Context, params notification.ListEven
 	return response, nil
 }
 
-func (r repository) GetEvent(ctx context.Context, params notification.GetEventInput) (*notification.Event, error) {
+func (r adapter) GetEvent(ctx context.Context, params notification.GetEventInput) (*notification.Event, error) {
 	db := r.client()
 
 	query := db.NotificationEvent.Query().
@@ -163,7 +163,7 @@ func (r repository) GetEvent(ctx context.Context, params notification.GetEventIn
 	return event, nil
 }
 
-func (r repository) CreateEvent(ctx context.Context, params notification.CreateEventInput) (*notification.Event, error) {
+func (r adapter) CreateEvent(ctx context.Context, params notification.CreateEventInput) (*notification.Event, error) {
 	payloadJSON, err := json.Marshal(params.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize notification event payload: %w", err)
@@ -250,7 +250,7 @@ func (r repository) CreateEvent(ctx context.Context, params notification.CreateE
 	return event, nil
 }
 
-func (r repository) ListEventsDeliveryStatus(ctx context.Context, params notification.ListEventsDeliveryStatusInput) (pagination.PagedResponse[notification.EventDeliveryStatus], error) {
+func (r adapter) ListEventsDeliveryStatus(ctx context.Context, params notification.ListEventsDeliveryStatusInput) (pagination.PagedResponse[notification.EventDeliveryStatus], error) {
 	db := r.client()
 
 	query := db.NotificationEventDeliveryStatus.Query()
@@ -304,7 +304,7 @@ func (r repository) ListEventsDeliveryStatus(ctx context.Context, params notific
 	return response, nil
 }
 
-func (r repository) GetEventDeliveryStatus(ctx context.Context, params notification.GetEventDeliveryStatusInput) (*notification.EventDeliveryStatus, error) {
+func (r adapter) GetEventDeliveryStatus(ctx context.Context, params notification.GetEventDeliveryStatusInput) (*notification.EventDeliveryStatus, error) {
 	db := r.client()
 
 	query := db.NotificationEventDeliveryStatus.Query().
@@ -331,7 +331,7 @@ func (r repository) GetEventDeliveryStatus(ctx context.Context, params notificat
 	return EventDeliveryStatusFromDBEntity(*queryRow), nil
 }
 
-func (r repository) UpdateEventDeliveryStatus(ctx context.Context, params notification.UpdateEventDeliveryStatusInput) (*notification.EventDeliveryStatus, error) {
+func (r adapter) UpdateEventDeliveryStatus(ctx context.Context, params notification.UpdateEventDeliveryStatusInput) (*notification.EventDeliveryStatus, error) {
 	var updateQuery *entdb.NotificationEventDeliveryStatusUpdateOne
 
 	db := r.client()

@@ -32,22 +32,22 @@ func New(config Config) (notification.Repository, error) {
 		return nil, err
 	}
 
-	return &repository{
+	return &adapter{
 		db:     config.Client,
 		logger: config.Logger,
 	}, nil
 }
 
-var _ notification.Repository = (*repository)(nil)
+var _ notification.Repository = (*adapter)(nil)
 
-type repository struct {
+type adapter struct {
 	db *entdb.Client
 	tx *entdb.Tx
 
 	logger *slog.Logger
 }
 
-func (r repository) Commit() error {
+func (r adapter) Commit() error {
 	if r.tx != nil {
 		return r.tx.Commit()
 	}
@@ -55,7 +55,7 @@ func (r repository) Commit() error {
 	return nil
 }
 
-func (r repository) Rollback() error {
+func (r adapter) Rollback() error {
 	if r.tx != nil {
 		return r.tx.Rollback()
 	}
@@ -63,7 +63,7 @@ func (r repository) Rollback() error {
 	return nil
 }
 
-func (r repository) client() *entdb.Client {
+func (r adapter) client() *entdb.Client {
 	if r.tx != nil {
 		return r.tx.Client()
 	}
@@ -71,7 +71,7 @@ func (r repository) client() *entdb.Client {
 	return r.db
 }
 
-func (r repository) WithTx(ctx context.Context) (notification.TxRepository, error) {
+func (r adapter) WithTx(ctx context.Context) (notification.TxRepository, error) {
 	if r.tx != nil {
 		return r, nil
 	}
@@ -81,7 +81,7 @@ func (r repository) WithTx(ctx context.Context) (notification.TxRepository, erro
 		return nil, fmt.Errorf("failed to create transaction: %w", err)
 	}
 
-	return &repository{
+	return &adapter{
 		db:     r.db,
 		tx:     tx,
 		logger: r.logger,

@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func (r repository) ListRules(ctx context.Context, params notification.ListRulesInput) (pagination.PagedResponse[notification.Rule], error) {
+func (r adapter) ListRules(ctx context.Context, params notification.ListRulesInput) (pagination.PagedResponse[notification.Rule], error) {
 	db := r.client()
 
 	query := db.NotificationRule.Query().
@@ -87,7 +87,7 @@ func (r repository) ListRules(ctx context.Context, params notification.ListRules
 	return response, nil
 }
 
-func (r repository) CreateRule(ctx context.Context, params notification.CreateRuleInput) (*notification.Rule, error) {
+func (r adapter) CreateRule(ctx context.Context, params notification.CreateRuleInput) (*notification.Rule, error) {
 	db := r.client()
 
 	query := db.NotificationRule.Create().
@@ -121,7 +121,7 @@ func (r repository) CreateRule(ctx context.Context, params notification.CreateRu
 	return RuleFromDBEntity(*queryRow), nil
 }
 
-func (r repository) DeleteRule(ctx context.Context, params notification.DeleteRuleInput) error {
+func (r adapter) DeleteRule(ctx context.Context, params notification.DeleteRuleInput) error {
 	db := r.client()
 
 	query := db.NotificationRule.UpdateOneID(params.ID).
@@ -146,7 +146,7 @@ func (r repository) DeleteRule(ctx context.Context, params notification.DeleteRu
 	return nil
 }
 
-func (r repository) GetRule(ctx context.Context, params notification.GetRuleInput) (*notification.Rule, error) {
+func (r adapter) GetRule(ctx context.Context, params notification.GetRuleInput) (*notification.Rule, error) {
 	db := r.client()
 
 	query := db.NotificationRule.Query().
@@ -175,7 +175,7 @@ func (r repository) GetRule(ctx context.Context, params notification.GetRuleInpu
 	return RuleFromDBEntity(*ruleRow), nil
 }
 
-func (r repository) UpdateRule(ctx context.Context, params notification.UpdateRuleInput) (*notification.Rule, error) {
+func (r adapter) UpdateRule(ctx context.Context, params notification.UpdateRuleInput) (*notification.Rule, error) {
 	db := r.client()
 
 	query := db.NotificationRule.UpdateOneID(params.ID).

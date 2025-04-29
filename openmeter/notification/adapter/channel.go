@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func (r repository) ListChannels(ctx context.Context, params notification.ListChannelsInput) (pagination.PagedResponse[notification.Channel], error) {
+func (r adapter) ListChannels(ctx context.Context, params notification.ListChannelsInput) (pagination.PagedResponse[notification.Channel], error) {
 	db := r.client()
 
 	query := db.NotificationChannel.Query().
@@ -75,7 +75,7 @@ func (r repository) ListChannels(ctx context.Context, params notification.ListCh
 	return response, nil
 }
 
-func (r repository) CreateChannel(ctx context.Context, params notification.CreateChannelInput) (*notification.Channel, error) {
+func (r adapter) CreateChannel(ctx context.Context, params notification.CreateChannelInput) (*notification.Channel, error) {
 	db := r.client()
 
 	query := db.NotificationChannel.Create().
@@ -97,7 +97,7 @@ func (r repository) CreateChannel(ctx context.Context, params notification.Creat
 	return ChannelFromDBEntity(*channel), nil
 }
 
-func (r repository) DeleteChannel(ctx context.Context, params notification.DeleteChannelInput) error {
+func (r adapter) DeleteChannel(ctx context.Context, params notification.DeleteChannelInput) error {
 	db := r.client()
 
 	query := db.NotificationChannel.UpdateOneID(params.ID).
@@ -121,7 +121,7 @@ func (r repository) DeleteChannel(ctx context.Context, params notification.Delet
 	return nil
 }
 
-func (r repository) GetChannel(ctx context.Context, params notification.GetChannelInput) (*notification.Channel, error) {
+func (r adapter) GetChannel(ctx context.Context, params notification.GetChannelInput) (*notification.Channel, error) {
 	db := r.client()
 
 	query := db.NotificationChannel.Query().
@@ -149,7 +149,7 @@ func (r repository) GetChannel(ctx context.Context, params notification.GetChann
 	return ChannelFromDBEntity(*queryRow), nil
 }
 
-func (r repository) UpdateChannel(ctx context.Context, params notification.UpdateChannelInput) (*notification.Channel, error) {
+func (r adapter) UpdateChannel(ctx context.Context, params notification.UpdateChannelInput) (*notification.Channel, error) {
 	db := r.client()
 
 	query := db.NotificationChannel.UpdateOneID(params.ID).
