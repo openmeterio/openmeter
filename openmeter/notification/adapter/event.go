@@ -1,4 +1,4 @@
-package repository
+package adapter
 
 import (
 	"context"
@@ -90,9 +90,9 @@ func (r repository) ListEvents(ctx context.Context, params notification.ListEven
 	}
 
 	switch params.OrderBy {
-	case notification.EventOrderByID:
+	case notification.OrderByID:
 		query = query.Order(eventdb.ByID(order...))
-	case notification.EventOrderByCreatedAt:
+	case notification.OrderByCreatedAt:
 		fallthrough
 	default:
 		query = query.Order(eventdb.ByCreatedAt(order...))

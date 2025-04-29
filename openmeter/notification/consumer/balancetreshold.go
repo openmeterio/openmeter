@@ -20,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -108,7 +107,7 @@ func (b *BalanceThresholdEventHandler) handleRule(ctx context.Context, balSnapsh
 		To:   balSnapshot.Entitlement.CurrentUsagePeriod.To,
 
 		DeduplicationHashes: []string{periodDedupeHash},
-		OrderBy:             notification.EventOrderByCreatedAt,
+		OrderBy:             notification.OrderByCreatedAt,
 		Order:               sortx.OrderDesc,
 	})
 	if err != nil {
@@ -237,7 +236,7 @@ func (b *BalanceThresholdEventHandler) isBalanceThresholdEvent(event snapshot.Sn
 // if we need to send a new notification.
 func (b *BalanceThresholdEventHandler) getPeriodsDeduplicationHash(snapshot snapshot.SnapshotEvent, ruleID string) string {
 	// Note: this should not happen, but let's be safe here
-	currentUsagePeriod := defaultx.WithDefault(
+	currentUsagePeriod := lo.FromPtrOr(
 		snapshot.Entitlement.CurrentUsagePeriod, timeutil.ClosedPeriod{
 			From: time.Time{},
 			To:   time.Time{},
@@ -251,7 +250,7 @@ func (b *BalanceThresholdEventHandler) getPeriodsDeduplicationHash(snapshot snap
 		snapshot.Subject.Key,
 		snapshot.Entitlement.ID,
 		snapshot.Feature.ID,
-		defaultx.WithDefault(snapshot.Entitlement.MeasureUsageFrom, time.Time{}).UTC().Format(time.RFC3339),
+		lo.FromPtrOr(snapshot.Entitlement.MeasureUsageFrom, time.Time{}).UTC().Format(time.RFC3339),
 	}, "/")
 
 	h := sha256.New()
@@ -274,7 +273,7 @@ type balanceThreshold struct {
 }
 
 func getTotalGrantsFromValue(value api.EntitlementValue) float64 {
-	return *value.Balance + *value.Usage - defaultx.WithDefault(value.Overage, 0)
+	return *value.Balance + *value.Usage - lo.FromPtrOr(value.Overage, 0)
 }
 
 func getBalanceThreshold(threshold notification.BalanceThreshold, eValue api.EntitlementValue) (balanceThreshold, error) {

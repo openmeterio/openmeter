@@ -2,13 +2,14 @@ package httpdriver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
-	"time"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -33,18 +34,18 @@ func (h *handler) ListEvents() ListEventsHandler {
 
 			req := ListEventsRequest{
 				Namespaces: []string{ns},
-				Order:      sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderDESC)),
-				OrderBy:    defaultx.WithDefault(params.OrderBy, notification.EventOrderByCreatedAt),
+				Order:      sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
+				OrderBy:    notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationEventOrderByCreatedAt)),
 				Page: pagination.Page{
-					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
-					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
+					PageSize:   lo.FromPtrOr(params.PageSize, notification.DefaultPageSize),
+					PageNumber: lo.FromPtrOr(params.Page, notification.DefaultPageNumber),
 				},
-				Subjects: defaultx.WithDefault(params.Subject, nil),
-				Features: defaultx.WithDefault(params.Feature, nil),
-				Rules:    defaultx.WithDefault(params.Rule, nil),
-				Channels: defaultx.WithDefault(params.Channel, nil),
-				From:     defaultx.WithDefault(params.From, time.Time{}),
-				To:       defaultx.WithDefault(params.To, time.Time{}),
+				Subjects: lo.FromPtr(params.Subject),
+				Features: lo.FromPtr(params.Feature),
+				Rules:    lo.FromPtr(params.Rule),
+				Channels: lo.FromPtr(params.Channel),
+				From:     lo.FromPtr(params.From),
+				To:       lo.FromPtr(params.To),
 			}
 
 			return req, nil
@@ -60,7 +61,7 @@ func (h *handler) ListEvents() ListEventsHandler {
 			for _, event := range resp.Items {
 				var item api.NotificationEvent
 
-				item, err = event.AsNotificationEvent()
+				item, err = FromEvent(event)
 				if err != nil {
 					return ListEventsResponse{}, fmt.Errorf("failed to cast event: %w", err)
 				}
@@ -113,7 +114,11 @@ func (h *handler) GetEvent() GetEventHandler {
 				return GetEventResponse{}, fmt.Errorf("failed to get event: %w", err)
 			}
 
-			return event.AsNotificationEvent()
+			if event == nil {
+				return GetEventResponse{}, errors.New("failed to create test event: nil event returned")
+			}
+
+			return FromEvent(*event)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetEventResponse](http.StatusOK),
 		httptransport.AppendOptions(

@@ -5,79 +5,17 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
-	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-type channelObjectMapper interface {
-	AsNotificationChannelWebhook() api.NotificationChannelWebhook
-}
-
-var _ channelObjectMapper = (*Channel)(nil)
-
-// Channel represents a notification channel with specific type and configuration.
-type Channel struct {
-	models.NamespacedModel
-	models.ManagedModel
-
-	// ID is the unique identifier for Channel.
-	ID string `json:"id"`
-	// Type of the notification channel (e.g. webhook)
-	Type ChannelType `json:"type"`
-	// Name of is the user provided name of the Channel.
-	Name string `json:"name"`
-	// Disabled defines whether the Channel is disabled or not.
-	Disabled bool `json:"disabled"`
-	// Config stores the actual Channel configuration specific to the Type.
-	Config ChannelConfig `json:"config"`
-}
-
-func (c Channel) AsNotificationChannel() (api.NotificationChannel, error) {
-	var channel api.NotificationChannel
-
-	switch c.Type {
-	case ChannelTypeWebhook:
-		channel = c.AsNotificationChannelWebhook()
-	default:
-		return channel, ValidationError{
-			Err: fmt.Errorf("invalid channel type: %s", c.Type),
-		}
-	}
-
-	return channel, nil
-}
-
-func (c Channel) AsNotificationChannelWebhook() api.NotificationChannelWebhook {
-	return api.NotificationChannelWebhook{
-		CreatedAt: c.CreatedAt,
-		CustomHeaders: convert.SafeDeRef(&c.Config.WebHook.CustomHeaders, func(m map[string]string) *map[string]string {
-			if len(m) > 0 {
-				return &m
-			}
-
-			return nil
-		}),
-		Disabled:      convert.ToPointer(c.Disabled),
-		Id:            c.ID,
-		Name:          c.Name,
-		SigningSecret: convert.ToPointer(c.Config.WebHook.SigningSecret),
-		Type:          api.NotificationChannelWebhookTypeWEBHOOK,
-		UpdatedAt:     c.UpdatedAt,
-		Url:           c.Config.WebHook.URL,
-		DeletedAt:     c.DeletedAt,
-	}
-}
-
 const (
-	ChannelTypeWebhook = ChannelType(api.NotificationChannelTypeWebhook)
+	ChannelTypeWebhook ChannelType = "WEBHOOK"
 )
 
-type ChannelType api.NotificationChannelType
+type ChannelType string
 
 func (t ChannelType) Values() []string {
 	return []string{
@@ -94,6 +32,23 @@ func (t ChannelType) Validate() error {
 			Err: fmt.Errorf("invalid channel type: %s", t),
 		}
 	}
+}
+
+// Channel represents a notification channel with specific type and configuration.
+type Channel struct {
+	models.NamespacedModel
+	models.ManagedModel
+
+	// ID is the unique identifier for Channel.
+	ID string `json:"id"`
+	// Type of the notification channel (e.g. webhook)
+	Type ChannelType `json:"type"`
+	// Name of is the user provided name of the Channel.
+	Name string `json:"name"`
+	// Disabled defines whether the Channel is disabled or not.
+	Disabled bool `json:"disabled"`
+	// Config stores the actual Channel configuration specific to the Type.
+	Config ChannelConfig `json:"config"`
 }
 
 type ChannelConfigMeta struct {
@@ -154,18 +109,6 @@ func (w WebHookChannelConfig) Validate() error {
 	return nil
 }
 
-const (
-	ChannelOrderByID        = api.NotificationChannelOrderById
-	ChannelOrderByType      = api.NotificationChannelOrderByType
-	ChannelOrderByCreatedAt = api.NotificationChannelOrderByCreatedAt
-	ChannelOrderByUpdatedAt = api.NotificationChannelOrderByUpdatedAt
-)
-
-const (
-	ChannelOrderAsc  = sortx.OrderAsc
-	ChannelOrderDesc = sortx.OrderDesc
-)
-
 var _ validator = (*ListChannelsInput)(nil)
 
 type ListChannelsInput struct {
@@ -175,7 +118,7 @@ type ListChannelsInput struct {
 	Channels        []string
 	IncludeDisabled bool
 
-	OrderBy api.NotificationChannelOrderBy
+	OrderBy OrderBy
 	Order   sortx.Order
 }
 
@@ -224,27 +167,6 @@ func (i CreateChannelInput) Validate(_ context.Context, _ Service) error {
 	return nil
 }
 
-func (i CreateChannelInput) FromNotificationChannelWebhookCreateRequest(r api.NotificationChannelWebhookCreateRequest) CreateChannelInput {
-	return CreateChannelInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: i.Namespace,
-		},
-		Name:     r.Name,
-		Type:     ChannelType(r.Type),
-		Disabled: defaultx.WithDefault(r.Disabled, DefaultDisabled),
-		Config: ChannelConfig{
-			ChannelConfigMeta: ChannelConfigMeta{
-				Type: ChannelType(r.Type),
-			},
-			WebHook: WebHookChannelConfig{
-				CustomHeaders: defaultx.WithDefault(r.CustomHeaders, nil),
-				URL:           r.Url,
-				SigningSecret: defaultx.WithDefault(r.SigningSecret, ""),
-			},
-		},
-	}
-}
-
 var _ validator = (*UpdateChannelInput)(nil)
 
 type UpdateChannelInput struct {
@@ -261,28 +183,6 @@ type UpdateChannelInput struct {
 
 	// ID is the unique identifier for Channel.
 	ID string
-}
-
-func (i UpdateChannelInput) FromNotificationChannelWebhookCreateRequest(r api.NotificationChannelWebhookCreateRequest) UpdateChannelInput {
-	return UpdateChannelInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: i.Namespace,
-		},
-		Name:     r.Name,
-		Type:     ChannelType(r.Type),
-		Disabled: defaultx.WithDefault(r.Disabled, DefaultDisabled),
-		Config: ChannelConfig{
-			ChannelConfigMeta: ChannelConfigMeta{
-				Type: ChannelType(r.Type),
-			},
-			WebHook: WebHookChannelConfig{
-				CustomHeaders: defaultx.WithDefault(r.CustomHeaders, nil),
-				URL:           r.Url,
-				SigningSecret: defaultx.WithDefault(r.SigningSecret, ""),
-			},
-		},
-		ID: i.ID,
-	}
 }
 
 func (i UpdateChannelInput) Validate(_ context.Context, _ Service) error {

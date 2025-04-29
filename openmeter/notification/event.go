@@ -2,23 +2,13 @@ package notification
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/samber/lo"
-
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
-
-type payloadObjectMapper interface {
-	AsNotificationEventBalanceThresholdPayload() api.NotificationEventBalanceThresholdPayload
-}
-
-var _ payloadObjectMapper = (*Event)(nil)
 
 type Event struct {
 	models.NamespacedModel
@@ -27,6 +17,7 @@ type Event struct {
 	// ID is the unique identifier for Event.
 	ID string `json:"id"`
 	// Type of the notification Event (e.g. entitlements.balance.threshold)
+	// TODO(chrisgacsal): this is redundant as it is always the same as the payload type. Deprecate this field.
 	Type EventType `json:"type"`
 	// CreatedAt Timestamp when the notification event was created.
 	CreatedAt time.Time `json:"createdAt"`
@@ -40,96 +31,11 @@ type Event struct {
 	HandlerDeduplicationHash string `json:"-"`
 }
 
-func (e Event) AsNotificationEvent() (api.NotificationEvent, error) {
-	var err error
-
-	var rule api.NotificationRule
-	rule, err = e.Rule.AsNotificationRule()
-	if err != nil {
-		return api.NotificationEvent{}, fmt.Errorf("failed to cast notification rule: %w", err)
-	}
-
-	// Populate ChannelMeta in EventDeliveryStatus from Even.Rule.Channels as we only store Channel.ID in database
-	// for EventDeliveryStatus objects.
-	channelsByID := make(map[string]Channel, len(e.Rule.Channels))
-	for _, channel := range e.Rule.Channels {
-		channelsByID[channel.ID] = channel
-	}
-
-	deliveryStatuses := make([]api.NotificationEventDeliveryStatus, 0, len(e.DeliveryStatus))
-	for _, deliveryStatus := range e.DeliveryStatus {
-		status := api.NotificationEventDeliveryStatus{
-			Channel: ChannelMeta{
-				Id: deliveryStatus.ChannelID,
-			},
-			State:     api.NotificationEventDeliveryStatusState(deliveryStatus.State),
-			UpdatedAt: deliveryStatus.UpdatedAt,
-		}
-		if channel, ok := channelsByID[deliveryStatus.ChannelID]; ok {
-			status.Channel = api.NotificationChannelMeta{
-				Id:   deliveryStatus.ChannelID,
-				Type: api.NotificationChannelType(channel.Type),
-			}
-		}
-
-		deliveryStatuses = append(deliveryStatuses, status)
-	}
-
-	var annotations api.Annotations
-	if len(e.Annotations) > 0 {
-		annotations = make(api.Annotations)
-		for k, v := range e.Annotations {
-			annotations[k] = v
-		}
-	}
-
-	event := api.NotificationEvent{
-		CreatedAt:      e.CreatedAt,
-		DeliveryStatus: deliveryStatuses,
-		Id:             e.ID,
-		Rule:           rule,
-		Annotations:    lo.EmptyableToPtr(annotations),
-	}
-
-	switch e.Type {
-	case EventTypeBalanceThreshold:
-		event.Type = api.NotificationEventTypeEntitlementsBalanceThreshold
-		event.Payload = e.AsNotificationEventBalanceThresholdPayload()
-	default:
-		return event, ValidationError{
-			Err: fmt.Errorf("invalid event type: %s", e.Type),
-		}
-	}
-
-	return event, nil
-}
-
-func (e Event) AsNotificationEventBalanceThresholdPayload() api.NotificationEventBalanceThresholdPayload {
-	return api.NotificationEventBalanceThresholdPayload{
-		Id:        e.ID,
-		Timestamp: e.CreatedAt,
-		Type:      api.NotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
-		Data: struct {
-			Entitlement api.EntitlementMetered                    `json:"entitlement"`
-			Feature     api.Feature                               `json:"feature"`
-			Subject     api.Subject                               `json:"subject"`
-			Threshold   api.NotificationRuleBalanceThresholdValue `json:"threshold"`
-			Value       api.EntitlementValue                      `json:"value"`
-		}{
-			Value:       e.Payload.BalanceThreshold.Value,
-			Entitlement: e.Payload.BalanceThreshold.Entitlement,
-			Feature:     e.Payload.BalanceThreshold.Feature,
-			Subject:     e.Payload.BalanceThreshold.Subject,
-			Threshold:   e.Payload.BalanceThreshold.Threshold,
-		},
-	}
-}
-
 const (
-	EventTypeBalanceThreshold = EventType(api.NotificationEventTypeEntitlementsBalanceThreshold)
+	EventTypeBalanceThreshold EventType = "entitlements.balance.threshold"
 )
 
-type EventType api.NotificationEventType
+type EventType string
 
 func (t EventType) Validate() error {
 	switch t {
@@ -145,87 +51,6 @@ func (t EventType) Values() []string {
 		string(EventTypeBalanceThreshold),
 	}
 }
-
-type EventPayloadMeta struct {
-	Type EventType `json:"type"`
-}
-
-func (m EventPayloadMeta) Validate() error {
-	return m.Type.Validate()
-}
-
-// EventPayload is a union type capturing payload for all EventType of Events.
-type EventPayload struct {
-	EventPayloadMeta
-
-	// Balance Threshold
-	BalanceThreshold BalanceThresholdPayload `json:"balanceThreshold"`
-}
-
-func (p EventPayload) Validate() error {
-	switch p.Type {
-	case EventTypeBalanceThreshold:
-		return p.BalanceThreshold.Validate()
-	default:
-		return ValidationError{
-			Err: fmt.Errorf("invalid event type: %s", p.Type),
-		}
-	}
-}
-
-func (p EventPayload) FromNotificationEventBalanceThresholdPayload(r api.NotificationEventBalanceThresholdPayload) EventPayload {
-	return EventPayload{
-		EventPayloadMeta: EventPayloadMeta{
-			Type: EventType(r.Type),
-		},
-		BalanceThreshold: BalanceThresholdPayload{
-			Entitlement: r.Data.Entitlement,
-			Feature:     r.Data.Feature,
-			Subject:     r.Data.Subject,
-			Value:       r.Data.Value,
-			Threshold:   r.Data.Threshold,
-		},
-	}
-}
-
-func (p EventPayload) AsNotificationEventBalanceThresholdPayload(eventId string, ts time.Time) api.NotificationEventBalanceThresholdPayload {
-	return api.NotificationEventBalanceThresholdPayload{
-		Data: struct {
-			Entitlement api.EntitlementMetered                    `json:"entitlement"`
-			Feature     api.Feature                               `json:"feature"`
-			Subject     api.Subject                               `json:"subject"`
-			Threshold   api.NotificationRuleBalanceThresholdValue `json:"threshold"`
-			Value       api.EntitlementValue                      `json:"value"`
-		}{
-			Entitlement: p.BalanceThreshold.Entitlement,
-			Feature:     p.BalanceThreshold.Feature,
-			Subject:     p.BalanceThreshold.Subject,
-			Threshold:   p.BalanceThreshold.Threshold,
-			Value:       p.BalanceThreshold.Value,
-		},
-		Id:        eventId,
-		Timestamp: ts,
-		Type:      api.NotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
-	}
-}
-
-type BalanceThresholdPayload struct {
-	Entitlement api.EntitlementMetered                    `json:"entitlement"`
-	Feature     api.Feature                               `json:"feature"`
-	Subject     api.Subject                               `json:"subject"`
-	Threshold   api.NotificationRuleBalanceThresholdValue `json:"threshold"`
-	Value       api.EntitlementValue                      `json:"value"`
-}
-
-// Validate returns an error if balance threshold payload is invalid.
-func (b BalanceThresholdPayload) Validate() error {
-	return nil
-}
-
-const (
-	EventOrderByID        = api.NotificationEventOrderById
-	EventOrderByCreatedAt = api.NotificationEventOrderByCreatedAt
-)
 
 var _ validator = (*ListEventsInput)(nil)
 
@@ -248,7 +73,7 @@ type ListEventsInput struct {
 
 	DeliveryStatusStates []EventDeliveryStatusState `json:"deliveryStatusStates,omitempty"`
 
-	OrderBy api.NotificationEventOrderBy
+	OrderBy OrderBy
 	Order   sortx.Order
 }
 
@@ -260,9 +85,9 @@ func (i *ListEventsInput) Validate(_ context.Context, _ Service) error {
 	}
 
 	switch i.OrderBy {
-	case EventOrderByID, EventOrderByCreatedAt:
+	case OrderByID, OrderByCreatedAt:
 	case "":
-		i.OrderBy = EventOrderByID
+		i.OrderBy = OrderByID
 	default:
 		return ValidationError{
 			Err: fmt.Errorf("invalid event order_by: %s", i.OrderBy),
@@ -321,10 +146,10 @@ func (i CreateEventInput) Validate(ctx context.Context, service Service) error {
 }
 
 const (
-	EventDeliveryStatusStateSuccess = EventDeliveryStatusState(api.NotificationEventDeliveryStatusStateSuccess)
-	EventDeliveryStatusStateFailed  = EventDeliveryStatusState(api.NotificationEventDeliveryStatusStateFailed)
-	EventDeliveryStatusStateSending = EventDeliveryStatusState(api.NotificationEventDeliveryStatusStateSending)
-	EventDeliveryStatusStatePending = EventDeliveryStatusState(api.NotificationEventDeliveryStatusStatePending)
+	EventDeliveryStatusStateSuccess EventDeliveryStatusState = "SUCCESS"
+	EventDeliveryStatusStateFailed  EventDeliveryStatusState = "FAILED"
+	EventDeliveryStatusStateSending EventDeliveryStatusState = "SENDING"
+	EventDeliveryStatusStatePending EventDeliveryStatusState = "PENDING"
 )
 
 type EventDeliveryStatusState string
@@ -348,8 +173,6 @@ func (e EventDeliveryStatusState) Values() []string {
 		string(EventDeliveryStatusStatePending),
 	}
 }
-
-type EventDeliveryStatusOrderBy string
 
 type EventDeliveryStatus struct {
 	models.NamespacedModel
@@ -465,18 +288,4 @@ func (i UpdateEventDeliveryStatusInput) Validate(_ context.Context, _ Service) e
 	}
 
 	return nil
-}
-
-func PayloadToMapInterface(t any) (map[string]interface{}, error) {
-	b, err := json.Marshal(t)
-	if err != nil {
-		return nil, err
-	}
-
-	var m map[string]interface{}
-	if err = json.Unmarshal(b, &m); err != nil {
-		return nil, err
-	}
-
-	return m, nil
 }

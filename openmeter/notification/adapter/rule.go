@@ -1,4 +1,4 @@
-package repository
+package adapter
 
 import (
 	"context"
@@ -50,13 +50,13 @@ func (r repository) ListRules(ctx context.Context, params notification.ListRules
 	}
 
 	switch params.OrderBy {
-	case notification.RuleOrderByCreatedAt:
+	case notification.OrderByCreatedAt:
 		query = query.Order(ruledb.ByCreatedAt(order...))
-	case notification.RuleOrderByUpdatedAt:
+	case notification.OrderByUpdatedAt:
 		query = query.Order(ruledb.ByUpdatedAt(order...))
-	case notification.RuleOrderByType:
+	case notification.OrderByType:
 		query = query.Order(ruledb.ByType(order...))
-	case notification.RuleOrderByID:
+	case notification.OrderByID:
 		fallthrough
 	default:
 		query = query.Order(ruledb.ByID(order...))

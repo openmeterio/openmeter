@@ -3,12 +3,12 @@ package consumer
 import (
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
 func newNumericThreshold(v float64) notification.BalanceThreshold {
@@ -40,11 +40,11 @@ func TestGetHighestMatchingBalanceThreshold(t *testing.T) {
 				newNumericThreshold(30),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: convert.ToPointer(10.0),
-				Usage:   convert.ToPointer(20.0),
+				Balance: lo.ToPtr(10.0),
+				Usage:   lo.ToPtr(20.0),
 			},
 			// Already used 20, so the matching threshold is the 20
-			Expect: convert.ToPointer(newNumericThreshold(20)),
+			Expect: lo.ToPtr(newNumericThreshold(20)),
 		},
 		{
 			Name: "Numerical values only - 100%",
@@ -54,10 +54,10 @@ func TestGetHighestMatchingBalanceThreshold(t *testing.T) {
 				newNumericThreshold(30),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: convert.ToPointer(0.0),
-				Usage:   convert.ToPointer(30.0),
+				Balance: lo.ToPtr(0.0),
+				Usage:   lo.ToPtr(30.0),
 			},
-			Expect: convert.ToPointer(newNumericThreshold(30)),
+			Expect: lo.ToPtr(newNumericThreshold(30)),
 		},
 		{
 			Name: "Numerical values only - 100%+ with overage",
@@ -67,11 +67,11 @@ func TestGetHighestMatchingBalanceThreshold(t *testing.T) {
 				newNumericThreshold(30),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: convert.ToPointer(0.0),
-				Usage:   convert.ToPointer(30.0),
-				Overage: convert.ToPointer(10.0),
+				Balance: lo.ToPtr(0.0),
+				Usage:   lo.ToPtr(30.0),
+				Overage: lo.ToPtr(10.0),
 			},
-			Expect: convert.ToPointer(newNumericThreshold(30)),
+			Expect: lo.ToPtr(newNumericThreshold(30)),
 		},
 		{
 			Name: "Percentages with overage",
@@ -82,11 +82,11 @@ func TestGetHighestMatchingBalanceThreshold(t *testing.T) {
 				newPercentThreshold(120),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: convert.ToPointer(0.0),
-				Usage:   convert.ToPointer(110.0),
-				Overage: convert.ToPointer(10.0),
+				Balance: lo.ToPtr(0.0),
+				Usage:   lo.ToPtr(110.0),
+				Overage: lo.ToPtr(10.0),
 			},
-			Expect: convert.ToPointer(newPercentThreshold(110)),
+			Expect: lo.ToPtr(newPercentThreshold(110)),
 		},
 		{
 			Name: "Mixed values",
@@ -97,10 +97,10 @@ func TestGetHighestMatchingBalanceThreshold(t *testing.T) {
 				newPercentThreshold(50),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: convert.ToPointer(14.0),
-				Usage:   convert.ToPointer(16.0),
+				Balance: lo.ToPtr(14.0),
+				Usage:   lo.ToPtr(16.0),
 			},
-			Expect: convert.ToPointer(newPercentThreshold(50)),
+			Expect: lo.ToPtr(newPercentThreshold(50)),
 		},
 		// Corner cases
 		{
@@ -110,8 +110,8 @@ func TestGetHighestMatchingBalanceThreshold(t *testing.T) {
 				newPercentThreshold(100),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: convert.ToPointer(0.0),
-				Usage:   convert.ToPointer(0.0),
+				Balance: lo.ToPtr(0.0),
+				Usage:   lo.ToPtr(0.0),
 			},
 			Expect: nil,
 		},
@@ -121,10 +121,10 @@ func TestGetHighestMatchingBalanceThreshold(t *testing.T) {
 				newNumericThreshold(20),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: convert.ToPointer(0.0),
-				Usage:   convert.ToPointer(30.0),
+				Balance: lo.ToPtr(0.0),
+				Usage:   lo.ToPtr(30.0),
 			},
-			Expect: convert.ToPointer(newNumericThreshold(20)),
+			Expect: lo.ToPtr(newNumericThreshold(20)),
 		},
 		{
 			Name: "Same threshold in percentage and number",
@@ -133,10 +133,10 @@ func TestGetHighestMatchingBalanceThreshold(t *testing.T) {
 				newPercentThreshold(50),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: convert.ToPointer(14.0),
-				Usage:   convert.ToPointer(16.0),
+				Balance: lo.ToPtr(14.0),
+				Usage:   lo.ToPtr(16.0),
 			},
-			Expect: convert.ToPointer(newPercentThreshold(50)),
+			Expect: lo.ToPtr(newPercentThreshold(50)),
 		},
 		{
 			Name: "Exact threshold match",
@@ -145,10 +145,10 @@ func TestGetHighestMatchingBalanceThreshold(t *testing.T) {
 				newPercentThreshold(50),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: convert.ToPointer(15.0),
-				Usage:   convert.ToPointer(15.0),
+				Balance: lo.ToPtr(15.0),
+				Usage:   lo.ToPtr(15.0),
 			},
-			Expect: convert.ToPointer(newPercentThreshold(50)),
+			Expect: lo.ToPtr(newPercentThreshold(50)),
 		},
 	}
 

@@ -2,13 +2,15 @@ package httpdriver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/internal"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -33,12 +35,12 @@ func (h *handler) ListRules() ListRulesHandler {
 
 			req := ListRulesRequest{
 				Namespaces:      []string{ns},
-				IncludeDisabled: defaultx.WithDefault(params.IncludeDisabled, notification.DefaultDisabled),
-				OrderBy:         defaultx.WithDefault(params.OrderBy, api.NotificationRuleOrderById),
-				Order:           sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
+				IncludeDisabled: lo.FromPtrOr(params.IncludeDisabled, notification.DefaultDisabled),
+				OrderBy:         notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationRuleOrderById)),
+				Order:           sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderASC)),
 				Page: pagination.Page{
-					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
-					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
+					PageSize:   lo.FromPtrOr(params.PageSize, notification.DefaultPageSize),
+					PageNumber: lo.FromPtrOr(params.Page, notification.DefaultPageNumber),
 				},
 			}
 
@@ -55,7 +57,7 @@ func (h *handler) ListRules() ListRulesHandler {
 			for _, rule := range resp.Items {
 				var item CreateRuleResponse
 
-				item, err = rule.AsNotificationRule()
+				item, err = FromRule(rule)
 				if err != nil {
 					return ListRulesResponse{}, fmt.Errorf("failed to cast rule to notification rule: %w", err)
 				}
@@ -98,13 +100,7 @@ func (h *handler) CreateRule() CreateRuleHandler {
 				return CreateRuleRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req := CreateRuleRequest{
-				NamespacedModel: models.NamespacedModel{
-					Namespace: ns,
-				},
-			}
-
-			req = req.FromNotificationRuleBalanceThresholdCreateRequest(body)
+			req := AsRuleBalanceThresholdCreateRequest(body, ns)
 
 			return req, nil
 		},
@@ -114,7 +110,11 @@ func (h *handler) CreateRule() CreateRuleHandler {
 				return CreateRuleResponse{}, fmt.Errorf("failed to create rule: %w", err)
 			}
 
-			return rule.AsNotificationRule()
+			if rule == nil {
+				return CreateRuleResponse{}, errors.New("failed to create rule: nil rule returned")
+			}
+
+			return FromRule(*rule)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateRuleResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -144,14 +144,7 @@ func (h *handler) UpdateRule() UpdateRuleHandler {
 				return UpdateRuleRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req := UpdateRuleRequest{
-				NamespacedModel: models.NamespacedModel{
-					Namespace: ns,
-				},
-				ID: ruleID,
-			}
-
-			req = req.FromNotificationRuleBalanceThresholdCreateRequest(body)
+			req := AsRuleBalanceThresholdUpdateRequest(body, ns, ruleID)
 
 			return req, nil
 		},
@@ -161,7 +154,11 @@ func (h *handler) UpdateRule() UpdateRuleHandler {
 				return UpdateRuleResponse{}, fmt.Errorf("failed to update rule: %w", err)
 			}
 
-			return rule.AsNotificationRule()
+			if rule == nil {
+				return CreateRuleResponse{}, errors.New("failed to create rule: nil rule returned")
+			}
+
+			return FromRule(*rule)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateRuleResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -233,7 +230,11 @@ func (h *handler) GetRule() GetRuleHandler {
 				return GetRuleResponse{}, fmt.Errorf("failed to get rule: %w", err)
 			}
 
-			return rule.AsNotificationRule()
+			if rule == nil {
+				return CreateRuleResponse{}, errors.New("failed to create rule: nil rule returned")
+			}
+
+			return FromRule(*rule)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetRuleResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -301,7 +302,11 @@ func (h *handler) TestRule() TestRuleHandler {
 				return TestRuleResponse{}, fmt.Errorf("failed to create test event: %w", err)
 			}
 
-			return event.AsNotificationEvent()
+			if event == nil {
+				return TestRuleResponse{}, errors.New("failed to create test event: nil event returned")
+			}
+
+			return FromEvent(*event)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[TestRuleResponse](http.StatusOK),
 		httptransport.AppendOptions(

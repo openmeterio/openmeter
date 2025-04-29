@@ -276,7 +276,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 
 	events, err = service.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		OrderBy:    notification.EventOrderByCreatedAt,
+		OrderBy:    notification.OrderByCreatedAt,
 		Order:      sortx.OrderDesc,
 	})
 	require.NoError(t, err, "Listing events must not return error")
@@ -304,7 +304,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	require.NoError(t, s.handler.Handle(ctx, snapshotEvent), "Handling event must not return error")
 	events, err = service.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		OrderBy:    notification.EventOrderByCreatedAt,
+		OrderBy:    notification.OrderByCreatedAt,
 		Order:      sortx.OrderDesc,
 	})
 	require.NoError(t, err, "Listing events must not return error")
@@ -333,7 +333,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 
 	events, err = service.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		OrderBy:    notification.EventOrderByCreatedAt,
+		OrderBy:    notification.OrderByCreatedAt,
 		Order:      sortx.OrderDesc,
 	})
 
@@ -371,7 +371,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 
 	events, err = service.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		OrderBy:    notification.EventOrderByCreatedAt,
+		OrderBy:    notification.OrderByCreatedAt,
 		Order:      sortx.OrderDesc,
 	})
 
@@ -395,7 +395,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 
 	events, err = service.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		OrderBy:    notification.EventOrderByCreatedAt,
+		OrderBy:    notification.OrderByCreatedAt,
 		Order:      sortx.OrderDesc,
 	})
 
@@ -496,7 +496,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 
 	events, err := service.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		OrderBy:    notification.EventOrderByCreatedAt,
+		OrderBy:    notification.OrderByCreatedAt,
 		Order:      sortx.OrderDesc,
 	})
 
@@ -526,7 +526,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 
 	events, err = service.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		OrderBy:    notification.EventOrderByCreatedAt,
+		OrderBy:    notification.OrderByCreatedAt,
 		Order:      sortx.OrderDesc,
 	})
 

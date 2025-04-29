@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
+	notificationadapter "github.com/openmeterio/openmeter/openmeter/notification/adapter"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
@@ -113,7 +113,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"))
 	featureConnector := feature.NewFeatureConnector(featureAdapter, meterService, eventbus.NewMock(t))
 
-	repo, err := notificationrepository.New(notificationrepository.Config{
+	repo, err := notificationadapter.New(notificationadapter.Config{
 		Client: entClient,
 		Logger: logger.WithGroup("postgres"),
 	})

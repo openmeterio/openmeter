@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
-	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
 func (s Service) ListChannels(ctx context.Context, params notification.ListChannelsInput) (notification.ListChannelsResult, error) {
@@ -53,7 +54,7 @@ func (s Service) CreateChannel(ctx context.Context, params notification.CreateCh
 				Metadata: map[string]string{
 					ChannelIDMetadataKey: channel.ID,
 				},
-				Description: convert.ToPointer("Notification Channel: " + channel.ID),
+				Description: lo.ToPtr("Notification Channel: " + channel.ID),
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create webhook for channel: %w", err)
@@ -207,7 +208,7 @@ func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateCh
 				Metadata: map[string]string{
 					ChannelIDMetadataKey: channel.ID,
 				},
-				Description: convert.ToPointer("Notification Channel: " + channel.ID),
+				Description: lo.ToPtr("Notification Channel: " + channel.ID),
 				Channels:    ruleIDs,
 			})
 			if err != nil {

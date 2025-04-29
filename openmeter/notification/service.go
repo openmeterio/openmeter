@@ -6,6 +6,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
+const (
+	OrderByID        OrderBy = "id"
+	OrderByType      OrderBy = "type"
+	OrderByCreatedAt OrderBy = "createdAt"
+	OrderByUpdatedAt OrderBy = "updatedAt"
+)
+
+type OrderBy string
+
 type Service interface {
 	FeatureService
 

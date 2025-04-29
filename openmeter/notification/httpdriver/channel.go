@@ -2,15 +2,16 @@ package httpdriver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -32,12 +33,12 @@ func (h *handler) ListChannels() ListChannelsHandler {
 
 			req := ListChannelsRequest{
 				Namespaces:      []string{ns},
-				IncludeDisabled: defaultx.WithDefault(params.IncludeDisabled, notification.DefaultDisabled),
-				OrderBy:         defaultx.WithDefault(params.OrderBy, api.NotificationChannelOrderById),
-				Order:           sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderDESC)),
+				IncludeDisabled: lo.FromPtrOr(params.IncludeDisabled, notification.DefaultDisabled),
+				OrderBy:         notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationChannelOrderById)),
+				Order:           sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
 				Page: pagination.Page{
-					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
-					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
+					PageSize:   lo.FromPtrOr(params.PageSize, notification.DefaultPageSize),
+					PageNumber: lo.FromPtrOr(params.Page, notification.DefaultPageNumber),
 				},
 			}
 
@@ -54,7 +55,7 @@ func (h *handler) ListChannels() ListChannelsHandler {
 			for _, channel := range resp.Items {
 				var item api.NotificationChannel
 
-				item, err = channel.AsNotificationChannel()
+				item, err = FromChannel(channel)
 				if err != nil {
 					return ListChannelsResponse{}, fmt.Errorf("failed to cast notification channel: %w", err)
 				}
@@ -97,13 +98,7 @@ func (h *handler) CreateChannel() CreateChannelHandler {
 				return CreateChannelRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req := CreateChannelRequest{
-				NamespacedModel: models.NamespacedModel{
-					Namespace: ns,
-				},
-			}
-
-			req = req.FromNotificationChannelWebhookCreateRequest(body)
+			req := AsChannelWebhookCreateRequest(body, ns)
 
 			return req, nil
 		},
@@ -113,7 +108,11 @@ func (h *handler) CreateChannel() CreateChannelHandler {
 				return CreateChannelResponse{}, fmt.Errorf("failed to create channel: %w", err)
 			}
 
-			return channel.AsNotificationChannel()
+			if channel == nil {
+				return CreateChannelResponse{}, errors.New("failed to create channel: nil channel returned")
+			}
+
+			return FromChannel(*channel)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateChannelResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -143,14 +142,7 @@ func (h *handler) UpdateChannel() UpdateChannelHandler {
 				return UpdateChannelRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req := UpdateChannelRequest{
-				NamespacedModel: models.NamespacedModel{
-					Namespace: ns,
-				},
-				ID: channelID,
-			}
-
-			req = req.FromNotificationChannelWebhookCreateRequest(body)
+			req := AsChannelWebhookUpdateRequest(body, ns, channelID)
 
 			return req, nil
 		},
@@ -160,7 +152,11 @@ func (h *handler) UpdateChannel() UpdateChannelHandler {
 				return UpdateChannelResponse{}, fmt.Errorf("failed to update channel: %w", err)
 			}
 
-			return channel.AsNotificationChannel()
+			if channel == nil {
+				return UpdateChannelResponse{}, errors.New("failed to create channel: nil channel returned")
+			}
+
+			return FromChannel(*channel)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateChannelResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -232,7 +228,11 @@ func (h *handler) GetChannel() GetChannelHandler {
 				return GetChannelResponse{}, fmt.Errorf("failed to get channel: %w", err)
 			}
 
-			return channel.AsNotificationChannel()
+			if channel == nil {
+				return GetChannelResponse{}, errors.New("failed to create channel: nil channel returned")
+			}
+
+			return FromChannel(*channel)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetChannelResponse](http.StatusOK),
 		httptransport.AppendOptions(
