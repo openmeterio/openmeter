@@ -83,6 +83,12 @@ func (i ListEventsDeliveryStatusInput) Validate(_ context.Context, _ Service) er
 		}
 	}
 
+	for _, s := range i.States {
+		if err := s.Validate(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
