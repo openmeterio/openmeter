@@ -93,7 +93,9 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 			if ap.CreateInput.CreateSubscriptionItemInput.Annotations == nil {
 				ap.CreateInput.CreateSubscriptionItemInput.Annotations = models.Annotations{}
 			}
-			subscription.AnnotationParser.AddOwnerSubSystem(ap.CreateInput.CreateSubscriptionItemInput.Annotations, subscription.OwnerSubscriptionSubSystem)
+			_, _ = subscription.AnnotationParser.AddOwnerSubSystem(ap.CreateInput.CreateSubscriptionItemInput.Annotations, subscription.OwnerSubscriptionSubSystem)
+
+			subscriptionworkflow.AnnotationParser.SetUniquePatchID(ap.CreateInput.CreateSubscriptionItemInput.Annotations)
 
 			return ap
 		}
@@ -102,7 +104,9 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 			if ap.CreateInput.CreateSubscriptionItemInput.Annotations == nil {
 				ap.CreateInput.CreateSubscriptionItemInput.Annotations = models.Annotations{}
 			}
-			subscription.AnnotationParser.AddOwnerSubSystem(ap.CreateInput.CreateSubscriptionItemInput.Annotations, subscription.OwnerSubscriptionSubSystem)
+			_, _ = subscription.AnnotationParser.AddOwnerSubSystem(ap.CreateInput.CreateSubscriptionItemInput.Annotations, subscription.OwnerSubscriptionSubSystem)
+
+			subscriptionworkflow.AnnotationParser.SetUniquePatchID(ap.CreateInput.CreateSubscriptionItemInput.Annotations)
 
 			return ap
 		}

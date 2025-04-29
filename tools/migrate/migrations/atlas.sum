@@ -1,4 +1,4 @@
-h1:rqupKnRFLg9xyLkSNoX76GmgKnqUd9eW4/2+bEr/qdA=
+h1:JpP1Cx+kp6WzfJDwrc/G3ZZP1OGtWgFD00XSewJJp2o=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -183,3 +183,5 @@ h1:rqupKnRFLg9xyLkSNoX76GmgKnqUd9eW4/2+bEr/qdA=
 20250417145207_app-custominvoicing.up.sql h1:AKlTfeCQKgULmlxiM4IDv8WJkZJYwjrszV41aZfNHHU=
 20250422174622_rename-custominvoicing-settings.down.sql h1:oxtB4ty0jtbSLam+c3tJSHa30+Rl3iU80LSX1NAT+Og=
 20250422174622_rename-custominvoicing-settings.up.sql h1:LOD/GL4h7npzrzVj4oe8wuXgWVKqpKGExKMPDh6cm/I=
+20250424160933_boolean-entitlement-count-annotation.down.sql h1:Kfppxj1Xqr9RFpo1+bG2ZnwAuV+Sc1iJLwEQxzxUnUo=
+20250424160933_boolean-entitlement-count-annotation.up.sql h1:CzlS0AexXMvrwU16u787Wk1iQcOOocrRwCM72TIRTgQ=

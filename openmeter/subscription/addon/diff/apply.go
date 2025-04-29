@@ -13,7 +13,7 @@ import (
 
 // getApplyForRateCard returns a function that applies a SubscriptionAddonRateCard to a SubscriptionSpec
 func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRateCard) subscription.AppliesToSpec {
-	return subscription.NewAppliesToSpec(func(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
+	return subscription.NewAppliesToSpec(func(spec *subscription.SubscriptionSpec, _ subscription.ApplyContext) error {
 		phaseAtCadenceStart, ok := spec.GetCurrentPhaseAt(d.addon.ActiveFrom)
 		if !ok {
 			return fmt.Errorf("no phase found at %s", d.addon.ActiveFrom)
@@ -147,8 +147,12 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 					},
 				}
 
+				if inst.Annotations == nil {
+					inst.Annotations = models.Annotations{}
+				}
+
 				for range d.addon.Quantity {
-					err := rc.Apply(inst.RateCard)
+					err := rc.Apply(inst.RateCard, inst.Annotations)
 					if err != nil {
 						return fmt.Errorf("failed to extend rate card %s: %w", rc.AddonRateCard.Key(), err)
 					}
@@ -168,11 +172,12 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 							ItemKey:  rc.AddonRateCard.Key(),
 							RateCard: rc.AddonRateCard.RateCard.Clone(),
 						},
+						Annotations: models.Annotations{},
 					},
 				}
 
 				for range d.addon.Quantity - 1 {
-					err := rc.Apply(inst.RateCard)
+					err := rc.Apply(inst.RateCard, inst.Annotations)
 					if err != nil {
 						return fmt.Errorf("failed to extend rate card %s: %w", rc.AddonRateCard.Key(), err)
 					}

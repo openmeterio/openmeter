@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -63,26 +64,13 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 			return def, models.NewGenericValidationError(fmt.Errorf("subscription is not active at the time of adding the addon"))
 		}
 
-		diffs, err := slicesx.MapWithErr(subsAdds.Items, func(subAdd subscriptionaddon.SubscriptionAddon) (addondiff.Diffable, error) {
-			return addondiff.GetDiffableFromAddon(subView, subAdd)
-		})
+		diffs, err := asDiffs(subView, subsAdds.Items)
 		if err != nil {
-			return def, fmt.Errorf("failed to get diffable from addon: %w", err)
+			return def, fmt.Errorf("failed to get diffable from addons: %w", err)
 		}
 
-		diffs = lo.Filter(diffs, func(diff addondiff.Diffable, _ int) bool {
-			return diff != nil
-		})
 		if len(diffs) != len(subsAdds.Items) {
 			return def, fmt.Errorf("failed to get diffable from addons, got %d addons but %d diffs", len(subsAdds.Items), len(diffs))
-		}
-
-		for _, diff := range diffs {
-			if err := spec.Apply(diff.GetRestores(), subscription.ApplyContext{
-				CurrentTime: editTime,
-			}); err != nil {
-				return def, fmt.Errorf("failed to restore subscription addon: %w", err)
-			}
 		}
 
 		// Now let's try to purchase the addon
@@ -104,34 +92,14 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 			return def, errors.New("subscription addon is nil")
 		}
 
-		// Now let's reapply and sync
-		for _, diff := range diffs {
-			if err := spec.Apply(diff.GetApplies(), subscription.ApplyContext{
-				CurrentTime: editTime,
-			}); err != nil {
-				return def, fmt.Errorf("failed to apply diff: %w", err)
-			}
-		}
-
-		diff, err := addondiff.GetDiffableFromAddon(subView, *subsAdd)
+		newDiff, err := addondiff.GetDiffableFromAddon(subView, *subsAdd)
 		if err != nil {
 			return def, fmt.Errorf("failed to get diffable from addon: %w", err)
 		}
 
-		if err := spec.Apply(diff.GetApplies(), subscription.ApplyContext{
-			CurrentTime: editTime,
-		}); err != nil {
-			return def, fmt.Errorf("failed to apply diff: %w", err)
-		}
-
-		_, err = s.Service.Update(ctx, subscriptionID, spec)
+		subView, err = s.syncWithAddons(ctx, subView, diffs, append(diffs, newDiff), editTime)
 		if err != nil {
-			return def, fmt.Errorf("failed to update subscription: %w", err)
-		}
-
-		subView, err = s.Service.GetView(ctx, subscriptionID)
-		if err != nil {
-			return def, fmt.Errorf("failed to get subscription: %w", err)
+			return def, fmt.Errorf("failed to sync with addons: %w", err)
 		}
 
 		return purchaseRes{
@@ -151,6 +119,123 @@ type purchaseRes struct {
 	subAdd subscriptionaddon.SubscriptionAddon
 }
 
+func (s *service) ChangeAddonQuantity(ctx context.Context, subscriptionID models.NamespacedID, changeInp subscriptionworkflow.ChangeAddonQuantityWorkflowInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {
+	var def1 subscription.SubscriptionView
+	var def2 subscriptionaddon.SubscriptionAddon
+
+	if subscriptionID.Namespace != changeInp.SubscriptionAddonID.Namespace {
+		return def1, def2, models.NewGenericValidationError(fmt.Errorf("subscription and subscription addon are in different namespaces"))
+	}
+
+	subsAdd, err := s.AddonService.Get(ctx, changeInp.SubscriptionAddonID)
+	if err != nil {
+		return def1, def2, fmt.Errorf("failed to get subscription addon: %w", err)
+	}
+
+	if subsAdd.SubscriptionID != subscriptionID.ID {
+		return def1, def2, models.NewGenericValidationError(fmt.Errorf("subscription addon does not belong to subscription"))
+	}
+
+	res, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (purchaseRes, error) {
+		var def purchaseRes
+
+		subView, err := s.Service.GetView(ctx, subscriptionID)
+		if err != nil {
+			return def, err
+		}
+
+		subsAddsBefore, err := s.AddonService.List(ctx, subscriptionID.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{
+			SubscriptionID: subscriptionID.ID,
+		})
+		if err != nil {
+			return def, err
+		}
+
+		diffsBefore, err := asDiffs(subView, subsAddsBefore.Items)
+		if err != nil {
+			return def, err
+		}
+
+		// Let's try to decode when the subscription should be patched
+		if err := changeInp.Timing.ValidateForAction(subscription.SubscriptionActionChangeAddons, &subView); err != nil {
+			return def, models.NewGenericValidationError(fmt.Errorf("invalid timing for adding add-on: %w", err))
+		}
+
+		editTime, err := changeInp.Timing.ResolveForSpec(subView.AsSpec())
+		if err != nil {
+			return def, fmt.Errorf("failed to resolve timing: %w", err)
+		}
+
+		subsAdd, err := s.AddonService.ChangeQuantity(ctx, changeInp.SubscriptionAddonID, subscriptionaddon.CreateSubscriptionAddonQuantityInput{
+			Quantity:   changeInp.Quantity,
+			ActiveFrom: editTime,
+		})
+		if err != nil {
+			return def, err
+		}
+
+		subsAddsAfter, err := s.AddonService.List(ctx, subscriptionID.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{
+			SubscriptionID: subscriptionID.ID,
+		})
+		if err != nil {
+			return def, err
+		}
+
+		diffsAfter, err := asDiffs(subView, subsAddsAfter.Items)
+		if err != nil {
+			return def, err
+		}
+
+		subView, err = s.syncWithAddons(ctx, subView, diffsBefore, diffsAfter, editTime)
+		if err != nil {
+			return def, fmt.Errorf("failed to sync with addons: %w", err)
+		}
+
+		return purchaseRes{
+			sub:    subView,
+			subAdd: *subsAdd,
+		}, nil
+	})
+
+	return res.sub, res.subAdd, err
+}
+
+func (s *service) syncWithAddons(
+	ctx context.Context,
+	view subscription.SubscriptionView,
+	restores []addondiff.Diffable,
+	applies []addondiff.Diffable,
+	currentTime time.Time,
+) (subscription.SubscriptionView, error) {
+	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
+		var def subscription.SubscriptionView
+
+		spec := view.AsSpec()
+
+		if err := spec.ApplyMany(lo.Map(restores, func(d addondiff.Diffable, _ int) subscription.AppliesToSpec {
+			return d.GetRestores()
+		}), subscription.ApplyContext{
+			CurrentTime: currentTime,
+		}); err != nil {
+			return def, fmt.Errorf("failed to restore subscription state without addons: %w", err)
+		}
+
+		if err := spec.ApplyMany(lo.Map(applies, func(d addondiff.Diffable, _ int) subscription.AppliesToSpec {
+			return d.GetApplies()
+		}), subscription.ApplyContext{
+			CurrentTime: currentTime,
+		}); err != nil {
+			return def, fmt.Errorf("failed to calculate subscription state with addons: %w", err)
+		}
+
+		if _, err := s.Service.Update(ctx, view.Subscription.NamespacedID, spec); err != nil {
+			return def, fmt.Errorf("failed to update subscription: %w", err)
+		}
+
+		return s.Service.GetView(ctx, view.Subscription.NamespacedID)
+	})
+}
+
 // The sub has addons if it has a non-0 quantity on any of them during its cadence
 func hasAddons(view subscription.SubscriptionView, addons []subscriptionaddon.SubscriptionAddon) bool {
 	subPer := view.Subscription.CadencedModel.AsPeriod()
@@ -166,4 +251,17 @@ func hasAddons(view subscription.SubscriptionView, addons []subscriptionaddon.Su
 	}
 
 	return false
+}
+
+func asDiffs(view subscription.SubscriptionView, subsAdds []subscriptionaddon.SubscriptionAddon) ([]addondiff.Diffable, error) {
+	diffs, err := slicesx.MapWithErr(subsAdds, func(subAdd subscriptionaddon.SubscriptionAddon) (addondiff.Diffable, error) {
+		return addondiff.GetDiffableFromAddon(view, subAdd)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get diffable from addon: %w", err)
+	}
+
+	return lo.Filter(diffs, func(d addondiff.Diffable, _ int) bool {
+		return d != nil
+	}), nil
 }

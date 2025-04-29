@@ -34,5 +34,8 @@ func (a *Router) GetSubscriptionAddon(w http.ResponseWriter, r *http.Request, su
 // Update a subscription addon
 // (PATCH /api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId})
 func (a *Router) UpdateSubscriptionAddon(w http.ResponseWriter, r *http.Request, subscriptionId string, subscriptionAddonId string) {
-	w.WriteHeader(http.StatusNotImplemented)
+	a.subscriptionAddonHandler.UpdateSubscriptionAddon().With(httpdriver.UpdateSubscriptionAddonParams{
+		SubscriptionID:      subscriptionId,
+		SubscriptionAddonID: subscriptionAddonId,
+	}).ServeHTTP(w, r)
 }

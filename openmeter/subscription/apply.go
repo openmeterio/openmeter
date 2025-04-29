@@ -16,6 +16,8 @@ type ApplyContext struct {
 
 // Things can apply themselves to the spec
 type AppliesToSpec interface {
+	// This method should only ever be invoked by SubscriptionSpec (spec.ApplyX), so subsequent validations and logic are always guaranteed to run
+	// FIXME(galexi): this can be enforced by making it private, but that will require rewriting all patches & addons
 	ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error
 }
 

@@ -1,6 +1,8 @@
 package subscription
 
 import (
+	"errors"
+
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -11,6 +13,8 @@ const (
 	AnnotationSubscriptionID = "subscription.id"
 
 	AnnotationOwnerSubSystem = "subscription.owner"
+
+	AnnotationBooleanEntitlementCount = "subscription.entitlement.boolean.count"
 )
 
 const OwnerSubscriptionSubSystem = "subscription"
@@ -18,20 +22,6 @@ const OwnerSubscriptionSubSystem = "subscription"
 type annotationParser struct{}
 
 var AnnotationParser = annotationParser{}
-
-func (a annotationParser) GetSubscriptionID(annotations models.Annotations) (string, bool) {
-	subId, ok := annotations[AnnotationSubscriptionID]
-	if !ok {
-		return "", false
-	}
-
-	subIdStr, ok := subId.(string)
-	if !ok {
-		return "", false
-	}
-
-	return subIdStr, true
-}
 
 func (a annotationParser) HasSubscription(annotations models.Annotations) bool {
 	subId, ok := annotations[AnnotationSubscriptionID]
@@ -65,28 +55,45 @@ func (a annotationParser) ListOwnerSubSystems(annotations models.Annotations) []
 	return systemsStr
 }
 
-func (a annotationParser) AddOwnerSubSystem(annotations models.Annotations, system string) models.Annotations {
+func (a annotationParser) AddOwnerSubSystem(annotations models.Annotations, system string) (models.Annotations, error) {
 	if annotations == nil {
-		annotations = models.Annotations{}
+		return nil, errors.New("annotations are nil")
 	}
 
 	systems := a.ListOwnerSubSystems(annotations)
+	if lo.Contains(systems, system) {
+		return annotations, nil
+	}
+
 	systems = append(systems, system)
 	annotations[AnnotationOwnerSubSystem] = systems
 
-	return annotations
+	return annotations, nil
 }
 
-func (a annotationParser) RemoveOwnerSubSystem(annotations models.Annotations, system string) models.Annotations {
-	if annotations == nil {
-		return annotations
+func (a annotationParser) GetBooleanEntitlementCount(annotations models.Annotations) int {
+	count, ok := annotations[AnnotationBooleanEntitlementCount]
+	if !ok {
+		return 0
 	}
 
-	systems := a.ListOwnerSubSystems(annotations)
-	systems = lo.Filter(systems, func(s string, _ int) bool {
-		return s != system
-	})
-	annotations[AnnotationOwnerSubSystem] = systems
+	countInt, ok := count.(int)
+	if !ok {
+		countFloat, ok := count.(float64)
+		if !ok {
+			return 0
+		}
 
-	return annotations
+		countInt = int(countFloat)
+	}
+
+	return countInt
+}
+
+func (a annotationParser) SetBooleanEntitlementCount(annotations models.Annotations, count int) (models.Annotations, error) {
+	if annotations == nil {
+		return nil, errors.New("annotations are nil")
+	}
+	annotations[AnnotationBooleanEntitlementCount] = count
+	return annotations, nil
 }

@@ -1260,6 +1260,10 @@ func (n NoopSubscriptionWorkflowService) AddAddon(ctx context.Context, subscript
 	return subscription.SubscriptionView{}, subscriptionaddon.SubscriptionAddon{}, nil
 }
 
+func (n NoopSubscriptionWorkflowService) ChangeAddonQuantity(ctx context.Context, subscriptionID models.NamespacedID, inp subscriptionworkflow.ChangeAddonQuantityWorkflowInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {
+	return subscription.SubscriptionView{}, subscriptionaddon.SubscriptionAddon{}, nil
+}
+
 var _ subscriptionaddon.Service = (*NoopSubscriptionAddonService)(nil)
 
 // NoopSubscriptionAddonService implements subscriptionaddon.Service with no-op operations

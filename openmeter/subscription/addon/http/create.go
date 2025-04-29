@@ -38,12 +38,17 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 				return CreateSubscriptionAddonRequest{}, err
 			}
 
+			addonInput, err := MapCreateSubscriptionAddonRequestToInput(body)
+			if err != nil {
+				return CreateSubscriptionAddonRequest{}, err
+			}
+
 			return CreateSubscriptionAddonRequest{
 				SubscriptionID: models.NamespacedID{
 					Namespace: ns,
 					ID:        params.SubscriptionID,
 				},
-				AddonInput: MapCreateSubscriptionAddonRequestToInput(body),
+				AddonInput: addonInput,
 			}, nil
 		},
 		func(ctx context.Context, req CreateSubscriptionAddonRequest) (CreateSubscriptionAddonResponse, error) {

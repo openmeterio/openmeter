@@ -59,6 +59,7 @@ var ExampleAddonRateCard2 = productcatalog.FlatFeeRateCard{
 	BillingCadence: &ISOMonth,
 }
 
+// Adds a bool entitlement and a 100 flat price without feature
 var ExampleAddonRateCard3 = productcatalog.FlatFeeRateCard{
 	RateCardMeta: productcatalog.RateCardMeta{
 		Name:                "Test Addon Rate Card 3",
@@ -73,6 +74,7 @@ var ExampleAddonRateCard3 = productcatalog.FlatFeeRateCard{
 	BillingCadence: &ISOMonth,
 }
 
+// Adds a 100 flat price to ExampleFeatureKey2
 var ExampleAddonRateCard4 = productcatalog.FlatFeeRateCard{
 	RateCardMeta: productcatalog.RateCardMeta{
 		Name:        "Test Addon Rate Card 4",
@@ -83,6 +85,33 @@ var ExampleAddonRateCard4 = productcatalog.FlatFeeRateCard{
 			Amount:      alpacadecimal.NewFromInt(100),
 			PaymentTerm: productcatalog.InAdvancePaymentTerm,
 		}),
+	},
+	BillingCadence: &ISOMonth,
+}
+
+// Adds 50 usage to ExampleFeatureKey
+var ExampleAddonRateCard5 = productcatalog.FlatFeeRateCard{
+	RateCardMeta: productcatalog.RateCardMeta{
+		Name:        "Test Addon Rate Card 5",
+		Description: lo.ToPtr("Test Addon Rate Card 5 Description"),
+		Key:         ExampleFeatureKey,
+		FeatureKey:  lo.ToPtr(ExampleFeatureKey),
+		EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
+			IssueAfterReset: lo.ToPtr(50.0),
+			UsagePeriod:     ISOMonth,
+		}),
+	},
+	BillingCadence: &ISOMonth,
+}
+
+// Adds a boolean entitlement to ExampleFeatureKey
+var ExampleAddonRateCard6 = productcatalog.FlatFeeRateCard{
+	RateCardMeta: productcatalog.RateCardMeta{
+		Name:                "Test Addon Rate Card 6",
+		Description:         lo.ToPtr("Test Addon Rate Card 6 Description"),
+		Key:                 ExampleFeatureKey,
+		FeatureKey:          lo.ToPtr(ExampleFeatureKey),
+		EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 	},
 	BillingCadence: &ISOMonth,
 }

@@ -73,6 +73,30 @@ var (
 		},
 		BillingCadence: &ISOMonth,
 	}
+	// Has a boolean entitlement
+	ExampleRateCard4ForAddons productcatalog.FlatFeeRateCard = productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:                 ExampleFeatureKey,
+			Name:                "Rate Card 4 for Addons",
+			Description:         lo.ToPtr("Rate Card 4 Description"),
+			FeatureKey:          lo.ToPtr(ExampleFeatureKey),
+			FeatureID:           nil,
+			EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
+		},
+		BillingCadence: &ISOMonth,
+	}
+	// DOES NOT have a boolean entitlement
+	ExampleRateCard5ForAddons productcatalog.FlatFeeRateCard = productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:                 ExampleFeatureKey,
+			Name:                "Rate Card 5 for Addons",
+			Description:         lo.ToPtr("Rate Card 5 Description"),
+			FeatureKey:          lo.ToPtr(ExampleFeatureKey),
+			FeatureID:           nil,
+			EntitlementTemplate: nil,
+		},
+		BillingCadence: &ISOMonth,
+	}
 	ExampleRateCardWithDiscounts productcatalog.FlatFeeRateCard = productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:         ExampleFeatureKey,

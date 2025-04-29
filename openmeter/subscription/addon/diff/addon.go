@@ -1,13 +1,10 @@
 package addondiff
 
 import (
-	"errors"
-
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func GetDiffableFromAddon(
@@ -36,7 +33,7 @@ func GetDiffableFromAddon(
 
 			agg := subscription.NewAggregateAppliesToSpec(applieses)
 
-			return agg.ApplyTo(spec, actx)
+			return spec.Apply(agg, actx)
 		},
 		RestoreFn: func(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
 			applieses := lo.Map(diffs, func(diff Diffable, _ int) subscription.AppliesToSpec {
@@ -45,7 +42,7 @@ func GetDiffableFromAddon(
 
 			agg := subscription.NewAggregateAppliesToSpec(applieses)
 
-			return agg.ApplyTo(spec, actx)
+			return spec.Apply(agg, actx)
 		},
 	}, nil
 }
@@ -71,7 +68,5 @@ func (d *diffable) GetApplies() subscription.AppliesToSpec {
 }
 
 func (d *diffable) GetRestores() subscription.AppliesToSpec {
-	return subscription.NewAppliesToSpec(func(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
-		return models.NewGenericNotImplementedError(errors.New("restoring subscription state without addons is not implemented"))
-	})
+	return d.restore()
 }

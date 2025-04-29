@@ -11,28 +11,38 @@ import (
 func GetAffectedItemIDs(view subscription.SubscriptionView, addon subscriptionaddon.SubscriptionAddon) map[string][]string {
 	affected := map[string][]string{}
 
-	for _, inst := range addon.GetInstances() {
-		instPer := inst.CadencedModel.AsPeriod()
+	// We'll assume that a given SubscriptionPhase in general will have more Items than a SubscriptionAddon
 
-		for _, rc := range inst.RateCards {
-			rcKey := rc.AddonRateCard.RateCard.Key()
+	instances := addon.GetInstances()
 
-			for _, p := range view.Phases {
-				for _, items := range p.ItemsByKey {
-					for _, item := range items {
-						if item.Spec.RateCard.Key() != rcKey {
-							continue
+	if len(instances) == 0 {
+		return affected
+	}
+
+	for _, p := range view.Phases {
+		for _, items := range p.ItemsByKey {
+			for _, item := range items {
+				for _, inst := range instances {
+					if inst.Quantity == 0 {
+						continue
+					}
+
+					itemPer := item.SubscriptionItem.CadencedModel.AsPeriod()
+					instPer := inst.CadencedModel.AsPeriod()
+
+					// If there's no intersection nothing can match it
+					if instPer.Intersection(itemPer) == nil {
+						continue
+					}
+
+					for _, rc := range inst.RateCards {
+						rcKey := rc.AddonRateCard.RateCard.Key()
+
+						if _, ok := affected[rcKey]; !ok {
+							affected[rcKey] = []string{}
 						}
 
-						itemPer := item.SubscriptionItem.CadencedModel.AsPeriod()
-
-						if instPer.Intersection(itemPer) != nil {
-							if _, ok := affected[rcKey]; !ok {
-								affected[rcKey] = []string{}
-							}
-
-							affected[rcKey] = append(affected[rcKey], item.SubscriptionItem.ID)
-						}
+						affected[rcKey] = append(affected[rcKey], item.SubscriptionItem.ID)
 					}
 				}
 			}

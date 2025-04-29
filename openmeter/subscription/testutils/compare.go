@@ -2,15 +2,19 @@ package subscriptiontestutils
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -148,7 +152,13 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 
 	for key := range s1.Phases {
 		p1 := s1.Phases[key]
+		p1Cad, err := s1.GetPhaseCadence(key)
+		require.NoError(t, err)
+
 		p2, ok := s2.Phases[key]
+		p2Cad, err := s2.GetPhaseCadence(key)
+		require.NoError(t, err)
+
 		require.True(t, ok, "phase %s not found in second spec", key)
 
 		// Let's validate the phase properties
@@ -159,14 +169,27 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 		assert.Equal(t, p1.StartAfter, p2.StartAfter, "mismatch for phase %s", key)
 
 		// Let's validate the items
-		require.Equal(t, len(p1.ItemsByKey), len(p2.ItemsByKey), "item count mismatch for phase %s", key)
+		require.Equal(t, len(p1.ItemsByKey), len(p2.ItemsByKey), "item count mismatch for phase %s, expected %+v and got %+v", key, lo.Keys(p1.ItemsByKey), lo.Keys(p2.ItemsByKey))
 
 		for itemKey := range p1.ItemsByKey {
 			p1Items := p1.ItemsByKey[itemKey]
 			p2Items, ok := p2.ItemsByKey[itemKey]
 			require.True(t, ok, "item %s not found in phase %s", itemKey, key)
 
-			require.Equal(t, len(p1Items), len(p2Items), "item count mismatch for item %s in phase %s", itemKey, key)
+			require.Equal(
+				t,
+				len(p1Items),
+				len(p2Items),
+				"item count mismatch for item %s in phase %s\n\nexpected: %+v\n\nfound: %+v",
+				itemKey,
+				key,
+				lo.Map(p1Items, func(item *subscription.SubscriptionItemSpec, _ int) models.CadencedModel {
+					return item.GetCadence(p1Cad)
+				}),
+				lo.Map(p2Items, func(item *subscription.SubscriptionItemSpec, _ int) models.CadencedModel {
+					return item.GetCadence(p2Cad)
+				}),
+			)
 
 			for i := range p1Items {
 				i1 := p1Items[i]
@@ -176,9 +199,77 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 				assert.Equal(t, i1.ItemKey, i2.ItemKey)
 				assert.True(t, i1.RateCard.Equal(i2.RateCard), "rate card mismatch for item %s in phase %s: \nspec: %+v\n\nview: %+v", itemKey, key, i1.RateCard, i2.RateCard)
 				assert.Equal(t, i1.CreateSubscriptionItemPlanInput, i2.CreateSubscriptionItemPlanInput, "create subscription item plan input mismatch for item %s in phase %s", itemKey, key)
-				assert.Equal(t, i1.CreateSubscriptionItemCustomerInput, i2.CreateSubscriptionItemCustomerInput, "create subscription item customer input mismatch for item %s in phase %s", itemKey, key)
+
+				// We'll compare the time offsets separately
+				i1af := i1.ActiveFromOverrideRelativeToPhaseStart
+				i2af := i2.ActiveFromOverrideRelativeToPhaseStart
+
+				equalNilableTime(
+					t,
+					tsPlusNillableISO(p1Cad.ActiveFrom, i1af),
+					tsPlusNillableISO(p2Cad.ActiveFrom, i2af),
+					"active from override relative to phase start mismatch for item %s in phase %s",
+					itemKey,
+					key,
+				)
+
+				i1at := i1.ActiveToOverrideRelativeToPhaseStart
+				i2at := i2.ActiveToOverrideRelativeToPhaseStart
+
+				equalNilableTime(
+					t,
+					tsPlusNillableISO(p1Cad.ActiveFrom, i1at),
+					tsPlusNillableISO(p2Cad.ActiveFrom, i2at),
+					"active to override relative to phase start mismatch for item %s in phase %s",
+					itemKey,
+					key,
+				)
+
+				// Then we compare the rest without the offsets
+				c1 := subscription.CreateSubscriptionItemCustomerInput{
+					BillingBehaviorOverride: i1.CreateSubscriptionItemCustomerInput.BillingBehaviorOverride,
+				}
+
+				c2 := subscription.CreateSubscriptionItemCustomerInput{
+					BillingBehaviorOverride: i2.CreateSubscriptionItemCustomerInput.BillingBehaviorOverride,
+				}
+
+				assert.Equal(t, c1, c2, "create subscription item customer input mismatch for item %s in phase %s", itemKey, key)
 			}
 		}
+	}
+}
+
+func tsPlusNillableISO(ts time.Time, iso *isodate.Period) *time.Time {
+	if iso == nil {
+		return nil
+	}
+
+	out, _ := iso.AddTo(ts)
+
+	return &out
+}
+
+func equalNilableTime(t *testing.T, t1, t2 *time.Time, msgAndArgs ...interface{}) {
+	getTpl := func() error {
+		if len(msgAndArgs) == 0 {
+			return nil
+		}
+
+		msg, ok := msgAndArgs[0].(string)
+		if !ok {
+			return fmt.Errorf("expected string message, got %T", msgAndArgs[0])
+		}
+
+		return fmt.Errorf(msg, msgAndArgs[1:]...)
+	}
+
+	if t1 == nil != (t2 == nil) {
+		t.Fatalf("%s: mismatch for time %v and %v", getTpl(), t1, t2)
+	}
+
+	if t1 != nil {
+		assert.Equal(t, *t1, *t2, "%s: mismatch for time %v and %v", getTpl(), t1, t2)
 	}
 }
 
