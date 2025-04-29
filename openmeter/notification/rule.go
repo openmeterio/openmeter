@@ -12,7 +12,6 @@ import (
 )
 
 type (
-	ChannelMeta = api.NotificationChannelMeta
 	FeatureMeta = api.FeatureMeta
 
 	BalanceThreshold = api.NotificationRuleBalanceThresholdValue
