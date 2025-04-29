@@ -594,6 +594,7 @@ func (r RateCardWithOverlay) Validate() error {
 		ValidateRateCardsHaveCompatibleFeatureID,
 		ValidateRateCardsHaveCompatibleBillingCadence,
 		ValidateRateCardsHaveCompatibleEntitlementTemplate,
+		ValidateRateCardsHaveCompatibleDiscounts,
 	)
 }
 
@@ -735,6 +736,22 @@ var ValidateRateCardsHaveCompatibleEntitlementTemplate = models.ValidatorFunc[Ra
 			case entitlement.EntitlementTypeBoolean:
 			}
 		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+})
+
+var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
+	}
+
+	var errs []error
+
+	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
+
+	if rMeta.Discounts.Percentage != nil && vMeta.Discounts.Percentage != nil {
+		errs = append(errs, errors.New("percentage discount is not allowed"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
