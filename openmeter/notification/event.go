@@ -17,6 +17,7 @@ type Event struct {
 	// ID is the unique identifier for Event.
 	ID string `json:"id"`
 	// Type of the notification Event (e.g. entitlements.balance.threshold)
+	// TODO(chrisgacsal): this is redundant as it is always the same as the payload type. Deprecate this field.
 	Type EventType `json:"type"`
 	// CreatedAt Timestamp when the notification event was created.
 	CreatedAt time.Time `json:"createdAt"`
