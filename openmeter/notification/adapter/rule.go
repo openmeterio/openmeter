@@ -186,7 +186,7 @@ func (a *adapter) GetRule(ctx context.Context, params notification.GetRuleInput)
 func (a *adapter) UpdateRule(ctx context.Context, params notification.UpdateRuleInput) (*notification.Rule, error) {
 	fn := func(ctx context.Context, a *adapter) (*notification.Rule, error) {
 		query := a.db.NotificationRule.UpdateOneID(params.ID).
-			SetUpdatedAt(clock.Now().UTC()).
+			Where(ruledb.Namespace(params.Namespace)).
 			SetDisabled(params.Disabled).
 			SetConfig(params.Config).
 			SetName(params.Name).

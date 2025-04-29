@@ -7,7 +7,6 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	channeldb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -104,7 +103,7 @@ func (a *adapter) CreateChannel(ctx context.Context, params notification.CreateC
 func (a *adapter) DeleteChannel(ctx context.Context, params notification.DeleteChannelInput) error {
 	fn := func(ctx context.Context, a *adapter) error {
 		query := a.db.NotificationChannel.UpdateOneID(params.ID).
-			SetDeletedAt(clock.Now().UTC()).
+			Where(channeldb.Namespace(params.Namespace)).
 			SetDisabled(true)
 
 		_, err := query.Save(ctx)
@@ -160,7 +159,7 @@ func (a *adapter) GetChannel(ctx context.Context, params notification.GetChannel
 func (a *adapter) UpdateChannel(ctx context.Context, params notification.UpdateChannelInput) (*notification.Channel, error) {
 	fn := func(ctx context.Context, a *adapter) (*notification.Channel, error) {
 		query := a.db.NotificationChannel.UpdateOneID(params.ID).
-			SetUpdatedAt(clock.Now().UTC()).
+			Where(channeldb.Namespace(params.Namespace)).
 			SetDisabled(params.Disabled).
 			SetConfig(params.Config).
 			SetName(params.Name)
