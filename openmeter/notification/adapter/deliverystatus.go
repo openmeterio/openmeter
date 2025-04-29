@@ -103,7 +103,7 @@ func (a *adapter) UpdateEventDeliveryStatus(ctx context.Context, params notifica
 		var updateQuery *entdb.NotificationEventDeliveryStatusUpdateOne
 
 		if params.ID != "" {
-			updateQuery = a.db.NotificationEventDeliveryStatus.UpdateOneID(params.ID).SetState(params.State)
+			updateQuery = a.db.NotificationEventDeliveryStatus.UpdateOneID(params.ID)
 		} else {
 			getQuery := a.db.NotificationEventDeliveryStatus.Query().
 				Where(statusdb.Namespace(params.Namespace)).
@@ -124,10 +124,12 @@ func (a *adapter) UpdateEventDeliveryStatus(ctx context.Context, params notifica
 				return nil, fmt.Errorf("failed to udpate notification event delivery status: %w", err)
 			}
 
-			updateQuery = a.db.NotificationEventDeliveryStatus.UpdateOne(statusRow).
-				SetState(params.State).
-				SetReason(params.Reason)
+			updateQuery = a.db.NotificationEventDeliveryStatus.UpdateOne(statusRow)
 		}
+
+		updateQuery = updateQuery.
+			SetState(params.State).
+			SetReason(params.Reason)
 
 		updateRow, err := updateQuery.Save(ctx)
 		if err != nil {
