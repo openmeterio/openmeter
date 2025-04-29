@@ -45,7 +45,7 @@ func (b *BalanceThresholdEventHandler) Handle(ctx context.Context, event snapsho
 	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
 	affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
 		Namespaces: []string{event.Namespace.ID},
-		Types:      []notification.RuleType{notification.RuleTypeBalanceThreshold},
+		Types:      []notification.EventType{notification.EventTypeBalanceThreshold},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to list notification rules: %w", err)

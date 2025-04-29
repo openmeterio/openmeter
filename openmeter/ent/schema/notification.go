@@ -78,7 +78,7 @@ func (NotificationRule) Mixin() []ent.Mixin {
 func (NotificationRule) Fields() []ent.Field {
 	return []ent.Field{
 		field.Enum("type").
-			GoType(notification.RuleType("")).
+			GoType(notification.EventType("")).
 			Immutable().
 			Comment("The event type the rule associated with"),
 		field.String("name").
@@ -293,7 +293,7 @@ type ruleConfigSerde[T any] struct {
 var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sql.NullString]{
 	V: func(config notification.RuleConfig) (driver.Value, error) {
 		switch config.Type {
-		case notification.RuleTypeBalanceThreshold:
+		case notification.EventTypeBalanceThreshold:
 			serde := ruleConfigSerde[notification.BalanceThresholdRuleConfig]{
 				RuleConfigMeta: notification.RuleConfigMeta{
 					Type: config.Type,
@@ -319,7 +319,7 @@ var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sq
 		}
 
 		switch meta.Type {
-		case notification.RuleTypeBalanceThreshold:
+		case notification.EventTypeBalanceThreshold:
 			serde := ruleConfigSerde[notification.BalanceThresholdRuleConfig]{
 				RuleConfigMeta: notification.RuleConfigMeta{
 					Type: meta.Type,

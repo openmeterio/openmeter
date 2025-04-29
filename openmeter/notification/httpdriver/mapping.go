@@ -96,11 +96,11 @@ func AsRuleBalanceThresholdCreateRequest(r api.NotificationRuleBalanceThresholdC
 			Namespace: namespace,
 		},
 		Name:     r.Name,
-		Type:     notification.RuleType(r.Type),
+		Type:     notification.EventType(r.Type),
 		Disabled: lo.FromPtrOr(r.Disabled, notification.DefaultDisabled),
 		Config: notification.RuleConfig{
 			RuleConfigMeta: notification.RuleConfigMeta{
-				Type: notification.RuleType(r.Type),
+				Type: notification.EventType(r.Type),
 			},
 			BalanceThreshold: notification.BalanceThresholdRuleConfig{
 				Features:   lo.FromPtr(r.Features),
@@ -117,11 +117,11 @@ func AsRuleBalanceThresholdUpdateRequest(r api.NotificationRuleBalanceThresholdC
 			Namespace: namespace,
 		},
 		Name:     r.Name,
-		Type:     notification.RuleType(r.Type),
+		Type:     notification.EventType(r.Type),
 		Disabled: lo.FromPtrOr(r.Disabled, notification.DefaultDisabled),
 		Config: notification.RuleConfig{
 			RuleConfigMeta: notification.RuleConfigMeta{
-				Type: notification.RuleType(r.Type),
+				Type: notification.EventType(r.Type),
 			},
 			BalanceThreshold: notification.BalanceThresholdRuleConfig{
 				Features:   lo.FromPtr(r.Features),
@@ -137,7 +137,7 @@ func FromRule(r notification.Rule) (api.NotificationRule, error) {
 	var rule api.NotificationRule
 
 	switch r.Type {
-	case notification.RuleTypeBalanceThreshold:
+	case notification.EventTypeBalanceThreshold:
 		rule = FromRuleBalanceThreshold(r)
 	default:
 		return rule, notification.ValidationError{

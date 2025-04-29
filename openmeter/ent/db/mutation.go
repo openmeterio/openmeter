@@ -37421,7 +37421,7 @@ type NotificationRuleMutation struct {
 	created_at      *time.Time
 	updated_at      *time.Time
 	deleted_at      *time.Time
-	_type           *notification.RuleType
+	_type           *notification.EventType
 	name            *string
 	disabled        *bool
 	_config         *notification.RuleConfig
@@ -37699,12 +37699,12 @@ func (m *NotificationRuleMutation) ResetDeletedAt() {
 }
 
 // SetType sets the "type" field.
-func (m *NotificationRuleMutation) SetType(nt notification.RuleType) {
+func (m *NotificationRuleMutation) SetType(nt notification.EventType) {
 	m._type = &nt
 }
 
 // GetType returns the value of the "type" field in the mutation.
-func (m *NotificationRuleMutation) GetType() (r notification.RuleType, exists bool) {
+func (m *NotificationRuleMutation) GetType() (r notification.EventType, exists bool) {
 	v := m._type
 	if v == nil {
 		return
@@ -37715,7 +37715,7 @@ func (m *NotificationRuleMutation) GetType() (r notification.RuleType, exists bo
 // OldType returns the old "type" field's value of the NotificationRule entity.
 // If the NotificationRule object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NotificationRuleMutation) OldType(ctx context.Context) (v notification.RuleType, err error) {
+func (m *NotificationRuleMutation) OldType(ctx context.Context) (v notification.EventType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldType is only allowed on UpdateOne operations")
 	}
@@ -38109,7 +38109,7 @@ func (m *NotificationRuleMutation) SetField(name string, value ent.Value) error 
 		m.SetDeletedAt(v)
 		return nil
 	case notificationrule.FieldType:
-		v, ok := value.(notification.RuleType)
+		v, ok := value.(notification.EventType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

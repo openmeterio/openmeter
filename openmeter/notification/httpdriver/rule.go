@@ -285,13 +285,13 @@ func (h *handler) TestRule() TestRuleHandler {
 
 			var payload notification.EventPayload
 			switch rule.Type {
-			case notification.RuleTypeBalanceThreshold:
+			case notification.EventTypeBalanceThreshold:
 				payload = internal.NewTestEventPayload(notification.EventTypeBalanceThreshold)
 			}
 
 			event, err := h.service.CreateEvent(ctx, notification.CreateEventInput{
 				NamespacedModel: request.NamespacedModel,
-				Type:            notification.EventType(rule.Type),
+				Type:            rule.Type,
 				Payload:         payload,
 				RuleID:          rule.ID,
 				Annotations: models.Annotations{
