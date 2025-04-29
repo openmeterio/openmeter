@@ -32,7 +32,14 @@ func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard, annotat
 		return nil
 	}
 
-	if err := validateRateCards(a.AddonRateCard.RateCard, target); err != nil {
+	if err := productcatalog.NewRateCardWithOverlay(a.AddonRateCard.RateCard, target).ValidateWith(
+		productcatalog.ValidateRateCardsShareSameKey,
+		productcatalog.ValidateRateCardsHaveCompatiblePrice,
+		productcatalog.ValidateRateCardsHaveCompatibleFeatureKey,
+		// productcatalog.ValidateRateCardsHaveCompatibleFeatureID, // FIXME(OM-1337): subscriptions handles feature ID incorrectly
+		productcatalog.ValidateRateCardsHaveCompatibleBillingCadence,
+		productcatalog.ValidateRateCardsHaveCompatibleEntitlementTemplate,
+	); err != nil {
 		return err
 	}
 
@@ -110,7 +117,14 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annot
 		return nil
 	}
 
-	if err := validateRateCards(a.AddonRateCard.RateCard, target); err != nil {
+	if err := productcatalog.NewRateCardWithOverlay(a.AddonRateCard.RateCard, target).ValidateWith(
+		productcatalog.ValidateRateCardsShareSameKey,
+		productcatalog.ValidateRateCardsHaveCompatiblePrice,
+		productcatalog.ValidateRateCardsHaveCompatibleFeatureKey,
+		// productcatalog.ValidateRateCardsHaveCompatibleFeatureID, // FIXME(OM-1337): subscriptions handles feature ID incorrectly
+		productcatalog.ValidateRateCardsHaveCompatibleBillingCadence,
+		productcatalog.ValidateRateCardsHaveCompatibleEntitlementTemplate,
+	); err != nil {
 		return err
 	}
 

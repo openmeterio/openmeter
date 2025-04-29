@@ -103,7 +103,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card price types do not match")
+			require.ErrorContains(t, err, "incompatible price types")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -111,7 +111,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card price types do not match")
+			require.ErrorContains(t, err, "incompatible price types")
 		})
 	})
 
@@ -131,7 +131,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card entitlement types do not match")
+			require.ErrorContains(t, err, "incompatible entitlement template type")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -139,7 +139,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card entitlement types do not match")
+			require.ErrorContains(t, err, "incompatible entitlement template type")
 		})
 	})
 
@@ -156,7 +156,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card keys do not match")
+			require.ErrorContains(t, err, "incompatible rate card keys")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -164,7 +164,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card keys do not match")
+			require.ErrorContains(t, err, "incompatible rate card keys")
 		})
 	})
 
@@ -192,14 +192,14 @@ func TestValidations(t *testing.T) {
 			err := rc.Apply(target, models.Annotations{})
 
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card price payment terms do not match")
+			require.ErrorContains(t, err, "incompatible price payment terms")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(target, models.Annotations{})
 
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card price payment terms do not match")
+			require.ErrorContains(t, err, "incompatible price payment terms")
 		})
 	})
 }
