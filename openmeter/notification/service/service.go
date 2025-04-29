@@ -21,7 +21,7 @@ var _ notification.Service = (*Service)(nil)
 type Service struct {
 	feature feature.FeatureConnector
 
-	repo    notification.Repository
+	adapter notification.Repository
 	webhook webhook.Handler
 
 	eventHandler notification.EventHandler
@@ -74,7 +74,7 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		repo:         config.Repository,
+		adapter:      config.Repository,
 		feature:      config.FeatureConnector,
 		webhook:      config.Webhook,
 		eventHandler: eventHandler,

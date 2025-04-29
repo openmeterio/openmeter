@@ -292,19 +292,19 @@ func DeletedAtNotNil() predicate.NotificationRule {
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v notification.RuleType) predicate.NotificationRule {
+func TypeEQ(v notification.EventType) predicate.NotificationRule {
 	vc := v
 	return predicate.NotificationRule(sql.FieldEQ(FieldType, vc))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v notification.RuleType) predicate.NotificationRule {
+func TypeNEQ(v notification.EventType) predicate.NotificationRule {
 	vc := v
 	return predicate.NotificationRule(sql.FieldNEQ(FieldType, vc))
 }
 
 // TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...notification.RuleType) predicate.NotificationRule {
+func TypeIn(vs ...notification.EventType) predicate.NotificationRule {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -313,7 +313,7 @@ func TypeIn(vs ...notification.RuleType) predicate.NotificationRule {
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...notification.RuleType) predicate.NotificationRule {
+func TypeNotIn(vs ...notification.EventType) predicate.NotificationRule {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

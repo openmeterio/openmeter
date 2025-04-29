@@ -23,12 +23,12 @@ func NewCreateRuleInput(name string, channels ...string) notification.CreateRule
 		NamespacedModel: models.NamespacedModel{
 			Namespace: TestNamespace,
 		},
-		Type:     notification.RuleTypeBalanceThreshold,
+		Type:     notification.EventTypeBalanceThreshold,
 		Name:     name,
 		Disabled: false,
 		Config: notification.RuleConfig{
 			RuleConfigMeta: notification.RuleConfigMeta{
-				Type: notification.RuleTypeBalanceThreshold,
+				Type: notification.EventTypeBalanceThreshold,
 			},
 			BalanceThreshold: notification.BalanceThresholdRuleConfig{
 				Features: nil,

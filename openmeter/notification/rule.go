@@ -30,7 +30,7 @@ type Rule struct {
 	// ID is the unique identifier for Rule.
 	ID string `json:"id"`
 	// Type of the notification Rule (e.g. entitlements.balance.threshold)
-	Type RuleType `json:"type"`
+	Type EventType `json:"type"`
 	// Name of is the user provided name of the Rule.
 	Name string `json:"name"`
 	// Disabled defines whether the Rule is disabled or not.
@@ -81,29 +81,8 @@ func (r Rule) HasEnabledChannels() bool {
 	return false
 }
 
-const (
-	RuleTypeBalanceThreshold = RuleType(api.NotificationEventTypeEntitlementsBalanceThreshold)
-)
-
-type RuleType api.NotificationEventType
-
-func (t RuleType) Validate() error {
-	switch t {
-	case RuleTypeBalanceThreshold:
-		return nil
-	default:
-		return fmt.Errorf("unknown notification rule type %q", t)
-	}
-}
-
-func (t RuleType) Values() []string {
-	return []string{
-		string(RuleTypeBalanceThreshold),
-	}
-}
-
 type RuleConfigMeta struct {
-	Type RuleType `json:"type"`
+	Type EventType `json:"type"`
 }
 
 func (m RuleConfigMeta) Validate() error {
@@ -121,7 +100,7 @@ type RuleConfig struct {
 // Validate invokes channel type specific validator and returns an error if channel configuration is invalid.
 func (c RuleConfig) Validate(ctx context.Context, service Service, namespace string) error {
 	switch c.Type {
-	case RuleTypeBalanceThreshold:
+	case EventTypeBalanceThreshold:
 		return c.BalanceThreshold.Validate(ctx, service, namespace)
 	default:
 		return fmt.Errorf("unknown rule type: %s", c.Type)
@@ -195,7 +174,7 @@ type ListRulesInput struct {
 	Namespaces      []string
 	Rules           []string
 	IncludeDisabled bool
-	Types           []RuleType
+	Types           []EventType
 	Channels        []string
 
 	OrderBy OrderBy
@@ -214,7 +193,7 @@ type CreateRuleInput struct {
 	models.NamespacedModel
 
 	// Type defines the Rule type (e.g. entitlements.balance.threshold)
-	Type RuleType
+	Type EventType
 	// Name stores the user defined name of the Rule.
 	Name string
 	// Disabled defines whether the Rule is disabled or not. Deleted Rules are always disabled.
@@ -263,7 +242,7 @@ type UpdateRuleInput struct {
 	models.NamespacedModel
 
 	// Type defines the Rule type (e.g. entitlements.balance.threshold)
-	Type RuleType
+	Type EventType
 	// Name stores the user defined name of the Rule.
 	Name string
 	// Disabled defines whether the Rule is disabled or not. Deleted Rules are always disabled.

@@ -27,7 +27,7 @@ type NotificationRule struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// The event type the rule associated with
-	Type notification.RuleType `json:"type,omitempty"`
+	Type notification.EventType `json:"type,omitempty"`
 	// The name of the rule
 	Name string `json:"name,omitempty"`
 	// Whether the rule is disabled or not
@@ -132,7 +132,7 @@ func (nr *NotificationRule) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				nr.Type = notification.RuleType(value.String)
+				nr.Type = notification.EventType(value.String)
 			}
 		case notificationrule.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {

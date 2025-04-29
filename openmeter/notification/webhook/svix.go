@@ -583,7 +583,7 @@ func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageI
 	if err != nil {
 		err = unwrapSvixError(err)
 
-		return nil, fmt.Errorf("failed to delete Svix endpoint: %w", err)
+		return nil, fmt.Errorf("failed to send message: %w", err)
 	}
 
 	return &Message{
@@ -656,13 +656,13 @@ func unwrapSvixError(err error) error {
 	_ = json.Unmarshal(svixErr.Body(), &body)
 
 	if len(body.Detail) > 0 {
-		var errs error
+		var errs []error
 
 		for _, detail := range body.Detail {
-			errs = errors.Join(errs, errors.New(detail.Message))
+			errs = append(errs, errors.New(detail.Message))
 		}
 
-		err = errs
+		err = errors.Join(errs...)
 	}
 
 	if svixErr.Status() >= 400 && svixErr.Status() < 500 {

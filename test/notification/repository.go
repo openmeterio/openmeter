@@ -52,12 +52,12 @@ func (s *RepositoryTestSuite) Setup(ctx context.Context, t *testing.T) {
 		NamespacedModel: models.NamespacedModel{
 			Namespace: s.namespace,
 		},
-		Type:     notification.RuleTypeBalanceThreshold,
+		Type:     notification.EventTypeBalanceThreshold,
 		Name:     "whatever",
 		Disabled: false,
 		Config: notification.RuleConfig{
 			RuleConfigMeta: notification.RuleConfigMeta{
-				Type: notification.RuleTypeBalanceThreshold,
+				Type: notification.EventTypeBalanceThreshold,
 			},
 		},
 		Channels: []string{channel.ID},

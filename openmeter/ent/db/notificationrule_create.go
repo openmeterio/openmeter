@@ -75,7 +75,7 @@ func (nrc *NotificationRuleCreate) SetNillableDeletedAt(t *time.Time) *Notificat
 }
 
 // SetType sets the "type" field.
-func (nrc *NotificationRuleCreate) SetType(nt notification.RuleType) *NotificationRuleCreate {
+func (nrc *NotificationRuleCreate) SetType(nt notification.EventType) *NotificationRuleCreate {
 	nrc.mutation.SetType(nt)
 	return nrc
 }
