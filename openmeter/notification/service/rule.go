@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -17,7 +18,7 @@ func (s Service) ListRules(ctx context.Context, params notification.ListRulesInp
 		return notification.ListRulesResult{}, fmt.Errorf("invalid params: %w", err)
 	}
 
-	return s.repo.ListRules(ctx, params)
+	return s.adapter.ListRules(ctx, params)
 }
 
 func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleInput) (*notification.Rule, error) {
@@ -25,15 +26,15 @@ func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleI
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
-	logger := s.logger.WithGroup("rule").With(
-		"operation", "create",
-		"namespace", params.Namespace,
-	)
+	fn := func(ctx context.Context) (*notification.Rule, error) {
+		logger := s.logger.WithGroup("rule").With(
+			"operation", "create",
+			"namespace", params.Namespace,
+		)
 
-	logger.Debug("creating rule", "type", params.Type)
+		logger.Debug("creating rule", "type", params.Type)
 
-	txFunc := func(ctx context.Context, repo notification.TxRepository) (*notification.Rule, error) {
-		rule, err := repo.CreateRule(ctx, params)
+		rule, err := s.adapter.CreateRule(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create rule: %w", err)
 		}
@@ -59,7 +60,7 @@ func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleI
 		return rule, nil
 	}
 
-	return notification.WithTx[*notification.Rule](ctx, s.repo, txFunc)
+	return transaction.Run(ctx, s.adapter, fn)
 }
 
 func (s Service) DeleteRule(ctx context.Context, params notification.DeleteRuleInput) error {
@@ -67,8 +68,8 @@ func (s Service) DeleteRule(ctx context.Context, params notification.DeleteRuleI
 		return fmt.Errorf("invalid params: %w", err)
 	}
 
-	txFunc := func(ctx context.Context, repo notification.TxRepository) error {
-		rule, err := s.repo.GetRule(ctx, notification.GetRuleInput(params))
+	fn := func(ctx context.Context) error {
+		rule, err := s.adapter.GetRule(ctx, notification.GetRuleInput(params))
 		if err != nil {
 			return fmt.Errorf("failed to get rule: %w", err)
 		}
@@ -91,10 +92,10 @@ func (s Service) DeleteRule(ctx context.Context, params notification.DeleteRuleI
 			}
 		}
 
-		return s.repo.DeleteRule(ctx, params)
+		return s.adapter.DeleteRule(ctx, params)
 	}
 
-	return notification.WithTxNoValue(ctx, s.repo, txFunc)
+	return transaction.RunWithNoValue(ctx, s.adapter, fn)
 }
 
 func (s Service) GetRule(ctx context.Context, params notification.GetRuleInput) (*notification.Rule, error) {
@@ -102,7 +103,7 @@ func (s Service) GetRule(ctx context.Context, params notification.GetRuleInput) 
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
-	return s.repo.GetRule(ctx, params)
+	return s.adapter.GetRule(ctx, params)
 }
 
 func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleInput) (*notification.Rule, error) {
@@ -110,51 +111,51 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
-	logger := s.logger.WithGroup("rule").With(
-		"operation", "update",
-		"id", params.ID,
-		"namespace", params.Namespace,
-	)
+	fn := func(ctx context.Context) (*notification.Rule, error) {
+		logger := s.logger.WithGroup("rule").With(
+			"operation", "update",
+			"id", params.ID,
+			"namespace", params.Namespace,
+		)
 
-	logger.Debug("updating rule")
+		logger.Debug("updating rule")
 
-	rule, err := s.repo.GetRule(ctx, notification.GetRuleInput{
-		ID:        params.ID,
-		Namespace: params.Namespace,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get rule: %w", err)
-	}
-
-	if rule.DeletedAt != nil {
-		return nil, notification.UpdateAfterDeleteError{
-			Err: errors.New("not allowed to update deleted rule"),
+		rule, err := s.adapter.GetRule(ctx, notification.GetRuleInput{
+			ID:        params.ID,
+			Namespace: params.Namespace,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get rule: %w", err)
 		}
-	}
 
-	// Get list of channel IDs currently assigned to rule
-	oldChannelIDs := lo.Map(rule.Channels, func(channel notification.Channel, _ int) string {
-		return channel.ID
-	})
-	logger.Debug("currently assigned channels", "channels", oldChannelIDs)
+		if rule.DeletedAt != nil {
+			return nil, notification.UpdateAfterDeleteError{
+				Err: errors.New("not allowed to update deleted rule"),
+			}
+		}
 
-	// Calculate channels diff for the update
-	channelIDsDiff := notification.NewChannelIDsDifference(params.Channels, oldChannelIDs)
+		// Get list of channel IDs currently assigned to rule
+		oldChannelIDs := lo.Map(rule.Channels, func(channel notification.Channel, _ int) string {
+			return channel.ID
+		})
+		logger.Debug("currently assigned channels", "channels", oldChannelIDs)
 
-	logger.WithGroup("channels").Debug("difference in channels assignment",
-		"changed", channelIDsDiff.HasChanged(),
-		"additions", channelIDsDiff.Additions(),
-		"removals", channelIDsDiff.Removals(),
-	)
+		// Calculate channels diff for the update
+		channelIDsDiff := notification.NewChannelIDsDifference(params.Channels, oldChannelIDs)
 
-	// We can return early ff there is no change in the list of channels assigned to rule.
-	if !channelIDsDiff.HasChanged() {
-		return s.repo.UpdateRule(ctx, params)
-	}
+		logger.WithGroup("channels").Debug("difference in channels assignment",
+			"changed", channelIDsDiff.HasChanged(),
+			"additions", channelIDsDiff.Additions(),
+			"removals", channelIDsDiff.Removals(),
+		)
 
-	txFunc := func(ctx context.Context, repo notification.TxRepository) (*notification.Rule, error) {
+		// We can return early ff there is no change in the list of channels assigned to rule.
+		if !channelIDsDiff.HasChanged() {
+			return s.adapter.UpdateRule(ctx, params)
+		}
+
 		// Fetch all the channels from repo which are either added or removed from rule
-		channels, err := repo.ListChannels(ctx, notification.ListChannelsInput{
+		channels, err := s.adapter.ListChannels(ctx, notification.ListChannelsInput{
 			Page: pagination.Page{
 				// In order to avoid under-fetching. There cannot be more affected channels than
 				// twice as the maximum number of allowed channels per rule.
@@ -198,8 +199,8 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 			}
 		}
 
-		return s.repo.UpdateRule(ctx, params)
+		return s.adapter.UpdateRule(ctx, params)
 	}
 
-	return notification.WithTx[*notification.Rule](ctx, s.repo, txFunc)
+	return transaction.Run(ctx, s.adapter, fn)
 }

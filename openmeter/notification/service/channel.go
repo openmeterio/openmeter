@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 func (s Service) ListChannels(ctx context.Context, params notification.ListChannelsInput) (notification.ListChannelsResult, error) {
@@ -16,7 +17,7 @@ func (s Service) ListChannels(ctx context.Context, params notification.ListChann
 		return notification.ListChannelsResult{}, fmt.Errorf("invalid params: %w", err)
 	}
 
-	return s.repo.ListChannels(ctx, params)
+	return s.adapter.ListChannels(ctx, params)
 }
 
 func (s Service) CreateChannel(ctx context.Context, params notification.CreateChannelInput) (*notification.Channel, error) {
@@ -24,15 +25,15 @@ func (s Service) CreateChannel(ctx context.Context, params notification.CreateCh
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
-	logger := s.logger.WithGroup("channel").With(
-		"operation", "create",
-		"namespace", params.Namespace,
-	)
+	fn := func(ctx context.Context) (*notification.Channel, error) {
+		logger := s.logger.WithGroup("channel").With(
+			"operation", "create",
+			"namespace", params.Namespace,
+		)
 
-	logger.Debug("creating channel", "type", params.Type)
+		logger.Debug("creating channel", "type", params.Type)
 
-	txFunc := func(ctx context.Context, repo notification.TxRepository) (*notification.Channel, error) {
-		channel, err := repo.CreateChannel(ctx, params)
+		channel, err := s.adapter.CreateChannel(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create channel: %w", err)
 		}
@@ -72,7 +73,7 @@ func (s Service) CreateChannel(ctx context.Context, params notification.CreateCh
 			}
 			updateIn.Config.WebHook.SigningSecret = wb.Secret
 
-			channel, err = repo.UpdateChannel(ctx, updateIn)
+			channel, err = s.adapter.UpdateChannel(ctx, updateIn)
 			if err != nil {
 				return nil, fmt.Errorf("failed to update channel: %w", err)
 			}
@@ -84,7 +85,7 @@ func (s Service) CreateChannel(ctx context.Context, params notification.CreateCh
 		return channel, nil
 	}
 
-	return notification.WithTx[*notification.Channel](ctx, s.repo, txFunc)
+	return transaction.Run(ctx, s.adapter, fn)
 }
 
 func (s Service) DeleteChannel(ctx context.Context, params notification.DeleteChannelInput) error {
@@ -92,36 +93,35 @@ func (s Service) DeleteChannel(ctx context.Context, params notification.DeleteCh
 		return fmt.Errorf("invalid params: %w", err)
 	}
 
-	logger := s.logger.WithGroup("channel").With(
-		"operation", "delete",
-		"id", params.ID,
-		"namespace", params.Namespace,
-	)
+	fn := func(ctx context.Context) error {
+		logger := s.logger.WithGroup("channel").With(
+			"operation", "delete",
+			"id", params.ID,
+			"namespace", params.Namespace,
+		)
 
-	logger.Debug("deleting channel")
+		logger.Debug("deleting channel")
 
-	rules, err := s.repo.ListRules(ctx, notification.ListRulesInput{
-		Namespaces:      []string{params.Namespace},
-		IncludeDisabled: true,
-		Channels:        []string{params.ID},
-	})
-	if err != nil {
-		return fmt.Errorf("failed to list rules for channel: %w", err)
-	}
-
-	if rules.TotalCount > 0 {
-		ruleIDs := make([]string, 0, len(rules.Items))
-
-		for _, rule := range rules.Items {
-			ruleIDs = append(ruleIDs, rule.ID)
+		rules, err := s.adapter.ListRules(ctx, notification.ListRulesInput{
+			Namespaces:      []string{params.Namespace},
+			IncludeDisabled: true,
+			Channels:        []string{params.ID},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list rules for channel: %w", err)
 		}
 
-		return notification.ValidationError{
-			Err: fmt.Errorf("cannot delete channel as it is assigned to one or more rules: %v", ruleIDs),
-		}
-	}
+		if rules.TotalCount > 0 {
+			ruleIDs := make([]string, 0, len(rules.Items))
 
-	txFunc := func(ctx context.Context, repo notification.TxRepository) error {
+			for _, rule := range rules.Items {
+				ruleIDs = append(ruleIDs, rule.ID)
+			}
+
+			return notification.ValidationError{
+				Err: fmt.Errorf("cannot delete channel as it is assigned to one or more rules: %v", ruleIDs),
+			}
+		}
 		if err := s.webhook.DeleteWebhook(ctx, webhook.DeleteWebhookInput{
 			Namespace: params.Namespace,
 			ID:        params.ID,
@@ -131,10 +131,10 @@ func (s Service) DeleteChannel(ctx context.Context, params notification.DeleteCh
 
 		logger.Debug("webhook associated with channel deleted")
 
-		return repo.DeleteChannel(ctx, params)
+		return s.adapter.DeleteChannel(ctx, params)
 	}
 
-	return notification.WithTxNoValue(ctx, s.repo, txFunc)
+	return transaction.RunWithNoValue(ctx, s.adapter, fn)
 }
 
 func (s Service) GetChannel(ctx context.Context, params notification.GetChannelInput) (*notification.Channel, error) {
@@ -142,7 +142,7 @@ func (s Service) GetChannel(ctx context.Context, params notification.GetChannelI
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
-	return s.repo.GetChannel(ctx, params)
+	return s.adapter.GetChannel(ctx, params)
 }
 
 func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateChannelInput) (*notification.Channel, error) {
@@ -150,32 +150,32 @@ func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateCh
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
-	logger := s.logger.WithGroup("channel").With(
-		"operation", "update",
-		"id", params.ID,
-		"namespace", params.Namespace,
-	)
+	fn := func(ctx context.Context) (*notification.Channel, error) {
+		logger := s.logger.WithGroup("channel").With(
+			"operation", "update",
+			"id", params.ID,
+			"namespace", params.Namespace,
+		)
 
-	logger.Debug("updating channel")
+		logger.Debug("updating channel")
 
-	channel, err := s.repo.GetChannel(ctx, notification.GetChannelInput{
-		ID:        params.ID,
-		Namespace: params.Namespace,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get channel: %w", err)
-	}
-
-	if channel.DeletedAt != nil {
-		return nil, notification.UpdateAfterDeleteError{
-			Err: errors.New("not allowed to update deleted channel"),
+		channel, err := s.adapter.GetChannel(ctx, notification.GetChannelInput{
+			ID:        params.ID,
+			Namespace: params.Namespace,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get channel: %w", err)
 		}
-	}
 
-	txFunc := func(ctx context.Context, repo notification.TxRepository) (*notification.Channel, error) {
+		if channel.DeletedAt != nil {
+			return nil, notification.UpdateAfterDeleteError{
+				Err: errors.New("not allowed to update deleted channel"),
+			}
+		}
+
 		// Fetch rules assigned to channel as we need to make sure that we do not remove rule assignments
 		// from channel during update.
-		rules, err := s.repo.ListRules(ctx, notification.ListRulesInput{
+		rules, err := s.adapter.ListRules(ctx, notification.ListRulesInput{
 			Namespaces:      []string{params.Namespace},
 			IncludeDisabled: true,
 			Channels:        []string{params.ID},
@@ -189,7 +189,7 @@ func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateCh
 			ruleIDs = append(ruleIDs, rule.ID)
 		}
 
-		channel, err = repo.UpdateChannel(ctx, params)
+		channel, err = s.adapter.UpdateChannel(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create channel: %w", err)
 		}
@@ -224,5 +224,5 @@ func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateCh
 		return channel, nil
 	}
 
-	return notification.WithTx[*notification.Channel](ctx, s.repo, txFunc)
+	return transaction.Run(ctx, s.adapter, fn)
 }

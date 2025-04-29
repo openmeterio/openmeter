@@ -2,12 +2,15 @@ package adapter
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 type Config struct {
@@ -41,49 +44,30 @@ func New(config Config) (notification.Repository, error) {
 var _ notification.Repository = (*adapter)(nil)
 
 type adapter struct {
-	db *entdb.Client
-	tx *entdb.Tx
-
+	db     *entdb.Client
 	logger *slog.Logger
 }
 
-func (r adapter) Commit() error {
-	if r.tx != nil {
-		return r.tx.Commit()
-	}
-
-	return nil
-}
-
-func (r adapter) Rollback() error {
-	if r.tx != nil {
-		return r.tx.Rollback()
-	}
-
-	return nil
-}
-
-func (r adapter) client() *entdb.Client {
-	if r.tx != nil {
-		return r.tx.Client()
-	}
-
-	return r.db
-}
-
-func (r adapter) WithTx(ctx context.Context) (notification.TxRepository, error) {
-	if r.tx != nil {
-		return r, nil
-	}
-
-	tx, err := r.db.Tx(ctx)
+func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+	ctx, rawConfig, eDriver, err := a.db.HijackTx(ctx, &sql.TxOptions{
+		ReadOnly: false,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create transaction: %w", err)
+		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
+
+	return ctx, entutils.NewTxDriver(eDriver, rawConfig), nil
+}
+
+func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
+	txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 
 	return &adapter{
-		db:     r.db,
-		tx:     tx,
-		logger: r.logger,
-	}, nil
+		db:     txClient.Client(),
+		logger: a.logger,
+	}
+}
+
+func (a *adapter) Self() *adapter {
+	return a
 }
