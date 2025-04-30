@@ -213,8 +213,10 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 // newApp combines the app base and stripe app data to create a new app
 func (s *Service) newApp(appBase app.AppBase, stripeApp appstripeentity.AppData) (appstripeentityapp.App, error) {
 	app := appstripeentityapp.App{
-		AppBase:                appBase,
-		AppData:                stripeApp,
+		Meta: appstripeentityapp.Meta{
+			AppBase: appBase,
+			AppData: stripeApp,
+		},
 		AppService:             s.appService,
 		BillingService:         s.billingService,
 		StripeAppService:       s,

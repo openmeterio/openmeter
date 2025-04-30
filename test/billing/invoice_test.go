@@ -710,111 +710,6 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	})
 }
 
-type draftInvoiceInput struct {
-	Namespace string
-	Customer  *customer.Customer
-}
-
-func (i draftInvoiceInput) Validate() error {
-	if i.Namespace == "" {
-		return errors.New("namespace is required")
-	}
-
-	if err := i.Customer.Validate(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Context, in draftInvoiceInput) billing.Invoice {
-	namespace := in.Customer.Namespace
-
-	now := time.Now()
-	invoiceAt := now.Add(-time.Second)
-	periodEnd := now.Add(-24 * time.Hour)
-	periodStart := periodEnd.Add(-24 * 30 * time.Hour)
-	// Given we have a default profile for the namespace
-
-	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
-		billing.CreateInvoiceLinesInput{
-			Namespace: in.Customer.Namespace,
-			Lines: []billing.LineWithCustomer{
-				{
-					Line: billing.Line{
-						LineBase: billing.LineBase{
-							Namespace: namespace,
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-
-							InvoiceAt: invoiceAt,
-
-							Type:      billing.InvoiceLineTypeFee,
-							ManagedBy: billing.ManuallyManagedLine,
-
-							Name:     "Test item1",
-							Currency: currencyx.Code(currency.USD),
-
-							Metadata: map[string]string{
-								"key": "value",
-							},
-						},
-						FlatFee: &billing.FlatFeeLine{
-							PerUnitAmount: alpacadecimal.NewFromFloat(100),
-							Quantity:      alpacadecimal.NewFromFloat(1),
-							Category:      billing.FlatFeeCategoryRegular,
-							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-						},
-					},
-					CustomerID: in.Customer.ID,
-				},
-				{
-					Line: billing.Line{
-						LineBase: billing.LineBase{
-							Namespace: namespace,
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-
-							InvoiceAt: invoiceAt,
-
-							Type:      billing.InvoiceLineTypeFee,
-							ManagedBy: billing.ManuallyManagedLine,
-
-							Name:     "Test item2",
-							Currency: currencyx.Code(currency.USD),
-						},
-						FlatFee: &billing.FlatFeeLine{
-							PerUnitAmount: alpacadecimal.NewFromFloat(200),
-							Quantity:      alpacadecimal.NewFromFloat(3),
-							Category:      billing.FlatFeeCategoryRegular,
-							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-						},
-					},
-					CustomerID: in.Customer.ID,
-				},
-			},
-		})
-
-	require.NoError(s.T(), err)
-	require.Len(s.T(), res, 2)
-	line1ID := res[0].ID
-	line2ID := res[1].ID
-	require.NotEmpty(s.T(), line1ID)
-	require.NotEmpty(s.T(), line2ID)
-
-	invoice, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customer.CustomerID{
-			ID:        in.Customer.ID,
-			Namespace: in.Customer.Namespace,
-		},
-		AsOf: lo.ToPtr(now),
-	})
-
-	require.NoError(t, err)
-	require.Len(t, invoice, 1)
-	require.Len(t, invoice[0].Lines.MustGet(), 2)
-
-	return invoice[0]
-}
-
 func (s *InvoicingTestSuite) TestInvoicingFlow() {
 	cases := []struct {
 		name           string
@@ -1008,7 +903,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 			require.NoError(s.T(), err)
 			require.NotNil(s.T(), profile)
 
-			invoice := s.createDraftInvoice(s.T(), ctx, draftInvoiceInput{
+			invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
 				Namespace: namespace,
 				Customer:  customerEntity,
 			})
@@ -1070,7 +965,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				calcMock.OnCalculate(nil)
 
 				// When we create a draft invoice
-				invoice := s.createDraftInvoice(s.T(), ctx, draftInvoiceInput{
+				invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
 					Namespace: ns,
 					Customer:  customer,
 				})
@@ -1300,7 +1195,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				calcMock.OnCalculate(nil)
 
 				// When we create a draft invoice
-				invoice := s.createDraftInvoice(s.T(), ctx, draftInvoiceInput{
+				invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
 					Namespace: ns,
 					Customer:  customer,
 				})

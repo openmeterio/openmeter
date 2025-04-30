@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
@@ -22,6 +23,7 @@ type InvoiceStateMachine struct {
 	Calculator   invoicecalc.Calculator
 	StateMachine *stateless.StateMachine
 	Logger       *slog.Logger
+	Publisher    eventbus.Publisher
 }
 
 var invoiceStateMachineCache = sync.Pool{
@@ -244,6 +246,7 @@ type InvoiceStateMachineCallback func(context.Context, *InvoiceStateMachine) err
 func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.Invoice, cb InvoiceStateMachineCallback) (billing.Invoice, error) {
 	sm := invoiceStateMachineCache.Get().(*InvoiceStateMachine)
 	sm.Logger = s.logger
+	sm.Publisher = s.publisher
 	// Stateless doesn't store any state in the state machine, so it's fine to reuse the state machine itself
 	sm.Invoice = invoice
 	sm.Calculator = s.invoiceCalculator
@@ -373,6 +376,16 @@ func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error
 
 		if err := m.FireAndActivate(ctx, billing.TriggerNext); err != nil {
 			return fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", m.Invoice.Status, err)
+		}
+
+		// Let's emit an event for the transition
+		event, err := billing.NewInvoiceUpdatedEvent(m.Invoice)
+		if err != nil {
+			return fmt.Errorf("error creating invoice updated event: %w", err)
+		}
+
+		if err := m.Publisher.Publish(ctx, event); err != nil {
+			return fmt.Errorf("error emitting invoice updated event: %w", err)
 		}
 	}
 }

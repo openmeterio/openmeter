@@ -13,10 +13,26 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/secret"
 )
 
-// App represents an installed Stripe app
-type App struct {
+type Meta struct {
 	app.AppBase
 	appstripeentity.AppData
+}
+
+var _ app.EventAppParser = (*Meta)(nil)
+
+func (m *Meta) FromEventAppData(event app.EventApp) error {
+	m.AppBase = event.AppBase
+
+	if err := event.AppData.ParseInto(&event.AppData); err != nil {
+		return fmt.Errorf("error parsing app data: %w", err)
+	}
+
+	return nil
+}
+
+// App represents an installed Stripe app
+type App struct {
+	Meta
 
 	Logger *slog.Logger `json:"-"`
 
@@ -69,4 +85,8 @@ func (a App) Validate() error {
 	}
 
 	return nil
+}
+
+func (a App) GetEventAppData() (app.EventAppData, error) {
+	return app.NewEventAppData(a.AppData)
 }

@@ -207,6 +207,10 @@ func (m *mockAppInstance) DeleteInvoice(ctx context.Context, invoice billing.Inv
 	return m.parent.DeleteInvoice(ctx, invoice)
 }
 
+func (m *mockAppInstance) GetEventAppData() (app.EventAppData, error) {
+	return app.EventAppData{}, nil
+}
+
 type MockableFactory struct {
 	*Factory
 

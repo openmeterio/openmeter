@@ -12,13 +12,13 @@ const (
 	EventSubsystem metadata.EventSubsystem = "billing"
 )
 
-type InvoiceAppBases struct {
-	Tax      app.AppBase `json:"tax"`
-	Payment  app.AppBase `json:"payment"`
-	Invocing app.AppBase `json:"invocing"`
+type InvoiceApps struct {
+	Tax      app.EventApp `json:"tax"`
+	Payment  app.EventApp `json:"payment"`
+	Invocing app.EventApp `json:"invocing"`
 }
 
-func (a InvoiceAppBases) Validate() error {
+func (a InvoiceApps) Validate() error {
 	var errs []error
 
 	if err := a.Tax.Validate(); err != nil {
@@ -37,8 +37,8 @@ func (a InvoiceAppBases) Validate() error {
 }
 
 type EventInvoice struct {
-	Invoice  Invoice         `json:"invoice"`
-	AppBases InvoiceAppBases `json:"app_bases,omitempty"`
+	Invoice Invoice     `json:"invoice"`
+	Apps    InvoiceApps `json:"apps,omitempty"`
 }
 
 func (e EventInvoice) Validate() error {
@@ -48,14 +48,14 @@ func (e EventInvoice) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if err := e.AppBases.Validate(); err != nil {
+	if err := e.Apps.Validate(); err != nil {
 		errs = append(errs, err)
 	}
 
 	return errors.Join(errs...)
 }
 
-func NewEventInvoice(invoice Invoice) EventInvoice {
+func NewEventInvoice(invoice Invoice) (EventInvoice, error) {
 	// This causes a stack overflow
 	payload := invoice.RemoveCircularReferences()
 
@@ -64,28 +64,43 @@ func NewEventInvoice(invoice Invoice) EventInvoice {
 	// an up-to-date app based on the payload.Workflow.AppReferences
 	payload.Workflow.Apps = nil
 
-	appBases := InvoiceAppBases{}
+	apps := InvoiceApps{}
 	// TODO[later]: Apps are always present, so we should only use the struct without a pointer
 	if invoice.Workflow.Apps != nil {
-		appBases = InvoiceAppBases{
-			Tax:      invoice.Workflow.Apps.Tax.GetAppBase(),
-			Payment:  invoice.Workflow.Apps.Payment.GetAppBase(),
-			Invocing: invoice.Workflow.Apps.Invoicing.GetAppBase(),
+		var err error
+		apps.Invocing, err = app.NewEventApp(invoice.Workflow.Apps.Invoicing)
+		if err != nil {
+			return EventInvoice{}, err
+		}
+
+		apps.Tax, err = app.NewEventApp(invoice.Workflow.Apps.Tax)
+		if err != nil {
+			return EventInvoice{}, err
+		}
+
+		apps.Payment, err = app.NewEventApp(invoice.Workflow.Apps.Payment)
+		if err != nil {
+			return EventInvoice{}, err
 		}
 	}
 
 	return EventInvoice{
-		Invoice:  payload,
-		AppBases: appBases,
-	}
+		Invoice: payload,
+		Apps:    apps,
+	}, nil
 }
 
 type InvoiceCreatedEvent struct {
 	EventInvoice `json:",inline"`
 }
 
-func NewInvoiceCreatedEvent(invoice Invoice) InvoiceCreatedEvent {
-	return InvoiceCreatedEvent{NewEventInvoice(invoice)}
+func NewInvoiceCreatedEvent(invoice Invoice) (InvoiceCreatedEvent, error) {
+	eventInvoice, err := NewEventInvoice(invoice)
+	if err != nil {
+		return InvoiceCreatedEvent{}, err
+	}
+
+	return InvoiceCreatedEvent{EventInvoice: eventInvoice}, nil
 }
 
 func (e InvoiceCreatedEvent) EventName() string {
@@ -104,6 +119,38 @@ func (e InvoiceCreatedEvent) EventMetadata() metadata.EventMetadata {
 }
 
 func (e InvoiceCreatedEvent) Validate() error {
+	return e.EventInvoice.Validate()
+}
+
+type InvoiceUpdatedEvent struct {
+	EventInvoice `json:",inline"`
+}
+
+func NewInvoiceUpdatedEvent(invoice Invoice) (InvoiceUpdatedEvent, error) {
+	eventInvoice, err := NewEventInvoice(invoice)
+	if err != nil {
+		return InvoiceUpdatedEvent{}, err
+	}
+
+	return InvoiceUpdatedEvent{EventInvoice: eventInvoice}, nil
+}
+
+func (e InvoiceUpdatedEvent) EventName() string {
+	return metadata.GetEventName(metadata.EventType{
+		Subsystem: EventSubsystem,
+		Name:      "invoice.updated",
+		Version:   "v2",
+	})
+}
+
+func (e InvoiceUpdatedEvent) EventMetadata() metadata.EventMetadata {
+	return metadata.EventMetadata{
+		Source:  metadata.ComposeResourcePath(e.Invoice.Namespace, metadata.EntityInvoice, e.Invoice.ID),
+		Subject: metadata.ComposeResourcePath(e.Invoice.Namespace, metadata.EntityCustomer, e.Invoice.Customer.CustomerID),
+	}
+}
+
+func (e InvoiceUpdatedEvent) Validate() error {
 	return e.EventInvoice.Validate()
 }
 

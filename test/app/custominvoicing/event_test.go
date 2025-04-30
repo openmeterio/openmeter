@@ -1,4 +1,4 @@
-package billing
+package custominvoicing
 
 import (
 	"context"
@@ -7,30 +7,30 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
-type InvoicingEventTestSuite struct {
-	InvoicingTestSuite
+type CustomInvoicingEventTestSuite struct {
+	CustomInvoicingTestSuite
 }
 
 func TestInvoicingEvent(t *testing.T) {
-	suite.Run(t, new(InvoicingEventTestSuite))
+	suite.Run(t, new(CustomInvoicingEventTestSuite))
 }
 
-func (s *InvoicingEventTestSuite) TestCreateInvoiceEvent() {
+func (s *CustomInvoicingEventTestSuite) TestCreateInvoiceEvent() {
 	// Given we have an invoice
-	namespace := "ns-create-invoice-event"
+	namespace := "ns-create-invoice-event-custom-invoicing"
 	ctx := context.Background()
 
-	s.InstallSandboxApp(s.T(), namespace)
+	s.setupDefaultBillingProfile(ctx, namespace, appcustominvoicing.Configuration{
+		EnableDraftSyncHook:   true,
+		EnableIssuingSyncHook: true,
+	})
 
-	createProfileInput := MinimalCreateProfileInputTemplate
-	createProfileInput.Namespace = namespace
-
-	_, err := s.BillingService.CreateProfile(ctx, createProfileInput)
-	s.NoError(err)
-	invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
+	invoice := s.CreateDraftInvoice(s.T(), ctx, billingtest.DraftInvoiceInput{
 		Customer: s.CreateTestCustomer(namespace, "test-customer"),
 	})
 
@@ -52,4 +52,11 @@ func (s *InvoicingEventTestSuite) TestCreateInvoiceEvent() {
 	s.Equal(event.Apps.Tax.AppBase, invoice.Workflow.Apps.Tax.GetAppBase())
 	s.Equal(event.Apps.Payment.AppBase, invoice.Workflow.Apps.Payment.GetAppBase())
 	s.Equal(event.Apps.Invocing.AppBase, invoice.Workflow.Apps.Invoicing.GetAppBase())
+
+	// Let's validate the app data unmarshaling
+	meta := appcustominvoicing.Meta{}
+	s.NoError(meta.FromEventAppData(event.Apps.Invocing))
+	s.Equal(invoice.Workflow.Apps.Invoicing.GetID(), meta.GetID())
+	s.True(meta.Configuration.EnableDraftSyncHook)
+	s.True(meta.Configuration.EnableIssuingSyncHook)
 }

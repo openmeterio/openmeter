@@ -33,8 +33,20 @@ var (
 	}
 )
 
-type App struct {
+type Meta struct {
 	app.AppBase
+}
+
+var _ app.EventAppParser = (*Meta)(nil)
+
+func (m *Meta) FromEventAppData(event app.EventApp) error {
+	m.AppBase = event.AppBase
+
+	return nil
+}
+
+type App struct {
+	Meta
 
 	billingService billing.Service
 }
@@ -139,6 +151,10 @@ func (a App) PostAdvanceInvoiceHook(ctx context.Context, invoice billing.Invoice
 	}
 }
 
+func (a App) GetEventAppData() (app.EventAppData, error) {
+	return app.EventAppData{}, nil
+}
+
 type CustomerData struct{}
 
 func (c CustomerData) Validate() error {
@@ -191,7 +207,9 @@ func NewFactory(config Config) (*Factory, error) {
 // Factory
 func (a *Factory) NewApp(_ context.Context, appBase app.AppBase) (app.App, error) {
 	return App{
-		AppBase:        appBase,
+		Meta: Meta{
+			AppBase: appBase,
+		},
 		billingService: a.billingService,
 	}, nil
 }
@@ -211,7 +229,7 @@ func (a *Factory) InstallAppWithAPIKey(ctx context.Context, input app.AppFactory
 		return nil, fmt.Errorf("failed to create app: %w", err)
 	}
 
-	return a.NewApp(ctx, appBase)
+	return a.NewApp(ctx, appBase.GetAppBase())
 }
 
 func (a *Factory) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {

@@ -21,6 +21,8 @@ type App interface {
 	GetMetadata() map[string]string
 	GetListing() MarketplaceListing
 
+	GetEventAppData() (EventAppData, error)
+
 	UpdateAppConfig(ctx context.Context, input AppConfigUpdate) error
 
 	// ValidateCapabilities validates if the app can run for the given capabilities
