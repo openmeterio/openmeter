@@ -8,6 +8,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -229,7 +230,7 @@ func (p PlanMeta) Equal(o PlanMeta) bool {
 
 // Status returns the current status of the Plan
 func (p PlanMeta) Status() PlanStatus {
-	return p.StatusAt(time.Now())
+	return p.StatusAt(clock.Now())
 }
 
 // StatusAt returns the plan status relative to time t.

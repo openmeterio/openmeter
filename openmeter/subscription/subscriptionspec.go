@@ -719,9 +719,7 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 	}
 
 	if meta.FeatureKey == nil {
-		return def, true, models.NewGenericValidationError(
-			fmt.Errorf("feature is required for rate card where entitlement is present: %s", s.ItemKey),
-		)
+		return def, true, fmt.Errorf("feature is required for rate card where entitlement is present: %s", s.ItemKey)
 	}
 
 	t := meta.EntitlementTemplate.Type()

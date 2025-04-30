@@ -12,6 +12,7 @@ import (
 var (
 	ExampleFeatureKey       = "test-feature-1"
 	ExampleFeatureKey2      = "test-feature-2"
+	ExampleFeatureKey3      = "test-feature-3"
 	ExampleFeatureMeterSlug = "meter1"
 )
 
@@ -25,6 +26,13 @@ var ExampleFeature = feature.CreateFeatureInputs{
 var ExampleFeature2 = feature.CreateFeatureInputs{
 	Name:      "Example Feature 2",
 	Key:       ExampleFeatureKey2,
+	Namespace: ExampleNamespace,
+	MeterSlug: lo.ToPtr(ExampleFeatureMeterSlug),
+}
+
+var ExampleFeature3 = feature.CreateFeatureInputs{
+	Name:      "Example Feature 3",
+	Key:       ExampleFeatureKey3,
 	Namespace: ExampleNamespace,
 	MeterSlug: lo.ToPtr(ExampleFeatureMeterSlug),
 }
@@ -47,5 +55,9 @@ func (c *testFeatureConnector) CreateExampleFeatures(t *testing.T) []feature.Fea
 	if err != nil {
 		t.Fatalf("failed to create feature: %v", err)
 	}
-	return []feature.Feature{feat1, feat2}
+	feat3, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature3)
+	if err != nil {
+		t.Fatalf("failed to create feature: %v", err)
+	}
+	return []feature.Feature{feat1, feat2, feat3}
 }

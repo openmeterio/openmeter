@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 
@@ -254,7 +253,7 @@ func (a *adapter) DeletePlan(ctx context.Context, params plan.DeletePlanInput) e
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		deletedAt := time.Now().UTC()
+		deletedAt := clock.Now().UTC()
 		err = a.db.Plan.UpdateOneID(p.ID).
 			Where(plandb.Namespace(p.Namespace)).
 			SetDeletedAt(deletedAt).
@@ -337,7 +336,7 @@ func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.
 						)
 					})
 				} else { // get Plan in active with active status by Key
-					now := time.Now().UTC()
+					now := clock.Now().UTC()
 					query = query.Where(plandb.And(
 						plandb.Namespace(params.Namespace),
 						plandb.Key(params.Key),

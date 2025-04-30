@@ -9,6 +9,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -130,7 +131,7 @@ func (m AddonMeta) Equal(v AddonMeta) bool {
 
 // Status returns the current status of the Addons
 func (m AddonMeta) Status() AddonStatus {
-	return m.StatusAt(time.Now())
+	return m.StatusAt(clock.Now())
 }
 
 // StatusAt returns the Addon status relative to time t.

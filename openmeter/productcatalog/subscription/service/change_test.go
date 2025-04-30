@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -235,6 +236,7 @@ func TestChange(t *testing.T) {
 			require.Nil(t, err)
 
 			eFrom2 := clock.Now().Add(10 * time.Second)
+			clock.SetTime(eFrom2)
 
 			// Let's publish the new version of the second plan
 			_, err = deps.subDeps.PlanService.PublishPlan(ctx, plan.PublishPlanInput{
@@ -245,16 +247,14 @@ func TestChange(t *testing.T) {
 			})
 			require.Nil(t, err)
 
-			clock.SetTime(eFrom2.Add(time.Second))
+			clock.SetTime(eFrom2.Add(10 * time.Second))
 
-			// And let's try to change to the old plan still
+			// Let's change the subscription to the old version of the new plan
 			pInp := plansubscription.PlanInput{}
 			pInp.FromRef(&plansubscription.PlanRefInput{
 				Key:     plan2.Key,
 				Version: &plan2.Version,
 			})
-
-			// Let's change the subscription to the new plan
 			_, err = svc.Change(ctx, plansubscription.ChangeSubscriptionRequest{
 				ID: sub.NamespacedID,
 				WorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
@@ -268,7 +268,7 @@ func TestChange(t *testing.T) {
 
 			require.NotNil(t, err)
 			require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
-			require.ErrorContains(t, err, "plan is not active")
+			require.ErrorContains(t, err, fmt.Sprintf("plan %s@%d is not active at", plan2.Key, plan2.Version))
 		})
 	})
 }
