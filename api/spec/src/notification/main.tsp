@@ -12,6 +12,7 @@ import "./rule.tsp";
 import "./event.tsp";
 import "./svix.tsp";
 import "./balancethreshold.tsp";
+import "./invoice.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;

@@ -116,7 +116,7 @@ func main() {
 		Logger: logger,
 	}
 
-	notifictionConsumer, err := consumer.New(consumerOptions)
+	notificationConsumer, err := consumer.New(consumerOptions)
 	if err != nil {
 		logger.Error("failed to initialize worker", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -138,8 +138,8 @@ func main() {
 
 	// Notification service consumer
 	group.Add(
-		func() error { return notifictionConsumer.Run(ctx) },
-		func(err error) { _ = notifictionConsumer.Close() },
+		func() error { return notificationConsumer.Run(ctx) },
+		func(err error) { _ = notificationConsumer.Close() },
 	)
 
 	// Handle shutdown

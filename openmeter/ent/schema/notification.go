@@ -300,6 +300,16 @@ var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sq
 				},
 				Data: config.BalanceThreshold,
 			}
+
+			return json.Marshal(serde)
+		case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
+			serde := ruleConfigSerde[notification.InvoiceRuleConfig]{
+				RuleConfigMeta: notification.RuleConfigMeta{
+					Type: config.Type,
+				},
+				Data: config.Invoice,
+			}
+
 			return json.Marshal(serde)
 		default:
 			return nil, fmt.Errorf("unknown rule config type: %s", config.Type)
@@ -334,6 +344,23 @@ var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sq
 			ruleConfig = notification.RuleConfig{
 				RuleConfigMeta:   serde.RuleConfigMeta,
 				BalanceThreshold: serde.Data,
+			}
+
+		case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
+			serde := ruleConfigSerde[notification.InvoiceRuleConfig]{
+				RuleConfigMeta: notification.RuleConfigMeta{
+					Type: meta.Type,
+				},
+				Data: &notification.InvoiceRuleConfig{},
+			}
+
+			if err := json.Unmarshal(data, &serde); err != nil {
+				return ruleConfig, err
+			}
+
+			ruleConfig = notification.RuleConfig{
+				RuleConfigMeta: serde.RuleConfigMeta,
+				Invoice:        serde.Data,
 			}
 
 		default:

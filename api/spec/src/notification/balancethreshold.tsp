@@ -150,7 +150,7 @@ model NotificationRuleBalanceThreshold {
 }
 
 /**
- * Request with input parameters for creating new notification rule with entitlements.balance.threashold type.
+ * Request with input parameters for creating new notification rule with entitlements.balance.threshold type.
  */
 @friendlyName("NotificationRuleBalanceThresholdCreateRequest")
 @withVisibility(Lifecycle.Create, Lifecycle.Update)

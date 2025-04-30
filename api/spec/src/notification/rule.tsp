@@ -71,16 +71,22 @@ model NotificationRuleCommon<T extends NotificationEventType> {
  * Notification Rule.
  */
 @friendlyName("NotificationRule")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union NotificationRule {
-  NotificationRuleBalanceThreshold,
+  `entitlements.balance.threshold`: NotificationRuleBalanceThreshold,
+  `invoice.created`: NotificationRuleInvoiceCreated,
+  `invoice.updated`: NotificationRuleInvoiceUpdated,
 }
 
 /**
  * Union type for requests creating new notification rule with certain type.
  */
 @friendlyName("NotificationRuleCreateRequest")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union NotificationRuleCreateRequest {
-  NotificationRuleBalanceThresholdCreateRequest,
+  `entitlements.balance.threshold`: NotificationRuleBalanceThresholdCreateRequest,
+  `invoice.created`: NotificationRuleInvoiceCreatedCreateRequest,
+  `invoice.updated`: NotificationRuleInvoiceUpdatedCreateRequest,
 }
 
 /**
