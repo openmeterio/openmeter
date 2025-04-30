@@ -34,8 +34,9 @@ func (m EventPayloadMeta) Validate() error {
 type EventPayload struct {
 	EventPayloadMeta
 
-	// Balance Threshold
+	// Entitlements
 	BalanceThreshold *BalanceThresholdPayload `json:"balanceThreshold,omitempty"`
+	EntitlementReset *EntitlementResetPayload `json:"entitlementReset,omitempty"`
 
 	// Invoice
 	Invoice *billing.EventInvoice `json:"invoice,omitempty"`
@@ -51,6 +52,14 @@ func (p EventPayload) Validate() error {
 		}
 
 		return p.BalanceThreshold.Validate()
+	case EventTypeEntitlementReset:
+		if p.EntitlementReset == nil {
+			return ValidationError{
+				Err: errors.New("missing entitlement reset payload"),
+			}
+		}
+
+		return p.EntitlementReset.Validate()
 	case EventTypeInvoiceCreated, EventTypeInvoiceUpdated:
 		if p.Invoice == nil {
 			return ValidationError{

@@ -9,14 +9,20 @@ import (
 
 const (
 	EventTypeBalanceThreshold EventType = "entitlements.balance.threshold"
+	EventTypeEntitlementReset EventType = "entitlements.reset"
 )
 
+type EntitlementValuePayloadBase struct {
+	Entitlement api.EntitlementMetered `json:"entitlement"`
+	Feature     api.Feature            `json:"feature"`
+	Subject     api.Subject            `json:"subject"`
+	Value       api.EntitlementValue   `json:"value"`
+}
+
 type BalanceThresholdPayload struct {
-	Entitlement api.EntitlementMetered                    `json:"entitlement"`
-	Feature     api.Feature                               `json:"feature"`
-	Subject     api.Subject                               `json:"subject"`
-	Threshold   api.NotificationRuleBalanceThresholdValue `json:"threshold"`
-	Value       api.EntitlementValue                      `json:"value"`
+	EntitlementValuePayloadBase
+
+	Threshold api.NotificationRuleBalanceThresholdValue `json:"threshold"`
 }
 
 // Validate returns an error if the balance threshold payload is invalid.
@@ -64,21 +70,29 @@ func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, service Servic
 		}
 	}
 
-	if len(b.Features) > 0 {
-		features, err := service.ListFeature(ctx, namespace, b.Features...)
+	if err := validateFeatures(ctx, service, namespace, b.Features); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateFeatures(ctx context.Context, service Service, namespace string, features []string) error {
+	if len(features) > 0 {
+		dbFeatures, err := service.ListFeature(ctx, namespace, features...)
 		if err != nil {
 			return err
 		}
 
-		if len(b.Features) != len(features) {
+		if len(features) != len(dbFeatures) {
 			featureIdOrKeys := make(map[string]struct{}, len(features))
-			for _, feature := range features {
+			for _, feature := range dbFeatures {
 				featureIdOrKeys[feature.ID] = struct{}{}
 				featureIdOrKeys[feature.Key] = struct{}{}
 			}
 
 			missingFeatures := make([]string, 0)
-			for _, featureIdOrKey := range b.Features {
+			for _, featureIdOrKey := range features {
 				if _, ok := featureIdOrKeys[featureIdOrKey]; !ok {
 					missingFeatures = append(missingFeatures, featureIdOrKey)
 				}
@@ -88,6 +102,26 @@ func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, service Servic
 				Err: fmt.Errorf("non-existing features: %v", missingFeatures),
 			}
 		}
+	}
+
+	return nil
+}
+
+// EntitlementReset support
+
+type EntitlementResetPayload EntitlementValuePayloadBase
+
+func (e EntitlementResetPayload) Validate() error {
+	return nil
+}
+
+type EntitlementResetRuleConfig struct {
+	Features []string `json:"features"`
+}
+
+func (e EntitlementResetRuleConfig) Validate(ctx context.Context, service Service, namespace string) error {
+	if err := validateFeatures(ctx, service, namespace, e.Features); err != nil {
+		return err
 	}
 
 	return nil

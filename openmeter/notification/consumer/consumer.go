@@ -50,14 +50,14 @@ type Consumer struct {
 	opts   Options
 	router *message.Router
 
-	balanceThresholdHandler *BalanceThresholdEventHandler
-	invoiceHandler          *InvoiceEventHandler
+	entitlementSnapshotHandler *EntitlementSnapshotHandler
+	invoiceHandler             *InvoiceEventHandler
 }
 
 func New(opts Options) (*Consumer, error) {
-	balanceThresholdEventHandler := &BalanceThresholdEventHandler{
+	entitlementSnapshotHandler := &EntitlementSnapshotHandler{
 		Notification: opts.Notification,
-		Logger:       opts.Logger.WithGroup("balance_threshold_event_handler"),
+		Logger:       opts.Logger.WithGroup("entitlement_snapshot_handler"),
 	}
 
 	invoiceEventHandler := &InvoiceEventHandler{
@@ -74,8 +74,8 @@ func New(opts Options) (*Consumer, error) {
 		opts:   opts,
 		router: r,
 
-		balanceThresholdHandler: balanceThresholdEventHandler,
-		invoiceHandler:          invoiceEventHandler,
+		entitlementSnapshotHandler: entitlementSnapshotHandler,
+		invoiceHandler:             invoiceEventHandler,
 	}
 
 	handler, err := grouphandler.NewNoPublishingHandler(opts.Marshaler, opts.Router.MetricMeter,
@@ -84,7 +84,7 @@ func New(opts Options) (*Consumer, error) {
 				return nil
 			}
 
-			return consumer.balanceThresholdHandler.Handle(ctx, *event)
+			return consumer.entitlementSnapshotHandler.Handle(ctx, *event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.InvoiceCreatedEvent) error {
 			if event == nil {
@@ -116,7 +116,7 @@ func New(opts Options) (*Consumer, error) {
 }
 
 func (c *Consumer) Handle(ctx context.Context, event snapshot.SnapshotEvent) error {
-	return c.balanceThresholdHandler.Handle(ctx, event)
+	return c.entitlementSnapshotHandler.Handle(ctx, event)
 }
 
 func (c *Consumer) Run(ctx context.Context) error {

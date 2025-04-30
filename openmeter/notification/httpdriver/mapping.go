@@ -134,6 +134,47 @@ func AsRuleBalanceThresholdUpdateRequest(r api.NotificationRuleBalanceThresholdC
 	}
 }
 
+func AsRuleEntitlementResetCreateRequest(r api.NotificationRuleEntitlementResetCreateRequest, namespace string) notification.CreateRuleInput {
+	return notification.CreateRuleInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: namespace,
+		},
+		Name:     r.Name,
+		Type:     notification.EventType(r.Type),
+		Disabled: lo.FromPtrOr(r.Disabled, notification.DefaultDisabled),
+		Config: notification.RuleConfig{
+			RuleConfigMeta: notification.RuleConfigMeta{
+				Type: notification.EventType(r.Type),
+			},
+			EntitlementReset: &notification.EntitlementResetRuleConfig{
+				Features: lo.FromPtr(r.Features),
+			},
+		},
+		Channels: r.Channels,
+	}
+}
+
+func AsRuleEntitlementResetUpdateRequest(r api.NotificationRuleEntitlementResetCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
+	return notification.UpdateRuleInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: namespace,
+		},
+		Name:     r.Name,
+		Type:     notification.EventType(r.Type),
+		Disabled: lo.FromPtrOr(r.Disabled, notification.DefaultDisabled),
+		Config: notification.RuleConfig{
+			RuleConfigMeta: notification.RuleConfigMeta{
+				Type: notification.EventType(r.Type),
+			},
+			EntitlementReset: &notification.EntitlementResetRuleConfig{
+				Features: lo.FromPtr(r.Features),
+			},
+		},
+		Channels: r.Channels,
+		ID:       ruleID,
+	}
+}
+
 func AsRuleInvoiceCreatedCreateRequest(r api.NotificationRuleInvoiceCreatedCreateRequest, namespace string) notification.CreateRuleInput {
 	return notification.CreateRuleInput{
 		NamespacedModel: models.NamespacedModel{
@@ -220,6 +261,11 @@ func FromRule(r notification.Rule) (api.NotificationRule, error) {
 		if err != nil {
 			return rule, fmt.Errorf("failed to cast notification rule with type: %s: %w", r.Type, err)
 		}
+	case notification.EventTypeEntitlementReset:
+		err = rule.FromNotificationRuleEntitlementReset(FromRuleEntitlementReset(r))
+		if err != nil {
+			return rule, fmt.Errorf("failed to cast notification rule with type: %s: %w", r.Type, err)
+		}
 	case notification.EventTypeInvoiceCreated:
 		err = rule.FromNotificationRuleInvoiceCreated(FromRuleInvoiceCreated(r))
 		if err != nil {
@@ -272,6 +318,41 @@ func FromRuleBalanceThreshold(r notification.Rule) api.NotificationRuleBalanceTh
 		Type:       api.NotificationRuleBalanceThresholdTypeEntitlementsBalanceThreshold,
 		UpdatedAt:  r.UpdatedAt,
 		DeletedAt:  r.DeletedAt,
+	}
+}
+
+func FromRuleEntitlementReset(r notification.Rule) api.NotificationRuleEntitlementReset {
+	channels := make([]api.NotificationChannelMeta, 0, len(r.Channels))
+	for _, channel := range r.Channels {
+		channels = append(channels, api.NotificationChannelMeta{
+			Id:   channel.ID,
+			Type: api.NotificationChannelType(channel.Type),
+		})
+	}
+
+	return api.NotificationRuleEntitlementReset{
+		Channels:  channels,
+		CreatedAt: r.CreatedAt,
+		Disabled:  lo.ToPtr(r.Disabled),
+		Features: convert.SafeDeRef(&r.Config.EntitlementReset.Features, func(featureIDs []string) *[]notification.FeatureMeta {
+			var features []notification.FeatureMeta
+			for _, id := range featureIDs {
+				features = append(features, notification.FeatureMeta{
+					Id: id,
+				})
+			}
+
+			if len(features) == 0 {
+				return nil
+			}
+
+			return &features
+		}),
+		Id:        r.ID,
+		Name:      r.Name,
+		Type:      api.NotificationRuleEntitlementResetTypeEntitlementsReset,
+		UpdatedAt: r.UpdatedAt,
+		DeletedAt: r.DeletedAt,
 	}
 }
 

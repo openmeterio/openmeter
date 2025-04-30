@@ -82,6 +82,7 @@ type RuleConfig struct {
 
 	// Balance Threshold
 	BalanceThreshold *BalanceThresholdRuleConfig `json:"balanceThreshold,omitempty"`
+	EntitlementReset *EntitlementResetRuleConfig `json:"entitlementReset,omitempty"`
 
 	// Invoice
 	Invoice *InvoiceRuleConfig `json:"invoice,omitempty"`
@@ -98,6 +99,14 @@ func (c RuleConfig) Validate(ctx context.Context, service Service, namespace str
 		}
 
 		return c.BalanceThreshold.Validate(ctx, service, namespace)
+	case EventTypeEntitlementReset:
+		if c.EntitlementReset == nil {
+			return ValidationError{
+				Err: errors.New("missing entitlement reset rule config"),
+			}
+		}
+
+		return c.EntitlementReset.Validate(ctx, service, namespace)
 	case EventTypeInvoiceCreated, EventTypeInvoiceUpdated:
 		if c.Invoice == nil {
 			return ValidationError{
@@ -105,7 +114,8 @@ func (c RuleConfig) Validate(ctx context.Context, service Service, namespace str
 			}
 		}
 
-		return c.BalanceThreshold.Validate(ctx, service, namespace)
+		return c.Invoice.Validate(ctx, service, namespace)
+
 	default:
 		return fmt.Errorf("unknown rule type: %s", c.Type)
 	}

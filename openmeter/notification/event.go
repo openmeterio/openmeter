@@ -14,6 +14,7 @@ import (
 
 var eventTypes = []EventType{
 	EventTypeBalanceThreshold,
+	EventTypeEntitlementReset,
 	EventTypeInvoiceCreated,
 	EventTypeInvoiceUpdated,
 }

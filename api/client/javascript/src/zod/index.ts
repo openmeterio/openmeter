@@ -9299,8 +9299,17 @@ export const createNotificationRuleBodyDisabledDefaultOne = false
 export const createNotificationRuleBodyChannelsItemRegExpOne = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
+export const createNotificationRuleBodyFeaturesItemMaxOne = 64
+
+export const createNotificationRuleBodyFeaturesItemRegExpOne = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
 export const createNotificationRuleBodyDisabledDefaultTwo = false
 export const createNotificationRuleBodyChannelsItemRegExpTwo = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+export const createNotificationRuleBodyDisabledDefaultThree = false
+export const createNotificationRuleBodyChannelsItemRegExpThree = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
 
@@ -9381,6 +9390,47 @@ export const createNotificationRuleBody = zod
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
+        features: zod
+          .array(
+            zod
+              .string()
+              .min(1)
+              .max(createNotificationRuleBodyFeaturesItemMaxOne)
+              .regex(createNotificationRuleBodyFeaturesItemRegExpOne)
+              .describe(
+                'ULID (Universally Unique Lexicographically Sortable Identifier).\nA key is a unique string that is used to identify a resource.\n\nTODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.'
+              )
+          )
+          .min(1)
+          .optional()
+          .describe(
+            'Optional field for defining the scope of notification by feature. It may contain features by id or key.'
+          ),
+        name: zod
+          .string()
+          .describe('The user friendly name of the notification rule.'),
+        type: zod.enum(['entitlements.reset']),
+      })
+      .describe(
+        'Request with input parameters for creating new notification rule with entitlements.reset type.'
+      ),
+    zod
+      .object({
+        channels: zod
+          .array(
+            zod
+              .string()
+              .regex(createNotificationRuleBodyChannelsItemRegExpTwo)
+              .describe(
+                'ULID (Universally Unique Lexicographically Sortable Identifier).'
+              )
+          )
+          .min(1)
+          .describe('List of notification channels the rule is applied to.'),
+        disabled: zod
+          .boolean()
+          .optional()
+          .describe('Whether the rule is disabled or not.'),
         name: zod
           .string()
           .describe('The user friendly name of the notification rule.'),
@@ -9395,7 +9445,7 @@ export const createNotificationRuleBody = zod
           .array(
             zod
               .string()
-              .regex(createNotificationRuleBodyChannelsItemRegExpTwo)
+              .regex(createNotificationRuleBodyChannelsItemRegExpThree)
               .describe(
                 'ULID (Universally Unique Lexicographically Sortable Identifier).'
               )
@@ -9445,8 +9495,17 @@ export const updateNotificationRuleBodyDisabledDefaultOne = false
 export const updateNotificationRuleBodyChannelsItemRegExpOne = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
+export const updateNotificationRuleBodyFeaturesItemMaxOne = 64
+
+export const updateNotificationRuleBodyFeaturesItemRegExpOne = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
 export const updateNotificationRuleBodyDisabledDefaultTwo = false
 export const updateNotificationRuleBodyChannelsItemRegExpTwo = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+export const updateNotificationRuleBodyDisabledDefaultThree = false
+export const updateNotificationRuleBodyChannelsItemRegExpThree = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
 
@@ -9527,6 +9586,47 @@ export const updateNotificationRuleBody = zod
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
+        features: zod
+          .array(
+            zod
+              .string()
+              .min(1)
+              .max(updateNotificationRuleBodyFeaturesItemMaxOne)
+              .regex(updateNotificationRuleBodyFeaturesItemRegExpOne)
+              .describe(
+                'ULID (Universally Unique Lexicographically Sortable Identifier).\nA key is a unique string that is used to identify a resource.\n\nTODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.'
+              )
+          )
+          .min(1)
+          .optional()
+          .describe(
+            'Optional field for defining the scope of notification by feature. It may contain features by id or key.'
+          ),
+        name: zod
+          .string()
+          .describe('The user friendly name of the notification rule.'),
+        type: zod.enum(['entitlements.reset']),
+      })
+      .describe(
+        'Request with input parameters for creating new notification rule with entitlements.reset type.'
+      ),
+    zod
+      .object({
+        channels: zod
+          .array(
+            zod
+              .string()
+              .regex(updateNotificationRuleBodyChannelsItemRegExpTwo)
+              .describe(
+                'ULID (Universally Unique Lexicographically Sortable Identifier).'
+              )
+          )
+          .min(1)
+          .describe('List of notification channels the rule is applied to.'),
+        disabled: zod
+          .boolean()
+          .optional()
+          .describe('Whether the rule is disabled or not.'),
         name: zod
           .string()
           .describe('The user friendly name of the notification rule.'),
@@ -9541,7 +9641,7 @@ export const updateNotificationRuleBody = zod
           .array(
             zod
               .string()
-              .regex(updateNotificationRuleBodyChannelsItemRegExpTwo)
+              .regex(updateNotificationRuleBodyChannelsItemRegExpThree)
               .describe(
                 'ULID (Universally Unique Lexicographically Sortable Identifier).'
               )

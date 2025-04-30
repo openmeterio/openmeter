@@ -106,7 +106,7 @@ var (
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
 func TypeValidator(_type notification.EventType) error {
 	switch _type {
-	case "entitlements.balance.threshold", "invoice.created", "invoice.updated":
+	case "entitlements.balance.threshold", "entitlements.reset", "invoice.created", "invoice.updated":
 		return nil
 	default:
 		return fmt.Errorf("notificationrule: invalid enum value for type field: %q", _type)

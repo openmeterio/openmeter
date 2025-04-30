@@ -24,6 +24,8 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 	switch eventType {
 	case notification.EventTypeBalanceThreshold:
 		return newTestBalanceThresholdPayload()
+	case notification.EventTypeEntitlementReset:
+		return newTestEntitlementResetPayload()
 	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 		return newTestInvoicePayload(eventType)
 	default:
@@ -32,6 +34,19 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 }
 
 func newTestBalanceThresholdPayload() notification.EventPayload {
+	payload := newTestEntitlementResetPayload()
+	payload.Type = notification.EventTypeBalanceThreshold
+	payload.BalanceThreshold = &notification.BalanceThresholdPayload{
+		EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase(*payload.EntitlementReset),
+		Threshold: api.NotificationRuleBalanceThresholdValue{
+			Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
+			Value: 50,
+		},
+	}
+	return payload
+}
+
+func newTestEntitlementResetPayload() notification.EventPayload {
 	var (
 		now       = time.Now()
 		createdAt = now.Add(-24 * time.Hour)
@@ -48,7 +63,7 @@ func newTestBalanceThresholdPayload() notification.EventPayload {
 		EventPayloadMeta: notification.EventPayloadMeta{
 			Type: notification.EventTypeBalanceThreshold,
 		},
-		BalanceThreshold: &notification.BalanceThresholdPayload{
+		EntitlementReset: &notification.EntitlementResetPayload{
 			Entitlement: api.EntitlementMetered{
 				CreatedAt: createdAt,
 				CurrentUsagePeriod: api.Period{
@@ -103,10 +118,7 @@ func newTestBalanceThresholdPayload() notification.EventPayload {
 				},
 				StripeCustomerId: lo.ToPtr("01J5AW2XS6DYHH7E9PNJSQJ341"),
 			},
-			Threshold: api.NotificationRuleBalanceThresholdValue{
-				Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
-				Value: 50,
-			},
+
 			Value: api.EntitlementValue{
 				Balance:   lo.ToPtr(10_000.0),
 				HasAccess: true,

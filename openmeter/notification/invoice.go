@@ -1,6 +1,10 @@
 package notification
 
-import "github.com/openmeterio/openmeter/openmeter/billing"
+import (
+	"context"
+
+	"github.com/openmeterio/openmeter/openmeter/billing"
+)
 
 const (
 	EventTypeInvoiceCreated EventType = "invoice.created"
@@ -10,3 +14,7 @@ const (
 type InvoicePayload = billing.EventInvoice
 
 type InvoiceRuleConfig struct{}
+
+func (c InvoiceRuleConfig) Validate(ctx context.Context, service Service, namespace string) error {
+	return nil
+}
