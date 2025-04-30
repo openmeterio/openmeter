@@ -6,9 +6,17 @@ metadata:
   labels:
     {{- include "benthos-collector.labels" . | nindent 4 }}
 rules:
-  - apiGroups: [""]
-    resources: ["pods", "nodes", "persistentvolumeclaims", "persistentvolumes"]
-    verbs: ["watch", "list", "get"]
+  - apiGroups:
+      - ""
+    resources: 
+      - pods
+      - nodes
+      - persistentvolumeclaims
+      - persistentvolumes
+    verbs:
+      - watch
+      - list
+      - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -24,4 +32,40 @@ subjects:
 - kind: ServiceAccount
   namespace: {{ .Release.Namespace }}
   name: {{ include "benthos-collector.serviceAccountName" . }}
+---
+{{- if .Values.leaderElection.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "benthos-collector.fullname" . }}
+  labels:
+    {{- include "benthos-collector.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "benthos-collector.fullname" . }}
+  labels:
+    {{- include "benthos-collector.labels" . | nindent 4 }}
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: {{ include "benthos-collector.fullname" . }}
+subjects:
+- kind: ServiceAccount
+  namespace: {{ .Release.Namespace }}
+  name: {{ include "benthos-collector.serviceAccountName" . }}
+{{- end }}
 {{- end }}

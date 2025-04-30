@@ -12,6 +12,38 @@ image:
   # -- Image tag override for the default value (chart appVersion).
   tag: ""
 
+# -- Number of replicas for the StatefulSet
+replicas: 1
+
+# -- Leader election configuration
+leaderElection:
+  # -- Enable leader election using Kubernetes Lease
+  enabled: false
+  # -- Leader elector sidecar image
+  image:
+    # -- Name of the leader elector image repository
+    repository: ghcr.io/openshift/leader-elector
+    # -- Image tag for the leader elector
+    tag: "0.7.0"
+    # -- Image pull policy for the leader elector
+    pullPolicy: IfNotPresent
+  # -- Resources for the leader elector container
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  # -- Lease name
+  leaseName: benthos-collector-leader
+  # -- Lease duration in seconds
+  leaseDuration: 15
+  # -- Lease renew deadline in seconds
+  renewDeadline: 10
+  # -- Lease retry period in seconds
+  retryPeriod: 2
+
 openmeter:
   # -- OpenMeter API URL
   url: https://openmeter.cloud

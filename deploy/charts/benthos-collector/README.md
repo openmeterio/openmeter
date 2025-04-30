@@ -25,6 +25,18 @@ helm install --generate-name --wait oci://ghcr.io/openmeterio/helm-charts/bentho
 | image.repository | string | `"ghcr.io/openmeterio/benthos-collector"` | Name of the image repository to pull the container image from. |
 | image.pullPolicy | string | `"IfNotPresent"` | [Image pull policy](https://kubernetes.io/docs/concepts/containers/images/#updating-images) for updating already existing images on a node. |
 | image.tag | string | `""` | Image tag override for the default value (chart appVersion). |
+| replicas | int | `1` | Number of replicas for the StatefulSet |
+| leaderElection | object | `{"enabled":false,"image":{"pullPolicy":"IfNotPresent","repository":"ghcr.io/openshift/leader-elector","tag":"0.7.0"},"leaseDuration":15,"leaseName":"benthos-collector-leader","renewDeadline":10,"resources":{"limits":{"cpu":"100m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"64Mi"}},"retryPeriod":2}` | Leader election configuration |
+| leaderElection.enabled | bool | `false` | Enable leader election using Kubernetes Lease |
+| leaderElection.image | object | `{"pullPolicy":"IfNotPresent","repository":"ghcr.io/openshift/leader-elector","tag":"0.7.0"}` | Leader elector sidecar image |
+| leaderElection.image.repository | string | `"ghcr.io/openshift/leader-elector"` | Name of the leader elector image repository |
+| leaderElection.image.tag | string | `"0.7.0"` | Image tag for the leader elector |
+| leaderElection.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy for the leader elector |
+| leaderElection.resources | object | `{"limits":{"cpu":"100m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}` | Resources for the leader elector container |
+| leaderElection.leaseName | string | `"benthos-collector-leader"` | Lease name |
+| leaderElection.leaseDuration | int | `15` | Lease duration in seconds |
+| leaderElection.renewDeadline | int | `10` | Lease renew deadline in seconds |
+| leaderElection.retryPeriod | int | `2` | Lease retry period in seconds |
 | openmeter.url | string | `"https://openmeter.cloud"` | OpenMeter API URL |
 | openmeter.token | string | `""` | OpenMeter token |
 | config | object | `{}` | Benthos configuration Takes precedence over `configFile` and `preset`. |

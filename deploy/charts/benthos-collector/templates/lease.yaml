@@ -1,0 +1,10 @@
+{{- if .Values.leaderElection.enabled }}
+apiVersion: coordination.k8s.io/v1
+kind: Lease
+metadata:
+  name: {{ .Values.leaderElection.leaseName }}
+  labels:
+    {{- include "benthos-collector.labels" . | nindent 4 }}
+spec:
+  leaseDurationSeconds: {{ .Values.leaderElection.leaseDuration }}
+{{- end }} 

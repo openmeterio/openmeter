@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "benthos-collector.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicas }}
   serviceName: {{ include "benthos-collector.fullname" . }}
   selector:
     matchLabels:
@@ -31,22 +31,90 @@ spec:
       serviceAccountName: {{ include "benthos-collector.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      # {{- if .Values.leaderElection.enabled }}
+      # initContainers:
+      #   - name: wait-for-lease
+      #     image: busybox:1.35
+      #     command: ['sh', '-c', 'until nslookup {{ include "benthos-collector.fullname" . }}; do echo waiting for service; sleep 2; done;']
+      # {{- end }}
       containers:
+        {{- if .Values.leaderElection.enabled }}
+        - name: leader-elector
+          image: "{{ .Values.leaderElection.image.repository }}:{{ .Values.leaderElection.image.tag }}"
+          imagePullPolicy: {{ .Values.leaderElection.image.pullPolicy }}
+          args:
+            - --election={{ .Values.leaderElection.leaseName }}
+            - --election-namespace={{ .Release.Namespace }}
+            - --http=0.0.0.0:4040
+            - --election-ttl={{ .Values.leaderElection.leaseDuration }}s
+            - --renew-deadline={{ .Values.leaderElection.renewDeadline }}s
+            - --retry-period={{ .Values.leaderElection.retryPeriod }}s
+            - --lease-name={{ .Values.leaderElection.leaseName }}
+          ports:
+            - name: http
+              containerPort: 4040
+          resources:
+            {{- toYaml .Values.leaderElection.resources | nindent 12 }}
+        {{- end }}
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.leaderElection.enabled }}
+          # When leader election is enabled, wrap benthos in a script that checks if we're the leader
+          command: 
+            - "/bin/sh"
+            - "-c"
+            - |
+              while true; do
+                # Check if this pod is the leader
+                if [ "$(curl -s http://localhost:4040)" = "$(hostname)" ]; then
+                  echo "I am the leader, starting benthos..."
+                  /entrypoint.sh /usr/local/bin/benthos {{ include "benthos-collector.args" . }} &
+                  BENTHOS_PID=$!
+                  
+                  # Monitor leadership, and kill benthos if we lose it
+                  while [ "$(curl -s http://localhost:4040)" = "$(hostname)" ]; do
+                    sleep 1
+                  done
+                  
+                  echo "Lost leadership, stopping benthos..."
+                  kill $BENTHOS_PID
+                  wait $BENTHOS_PID || true
+                else
+                  echo "Not the leader, waiting..."
+                  sleep 5
+                fi
+              done
+          {{- else }}
           command: ["/entrypoint.sh", "/usr/local/bin/benthos"]
           args: {{ include "benthos-collector.args" . }}
+          {{- end }}
           livenessProbe:
+            {{- if .Values.leaderElection.enabled }}
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - "curl -s http://localhost:4040 > /dev/null || true"
+            {{- else }}
             httpGet:
               path: /ping
               port: metrics
+            {{- end }}
           readinessProbe:
+            {{- if .Values.leaderElection.enabled }}
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - "curl -s http://localhost:4040 > /dev/null || true"
+            {{- else }}
             httpGet:
               path: /ready
               port: metrics
+            {{- end }}
           ports:
             - name: metrics
               containerPort: 4195
