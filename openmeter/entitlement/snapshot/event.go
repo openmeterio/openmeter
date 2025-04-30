@@ -115,10 +115,6 @@ func (e SnapshotEvent) Validate() error {
 		return errors.New("calculatedAt is required ")
 	}
 
-	if err := e.Operation.Validate(); err != nil {
-		return err
-	}
-
 	switch e.Operation {
 	case ValueOperationUpdate, ValueOperationReset:
 		if e.Value == nil {
