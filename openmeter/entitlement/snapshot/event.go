@@ -2,6 +2,8 @@ package snapshot
 
 import (
 	"errors"
+	"fmt"
+	"slices"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -15,9 +17,25 @@ import (
 type ValueOperationType string
 
 const (
+	ValueOperationReset  ValueOperationType = "reset"
 	ValueOperationUpdate ValueOperationType = "update"
 	ValueOperationDelete ValueOperationType = "delete"
 )
+
+func (o ValueOperationType) Values() []ValueOperationType {
+	return []ValueOperationType{
+		ValueOperationReset,
+		ValueOperationUpdate,
+		ValueOperationDelete,
+	}
+}
+
+func (o ValueOperationType) Validate() error {
+	if !slices.Contains(o.Values(), o) {
+		return fmt.Errorf("invalid value operation type: %s", o)
+	}
+	return nil
+}
 
 type EntitlementValue struct {
 	// Balance Only available for metered entitlements. Metered entitlements are built around a balance calculation where feature usage is deducted from the issued grants. Balance represents the remaining balance of the entitlement, it's value never turns negative.
@@ -73,8 +91,8 @@ func (e SnapshotEvent) EventMetadata() metadata.EventMetadata {
 }
 
 func (e SnapshotEvent) Validate() error {
-	if e.Operation != ValueOperationDelete && e.Operation != ValueOperationUpdate {
-		return errors.New("operation must be either delete or update")
+	if err := e.Operation.Validate(); err != nil {
+		return err
 	}
 
 	if e.Entitlement.ID == "" {
@@ -97,14 +115,15 @@ func (e SnapshotEvent) Validate() error {
 		return errors.New("calculatedAt is required ")
 	}
 
+	if err := e.Operation.Validate(); err != nil {
+		return err
+	}
+
 	switch e.Operation {
-	case ValueOperationUpdate:
+	case ValueOperationUpdate, ValueOperationReset:
 		if e.Value == nil {
-			return errors.New("balance is required for balance update")
+			return errors.New("balance is required for balance update/reset")
 		}
-	case ValueOperationDelete:
-	default:
-		return errors.New("operation must be either delete or update")
 	}
 
 	return nil

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
@@ -27,6 +28,9 @@ type handleEntitlementEventOptions struct {
 	// EventAt is the time of the event, e.g. the "time" field from the upstream cloudevents event causing the change
 	eventAt time.Time
 
+	// SourceOperation is the operation that caused the entitlement change (if empty update is assumed)
+	sourceOperation *snapshot.ValueOperationType
+
 	rawIngestedEvents []serializer.CloudEventsKafkaPayload
 }
 
@@ -41,6 +45,12 @@ func WithSource(source string) handleOption {
 func WithEventAt(eventAt time.Time) handleOption {
 	return func(o *handleEntitlementEventOptions) {
 		o.eventAt = eventAt
+	}
+}
+
+func WithSourceOperation(sourceOperation snapshot.ValueOperationType) handleOption {
+	return func(o *handleEntitlementEventOptions) {
+		o.sourceOperation = &sourceOperation
 	}
 }
 
@@ -60,6 +70,39 @@ func getOptions(opts ...handleOption) handleEntitlementEventOptions {
 	return options
 }
 
+type highWatermarkCacheAction string
+
+const (
+	recalculateAction highWatermarkCacheAction = "recalculate"
+	skipEventAction   highWatermarkCacheAction = "skipEvent"
+)
+
+func (w *Worker) checkHighWatermarkCache(ctx context.Context, entitlementID NamespacedID, opts handleEntitlementEventOptions) highWatermarkCacheAction {
+	// Always emit reset events
+	// TODO[later]: Only calculate if there's need for the explicit reset event
+	if lo.FromPtr(opts.sourceOperation) == snapshot.ValueOperationReset {
+		return recalculateAction
+	}
+
+	if entry, ok := w.highWatermarkCache.Get(entitlementID.ID); ok {
+		if entry.HighWatermark.After(opts.eventAt) || entry.IsDeleted {
+			if entry.IsDeleted {
+				w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheHitDeleted))
+			} else {
+				w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheHit))
+			}
+
+			return skipEventAction
+		}
+
+		w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheStale))
+	} else {
+		w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheMiss))
+	}
+
+	return recalculateAction
+}
+
 func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID NamespacedID, options ...handleOption) (marshaler.Event, error) {
 	calculatedAt := time.Now()
 
@@ -71,20 +114,10 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID Names
 		return nil, nil
 	}
 
-	if entry, ok := w.highWatermarkCache.Get(entitlementID.ID); ok {
-		if entry.HighWatermark.After(opts.eventAt) || entry.IsDeleted {
-			if entry.IsDeleted {
-				w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheHitDeleted))
-			} else {
-				w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheHit))
-			}
+	action := w.checkHighWatermarkCache(ctx, entitlementID, opts)
 
-			return nil, nil
-		}
-
-		w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheStale))
-	} else {
-		w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheMiss))
+	if action == skipEventAction {
+		return nil, nil
 	}
 
 	entitlements, err := w.entitlement.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
@@ -143,6 +176,21 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 		return snapshot, nil
 	}
 
+	// Reset events are always recalculated asOf the time of reset, so that we have a snapshot of initial grants
+	// and overages.
+	if lo.FromPtr(opts.sourceOperation) == snapshot.ValueOperationReset {
+		if entitlementEntity.CurrentUsagePeriod == nil {
+			return nil, fmt.Errorf("entitlement has no current usage period, cannot create snapshot event")
+		}
+
+		snapshot, err := w.createSnapshotEvent(ctx, entitlementEntity, entitlementEntity.CurrentUsagePeriod.From, opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create entitlement update snapshot event: %w", err)
+		}
+
+		return snapshot, nil
+	}
+
 	snapshot, err := w.createSnapshotEvent(ctx, entitlementEntity, calculatedAt, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create entitlement update snapshot event: %w", err)
@@ -156,11 +204,12 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 }
 
 type snapshotToEventInput struct {
-	Entitlement  *entitlement.Entitlement
-	Feature      *feature.Feature
-	Value        *snapshot.EntitlementValue
-	CalculatedAt time.Time
-	Source       string
+	Entitlement       *entitlement.Entitlement
+	Feature           *feature.Feature
+	Value             *snapshot.EntitlementValue
+	CalculatedAt      time.Time
+	Source            string
+	OverrideOperation *snapshot.ValueOperationType
 }
 
 func (i *snapshotToEventInput) Validate() error {
@@ -184,6 +233,12 @@ func (i *snapshotToEventInput) Validate() error {
 
 	if i.Source == "" {
 		errs = append(errs, fmt.Errorf("source is required"))
+	}
+
+	if i.OverrideOperation != nil {
+		if err := i.OverrideOperation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("overrideOperation is invalid: %w", err))
+		}
 	}
 
 	return errors.Join(errs...)
@@ -215,7 +270,7 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 			},
 			Subject:   subject,
 			Feature:   *in.Feature,
-			Operation: snapshot.ValueOperationUpdate,
+			Operation: lo.FromPtrOr(in.OverrideOperation, snapshot.ValueOperationUpdate),
 
 			CalculatedAt: &in.CalculatedAt,
 
@@ -253,11 +308,12 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 	}
 
 	return w.snapshotToEvent(ctx, snapshotToEventInput{
-		Entitlement:  entitlementEntity,
-		Feature:      feature,
-		Value:        convert.ToPointer((snapshot.EntitlementValue)(mappedValues)),
-		CalculatedAt: calculatedAt,
-		Source:       opts.source,
+		Entitlement:       entitlementEntity,
+		Feature:           feature,
+		Value:             convert.ToPointer((snapshot.EntitlementValue)(mappedValues)),
+		CalculatedAt:      calculatedAt,
+		Source:            opts.source,
+		OverrideOperation: opts.sourceOperation,
 	})
 }
 
