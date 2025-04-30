@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/oklog/ulid/v2"
 
@@ -37,6 +38,10 @@ func NewEventAppData(v any) (EventAppData, error) {
 
 // ParseInto parses the EventAppData into a given value, the value must be a pointer
 func (e EventAppData) ParseInto(v any) error {
+	if rv := reflect.ValueOf(v); rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return fmt.Errorf("target must be a non-nil pointer")
+	}
+
 	jsonBytes, err := json.Marshal(e)
 	if err != nil {
 		return err

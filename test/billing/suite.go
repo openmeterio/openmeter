@@ -300,6 +300,10 @@ func (i DraftInvoiceInput) Validate() error {
 		return errors.New("namespace is required")
 	}
 
+	if i.Customer == nil {
+		return errors.New("customer is required")
+	}
+
 	if err := i.Customer.Validate(); err != nil {
 		return err
 	}
@@ -308,6 +312,8 @@ func (i DraftInvoiceInput) Validate() error {
 }
 
 func (s *BaseSuite) CreateDraftInvoice(t *testing.T, ctx context.Context, in DraftInvoiceInput) billing.Invoice {
+	s.NoError(in.Validate())
+
 	namespace := in.Customer.Namespace
 
 	now := time.Now()

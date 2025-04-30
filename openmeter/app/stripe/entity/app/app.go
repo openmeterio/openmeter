@@ -23,7 +23,7 @@ var _ app.EventAppParser = (*Meta)(nil)
 func (m *Meta) FromEventAppData(event app.EventApp) error {
 	m.AppBase = event.AppBase
 
-	if err := event.AppData.ParseInto(&event.AppData); err != nil {
+	if err := event.AppData.ParseInto(&m.AppData); err != nil {
 		return fmt.Errorf("error parsing app data: %w", err)
 	}
 

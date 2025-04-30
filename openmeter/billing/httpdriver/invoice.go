@@ -573,7 +573,7 @@ func MapEventInvoiceToAPI(event billing.EventInvoice) (api.Invoice, error) {
 
 	apps := api.BillingProfileApps{}
 
-	apps.Invoicing, err = apphttpdriver.MapEventAppToAPI(event.Apps.Invocing)
+	apps.Invoicing, err = apphttpdriver.MapEventAppToAPI(event.Apps.Invoicing)
 	if err != nil {
 		return api.Invoice{}, err
 	}

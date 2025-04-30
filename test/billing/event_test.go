@@ -51,5 +51,5 @@ func (s *InvoicingEventTestSuite) TestCreateInvoiceEvent() {
 	// Then the event should contain the app bases as contextual information
 	s.Equal(event.Apps.Tax.AppBase, invoice.Workflow.Apps.Tax.GetAppBase())
 	s.Equal(event.Apps.Payment.AppBase, invoice.Workflow.Apps.Payment.GetAppBase())
-	s.Equal(event.Apps.Invocing.AppBase, invoice.Workflow.Apps.Invoicing.GetAppBase())
+	s.Equal(event.Apps.Invoicing.AppBase, invoice.Workflow.Apps.Invoicing.GetAppBase())
 }

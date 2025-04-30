@@ -13,9 +13,9 @@ const (
 )
 
 type InvoiceApps struct {
-	Tax      app.EventApp `json:"tax"`
-	Payment  app.EventApp `json:"payment"`
-	Invocing app.EventApp `json:"invocing"`
+	Tax       app.EventApp `json:"tax"`
+	Payment   app.EventApp `json:"payment"`
+	Invoicing app.EventApp `json:"invoicing"`
 }
 
 func (a InvoiceApps) Validate() error {
@@ -29,8 +29,8 @@ func (a InvoiceApps) Validate() error {
 		errs = append(errs, fmt.Errorf("payment: %w", err))
 	}
 
-	if err := a.Invocing.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invocing: %w", err))
+	if err := a.Invoicing.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invoicing: %w", err))
 	}
 
 	return errors.Join(errs...)
@@ -68,7 +68,7 @@ func NewEventInvoice(invoice Invoice) (EventInvoice, error) {
 	// TODO[later]: Apps are always present, so we should only use the struct without a pointer
 	if invoice.Workflow.Apps != nil {
 		var err error
-		apps.Invocing, err = app.NewEventApp(invoice.Workflow.Apps.Invoicing)
+		apps.Invoicing, err = app.NewEventApp(invoice.Workflow.Apps.Invoicing)
 		if err != nil {
 			return EventInvoice{}, err
 		}

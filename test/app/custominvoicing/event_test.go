@@ -51,11 +51,11 @@ func (s *CustomInvoicingEventTestSuite) TestCreateInvoiceEvent() {
 	// Then the event should contain the app bases as contextual information
 	s.Equal(event.Apps.Tax.AppBase, invoice.Workflow.Apps.Tax.GetAppBase())
 	s.Equal(event.Apps.Payment.AppBase, invoice.Workflow.Apps.Payment.GetAppBase())
-	s.Equal(event.Apps.Invocing.AppBase, invoice.Workflow.Apps.Invoicing.GetAppBase())
+	s.Equal(event.Apps.Invoicing.AppBase, invoice.Workflow.Apps.Invoicing.GetAppBase())
 
 	// Let's validate the app data unmarshaling
 	meta := appcustominvoicing.Meta{}
-	s.NoError(meta.FromEventAppData(event.Apps.Invocing))
+	s.NoError(meta.FromEventAppData(event.Apps.Invoicing))
 	s.Equal(invoice.Workflow.Apps.Invoicing.GetID(), meta.GetID())
 	s.True(meta.Configuration.EnableDraftSyncHook)
 	s.True(meta.Configuration.EnableIssuingSyncHook)
