@@ -89,9 +89,8 @@ func (b *EntitlementSnapshotHandler) handleResetRule(ctx context.Context, event 
 }
 
 type createEntitlementResetEventInput struct {
-	Snapshot   snapshot.SnapshotEvent
-	DedupeHash string
-	RuleID     string
+	Snapshot snapshot.SnapshotEvent
+	RuleID   string
 }
 
 func (b *EntitlementSnapshotHandler) createResetEvent(ctx context.Context, in createEntitlementResetEventInput) error {
@@ -130,8 +129,7 @@ func (b *EntitlementSnapshotHandler) createResetEvent(ctx context.Context, in cr
 				Value:       (api.EntitlementValue)(*in.Snapshot.Value),
 			},
 		},
-		RuleID:                   in.RuleID,
-		HandlerDeduplicationHash: in.DedupeHash,
+		RuleID: in.RuleID,
 	})
 
 	return err

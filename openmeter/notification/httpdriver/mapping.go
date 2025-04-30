@@ -146,7 +146,7 @@ func AsRuleEntitlementResetCreateRequest(r api.NotificationRuleEntitlementResetC
 			RuleConfigMeta: notification.RuleConfigMeta{
 				Type: notification.EventType(r.Type),
 			},
-			BalanceThreshold: &notification.BalanceThresholdRuleConfig{
+			EntitlementReset: &notification.EntitlementResetRuleConfig{
 				Features: lo.FromPtr(r.Features),
 			},
 		},
@@ -166,7 +166,7 @@ func AsRuleEntitlementResetUpdateRequest(r api.NotificationRuleEntitlementResetC
 			RuleConfigMeta: notification.RuleConfigMeta{
 				Type: notification.EventType(r.Type),
 			},
-			BalanceThreshold: &notification.BalanceThresholdRuleConfig{
+			EntitlementReset: &notification.EntitlementResetRuleConfig{
 				Features: lo.FromPtr(r.Features),
 			},
 		},
@@ -334,7 +334,7 @@ func FromRuleEntitlementReset(r notification.Rule) api.NotificationRuleEntitleme
 		Channels:  channels,
 		CreatedAt: r.CreatedAt,
 		Disabled:  lo.ToPtr(r.Disabled),
-		Features: convert.SafeDeRef(&r.Config.BalanceThreshold.Features, func(featureIDs []string) *[]notification.FeatureMeta {
+		Features: convert.SafeDeRef(&r.Config.EntitlementReset.Features, func(featureIDs []string) *[]notification.FeatureMeta {
 			var features []notification.FeatureMeta
 			for _, id := range featureIDs {
 				features = append(features, notification.FeatureMeta{
