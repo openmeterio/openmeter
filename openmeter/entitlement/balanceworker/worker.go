@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/registry"
@@ -251,7 +252,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID)),
-					WithEventAt(event.ResetRequestedAt),
+					WithEventAt(event.ResetAt),
+					WithSourceOperation(snapshot.ValueOperationReset),
 				))
 		}),
 

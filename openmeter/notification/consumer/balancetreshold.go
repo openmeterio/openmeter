@@ -213,8 +213,8 @@ func (b *BalanceThresholdEventHandler) isBalanceThresholdEvent(event snapshot.Sn
 		return false
 	}
 
-	// We don't care about delete events
-	if event.Operation != snapshot.ValueOperationUpdate {
+	// We don't care about delete events, but reset events are valid snapshot events
+	if !slices.Contains([]snapshot.ValueOperationType{snapshot.ValueOperationUpdate, snapshot.ValueOperationReset}, event.Operation) {
 		return false
 	}
 
