@@ -5,26 +5,37 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
+var eventTypes = []EventType{
+	EventTypeBalanceThreshold,
+}
+
+func EventTypes() []EventType {
+	return eventTypes
+}
+
 type EventType string
 
 func (t EventType) Validate() error {
-	switch t {
-	case EventTypeBalanceThreshold:
-		return nil
-	default:
-		return fmt.Errorf("unknown notification event type: %q", t)
+	if !lo.Contains(eventTypes, t) {
+		return ValidationError{
+			Err: fmt.Errorf("invalid notification event type: %q", t),
+		}
 	}
+
+	return nil
 }
 
 func (t EventType) Values() []string {
-	return []string{
-		string(EventTypeBalanceThreshold),
-	}
+	return lo.Map(eventTypes, func(item EventType, index int) string {
+		return string(item)
+	})
 }
 
 type Event struct {
