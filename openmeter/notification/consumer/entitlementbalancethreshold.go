@@ -26,22 +26,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type BalanceThresholdEventHandler struct {
-	Notification notification.Service
-	Logger       *slog.Logger
-}
-
-type BalanceThresholdEventHandlerState struct {
+type EntitlementSnapshotHandlerState struct {
 	TotalGrants float64 `json:"totalGrants"`
 }
 
 var ErrNoBalanceAvailable = errors.New("no balance available")
 
-func (b *BalanceThresholdEventHandler) Handle(ctx context.Context, event snapshot.SnapshotEvent) error {
-	if !b.isBalanceThresholdEvent(event) {
-		return nil
-	}
-
+func (b *EntitlementSnapshotHandler) handleAsSnapshotEvent(ctx context.Context, event snapshot.SnapshotEvent) error {
 	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
 	affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
 		Namespaces: []string{event.Namespace.ID},
@@ -78,7 +69,7 @@ func (b *BalanceThresholdEventHandler) Handle(ctx context.Context, event snapsho
 	return errs
 }
 
-func (b *BalanceThresholdEventHandler) handleRule(ctx context.Context, balSnapshot snapshot.SnapshotEvent, rule notification.Rule) error {
+func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot snapshot.SnapshotEvent, rule notification.Rule) error {
 	// Check 1: do we have a threshold we should create an event for?
 
 	threshold, err := getHighestMatchingThreshold(rule.Config.BalanceThreshold.Thresholds, *balSnapshot.Value)
@@ -163,16 +154,16 @@ type createBalanceThresholdEventInput struct {
 	RuleID     string
 }
 
-func (b *BalanceThresholdEventHandler) createEvent(ctx context.Context, in createBalanceThresholdEventInput) error {
+func (b *EntitlementSnapshotHandler) createEvent(ctx context.Context, in createBalanceThresholdEventInput) error {
 	entitlementAPIEntity, err := entitlementdriver.Parser.ToMetered(&in.Snapshot.Entitlement)
 	if err != nil {
 		return fmt.Errorf("failed to map entitlement value to API: %w", err)
 	}
 
 	annotations := models.Annotations{
-		notification.AnnotationEventSubjectKey: in.Snapshot.Subject.Key,
-		notification.AnnotationEventFeatureKey: in.Snapshot.Feature.Key,
-		notification.AnnotationEventDedupeHash: in.DedupeHash,
+		notification.AnnotationEventSubjectKey:        in.Snapshot.Subject.Key,
+		notification.AnnotationEventFeatureKey:        in.Snapshot.Feature.Key,
+		notification.AnnotationBalanceEventDedupeHash: in.DedupeHash,
 	}
 
 	if in.Snapshot.Subject.Id != "" {
@@ -194,11 +185,13 @@ func (b *BalanceThresholdEventHandler) createEvent(ctx context.Context, in creat
 				Type: notification.EventTypeBalanceThreshold,
 			},
 			BalanceThreshold: &notification.BalanceThresholdPayload{
-				Entitlement: *entitlementAPIEntity,
-				Feature:     productcatalogdriver.MapFeatureToResponse(in.Snapshot.Feature),
-				Subject:     in.Snapshot.Subject.ToAPIModel(),
-				Value:       (api.EntitlementValue)(*in.Snapshot.Value),
-				Threshold:   in.Threshold,
+				EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase{
+					Entitlement: *entitlementAPIEntity,
+					Feature:     productcatalogdriver.MapFeatureToResponse(in.Snapshot.Feature),
+					Subject:     in.Snapshot.Subject.ToAPIModel(),
+					Value:       (api.EntitlementValue)(*in.Snapshot.Value),
+				},
+				Threshold: in.Threshold,
 			},
 		},
 		RuleID:                   in.RuleID,
@@ -208,7 +201,7 @@ func (b *BalanceThresholdEventHandler) createEvent(ctx context.Context, in creat
 	return err
 }
 
-func (b *BalanceThresholdEventHandler) isBalanceThresholdEvent(event snapshot.SnapshotEvent) bool {
+func (b *EntitlementSnapshotHandler) isBalanceThresholdEvent(event snapshot.SnapshotEvent) bool {
 	if event.Entitlement.EntitlementType != entitlement.EntitlementTypeMetered {
 		return false
 	}
@@ -234,7 +227,7 @@ func (b *BalanceThresholdEventHandler) isBalanceThresholdEvent(event snapshot.Sn
 // getPeriodsDeduplicationHash generates a hash that the handler can use to deduplicate the events. Right now the hash is unique
 // for a single entitlement usage period. We can use this to fetch the previous events for the same period and validate
 // if we need to send a new notification.
-func (b *BalanceThresholdEventHandler) getPeriodsDeduplicationHash(snapshot snapshot.SnapshotEvent, ruleID string) string {
+func (b *EntitlementSnapshotHandler) getPeriodsDeduplicationHash(snapshot snapshot.SnapshotEvent, ruleID string) string {
 	// Note: this should not happen, but let's be safe here
 	currentUsagePeriod := lo.FromPtrOr(
 		snapshot.Entitlement.CurrentUsagePeriod, timeutil.ClosedPeriod{

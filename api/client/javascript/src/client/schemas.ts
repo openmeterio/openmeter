@@ -7055,6 +7055,17 @@ export interface components {
       | 'FAILED'
       | 'SENDING'
       | 'PENDING'
+    /** @description Base data for any payload with entitlement entitlement value. */
+    NotificationEventEntitlementValuePayloadBase: {
+      /** Entitlement */
+      readonly entitlement: components['schemas']['EntitlementMetered']
+      /** Feature */
+      readonly feature: components['schemas']['Feature']
+      /** Subject */
+      readonly subject: components['schemas']['Subject']
+      /** Entitlement Value */
+      readonly value: components['schemas']['EntitlementValue']
+    }
     /** @description Payload for notification event with `invoice.created` type. */
     NotificationEventInvoiceCreatedPayload: {
       /**
@@ -7134,20 +7145,49 @@ export interface components {
     }
     /** @description The delivery status of the notification event. */
     NotificationEventPayload:
+      | components['schemas']['NotificationEventResetPayload']
       | components['schemas']['NotificationEventBalanceThresholdPayload']
       | components['schemas']['NotificationEventInvoiceCreatedPayload']
       | components['schemas']['NotificationEventInvoiceUpdatedPayload']
+    /** @description Payload for notification event with `entitlements.reset` type. */
+    NotificationEventResetPayload: {
+      /**
+       * Notification Event Identifier
+       * @description A unique identifier for the notification event the payload belongs to.
+       * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
+       */
+      readonly id: string
+      /**
+       * @description Type of the notification event. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'entitlements.reset'
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp when the notification event was created in RFC 3339 format.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly timestamp: Date
+      /**
+       * Payload Data
+       * @description The data of the payload.
+       */
+      readonly data: components['schemas']['NotificationEventEntitlementValuePayloadBase']
+    }
     /**
      * @description Type of the notification event.
      * @enum {string}
      */
     NotificationEventType:
       | 'entitlements.balance.threshold'
+      | 'entitlements.reset'
       | 'invoice.created'
       | 'invoice.updated'
     /** @description Notification Rule. */
     NotificationRule:
       | components['schemas']['NotificationRuleBalanceThreshold']
+      | components['schemas']['NotificationRuleEntitlementReset']
       | components['schemas']['NotificationRuleInvoiceCreated']
       | components['schemas']['NotificationRuleInvoiceUpdated']
     /** @description Notification rule with entitlements.balance.threshold type. */
@@ -7273,8 +7313,98 @@ export interface components {
     /** @description Union type for requests creating new notification rule with certain type. */
     NotificationRuleCreateRequest:
       | components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
+      | components['schemas']['NotificationRuleEntitlementResetCreateRequest']
       | components['schemas']['NotificationRuleInvoiceCreatedCreateRequest']
       | components['schemas']['NotificationRuleInvoiceUpdatedCreateRequest']
+    /** @description Notification rule with entitlements.reset type. */
+    NotificationRuleEntitlementReset: {
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /**
+       * Rule Unique Identifier
+       * @description Identifies the notification rule.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      readonly id: string
+      /**
+       * @description Notification rule type. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'entitlements.reset'
+      /**
+       * Rule Name
+       * @description The user friendly name of the notification rule.
+       * @example Balance threshold reached
+       */
+      name: string
+      /**
+       * Rule Disabled
+       * @description Whether the rule is disabled or not.
+       * @default false
+       * @example true
+       */
+      disabled?: boolean
+      /**
+       * Channels assigned to Rule
+       * @description List of notification channels the rule applies to.
+       */
+      channels: components['schemas']['NotificationChannelMeta'][]
+      /**
+       * Features
+       * @description Optional field containing list of features the rule applies to.
+       */
+      features?: components['schemas']['FeatureMeta'][]
+    }
+    /** @description Request with input parameters for creating new notification rule with entitlements.reset type. */
+    NotificationRuleEntitlementResetCreateRequest: {
+      /**
+       * @description Notification rule type. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'entitlements.reset'
+      /**
+       * Rule Name
+       * @description The user friendly name of the notification rule.
+       * @example Balance threshold reached
+       */
+      name: string
+      /**
+       * Rule Disabled
+       * @description Whether the rule is disabled or not.
+       * @default false
+       * @example true
+       */
+      disabled?: boolean
+      /**
+       * Channels
+       * @description List of notification channels the rule is applied to.
+       */
+      channels: string[]
+      /**
+       * Features
+       * @description Optional field for defining the scope of notification by feature. It may contain features by id or key.
+       */
+      features?: string[]
+    }
     /** @description Notification rule with invoice.created type. */
     NotificationRuleInvoiceCreated: {
       /**
@@ -10418,6 +10548,8 @@ export type NotificationEventDeliveryStatus =
   components['schemas']['NotificationEventDeliveryStatus']
 export type NotificationEventDeliveryStatusState =
   components['schemas']['NotificationEventDeliveryStatusState']
+export type NotificationEventEntitlementValuePayloadBase =
+  components['schemas']['NotificationEventEntitlementValuePayloadBase']
 export type NotificationEventInvoiceCreatedPayload =
   components['schemas']['NotificationEventInvoiceCreatedPayload']
 export type NotificationEventInvoiceUpdatedPayload =
@@ -10428,6 +10560,8 @@ export type NotificationEventPaginatedResponse =
   components['schemas']['NotificationEventPaginatedResponse']
 export type NotificationEventPayload =
   components['schemas']['NotificationEventPayload']
+export type NotificationEventResetPayload =
+  components['schemas']['NotificationEventResetPayload']
 export type NotificationEventType =
   components['schemas']['NotificationEventType']
 export type NotificationRule = components['schemas']['NotificationRule']
@@ -10441,6 +10575,10 @@ export type NotificationRuleBalanceThresholdValueType =
   components['schemas']['NotificationRuleBalanceThresholdValueType']
 export type NotificationRuleCreateRequest =
   components['schemas']['NotificationRuleCreateRequest']
+export type NotificationRuleEntitlementReset =
+  components['schemas']['NotificationRuleEntitlementReset']
+export type NotificationRuleEntitlementResetCreateRequest =
+  components['schemas']['NotificationRuleEntitlementResetCreateRequest']
 export type NotificationRuleInvoiceCreated =
   components['schemas']['NotificationRuleInvoiceCreated']
 export type NotificationRuleInvoiceCreatedCreateRequest =

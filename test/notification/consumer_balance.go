@@ -31,7 +31,7 @@ type BalanceNotificaiontHandlerTestSuite struct {
 	channel   notification.Channel
 	rule      notification.Rule
 	feature   feature.Feature
-	handler   consumer.BalanceThresholdEventHandler
+	handler   consumer.EntitlementSnapshotHandler
 	namespace string
 }
 
@@ -159,7 +159,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 	s.rule.CreatedAt = s.rule.CreatedAt.Truncate(time.Microsecond)
 	s.rule.UpdatedAt = s.rule.UpdatedAt.Truncate(time.Microsecond)
 
-	s.handler = consumer.BalanceThresholdEventHandler{
+	s.handler = consumer.EntitlementSnapshotHandler{
 		Notification: service,
 		Logger:       slog.Default(),
 	}
@@ -217,7 +217,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	require.Equal(t, s.rule.ID, event.Rule.ID, "Event must be associated with the rule")
 	require.Equal(t, notification.EventTypeBalanceThreshold, event.Payload.Type, "Event must be of type balance threshold")
 	require.Equal(t, TestEntitlementID, event.Payload.BalanceThreshold.Entitlement.Id, "Event must be associated with the entitlement")
-	require.NotEmpty(t, event.Annotations[notification.AnnotationEventDedupeHash], "Event must have a deduplication hash")
+	require.NotEmpty(t, event.Annotations[notification.AnnotationBalanceEventDedupeHash], "Event must have a deduplication hash")
 	require.NoError(t, event.Payload.BalanceThreshold.Validate(), "Event must be valid")
 	require.Equal(t, api.NotificationRuleBalanceThresholdValue{
 		Value: 95,
@@ -285,7 +285,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	// Let's sanity check the resulting event
 	event = events.Items[0]
 	require.Equal(t, notification.EventTypeBalanceThreshold, event.Payload.Type, "Event must be of type balance threshold")
-	require.NotEmpty(t, event.Annotations[notification.AnnotationEventDedupeHash], "Event must have a deduplication hash")
+	require.NotEmpty(t, event.Annotations[notification.AnnotationBalanceEventDedupeHash], "Event must have a deduplication hash")
 	require.Equal(t, api.NotificationRuleBalanceThresholdValue{
 		Value: 1000,
 		Type:  api.NotificationRuleBalanceThresholdValueTypeNumber,

@@ -9,7 +9,8 @@ const (
 	AnnotationEventSubjectKey = "event.subject.key"
 	AnnotationEventSubjectID  = "event.subject.id"
 
-	AnnotationEventDedupeHash = "event.balance.dedupe.hash"
+	// TODO[later]: deprecate this annotation and use a generic one
+	AnnotationBalanceEventDedupeHash = "event.balance.dedupe.hash"
 
 	AnnotationEventInvoiceID     = "event.invoice.id"
 	AnnotationEventInvoiceNumber = "event.invoice.number"

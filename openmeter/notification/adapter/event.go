@@ -40,7 +40,7 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 
 		if len(params.DeduplicationHashes) > 0 {
 			query = query.Where(
-				entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventDedupeHash, params.DeduplicationHashes),
+				entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationBalanceEventDedupeHash, params.DeduplicationHashes),
 			)
 		}
 

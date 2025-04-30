@@ -74,6 +74,7 @@ model NotificationRuleCommon<T extends NotificationEventType> {
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union NotificationRule {
   `entitlements.balance.threshold`: NotificationRuleBalanceThreshold,
+  `entitlements.reset`: NotificationRuleEntitlementReset,
   `invoice.created`: NotificationRuleInvoiceCreated,
   `invoice.updated`: NotificationRuleInvoiceUpdated,
 }
@@ -85,6 +86,7 @@ union NotificationRule {
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union NotificationRuleCreateRequest {
   `entitlements.balance.threshold`: NotificationRuleBalanceThresholdCreateRequest,
+  `entitlements.reset`: NotificationRuleEntitlementResetCreateRequest,
   `invoice.created`: NotificationRuleInvoiceCreatedCreateRequest,
   `invoice.updated`: NotificationRuleInvoiceUpdatedCreateRequest,
 }

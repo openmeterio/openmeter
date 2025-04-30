@@ -110,6 +110,8 @@ func (h *handler) CreateRule() CreateRuleHandler {
 			switch v := value.(type) {
 			case api.NotificationRuleBalanceThresholdCreateRequest:
 				req = AsRuleBalanceThresholdCreateRequest(v, ns)
+			case api.NotificationRuleEntitlementResetCreateRequest:
+				req = AsRuleEntitlementResetCreateRequest(v, ns)
 			case api.NotificationRuleInvoiceCreatedCreateRequest:
 				req = AsRuleInvoiceCreatedCreateRequest(v, ns)
 			case api.NotificationRuleInvoiceUpdatedCreateRequest:
@@ -168,6 +170,8 @@ func (h *handler) UpdateRule() UpdateRuleHandler {
 			switch v := value.(type) {
 			case api.NotificationRuleBalanceThresholdCreateRequest:
 				req = AsRuleBalanceThresholdUpdateRequest(v, ns, ruleID)
+			case api.NotificationRuleEntitlementResetCreateRequest:
+				req = AsRuleEntitlementResetUpdateRequest(v, ns, ruleID)
 			case api.NotificationRuleInvoiceCreatedCreateRequest:
 				req = AsRuleInvoiceCreatedUpdateRequest(v, ns, ruleID)
 			case api.NotificationRuleInvoiceUpdatedCreateRequest:

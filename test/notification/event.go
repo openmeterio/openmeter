@@ -26,6 +26,78 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 			Type: notification.EventTypeBalanceThreshold,
 		},
 		BalanceThreshold: &notification.BalanceThresholdPayload{
+			EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase{
+				Entitlement: api.EntitlementMetered{
+					CreatedAt: time.Now().Add(-10 * 24 * time.Hour).UTC(),
+					CurrentUsagePeriod: api.Period{
+						From: time.Now().Add(-24 * time.Hour).UTC(),
+						To:   time.Now().UTC(),
+					},
+					DeletedAt:               nil,
+					FeatureId:               "01J4VCZKH5QAF85GE501M8637W",
+					FeatureKey:              "feature-1",
+					Id:                      "01J4VCTKG06VJ0H78GD0MZBE49",
+					IsSoftLimit:             nil,
+					IsUnlimited:             nil,
+					IssueAfterReset:         nil,
+					IssueAfterResetPriority: nil,
+					LastReset:               time.Time{},
+					MeasureUsageFrom:        time.Time{},
+					Metadata:                nil,
+					SubjectKey:              "customer-1",
+					Type:                    "",
+					UpdatedAt:               time.Now().Add(-2 * time.Hour).UTC(),
+					UsagePeriod: api.RecurringPeriod{
+						Anchor:      time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC),
+						Interval:    *month,
+						IntervalISO: "P1M",
+					},
+				},
+				Feature: api.Feature{
+					ArchivedAt:          nil,
+					CreatedAt:           time.Now().Add(-10 * 24 * time.Hour).UTC(),
+					DeletedAt:           nil,
+					Id:                  "01J4VCZKH5QAF85GE501M8637W",
+					Key:                 "feature-1",
+					Metadata:            nil,
+					MeterGroupByFilters: nil,
+					MeterSlug:           nil,
+					Name:                "feature-1",
+					UpdatedAt:           time.Now().Add(-24 * time.Hour).UTC(),
+				},
+				Subject: api.Subject{
+					CurrentPeriodEnd:   &time.Time{},
+					CurrentPeriodStart: &time.Time{},
+					DisplayName:        nil,
+					Id:                 "01J4VD1XZH5HM705DCPB8XD5QD",
+					Key:                "customer-1",
+					Metadata:           nil,
+					StripeCustomerId:   nil,
+				},
+				Value: api.EntitlementValue{
+					Balance:   convert.ToPointer(10000.0),
+					Config:    nil,
+					HasAccess: true,
+					Overage:   convert.ToPointer(500.0),
+					Usage:     convert.ToPointer(50000.0),
+				},
+			},
+			Threshold: api.NotificationRuleBalanceThresholdValue{
+				Type:  notification.BalanceThresholdTypePercent,
+				Value: 50,
+			},
+		},
+	}
+}
+
+func NewEntitlementResetPayload() notification.EventPayload {
+	month := &api.RecurringPeriodInterval{}
+	_ = month.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH)
+	return notification.EventPayload{
+		EventPayloadMeta: notification.EventPayloadMeta{
+			Type: notification.EventTypeEntitlementReset,
+		},
+		EntitlementReset: &notification.EntitlementResetPayload{
 			Entitlement: api.EntitlementMetered{
 				CreatedAt: time.Now().Add(-10 * 24 * time.Hour).UTC(),
 				CurrentUsagePeriod: api.Period{
@@ -79,10 +151,6 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 				HasAccess: true,
 				Overage:   convert.ToPointer(500.0),
 				Usage:     convert.ToPointer(50000.0),
-			},
-			Threshold: api.NotificationRuleBalanceThresholdValue{
-				Type:  notification.BalanceThresholdTypePercent,
-				Value: 50,
 			},
 		},
 	}

@@ -44,10 +44,10 @@ model NotificationEventBalanceThresholdPayload {
 }
 
 /**
- * Data of the payload for notification event with `entitlements.balance.threshold` type.
+ * Base data for any payload with entitlement entitlement value.
  */
-@friendlyName("NotificationEventBalanceThresholdPayloadData")
-model NotificationEventBalanceThresholdPayloadData {
+@friendlyName("NotificationEventEntitlementValuePayloadBase")
+model NotificationEventEntitlementValuePayloadBase {
   @visibility(Lifecycle.Read)
   @summary("Entitlement")
   entitlement: OpenMeter.Entitlements.EntitlementMetered;
@@ -63,10 +63,54 @@ model NotificationEventBalanceThresholdPayloadData {
   @visibility(Lifecycle.Read)
   @summary("Entitlement Value")
   value: OpenMeter.Entitlements.EntitlementValue;
+}
+
+/**
+ * Data of the payload for notification event with `entitlements.balance.threshold` type.
+ */
+@friendlyName("NotificationEventBalanceThresholdPayloadData")
+model NotificationEventBalanceThresholdPayloadData {
+  ...NotificationEventEntitlementValuePayloadBase;
 
   @visibility(Lifecycle.Read)
   @summary("Threshold")
   threshold: NotificationRuleBalanceThresholdValue;
+}
+
+/**
+ * Payload for notification event with `entitlements.reset` type.
+ */
+@friendlyName("NotificationEventResetPayload")
+model NotificationEventResetPayload {
+  /**
+   * A unique identifier for the notification event the payload belongs to.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Notification Event Identifier")
+  @example("01J2KNP1YTXQRXHTDJ4KPR7PZ0")
+  id: ULID;
+
+  /**
+   * Type of the notification event.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Notification Event Type")
+  type: NotificationEventType.entitlementsReset;
+
+  /**
+   * Timestamp when the notification event was created in RFC 3339 format.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Creation Time")
+  @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
+  timestamp: DateTime;
+
+  /**
+   * The data of the payload.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Payload Data")
+  data: NotificationEventEntitlementValuePayloadBase;
 }
 
 /**
@@ -156,6 +200,47 @@ model NotificationRuleBalanceThreshold {
 @withVisibility(Lifecycle.Create, Lifecycle.Update)
 model NotificationRuleBalanceThresholdCreateRequest {
   ...OmitProperties<NotificationRuleBalanceThreshold, "channels" | "features">;
+
+  /**
+   * List of notification channels the rule is applied to.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Update)
+  @summary("Channels")
+  @minItems(1)
+  channels: Array<ULID>;
+
+  /**
+   * Optional field for defining the scope of notification by feature. It may contain features by id or key.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Update)
+  @summary("Features")
+  @minItems(1)
+  features?: Array<ULIDOrKey>;
+}
+
+/**
+ * Notification rule with entitlements.reset type.
+ */
+@friendlyName("NotificationRuleEntitlementReset")
+model NotificationRuleEntitlementReset {
+  ...NotificationRuleCommon<NotificationEventType.entitlementsReset>;
+
+  /**
+   * Optional field containing list of features the rule applies to.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Features")
+  @minItems(1)
+  features?: Array<FeatureMeta>;
+}
+
+/**
+ * Request with input parameters for creating new notification rule with entitlements.reset type.
+ */
+@friendlyName("NotificationRuleEntitlementResetCreateRequest")
+@withVisibility(Lifecycle.Create, Lifecycle.Update)
+model NotificationRuleEntitlementResetCreateRequest {
+  ...OmitProperties<NotificationRuleEntitlementReset, "channels" | "features">;
 
   /**
    * List of notification channels the rule is applied to.

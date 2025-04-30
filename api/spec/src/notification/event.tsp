@@ -15,6 +15,8 @@ enum NotificationEventType {
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   entitlementsBalanceThreshold: "entitlements.balance.threshold",
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
+  entitlementsReset: "entitlements.reset",
+  #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   invoiceCreated: "invoice.created",
   #suppress "@openmeter/api-spec/casing" "Ignore due to backward compatibility"
   invoiceUpdated: "invoice.updated",
@@ -75,6 +77,7 @@ enum NotificationEventDeliveryStatusState {
 @friendlyName("NotificationEventPayload")
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union NotificationEventPayload {
+  `entitlements.reset`: NotificationEventResetPayload,
   `entitlements.balance.threshold`: NotificationEventBalanceThresholdPayload,
   `invoice.created`: NotificationEventInvoiceCreatedPayload,
   `invoice.updated`: NotificationEventInvoiceUpdatedPayload,

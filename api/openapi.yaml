@@ -18179,6 +18179,35 @@ components:
         - Failed
         - Sending
         - Pending
+    NotificationEventEntitlementValuePayloadBase:
+      type: object
+      required:
+        - entitlement
+        - feature
+        - subject
+        - value
+      properties:
+        entitlement:
+          allOf:
+            - $ref: '#/components/schemas/EntitlementMetered'
+          title: Entitlement
+          readOnly: true
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/Feature'
+          title: Feature
+          readOnly: true
+        subject:
+          allOf:
+            - $ref: '#/components/schemas/Subject'
+          title: Subject
+          readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/EntitlementValue'
+          title: Entitlement Value
+          readOnly: true
+      description: Base data for any payload with entitlement entitlement value.
     NotificationEventInvoiceCreatedPayload:
       type: object
       required:
@@ -18286,20 +18315,59 @@ components:
     NotificationEventPayload:
       type: object
       oneOf:
+        - $ref: '#/components/schemas/NotificationEventResetPayload'
         - $ref: '#/components/schemas/NotificationEventBalanceThresholdPayload'
         - $ref: '#/components/schemas/NotificationEventInvoiceCreatedPayload'
         - $ref: '#/components/schemas/NotificationEventInvoiceUpdatedPayload'
       discriminator:
         propertyName: type
         mapping:
+          entitlements.reset: '#/components/schemas/NotificationEventResetPayload'
           entitlements.balance.threshold: '#/components/schemas/NotificationEventBalanceThresholdPayload'
           invoice.created: '#/components/schemas/NotificationEventInvoiceCreatedPayload'
           invoice.updated: '#/components/schemas/NotificationEventInvoiceUpdatedPayload'
       description: The delivery status of the notification event.
+    NotificationEventResetPayload:
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the notification event the payload belongs to.
+          example: 01J2KNP1YTXQRXHTDJ4KPR7PZ0
+          title: Notification Event Identifier
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - entitlements.reset
+          description: Type of the notification event.
+          title: Notification Event Type
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the notification event was created in RFC 3339 format.
+          example: '2023-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/NotificationEventEntitlementValuePayloadBase'
+          description: The data of the payload.
+          title: Payload Data
+          readOnly: true
+      description: Payload for notification event with `entitlements.reset` type.
     NotificationEventType:
       type: string
       enum:
         - entitlements.balance.threshold
+        - entitlements.reset
         - invoice.created
         - invoice.updated
       description: Type of the notification event.
@@ -18307,12 +18375,14 @@ components:
       type: object
       oneOf:
         - $ref: '#/components/schemas/NotificationRuleBalanceThreshold'
+        - $ref: '#/components/schemas/NotificationRuleEntitlementReset'
         - $ref: '#/components/schemas/NotificationRuleInvoiceCreated'
         - $ref: '#/components/schemas/NotificationRuleInvoiceUpdated'
       discriminator:
         propertyName: type
         mapping:
           entitlements.balance.threshold: '#/components/schemas/NotificationRuleBalanceThreshold'
+          entitlements.reset: '#/components/schemas/NotificationRuleEntitlementReset'
           invoice.created: '#/components/schemas/NotificationRuleInvoiceCreated'
           invoice.updated: '#/components/schemas/NotificationRuleInvoiceUpdated'
       description: Notification Rule.
@@ -18485,15 +18555,136 @@ components:
       type: object
       oneOf:
         - $ref: '#/components/schemas/NotificationRuleBalanceThresholdCreateRequest'
+        - $ref: '#/components/schemas/NotificationRuleEntitlementResetCreateRequest'
         - $ref: '#/components/schemas/NotificationRuleInvoiceCreatedCreateRequest'
         - $ref: '#/components/schemas/NotificationRuleInvoiceUpdatedCreateRequest'
       discriminator:
         propertyName: type
         mapping:
           entitlements.balance.threshold: '#/components/schemas/NotificationRuleBalanceThresholdCreateRequest'
+          entitlements.reset: '#/components/schemas/NotificationRuleEntitlementResetCreateRequest'
           invoice.created: '#/components/schemas/NotificationRuleInvoiceCreatedCreateRequest'
           invoice.updated: '#/components/schemas/NotificationRuleInvoiceUpdatedCreateRequest'
       description: Union type for requests creating new notification rule with certain type.
+    NotificationRuleEntitlementReset:
+      type: object
+      required:
+        - createdAt
+        - updatedAt
+        - id
+        - type
+        - name
+        - channels
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: Identifies the notification rule.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+          title: Rule Unique Identifier
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - entitlements.reset
+          description: Notification rule type.
+          title: Rule Type
+        name:
+          type: string
+          description: The user friendly name of the notification rule.
+          title: Rule Name
+          example: Balance threshold reached
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled or not.
+          title: Rule Disabled
+          example: true
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelMeta'
+          description: List of notification channels the rule applies to.
+          title: Channels assigned to Rule
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureMeta'
+          minItems: 1
+          description: Optional field containing list of features the rule applies to.
+          title: Features
+      description: Notification rule with entitlements.reset type.
+    NotificationRuleEntitlementResetCreateRequest:
+      type: object
+      required:
+        - type
+        - name
+        - channels
+      properties:
+        type:
+          type: string
+          enum:
+            - entitlements.reset
+          description: Notification rule type.
+          title: Rule Type
+        name:
+          type: string
+          description: The user friendly name of the notification rule.
+          title: Rule Name
+          example: Balance threshold reached
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled or not.
+          title: Rule Disabled
+          example: true
+          default: false
+        channels:
+          type: array
+          items:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            description: ULID (Universally Unique Lexicographically Sortable Identifier).
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+          minItems: 1
+          description: List of notification channels the rule is applied to.
+          title: Channels
+        features:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            description: |-
+              ULID (Universally Unique Lexicographically Sortable Identifier).
+              A key is a unique string that is used to identify a resource.
+
+              TODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.
+          minItems: 1
+          description: Optional field for defining the scope of notification by feature. It may contain features by id or key.
+          title: Features
+      description: Request with input parameters for creating new notification rule with entitlements.reset type.
     NotificationRuleInvoiceCreated:
       type: object
       required:
