@@ -31,7 +31,8 @@ func (s *InvoicingEventTestSuite) TestCreateInvoiceEvent() {
 	_, err := s.BillingService.CreateProfile(ctx, createProfileInput)
 	s.NoError(err)
 	invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
-		Customer: s.CreateTestCustomer(namespace, "test-customer"),
+		Namespace: namespace,
+		Customer:  s.CreateTestCustomer(namespace, "test-customer"),
 	})
 
 	// When we create an invoice created event
