@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -27,7 +28,9 @@ type Config struct {
 	AddonService     addon.Service
 	PlanAddonService planaddon.Service
 	SubService       subscription.Service
-	Logger           *slog.Logger
+
+	Publisher eventbus.Publisher
+	Logger    *slog.Logger
 }
 
 type service struct {
@@ -139,7 +142,17 @@ func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon
 		}
 
 		// Let's fetch the addon again and return it
-		return s.cfg.SubAddRepo.Get(ctx, *subAdd)
+		sAdd, err := s.cfg.SubAddRepo.Get(ctx, *subAdd)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get subscription add-on: %w", err)
+		}
+
+		// Publish the created event
+		if err := s.cfg.Publisher.Publish(ctx, subscriptionaddon.NewCreatedEvent(ctx, sAdd, sView.Customer.ID)); err != nil {
+			return nil, fmt.Errorf("failed to publish subscription add-on created event: %w", err)
+		}
+
+		return sAdd, nil
 	})
 }
 
@@ -225,6 +238,16 @@ func (s *service) ChangeQuantity(ctx context.Context, id models.NamespacedID, in
 		}
 
 		// Let's fetch the addon and return it
-		return s.cfg.SubAddRepo.Get(ctx, id)
+		sAdd, err := s.cfg.SubAddRepo.Get(ctx, id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get subscription add-on: %w", err)
+		}
+
+		// Publish the updated event
+		if err := s.cfg.Publisher.Publish(ctx, subscriptionaddon.NewUpdatedEvent(ctx, sAdd, sView.Customer.ID)); err != nil {
+			return nil, fmt.Errorf("failed to publish subscription add-on updated event: %w", err)
+		}
+
+		return sAdd, nil
 	})
 }

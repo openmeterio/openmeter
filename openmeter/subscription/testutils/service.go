@@ -170,6 +170,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		SubAddRepo:       subAddRepo,
 		SubAddQtyRepo:    subAddQtyRepo,
 		PlanAddonService: planAddonService,
+		Publisher:        publisher,
 	})
 
 	workflowSvc := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{

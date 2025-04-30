@@ -169,6 +169,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	s.SubscriptionAddonService = subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
 		TxManager:        subsItemRepo,
 		Logger:           slog.Default(),
+		Publisher:        publisher,
 		AddonService:     addonService,
 		SubService:       s.SubscriptionService,
 		SubAddRepo:       subAddRepo,
