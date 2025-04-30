@@ -10,6 +10,23 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
+type EventType string
+
+func (t EventType) Validate() error {
+	switch t {
+	case EventTypeBalanceThreshold:
+		return nil
+	default:
+		return fmt.Errorf("unknown notification event type: %q", t)
+	}
+}
+
+func (t EventType) Values() []string {
+	return []string{
+		string(EventTypeBalanceThreshold),
+	}
+}
+
 type Event struct {
 	models.NamespacedModel
 	models.Annotations
@@ -29,27 +46,6 @@ type Event struct {
 	Rule Rule `json:"rule"`
 	// DeduplicationHash is a hash that the handler can use to deduplicate events if needed
 	HandlerDeduplicationHash string `json:"-"`
-}
-
-const (
-	EventTypeBalanceThreshold EventType = "entitlements.balance.threshold"
-)
-
-type EventType string
-
-func (t EventType) Validate() error {
-	switch t {
-	case EventTypeBalanceThreshold:
-		return nil
-	default:
-		return fmt.Errorf("unknown notification event type: %q", t)
-	}
-}
-
-func (t EventType) Values() []string {
-	return []string{
-		string(EventTypeBalanceThreshold),
-	}
 }
 
 var _ validator = (*ListEventsInput)(nil)

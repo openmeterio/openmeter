@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
-	"github.com/openmeterio/openmeter/api"
 )
 
 func PayloadToMapInterface(t any) (map[string]interface{}, error) {
@@ -53,17 +51,4 @@ func (p EventPayload) Validate() error {
 			Err: fmt.Errorf("invalid event type: %s", p.Type),
 		}
 	}
-}
-
-type BalanceThresholdPayload struct {
-	Entitlement api.EntitlementMetered                    `json:"entitlement"`
-	Feature     api.Feature                               `json:"feature"`
-	Subject     api.Subject                               `json:"subject"`
-	Threshold   api.NotificationRuleBalanceThresholdValue `json:"threshold"`
-	Value       api.EntitlementValue                      `json:"value"`
-}
-
-// Validate returns an error if balance threshold payload is invalid.
-func (b BalanceThresholdPayload) Validate() error {
-	return nil
 }
