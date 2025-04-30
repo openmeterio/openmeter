@@ -74,68 +74,6 @@ union NotificationEventPayload {
 }
 
 /**
- * Payload for notification event with `entitlements.balance.threshold` type.
- */
-@friendlyName("NotificationEventBalanceThresholdPayload")
-model NotificationEventBalanceThresholdPayload {
-  /**
-   * A unique identifier for the notification event the payload belongs to.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Notification Event Identifier")
-  @example("01J2KNP1YTXQRXHTDJ4KPR7PZ0")
-  id: ULID;
-
-  /**
-   * Type of the notification event.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Notification Event Type")
-  type: NotificationEventType.entitlementsBalanceThreshold;
-
-  /**
-   * Timestamp when the notification event was created in RFC 3339 format.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Creation Time")
-  @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
-  timestamp: DateTime;
-
-  /**
-   * The data of the payload.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Payload Data")
-  data: NotificationEventBalanceThresholdPayloadData;
-}
-
-/**
- * Data of the payload for notification event with `entitlements.balance.threshold` type.
- */
-@friendlyName("NotificationEventBalanceThresholdPayloadData")
-model NotificationEventBalanceThresholdPayloadData {
-  @visibility(Lifecycle.Read)
-  @summary("Entitlement")
-  entitlement: OpenMeter.Entitlements.EntitlementMetered;
-
-  @visibility(Lifecycle.Read)
-  @summary("Feature")
-  feature: OpenMeter.Entitlements.Feature;
-
-  @visibility(Lifecycle.Read)
-  @summary("Subject")
-  subject: OpenMeter.Subject;
-
-  @visibility(Lifecycle.Read)
-  @summary("Entitlement Value")
-  value: OpenMeter.Entitlements.EntitlementValue;
-
-  @visibility(Lifecycle.Read)
-  @summary("Threshold")
-  threshold: NotificationRuleBalanceThresholdValue;
-}
-
-/**
  * Type of the notification event.
  */
 @friendlyName("NotificationEvent")
