@@ -102,7 +102,7 @@ func AsRuleBalanceThresholdCreateRequest(r api.NotificationRuleBalanceThresholdC
 			RuleConfigMeta: notification.RuleConfigMeta{
 				Type: notification.EventType(r.Type),
 			},
-			BalanceThreshold: notification.BalanceThresholdRuleConfig{
+			BalanceThreshold: &notification.BalanceThresholdRuleConfig{
 				Features:   lo.FromPtr(r.Features),
 				Thresholds: r.Thresholds,
 			},
@@ -123,7 +123,7 @@ func AsRuleBalanceThresholdUpdateRequest(r api.NotificationRuleBalanceThresholdC
 			RuleConfigMeta: notification.RuleConfigMeta{
 				Type: notification.EventType(r.Type),
 			},
-			BalanceThreshold: notification.BalanceThresholdRuleConfig{
+			BalanceThreshold: &notification.BalanceThresholdRuleConfig{
 				Features:   lo.FromPtr(r.Features),
 				Thresholds: r.Thresholds,
 			},

@@ -2,6 +2,7 @@ package notification
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/api"
@@ -34,12 +35,18 @@ type EventPayload struct {
 	EventPayloadMeta
 
 	// Balance Threshold
-	BalanceThreshold BalanceThresholdPayload `json:"balanceThreshold"`
+	BalanceThreshold *BalanceThresholdPayload `json:"balanceThreshold,omitempty"`
 }
 
 func (p EventPayload) Validate() error {
 	switch p.Type {
 	case EventTypeBalanceThreshold:
+		if p.BalanceThreshold == nil {
+			return ValidationError{
+				Err: errors.New("missing balance threshold payload"),
+			}
+		}
+
 		return p.BalanceThreshold.Validate()
 	default:
 		return ValidationError{

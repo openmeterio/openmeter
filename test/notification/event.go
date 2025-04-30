@@ -25,7 +25,7 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 		EventPayloadMeta: notification.EventPayloadMeta{
 			Type: notification.EventTypeBalanceThreshold,
 		},
-		BalanceThreshold: notification.BalanceThresholdPayload{
+		BalanceThreshold: &notification.BalanceThresholdPayload{
 			Entitlement: api.EntitlementMetered{
 				CreatedAt: time.Now().Add(-10 * 24 * time.Hour).UTC(),
 				CurrentUsagePeriod: api.Period{

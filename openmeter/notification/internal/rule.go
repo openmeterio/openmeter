@@ -24,7 +24,7 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 		EventPayloadMeta: notification.EventPayloadMeta{
 			Type: eventType,
 		},
-		BalanceThreshold: notification.BalanceThresholdPayload{
+		BalanceThreshold: &notification.BalanceThresholdPayload{
 			Entitlement: api.EntitlementMetered{
 				CreatedAt: createdAt,
 				CurrentUsagePeriod: api.Period{

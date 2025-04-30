@@ -93,13 +93,19 @@ type RuleConfig struct {
 	RuleConfigMeta
 
 	// Balance Threshold
-	BalanceThreshold BalanceThresholdRuleConfig `json:"balanceThreshold"`
+	BalanceThreshold *BalanceThresholdRuleConfig `json:"balanceThreshold,omitempty"`
 }
 
 // Validate invokes channel type specific validator and returns an error if channel configuration is invalid.
 func (c RuleConfig) Validate(ctx context.Context, service Service, namespace string) error {
 	switch c.Type {
 	case EventTypeBalanceThreshold:
+		if c.BalanceThreshold == nil {
+			return ValidationError{
+				Err: errors.New("missing balance threshold rule config"),
+			}
+		}
+
 		return c.BalanceThreshold.Validate(ctx, service, namespace)
 	default:
 		return fmt.Errorf("unknown rule type: %s", c.Type)

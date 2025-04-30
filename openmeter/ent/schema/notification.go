@@ -287,7 +287,7 @@ var ChannelConfigValueScanner = field.ValueScannerFunc[notification.ChannelConfi
 type ruleConfigSerde[T any] struct {
 	notification.RuleConfigMeta
 
-	Data T `json:"data"`
+	Data *T `json:"data"`
 }
 
 var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sql.NullString]{
@@ -324,7 +324,7 @@ var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sq
 				RuleConfigMeta: notification.RuleConfigMeta{
 					Type: meta.Type,
 				},
-				Data: notification.BalanceThresholdRuleConfig{},
+				Data: &notification.BalanceThresholdRuleConfig{},
 			}
 
 			if err := json.Unmarshal(data, &serde); err != nil {

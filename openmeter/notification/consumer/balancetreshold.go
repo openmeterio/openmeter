@@ -193,7 +193,7 @@ func (b *BalanceThresholdEventHandler) createEvent(ctx context.Context, in creat
 			EventPayloadMeta: notification.EventPayloadMeta{
 				Type: notification.EventTypeBalanceThreshold,
 			},
-			BalanceThreshold: notification.BalanceThresholdPayload{
+			BalanceThreshold: &notification.BalanceThresholdPayload{
 				Entitlement: *entitlementAPIEntity,
 				Feature:     productcatalogdriver.MapFeatureToResponse(in.Snapshot.Feature),
 				Subject:     in.Snapshot.Subject.ToAPIModel(),
