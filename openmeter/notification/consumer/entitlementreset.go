@@ -37,12 +37,12 @@ func (b *EntitlementSnapshotHandler) handleAsEntitlementResetEvent(ctx context.C
 	}
 
 	affectedRules := lo.Filter(affectedRulesPaged.Items, func(rule notification.Rule, _ int) bool {
-		if len(rule.Config.BalanceThreshold.Features) == 0 {
+		if len(rule.Config.EntitlementReset.Features) == 0 {
 			return true
 		}
 
-		return slices.Contains(rule.Config.BalanceThreshold.Features, event.Entitlement.FeatureID) ||
-			slices.Contains(rule.Config.BalanceThreshold.Features, event.Entitlement.FeatureKey)
+		return slices.Contains(rule.Config.EntitlementReset.Features, event.Entitlement.FeatureID) ||
+			slices.Contains(rule.Config.EntitlementReset.Features, event.Entitlement.FeatureKey)
 	})
 
 	var errs error
