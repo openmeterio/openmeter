@@ -18179,6 +18179,78 @@ components:
         - Failed
         - Sending
         - Pending
+    NotificationEventInvoiceCreatedPayload:
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the notification event the payload belongs to.
+          example: 01J2KNP1YTXQRXHTDJ4KPR7PZ0
+          title: Notification Event Identifier
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - invoice.created
+          description: Type of the notification event.
+          title: Notification Event Type
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the notification event was created in RFC 3339 format.
+          example: '2023-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Invoice'
+          description: The data of the payload.
+          title: Payload Data
+          readOnly: true
+      description: Payload for notification event with `invoice.created` type.
+    NotificationEventInvoiceUpdatedPayload:
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the notification event the payload belongs to.
+          example: 01J2KNP1YTXQRXHTDJ4KPR7PZ0
+          title: Notification Event Identifier
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - invoice.updated
+          description: Type of the notification event.
+          title: Notification Event Type
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the notification event was created in RFC 3339 format.
+          example: '2023-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Invoice'
+          description: The data of the payload.
+          title: Payload Data
+          readOnly: true
+      description: Payload for notification event with `invoice.updated` type.
     NotificationEventOrderBy:
       type: string
       enum:
@@ -18213,18 +18285,36 @@ components:
       description: Paginated response
     NotificationEventPayload:
       type: object
-      allOf:
+      oneOf:
         - $ref: '#/components/schemas/NotificationEventBalanceThresholdPayload'
+        - $ref: '#/components/schemas/NotificationEventInvoiceCreatedPayload'
+        - $ref: '#/components/schemas/NotificationEventInvoiceUpdatedPayload'
+      discriminator:
+        propertyName: type
+        mapping:
+          entitlements.balance.threshold: '#/components/schemas/NotificationEventBalanceThresholdPayload'
+          invoice.created: '#/components/schemas/NotificationEventInvoiceCreatedPayload'
+          invoice.updated: '#/components/schemas/NotificationEventInvoiceUpdatedPayload'
       description: The delivery status of the notification event.
     NotificationEventType:
       type: string
       enum:
         - entitlements.balance.threshold
+        - invoice.created
+        - invoice.updated
       description: Type of the notification event.
     NotificationRule:
       type: object
-      allOf:
+      oneOf:
         - $ref: '#/components/schemas/NotificationRuleBalanceThreshold'
+        - $ref: '#/components/schemas/NotificationRuleInvoiceCreated'
+        - $ref: '#/components/schemas/NotificationRuleInvoiceUpdated'
+      discriminator:
+        propertyName: type
+        mapping:
+          entitlements.balance.threshold: '#/components/schemas/NotificationRuleBalanceThreshold'
+          invoice.created: '#/components/schemas/NotificationRuleInvoiceCreated'
+          invoice.updated: '#/components/schemas/NotificationRuleInvoiceUpdated'
       description: Notification Rule.
     NotificationRuleBalanceThreshold:
       type: object
@@ -18362,7 +18452,7 @@ components:
           minItems: 1
           description: Optional field for defining the scope of notification by feature. It may contain features by id or key.
           title: Features
-      description: Request with input parameters for creating new notification rule with entitlements.balance.threashold type.
+      description: Request with input parameters for creating new notification rule with entitlements.balance.threshold type.
     NotificationRuleBalanceThresholdValue:
       type: object
       required:
@@ -18393,9 +18483,211 @@ components:
         - Number
     NotificationRuleCreateRequest:
       type: object
-      allOf:
+      oneOf:
         - $ref: '#/components/schemas/NotificationRuleBalanceThresholdCreateRequest'
+        - $ref: '#/components/schemas/NotificationRuleInvoiceCreatedCreateRequest'
+        - $ref: '#/components/schemas/NotificationRuleInvoiceUpdatedCreateRequest'
+      discriminator:
+        propertyName: type
+        mapping:
+          entitlements.balance.threshold: '#/components/schemas/NotificationRuleBalanceThresholdCreateRequest'
+          invoice.created: '#/components/schemas/NotificationRuleInvoiceCreatedCreateRequest'
+          invoice.updated: '#/components/schemas/NotificationRuleInvoiceUpdatedCreateRequest'
       description: Union type for requests creating new notification rule with certain type.
+    NotificationRuleInvoiceCreated:
+      type: object
+      required:
+        - createdAt
+        - updatedAt
+        - id
+        - type
+        - name
+        - channels
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: Identifies the notification rule.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+          title: Rule Unique Identifier
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - invoice.created
+          description: Notification rule type.
+          title: Rule Type
+        name:
+          type: string
+          description: The user friendly name of the notification rule.
+          title: Rule Name
+          example: Balance threshold reached
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled or not.
+          title: Rule Disabled
+          example: true
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelMeta'
+          description: List of notification channels the rule applies to.
+          title: Channels assigned to Rule
+      description: Notification rule with invoice.created type.
+    NotificationRuleInvoiceCreatedCreateRequest:
+      type: object
+      required:
+        - type
+        - name
+        - channels
+      properties:
+        type:
+          type: string
+          enum:
+            - invoice.created
+          description: Notification rule type.
+          title: Rule Type
+        name:
+          type: string
+          description: The user friendly name of the notification rule.
+          title: Rule Name
+          example: Balance threshold reached
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled or not.
+          title: Rule Disabled
+          example: true
+          default: false
+        channels:
+          type: array
+          items:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            description: ULID (Universally Unique Lexicographically Sortable Identifier).
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+          minItems: 1
+          description: List of notification channels the rule is applied to.
+          title: Channels
+      description: Request with input parameters for creating new notification rule with invoice.created type.
+    NotificationRuleInvoiceUpdated:
+      type: object
+      required:
+        - createdAt
+        - updatedAt
+        - id
+        - type
+        - name
+        - channels
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: Identifies the notification rule.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+          title: Rule Unique Identifier
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - invoice.updated
+          description: Notification rule type.
+          title: Rule Type
+        name:
+          type: string
+          description: The user friendly name of the notification rule.
+          title: Rule Name
+          example: Balance threshold reached
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled or not.
+          title: Rule Disabled
+          example: true
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelMeta'
+          description: List of notification channels the rule applies to.
+          title: Channels assigned to Rule
+      description: Notification rule with invoice.updated type.
+    NotificationRuleInvoiceUpdatedCreateRequest:
+      type: object
+      required:
+        - type
+        - name
+        - channels
+      properties:
+        type:
+          type: string
+          enum:
+            - invoice.updated
+          description: Notification rule type.
+          title: Rule Type
+        name:
+          type: string
+          description: The user friendly name of the notification rule.
+          title: Rule Name
+          example: Balance threshold reached
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled or not.
+          title: Rule Disabled
+          example: true
+          default: false
+        channels:
+          type: array
+          items:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            description: ULID (Universally Unique Lexicographically Sortable Identifier).
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+          minItems: 1
+          description: List of notification channels the rule is applied to.
+          title: Channels
+      description: Request with input parameters for creating new notification rule with invoice.updated  type.
     NotificationRuleMeta:
       type: object
       required:

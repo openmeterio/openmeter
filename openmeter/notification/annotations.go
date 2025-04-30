@@ -10,4 +10,7 @@ const (
 	AnnotationEventSubjectID  = "event.subject.id"
 
 	AnnotationEventDedupeHash = "event.balance.dedupe.hash"
+
+	AnnotationEventInvoiceID     = "event.invoice.id"
+	AnnotationEventInvoiceNumber = "event.invoice.number"
 )

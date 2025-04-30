@@ -67,7 +67,7 @@ func (b *BalanceThresholdEventHandler) Handle(ctx context.Context, event snapsho
 	var errs error
 	for _, rule := range affectedRules {
 		if !rule.HasEnabledChannels() {
-			break
+			continue
 		}
 
 		if err := b.handleRule(ctx, event, rule); err != nil {

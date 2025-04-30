@@ -9295,67 +9295,126 @@ export const createNotificationRuleBodyFeaturesItemMax = 64
 export const createNotificationRuleBodyFeaturesItemRegExp = new RegExp(
   '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
+export const createNotificationRuleBodyDisabledDefaultOne = false
+export const createNotificationRuleBodyChannelsItemRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+export const createNotificationRuleBodyDisabledDefaultTwo = false
+export const createNotificationRuleBodyChannelsItemRegExpTwo = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
 
 export const createNotificationRuleBody = zod
-  .object({
-    channels: zod
-      .array(
-        zod
-          .string()
-          .regex(createNotificationRuleBodyChannelsItemRegExp)
-          .describe(
-            'ULID (Universally Unique Lexicographically Sortable Identifier).'
-          )
-      )
-      .min(1)
-      .describe('List of notification channels the rule is applied to.'),
-    disabled: zod
-      .boolean()
-      .optional()
-      .describe('Whether the rule is disabled or not.'),
-    features: zod
-      .array(
-        zod
-          .string()
-          .min(1)
-          .max(createNotificationRuleBodyFeaturesItemMax)
-          .regex(createNotificationRuleBodyFeaturesItemRegExp)
-          .describe(
-            'ULID (Universally Unique Lexicographically Sortable Identifier).\nA key is a unique string that is used to identify a resource.\n\nTODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.'
-          )
-      )
-      .min(1)
-      .optional()
-      .describe(
-        'Optional field for defining the scope of notification by feature. It may contain features by id or key.'
-      ),
-    name: zod
-      .string()
-      .describe('The user friendly name of the notification rule.'),
-    thresholds: zod
-      .array(
-        zod
-          .object({
-            type: zod
-              .enum(['PERCENT', 'NUMBER'])
+  .discriminatedUnion('type', [
+    zod
+      .object({
+        channels: zod
+          .array(
+            zod
+              .string()
+              .regex(createNotificationRuleBodyChannelsItemRegExp)
               .describe(
-                'Type of the rule in the balance threshold specification.'
+                'ULID (Universally Unique Lexicographically Sortable Identifier).'
               )
-              .describe('Type of the threshold.'),
-            value: zod.number().describe('Value of the threshold.'),
-          })
-          .describe('Threshold value with multiple supported types.')
-      )
-      .min(1)
-      .max(createNotificationRuleBodyThresholdsMax)
-      .describe('List of thresholds the rule suppose to be triggered.'),
-    type: zod
-      .enum(['entitlements.balance.threshold'])
-      .describe('Notification rule type.'),
-  })
-  .describe(
-    'Request with input parameters for creating new notification rule with entitlements.balance.threashold type.'
-  )
+          )
+          .min(1)
+          .describe('List of notification channels the rule is applied to.'),
+        disabled: zod
+          .boolean()
+          .optional()
+          .describe('Whether the rule is disabled or not.'),
+        features: zod
+          .array(
+            zod
+              .string()
+              .min(1)
+              .max(createNotificationRuleBodyFeaturesItemMax)
+              .regex(createNotificationRuleBodyFeaturesItemRegExp)
+              .describe(
+                'ULID (Universally Unique Lexicographically Sortable Identifier).\nA key is a unique string that is used to identify a resource.\n\nTODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.'
+              )
+          )
+          .min(1)
+          .optional()
+          .describe(
+            'Optional field for defining the scope of notification by feature. It may contain features by id or key.'
+          ),
+        name: zod
+          .string()
+          .describe('The user friendly name of the notification rule.'),
+        thresholds: zod
+          .array(
+            zod
+              .object({
+                type: zod
+                  .enum(['PERCENT', 'NUMBER'])
+                  .describe(
+                    'Type of the rule in the balance threshold specification.'
+                  )
+                  .describe('Type of the threshold.'),
+                value: zod.number().describe('Value of the threshold.'),
+              })
+              .describe('Threshold value with multiple supported types.')
+          )
+          .min(1)
+          .max(createNotificationRuleBodyThresholdsMax)
+          .describe('List of thresholds the rule suppose to be triggered.'),
+        type: zod.enum(['entitlements.balance.threshold']),
+      })
+      .describe(
+        'Request with input parameters for creating new notification rule with entitlements.balance.threshold type.'
+      ),
+    zod
+      .object({
+        channels: zod
+          .array(
+            zod
+              .string()
+              .regex(createNotificationRuleBodyChannelsItemRegExpOne)
+              .describe(
+                'ULID (Universally Unique Lexicographically Sortable Identifier).'
+              )
+          )
+          .min(1)
+          .describe('List of notification channels the rule is applied to.'),
+        disabled: zod
+          .boolean()
+          .optional()
+          .describe('Whether the rule is disabled or not.'),
+        name: zod
+          .string()
+          .describe('The user friendly name of the notification rule.'),
+        type: zod.enum(['invoice.created']),
+      })
+      .describe(
+        'Request with input parameters for creating new notification rule with invoice.created type.'
+      ),
+    zod
+      .object({
+        channels: zod
+          .array(
+            zod
+              .string()
+              .regex(createNotificationRuleBodyChannelsItemRegExpTwo)
+              .describe(
+                'ULID (Universally Unique Lexicographically Sortable Identifier).'
+              )
+          )
+          .min(1)
+          .describe('List of notification channels the rule is applied to.'),
+        disabled: zod
+          .boolean()
+          .optional()
+          .describe('Whether the rule is disabled or not.'),
+        name: zod
+          .string()
+          .describe('The user friendly name of the notification rule.'),
+        type: zod.enum(['invoice.updated']),
+      })
+      .describe(
+        'Request with input parameters for creating new notification rule with invoice.updated  type.'
+      ),
+  ])
   .describe(
     'Union type for requests creating new notification rule with certain type.'
   )
@@ -9382,67 +9441,126 @@ export const updateNotificationRuleBodyFeaturesItemMax = 64
 export const updateNotificationRuleBodyFeaturesItemRegExp = new RegExp(
   '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
+export const updateNotificationRuleBodyDisabledDefaultOne = false
+export const updateNotificationRuleBodyChannelsItemRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+export const updateNotificationRuleBodyDisabledDefaultTwo = false
+export const updateNotificationRuleBodyChannelsItemRegExpTwo = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
 
 export const updateNotificationRuleBody = zod
-  .object({
-    channels: zod
-      .array(
-        zod
-          .string()
-          .regex(updateNotificationRuleBodyChannelsItemRegExp)
-          .describe(
-            'ULID (Universally Unique Lexicographically Sortable Identifier).'
-          )
-      )
-      .min(1)
-      .describe('List of notification channels the rule is applied to.'),
-    disabled: zod
-      .boolean()
-      .optional()
-      .describe('Whether the rule is disabled or not.'),
-    features: zod
-      .array(
-        zod
-          .string()
-          .min(1)
-          .max(updateNotificationRuleBodyFeaturesItemMax)
-          .regex(updateNotificationRuleBodyFeaturesItemRegExp)
-          .describe(
-            'ULID (Universally Unique Lexicographically Sortable Identifier).\nA key is a unique string that is used to identify a resource.\n\nTODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.'
-          )
-      )
-      .min(1)
-      .optional()
-      .describe(
-        'Optional field for defining the scope of notification by feature. It may contain features by id or key.'
-      ),
-    name: zod
-      .string()
-      .describe('The user friendly name of the notification rule.'),
-    thresholds: zod
-      .array(
-        zod
-          .object({
-            type: zod
-              .enum(['PERCENT', 'NUMBER'])
+  .discriminatedUnion('type', [
+    zod
+      .object({
+        channels: zod
+          .array(
+            zod
+              .string()
+              .regex(updateNotificationRuleBodyChannelsItemRegExp)
               .describe(
-                'Type of the rule in the balance threshold specification.'
+                'ULID (Universally Unique Lexicographically Sortable Identifier).'
               )
-              .describe('Type of the threshold.'),
-            value: zod.number().describe('Value of the threshold.'),
-          })
-          .describe('Threshold value with multiple supported types.')
-      )
-      .min(1)
-      .max(updateNotificationRuleBodyThresholdsMax)
-      .describe('List of thresholds the rule suppose to be triggered.'),
-    type: zod
-      .enum(['entitlements.balance.threshold'])
-      .describe('Notification rule type.'),
-  })
-  .describe(
-    'Request with input parameters for creating new notification rule with entitlements.balance.threashold type.'
-  )
+          )
+          .min(1)
+          .describe('List of notification channels the rule is applied to.'),
+        disabled: zod
+          .boolean()
+          .optional()
+          .describe('Whether the rule is disabled or not.'),
+        features: zod
+          .array(
+            zod
+              .string()
+              .min(1)
+              .max(updateNotificationRuleBodyFeaturesItemMax)
+              .regex(updateNotificationRuleBodyFeaturesItemRegExp)
+              .describe(
+                'ULID (Universally Unique Lexicographically Sortable Identifier).\nA key is a unique string that is used to identify a resource.\n\nTODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.'
+              )
+          )
+          .min(1)
+          .optional()
+          .describe(
+            'Optional field for defining the scope of notification by feature. It may contain features by id or key.'
+          ),
+        name: zod
+          .string()
+          .describe('The user friendly name of the notification rule.'),
+        thresholds: zod
+          .array(
+            zod
+              .object({
+                type: zod
+                  .enum(['PERCENT', 'NUMBER'])
+                  .describe(
+                    'Type of the rule in the balance threshold specification.'
+                  )
+                  .describe('Type of the threshold.'),
+                value: zod.number().describe('Value of the threshold.'),
+              })
+              .describe('Threshold value with multiple supported types.')
+          )
+          .min(1)
+          .max(updateNotificationRuleBodyThresholdsMax)
+          .describe('List of thresholds the rule suppose to be triggered.'),
+        type: zod.enum(['entitlements.balance.threshold']),
+      })
+      .describe(
+        'Request with input parameters for creating new notification rule with entitlements.balance.threshold type.'
+      ),
+    zod
+      .object({
+        channels: zod
+          .array(
+            zod
+              .string()
+              .regex(updateNotificationRuleBodyChannelsItemRegExpOne)
+              .describe(
+                'ULID (Universally Unique Lexicographically Sortable Identifier).'
+              )
+          )
+          .min(1)
+          .describe('List of notification channels the rule is applied to.'),
+        disabled: zod
+          .boolean()
+          .optional()
+          .describe('Whether the rule is disabled or not.'),
+        name: zod
+          .string()
+          .describe('The user friendly name of the notification rule.'),
+        type: zod.enum(['invoice.created']),
+      })
+      .describe(
+        'Request with input parameters for creating new notification rule with invoice.created type.'
+      ),
+    zod
+      .object({
+        channels: zod
+          .array(
+            zod
+              .string()
+              .regex(updateNotificationRuleBodyChannelsItemRegExpTwo)
+              .describe(
+                'ULID (Universally Unique Lexicographically Sortable Identifier).'
+              )
+          )
+          .min(1)
+          .describe('List of notification channels the rule is applied to.'),
+        disabled: zod
+          .boolean()
+          .optional()
+          .describe('Whether the rule is disabled or not.'),
+        name: zod
+          .string()
+          .describe('The user friendly name of the notification rule.'),
+        type: zod.enum(['invoice.updated']),
+      })
+      .describe(
+        'Request with input parameters for creating new notification rule with invoice.updated  type.'
+      ),
+  ])
   .describe(
     'Union type for requests creating new notification rule with certain type.'
   )

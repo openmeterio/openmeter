@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 func PayloadToMapInterface(t any) (map[string]interface{}, error) {
@@ -34,6 +36,9 @@ type EventPayload struct {
 
 	// Balance Threshold
 	BalanceThreshold *BalanceThresholdPayload `json:"balanceThreshold,omitempty"`
+
+	// Invoice
+	Invoice *billing.EventInvoice `json:"invoice,omitempty"`
 }
 
 func (p EventPayload) Validate() error {
@@ -46,6 +51,14 @@ func (p EventPayload) Validate() error {
 		}
 
 		return p.BalanceThreshold.Validate()
+	case EventTypeInvoiceCreated, EventTypeInvoiceUpdated:
+		if p.Invoice == nil {
+			return ValidationError{
+				Err: errors.New("missing invoice payload"),
+			}
+		}
+
+		return p.Invoice.Validate()
 	default:
 		return ValidationError{
 			Err: fmt.Errorf("invalid event type: %s", p.Type),

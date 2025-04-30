@@ -100,7 +100,21 @@ func (h *handler) CreateRule() CreateRuleHandler {
 				return CreateRuleRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req := AsRuleBalanceThresholdCreateRequest(body, ns)
+			value, err := body.ValueByDiscriminator()
+			if err != nil {
+				return CreateRuleRequest{}, fmt.Errorf("failed to get request type: %w", err)
+			}
+
+			var req CreateRuleRequest
+
+			switch v := value.(type) {
+			case api.NotificationRuleBalanceThresholdCreateRequest:
+				req = AsRuleBalanceThresholdCreateRequest(v, ns)
+			case api.NotificationRuleInvoiceCreatedCreateRequest:
+				req = AsRuleInvoiceCreatedCreateRequest(v, ns)
+			case api.NotificationRuleInvoiceUpdatedCreateRequest:
+				req = AsRuleInvoiceUpdatedCreateRequest(v, ns)
+			}
 
 			return req, nil
 		},
@@ -144,7 +158,21 @@ func (h *handler) UpdateRule() UpdateRuleHandler {
 				return UpdateRuleRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req := AsRuleBalanceThresholdUpdateRequest(body, ns, ruleID)
+			value, err := body.ValueByDiscriminator()
+			if err != nil {
+				return UpdateRuleRequest{}, fmt.Errorf("failed to get request type: %w", err)
+			}
+
+			var req UpdateRuleRequest
+
+			switch v := value.(type) {
+			case api.NotificationRuleBalanceThresholdCreateRequest:
+				req = AsRuleBalanceThresholdUpdateRequest(v, ns, ruleID)
+			case api.NotificationRuleInvoiceCreatedCreateRequest:
+				req = AsRuleInvoiceCreatedUpdateRequest(v, ns, ruleID)
+			case api.NotificationRuleInvoiceUpdatedCreateRequest:
+				req = AsRuleInvoiceUpdatedUpdateRequest(v, ns, ruleID)
+			}
 
 			return req, nil
 		},
@@ -283,16 +311,10 @@ func (h *handler) TestRule() TestRuleHandler {
 				return TestRuleResponse{}, fmt.Errorf("failed to get rule: %w", err)
 			}
 
-			var payload notification.EventPayload
-			switch rule.Type {
-			case notification.EventTypeBalanceThreshold:
-				payload = internal.NewTestEventPayload(notification.EventTypeBalanceThreshold)
-			}
-
 			event, err := h.service.CreateEvent(ctx, notification.CreateEventInput{
 				NamespacedModel: request.NamespacedModel,
 				Type:            rule.Type,
-				Payload:         payload,
+				Payload:         internal.NewTestEventPayload(rule.Type),
 				RuleID:          rule.ID,
 				Annotations: models.Annotations{
 					notification.AnnotationRuleTestEvent: true,

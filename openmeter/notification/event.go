@@ -14,6 +14,8 @@ import (
 
 var eventTypes = []EventType{
 	EventTypeBalanceThreshold,
+	EventTypeInvoiceCreated,
+	EventTypeInvoiceUpdated,
 }
 
 func EventTypes() []EventType {

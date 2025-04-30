@@ -111,7 +111,7 @@ type EventTestSuite struct {
 func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 	t.Helper()
 
-	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+	m, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
 		Namespace: TestNamespace,
 		IDOrSlug:  TestMeterSlug,
 	})
@@ -128,8 +128,8 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 			Name:                TestFeatureName,
 			Key:                 TestFeatureKey,
 			Namespace:           TestNamespace,
-			MeterSlug:           convert.ToPointer(meter.Key),
-			MeterGroupByFilters: meter.GroupBy,
+			MeterSlug:           convert.ToPointer(m.Key),
+			MeterGroupByFilters: m.GroupBy,
 		})
 	}
 	require.NoError(t, err, "Creating feature must not return error")

@@ -6989,11 +6989,10 @@ export interface components {
        */
       readonly id: string
       /**
-       * Notification Event Type
-       * @description Type of the notification event.
+       * @description Type of the notification event. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
-      readonly type: 'entitlements.balance.threshold'
+      type: 'entitlements.balance.threshold'
       /**
        * Creation Time
        * Format: date-time
@@ -7056,6 +7055,58 @@ export interface components {
       | 'FAILED'
       | 'SENDING'
       | 'PENDING'
+    /** @description Payload for notification event with `invoice.created` type. */
+    NotificationEventInvoiceCreatedPayload: {
+      /**
+       * Notification Event Identifier
+       * @description A unique identifier for the notification event the payload belongs to.
+       * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
+       */
+      readonly id: string
+      /**
+       * @description Type of the notification event. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'invoice.created'
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp when the notification event was created in RFC 3339 format.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly timestamp: Date
+      /**
+       * Payload Data
+       * @description The data of the payload.
+       */
+      readonly data: components['schemas']['Invoice']
+    }
+    /** @description Payload for notification event with `invoice.updated` type. */
+    NotificationEventInvoiceUpdatedPayload: {
+      /**
+       * Notification Event Identifier
+       * @description A unique identifier for the notification event the payload belongs to.
+       * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
+       */
+      readonly id: string
+      /**
+       * @description Type of the notification event. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'invoice.updated'
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp when the notification event was created in RFC 3339 format.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly timestamp: Date
+      /**
+       * Payload Data
+       * @description The data of the payload.
+       */
+      readonly data: components['schemas']['Invoice']
+    }
     /**
      * @description Order by options for notification channels.
      * @enum {string}
@@ -7082,14 +7133,23 @@ export interface components {
       items: components['schemas']['NotificationEvent'][]
     }
     /** @description The delivery status of the notification event. */
-    NotificationEventPayload: components['schemas']['NotificationEventBalanceThresholdPayload']
+    NotificationEventPayload:
+      | components['schemas']['NotificationEventBalanceThresholdPayload']
+      | components['schemas']['NotificationEventInvoiceCreatedPayload']
+      | components['schemas']['NotificationEventInvoiceUpdatedPayload']
     /**
      * @description Type of the notification event.
      * @enum {string}
      */
-    NotificationEventType: 'entitlements.balance.threshold'
+    NotificationEventType:
+      | 'entitlements.balance.threshold'
+      | 'invoice.created'
+      | 'invoice.updated'
     /** @description Notification Rule. */
-    NotificationRule: components['schemas']['NotificationRuleBalanceThreshold']
+    NotificationRule:
+      | components['schemas']['NotificationRuleBalanceThreshold']
+      | components['schemas']['NotificationRuleInvoiceCreated']
+      | components['schemas']['NotificationRuleInvoiceUpdated']
     /** @description Notification rule with entitlements.balance.threshold type. */
     NotificationRuleBalanceThreshold: {
       /**
@@ -7120,8 +7180,7 @@ export interface components {
        */
       readonly id: string
       /**
-       * Rule Type
-       * @description Notification rule type.
+       * @description Notification rule type. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'entitlements.balance.threshold'
@@ -7154,11 +7213,10 @@ export interface components {
        */
       features?: components['schemas']['FeatureMeta'][]
     }
-    /** @description Request with input parameters for creating new notification rule with entitlements.balance.threashold type. */
+    /** @description Request with input parameters for creating new notification rule with entitlements.balance.threshold type. */
     NotificationRuleBalanceThresholdCreateRequest: {
       /**
-       * Rule Type
-       * @description Notification rule type.
+       * @description Notification rule type. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'entitlements.balance.threshold'
@@ -7213,7 +7271,168 @@ export interface components {
      */
     NotificationRuleBalanceThresholdValueType: 'PERCENT' | 'NUMBER'
     /** @description Union type for requests creating new notification rule with certain type. */
-    NotificationRuleCreateRequest: components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
+    NotificationRuleCreateRequest:
+      | components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
+      | components['schemas']['NotificationRuleInvoiceCreatedCreateRequest']
+      | components['schemas']['NotificationRuleInvoiceUpdatedCreateRequest']
+    /** @description Notification rule with invoice.created type. */
+    NotificationRuleInvoiceCreated: {
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /**
+       * Rule Unique Identifier
+       * @description Identifies the notification rule.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      readonly id: string
+      /**
+       * @description Notification rule type. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'invoice.created'
+      /**
+       * Rule Name
+       * @description The user friendly name of the notification rule.
+       * @example Balance threshold reached
+       */
+      name: string
+      /**
+       * Rule Disabled
+       * @description Whether the rule is disabled or not.
+       * @default false
+       * @example true
+       */
+      disabled?: boolean
+      /**
+       * Channels assigned to Rule
+       * @description List of notification channels the rule applies to.
+       */
+      channels: components['schemas']['NotificationChannelMeta'][]
+    }
+    /** @description Request with input parameters for creating new notification rule with invoice.created type. */
+    NotificationRuleInvoiceCreatedCreateRequest: {
+      /**
+       * @description Notification rule type. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'invoice.created'
+      /**
+       * Rule Name
+       * @description The user friendly name of the notification rule.
+       * @example Balance threshold reached
+       */
+      name: string
+      /**
+       * Rule Disabled
+       * @description Whether the rule is disabled or not.
+       * @default false
+       * @example true
+       */
+      disabled?: boolean
+      /**
+       * Channels
+       * @description List of notification channels the rule is applied to.
+       */
+      channels: string[]
+    }
+    /** @description Notification rule with invoice.updated type. */
+    NotificationRuleInvoiceUpdated: {
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /**
+       * Rule Unique Identifier
+       * @description Identifies the notification rule.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      readonly id: string
+      /**
+       * @description Notification rule type. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'invoice.updated'
+      /**
+       * Rule Name
+       * @description The user friendly name of the notification rule.
+       * @example Balance threshold reached
+       */
+      name: string
+      /**
+       * Rule Disabled
+       * @description Whether the rule is disabled or not.
+       * @default false
+       * @example true
+       */
+      disabled?: boolean
+      /**
+       * Channels assigned to Rule
+       * @description List of notification channels the rule applies to.
+       */
+      channels: components['schemas']['NotificationChannelMeta'][]
+    }
+    /** @description Request with input parameters for creating new notification rule with invoice.updated  type. */
+    NotificationRuleInvoiceUpdatedCreateRequest: {
+      /**
+       * @description Notification rule type. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'invoice.updated'
+      /**
+       * Rule Name
+       * @description The user friendly name of the notification rule.
+       * @example Balance threshold reached
+       */
+      name: string
+      /**
+       * Rule Disabled
+       * @description Whether the rule is disabled or not.
+       * @default false
+       * @example true
+       */
+      disabled?: boolean
+      /**
+       * Channels
+       * @description List of notification channels the rule is applied to.
+       */
+      channels: string[]
+    }
     /**
      * @description Order by options for notification channels.
      * @enum {string}
@@ -10199,6 +10418,10 @@ export type NotificationEventDeliveryStatus =
   components['schemas']['NotificationEventDeliveryStatus']
 export type NotificationEventDeliveryStatusState =
   components['schemas']['NotificationEventDeliveryStatusState']
+export type NotificationEventInvoiceCreatedPayload =
+  components['schemas']['NotificationEventInvoiceCreatedPayload']
+export type NotificationEventInvoiceUpdatedPayload =
+  components['schemas']['NotificationEventInvoiceUpdatedPayload']
 export type NotificationEventOrderBy =
   components['schemas']['NotificationEventOrderBy']
 export type NotificationEventPaginatedResponse =
@@ -10218,6 +10441,14 @@ export type NotificationRuleBalanceThresholdValueType =
   components['schemas']['NotificationRuleBalanceThresholdValueType']
 export type NotificationRuleCreateRequest =
   components['schemas']['NotificationRuleCreateRequest']
+export type NotificationRuleInvoiceCreated =
+  components['schemas']['NotificationRuleInvoiceCreated']
+export type NotificationRuleInvoiceCreatedCreateRequest =
+  components['schemas']['NotificationRuleInvoiceCreatedCreateRequest']
+export type NotificationRuleInvoiceUpdated =
+  components['schemas']['NotificationRuleInvoiceUpdated']
+export type NotificationRuleInvoiceUpdatedCreateRequest =
+  components['schemas']['NotificationRuleInvoiceUpdatedCreateRequest']
 export type NotificationRuleOrderBy =
   components['schemas']['NotificationRuleOrderBy']
 export type NotificationRulePaginatedResponse =

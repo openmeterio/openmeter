@@ -82,6 +82,9 @@ type RuleConfig struct {
 
 	// Balance Threshold
 	BalanceThreshold *BalanceThresholdRuleConfig `json:"balanceThreshold,omitempty"`
+
+	// Invoice
+	Invoice *InvoiceRuleConfig `json:"invoice,omitempty"`
 }
 
 // Validate invokes channel type specific validator and returns an error if channel configuration is invalid.
@@ -91,6 +94,14 @@ func (c RuleConfig) Validate(ctx context.Context, service Service, namespace str
 		if c.BalanceThreshold == nil {
 			return ValidationError{
 				Err: errors.New("missing balance threshold rule config"),
+			}
+		}
+
+		return c.BalanceThreshold.Validate(ctx, service, namespace)
+	case EventTypeInvoiceCreated, EventTypeInvoiceUpdated:
+		if c.Invoice == nil {
+			return ValidationError{
+				Err: errors.New("missing invoice rule config"),
 			}
 		}
 
