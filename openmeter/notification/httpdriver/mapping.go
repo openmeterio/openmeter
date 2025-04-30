@@ -102,7 +102,7 @@ func AsRuleBalanceThresholdCreateRequest(r api.NotificationRuleBalanceThresholdC
 			RuleConfigMeta: notification.RuleConfigMeta{
 				Type: notification.EventType(r.Type),
 			},
-			BalanceThreshold: notification.BalanceThresholdRuleConfig{
+			BalanceThreshold: &notification.BalanceThresholdRuleConfig{
 				Features:   lo.FromPtr(r.Features),
 				Thresholds: r.Thresholds,
 			},
@@ -123,7 +123,7 @@ func AsRuleBalanceThresholdUpdateRequest(r api.NotificationRuleBalanceThresholdC
 			RuleConfigMeta: notification.RuleConfigMeta{
 				Type: notification.EventType(r.Type),
 			},
-			BalanceThreshold: notification.BalanceThresholdRuleConfig{
+			BalanceThreshold: &notification.BalanceThresholdRuleConfig{
 				Features:   lo.FromPtr(r.Features),
 				Thresholds: r.Thresholds,
 			},
@@ -205,7 +205,7 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 	deliveryStatuses := make([]api.NotificationEventDeliveryStatus, 0, len(e.DeliveryStatus))
 	for _, deliveryStatus := range e.DeliveryStatus {
 		status := api.NotificationEventDeliveryStatus{
-			Channel: notification.ChannelMeta{
+			Channel: api.NotificationChannelMeta{
 				Id: deliveryStatus.ChannelID,
 			},
 			State:     api.NotificationEventDeliveryStatusState(deliveryStatus.State),

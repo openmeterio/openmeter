@@ -5,10 +5,38 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
+
+var eventTypes = []EventType{
+	EventTypeBalanceThreshold,
+}
+
+func EventTypes() []EventType {
+	return eventTypes
+}
+
+type EventType string
+
+func (t EventType) Validate() error {
+	if !lo.Contains(eventTypes, t) {
+		return ValidationError{
+			Err: fmt.Errorf("invalid notification event type: %q", t),
+		}
+	}
+
+	return nil
+}
+
+func (t EventType) Values() []string {
+	return lo.Map(eventTypes, func(item EventType, index int) string {
+		return string(item)
+	})
+}
 
 type Event struct {
 	models.NamespacedModel
@@ -29,27 +57,6 @@ type Event struct {
 	Rule Rule `json:"rule"`
 	// DeduplicationHash is a hash that the handler can use to deduplicate events if needed
 	HandlerDeduplicationHash string `json:"-"`
-}
-
-const (
-	EventTypeBalanceThreshold EventType = "entitlements.balance.threshold"
-)
-
-type EventType string
-
-func (t EventType) Validate() error {
-	switch t {
-	case EventTypeBalanceThreshold:
-		return nil
-	default:
-		return fmt.Errorf("unknown notification event type: %q", t)
-	}
-}
-
-func (t EventType) Values() []string {
-	return []string{
-		string(EventTypeBalanceThreshold),
-	}
 }
 
 var _ validator = (*ListEventsInput)(nil)

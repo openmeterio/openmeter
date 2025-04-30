@@ -68,86 +68,6 @@ model NotificationRuleCommon<T extends NotificationEventType> {
 }
 
 /**
- * Threshold value with multiple supported types.
- */
-@friendlyName("NotificationRuleBalanceThresholdValue")
-model NotificationRuleBalanceThresholdValue {
-  /**
-   * Value of the threshold.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Threshold Value")
-  @example(100)
-  value: float64;
-
-  /**
-   * Type of the threshold.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @example(NotificationRuleBalanceThresholdValueType.NUMBER)
-  type: NotificationRuleBalanceThresholdValueType;
-}
-
-/**
- * Type of the rule in the balance threshold specification.
- */
-@summary("Notification balance threshold type")
-@friendlyName("NotificationRuleBalanceThresholdValueType")
-@extension("x-enum-varnames", #["Percent", "Number"])
-enum NotificationRuleBalanceThresholdValueType {
-  PERCENT,
-  NUMBER,
-}
-
-/**
- * Limited representation of a feature resource which includes only its unique identifiers (id, key).
- */
-@friendlyName("FeatureMeta")
-model FeatureMeta {
-  /**
-   * Unique identifier of a feature.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Feature Unique Identifier")
-  @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
-  id: ULID;
-
-  /**
-   * The key is an immutable unique identifier of the feature used throughout the API,
-   * for example when interacting with a subject's entitlements.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Feature Key")
-  @example("gpt4_tokens")
-  key: string;
-}
-
-/**
- * Notification rule with entitlements.balance.threshold type.
- */
-@friendlyName("NotificationRuleBalanceThreshold")
-model NotificationRuleBalanceThreshold {
-  ...NotificationRuleCommon<NotificationEventType.entitlementsBalanceThreshold>;
-
-  /**
-   * List of thresholds the rule suppose to be triggered.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Entitlement Balance Thresholds")
-  @minItems(1)
-  @maxItems(10)
-  thresholds: Array<NotificationRuleBalanceThresholdValue>;
-
-  /**
-   * Optional field containing list of features the rule applies to.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Features")
-  @minItems(1)
-  features?: Array<FeatureMeta>;
-}
-
-/**
  * Notification Rule.
  */
 @friendlyName("NotificationRule")
@@ -161,31 +81,6 @@ union NotificationRule {
 @friendlyName("NotificationRuleCreateRequest")
 union NotificationRuleCreateRequest {
   NotificationRuleBalanceThresholdCreateRequest,
-}
-
-/**
- * Request with input parameters for creating new notification rule with entitlements.balance.threashold type.
- */
-@friendlyName("NotificationRuleBalanceThresholdCreateRequest")
-@withVisibility(Lifecycle.Create, Lifecycle.Update)
-model NotificationRuleBalanceThresholdCreateRequest {
-  ...OmitProperties<NotificationRuleBalanceThreshold, "channels" | "features">;
-
-  /**
-   * List of notification channels the rule is applied to.
-   */
-  @visibility(Lifecycle.Create, Lifecycle.Update)
-  @summary("Channels")
-  @minItems(1)
-  channels: Array<ULID>;
-
-  /**
-   * Optional field for defining the scope of notification by feature. It may contain features by id or key.
-   */
-  @visibility(Lifecycle.Create, Lifecycle.Update)
-  @summary("Features")
-  @minItems(1)
-  features?: Array<ULIDOrKey>;
 }
 
 /**

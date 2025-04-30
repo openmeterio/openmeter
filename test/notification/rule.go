@@ -30,7 +30,7 @@ func NewCreateRuleInput(name string, channels ...string) notification.CreateRule
 			RuleConfigMeta: notification.RuleConfigMeta{
 				Type: notification.EventTypeBalanceThreshold,
 			},
-			BalanceThreshold: notification.BalanceThresholdRuleConfig{
+			BalanceThreshold: &notification.BalanceThresholdRuleConfig{
 				Features: nil,
 				Thresholds: []notification.BalanceThreshold{
 					{
@@ -215,7 +215,7 @@ func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 			RuleConfigMeta: notification.RuleConfigMeta{
 				Type: rule.Config.Type,
 			},
-			BalanceThreshold: notification.BalanceThresholdRuleConfig{
+			BalanceThreshold: &notification.BalanceThresholdRuleConfig{
 				Features: rule.Config.BalanceThreshold.Features,
 				Thresholds: append(rule.Config.BalanceThreshold.Thresholds, notification.BalanceThreshold{
 					Type:  notification.BalanceThresholdTypeNumber,

@@ -5,22 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
-)
-
-type (
-	ChannelMeta = api.NotificationChannelMeta
-	FeatureMeta = api.FeatureMeta
-
-	BalanceThreshold = api.NotificationRuleBalanceThresholdValue
-)
-
-const (
-	BalanceThresholdTypeNumber  = api.NotificationRuleBalanceThresholdValueTypeNumber
-	BalanceThresholdTypePercent = api.NotificationRuleBalanceThresholdValueTypePercent
 )
 
 type Rule struct {
@@ -94,76 +81,23 @@ type RuleConfig struct {
 	RuleConfigMeta
 
 	// Balance Threshold
-	BalanceThreshold BalanceThresholdRuleConfig `json:"balanceThreshold"`
+	BalanceThreshold *BalanceThresholdRuleConfig `json:"balanceThreshold,omitempty"`
 }
 
 // Validate invokes channel type specific validator and returns an error if channel configuration is invalid.
 func (c RuleConfig) Validate(ctx context.Context, service Service, namespace string) error {
 	switch c.Type {
 	case EventTypeBalanceThreshold:
+		if c.BalanceThreshold == nil {
+			return ValidationError{
+				Err: errors.New("missing balance threshold rule config"),
+			}
+		}
+
 		return c.BalanceThreshold.Validate(ctx, service, namespace)
 	default:
 		return fmt.Errorf("unknown rule type: %s", c.Type)
 	}
-}
-
-// BalanceThresholdRuleConfig defines the configuration specific to channel with webhook type.
-type BalanceThresholdRuleConfig struct {
-	// Features stores the list of features the rule is associated with.
-	Features []string `json:"features"`
-	// Thresholds stores the list of thresholds used to trigger a new notification event if the balance exceeds one of the thresholds.
-	Thresholds []BalanceThreshold `json:"thresholds"`
-}
-
-// Validate returns an error if balance threshold configuration is invalid.
-func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, service Service, namespace string) error {
-	if len(b.Thresholds) == 0 {
-		return fmt.Errorf("must provide at least one threshold")
-	}
-
-	for _, threshold := range b.Thresholds {
-		switch threshold.Type {
-		case BalanceThresholdTypeNumber, BalanceThresholdTypePercent:
-			if threshold.Value <= 0 {
-				return ValidationError{
-					Err: fmt.Errorf("invalid threshold with type %s: value must be greater than 0: %.2f",
-						threshold.Type,
-						threshold.Value,
-					),
-				}
-			}
-		default:
-			return fmt.Errorf("unknown balance threshold type: %s", threshold.Type)
-		}
-	}
-
-	if len(b.Features) > 0 {
-		features, err := service.ListFeature(ctx, namespace, b.Features...)
-		if err != nil {
-			return err
-		}
-
-		if len(b.Features) != len(features) {
-			featureIdOrKeys := make(map[string]struct{}, len(features))
-			for _, feature := range features {
-				featureIdOrKeys[feature.ID] = struct{}{}
-				featureIdOrKeys[feature.Key] = struct{}{}
-			}
-
-			missingFeatures := make([]string, 0)
-			for _, featureIdOrKey := range b.Features {
-				if _, ok := featureIdOrKeys[featureIdOrKey]; !ok {
-					missingFeatures = append(missingFeatures, featureIdOrKey)
-				}
-			}
-
-			return ValidationError{
-				Err: fmt.Errorf("non-existing features: %v", missingFeatures),
-			}
-		}
-	}
-
-	return nil
 }
 
 var _ validator = (*ListRulesInput)(nil)
