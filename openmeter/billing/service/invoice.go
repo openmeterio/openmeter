@@ -470,7 +470,12 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			}
 
 			for _, invoice := range out {
-				err := s.publisher.Publish(ctx, billing.NewInvoiceCreatedEvent(invoice))
+				event, err := billing.NewInvoiceCreatedEvent(invoice)
+				if err != nil {
+					return nil, fmt.Errorf("creating event: %w", err)
+				}
+
+				err = s.publisher.Publish(ctx, event)
 				if err != nil {
 					return nil, fmt.Errorf("publishing event: %w", err)
 				}

@@ -10,6 +10,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/api"
+	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
@@ -560,6 +561,39 @@ func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 	}
 
 	return out, nil
+}
+
+func MapEventInvoiceToAPI(event billing.EventInvoice) (api.Invoice, error) {
+	invoice, err := MapInvoiceToAPI(event.Invoice)
+	if err != nil {
+		return api.Invoice{}, err
+	}
+
+	// Let's map the apps
+
+	apps := api.BillingProfileApps{}
+
+	apps.Invoicing, err = apphttpdriver.MapEventAppToAPI(event.Apps.Invoicing)
+	if err != nil {
+		return api.Invoice{}, err
+	}
+
+	apps.Payment, err = apphttpdriver.MapEventAppToAPI(event.Apps.Payment)
+	if err != nil {
+		return api.Invoice{}, err
+	}
+
+	apps.Tax, err = apphttpdriver.MapEventAppToAPI(event.Apps.Tax)
+	if err != nil {
+		return api.Invoice{}, err
+	}
+
+	invoice.Workflow.Apps = &api.BillingProfileAppsOrReference{}
+	if err := invoice.Workflow.Apps.FromBillingProfileApps(apps); err != nil {
+		return api.Invoice{}, err
+	}
+
+	return invoice, nil
 }
 
 func mapPeriodToAPI(p *billing.Period) *api.Period {

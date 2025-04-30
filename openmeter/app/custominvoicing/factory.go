@@ -103,8 +103,10 @@ func (f *Factory) NewApp(ctx context.Context, appBase app.AppBase) (app.App, err
 	}
 
 	return App{
-		AppBase:                appBase,
-		Configuration:          cfg,
+		Meta: Meta{
+			AppBase:       appBase,
+			Configuration: cfg,
+		},
 		customInvoicingService: f.customInvoicingService,
 		billingService:         f.billingService,
 	}, nil
@@ -115,7 +117,7 @@ func (f *Factory) InstallApp(ctx context.Context, input app.AppFactoryInstallApp
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	appBase, err := f.customInvoicingService.CreateApp(ctx, CreateAppInput{
+	newApp, err := f.customInvoicingService.CreateApp(ctx, CreateAppInput{
 		Namespace: input.Namespace,
 		Name:      input.Name,
 	})
@@ -123,7 +125,7 @@ func (f *Factory) InstallApp(ctx context.Context, input app.AppFactoryInstallApp
 		return nil, fmt.Errorf("failed to create app: %w", err)
 	}
 
-	return f.NewApp(ctx, appBase)
+	return f.NewApp(ctx, newApp.GetAppBase())
 }
 
 func (f *Factory) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {

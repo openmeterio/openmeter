@@ -345,7 +345,7 @@ func (h *handler) customerAppToAPI(a app.CustomerApp) (api.CustomerAppData, erro
 		apiStripeCustomerAppData := api.StripeCustomerAppData{
 			Id:                           &appId,
 			Type:                         api.StripeCustomerAppDataTypeStripe,
-			App:                          lo.ToPtr(mapStripeAppToAPI(stripeApp)),
+			App:                          lo.ToPtr(mapStripeAppToAPI(stripeApp.Meta)),
 			StripeCustomerId:             customerApp.StripeCustomerID,
 			StripeDefaultPaymentMethodId: customerApp.StripeDefaultPaymentMethodID,
 		}
@@ -361,7 +361,7 @@ func (h *handler) customerAppToAPI(a app.CustomerApp) (api.CustomerAppData, erro
 			return apiCustomerAppData, fmt.Errorf("error casting app to sandbox app")
 		}
 
-		apiApp := mapSandboxAppToAPI(sandboxApp)
+		apiApp := mapSandboxAppToAPI(sandboxApp.Meta)
 
 		apiSandboxCustomerAppData := api.SandboxCustomerAppData{
 			Id:   &appId,
@@ -374,6 +374,24 @@ func (h *handler) customerAppToAPI(a app.CustomerApp) (api.CustomerAppData, erro
 			return apiCustomerAppData, fmt.Errorf("error converting to sandbox customer app: %w", err)
 		}
 
+	case appcustominvoicing.CustomerData:
+		customInvoicingApp, ok := a.App.(appcustominvoicing.App)
+		if !ok {
+			return apiCustomerAppData, fmt.Errorf("error casting app to custom invoicing app")
+		}
+
+		apiApp := mapCustomInvoicingAppToAPI(customInvoicingApp.Meta)
+
+		apiCustomInvoicingCustomerAppData := api.CustomInvoicingCustomerAppData{
+			Id:   &appId,
+			Type: api.CustomInvoicingCustomerAppDataTypeCustomInvoicing,
+			App:  &apiApp,
+		}
+
+		err := apiCustomerAppData.FromCustomInvoicingCustomerAppData(apiCustomInvoicingCustomerAppData)
+		if err != nil {
+			return apiCustomerAppData, fmt.Errorf("error converting to custom invoicing customer app: %w", err)
+		}
 	default:
 		return apiCustomerAppData, fmt.Errorf("unsupported customer data for app: %s", appId)
 	}

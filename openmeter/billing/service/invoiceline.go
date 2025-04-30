@@ -201,7 +201,12 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 			// Publish system event for newly created invoices
 			if upsertedInvoice.IsInvoiceNew {
-				if err := s.publisher.Publish(ctx, billing.NewInvoiceCreatedEvent(invoice)); err != nil {
+				event, err := billing.NewInvoiceCreatedEvent(invoice)
+				if err != nil {
+					return nil, fmt.Errorf("creating event: %w", err)
+				}
+
+				if err := s.publisher.Publish(ctx, event); err != nil {
 					return nil, fmt.Errorf("publishing invoice[%s] created event: %w", upsertedInvoice.InvoiceID.ID, err)
 				}
 			}

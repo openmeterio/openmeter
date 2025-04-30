@@ -3,6 +3,7 @@ package billing
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -30,6 +32,7 @@ import (
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -285,4 +288,115 @@ func (s *BaseSuite) DebugDumpInvoice(h string, i billing.Invoice) {
 				deleted)
 		}
 	}
+}
+
+type DraftInvoiceInput struct {
+	Namespace string
+	Customer  *customer.Customer
+}
+
+func (i DraftInvoiceInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.Customer == nil {
+		return errors.New("customer is required")
+	}
+
+	if err := i.Customer.Validate(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *BaseSuite) CreateDraftInvoice(t *testing.T, ctx context.Context, in DraftInvoiceInput) billing.Invoice {
+	s.NoError(in.Validate())
+
+	namespace := in.Customer.Namespace
+
+	now := time.Now()
+	invoiceAt := now.Add(-time.Second)
+	periodEnd := now.Add(-24 * time.Hour)
+	periodStart := periodEnd.Add(-24 * 30 * time.Hour)
+	// Given we have a default profile for the namespace
+
+	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		billing.CreateInvoiceLinesInput{
+			Namespace: in.Customer.Namespace,
+			Lines: []billing.LineWithCustomer{
+				{
+					Line: billing.Line{
+						LineBase: billing.LineBase{
+							Namespace: namespace,
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+
+							InvoiceAt: invoiceAt,
+
+							Type:      billing.InvoiceLineTypeFee,
+							ManagedBy: billing.ManuallyManagedLine,
+
+							Name:     "Test item1",
+							Currency: currencyx.Code(currency.USD),
+
+							Metadata: map[string]string{
+								"key": "value",
+							},
+						},
+						FlatFee: &billing.FlatFeeLine{
+							PerUnitAmount: alpacadecimal.NewFromFloat(100),
+							Quantity:      alpacadecimal.NewFromFloat(1),
+							Category:      billing.FlatFeeCategoryRegular,
+							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+						},
+					},
+					CustomerID: in.Customer.ID,
+				},
+				{
+					Line: billing.Line{
+						LineBase: billing.LineBase{
+							Namespace: namespace,
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+
+							InvoiceAt: invoiceAt,
+
+							Type:      billing.InvoiceLineTypeFee,
+							ManagedBy: billing.ManuallyManagedLine,
+
+							Name:     "Test item2",
+							Currency: currencyx.Code(currency.USD),
+						},
+						FlatFee: &billing.FlatFeeLine{
+							PerUnitAmount: alpacadecimal.NewFromFloat(200),
+							Quantity:      alpacadecimal.NewFromFloat(3),
+							Category:      billing.FlatFeeCategoryRegular,
+							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+						},
+					},
+					CustomerID: in.Customer.ID,
+				},
+			},
+		})
+
+	require.NoError(s.T(), err)
+	require.Len(s.T(), res, 2)
+	line1ID := res[0].ID
+	line2ID := res[1].ID
+	require.NotEmpty(s.T(), line1ID)
+	require.NotEmpty(s.T(), line2ID)
+
+	invoice, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customer.CustomerID{
+			ID:        in.Customer.ID,
+			Namespace: in.Customer.Namespace,
+		},
+		AsOf: lo.ToPtr(now),
+	})
+
+	require.NoError(t, err)
+	require.Len(t, invoice, 1)
+	require.Len(t, invoice[0].Lines.MustGet(), 2)
+
+	return invoice[0]
 }

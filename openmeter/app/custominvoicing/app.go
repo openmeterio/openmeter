@@ -36,9 +36,25 @@ func (c Configuration) Validate() error {
 	return nil
 }
 
-type App struct {
+type Meta struct {
 	app.AppBase
 	Configuration
+}
+
+var _ app.EventAppParser = (*Meta)(nil)
+
+func (m *Meta) FromEventAppData(event app.EventApp) error {
+	m.AppBase = event.AppBase
+
+	if err := event.AppData.ParseInto(&m.Configuration); err != nil {
+		return fmt.Errorf("error parsing app data: %w", err)
+	}
+
+	return nil
+}
+
+type App struct {
+	Meta
 
 	customInvoicingService Service
 	billingService         billing.Service
@@ -62,6 +78,10 @@ func (a App) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) err
 		AppID:         a.GetID(),
 		Configuration: cfg,
 	})
+}
+
+func (a App) GetEventAppData() (app.EventAppData, error) {
+	return app.NewEventAppData(a.Configuration)
 }
 
 // InvoicingApp

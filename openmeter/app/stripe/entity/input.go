@@ -413,12 +413,12 @@ type AppBase struct {
 
 // AppData represents the Stripe associated data for the app
 type AppData struct {
-	StripeAccountID string
-	Livemode        bool
-	APIKey          secretentity.SecretID
-	MaskedAPIKey    string
-	StripeWebhookID string
-	WebhookSecret   secretentity.SecretID
+	StripeAccountID string                `json:"stripeAccountId"`
+	Livemode        bool                  `json:"livemode"`
+	APIKey          secretentity.SecretID `json:"-"`
+	MaskedAPIKey    string                `json:"maskedApiKey"`
+	StripeWebhookID string                `json:"stripeWebhookId"`
+	WebhookSecret   secretentity.SecretID `json:"-"`
 }
 
 func (d AppData) Validate() error {

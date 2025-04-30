@@ -75,7 +75,11 @@ func (s *Service) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.
 		}
 
 		// Emit the app updated event
-		event := app.NewAppUpdateEvent(ctx, updatedApp.GetAppBase())
+		event, err := app.NewAppUpdateEvent(ctx, updatedApp)
+		if err != nil {
+			return nil, err
+		}
+
 		if err := s.publisher.Publish(ctx, event); err != nil {
 			return nil, err
 		}
@@ -98,6 +102,12 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 		return models.NewGenericValidationError(err)
 	}
 
+	// Existing app
+	existingApp, err := s.adapter.GetApp(ctx, input)
+	if err != nil {
+		return err
+	}
+
 	// Delete the app
 	appBase, err := s.adapter.UninstallApp(ctx, input)
 	if err != nil {
@@ -105,7 +115,12 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 	}
 
 	// Emit the app deleted event
-	event := app.NewAppDeleteEvent(ctx, *appBase)
+	eventAppData, err := existingApp.GetEventAppData()
+	if err != nil {
+		return err
+	}
+
+	event := app.NewAppDeleteEvent(ctx, *appBase, eventAppData)
 	if err := s.publisher.Publish(ctx, event); err != nil {
 		return err
 	}
@@ -131,7 +146,11 @@ func (s *Service) UpdateAppStatus(ctx context.Context, input app.UpdateAppStatus
 	}
 
 	// Emit the app updated event
-	event := app.NewAppUpdateEvent(ctx, updatedApp.GetAppBase())
+	event, err := app.NewAppUpdateEvent(ctx, updatedApp)
+	if err != nil {
+		return err
+	}
+
 	if err := s.publisher.Publish(ctx, event); err != nil {
 		return err
 	}

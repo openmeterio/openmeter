@@ -19,7 +19,7 @@ func MapAppToAPI(item app.App) (api.App, error) {
 		stripeApp := item.(appstripeentityapp.App)
 
 		app := api.App{}
-		if err := app.FromStripeApp(mapStripeAppToAPI(stripeApp)); err != nil {
+		if err := app.FromStripeApp(mapStripeAppToAPI(stripeApp.Meta)); err != nil {
 			return app, err
 		}
 
@@ -28,7 +28,7 @@ func MapAppToAPI(item app.App) (api.App, error) {
 		sandboxApp := item.(appsandbox.App)
 
 		app := api.App{}
-		if err := app.FromSandboxApp(mapSandboxAppToAPI(sandboxApp)); err != nil {
+		if err := app.FromSandboxApp(mapSandboxAppToAPI(sandboxApp.Meta)); err != nil {
 			return app, err
 		}
 
@@ -37,7 +37,7 @@ func MapAppToAPI(item app.App) (api.App, error) {
 		customInvoicingApp := item.(appcustominvoicing.App)
 
 		app := api.App{}
-		if err := app.FromCustomInvoicingApp(mapCustomInvoicingAppToAPI(customInvoicingApp)); err != nil {
+		if err := app.FromCustomInvoicingApp(mapCustomInvoicingAppToAPI(customInvoicingApp.Meta)); err != nil {
 			return app, err
 		}
 
@@ -47,7 +47,7 @@ func MapAppToAPI(item app.App) (api.App, error) {
 	}
 }
 
-func mapSandboxAppToAPI(app appsandbox.App) api.SandboxApp {
+func mapSandboxAppToAPI(app appsandbox.Meta) api.SandboxApp {
 	return api.SandboxApp{
 		Id:        app.GetID().ID,
 		Type:      api.SandboxAppTypeSandbox,
@@ -62,7 +62,7 @@ func mapSandboxAppToAPI(app appsandbox.App) api.SandboxApp {
 }
 
 func mapStripeAppToAPI(
-	stripeApp appstripeentityapp.App,
+	stripeApp appstripeentityapp.Meta,
 ) api.StripeApp {
 	apiStripeApp := api.StripeApp{
 		Id:              stripeApp.GetID().ID,
@@ -88,7 +88,7 @@ func mapStripeAppToAPI(
 	return apiStripeApp
 }
 
-func mapCustomInvoicingAppToAPI(app appcustominvoicing.App) api.CustomInvoicingApp {
+func mapCustomInvoicingAppToAPI(app appcustominvoicing.Meta) api.CustomInvoicingApp {
 	return api.CustomInvoicingApp{
 		Id:          app.GetID().ID,
 		Type:        api.CustomInvoicingAppTypeCustomInvoicing,
@@ -104,5 +104,48 @@ func mapCustomInvoicingAppToAPI(app appcustominvoicing.App) api.CustomInvoicingA
 
 		EnableDraftSyncHook:   app.Configuration.EnableDraftSyncHook,
 		EnableIssuingSyncHook: app.Configuration.EnableIssuingSyncHook,
+	}
+}
+
+func MapEventAppToAPI(event app.EventApp) (api.App, error) {
+	switch event.GetType() {
+	case app.AppTypeStripe:
+		target := appstripeentityapp.App{}
+		if err := target.FromEventAppData(event); err != nil {
+			return api.App{}, err
+		}
+
+		app := api.App{}
+		if err := app.FromStripeApp(mapStripeAppToAPI(target.Meta)); err != nil {
+			return api.App{}, err
+		}
+
+		return app, nil
+	case app.AppTypeSandbox:
+		target := appsandbox.Meta{}
+		if err := target.FromEventAppData(event); err != nil {
+			return api.App{}, err
+		}
+
+		app := api.App{}
+		if err := app.FromSandboxApp(mapSandboxAppToAPI(target)); err != nil {
+			return api.App{}, err
+		}
+
+		return app, nil
+	case app.AppTypeCustomInvoicing:
+		target := appcustominvoicing.App{}
+		if err := target.FromEventAppData(event); err != nil {
+			return api.App{}, err
+		}
+
+		app := api.App{}
+		if err := app.FromCustomInvoicingApp(mapCustomInvoicingAppToAPI(target.Meta)); err != nil {
+			return api.App{}, err
+		}
+
+		return app, nil
+	default:
+		return api.App{}, fmt.Errorf("unsupported app type: %s", event.GetType())
 	}
 }
