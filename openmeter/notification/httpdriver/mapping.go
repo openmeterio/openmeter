@@ -458,7 +458,22 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 
 	switch e.Type {
 	case notification.EventTypeBalanceThreshold:
-		err = event.Payload.FromNotificationEventBalanceThresholdPayload(FromEventAsBalanceThresholdPayload(e))
+		payload, err := FromEventAsBalanceThresholdPayload(e)
+		if err != nil {
+			return event, fmt.Errorf("failed to cast notification event payload: %w", err)
+		}
+
+		err = event.Payload.FromNotificationEventBalanceThresholdPayload(payload)
+		if err != nil {
+			return event, fmt.Errorf("failed to cast notification event payload: %w", err)
+		}
+	case notification.EventTypeEntitlementReset:
+		payload, err := FromEventAsEntitlementResetPayload(e)
+		if err != nil {
+			return event, fmt.Errorf("failed to cast notification event payload: %w", err)
+		}
+
+		err = event.Payload.FromNotificationEventResetPayload(payload)
 		if err != nil {
 			return event, fmt.Errorf("failed to cast notification event payload: %w", err)
 		}
@@ -495,6 +510,8 @@ func FromEventType(t notification.EventType) (api.NotificationEventType, error) 
 	switch t {
 	case notification.EventTypeBalanceThreshold:
 		return api.NotificationEventTypeEntitlementsBalanceThreshold, nil
+	case notification.EventTypeEntitlementReset:
+		return api.NotificationEventTypeEntitlementsReset, nil
 	case notification.EventTypeInvoiceCreated:
 		return api.NotificationEventTypeInvoiceCreated, nil
 	case notification.EventTypeInvoiceUpdated:
@@ -504,7 +521,11 @@ func FromEventType(t notification.EventType) (api.NotificationEventType, error) 
 	}
 }
 
-func FromEventAsBalanceThresholdPayload(e notification.Event) api.NotificationEventBalanceThresholdPayload {
+func FromEventAsBalanceThresholdPayload(e notification.Event) (api.NotificationEventBalanceThresholdPayload, error) {
+	if e.Payload.BalanceThreshold == nil {
+		return api.NotificationEventBalanceThresholdPayload{}, fmt.Errorf("balance threshold is nil")
+	}
+
 	return api.NotificationEventBalanceThresholdPayload{
 		Id:        e.ID,
 		Timestamp: e.CreatedAt,
@@ -522,21 +543,25 @@ func FromEventAsBalanceThresholdPayload(e notification.Event) api.NotificationEv
 			Subject:     e.Payload.BalanceThreshold.Subject,
 			Threshold:   e.Payload.BalanceThreshold.Threshold,
 		},
-	}
+	}, nil
 }
 
-func FromEventAsEntitlementResetPayload(e notification.Event) api.NotificationEventResetPayload {
+func FromEventAsEntitlementResetPayload(e notification.Event) (api.NotificationEventResetPayload, error) {
+	if e.Payload.EntitlementReset == nil {
+		return api.NotificationEventResetPayload{}, fmt.Errorf("entitlement reset is nil")
+	}
+
 	return api.NotificationEventResetPayload{
 		Id:        e.ID,
 		Timestamp: e.CreatedAt,
 		Type:      api.NotificationEventResetPayloadTypeEntitlementsReset,
 		Data: api.NotificationEventEntitlementValuePayloadBase{
-			Value:       e.Payload.BalanceThreshold.Value,
-			Entitlement: e.Payload.BalanceThreshold.Entitlement,
-			Feature:     e.Payload.BalanceThreshold.Feature,
-			Subject:     e.Payload.BalanceThreshold.Subject,
+			Value:       e.Payload.EntitlementReset.Value,
+			Entitlement: e.Payload.EntitlementReset.Entitlement,
+			Feature:     e.Payload.EntitlementReset.Feature,
+			Subject:     e.Payload.EntitlementReset.Subject,
 		},
-	}
+	}, nil
 }
 
 func FromEventAsInvoiceCreatedPayload(e notification.Event) (api.NotificationEventInvoiceCreatedPayload, error) {

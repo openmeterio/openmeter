@@ -293,6 +293,7 @@ func NewRouter(config Config) (*Router, error) {
 	router.notificationHandler = notificationhttpdriver.New(
 		staticNamespaceDecoder,
 		config.Notification,
+		config.Billing,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

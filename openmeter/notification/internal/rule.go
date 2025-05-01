@@ -1,40 +1,72 @@
 package internal
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
-	"github.com/rickb777/period"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
-	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func NewTestEventPayload(eventType notification.EventType) notification.EventPayload {
-	switch eventType {
-	case notification.EventTypeBalanceThreshold:
-		return newTestBalanceThresholdPayload()
-	case notification.EventTypeEntitlementReset:
-		return newTestEntitlementResetPayload()
-	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
-		return newTestInvoicePayload(eventType)
-	default:
-		return notification.EventPayload{}
+type TestEventGenerator struct {
+	billingService billing.Service
+}
+
+func NewTestEventGenerator(billingService billing.Service) *TestEventGenerator {
+	return &TestEventGenerator{
+		billingService: billingService,
 	}
 }
 
-func newTestBalanceThresholdPayload() notification.EventPayload {
-	payload := newTestEntitlementResetPayload()
+type EventGeneratorInput struct {
+	Namespace string
+
+	EventType notification.EventType
+}
+
+func (i EventGeneratorInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.EventType == "" {
+		return errors.New("event type is required")
+	}
+
+	return nil
+}
+
+func (t *TestEventGenerator) Generate(ctx context.Context, in EventGeneratorInput) (notification.EventPayload, error) {
+	if err := in.Validate(); err != nil {
+		return notification.EventPayload{}, err
+	}
+
+	switch in.EventType {
+	case notification.EventTypeBalanceThreshold:
+		return t.newTestBalanceThresholdPayload(), nil
+	case notification.EventTypeEntitlementReset:
+		return t.newTestEntitlementResetPayload(), nil
+	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
+		return t.newTestInvoicePayload(ctx, in.Namespace, in.EventType)
+	default:
+		return notification.EventPayload{}, fmt.Errorf("unsupported event type: %s", in.EventType)
+	}
+}
+
+func (t *TestEventGenerator) newTestBalanceThresholdPayload() notification.EventPayload {
+	payload := t.newTestEntitlementResetPayload()
 	payload.Type = notification.EventTypeBalanceThreshold
 	payload.BalanceThreshold = &notification.BalanceThresholdPayload{
 		EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase(*payload.EntitlementReset),
@@ -46,7 +78,7 @@ func newTestBalanceThresholdPayload() notification.EventPayload {
 	return payload
 }
 
-func newTestEntitlementResetPayload() notification.EventPayload {
+func (t *TestEventGenerator) newTestEntitlementResetPayload() notification.EventPayload {
 	var (
 		now       = time.Now()
 		createdAt = now.Add(-24 * time.Hour)
@@ -129,255 +161,71 @@ func newTestEntitlementResetPayload() notification.EventPayload {
 	}
 }
 
-func newTestInvoicePayload(eventType notification.EventType) notification.EventPayload {
-	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
-	periodEnd := now.Add(-time.Hour)
-	periodStart := periodEnd.Add(-time.Hour * 24 * 30)
-	issueAt := now.Add(-time.Minute)
-	createdAt := now.Add(time.Hour)
-	updatedAt := now.Add(time.Hour)
-	dueAt := now.Add(24 * time.Hour)
-	draftUntil := now.Add(4 * time.Hour)
-	collectionAt := now.Add(5 * time.Hour)
+func (t *TestEventGenerator) newTestInvoicePayload(ctx context.Context, namespace string, eventType notification.EventType) (notification.EventPayload, error) {
+	now := time.Now().Truncate(time.Second).In(time.UTC)
+
+	invoice, err := t.billingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{
+		Namespace: namespace,
+		Customer: &customer.Customer{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace: namespace,
+				ID:        ulid.Make().String(),
+				Name:      "Test Customer",
+				CreatedAt: now,
+				UpdatedAt: now,
+			}),
+			Key: lo.ToPtr("test-customer-1"),
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{"test-subject-1"},
+			},
+			PrimaryEmail: lo.ToPtr("test-customer-1@example.com"),
+			Currency:     lo.ToPtr(currencyx.Code(currency.USD)),
+		},
+
+		Number:   lo.ToPtr("TEST-INV-1"),
+		Currency: currencyx.Code(currency.USD),
+		Lines: billing.NewLineChildren([]*billing.Line{
+			{
+				LineBase: billing.LineBase{
+					Namespace: namespace,
+					ID:        ulid.Make().String(),
+					CreatedAt: now,
+					UpdatedAt: now,
+
+					ManagedBy: billing.ManuallyManagedLine,
+
+					Name: "test flat fee",
+					Type: billing.InvoiceLineTypeFee,
+					Period: billing.Period{
+						Start: now.Add(-time.Hour * 24 * 30),
+						End:   now,
+					},
+					InvoiceAt: now,
+
+					Status: billing.InvoiceLineStatusValid,
+				},
+				FlatFee: &billing.FlatFeeLine{
+					PerUnitAmount: alpacadecimal.NewFromInt(1000),
+					Quantity:      alpacadecimal.NewFromInt(1),
+					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+					Category:      billing.FlatFeeCategoryRegular,
+				},
+			},
+		}),
+	})
+	if err != nil {
+		return notification.EventPayload{}, err
+	}
+
+	eventInvoice, err := billing.NewEventInvoice(invoice)
+	if err != nil {
+		return notification.EventPayload{}, err
+	}
 
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
 			Type: eventType,
 		},
-		Invoice: &notification.InvoicePayload{
-			Invoice: billing.Invoice{
-				InvoiceBase: billing.InvoiceBase{
-					Namespace:   "test",
-					ID:          "01JT3M7RES4JEWD82223RZCVX5",
-					Number:      "DRAFT-TEST-USD-1",
-					Description: lo.ToPtr("Test invoice event"),
-					Type:        billing.InvoiceTypeStandard,
-					Metadata: map[string]string{
-						"test-metadata-key": "test-metadata-value",
-					},
-					Currency: currencyx.Code(currency.USD),
-					Status:   billing.InvoiceStatusDraftCreated,
-					StatusDetails: billing.InvoiceStatusDetails{
-						Immutable: true,
-						Failed:    false,
-						AvailableActions: billing.InvoiceAvailableActions{
-							Advance: &billing.InvoiceAvailableActionDetails{
-								ResultingState: "",
-							},
-							Approve: &billing.InvoiceAvailableActionDetails{
-								ResultingState: "",
-							},
-							Delete: &billing.InvoiceAvailableActionDetails{
-								ResultingState: "",
-							},
-							Retry: &billing.InvoiceAvailableActionDetails{
-								ResultingState: "",
-							},
-							Void: &billing.InvoiceAvailableActionDetails{
-								ResultingState: "",
-							},
-							Invoice: &billing.InvoiceAvailableActionInvoiceDetails{},
-						},
-					},
-					Period: &billing.Period{
-						Start: periodStart,
-						End:   periodEnd,
-					},
-					DueAt:            &dueAt,
-					CreatedAt:        createdAt,
-					UpdatedAt:        updatedAt,
-					VoidedAt:         nil,
-					DraftUntil:       &draftUntil,
-					IssuedAt:         &issueAt,
-					DeletedAt:        nil,
-					SentToCustomerAt: nil,
-					CollectionAt:     &collectionAt,
-					Customer: billing.InvoiceCustomer{
-						CustomerID: "01JT3M76AYWTWZN91KFNJ85G21",
-						Name:       "Test Customer",
-						BillingAddress: &models.Address{
-							Country:     lo.ToPtr(models.CountryCode("US")),
-							PostalCode:  lo.ToPtr("12345"),
-							State:       lo.ToPtr("NY"),
-							City:        lo.ToPtr("New York"),
-							Line1:       lo.ToPtr("1234 Test St"),
-							Line2:       lo.ToPtr("Apt 1"),
-							PhoneNumber: lo.ToPtr("1234567890"),
-						},
-						UsageAttribution: customer.CustomerUsageAttribution{
-							SubjectKeys: []string{"test-subject"},
-						},
-					},
-					Supplier: billing.SupplierContact{
-						Name: "Awesome Supplier",
-						Address: models.Address{
-							Country: lo.ToPtr(models.CountryCode("US")),
-						},
-					},
-					Workflow: billing.InvoiceWorkflow{
-						AppReferences: billing.ProfileAppReferences{
-							Tax: billing.AppReference{
-								ID:   "",
-								Type: "",
-							},
-							Invoicing: billing.AppReference{
-								ID:   "",
-								Type: "",
-							},
-							Payment: billing.AppReference{
-								ID:   "",
-								Type: "",
-							},
-						},
-						Apps: &billing.ProfileApps{
-							Tax:       nil,
-							Invoicing: nil,
-							Payment:   nil,
-						},
-						SourceBillingProfileID: "",
-						Config: billing.WorkflowConfig{
-							Collection: billing.CollectionConfig{
-								Alignment: "",
-								Interval: isodate.Period{
-									Period: period.Period{},
-								},
-							},
-							Invoicing: billing.InvoicingConfig{
-								AutoAdvance: false,
-								DraftPeriod: isodate.Period{
-									Period: period.Period{},
-								},
-								DueAfter: isodate.Period{
-									Period: period.Period{},
-								},
-								ProgressiveBilling: false,
-								DefaultTaxConfig: &productcatalog.TaxConfig{
-									Behavior: nil,
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "",
-									},
-								},
-							},
-							Payment: billing.PaymentConfig{
-								CollectionMethod: "",
-							},
-						},
-					},
-					ExternalIDs: billing.InvoiceExternalIDs{
-						Invoicing: "",
-						Payment:   "",
-					},
-				},
-				Lines: billing.LineChildren{
-					Option: mo.Option[[]*billing.Line]{},
-				},
-				ValidationIssues: nil,
-				Totals: billing.Totals{
-					Amount:              alpacadecimal.NewFromInt(1000),
-					ChargesTotal:        alpacadecimal.NewFromInt(900),
-					DiscountsTotal:      alpacadecimal.NewFromInt(100),
-					TaxesInclusiveTotal: alpacadecimal.NewFromInt(50),
-					TaxesExclusiveTotal: alpacadecimal.NewFromInt(50),
-					TaxesTotal:          alpacadecimal.NewFromInt(100),
-					Total:               alpacadecimal.NewFromInt(1050),
-				},
-				ExpandedFields: billing.InvoiceExpand{
-					Preceding:                   true,
-					Lines:                       true,
-					DeletedLines:                true,
-					SplitLines:                  true,
-					RecalculateGatheringInvoice: true,
-				},
-			},
-			Apps: billing.InvoiceApps{
-				Tax: app.EventApp{
-					AppBase: app.AppBase{
-						ManagedResource: models.ManagedResource{
-							NamespacedModel: models.NamespacedModel{
-								Namespace: "",
-							},
-							ManagedModel: models.ManagedModel{
-								CreatedAt: time.Time{},
-								UpdatedAt: time.Time{},
-								DeletedAt: &time.Time{},
-							},
-							ID:          "",
-							Description: nil,
-							Name:        "",
-						},
-						Type:    "",
-						Status:  "",
-						Default: false,
-						Listing: app.MarketplaceListing{
-							Type:           "",
-							Name:           "",
-							Description:    "",
-							Capabilities:   nil,
-							InstallMethods: nil,
-						},
-						Metadata: nil,
-					},
-					AppData: nil,
-				},
-				Payment: app.EventApp{
-					AppBase: app.AppBase{
-						ManagedResource: models.ManagedResource{
-							NamespacedModel: models.NamespacedModel{
-								Namespace: "",
-							},
-							ManagedModel: models.ManagedModel{
-								CreatedAt: time.Time{},
-								UpdatedAt: time.Time{},
-								DeletedAt: &time.Time{},
-							},
-							ID:          "",
-							Description: nil,
-							Name:        "",
-						},
-						Type:    "",
-						Status:  "",
-						Default: false,
-						Listing: app.MarketplaceListing{
-							Type:           "",
-							Name:           "",
-							Description:    "",
-							Capabilities:   nil,
-							InstallMethods: nil,
-						},
-						Metadata: nil,
-					},
-					AppData: nil,
-				},
-				Invoicing: app.EventApp{
-					AppBase: app.AppBase{
-						ManagedResource: models.ManagedResource{
-							NamespacedModel: models.NamespacedModel{
-								Namespace: "",
-							},
-							ManagedModel: models.ManagedModel{
-								CreatedAt: time.Time{},
-								UpdatedAt: time.Time{},
-								DeletedAt: &time.Time{},
-							},
-							ID:          "",
-							Description: nil,
-							Name:        "",
-						},
-						Type:    "",
-						Status:  "",
-						Default: false,
-						Listing: app.MarketplaceListing{
-							Type:           "",
-							Name:           "",
-							Description:    "",
-							Capabilities:   nil,
-							InstallMethods: nil,
-						},
-						Metadata: nil,
-					},
-					AppData: nil,
-				},
-			},
-		},
-	}
+		Invoice: &eventInvoice,
+	}, nil
 }
