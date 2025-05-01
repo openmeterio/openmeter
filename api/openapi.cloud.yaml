@@ -10,6 +10,8 @@ info:
     OpenMeter is a cloud native usage metering service.
     The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
 tags:
+  - name: 'App: Stripe'
+  - name: 'App: Custom Invoicing'
   - name: Subscriptions
     description: (Beta) With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).
   - name: Subjects
@@ -724,7 +726,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - 'App: Custom Invoicing'
       requestBody:
         required: true
         content:
@@ -789,7 +791,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - 'App: Custom Invoicing'
       requestBody:
         required: true
         content:
@@ -854,7 +856,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - 'App: Custom Invoicing'
       requestBody:
         required: true
         content:
@@ -1130,7 +1132,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - 'App: Stripe'
       requestBody:
         required: true
         content:
@@ -1207,7 +1209,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - 'App: Stripe'
       requestBody:
         required: true
         content:
@@ -7999,7 +8001,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - 'App: Stripe'
       requestBody:
         required: true
         content:

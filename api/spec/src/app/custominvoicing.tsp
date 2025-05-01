@@ -44,7 +44,7 @@ model CustomInvoicingApp {
   enableIssuingSyncHook: boolean;
 }
 
-@tag("Apps")
+@tag("App: Custom Invoicing")
 interface AppCustomInvoicing {
   @post
   @route("/api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized")

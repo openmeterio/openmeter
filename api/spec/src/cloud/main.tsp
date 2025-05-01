@@ -135,10 +135,10 @@ namespace OpenMeterCloud.App {
   @tag("Apps")
   interface Apps extends OpenMeter.App.Apps {}
 
-  @tag("Apps")
+  @tag("App: Stripe")
   interface AppStripe extends OpenMeter.App.AppStripe {}
 
-  @tag("Apps")
+  @tag("App: Custom Invoicing")
   interface AppCustomInvoicing extends OpenMeter.App.AppCustomInvoicing {}
 }
 
