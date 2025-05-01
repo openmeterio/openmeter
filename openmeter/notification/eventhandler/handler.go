@@ -147,6 +147,39 @@ func (h *Handler) dispatchWebhook(ctx context.Context, event *notification.Event
 		}
 
 		sendIn.Payload = payloadMap
+	case notification.EventTypeEntitlementReset:
+		payload := httpdriver.FromEventAsEntitlementResetPayload(*event)
+		payloadMap, err := notification.PayloadToMapInterface(payload)
+		if err != nil {
+			return fmt.Errorf("failed to cast event payload: %w", err)
+		}
+
+		sendIn.Payload = payloadMap
+	case notification.EventTypeInvoiceCreated:
+		payload, err := httpdriver.FromEventAsInvoiceCreatedPayload(*event)
+		if err != nil {
+			return fmt.Errorf("failed to cast event payload: %w", err)
+		}
+
+		payloadMap, err := notification.PayloadToMapInterface(payload)
+		if err != nil {
+			return fmt.Errorf("failed to cast event payload: %w", err)
+		}
+
+		sendIn.Payload = payloadMap
+	case notification.EventTypeInvoiceUpdated:
+		payload, err := httpdriver.FromEventAsInvoiceUpdatedPayload(*event)
+		if err != nil {
+			return fmt.Errorf("failed to cast event payload: %w", err)
+		}
+
+		payloadMap, err := notification.PayloadToMapInterface(payload)
+		if err != nil {
+			return fmt.Errorf("failed to cast event payload: %w", err)
+		}
+
+		sendIn.Payload = payloadMap
+
 	default:
 		return fmt.Errorf("unknown event type: %s", event.Type)
 	}
