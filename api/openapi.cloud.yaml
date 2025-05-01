@@ -34,6 +34,10 @@ tags:
     description: '(Beta) Manage customer subscription lifecycles and plan assignments. '
   - name: Billing
     description: '(Beta) Manage your billing profiles and invoices. '
+  - name: 'App: Custom Invoicing'
+    description: (Beta) Interface third party invoicing and payment systems.
+  - name: 'App: Stripe'
+    description: (Beta) Support for Stripe billing.
   - name: Apps
     description: "(Beta) Manage integrations for extending OpenMeter's functionality. "
 paths:
@@ -724,7 +728,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - 'App: Custom Invoicing'
       requestBody:
         required: true
         content:
@@ -789,7 +793,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - 'App: Custom Invoicing'
       requestBody:
         required: true
         content:
@@ -854,7 +858,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - 'App: Custom Invoicing'
       requestBody:
         required: true
         content:
@@ -1130,7 +1134,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - 'App: Stripe'
       requestBody:
         required: true
         content:
@@ -1207,7 +1211,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - 'App: Stripe'
       requestBody:
         required: true
         content:
@@ -7999,7 +8003,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - 'App: Stripe'
       requestBody:
         required: true
         content:

@@ -35,6 +35,16 @@ using TypeSpec.OpenAPI;
   }
 )
 @tagMetadata(
+  "App: Stripe",
+  #{ description: "(Beta) Support for Stripe billing." }
+)
+@tagMetadata(
+  "App: Custom Invoicing",
+  #{
+    description: "(Beta) Interface third party invoicing and payment systems.",
+  }
+)
+@tagMetadata(
   "Billing",
   #{ description: "(Beta) Manage your billing profiles and invoices. " }
 )
@@ -135,10 +145,10 @@ namespace OpenMeterCloud.App {
   @tag("Apps")
   interface Apps extends OpenMeter.App.Apps {}
 
-  @tag("Apps")
+  @tag("App: Stripe")
   interface AppStripe extends OpenMeter.App.AppStripe {}
 
-  @tag("Apps")
+  @tag("App: Custom Invoicing")
   interface AppCustomInvoicing extends OpenMeter.App.AppCustomInvoicing {}
 }
 
