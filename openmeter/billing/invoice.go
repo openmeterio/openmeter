@@ -861,6 +861,10 @@ func (i SimulateInvoiceInput) Validate() error {
 		return errors.New("either customer ID or customer is required")
 	}
 
+	if i.CustomerID != nil && i.Customer != nil {
+		return errors.New("only one of customer ID or customer can be specified")
+	}
+
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
 	}

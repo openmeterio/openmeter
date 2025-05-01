@@ -50,6 +50,7 @@ func (i EventGeneratorInput) Validate() error {
 
 func (t *TestEventGenerator) Generate(ctx context.Context, in EventGeneratorInput) (notification.EventPayload, error) {
 	if err := in.Validate(); err != nil {
+		return notification.EventPayload{}, err
 	}
 
 	switch in.EventType {
