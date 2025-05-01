@@ -835,7 +835,9 @@ func (i UpdateInvoiceInput) Validate() error {
 }
 
 type SimulateInvoiceInput struct {
-	CustomerID customer.CustomerID
+	Namespace  string
+	CustomerID *string
+	Customer   *customer.Customer
 
 	Number   *string
 	Currency currencyx.Code
@@ -843,8 +845,24 @@ type SimulateInvoiceInput struct {
 }
 
 func (i SimulateInvoiceInput) Validate() error {
-	if err := i.CustomerID.Validate(); err != nil {
-		return fmt.Errorf("customer ID: %w", err)
+	if i.CustomerID != nil {
+		if *i.CustomerID == "" {
+			return errors.New("customer ID is required")
+		}
+	}
+
+	if i.Customer != nil {
+		if err := i.Customer.Validate(); err != nil {
+			return fmt.Errorf("customer: %w", err)
+		}
+	}
+
+	if i.CustomerID == nil && i.Customer == nil {
+		return errors.New("either customer ID or customer is required")
+	}
+
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
 	}
 
 	if i.Currency == "" {

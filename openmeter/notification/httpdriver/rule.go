@@ -315,10 +315,18 @@ func (h *handler) TestRule() TestRuleHandler {
 				return TestRuleResponse{}, fmt.Errorf("failed to get rule: %w", err)
 			}
 
+			testEvent, err := h.testEventGenerator.Generate(ctx, internal.EventGeneratorInput{
+				Namespace: request.Namespace,
+				EventType: rule.Type,
+			})
+			if err != nil {
+				return TestRuleResponse{}, fmt.Errorf("failed to generate test event: %w", err)
+			}
+
 			event, err := h.service.CreateEvent(ctx, notification.CreateEventInput{
 				NamespacedModel: request.NamespacedModel,
 				Type:            rule.Type,
-				Payload:         internal.NewTestEventPayload(rule.Type),
+				Payload:         testEvent,
 				RuleID:          rule.ID,
 				Annotations: models.Annotations{
 					notification.AnnotationRuleTestEvent: true,

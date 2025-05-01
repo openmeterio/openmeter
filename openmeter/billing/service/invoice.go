@@ -1028,19 +1028,36 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		return billing.Invoice{}, fmt.Errorf("validating input: %w", err)
 	}
 
-	customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-		Customer: input.CustomerID,
-		Expand:   billing.CustomerOverrideExpand{Customer: true},
-	})
-	if err != nil {
-		return billing.Invoice{}, fmt.Errorf("getting profile with customer override: %w", err)
+	var customerProfile billing.CustomerOverrideWithDetails
+
+	if input.CustomerID != nil {
+		var err error
+		customerProfile, err = s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: customer.CustomerID{
+				Namespace: input.Namespace,
+				ID:        *input.CustomerID,
+			},
+			Expand: billing.CustomerOverrideExpand{Customer: true},
+		})
+		if err != nil {
+			return billing.Invoice{}, fmt.Errorf("getting profile with customer override: %w", err)
+		}
+	}
+
+	if input.Customer != nil {
+		var err error
+
+		customerProfile, err = s.buildSimulatedCustomerProfile(ctx, input.Namespace, *input.Customer)
+		if err != nil {
+			return billing.Invoice{}, fmt.Errorf("building simulated customer profile: %w", err)
+		}
 	}
 
 	now := time.Now()
 
 	invoice := billing.Invoice{
 		InvoiceBase: billing.InvoiceBase{
-			Namespace: input.CustomerID.Namespace,
+			Namespace: input.Namespace,
 			ID:        ulid.Make().String(),
 
 			Number: lo.FromPtrOr(input.Number, "INV-SIMULATED"),
@@ -1054,7 +1071,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 			UpdatedAt:     now,
 
 			Customer: billing.InvoiceCustomer{
-				CustomerID: input.CustomerID.ID,
+				CustomerID: customerProfile.Customer.ID,
 
 				Name:             customerProfile.Customer.Name,
 				BillingAddress:   customerProfile.Customer.BillingAddress,
@@ -1081,7 +1098,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 
 	invoice.Lines = billing.NewLineChildren(
 		lo.Map(inputLines, func(line *billing.Line, _ int) *billing.Line {
-			line.Namespace = input.CustomerID.Namespace
+			line.Namespace = input.Namespace
 			if line.ID == "" {
 				line.ID = ulid.Make().String()
 			}
@@ -1100,7 +1117,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		}
 	}
 
-	err = errors.Join(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) error {
+	err := errors.Join(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) error {
 		return line.Validate()
 	})...)
 	if err != nil {
@@ -1145,6 +1162,20 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 	}
 
 	return invoice, nil
+}
+
+func (s *Service) buildSimulatedCustomerProfile(ctx context.Context, namespace string, simulatedCustomer customer.Customer) (billing.CustomerOverrideWithDetails, error) {
+	profile, err := s.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+		Namespace: namespace,
+	})
+	if err != nil {
+		return billing.CustomerOverrideWithDetails{}, fmt.Errorf("getting default profile: %w", err)
+	}
+
+	return billing.CustomerOverrideWithDetails{
+		MergedProfile: *profile,
+		Customer:      &simulatedCustomer,
+	}, nil
 }
 
 func (s *Service) UpsertValidationIssues(ctx context.Context, input billing.UpsertValidationIssuesInput) error {

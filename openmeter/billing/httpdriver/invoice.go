@@ -367,10 +367,9 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 			}
 
 			return SimulateInvoiceRequest{
-				CustomerID: customer.CustomerID{
-					Namespace: ns,
-					ID:        params.CustomerID,
-				},
+				Namespace:  ns,
+				CustomerID: &params.CustomerID,
+
 				Number:   body.Number,
 				Currency: currencyx.Code(body.Currency),
 				Lines:    billing.NewLineChildren(lines),
@@ -564,28 +563,37 @@ func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 }
 
 func MapEventInvoiceToAPI(event billing.EventInvoice) (api.Invoice, error) {
+	// Prefer the apps from the event
+	event.Invoice.Workflow.Apps = nil
+
 	invoice, err := MapInvoiceToAPI(event.Invoice)
 	if err != nil {
 		return api.Invoice{}, err
 	}
 
-	// Let's map the apps
+	// Let's map the apps, if there are no apps in the event, we will skip generating the profile apps
 
 	apps := api.BillingProfileApps{}
 
-	apps.Invoicing, err = apphttpdriver.MapEventAppToAPI(event.Apps.Invoicing)
-	if err != nil {
-		return api.Invoice{}, err
+	if event.Apps.Invoicing.Type != "" {
+		apps.Invoicing, err = apphttpdriver.MapEventAppToAPI(event.Apps.Invoicing)
+		if err != nil {
+			return api.Invoice{}, err
+		}
 	}
 
-	apps.Payment, err = apphttpdriver.MapEventAppToAPI(event.Apps.Payment)
-	if err != nil {
-		return api.Invoice{}, err
+	if event.Apps.Payment.Type != "" {
+		apps.Payment, err = apphttpdriver.MapEventAppToAPI(event.Apps.Payment)
+		if err != nil {
+			return api.Invoice{}, err
+		}
 	}
 
-	apps.Tax, err = apphttpdriver.MapEventAppToAPI(event.Apps.Tax)
-	if err != nil {
-		return api.Invoice{}, err
+	if event.Apps.Tax.Type != "" {
+		apps.Tax, err = apphttpdriver.MapEventAppToAPI(event.Apps.Tax)
+		if err != nil {
+			return api.Invoice{}, err
+		}
 	}
 
 	invoice.Workflow.Apps = &api.BillingProfileAppsOrReference{}
@@ -611,10 +619,13 @@ func mapPeriodToAPI(p *billing.Period) *api.Period {
 func mapInvoiceCustomerToAPI(c billing.InvoiceCustomer) api.BillingParty {
 	a := c.BillingAddress
 
-	return api.BillingParty{
+	out := api.BillingParty{
 		Id:   lo.ToPtr(c.CustomerID),
 		Name: lo.EmptyableToPtr(c.Name),
-		Addresses: lo.ToPtr([]api.Address{
+	}
+
+	if a != nil {
+		out.Addresses = lo.ToPtr([]api.Address{
 			{
 				Country:     (*string)(a.Country),
 				PostalCode:  a.PostalCode,
@@ -624,8 +635,10 @@ func mapInvoiceCustomerToAPI(c billing.InvoiceCustomer) api.BillingParty {
 				Line2:       a.Line2,
 				PhoneNumber: a.PhoneNumber,
 			},
-		}),
+		})
 	}
+
+	return out
 }
 
 func mapInvoiceExpandToEntity(expand []api.InvoiceExpand) billing.InvoiceExpand {

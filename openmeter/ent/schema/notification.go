@@ -302,6 +302,15 @@ var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sq
 			}
 
 			return json.Marshal(serde)
+		case notification.EventTypeEntitlementReset:
+			serde := ruleConfigSerde[notification.EntitlementResetRuleConfig]{
+				RuleConfigMeta: notification.RuleConfigMeta{
+					Type: config.Type,
+				},
+				Data: config.EntitlementReset,
+			}
+
+			return json.Marshal(serde)
 		case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 			serde := ruleConfigSerde[notification.InvoiceRuleConfig]{
 				RuleConfigMeta: notification.RuleConfigMeta{
@@ -346,6 +355,22 @@ var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sq
 				BalanceThreshold: serde.Data,
 			}
 
+		case notification.EventTypeEntitlementReset:
+			serde := ruleConfigSerde[notification.EntitlementResetRuleConfig]{
+				RuleConfigMeta: notification.RuleConfigMeta{
+					Type: meta.Type,
+				},
+				Data: &notification.EntitlementResetRuleConfig{},
+			}
+
+			if err := json.Unmarshal(data, &serde); err != nil {
+				return ruleConfig, err
+			}
+
+			ruleConfig = notification.RuleConfig{
+				RuleConfigMeta:   serde.RuleConfigMeta,
+				EntitlementReset: serde.Data,
+			}
 		case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 			serde := ruleConfigSerde[notification.InvoiceRuleConfig]{
 				RuleConfigMeta: notification.RuleConfigMeta{

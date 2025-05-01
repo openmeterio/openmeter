@@ -5,8 +5,10 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/internal"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -42,9 +44,10 @@ type EventHandler interface {
 var _ Handler = (*handler)(nil)
 
 type handler struct {
-	service          notification.Service
-	namespaceDecoder namespacedriver.NamespaceDecoder
-	options          []httptransport.HandlerOption
+	service            notification.Service
+	testEventGenerator *internal.TestEventGenerator
+	namespaceDecoder   namespacedriver.NamespaceDecoder
+	options            []httptransport.HandlerOption
 }
 
 func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
@@ -59,11 +62,13 @@ func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
 func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	service notification.Service,
+	billingService billing.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
-		service:          service,
-		namespaceDecoder: namespaceDecoder,
-		options:          options,
+		service:            service,
+		testEventGenerator: internal.NewTestEventGenerator(billingService),
+		namespaceDecoder:   namespaceDecoder,
+		options:            options,
 	}
 }
