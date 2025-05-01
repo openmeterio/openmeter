@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -42,27 +44,36 @@ type Handler struct {
 
 	reconcileInterval time.Duration
 
-	stopCh chan struct{}
+	stopCh      chan struct{}
+	stopChClose func()
 }
 
 func (h *Handler) Start() error {
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				h.logger.Error("notification event handler panicked",
+					"error", err,
+					"code.stacktrace", string(debug.Stack()))
+
+				h.stopChClose()
+			}
+		}()
+
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
 		ticker := time.NewTicker(h.reconcileInterval)
 		defer ticker.Stop()
 
-		logger := h.logger.WithGroup("reconciler")
-
 		for {
 			select {
 			case <-h.stopCh:
-				logger.Debug("close event received: stopping reconciler")
+				h.logger.Debug("close event received: stopping reconciler")
 				return
 			case <-ticker.C:
 				if err := h.Reconcile(ctx); err != nil {
-					logger.ErrorContext(ctx, "failed to reconcile event(s)", "error", err)
+					h.logger.ErrorContext(ctx, "failed to reconcile event(s)", "error", err)
 				}
 			}
 		}
@@ -72,7 +83,7 @@ func (h *Handler) Start() error {
 }
 
 func (h *Handler) Close() error {
-	close(h.stopCh)
+	h.stopChClose()
 
 	return nil
 }
@@ -236,6 +247,14 @@ func (h *Handler) dispatch(ctx context.Context, event *notification.Event) error
 
 func (h *Handler) Dispatch(event *notification.Event) error {
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				h.logger.Error("notification event handler panicked",
+					"error", err,
+					"code.stacktrace", string(debug.Stack()))
+			}
+		}()
+
 		ctx, cancel := context.WithTimeout(context.Background(), notification.DefaultDispatchTimeout)
 		defer cancel()
 
@@ -260,11 +279,17 @@ func New(config Config) (*Handler, error) {
 		config.Logger = slog.Default()
 	}
 
+	stopCh := make(chan struct{})
+	stopChClose := sync.OnceFunc(func() {
+		close(stopCh)
+	})
+
 	return &Handler{
 		repo:              config.Repository,
 		webhook:           config.Webhook,
 		reconcileInterval: config.ReconcileInterval,
 		logger:            config.Logger,
-		stopCh:            make(chan struct{}),
+		stopCh:            stopCh,
+		stopChClose:       stopChClose,
 	}, nil
 }

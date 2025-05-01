@@ -58,7 +58,6 @@ func New(config Config) (*Service, error) {
 	if config.Logger == nil {
 		return nil, errors.New("missing logger")
 	}
-	config.Logger = config.Logger.WithGroup("notification")
 
 	eventHandler, err := eventhandler.New(eventhandler.Config{
 		Repository: config.Repository,
