@@ -10,8 +10,6 @@ info:
     OpenMeter is a cloud native usage metering service.
     The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
 tags:
-  - name: 'App: Stripe'
-  - name: 'App: Custom Invoicing'
   - name: Subscriptions
     description: (Beta) With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).
   - name: Subjects
@@ -36,6 +34,10 @@ tags:
     description: '(Beta) Manage customer subscription lifecycles and plan assignments. '
   - name: Billing
     description: '(Beta) Manage your billing profiles and invoices. '
+  - name: 'App: Custom Invoicing'
+    description: (Beta) Interface third party invoicing and payment systems.
+  - name: 'App: Stripe'
+    description: (Beta) Support for Stripe billing.
   - name: Apps
     description: "(Beta) Manage integrations for extending OpenMeter's functionality. "
 paths:

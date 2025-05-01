@@ -35,6 +35,16 @@ using TypeSpec.OpenAPI;
   }
 )
 @tagMetadata(
+  "App: Stripe",
+  #{ description: "(Beta) Support for Stripe billing." }
+)
+@tagMetadata(
+  "App: Custom Invoicing",
+  #{
+    description: "(Beta) Interface third party invoicing and payment systems.",
+  }
+)
+@tagMetadata(
   "Billing",
   #{ description: "(Beta) Manage your billing profiles and invoices. " }
 )
