@@ -1,6 +1,7 @@
 package httpdriver
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -14,6 +15,10 @@ import (
 
 // MapAppToAPI maps an app to an API app
 func MapAppToAPI(item app.App) (api.App, error) {
+	if item == nil {
+		return api.App{}, errors.New("invalid app: nil")
+	}
+
 	switch item.GetType() {
 	case app.AppTypeStripe:
 		stripeApp := item.(appstripeentityapp.App)
