@@ -1053,7 +1053,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		}
 	}
 
-	now := time.Now()
+	now := clock.Now()
 
 	invoice := billing.Invoice{
 		InvoiceBase: billing.InvoiceBase{
