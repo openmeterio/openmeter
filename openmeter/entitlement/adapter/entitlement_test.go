@@ -301,6 +301,10 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 		repo, cleanup := setup(t)
 		defer cleanup()
 
+		now := time.Date(2025, 4, 1, 0, 0, 0, 0, time.UTC)
+		clock.SetTime(now)
+		defer clock.ResetTime()
+
 		// Let's create an example feature
 		feature, err := repo.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: ns,
