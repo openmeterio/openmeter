@@ -175,7 +175,11 @@ func TestRoutes(t *testing.T) {
 			res: testResponse{
 				status: http.StatusOK,
 				body: []api.IngestedEvent{
-					{Event: mockEvent},
+					{
+						Event: mockEvent,
+						// empty string event type in error message because it's not set on the mock event
+						ValidationError: lo.ToPtr("no meter found for event type: "),
+					},
 				},
 			},
 		},
