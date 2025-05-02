@@ -289,6 +289,23 @@ func TestInvalidIngest(t *testing.T) {
 		require.Equal(t, http.StatusNoContent, resp.StatusCode())
 	}
 
+	// Send an event with a NaN value
+	{
+		ev := cloudevents.New()
+		ev.SetID(ulid.Make().String())
+		ev.SetSource("my-app")
+		ev.SetType(eventType)
+		ev.SetSubject(subject)
+		ev.SetTime(getTime())
+		_ = ev.SetData(cloudevents.ApplicationJSON, map[string]string{
+			"duration_ms": "NaN",
+		})
+
+		resp, err := client.IngestEventWithResponse(context.Background(), ev)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+	}
+
 	// Send a valid event, this is what we should get back
 	{
 		ev := cloudevents.New()
@@ -325,7 +342,7 @@ func TestInvalidIngest(t *testing.T) {
 	require.NotNil(t, resp.JSON200)
 
 	events := *resp.JSON200
-	require.Len(t, events, 4)
+	require.Len(t, events, 5)
 
 	// unsupported data content gets rejected with a bad request so it should not be in the list
 
@@ -343,6 +360,10 @@ func TestInvalidIngest(t *testing.T) {
 	// empty data should have processing error as it does not have the required value property
 	require.NotNil(t, events[2].ValidationError)
 	require.Equal(t, `invalid event: missing value property: "$.duration_ms"`, *events[2].ValidationError)
+
+	// nan data should have processing error as it does not have the required value property
+	require.NotNil(t, events[3].ValidationError)
+	require.Equal(t, `invalid event: value cannot be NaN`, *events[3].ValidationError)
 }
 
 func TestDedupe(t *testing.T) {

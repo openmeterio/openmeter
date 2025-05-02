@@ -3,12 +3,12 @@ package clickhouse
 import (
 	_ "embed"
 	"fmt"
-	"math"
 	"sort"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/huandu/go-sqlbuilder"
+	"github.com/shopspring/decimal"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -178,12 +178,12 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 	switch d.Meter.Aggregation {
 	case meterpkg.MeterAggregationCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(*)) AS value", sqlAggregation))
+		selectColumns = append(selectColumns, fmt.Sprintf("toDecimal64(%s(*), 0) AS value", sqlAggregation))
 	case meterpkg.MeterAggregationUniqueCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
+		selectColumns = append(selectColumns, fmt.Sprintf("toDecimal64(%s(JSON_VALUE(%s, '%s')), 0) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
 	default:
 		// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(toFloat64OrNull(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal64OrNull(JSON_VALUE(%s, '%s'), 8)) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
 	}
 
 	for _, groupByKey := range d.GroupBy {
@@ -285,7 +285,7 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 			GroupBy: map[string]*string{},
 		}
 
-		var value *float64
+		var value *decimal.Decimal
 		args := []interface{}{&row.WindowStart, &row.WindowEnd, &value}
 		argCount := len(args)
 
@@ -305,15 +305,12 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 		}
 
 		// TODO: should we use decima all the way?
-		row.Value = *value
-
-		if math.IsNaN(row.Value) {
-			return values, fmt.Errorf("value is NaN")
+		fvalue, ok := value.Float64()
+		if !ok {
+			return values, fmt.Errorf("value is not a float64: %s", value.String())
 		}
 
-		if math.IsInf(row.Value, 0) {
-			return values, fmt.Errorf("value is infinite")
-		}
+		row.Value = fvalue
 
 		for i, key := range queryMeter.GroupBy {
 			if s, ok := args[i+argCount].(*string); ok {
