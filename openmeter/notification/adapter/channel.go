@@ -7,6 +7,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	channeldb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -16,7 +17,10 @@ import (
 func (a *adapter) ListChannels(ctx context.Context, params notification.ListChannelsInput) (pagination.PagedResponse[notification.Channel], error) {
 	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[notification.Channel], error) {
 		query := a.db.NotificationChannel.Query().
-			Where(channeldb.DeletedAtIsNil()) // Do not return deleted channels
+			Where(channeldb.Or(
+				channeldb.DeletedAtIsNil(),
+				channeldb.DeletedAtLTE(clock.Now()),
+			)) // Do not return deleted channels
 
 		if len(params.Namespaces) > 0 {
 			query = query.Where(channeldb.NamespaceIn(params.Namespaces...))
@@ -104,7 +108,8 @@ func (a *adapter) DeleteChannel(ctx context.Context, params notification.DeleteC
 	fn := func(ctx context.Context, a *adapter) error {
 		query := a.db.NotificationChannel.UpdateOneID(params.ID).
 			Where(channeldb.Namespace(params.Namespace)).
-			SetDisabled(true)
+			SetDisabled(true).
+			SetDeletedAt(clock.Now())
 
 		_, err := query.Save(ctx)
 		if err != nil {
