@@ -177,6 +177,50 @@ func TestParseEvent(t *testing.T) {
 			},
 		},
 		{
+			description: "should return error when value property is NaN",
+			meter:       meterSum,
+			data:        []byte(`{"duration_ms": "NaN", "method": "GET", "path": "/api/v1"}`),
+			err:         meter.ErrInvalidEvent{},
+			errString:   "invalid event: value cannot be NaN",
+			groupBy: map[string]string{
+				"method": "GET",
+				"path":   "/api/v1",
+			},
+		},
+		{
+			description: "should return error when value property is infinity",
+			meter:       meterSum,
+			data:        []byte(`{"duration_ms": "Inf", "method": "GET", "path": "/api/v1"}`),
+			err:         meter.ErrInvalidEvent{},
+			errString:   "invalid event: value cannot be infinity",
+			groupBy: map[string]string{
+				"method": "GET",
+				"path":   "/api/v1",
+			},
+		},
+		{
+			description: "should return error when value property is postiive infinity",
+			meter:       meterSum,
+			data:        []byte(`{"duration_ms": "+Inf", "method": "GET", "path": "/api/v1"}`),
+			err:         meter.ErrInvalidEvent{},
+			errString:   "invalid event: value cannot be infinity",
+			groupBy: map[string]string{
+				"method": "GET",
+				"path":   "/api/v1",
+			},
+		},
+		{
+			description: "should return error when value property is negative infinity",
+			meter:       meterSum,
+			data:        []byte(`{"duration_ms": "-Inf", "method": "GET", "path": "/api/v1"}`),
+			err:         meter.ErrInvalidEvent{},
+			errString:   "invalid event: value cannot be infinity",
+			groupBy: map[string]string{
+				"method": "GET",
+				"path":   "/api/v1",
+			},
+		},
+		{
 			description: "should return error when value property cannot be parsed as number",
 			meter:       meterSum,
 			data:        []byte(`{"duration_ms": "not a number", "method": "GET", "path": "/api/v1"}`),

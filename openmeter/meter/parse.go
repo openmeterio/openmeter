@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/oliveagle/jsonpath"
@@ -137,10 +138,18 @@ func ParseEvent(meter Meter, data []byte) (*ParsedEvent, error) {
 				return parsedEvent, NewErrInvalidEvent(fmt.Errorf("value cannot be parsed as float64: %s", v))
 			}
 
+			if err := validateFloat64(parsedValue); err != nil {
+				return parsedEvent, NewErrInvalidEvent(err)
+			}
+
 			parsedEvent.Value = lo.ToPtr(parsedValue)
 
 			return parsedEvent, nil
 		case float64:
+			if err := validateFloat64(v); err != nil {
+				return parsedEvent, NewErrInvalidEvent(err)
+			}
+
 			parsedEvent.Value = lo.ToPtr(v)
 
 			return parsedEvent, nil
@@ -150,6 +159,19 @@ func ParseEvent(meter Meter, data []byte) (*ParsedEvent, error) {
 	}
 
 	return parsedEvent, NewErrInvalidMeter(fmt.Errorf("unknown meter aggregation: %s", meter.Aggregation))
+}
+
+// valiodateFloat64 validates a float64 value
+func validateFloat64(v float64) error {
+	if math.IsNaN(v) {
+		return errors.New("value cannot be NaN")
+	}
+
+	if math.IsInf(v, 0) {
+		return errors.New("value cannot be infinity")
+	}
+
+	return nil
 }
 
 // parseGroupBy parses the group by fields from the event data
