@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -121,7 +122,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 		// Different scanRows implementations might use different indices, adjust accordingly
 		*(dest[0].(*time.Time)) = windowStart
 		*(dest[1].(*time.Time)) = windowEnd
-		*(dest[2].(**float64)) = &value
+		*(dest[2].(**decimal.Decimal)) = lo.ToPtr(decimal.NewFromFloat(value))
 		// If there are more fields used in scanRows, set them appropriately
 		if len(dest) > 3 {
 			*(dest[3].(*string)) = subject

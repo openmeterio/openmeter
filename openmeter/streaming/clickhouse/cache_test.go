@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -257,7 +258,7 @@ func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
 
 		*(dest[0].(*time.Time)) = currentCacheEnd
 		*(dest[1].(*time.Time)) = cachedEnd
-		*(dest[2].(**float64)) = lo.ToPtr(50.0)
+		*(dest[2].(**decimal.Decimal)) = lo.ToPtr(decimal.NewFromFloat(50.0))
 	}).Return(nil)
 	mockRows2.On("Next").Return(false)
 	mockRows2.On("Err").Return(nil)
