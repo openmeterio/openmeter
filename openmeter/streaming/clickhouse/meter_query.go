@@ -3,6 +3,7 @@ package clickhouse
 import (
 	_ "embed"
 	"fmt"
+	"math"
 	"sort"
 	"time"
 
@@ -305,6 +306,14 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 
 		// TODO: should we use decima all the way?
 		row.Value = *value
+
+		if math.IsNaN(row.Value) {
+			return values, fmt.Errorf("value is NaN")
+		}
+
+		if math.IsInf(row.Value, 0) {
+			return values, fmt.Errorf("value is infinite")
+		}
 
 		for i, key := range queryMeter.GroupBy {
 			if s, ok := args[i+argCount].(*string); ok {
