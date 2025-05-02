@@ -90,15 +90,16 @@ func (s Service) CreateChannel(ctx context.Context, params notification.CreateCh
 
 func (s Service) DeleteChannel(ctx context.Context, params notification.DeleteChannelInput) error {
 	if err := params.Validate(ctx, s); err != nil {
-		return fmt.Errorf("invalid params: %w", err)
+		return fmt.Errorf("invalid delete channel params: %w", err)
 	}
 
 	fn := func(ctx context.Context) error {
-		logger := s.logger.WithGroup("channel").With(
-			"operation", "delete",
-			"id", params.ID,
-			"namespace", params.Namespace,
-		)
+		logger := s.logger.WithGroup("channel").
+			With(
+				"operation", "delete",
+				"id", params.ID,
+				"namespace", params.Namespace,
+			)
 
 		logger.Debug("deleting channel")
 
@@ -108,7 +109,8 @@ func (s Service) DeleteChannel(ctx context.Context, params notification.DeleteCh
 			Channels:        []string{params.ID},
 		})
 		if err != nil {
-			return fmt.Errorf("failed to list rules for channel: %w", err)
+			return fmt.Errorf("failed to list rules for channel [namespace=%s channel.id=%s]: %w",
+				params.Namespace, params.ID, err)
 		}
 
 		if rules.TotalCount > 0 {
@@ -119,14 +121,16 @@ func (s Service) DeleteChannel(ctx context.Context, params notification.DeleteCh
 			}
 
 			return notification.ValidationError{
-				Err: fmt.Errorf("cannot delete channel as it is assigned to one or more rules: %v", ruleIDs),
+				Err: fmt.Errorf("failed to delete channel as it is assigned to one or more rules [namespace=%s channel.id=%s]: %v",
+					params.Namespace, params.ID, ruleIDs),
 			}
 		}
-		if err := s.webhook.DeleteWebhook(ctx, webhook.DeleteWebhookInput{
+
+		if err = s.webhook.DeleteWebhook(ctx, webhook.DeleteWebhookInput{
 			Namespace: params.Namespace,
 			ID:        params.ID,
 		}); err != nil {
-			return fmt.Errorf("failed to delete webhook: %w", err)
+			return fmt.Errorf("failed to delete webhook [namespace=%s channel.id=%s]: %w", params.Namespace, params.ID, err)
 		}
 
 		logger.Debug("webhook associated with channel deleted")
