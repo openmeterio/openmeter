@@ -183,7 +183,8 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		selectColumns = append(selectColumns, fmt.Sprintf("toDecimal64(%s(JSON_VALUE(%s, '%s')), 0) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
 	default:
 		// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal64OrNull(JSON_VALUE(%s, '%s'), 8)) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
+		// Decimal range: -1 * 10^(18 - S), 1 * 10^(18 - S) where S=4: -1 * 10^(14), 1 * 10^(14)
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal64OrNull(JSON_VALUE(%s, '%s'), 4)) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
 	}
 
 	for _, groupByKey := range d.GroupBy {
