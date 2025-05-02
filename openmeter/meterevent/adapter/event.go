@@ -47,13 +47,21 @@ func (a *adapter) ListEvents(ctx context.Context, params meterevent.ListEventsPa
 			ValidationErrors: make([]error, 0),
 		}
 
+		meterMatch := false
+
 		for _, m := range meters {
 			if event.Type == m.EventType {
+				meterMatch = true
+
 				_, err = meter.ParseEventString(m, event.Data)
 				if err != nil {
 					validatedEvent.ValidationErrors = append(validatedEvent.ValidationErrors, err)
 				}
 			}
+		}
+
+		if !meterMatch {
+			validatedEvent.ValidationErrors = append(validatedEvent.ValidationErrors, fmt.Errorf("no meter found for event type: %s", event.Type))
 		}
 
 		validatedEvents[idx] = validatedEvent
