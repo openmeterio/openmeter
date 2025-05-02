@@ -384,7 +384,7 @@ func TestInvalidIngest(t *testing.T) {
 
 	// inf data should have processing error as it does not have the required value property
 	require.NotNil(t, events[4].ValidationError)
-	require.Equal(t, `invalid event: value cannot be infinite`, *events[4].ValidationError)
+	require.Equal(t, `invalid event: value cannot be infinity`, *events[4].ValidationError)
 }
 
 func TestDedupe(t *testing.T) {
