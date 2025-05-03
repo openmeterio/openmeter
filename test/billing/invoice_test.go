@@ -3657,3 +3657,81 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 
 	s.Len(invoice.ValidationIssues, 0)
 }
+
+func (s *InvoicingTestSuite) TestNamespaceLockedGatheringInvoiceCreation() {
+	namespace := "ns-namespace-locked"
+	ctx := context.Background()
+
+	billingSvcSaved := s.BillingService
+	s.BillingService = s.BillingService.WithLockedNamespaces([]string{namespace})
+	defer func() {
+		s.BillingService = billingSvcSaved
+	}()
+
+	s.InstallSandboxApp(s.T(), namespace)
+
+	createProfileInput := MinimalCreateProfileInputTemplate
+	createProfileInput.Namespace = namespace
+
+	_, err := s.BillingService.CreateProfile(ctx, createProfileInput)
+	s.NoError(err)
+
+	customer := s.CreateTestCustomer(namespace, "test-customer")
+
+	s.CreateGatheringInvoice(s.T(), ctx, DraftInvoiceInput{
+		Namespace: namespace,
+		Customer:  customer,
+	})
+
+	invoice, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customer.GetID(),
+	})
+	s.ErrorIs(err, billing.ErrNamespaceLocked)
+	s.Nil(invoice)
+}
+
+func (s *InvoicingTestSuite) TestNamespaceLockedInvoiceProgression() {
+	namespace := "ns-namespace-locked-progress"
+	ctx := context.Background()
+
+	s.InstallSandboxApp(s.T(), namespace)
+
+	createProfileInput := MinimalCreateProfileInputTemplate
+	createProfileInput.Namespace = namespace
+
+	_, err := s.BillingService.CreateProfile(ctx, createProfileInput)
+	s.NoError(err)
+
+	customer := s.CreateTestCustomer(namespace, "test-customer")
+
+	s.CreateGatheringInvoice(s.T(), ctx, DraftInvoiceInput{
+		Namespace: namespace,
+		Customer:  customer,
+	})
+
+	// Let's disable foreground advancement for this test (as we are simulating a prod deployment)
+	billingSvc := s.BillingService.WithAdvancementStrategy(billing.QueuedAdvancementStrategy)
+
+	invoices, err := billingSvc.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customer.GetID(),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+	s.Equal(billing.InvoiceStatusDraftCreated, invoices[0].Status)
+
+	// Let's lockdown the namespace
+	billingSvc = billingSvc.
+		WithLockedNamespaces([]string{namespace}).
+		WithAdvancementStrategy(billing.ForegroundAdvancementStrategy)
+
+	// When we try to advance the invoice
+	invoice, err := billingSvc.AdvanceInvoice(ctx, invoices[0].InvoiceID())
+	s.NoError(err)
+	s.NotNil(invoice)
+	s.Equal(billing.InvoiceStatusDraftInvalid, invoice.Status)
+
+	s.Len(invoice.ValidationIssues, 1)
+	validationError := invoice.ValidationIssues[0]
+	s.Equal("namespace_locked", validationError.Code)
+	s.Equal(billing.ValidationIssueSeverityCritical, validationError.Severity)
+}

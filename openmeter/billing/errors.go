@@ -55,6 +55,8 @@ var (
 
 	ErrInvoiceDiscountInvalidLineReference                  = NewValidationError("invoice_discount_invalid_line_reference", "invoice discount references non-existing line")
 	ErrInvoiceDiscountNoWildcardDiscountOnGatheringInvoices = NewValidationError("invoice_discount_no_wildcard_discount_on_gathering_invoices", "wildcard discount on gathering invoices is not allowed")
+
+	ErrNamespaceLocked = NewValidationError("namespace_locked", "namespace is locked")
 )
 
 const (

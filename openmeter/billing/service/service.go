@@ -34,6 +34,7 @@ type Service struct {
 	publisher   eventbus.Publisher
 
 	advancementStrategy billing.AdvancementStrategy
+	fsNamespaceLockdown []string
 }
 
 type Config struct {
@@ -46,6 +47,7 @@ type Config struct {
 	StreamingConnector  streaming.Connector
 	Publisher           eventbus.Publisher
 	AdvancementStrategy billing.AdvancementStrategy
+	FSNamespaceLockdown []string
 }
 
 func (c Config) Validate() error {
@@ -103,6 +105,7 @@ func New(config Config) (*Service, error) {
 		streamingConnector:  config.StreamingConnector,
 		publisher:           config.Publisher,
 		advancementStrategy: config.AdvancementStrategy,
+		fsNamespaceLockdown: config.FSNamespaceLockdown,
 	}
 
 	lineSvc, err := lineservice.New(lineservice.Config{
@@ -182,4 +185,16 @@ func TranscationForGatheringInvoiceManipulation[T any](ctx context.Context, svc 
 
 func (s Service) GetAdvancementStrategy() billing.AdvancementStrategy {
 	return s.advancementStrategy
+}
+
+func (s Service) WithAdvancementStrategy(strategy billing.AdvancementStrategy) billing.Service {
+	s.advancementStrategy = strategy
+
+	return &s
+}
+
+func (s *Service) WithLockedNamespaces(namespaces []string) billing.Service {
+	s.fsNamespaceLockdown = namespaces
+
+	return s
 }

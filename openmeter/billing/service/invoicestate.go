@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"time"
 
@@ -19,11 +20,12 @@ import (
 )
 
 type InvoiceStateMachine struct {
-	Invoice      billing.Invoice
-	Calculator   invoicecalc.Calculator
-	StateMachine *stateless.StateMachine
-	Logger       *slog.Logger
-	Publisher    eventbus.Publisher
+	Invoice             billing.Invoice
+	Calculator          invoicecalc.Calculator
+	StateMachine        *stateless.StateMachine
+	Logger              *slog.Logger
+	Publisher           eventbus.Publisher
+	FSNamespaceLockdown []string
 }
 
 var invoiceStateMachineCache = sync.Pool{
@@ -247,6 +249,7 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.I
 	sm := invoiceStateMachineCache.Get().(*InvoiceStateMachine)
 	sm.Logger = s.logger
 	sm.Publisher = s.publisher
+	sm.FSNamespaceLockdown = s.fsNamespaceLockdown
 	// Stateless doesn't store any state in the state machine, so it's fine to reuse the state machine itself
 	sm.Invoice = invoice
 	sm.Calculator = s.invoiceCalculator
@@ -529,6 +532,10 @@ func (m *InvoiceStateMachine) mergeUpsertInvoiceResult(result *billing.UpsertInv
 
 // validateDraftInvoice validates the draft invoice using the apps referenced in the invoice.
 func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
+	if slices.Contains(m.FSNamespaceLockdown, m.Invoice.Namespace) {
+		return fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, m.Invoice.Namespace)
+	}
+
 	return m.withInvoicingApp(billing.InvoiceOpValidate, func(app billing.InvoicingApp) (*billing.InvoiceOperation, error) {
 		return nil, app.ValidateInvoice(ctx, m.Invoice.Clone())
 	})
@@ -540,6 +547,10 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 
 // syncDraftInvoice syncs the draft invoice with the external system.
 func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
+	if slices.Contains(m.FSNamespaceLockdown, m.Invoice.Namespace) {
+		return fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, m.Invoice.Namespace)
+	}
+
 	// Let's save the invoice so that we are sure that all the IDs are available for downstream apps
 	return m.withInvoicingApp(billing.InvoiceOpSync, func(app billing.InvoicingApp) (*billing.InvoiceOperation, error) {
 		results, err := app.UpsertInvoice(ctx, m.Invoice.Clone())
@@ -557,6 +568,10 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 
 // finalizeInvoice finalizes the invoice using the invoicing app and payment app (later).
 func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
+	if slices.Contains(m.FSNamespaceLockdown, m.Invoice.Namespace) {
+		return fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, m.Invoice.Namespace)
+	}
+
 	return m.withInvoicingApp(billing.InvoiceOpFinalize, func(app billing.InvoicingApp) (*billing.InvoiceOperation, error) {
 		clonedInvoice := m.Invoice.Clone()
 		// First we sync the invoice
@@ -588,6 +603,10 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 
 // syncDeletedInvoice syncs the deleted invoice with the external system
 func (m *InvoiceStateMachine) syncDeletedInvoice(ctx context.Context) error {
+	if slices.Contains(m.FSNamespaceLockdown, m.Invoice.Namespace) {
+		return fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, m.Invoice.Namespace)
+	}
+
 	return m.withInvoicingApp(billing.InvoiceOpDelete, func(app billing.InvoicingApp) (*billing.InvoiceOperation, error) {
 		return nil, app.DeleteInvoice(ctx, m.Invoice.Clone())
 	})
