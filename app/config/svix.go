@@ -1,5 +1,7 @@
 package config
 
-import notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
+import (
+	webhooksvix "github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
+)
 
-type SvixConfig = notificationwebhook.SvixConfig
+type SvixConfig = webhooksvix.SvixConfig

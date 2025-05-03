@@ -14,6 +14,7 @@ import (
 	notificationadapter "github.com/openmeterio/openmeter/openmeter/notification/adapter"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	webhooksvix "github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -113,7 +114,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"))
 	featureConnector := feature.NewFeatureConnector(featureAdapter, meterService, eventbus.NewMock(t))
 
-	repo, err := notificationadapter.New(notificationadapter.Config{
+	adapter, err := notificationadapter.New(notificationadapter.Config{
 		Client: entClient,
 		Logger: logger.WithGroup("postgres"),
 	})
@@ -133,8 +134,8 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 
 	logger.Info("Svix API key", slog.String("apiKey", svixAPIKey))
 
-	webhook, err := notificationwebhook.New(notificationwebhook.Config{
-		SvixConfig: notificationwebhook.SvixConfig{
+	webhook, err := webhooksvix.New(webhooksvix.Config{
+		SvixConfig: webhooksvix.SvixConfig{
 			APIKey:    svixAPIKey,
 			ServerURL: fmt.Sprintf(SvixServerURLTemplate, svixHost),
 			Debug:     false,
@@ -146,7 +147,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	}
 
 	service, err := notificationservice.New(notificationservice.Config{
-		Repository:       repo,
+		Adapter:          adapter,
 		FeatureConnector: featureConnector,
 		Webhook:          webhook,
 		Logger:           logger.With(slog.String("subsystem", "notification")),
@@ -174,7 +175,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	}
 
 	return &testEnv{
-		notificationRepo: repo,
+		notificationRepo: adapter,
 		notification:     service,
 		webhook:          webhook,
 		feature:          featureConnector,
