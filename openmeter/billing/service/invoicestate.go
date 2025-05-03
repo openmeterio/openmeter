@@ -532,8 +532,8 @@ func (m *InvoiceStateMachine) mergeUpsertInvoiceResult(result *billing.UpsertInv
 
 // validateDraftInvoice validates the draft invoice using the apps referenced in the invoice.
 func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
-	if slices.Contains(m.FSNamespaceLockdown, m.Invoice.Namespace) {
-		return fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, m.Invoice.Namespace)
+	if err := m.validateNamespaceLockdown(); err != nil {
+		return err
 	}
 
 	return m.withInvoicingApp(billing.InvoiceOpValidate, func(app billing.InvoicingApp) (*billing.InvoiceOperation, error) {
@@ -547,8 +547,8 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 
 // syncDraftInvoice syncs the draft invoice with the external system.
 func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
-	if slices.Contains(m.FSNamespaceLockdown, m.Invoice.Namespace) {
-		return fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, m.Invoice.Namespace)
+	if err := m.validateNamespaceLockdown(); err != nil {
+		return err
 	}
 
 	// Let's save the invoice so that we are sure that all the IDs are available for downstream apps
@@ -568,8 +568,8 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 
 // finalizeInvoice finalizes the invoice using the invoicing app and payment app (later).
 func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
-	if slices.Contains(m.FSNamespaceLockdown, m.Invoice.Namespace) {
-		return fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, m.Invoice.Namespace)
+	if err := m.validateNamespaceLockdown(); err != nil {
+		return err
 	}
 
 	return m.withInvoicingApp(billing.InvoiceOpFinalize, func(app billing.InvoicingApp) (*billing.InvoiceOperation, error) {
@@ -603,8 +603,8 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 
 // syncDeletedInvoice syncs the deleted invoice with the external system
 func (m *InvoiceStateMachine) syncDeletedInvoice(ctx context.Context) error {
-	if slices.Contains(m.FSNamespaceLockdown, m.Invoice.Namespace) {
-		return fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, m.Invoice.Namespace)
+	if err := m.validateNamespaceLockdown(); err != nil {
+		return err
 	}
 
 	return m.withInvoicingApp(billing.InvoiceOpDelete, func(app billing.InvoicingApp) (*billing.InvoiceOperation, error) {
@@ -646,6 +646,14 @@ func (m *InvoiceStateMachine) canDraftSyncAdvance() bool {
 	}
 
 	return true
+}
+
+func (m *InvoiceStateMachine) validateNamespaceLockdown() error {
+	if slices.Contains(m.FSNamespaceLockdown, m.Invoice.Namespace) {
+		return fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, m.Invoice.Namespace)
+	}
+
+	return nil
 }
 
 func (m *InvoiceStateMachine) canIssuingSyncAdvance() bool {
