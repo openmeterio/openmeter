@@ -52,6 +52,11 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 		}
 	}
 
+	// See: https://docs.stripe.com/api/idempotent_requests
+	// Stripe’s idempotency works by saving the resulting status code and body of the first request made for any given idempotency key,
+	// regardless of whether it succeeds or fails. Subsequent requests with the same key return the same result, including 500 errors.
+	params.SetIdempotencyKey(fmt.Sprintf("invoice-create-%s", input.InvoiceID))
+
 	return c.client.Invoices.New(params)
 }
 
@@ -104,6 +109,7 @@ func (c *stripeAppClient) GetInvoice(ctx context.Context, input GetInvoiceInput)
 
 // CreateInvoiceInput is the input for creating a new invoice in Stripe.
 type CreateInvoiceInput struct {
+	InvoiceID                    string
 	AutomaticTaxEnabled          bool
 	CollectionMethod             billing.CollectionMethod
 	Currency                     currencyx.Code
@@ -114,6 +120,10 @@ type CreateInvoiceInput struct {
 }
 
 func (i CreateInvoiceInput) Validate() error {
+	if i.InvoiceID == "" {
+		return errors.New("invoice id is required")
+	}
+
 	if i.CollectionMethod == "" {
 		return errors.New("collection method is required")
 	}
