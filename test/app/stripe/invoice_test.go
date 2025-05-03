@@ -12,6 +12,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"github.com/stripe/stripe-go/v80"
 
@@ -502,6 +503,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// Mock the stripe client to return the created invoice.
 		s.StripeAppClient.
 			On("CreateInvoice", stripeclient.CreateInvoiceInput{
+				InvoiceID:           invoice.ID,
 				AutomaticTaxEnabled: true,
 				CollectionMethod:    billing.CollectionMethodChargeAutomatically,
 				StripeCustomerID:    customerData.StripeCustomerID,
@@ -1031,14 +1033,10 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 
 	clock.FreezeTime(periodEnd.Add(time.Minute))
 
-	s.StripeAppClient.
-		On("CreateInvoice", stripeclient.CreateInvoiceInput{
-			AutomaticTaxEnabled: true,
-			CollectionMethod:    billing.CollectionMethodChargeAutomatically,
-			StripeCustomerID:    customerData.StripeCustomerID,
-			Currency:            "USD",
-			DueDate:             lo.ToPtr(dueAt),
-		}).
+	stripeAppCreateInvoiceMock := s.StripeAppClient.
+		// See expect for args below: we cannot setup argument expect here
+		// because we don't know the invoice ID before the call
+		On("CreateInvoice", mock.Anything).
 		Return(&stripe.Invoice{
 			ID: "stripe-invoice-id",
 			Customer: &stripe.Customer{
@@ -1057,6 +1055,17 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.NoError(err)
 	s.Len(invoices, 1)
 	invoice := invoices[0]
+
+	// Assert the args of the create invoice call
+	// We have to do it after the call because the invoice ID is not known at the time of setting up the mock
+	stripeAppCreateInvoiceMock.Arguments.Assert(s.T(), stripeclient.CreateInvoiceInput{
+		InvoiceID:           invoice.ID,
+		AutomaticTaxEnabled: true,
+		CollectionMethod:    billing.CollectionMethodChargeAutomatically,
+		StripeCustomerID:    customerData.StripeCustomerID,
+		Currency:            "USD",
+		DueDate:             lo.ToPtr(dueAt),
+	})
 
 	// Then the invoice should have the UBP line with 0 amount
 	lines := invoice.Lines.OrEmpty()

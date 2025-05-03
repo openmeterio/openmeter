@@ -151,6 +151,8 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Create the invoice in Stripe
 	createInvoiceParams := stripeclient.CreateInvoiceInput{
+		InvoiceID: invoice.ID,
+
 		// TODO: Automatic tax is currently always set to true because we only support automated tax via Stripe.
 		// In the future set it to false when:
 		// 1. OpenMeter orchestrates tax calculation via Stripe API
