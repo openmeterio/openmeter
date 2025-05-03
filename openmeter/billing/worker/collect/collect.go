@@ -158,6 +158,12 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 		AsOf: lo.ToPtr(alignedAsOf),
 	})
 	if err != nil {
+		if errors.Is(err, billing.ErrNamespaceLocked) {
+			a.logger.WarnContext(ctx, "namespace is locked, skipping collection", "customer", params.CustomerID)
+
+			return nil, nil
+		}
+
 		return nil, fmt.Errorf("failed to create invoice(s) for customer [customer=%s]: %w", params.CustomerID, err)
 	}
 

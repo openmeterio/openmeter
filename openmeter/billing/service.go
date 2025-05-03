@@ -87,4 +87,6 @@ type InvoiceAppService interface {
 
 type ConfigService interface {
 	GetAdvancementStrategy() AdvancementStrategy
+	WithAdvancementStrategy(strategy AdvancementStrategy) Service
+	WithLockedNamespaces(namespaces []string) Service
 }

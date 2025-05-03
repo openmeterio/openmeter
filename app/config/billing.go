@@ -12,6 +12,7 @@ import (
 type BillingConfiguration struct {
 	AdvancementStrategy billing.AdvancementStrategy
 	Worker              BillingWorkerConfiguration
+	FeatureSwitches     BillingFeatureSwitchesConfiguration
 }
 
 func (c BillingConfiguration) Validate() error {
@@ -24,7 +25,19 @@ func (c BillingConfiguration) Validate() error {
 		errs = append(errs, err)
 	}
 
+	if err := c.FeatureSwitches.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
 	return errors.Join(errs...)
+}
+
+type BillingFeatureSwitchesConfiguration struct {
+	NamespaceLockdown []string
+}
+
+func (c BillingFeatureSwitchesConfiguration) Validate() error {
+	return nil
 }
 
 func ConfigureBilling(v *viper.Viper, flags *pflag.FlagSet) {

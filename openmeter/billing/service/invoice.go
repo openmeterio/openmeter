@@ -231,6 +231,12 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		}
 	}
 
+	if slices.Contains(s.fsNamespaceLockdown, input.Customer.Namespace) {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, input.Customer.Namespace),
+		}
+	}
+
 	return TranscationForGatheringInvoiceManipulation(
 		ctx,
 		s,

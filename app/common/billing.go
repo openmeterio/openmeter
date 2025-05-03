@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/wire"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
@@ -48,6 +49,7 @@ func BillingService(
 	eventPublisher eventbus.Publisher,
 	advancementStrategy billing.AdvancementStrategy,
 	subscriptionServices SubscriptionServiceWithWorkflow,
+	fsConfig config.BillingFeatureSwitchesConfiguration,
 ) (billing.Service, error) {
 	service, err := billingservice.New(billingservice.Config{
 		Adapter:             billingAdapter,
@@ -59,6 +61,7 @@ func BillingService(
 		StreamingConnector:  streamingConnector,
 		Publisher:           eventPublisher,
 		AdvancementStrategy: advancementStrategy,
+		FSNamespaceLockdown: fsConfig.NamespaceLockdown,
 	})
 	if err != nil {
 		return nil, err

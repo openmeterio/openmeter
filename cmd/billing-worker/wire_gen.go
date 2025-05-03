@@ -268,7 +268,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingService, err := common.BillingService(logger, service, adapter, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy, subscriptionServiceWithWorkflow)
+	billingFeatureSwitchesConfiguration := billingConfiguration.FeatureSwitches
+	billingService, err := common.BillingService(logger, service, adapter, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy, subscriptionServiceWithWorkflow, billingFeatureSwitchesConfiguration)
 	if err != nil {
 		cleanup6()
 		cleanup5()

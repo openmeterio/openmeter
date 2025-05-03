@@ -1478,3 +1478,11 @@ func (n NoopBillingService) SyncIssuingInvoice(ctx context.Context, input billin
 func (n NoopBillingService) GetAdvancementStrategy() billing.AdvancementStrategy {
 	return billing.ForegroundAdvancementStrategy
 }
+
+func (n NoopBillingService) WithAdvancementStrategy(strategy billing.AdvancementStrategy) billing.Service {
+	return n
+}
+
+func (n NoopBillingService) WithLockedNamespaces(namespaces []string) billing.Service {
+	return n
+}

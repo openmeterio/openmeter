@@ -311,7 +311,7 @@ func (i DraftInvoiceInput) Validate() error {
 	return nil
 }
 
-func (s *BaseSuite) CreateDraftInvoice(t *testing.T, ctx context.Context, in DraftInvoiceInput) billing.Invoice {
+func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in DraftInvoiceInput) {
 	s.NoError(in.Validate())
 
 	namespace := in.Customer.Namespace
@@ -385,7 +385,14 @@ func (s *BaseSuite) CreateDraftInvoice(t *testing.T, ctx context.Context, in Dra
 	line2ID := res[1].ID
 	require.NotEmpty(s.T(), line1ID)
 	require.NotEmpty(s.T(), line2ID)
+}
 
+func (s *BaseSuite) CreateDraftInvoice(t *testing.T, ctx context.Context, in DraftInvoiceInput) billing.Invoice {
+	s.NoError(in.Validate())
+
+	s.CreateGatheringInvoice(t, ctx, in)
+
+	now := time.Now()
 	invoice, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: customer.CustomerID{
 			ID:        in.Customer.ID,

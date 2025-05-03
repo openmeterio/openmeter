@@ -53,6 +53,11 @@ func (h *Handler) HandleCancelledEvent(ctx context.Context, event *subscription.
 				return nil
 			}
 
+			if errors.Is(err, billing.ErrNamespaceLocked) {
+				h.logger.WarnContext(ctx, "namespace is locked, skipping invoice creation", "customer_id", event.Customer.ID)
+				return nil
+			}
+
 			h.logger.WarnContext(ctx, "failed to create invoice", "error", err, "customer_id", event.Customer.ID)
 			return nil
 		}
@@ -165,6 +170,11 @@ func (h *Handler) HandleSubscriptionCreated(ctx context.Context, subs subscripti
 				IncludePendingLines: mo.Some(invoicableLines),
 			})
 			if err != nil {
+				if errors.Is(err, billing.ErrNamespaceLocked) {
+					h.logger.WarnContext(ctx, "namespace is locked, skipping invoice creation", "customer_id", subs.Customer.ID)
+					return nil
+				}
+
 				return fmt.Errorf("failed to create invoice: %w", err)
 			}
 
