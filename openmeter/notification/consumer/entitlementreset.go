@@ -45,18 +45,19 @@ func (b *EntitlementSnapshotHandler) handleAsEntitlementResetEvent(ctx context.C
 			slices.Contains(rule.Config.EntitlementReset.Features, event.Entitlement.FeatureKey)
 	})
 
-	var errs error
+	var errs []error
+
 	for _, rule := range affectedRules {
 		if !rule.HasEnabledChannels() {
 			continue
 		}
 
-		if err := b.handleResetRule(ctx, event, rule); err != nil {
-			errs = errors.Join(errs, err)
+		if err = b.handleResetRule(ctx, event, rule); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	return errs
+	return errors.Join(errs...)
 }
 
 func (b *EntitlementSnapshotHandler) handleResetRule(ctx context.Context, event snapshot.SnapshotEvent, rule notification.Rule) error {

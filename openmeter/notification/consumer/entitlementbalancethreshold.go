@@ -55,18 +55,19 @@ func (b *EntitlementSnapshotHandler) handleAsSnapshotEvent(ctx context.Context, 
 			slices.Contains(rule.Config.BalanceThreshold.Features, event.Entitlement.FeatureKey)
 	})
 
-	var errs error
+	var errs []error
+
 	for _, rule := range affectedRules {
 		if !rule.HasEnabledChannels() {
 			continue
 		}
 
-		if err := b.handleRule(ctx, event, rule); err != nil {
-			errs = errors.Join(errs, err)
+		if err = b.handleRule(ctx, event, rule); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	return errs
+	return errors.Join(errs...)
 }
 
 func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot snapshot.SnapshotEvent, rule notification.Rule) error {
