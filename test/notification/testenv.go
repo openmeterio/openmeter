@@ -2,11 +2,15 @@ package notification
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
@@ -23,7 +27,6 @@ import (
 )
 
 const (
-	TestNamespace   = "default"
 	TestMeterSlug   = "api-call"
 	TestFeatureName = "API Requests"
 	TestFeatureKey  = "api-call"
@@ -41,6 +44,14 @@ const (
 	SvixServerURLTemplate = "http://%s:8071"
 )
 
+func NewTestULID(t *testing.T) string {
+	t.Helper()
+
+	return ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String()
+}
+
+var NewTestNamespace = NewTestULID
+
 type TestEnv interface {
 	NotificationRepo() notification.Repository
 	Notification() notification.Service
@@ -48,6 +59,8 @@ type TestEnv interface {
 
 	Feature() feature.FeatureConnector
 	Meter() *meteradapter.TestAdapter
+
+	Namespace() string
 
 	Close() error
 }
@@ -61,6 +74,8 @@ type testEnv struct {
 
 	feature feature.FeatureConnector
 	meter   *meteradapter.TestAdapter
+
+	namespace string
 
 	closerFunc func() error
 }
@@ -87,6 +102,10 @@ func (n testEnv) Feature() feature.FeatureConnector {
 
 func (n testEnv) Meter() *meteradapter.TestAdapter {
 	return n.meter
+}
+
+func (n testEnv) Namespace() string {
+	return n.namespace
 }
 
 const (
@@ -180,6 +199,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 		webhook:          webhook,
 		feature:          featureConnector,
 		meter:            meterService,
+		namespace:        namespace,
 		closerFunc:       closerFunc,
 	}, nil
 }

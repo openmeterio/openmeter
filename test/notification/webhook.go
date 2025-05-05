@@ -15,14 +15,14 @@ import (
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 )
 
-func NewCreateWebhookInput(id *string, desc string) notificationwebhook.CreateWebhookInput {
+func NewCreateWebhookInput(namespace string, id *string, desc string) notificationwebhook.CreateWebhookInput {
 	if id == nil || *id == "" {
 		uid := ulid.MustNew(ulid.Timestamp(time.Now()), rand.Reader)
 		id = convert.ToPointer(uid.String())
 	}
 
 	return notificationwebhook.CreateWebhookInput{
-		Namespace:     TestNamespace,
+		Namespace:     namespace,
 		ID:            id,
 		URL:           TestWebhookURL,
 		CustomHeaders: nil,
@@ -49,7 +49,7 @@ func (s *WebhookTestSuite) Setup(ctx context.Context, t *testing.T) {
 func (s *WebhookTestSuite) TestCreateWebhook(ctx context.Context, t *testing.T) {
 	wb := s.Env.NotificationWebhook()
 
-	input := NewCreateWebhookInput(nil, "TestCreateWebhook")
+	input := NewCreateWebhookInput(s.Env.Namespace(), nil, "TestCreateWebhook")
 
 	webhook, err := wb.CreateWebhook(ctx, input)
 	require.NoError(t, err, "Creating webhook must not return error")
@@ -62,8 +62,8 @@ func (s *WebhookTestSuite) TestCreateWebhook(ctx context.Context, t *testing.T) 
 		assert.Equal(t, defaultx.WithDefault(input.Secret, ""), webhook.Secret, "Webhook secret must match")
 	}
 	assert.Equal(t, defaultx.WithDefault(input.Description, ""), webhook.Description, "Webhook description must match")
-	assert.Equal(t, input.EventTypes, webhook.EventTypes, "Webhook event types must match")
-	assert.Equal(t, input.Channels, webhook.Channels, "Webhook channels must match")
+	assert.ElementsMatch(t, input.EventTypes, webhook.EventTypes, "Webhook event types must match")
+	assert.ElementsMatch(t, input.Channels, webhook.Channels, "Webhook channels must match")
 	assert.NotZero(t, webhook.CreatedAt, "Webhook created at timestamp must not be empty")
 	assert.NotZero(t, webhook.UpdatedAt, "Webhook updated at timestamp must not be empty")
 }
@@ -71,14 +71,14 @@ func (s *WebhookTestSuite) TestCreateWebhook(ctx context.Context, t *testing.T) 
 func (s *WebhookTestSuite) TestUpdateWebhook(ctx context.Context, t *testing.T) {
 	wb := s.Env.NotificationWebhook()
 
-	createIn := NewCreateWebhookInput(nil, "TestUpdateWebhook")
+	createIn := NewCreateWebhookInput(s.Env.Namespace(), nil, "TestUpdateWebhook")
 
 	webhook, err := wb.CreateWebhook(ctx, createIn)
 	require.NoError(t, err, "Creating webhook must not return error", "createIn", createIn)
 	require.NotNil(t, webhook, "Webhook must not be nil")
 
 	updateIn := notificationwebhook.UpdateWebhookInput{
-		Namespace: TestNamespace,
+		Namespace: s.Env.Namespace(),
 		ID:        webhook.ID,
 		URL:       "http://example2.com/",
 		CustomHeaders: map[string]string{
@@ -110,7 +110,7 @@ func (s *WebhookTestSuite) TestUpdateWebhook(ctx context.Context, t *testing.T) 
 func (s *WebhookTestSuite) TestDeleteWebhook(ctx context.Context, t *testing.T) {
 	wb := s.Env.NotificationWebhook()
 
-	createIn := NewCreateWebhookInput(nil, "TestDeleteWebhook")
+	createIn := NewCreateWebhookInput(s.Env.Namespace(), nil, "TestDeleteWebhook")
 
 	webhook, err := wb.CreateWebhook(ctx, createIn)
 	require.NoError(t, err, "Creating webhook must not return error")
@@ -128,7 +128,7 @@ func (s *WebhookTestSuite) TestDeleteWebhook(ctx context.Context, t *testing.T) 
 func (s *WebhookTestSuite) TestGetWebhook(ctx context.Context, t *testing.T) {
 	wb := s.Env.NotificationWebhook()
 
-	createIn := NewCreateWebhookInput(nil, "TestGetWebhook")
+	createIn := NewCreateWebhookInput(s.Env.Namespace(), nil, "TestGetWebhook")
 
 	webhook, err := wb.CreateWebhook(ctx, createIn)
 	require.NoError(t, err, "Creating webhook must not return error")
@@ -154,13 +154,13 @@ func (s *WebhookTestSuite) TestGetWebhook(ctx context.Context, t *testing.T) {
 func (s *WebhookTestSuite) TestListWebhook(ctx context.Context, t *testing.T) {
 	wb := s.Env.NotificationWebhook()
 
-	createIn1 := NewCreateWebhookInput(nil, "TestListWebhook1")
+	createIn1 := NewCreateWebhookInput(s.Env.Namespace(), nil, "TestListWebhook1")
 
 	webhook1, err := wb.CreateWebhook(ctx, createIn1)
 	require.NoError(t, err, "Creating webhook must not return error")
 	require.NotNil(t, wb, "Webhook must not be nil")
 
-	createIn2 := NewCreateWebhookInput(nil, "TestListWebhook2")
+	createIn2 := NewCreateWebhookInput(s.Env.Namespace(), nil, "TestListWebhook2")
 	createIn2.EventTypes = []string{
 		notificationwebhook.EntitlementsBalanceThresholdType,
 	}
@@ -169,9 +169,9 @@ func (s *WebhookTestSuite) TestListWebhook(ctx context.Context, t *testing.T) {
 	require.NoError(t, err, "Creating webhook must not return error")
 	require.NotNil(t, wb, "Webhook must not be nil")
 
-	createIn3 := NewCreateWebhookInput(nil, "TestListWebhook3")
+	createIn3 := NewCreateWebhookInput(s.Env.Namespace(), nil, "TestListWebhook3")
 	createIn3.Channels = []string{
-		"test-channel",
+		"test-channel3",
 	}
 
 	webhook3, err := wb.CreateWebhook(ctx, createIn3)
@@ -179,7 +179,7 @@ func (s *WebhookTestSuite) TestListWebhook(ctx context.Context, t *testing.T) {
 	require.NotNil(t, wb, "Webhook must not be nil")
 
 	list, err := wb.ListWebhooks(ctx, notificationwebhook.ListWebhooksInput{
-		Namespace:  TestNamespace,
+		Namespace:  s.Env.Namespace(),
 		IDs:        []string{webhook1.ID},
 		EventTypes: webhook2.EventTypes,
 		Channels:   webhook3.Channels,
