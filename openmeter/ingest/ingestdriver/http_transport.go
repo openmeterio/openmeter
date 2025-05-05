@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"reflect"
+	"strings"
 
 	"github.com/cloudevents/sdk-go/v2/event"
 
@@ -143,6 +146,15 @@ func (d ingestEventsRequestDecoder) decode(ctx context.Context, r *http.Request)
 		return req, ErrorInvalidContentType{ContentType: contentType}
 	}
 
+	// Validate the events
+	for _, e := range req.Events {
+		if err := validateEvent(e); err != nil {
+			return req, ErrorInvalidEvent{
+				Err: err,
+			}
+		}
+	}
+
 	return req, nil
 }
 
@@ -176,4 +188,91 @@ func (e ingestEventsErrorEncoder) encode(ctx context.Context, err error, w http.
 	models.NewStatusProblem(ctx, errors.New("something went wrong"), http.StatusInternalServerError).Respond(w)
 
 	return false
+}
+
+// validateEvent validates an event for things that are not checked by OpenAPI validation.
+func validateEvent(ev event.Event) error {
+	var data interface{}
+
+	err := ev.DataAs(&data)
+	if err != nil {
+		return fmt.Errorf("cannot unmarshal cloudevents data: %w", err)
+	}
+
+	if data == nil {
+		return nil
+	}
+
+	err = validateTraverse([]string{}, reflect.ValueOf(data))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateTraverse travses the data structure and validates it for things that are not checked by OpenAPI validation.
+func validateTraverse(path []string, val reflect.Value) error {
+	// Handle invalid or zero values
+	if !val.IsValid() {
+		return nil
+	}
+
+	// If this is a pointer or interface, unwrap it
+	switch val.Kind() {
+	case reflect.Ptr, reflect.Interface:
+		if val.IsNil() {
+			return nil
+		}
+
+		return validateTraverse(path, val.Elem())
+	}
+
+	// Now handle concrete kinds
+	switch val.Kind() {
+	case reflect.String:
+		s := val.String()
+
+		err := validateString(s)
+		if err != nil {
+			if len(path) > 0 {
+				return fmt.Errorf("invalid data at %q: %w", strings.Join(path, "."), err)
+			}
+
+			return fmt.Errorf("invalid data: %w", err)
+		}
+	case reflect.Map:
+		for _, key := range val.MapKeys() {
+			if err := validateTraverse(append(path, key.String()), val.MapIndex(key)); err != nil {
+				return err
+			}
+		}
+
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < val.Len(); i++ {
+			if err := validateTraverse(append(path, fmt.Sprintf("[%d]", i)), val.Index(i)); err != nil {
+				return err
+			}
+		}
+	}
+
+	// All other kinds are ignored
+	return nil
+}
+
+// validateString checks if a string contains NaN, Inf, or -Inf.
+func validateString(s string) error {
+	if strings.Contains(s, "NaN") {
+		return fmt.Errorf("property NaN is not allowed")
+	}
+
+	if strings.Contains(s, "-Inf") {
+		return fmt.Errorf("property -Inf is not allowed")
+	}
+
+	if strings.Contains(s, "Inf") {
+		return fmt.Errorf("property Inf is not allowed")
+	}
+
+	return nil
 }

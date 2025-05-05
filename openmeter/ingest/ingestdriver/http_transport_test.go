@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestIngestEvents(t *testing.T) {
@@ -89,12 +91,87 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 	server := httptest.NewServer(handler)
 	client := server.Client()
 
+	// Invalid JSON
 	resp, err := client.Post(server.URL, "application/cloudevents+json", bytes.NewBuffer([]byte(`invalid`)))
 	require.NoError(t, err)
 
-	defer resp.Body.Close()
+	resp.Body.Close()
 
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	// NaN is not allowed
+	resp, err = client.Post(server.URL, "application/cloudevents+json", getMockEventPayload(t, "NaN"))
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	problem := toProblem(t, resp)
+	assert.Equal(t, problem.Detail, "invalid event: invalid data: property NaN is not allowed")
+
+	// Inf is not allowed
+	resp, err = client.Post(server.URL, "application/cloudevents+json", getMockEventPayload(t, "Inf"))
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	problem = toProblem(t, resp)
+	assert.Equal(t, problem.Detail, "invalid event: invalid data: property Inf is not allowed")
+
+	// -Inf is not allowed
+	resp, err = client.Post(server.URL, "application/cloudevents+json", getMockEventPayload(t, "-Inf"))
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	problem = toProblem(t, resp)
+	assert.Equal(t, problem.Detail, "invalid event: invalid data: property -Inf is not allowed")
+
+	// Nested NaN is not allowed
+	resp, err = client.Post(server.URL, "application/cloudevents+json", getMockEventPayload(t, map[string]interface{}{
+		"nested": map[string]interface{}{
+			"value": []interface{}{1, "NaN"},
+		},
+	}))
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	problem = toProblem(t, resp)
+	assert.Equal(t, problem.Detail, `invalid event: invalid data at "nested.value.[1]": property NaN is not allowed`)
+}
+
+// toProblem converts a response body to a StatusProblem.
+func toProblem(t *testing.T, resp *http.Response) models.StatusProblem {
+	defer resp.Body.Close()
+
+	var body []byte
+
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	var problem models.StatusProblem
+
+	err = json.Unmarshal(body, &problem)
+	require.NoError(t, err)
+
+	return problem
+}
+
+// getMockEventPayload returns a new event with the given data and returns the payload as a bytes.Buffer.
+func getMockEventPayload(t *testing.T, data interface{}) *bytes.Buffer {
+	ev := event.New()
+	ev.SetID("id")
+	ev.SetSource("test")
+	ev.SetSubject("sub")
+	ev.SetTime(time.Now())
+
+	err := ev.SetData(event.ApplicationJSON, data)
+	require.NoError(t, err)
+
+	b, err := ev.MarshalJSON()
+	require.NoError(t, err)
+
+	return bytes.NewBuffer(b)
 }
 
 func TestBatchHandler(t *testing.T) {
