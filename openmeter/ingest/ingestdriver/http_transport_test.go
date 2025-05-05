@@ -106,7 +106,7 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
 	problem := toProblem(t, resp)
-	assert.Equal(t, problem.Detail, "invalid event: invalid data: property NaN is not allowed")
+	assert.Equal(t, problem.Detail, "invalid event: invalid data: NaN is not allowed")
 
 	// Inf is not allowed
 	resp, err = client.Post(server.URL, "application/cloudevents+json", getMockEventPayload(t, "Inf"))
@@ -115,7 +115,7 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
 	problem = toProblem(t, resp)
-	assert.Equal(t, problem.Detail, "invalid event: invalid data: property Inf is not allowed")
+	assert.Equal(t, problem.Detail, "invalid event: invalid data: Inf is not allowed")
 
 	// -Inf is not allowed
 	resp, err = client.Post(server.URL, "application/cloudevents+json", getMockEventPayload(t, "-Inf"))
@@ -124,7 +124,7 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
 	problem = toProblem(t, resp)
-	assert.Equal(t, problem.Detail, "invalid event: invalid data: property -Inf is not allowed")
+	assert.Equal(t, problem.Detail, "invalid event: invalid data: -Inf is not allowed")
 
 	// Nested NaN is not allowed
 	resp, err = client.Post(server.URL, "application/cloudevents+json", getMockEventPayload(t, map[string]interface{}{
@@ -137,7 +137,7 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
 	problem = toProblem(t, resp)
-	assert.Equal(t, problem.Detail, `invalid event: invalid data at "nested.value.[1]": property NaN is not allowed`)
+	assert.Equal(t, problem.Detail, `invalid event: invalid data at "nested.value.[1]": NaN is not allowed`)
 }
 
 // toProblem converts a response body to a StatusProblem.
