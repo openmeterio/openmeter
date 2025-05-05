@@ -263,15 +263,15 @@ func validateTraverse(path []string, val reflect.Value) error {
 // validateString checks if a string contains NaN, Inf, or -Inf.
 func validateString(s string) error {
 	if s == "NaN" {
-		return fmt.Errorf("NaN is not allowed")
+		return fmt.Errorf("value NaN is not allowed")
 	}
 
 	if s == "Inf" || s == "+Inf" {
-		return fmt.Errorf("Inf is not allowed")
+		return fmt.Errorf("value Inf is not allowed")
 	}
 
 	if s == "-Inf" {
-		return fmt.Errorf("-Inf is not allowed")
+		return fmt.Errorf("value -Inf is not allowed")
 	}
 
 	return nil
