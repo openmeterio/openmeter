@@ -57,6 +57,11 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 	a.meterHandler.QueryMeter().With(handlerParams).ServeHTTP(w, r)
 }
 
+// POST /api/v1/meters/{meterIdOrSlug}/query
+func (a *Router) QueryMeterPost(w http.ResponseWriter, r *http.Request, meterIDOrSlug string) {
+	a.meterHandler.QueryMeterPost().With(meterIDOrSlug).ServeHTTP(w, r)
+}
+
 // GET /api/v1/meters/{meterIdOrSlug}/subjects
 func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIDOrSlug string) {
 	params := httpdriver.ListSubjectsParams{

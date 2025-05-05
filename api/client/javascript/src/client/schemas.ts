@@ -1155,7 +1155,8 @@ export interface paths {
      */
     get: operations['queryMeter']
     put?: never
-    post?: never
+    /** Query meter */
+    post: operations['queryMeterPost']
     delete?: never
     options?: never
     head?: never
@@ -6656,6 +6657,70 @@ export interface components {
      * @enum {string}
      */
     MeterOrderBy: 'key' | 'name' | 'aggregation' | 'createdAt' | 'updatedAt'
+    /** @description A meter query request. */
+    MeterQueryRequest: {
+      /**
+       * @description Client ID
+       *     Useful to track progress of a query.
+       * @example f74e58ed-94ce-4041-ae06-cf45420451a3
+       */
+      clientId?: string
+      /**
+       * Format: date-time
+       * @description Start date-time in RFC 3339 format.
+       *
+       *     Inclusive.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      from?: Date
+      /**
+       * Format: date-time
+       * @description End date-time in RFC 3339 format.
+       *
+       *     Inclusive.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      to?: Date
+      /**
+       * @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+       * @example DAY
+       */
+      windowSize?: components['schemas']['WindowSize']
+      /**
+       * @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+       *     If not specified, the UTC timezone will be used.
+       * @default UTC
+       * @example UTC
+       */
+      windowTimeZone?: string
+      /**
+       * @description Filtering by multiple subjects.
+       * @example [
+       *       "customer-1",
+       *       "customer-2"
+       *     ]
+       */
+      subject?: string[]
+      /**
+       * @description Simple filter for group bys with exact match.
+       * @example {
+       *       "model": "gpt-4-turbo",
+       *       "type": "prompt"
+       *     }
+       */
+      filterGroupBy?: {
+        [key: string]: string
+      }
+      /**
+       * @description If not specified a single aggregate will be returned for each subject and time window.
+       *     `subject` is a reserved group by value.
+       * @example [
+       *       "model",
+       *       "type"
+       *     ]
+       */
+      groupBy?: string[]
+    }
     /**
      * @description The result of a meter query.
      * @example {
@@ -10517,6 +10582,7 @@ export type Meter = components['schemas']['Meter']
 export type MeterAggregation = components['schemas']['MeterAggregation']
 export type MeterCreate = components['schemas']['MeterCreate']
 export type MeterOrderBy = components['schemas']['MeterOrderBy']
+export type MeterQueryRequest = components['schemas']['MeterQueryRequest']
 export type MeterQueryResult = components['schemas']['MeterQueryResult']
 export type MeterQueryRow = components['schemas']['MeterQueryRow']
 export type MeterUpdate = components['schemas']['MeterUpdate']
@@ -17818,6 +17884,104 @@ export interface operations {
         content: {
           'application/json': components['schemas']['MeterQueryResult']
           'text/csv': string
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  queryMeterPost: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        meterIdOrSlug: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MeterQueryRequest']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['MeterQueryResult']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
