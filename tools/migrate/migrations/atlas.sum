@@ -1,4 +1,4 @@
-h1:JpP1Cx+kp6WzfJDwrc/G3ZZP1OGtWgFD00XSewJJp2o=
+h1:0LWNhYBjp1Y4ImdOQjUCqwAA9a65PlPQfh/u/HVSWl8=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -185,3 +185,5 @@ h1:JpP1Cx+kp6WzfJDwrc/G3ZZP1OGtWgFD00XSewJJp2o=
 20250422174622_rename-custominvoicing-settings.up.sql h1:LOD/GL4h7npzrzVj4oe8wuXgWVKqpKGExKMPDh6cm/I=
 20250424160933_boolean-entitlement-count-annotation.down.sql h1:Kfppxj1Xqr9RFpo1+bG2ZnwAuV+Sc1iJLwEQxzxUnUo=
 20250424160933_boolean-entitlement-count-annotation.up.sql h1:CzlS0AexXMvrwU16u787Wk1iQcOOocrRwCM72TIRTgQ=
+20250506182753_backfill-invoice-at.down.sql h1:RfF9WrzCcYHMC4kh4dhQLe35U9aZyFhka3bucD2KfKI=
+20250506182753_backfill-invoice-at.up.sql h1:+zKc+N6odq1SJ9XqfvIqCgx7inDO4pzQKjQOVyrGuPo=
