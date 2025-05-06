@@ -10087,6 +10087,12 @@ export interface components {
     'GrantOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'GrantOrderByOrdering.orderBy': components['schemas']['GrantOrderBy']
+    /** @description Filter by invoice created time.
+     *     Inclusive. */
+    'InvoiceListParams.createdAfter': Date | string
+    /** @description Filter by invoice created time.
+     *     Inclusive. */
+    'InvoiceListParams.createdBefore': Date | string
     /** @description Filter by customer ID */
     'InvoiceListParams.customers': string[]
     /** @description What parts of the list output to expand in listings */
@@ -10095,9 +10101,11 @@ export interface components {
     'InvoiceListParams.extendedStatuses': string[]
     /** @description Include deleted invoices */
     'InvoiceListParams.includeDeleted': boolean
-    /** @description Filter by invoice creation time */
+    /** @description Filter by invoice issued time.
+     *     Inclusive. */
     'InvoiceListParams.issuedAfter': Date | string
-    /** @description Filter by invoice creation time */
+    /** @description Filter by invoice issued time.
+     *     Inclusive. */
     'InvoiceListParams.issuedBefore': Date | string
     /** @description Filter by the invoice status. */
     'InvoiceListParams.statuses': components['schemas']['InvoiceStatus'][]
@@ -10858,6 +10866,10 @@ export type ParameterGrantOrderByOrderingOrder =
   components['parameters']['GrantOrderByOrdering.order']
 export type ParameterGrantOrderByOrderingOrderBy =
   components['parameters']['GrantOrderByOrdering.orderBy']
+export type ParameterInvoiceListParamsCreatedAfter =
+  components['parameters']['InvoiceListParams.createdAfter']
+export type ParameterInvoiceListParamsCreatedBefore =
+  components['parameters']['InvoiceListParams.createdBefore']
 export type ParameterInvoiceListParamsCustomers =
   components['parameters']['InvoiceListParams.customers']
 export type ParameterInvoiceListParamsExpand =
@@ -12960,10 +12972,18 @@ export interface operations {
         statuses?: components['parameters']['InvoiceListParams.statuses']
         /** @description Filter by invoice extended statuses */
         extendedStatuses?: components['parameters']['InvoiceListParams.extendedStatuses']
-        /** @description Filter by invoice creation time */
+        /** @description Filter by invoice issued time.
+         *     Inclusive. */
         issuedAfter?: components['parameters']['InvoiceListParams.issuedAfter']
-        /** @description Filter by invoice creation time */
+        /** @description Filter by invoice issued time.
+         *     Inclusive. */
         issuedBefore?: components['parameters']['InvoiceListParams.issuedBefore']
+        /** @description Filter by invoice created time.
+         *     Inclusive. */
+        createdAfter?: components['parameters']['InvoiceListParams.createdAfter']
+        /** @description Filter by invoice created time.
+         *     Inclusive. */
+        createdBefore?: components['parameters']['InvoiceListParams.createdBefore']
         /** @description What parts of the list output to expand in listings */
         expand?: components['parameters']['InvoiceListParams.expand']
         /** @description Filter by customer ID */

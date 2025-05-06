@@ -174,6 +174,14 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Where(billinginvoice.IssuedAtLTE(*input.IssuedBefore))
 		}
 
+		if input.CreatedAtAfter != nil {
+			query = query.Where(billinginvoice.CreatedAtGTE(*input.CreatedAtAfter))
+		}
+
+		if input.CreatedAtBefore != nil {
+			query = query.Where(billinginvoice.CreatedAtLTE(*input.CreatedAtBefore))
+		}
+
 		if len(input.ExtendedStatuses) > 0 {
 			query = query.Where(billinginvoice.StatusIn(input.ExtendedStatuses...))
 		}

@@ -3725,6 +3725,14 @@ export const listInvoicesQueryPageSizeDefault = 100
 export const listInvoicesQueryPageSizeMax = 1000
 
 export const listInvoicesQueryParams = zod.object({
+  createdAfter: zod
+    .date()
+    .optional()
+    .describe('Filter by invoice created time.\nInclusive.'),
+  createdBefore: zod
+    .date()
+    .optional()
+    .describe('Filter by invoice created time.\nInclusive.'),
   customers: zod
     .array(
       zod
@@ -3754,11 +3762,11 @@ export const listInvoicesQueryParams = zod.object({
   issuedAfter: zod
     .date()
     .optional()
-    .describe('Filter by invoice creation time'),
+    .describe('Filter by invoice issued time.\nInclusive.'),
   issuedBefore: zod
     .date()
     .optional()
-    .describe('Filter by invoice creation time'),
+    .describe('Filter by invoice issued time.\nInclusive.'),
   order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
   orderBy: zod
     .enum(['customer.name', 'issuedAt', 'status', 'createdAt', 'updatedAt'])

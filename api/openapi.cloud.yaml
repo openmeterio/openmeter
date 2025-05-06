@@ -1591,6 +1591,8 @@ paths:
         - $ref: '#/components/parameters/InvoiceListParams.extendedStatuses'
         - $ref: '#/components/parameters/InvoiceListParams.issuedAfter'
         - $ref: '#/components/parameters/InvoiceListParams.issuedBefore'
+        - $ref: '#/components/parameters/InvoiceListParams.createdAfter'
+        - $ref: '#/components/parameters/InvoiceListParams.createdBefore'
         - $ref: '#/components/parameters/InvoiceListParams.expand'
         - $ref: '#/components/parameters/InvoiceListParams.customers'
         - $ref: '#/components/parameters/InvoiceListParams.includeDeleted'
@@ -10523,6 +10525,30 @@ components:
         $ref: '#/components/schemas/GrantOrderBy'
       explode: false
       style: form
+    InvoiceListParams.createdAfter:
+      name: createdAfter
+      in: query
+      required: false
+      description: |-
+        Filter by invoice created time.
+        Inclusive.
+      schema:
+        type: string
+        format: date-time
+        example: '2023-01-01T01:01:01.001Z'
+      style: form
+    InvoiceListParams.createdBefore:
+      name: createdBefore
+      in: query
+      required: false
+      description: |-
+        Filter by invoice created time.
+        Inclusive.
+      schema:
+        type: string
+        format: date-time
+        example: '2023-01-01T01:01:01.001Z'
+      style: form
     InvoiceListParams.customers:
       name: customers
       in: query
@@ -10569,7 +10595,9 @@ components:
       name: issuedAfter
       in: query
       required: false
-      description: Filter by invoice creation time
+      description: |-
+        Filter by invoice issued time.
+        Inclusive.
       schema:
         type: string
         format: date-time
@@ -10579,7 +10607,9 @@ components:
       name: issuedBefore
       in: query
       required: false
-      description: Filter by invoice creation time
+      description: |-
+        Filter by invoice issued time.
+        Inclusive.
       schema:
         type: string
         format: date-time

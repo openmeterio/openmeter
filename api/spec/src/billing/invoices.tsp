@@ -375,16 +375,32 @@ model InvoiceListParams {
   extendedStatuses?: Invoice.InvoiceExtendedStatus[];
 
   /**
-   * Filter by invoice creation time
+   * Filter by invoice issued time.
+   * Inclusive.
    */
   @query(#{ explode: true })
   issuedAfter?: DateTime;
 
   /**
-   * Filter by invoice creation time
+   * Filter by invoice issued time.
+   * Inclusive.
    */
   @query(#{ explode: true })
   issuedBefore?: DateTime;
+
+  /**
+   * Filter by invoice created time.
+   * Inclusive.
+   */
+  @query(#{ explode: true })
+  createdAfter?: DateTime;
+
+  /**
+   * Filter by invoice created time.
+   * Inclusive.
+   */
+  @query(#{ explode: true })
+  createdBefore?: DateTime;
 
   /**
    * What parts of the list output to expand in listings
