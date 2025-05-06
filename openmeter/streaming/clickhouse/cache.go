@@ -35,9 +35,17 @@ func (c *Connector) canQueryBeCached(namespace string, meterDef meterpkg.Meter, 
 
 	from := *queryParams.From
 	to := lo.FromPtrOr(queryParams.To, time.Now().UTC())
+
+	// We respect the minimum cacheable usage age
+	minFrom := time.Now().UTC().Add(-c.config.QueryCacheMinimumCacheableUsageAge)
+
+	if to.After(minFrom) {
+		return false
+	}
+
+	// We respect the minimum cacheable query period
 	duration := to.Sub(from)
 
-	// It must be at least 3 days of usage to be cachable
 	if duration < c.config.QueryCacheMinimumCacheableQueryPeriod {
 		return false
 	}
