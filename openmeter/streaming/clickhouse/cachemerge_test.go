@@ -222,7 +222,7 @@ func TestCreateGroupKeyFromRow(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			result := createGroupKeyFromRow(testRow, testCase.queryParams)
+			result := createGroupKeyFromRowWithQueryParams(testRow, testCase.queryParams)
 			assert.Equal(t, testCase.expectedKey, result)
 		})
 	}
@@ -314,4 +314,64 @@ func TestAggregateRowsByAggregationType(t *testing.T) {
 			assert.Equal(t, group1Value, *result.GroupBy["group1"])
 		})
 	}
+}
+
+func TestDedupeQueryRows(t *testing.T) {
+	subject1 := "test-subject"
+	subject2 := "test-subject-2"
+	group1Key := "group1"
+	group1Value := "group1-value"
+	group2Key := "group2"
+	group2Value := "group2-value"
+
+	windowStart1, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00Z")
+	windowEnd1, _ := time.Parse(time.RFC3339, "2023-01-01T01:00:00Z")
+	windowStart2, _ := time.Parse(time.RFC3339, "2023-01-01T01:00:00Z")
+	windowEnd2, _ := time.Parse(time.RFC3339, "2023-01-01T02:00:00Z")
+
+	rows := []meterpkg.MeterQueryRow{
+		{
+			WindowStart: windowStart1,
+			WindowEnd:   windowEnd1,
+			Value:       10,
+			Subject:     &subject1,
+			GroupBy: map[string]*string{
+				group1Key: &group1Value,
+			},
+		},
+		// Duplicate row
+		{
+			WindowStart: windowStart1,
+			WindowEnd:   windowEnd1,
+			Value:       10,
+			Subject:     &subject1,
+			GroupBy: map[string]*string{
+				group1Key: &group1Value,
+			},
+		},
+		// Row with different group by value
+		{
+			WindowStart: windowStart1,
+			WindowEnd:   windowEnd1,
+			Value:       10,
+			Subject:     &subject1,
+			GroupBy: map[string]*string{
+				group2Key: &group2Value,
+			},
+		},
+		// Row with different subject
+		{
+			WindowStart: windowStart2,
+			WindowEnd:   windowEnd2,
+			Value:       10,
+			Subject:     &subject2,
+			GroupBy: map[string]*string{
+				group1Key: &group1Value,
+			},
+		},
+	}
+
+	deduplicatedRows := dedupeQueryRows(rows, []string{group1Key, group2Key})
+
+	assert.Equal(t, 3, len(deduplicatedRows))
 }

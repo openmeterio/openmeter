@@ -36,7 +36,7 @@ func mergeMeterQueryRows(meterDef meterpkg.Meter, queryParams streaming.QueryPar
 	// Process all rows and aggregate them together
 	for _, row := range append(freshRows, cachedRows...) {
 		// Create a key based on groupBy values
-		groupKey := createGroupKeyFromRow(row, queryParams)
+		groupKey := createGroupKeyFromRowWithQueryParams(row, queryParams)
 
 		// Add the row to the group
 		if _, exists := groupedRows[groupKey]; !exists {
@@ -57,9 +57,16 @@ func mergeMeterQueryRows(meterDef meterpkg.Meter, queryParams streaming.QueryPar
 	return aggregatedResults
 }
 
+// createGroupKeyFromRowWithQueryParams creates a unique key for grouping rows based on subject and group by fields
+// We don't include window start and end because we assume query window size is not set
+func createGroupKeyFromRowWithQueryParams(row meterpkg.MeterQueryRow, queryParams streaming.QueryParams) string {
+	return createGroupKeyFromRow(row, queryParams.GroupBy)
+}
+
 // createGroupKeyFromRow creates a unique key for grouping rows based on subject and group by fields
 // We don't include window start and end because we assume query window size is not set
-func createGroupKeyFromRow(row meterpkg.MeterQueryRow, queryParams streaming.QueryParams) string {
+func createGroupKeyFromRow(row meterpkg.MeterQueryRow, groupByFields []string) string {
+	groupByFieldsCopy := append([]string(nil), groupByFields...)
 	groupKey := ""
 
 	// Add subject to the key if it exists
@@ -67,12 +74,9 @@ func createGroupKeyFromRow(row meterpkg.MeterQueryRow, queryParams streaming.Que
 		groupKey += fmt.Sprintf("subject=%s;", *row.Subject)
 	}
 
-	// Add all groupBy values to the key
-	groupByFields := queryParams.GroupBy
+	slices.Sort(groupByFieldsCopy)
 
-	slices.Sort(groupByFields)
-
-	for _, groupByField := range groupByFields {
+	for _, groupByField := range groupByFieldsCopy {
 		valueStr := "nil"
 		if groupValue, exists := row.GroupBy[groupByField]; exists && groupValue != nil {
 			valueStr = *groupValue
@@ -82,6 +86,23 @@ func createGroupKeyFromRow(row meterpkg.MeterQueryRow, queryParams streaming.Que
 	}
 
 	return groupKey
+}
+
+// dedupeQueryRows deduplicates rows based on group key
+func dedupeQueryRows(rows []meterpkg.MeterQueryRow, groupByFields []string) []meterpkg.MeterQueryRow {
+	deduplicatedValues := []meterpkg.MeterQueryRow{}
+	seen := map[string]struct{}{}
+
+	for _, value := range rows {
+		key := createGroupKeyFromRow(value, groupByFields)
+
+		if _, ok := seen[key]; !ok {
+			deduplicatedValues = append(deduplicatedValues, value)
+			seen[key] = struct{}{}
+		}
+	}
+
+	return deduplicatedValues
 }
 
 // aggregateRowsByAggregationType combines rows into a single row based on the meter aggregation type

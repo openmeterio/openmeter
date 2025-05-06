@@ -197,7 +197,9 @@ func (c *Connector) fetchCachedMeterRows(ctx context.Context, hash string, query
 		return nil, fmt.Errorf("scan meter query hash rows: %w", err)
 	}
 
-	return cachedValues, nil
+	// Deduplicate cached values
+	// At insert time we can have duplicates for the same window due to parallel queries
+	return dedupeQueryRows(cachedValues, queryMeter.GroupBy), nil
 }
 
 // storeCachedMeterRows stores new meter query results in the meter_query_hash table
