@@ -8961,6 +8961,76 @@ export const queryMeterQueryParams = zod.object({
 })
 
 /**
+ * @summary Query meter
+ */
+export const queryMeterPostPathMeterIdOrSlugMax = 64
+
+export const queryMeterPostPathMeterIdOrSlugRegExp = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+
+export const queryMeterPostParams = zod.object({
+  meterIdOrSlug: zod
+    .string()
+    .min(1)
+    .max(queryMeterPostPathMeterIdOrSlugMax)
+    .regex(queryMeterPostPathMeterIdOrSlugRegExp),
+})
+
+export const queryMeterPostBodyClientIdMax = 36
+export const queryMeterPostBodyWindowTimeZoneDefault = 'UTC'
+export const queryMeterPostBodySubjectMax = 100
+export const queryMeterPostBodyGroupByMax = 100
+
+export const queryMeterPostBody = zod
+  .object({
+    clientId: zod
+      .string()
+      .min(1)
+      .max(queryMeterPostBodyClientIdMax)
+      .optional()
+      .describe('Client ID\nUseful to track progress of a query.'),
+    filterGroupBy: zod
+      .record(zod.string(), zod.string())
+      .optional()
+      .describe('Simple filter for group bys with exact match.'),
+    from: zod
+      .date()
+      .optional()
+      .describe('Start date-time in RFC 3339 format.\n\nInclusive.'),
+    groupBy: zod
+      .array(zod.string())
+      .max(queryMeterPostBodyGroupByMax)
+      .optional()
+      .describe(
+        'If not specified a single aggregate will be returned for each subject and time window.\n`subject` is a reserved group by value.'
+      ),
+    subject: zod
+      .array(zod.string())
+      .max(queryMeterPostBodySubjectMax)
+      .optional()
+      .describe('Filtering by multiple subjects.'),
+    to: zod
+      .date()
+      .optional()
+      .describe('End date-time in RFC 3339 format.\n\nInclusive.'),
+    windowSize: zod
+      .enum(['MINUTE', 'HOUR', 'DAY'])
+      .describe('Aggregation window size.')
+      .optional()
+      .describe(
+        'If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.'
+      ),
+    windowTimeZone: zod
+      .string()
+      .default(queryMeterPostBodyWindowTimeZoneDefault)
+      .describe(
+        'The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).\nIf not specified, the UTC timezone will be used.'
+      ),
+  })
+  .describe('A meter query request.')
+
+/**
  * List subjects for a meter.
  * @summary List meter subjects
  */

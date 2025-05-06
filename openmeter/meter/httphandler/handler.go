@@ -23,6 +23,7 @@ type MeterHandler interface {
 	UpdateMeter() UpdateMeterHandler
 	DeleteMeter() DeleteMeterHandler
 	QueryMeter() QueryMeterHandler
+	QueryMeterPost() QueryMeterPostHandler
 	QueryMeterCSV() QueryMeterCSVHandler
 	ListSubjects() ListSubjectsHandler
 }
