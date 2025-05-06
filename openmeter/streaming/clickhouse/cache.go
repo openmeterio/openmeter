@@ -99,15 +99,21 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 
 		values = append(values, cachedValues...)
 
-		// We use the last cached window as the start of the new query period
-		lastCachedWindow := cachedValues[len(cachedValues)-1].WindowEnd
+		// We find the latest already cached window and use it as the start of the new query period
+		lastCachedWindowEnd := cachedValues[0].WindowEnd
+
+		for _, cachedValue := range cachedValues {
+			if cachedValue.WindowEnd.After(lastCachedWindowEnd) {
+				lastCachedWindowEnd = cachedValue.WindowEnd
+			}
+		}
 
 		// We query from the end of the last cached window exclusive
 		cacheableQueryMeter.From = nil
-		cacheableQueryMeter.FromExclusive = &lastCachedWindow
+		cacheableQueryMeter.FromExclusive = &lastCachedWindowEnd
 
 		// If we've covered the entire range with cached data, return early
-		if lastCachedWindow.Equal(*cacheableQueryMeter.To) {
+		if lastCachedWindowEnd.Equal(*cacheableQueryMeter.To) {
 			c.config.Logger.Debug("no new rows to query for cache period, returning cached data", "count", len(values))
 
 			return createRemainingQuery(cacheableQueryMeter), values, nil
@@ -115,6 +121,7 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	}
 
 	// Step 2: Query new rows for the uncached time period
+	// If there is no cached data found, we query the entire time period
 	newRows, err := c.queryMeter(ctx, cacheableQueryMeter)
 	if err != nil {
 		return originalQueryMeter, values, fmt.Errorf("query new meter rows: %w", err)
