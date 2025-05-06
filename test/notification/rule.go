@@ -18,10 +18,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func NewCreateRuleInput(name string, channels ...string) notification.CreateRuleInput {
+func NewCreateRuleInput(namespace string, name string, channels ...string) notification.CreateRuleInput {
 	return notification.CreateRuleInput{
 		NamespacedModel: models.NamespacedModel{
-			Namespace: TestNamespace,
+			Namespace: namespace,
 		},
 		Type:     notification.EventTypeBalanceThreshold,
 		Name:     name,
@@ -65,7 +65,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 			ManagedResource: models.ManagedResource{
 				ID: ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
 				NamespacedModel: models.NamespacedModel{
-					Namespace: TestNamespace,
+					Namespace: s.Env.Namespace(),
 				},
 				ManagedModel: models.ManagedModel{
 					CreatedAt: time.Now(),
@@ -87,12 +87,12 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 	require.NoError(t, err, "Replacing meters must not return error")
 
 	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-		Namespace: TestNamespace,
+		Namespace: s.Env.Namespace(),
 		IDOrSlug:  TestMeterSlug,
 	})
 	require.NoError(t, err, "Getting meter must not return error")
 
-	feat, err := s.Env.Feature().GetFeature(ctx, TestNamespace, TestFeatureKey, false)
+	feat, err := s.Env.Feature().GetFeature(ctx, s.Env.Namespace(), TestFeatureKey, false)
 	if _, ok := lo.ErrorsAs[*feature.FeatureNotFoundError](err); !ok {
 		require.NoError(t, err, "Getting feature must not return error")
 	}
@@ -102,14 +102,14 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 		s.feature, err = s.Env.Feature().CreateFeature(ctx, feature.CreateFeatureInputs{
 			Name:                TestFeatureName,
 			Key:                 TestFeatureKey,
-			Namespace:           TestNamespace,
+			Namespace:           s.Env.Namespace(),
 			MeterSlug:           convert.ToPointer(meter.Key),
 			MeterGroupByFilters: meter.GroupBy,
 		})
 	}
 	require.NoError(t, err, "Creating feature must not return error")
 
-	input := NewCreateChannelInput("NotificationRuleTest")
+	input := NewCreateChannelInput(s.Env.Namespace(), "NotificationRuleTest")
 
 	channel, err := service.CreateChannel(ctx, input)
 	require.NoError(t, err, "Creating channel must not return error")
@@ -129,12 +129,12 @@ func (s *RuleTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	}{
 		{
 			Name:     "WithoutFeature",
-			CreateIn: NewCreateRuleInput("NotificationCreateRuleWithoutFeature", s.channel.ID),
+			CreateIn: NewCreateRuleInput(s.Env.Namespace(), "NotificationCreateRuleWithoutFeature", s.channel.ID),
 		},
 		{
 			Name: "WithFeature",
 			CreateIn: func() notification.CreateRuleInput {
-				createIn := NewCreateRuleInput("NotificationCreateRuleWithFeature", s.channel.ID)
+				createIn := NewCreateRuleInput(s.Env.Namespace(), "NotificationCreateRuleWithFeature", s.channel.ID)
 				createIn.Config.BalanceThreshold.Features = []string{s.feature.Key}
 
 				return createIn

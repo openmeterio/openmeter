@@ -34,6 +34,7 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "Namespace"),
 	// Notification
 	wire.FieldsOf(new(config.Configuration), "Notification"),
+	wire.FieldsOf(new(config.NotificationConfiguration), "Webhook"),
 	// Portal
 	wire.FieldsOf(new(config.Configuration), "Portal"),
 	// ProductCatalog

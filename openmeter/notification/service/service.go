@@ -36,14 +36,14 @@ func (s Service) Close() error {
 type Config struct {
 	FeatureConnector feature.FeatureConnector
 
-	Repository notification.Repository
-	Webhook    webhook.Handler
+	Adapter notification.Repository
+	Webhook webhook.Handler
 
 	Logger *slog.Logger
 }
 
 func New(config Config) (*Service, error) {
-	if config.Repository == nil {
+	if config.Adapter == nil {
 		return nil, errors.New("missing repository")
 	}
 
@@ -60,7 +60,7 @@ func New(config Config) (*Service, error) {
 	}
 
 	eventHandler, err := eventhandler.New(eventhandler.Config{
-		Repository: config.Repository,
+		Repository: config.Adapter,
 		Webhook:    config.Webhook,
 		Logger:     config.Logger,
 	})
@@ -73,7 +73,7 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		adapter:      config.Repository,
+		adapter:      config.Adapter,
 		feature:      config.FeatureConnector,
 		webhook:      config.Webhook,
 		eventHandler: eventHandler,
