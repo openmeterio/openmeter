@@ -378,6 +378,6 @@ func TestDedupeQueryRows(t *testing.T) {
 
 	// Test duplicates with inconsistent value
 	rows[0].Value = 20
-	deduplicatedRows, err = dedupeQueryRows(rows, []string{group1Key, group2Key})
+	_, err = dedupeQueryRows(rows, []string{group1Key, group2Key})
 	require.Error(t, err)
 }

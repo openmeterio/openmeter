@@ -130,6 +130,8 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	values = append(values, newRows...)
 
 	// Step 3: Cache the new results
+	// Results can be double cached in the case of parallel queries to handle this,
+	// we deduplicate the results while retrieving them from the cache
 	if len(newRows) > 0 {
 		if err := c.storeCachedMeterRows(ctx, hash, cacheableQueryMeter, newRows); err != nil {
 			// Log the error but don't fail the query
