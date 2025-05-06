@@ -58,11 +58,11 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 					},
 				),
 
-				IssuedAfter:     input.IssuedAfter,
-				IssuedBefore:    input.IssuedBefore,
-				CreatedAtAfter:  input.CreatedAfter,
-				CreatedAtBefore: input.CreatedBefore,
-				Expand:          mapInvoiceExpandToEntity(lo.FromPtr(input.Expand)).SetRecalculateGatheringInvoice(true),
+				IssuedAfter:   input.IssuedAfter,
+				IssuedBefore:  input.IssuedBefore,
+				CreatedAfter:  input.CreatedAfter,
+				CreatedBefore: input.CreatedBefore,
+				Expand:        mapInvoiceExpandToEntity(lo.FromPtr(input.Expand)).SetRecalculateGatheringInvoice(true),
 
 				Order:   sortx.Order(lo.FromPtrOr(input.Order, api.InvoiceOrderByOrderingOrder(sortx.OrderDefault))),
 				OrderBy: lo.FromPtr(input.OrderBy),

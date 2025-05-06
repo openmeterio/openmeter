@@ -649,8 +649,8 @@ type ListInvoicesInput struct {
 	IssuedBefore *time.Time
 
 	// Filter by invoice creation time
-	CreatedAtAfter  *time.Time
-	CreatedAtBefore *time.Time
+	CreatedAfter  *time.Time
+	CreatedBefore *time.Time
 
 	IncludeDeleted bool
 
@@ -675,8 +675,8 @@ func (i ListInvoicesInput) Validate() error {
 		return errors.New("issuedAfter must be before issuedBefore")
 	}
 
-	if i.CreatedAtAfter != nil && i.CreatedAtBefore != nil && i.CreatedAtAfter.After(*i.CreatedAtBefore) {
-		return errors.New("createdAtAfter must be before createdAtBefore")
+	if i.CreatedAfter != nil && i.CreatedBefore != nil && i.CreatedAfter.After(*i.CreatedBefore) {
+		return errors.New("createdAfter must be before createdBefore")
 	}
 
 	if err := i.Expand.Validate(); err != nil {
