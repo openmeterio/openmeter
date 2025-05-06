@@ -371,7 +371,13 @@ func TestDedupeQueryRows(t *testing.T) {
 		},
 	}
 
-	deduplicatedRows := dedupeQueryRows(rows, []string{group1Key, group2Key})
+	deduplicatedRows, err := dedupeQueryRows(rows, []string{group1Key, group2Key})
+	require.NoError(t, err)
 
 	assert.Equal(t, 3, len(deduplicatedRows))
+
+	// Test duplicates with inconsistent value
+	rows[0].Value = 20
+	deduplicatedRows, err = dedupeQueryRows(rows, []string{group1Key, group2Key})
+	require.Error(t, err)
 }

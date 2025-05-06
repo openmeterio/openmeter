@@ -89,20 +89,24 @@ func createGroupKeyFromRow(row meterpkg.MeterQueryRow, groupByFields []string) s
 }
 
 // dedupeQueryRows deduplicates rows based on group key
-func dedupeQueryRows(rows []meterpkg.MeterQueryRow, groupByFields []string) []meterpkg.MeterQueryRow {
+func dedupeQueryRows(rows []meterpkg.MeterQueryRow, groupByFields []string) ([]meterpkg.MeterQueryRow, error) {
 	deduplicatedValues := []meterpkg.MeterQueryRow{}
-	seen := map[string]struct{}{}
+	seen := map[string]meterpkg.MeterQueryRow{}
 
-	for _, value := range rows {
-		key := createGroupKeyFromRow(value, groupByFields)
+	for _, row := range rows {
+		key := createGroupKeyFromRow(row, groupByFields)
 
 		if _, ok := seen[key]; !ok {
-			deduplicatedValues = append(deduplicatedValues, value)
-			seen[key] = struct{}{}
+			deduplicatedValues = append(deduplicatedValues, row)
+			seen[key] = row
+		} else {
+			if row.Value != seen[key].Value {
+				return nil, fmt.Errorf("duplicate row found with different value: %s", key)
+			}
 		}
 	}
 
-	return deduplicatedValues
+	return deduplicatedValues, nil
 }
 
 // aggregateRowsByAggregationType combines rows into a single row based on the meter aggregation type
