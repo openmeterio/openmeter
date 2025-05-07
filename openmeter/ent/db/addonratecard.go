@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
@@ -52,6 +53,8 @@ type AddonRateCard struct {
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
+	// RatecardID holds the value of the "ratecard_id" field.
+	RatecardID string `json:"ratecard_id,omitempty"`
 	// The add-on identifier the ratecard is assigned to.
 	AddonID string `json:"addon_id,omitempty"`
 	// The feature identifier the ratecard is related to.
@@ -64,13 +67,26 @@ type AddonRateCard struct {
 
 // AddonRateCardEdges holds the relations/edges for other nodes in the graph.
 type AddonRateCardEdges struct {
+	// Ratecard holds the value of the ratecard edge.
+	Ratecard *RateCard `json:"ratecard,omitempty"`
 	// Addon holds the value of the addon edge.
 	Addon *Addon `json:"addon,omitempty"`
 	// Features holds the value of the features edge.
 	Features *Feature `json:"features,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
+}
+
+// RatecardOrErr returns the Ratecard value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e AddonRateCardEdges) RatecardOrErr() (*RateCard, error) {
+	if e.Ratecard != nil {
+		return e.Ratecard, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: ratecard.Label}
+	}
+	return nil, &NotLoadedError{edge: "ratecard"}
 }
 
 // AddonOrErr returns the Addon value or an error if the edge
@@ -78,7 +94,7 @@ type AddonRateCardEdges struct {
 func (e AddonRateCardEdges) AddonOrErr() (*Addon, error) {
 	if e.Addon != nil {
 		return e.Addon, nil
-	} else if e.loadedTypes[0] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: addon.Label}
 	}
 	return nil, &NotLoadedError{edge: "addon"}
@@ -89,7 +105,7 @@ func (e AddonRateCardEdges) AddonOrErr() (*Addon, error) {
 func (e AddonRateCardEdges) FeaturesOrErr() (*Feature, error) {
 	if e.Features != nil {
 		return e.Features, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: feature.Label}
 	}
 	return nil, &NotLoadedError{edge: "features"}
@@ -102,7 +118,7 @@ func (*AddonRateCard) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case addonratecard.FieldMetadata:
 			values[i] = new([]byte)
-		case addonratecard.FieldID, addonratecard.FieldNamespace, addonratecard.FieldName, addonratecard.FieldDescription, addonratecard.FieldKey, addonratecard.FieldType, addonratecard.FieldFeatureKey, addonratecard.FieldBillingCadence, addonratecard.FieldAddonID, addonratecard.FieldFeatureID:
+		case addonratecard.FieldID, addonratecard.FieldNamespace, addonratecard.FieldName, addonratecard.FieldDescription, addonratecard.FieldKey, addonratecard.FieldType, addonratecard.FieldFeatureKey, addonratecard.FieldBillingCadence, addonratecard.FieldRatecardID, addonratecard.FieldAddonID, addonratecard.FieldFeatureID:
 			values[i] = new(sql.NullString)
 		case addonratecard.FieldCreatedAt, addonratecard.FieldUpdatedAt, addonratecard.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -231,6 +247,12 @@ func (arc *AddonRateCard) assignValues(columns []string, values []any) error {
 			} else {
 				arc.Discounts = value
 			}
+		case addonratecard.FieldRatecardID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ratecard_id", values[i])
+			} else if value.Valid {
+				arc.RatecardID = value.String
+			}
 		case addonratecard.FieldAddonID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field addon_id", values[i])
@@ -255,6 +277,11 @@ func (arc *AddonRateCard) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (arc *AddonRateCard) Value(name string) (ent.Value, error) {
 	return arc.selectValues.Get(name)
+}
+
+// QueryRatecard queries the "ratecard" edge of the AddonRateCard entity.
+func (arc *AddonRateCard) QueryRatecard() *RateCardQuery {
+	return NewAddonRateCardClient(arc.config).QueryRatecard(arc)
 }
 
 // QueryAddon queries the "addon" edge of the AddonRateCard entity.
@@ -350,6 +377,9 @@ func (arc *AddonRateCard) String() string {
 		builder.WriteString("discounts=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("ratecard_id=")
+	builder.WriteString(arc.RatecardID)
 	builder.WriteString(", ")
 	builder.WriteString("addon_id=")
 	builder.WriteString(arc.AddonID)

@@ -1,4 +1,4 @@
-h1:JpP1Cx+kp6WzfJDwrc/G3ZZP1OGtWgFD00XSewJJp2o=
+h1:AeZgDo84WpfzTTqrjlD6G9hcs9zxpFq39DR8SF9Jqhs=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -185,3 +185,7 @@ h1:JpP1Cx+kp6WzfJDwrc/G3ZZP1OGtWgFD00XSewJJp2o=
 20250422174622_rename-custominvoicing-settings.up.sql h1:LOD/GL4h7npzrzVj4oe8wuXgWVKqpKGExKMPDh6cm/I=
 20250424160933_boolean-entitlement-count-annotation.down.sql h1:Kfppxj1Xqr9RFpo1+bG2ZnwAuV+Sc1iJLwEQxzxUnUo=
 20250424160933_boolean-entitlement-count-annotation.up.sql h1:CzlS0AexXMvrwU16u787Wk1iQcOOocrRwCM72TIRTgQ=
+20250506140848_ratecard-table.down.sql h1:KvqOtSSqXn70ZwrM4msrFksxWR7kbFQP6C3e0787ed4=
+20250506140848_ratecard-table.up.sql h1:tDwsFxXcj30c8MHP31pCuSLDNcCYgN7ByEVpP28ESxg=
+20250506141154_migrate-ratecards.down.sql h1:s33hrEC2KKyCGQGUoHLSw9rkQPsoXPLFsI9frGX5EfE=
+20250506141154_migrate-ratecards.up.sql h1:DurbD07Xkni3GLdkYVFq8dlWnSA4/Gup94jvB0rZsFY=

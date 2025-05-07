@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
@@ -192,6 +193,26 @@ func (arcu *AddonRateCardUpdate) ClearDiscounts() *AddonRateCardUpdate {
 	return arcu
 }
 
+// SetRatecardID sets the "ratecard_id" field.
+func (arcu *AddonRateCardUpdate) SetRatecardID(s string) *AddonRateCardUpdate {
+	arcu.mutation.SetRatecardID(s)
+	return arcu
+}
+
+// SetNillableRatecardID sets the "ratecard_id" field if the given value is not nil.
+func (arcu *AddonRateCardUpdate) SetNillableRatecardID(s *string) *AddonRateCardUpdate {
+	if s != nil {
+		arcu.SetRatecardID(*s)
+	}
+	return arcu
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (arcu *AddonRateCardUpdate) ClearRatecardID() *AddonRateCardUpdate {
+	arcu.mutation.ClearRatecardID()
+	return arcu
+}
+
 // SetAddonID sets the "addon_id" field.
 func (arcu *AddonRateCardUpdate) SetAddonID(s string) *AddonRateCardUpdate {
 	arcu.mutation.SetAddonID(s)
@@ -226,6 +247,11 @@ func (arcu *AddonRateCardUpdate) ClearFeatureID() *AddonRateCardUpdate {
 	return arcu
 }
 
+// SetRatecard sets the "ratecard" edge to the RateCard entity.
+func (arcu *AddonRateCardUpdate) SetRatecard(r *RateCard) *AddonRateCardUpdate {
+	return arcu.SetRatecardID(r.ID)
+}
+
 // SetAddon sets the "addon" edge to the Addon entity.
 func (arcu *AddonRateCardUpdate) SetAddon(a *Addon) *AddonRateCardUpdate {
 	return arcu.SetAddonID(a.ID)
@@ -253,6 +279,12 @@ func (arcu *AddonRateCardUpdate) SetFeatures(f *Feature) *AddonRateCardUpdate {
 // Mutation returns the AddonRateCardMutation object of the builder.
 func (arcu *AddonRateCardUpdate) Mutation() *AddonRateCardMutation {
 	return arcu.mutation
+}
+
+// ClearRatecard clears the "ratecard" edge to the RateCard entity.
+func (arcu *AddonRateCardUpdate) ClearRatecard() *AddonRateCardUpdate {
+	arcu.mutation.ClearRatecard()
+	return arcu
 }
 
 // ClearAddon clears the "addon" edge to the Addon entity.
@@ -323,6 +355,11 @@ func (arcu *AddonRateCardUpdate) check() error {
 	if v, ok := arcu.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.discounts": %w`, err)}
+		}
+	}
+	if v, ok := arcu.mutation.RatecardID(); ok {
+		if err := addonratecard.RatecardIDValidator(v); err != nil {
+			return &ValidationError{Name: "ratecard_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.ratecard_id": %w`, err)}
 		}
 	}
 	if v, ok := arcu.mutation.AddonID(); ok {
@@ -423,6 +460,35 @@ func (arcu *AddonRateCardUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if arcu.mutation.DiscountsCleared() {
 		_spec.ClearField(addonratecard.FieldDiscounts, field.TypeString)
+	}
+	if arcu.mutation.RatecardCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   addonratecard.RatecardTable,
+			Columns: []string{addonratecard.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := arcu.mutation.RatecardIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   addonratecard.RatecardTable,
+			Columns: []string{addonratecard.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if arcu.mutation.AddonCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -662,6 +728,26 @@ func (arcuo *AddonRateCardUpdateOne) ClearDiscounts() *AddonRateCardUpdateOne {
 	return arcuo
 }
 
+// SetRatecardID sets the "ratecard_id" field.
+func (arcuo *AddonRateCardUpdateOne) SetRatecardID(s string) *AddonRateCardUpdateOne {
+	arcuo.mutation.SetRatecardID(s)
+	return arcuo
+}
+
+// SetNillableRatecardID sets the "ratecard_id" field if the given value is not nil.
+func (arcuo *AddonRateCardUpdateOne) SetNillableRatecardID(s *string) *AddonRateCardUpdateOne {
+	if s != nil {
+		arcuo.SetRatecardID(*s)
+	}
+	return arcuo
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (arcuo *AddonRateCardUpdateOne) ClearRatecardID() *AddonRateCardUpdateOne {
+	arcuo.mutation.ClearRatecardID()
+	return arcuo
+}
+
 // SetAddonID sets the "addon_id" field.
 func (arcuo *AddonRateCardUpdateOne) SetAddonID(s string) *AddonRateCardUpdateOne {
 	arcuo.mutation.SetAddonID(s)
@@ -696,6 +782,11 @@ func (arcuo *AddonRateCardUpdateOne) ClearFeatureID() *AddonRateCardUpdateOne {
 	return arcuo
 }
 
+// SetRatecard sets the "ratecard" edge to the RateCard entity.
+func (arcuo *AddonRateCardUpdateOne) SetRatecard(r *RateCard) *AddonRateCardUpdateOne {
+	return arcuo.SetRatecardID(r.ID)
+}
+
 // SetAddon sets the "addon" edge to the Addon entity.
 func (arcuo *AddonRateCardUpdateOne) SetAddon(a *Addon) *AddonRateCardUpdateOne {
 	return arcuo.SetAddonID(a.ID)
@@ -723,6 +814,12 @@ func (arcuo *AddonRateCardUpdateOne) SetFeatures(f *Feature) *AddonRateCardUpdat
 // Mutation returns the AddonRateCardMutation object of the builder.
 func (arcuo *AddonRateCardUpdateOne) Mutation() *AddonRateCardMutation {
 	return arcuo.mutation
+}
+
+// ClearRatecard clears the "ratecard" edge to the RateCard entity.
+func (arcuo *AddonRateCardUpdateOne) ClearRatecard() *AddonRateCardUpdateOne {
+	arcuo.mutation.ClearRatecard()
+	return arcuo
 }
 
 // ClearAddon clears the "addon" edge to the Addon entity.
@@ -806,6 +903,11 @@ func (arcuo *AddonRateCardUpdateOne) check() error {
 	if v, ok := arcuo.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.discounts": %w`, err)}
+		}
+	}
+	if v, ok := arcuo.mutation.RatecardID(); ok {
+		if err := addonratecard.RatecardIDValidator(v); err != nil {
+			return &ValidationError{Name: "ratecard_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.ratecard_id": %w`, err)}
 		}
 	}
 	if v, ok := arcuo.mutation.AddonID(); ok {
@@ -923,6 +1025,35 @@ func (arcuo *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonR
 	}
 	if arcuo.mutation.DiscountsCleared() {
 		_spec.ClearField(addonratecard.FieldDiscounts, field.TypeString)
+	}
+	if arcuo.mutation.RatecardCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   addonratecard.RatecardTable,
+			Columns: []string{addonratecard.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := arcuo.mutation.RatecardIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   addonratecard.RatecardTable,
+			Columns: []string{addonratecard.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if arcuo.mutation.AddonCleared() {
 		edge := &sqlgraph.EdgeSpec{

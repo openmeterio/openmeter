@@ -232,6 +232,20 @@ func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
 	}
 }
 
+// RateCard is the predicate function for ratecard builders.
+type RateCard func(*sql.Selector)
+
+// RateCardOrErr calls the predicate only if the error is not nit.
+func RateCardOrErr(p RateCard, err error) RateCard {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // Subscription is the predicate function for subscription builders.
 type Subscription func(*sql.Selector)
 

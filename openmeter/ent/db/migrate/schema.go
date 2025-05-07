@@ -93,6 +93,7 @@ var (
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "addon_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "ratecard_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// AddonRateCardsTable holds the schema information for the "addon_rate_cards" table.
 	AddonRateCardsTable = &schema.Table{
@@ -110,6 +111,12 @@ var (
 				Symbol:     "addon_rate_cards_features_addon_ratecard",
 				Columns:    []*schema.Column{AddonRateCardsColumns[17]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "addon_rate_cards_rate_cards_addon_ratecard",
+				Columns:    []*schema.Column{AddonRateCardsColumns[18]},
+				RefColumns: []*schema.Column{RateCardsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -1918,6 +1925,7 @@ var (
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "phase_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "ratecard_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// PlanRateCardsTable holds the schema information for the "plan_rate_cards" table.
 	PlanRateCardsTable = &schema.Table{
@@ -1926,7 +1934,7 @@ var (
 		PrimaryKey: []*schema.Column{PlanRateCardsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "plan_rate_cards_features_ratecard",
+				Symbol:     "plan_rate_cards_features_plan_ratecard",
 				Columns:    []*schema.Column{PlanRateCardsColumns[16]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.SetNull,
@@ -1936,6 +1944,12 @@ var (
 				Columns:    []*schema.Column{PlanRateCardsColumns[17]},
 				RefColumns: []*schema.Column{PlanPhasesColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "plan_rate_cards_rate_cards_plan_ratecard",
+				Columns:    []*schema.Column{PlanRateCardsColumns[18]},
+				RefColumns: []*schema.Column{RateCardsColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -1974,6 +1988,69 @@ var (
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
+			},
+		},
+	}
+	// RateCardsColumns holds the columns for the "rate_cards" table.
+	RateCardsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "entitlement_template_entitlement_type", Type: field.TypeEnum, Enums: []string{"metered", "static", "boolean"}},
+		{Name: "entitlement_template_metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "entitlement_template_is_soft_limit", Type: field.TypeBool, Nullable: true},
+		{Name: "entitlement_template_issue_after_reset", Type: field.TypeFloat64, Nullable: true},
+		{Name: "entitlement_template_issue_after_reset_priority", Type: field.TypeUint8, Nullable: true},
+		{Name: "entitlement_template_preserve_overage_at_reset", Type: field.TypeBool, Nullable: true},
+		{Name: "entitlement_template_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "entitlement_template_usage_period", Type: field.TypeString, Nullable: true},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"flat_fee", "usage_based"}},
+		{Name: "feature_key", Type: field.TypeString, Nullable: true},
+		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
+		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// RateCardsTable holds the schema information for the "rate_cards" table.
+	RateCardsTable = &schema.Table{
+		Name:       "rate_cards",
+		Columns:    RateCardsColumns,
+		PrimaryKey: []*schema.Column{RateCardsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "rate_cards_features_ratecards",
+				Columns:    []*schema.Column{RateCardsColumns[23]},
+				RefColumns: []*schema.Column{FeaturesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ratecard_id",
+				Unique:  true,
+				Columns: []*schema.Column{RateCardsColumns[0]},
+			},
+			{
+				Name:    "ratecard_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{RateCardsColumns[1]},
+			},
+			{
+				Name:    "ratecard_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{RateCardsColumns[1], RateCardsColumns[0]},
+			},
+			{
+				Name:    "ratecard_namespace_key_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{RateCardsColumns[1], RateCardsColumns[8], RateCardsColumns[5]},
 			},
 		},
 	}
@@ -2145,6 +2222,7 @@ var (
 		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "entitlement_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "ratecard_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "phase_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// SubscriptionItemsTable holds the schema information for the "subscription_items" table.
@@ -2160,8 +2238,14 @@ var (
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "subscription_items_subscription_phases_items",
+				Symbol:     "subscription_items_rate_cards_subscription_item",
 				Columns:    []*schema.Column{SubscriptionItemsColumns[22]},
+				RefColumns: []*schema.Column{RateCardsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "subscription_items_subscription_phases_items",
+				Columns:    []*schema.Column{SubscriptionItemsColumns[23]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2185,7 +2269,7 @@ var (
 			{
 				Name:    "subscriptionitem_namespace_phase_id_key",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionItemsColumns[1], SubscriptionItemsColumns[22], SubscriptionItemsColumns[9]},
+				Columns: []*schema.Column{SubscriptionItemsColumns[1], SubscriptionItemsColumns[23], SubscriptionItemsColumns[9]},
 			},
 		},
 	}
@@ -2378,6 +2462,7 @@ var (
 		PlanAddonsTable,
 		PlanPhasesTable,
 		PlanRateCardsTable,
+		RateCardsTable,
 		SubscriptionsTable,
 		SubscriptionAddonsTable,
 		SubscriptionAddonQuantitiesTable,
@@ -2392,6 +2477,7 @@ var (
 func init() {
 	AddonRateCardsTable.ForeignKeys[0].RefTable = AddonsTable
 	AddonRateCardsTable.ForeignKeys[1].RefTable = FeaturesTable
+	AddonRateCardsTable.ForeignKeys[2].RefTable = RateCardsTable
 	AppCustomInvoicingsTable.ForeignKeys[0].RefTable = AppsTable
 	AppCustomInvoicingCustomersTable.ForeignKeys[0].RefTable = AppCustomInvoicingsTable
 	AppCustomInvoicingCustomersTable.ForeignKeys[1].RefTable = CustomersTable
@@ -2432,13 +2518,16 @@ func init() {
 	PlanPhasesTable.ForeignKeys[0].RefTable = PlansTable
 	PlanRateCardsTable.ForeignKeys[0].RefTable = FeaturesTable
 	PlanRateCardsTable.ForeignKeys[1].RefTable = PlanPhasesTable
+	PlanRateCardsTable.ForeignKeys[2].RefTable = RateCardsTable
+	RateCardsTable.ForeignKeys[0].RefTable = FeaturesTable
 	SubscriptionsTable.ForeignKeys[0].RefTable = CustomersTable
 	SubscriptionsTable.ForeignKeys[1].RefTable = PlansTable
 	SubscriptionAddonsTable.ForeignKeys[0].RefTable = AddonsTable
 	SubscriptionAddonsTable.ForeignKeys[1].RefTable = SubscriptionsTable
 	SubscriptionAddonQuantitiesTable.ForeignKeys[0].RefTable = SubscriptionAddonsTable
 	SubscriptionItemsTable.ForeignKeys[0].RefTable = EntitlementsTable
-	SubscriptionItemsTable.ForeignKeys[1].RefTable = SubscriptionPhasesTable
+	SubscriptionItemsTable.ForeignKeys[1].RefTable = RateCardsTable
+	SubscriptionItemsTable.ForeignKeys[2].RefTable = SubscriptionPhasesTable
 	SubscriptionPhasesTable.ForeignKeys[0].RefTable = SubscriptionsTable
 	UsageResetsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationChannelRulesTable.ForeignKeys[0].RefTable = NotificationChannelsTable

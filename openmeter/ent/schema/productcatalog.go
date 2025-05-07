@@ -131,9 +131,10 @@ func (PlanRateCard) Mixin() []ent.Mixin {
 }
 
 func (PlanRateCard) Fields() []ent.Field {
-	fields := RateCard{}.Fields() // We have to use it like so due to some ent/runtime.go bug
+	fields := RateCardMixin{}.Fields() // We have to use it like so due to some ent/runtime.go bug
 
 	fields = append(fields,
+		field.String("ratecard_id").NotEmpty().Optional(),
 		field.String("phase_id").
 			NotEmpty().
 			Comment("The phase identifier the ratecard is assigned to."),
@@ -148,13 +149,20 @@ func (PlanRateCard) Fields() []ent.Field {
 
 func (PlanRateCard) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.From("ratecard", RateCard.Type).
+			Ref("plan_ratecard").
+			Field("ratecard_id").
+			Unique().
+			Annotations(entsql.Annotation{
+				OnDelete: entsql.Cascade,
+			}),
 		edge.From("phase", PlanPhase.Type).
 			Ref("ratecards").
 			Field("phase_id").
 			Required().
 			Unique(),
 		edge.From("features", Feature.Type).
-			Ref("ratecard").
+			Ref("plan_ratecard").
 			Field("feature_id").
 			Unique(),
 	}

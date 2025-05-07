@@ -429,6 +429,18 @@ func (f PlanRateCardFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.PlanRateCardMutation", m)
 }
 
+// The RateCardFunc type is an adapter to allow the use of ordinary
+// function as RateCard mutator.
+type RateCardFunc func(context.Context, *db.RateCardMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RateCardFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.RateCardMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RateCardMutation", m)
+}
+
 // The SubscriptionFunc type is an adapter to allow the use of ordinary
 // function as Subscription mutator.
 type SubscriptionFunc func(context.Context, *db.SubscriptionMutation) (db.Value, error)

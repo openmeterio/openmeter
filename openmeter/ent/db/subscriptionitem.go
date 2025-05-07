@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -66,6 +67,8 @@ type SubscriptionItem struct {
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
+	// RatecardID holds the value of the "ratecard_id" field.
+	RatecardID string `json:"ratecard_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionItemQuery when eager-loading is set.
 	Edges        SubscriptionItemEdges `json:"edges"`
@@ -78,11 +81,13 @@ type SubscriptionItemEdges struct {
 	Phase *SubscriptionPhase `json:"phase,omitempty"`
 	// Entitlement holds the value of the entitlement edge.
 	Entitlement *Entitlement `json:"entitlement,omitempty"`
+	// Ratecard holds the value of the ratecard edge.
+	Ratecard *RateCard `json:"ratecard,omitempty"`
 	// BillingLines holds the value of the billing_lines edge.
 	BillingLines []*BillingInvoiceLine `json:"billing_lines,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // PhaseOrErr returns the Phase value or an error if the edge
@@ -107,10 +112,21 @@ func (e SubscriptionItemEdges) EntitlementOrErr() (*Entitlement, error) {
 	return nil, &NotLoadedError{edge: "entitlement"}
 }
 
+// RatecardOrErr returns the Ratecard value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e SubscriptionItemEdges) RatecardOrErr() (*RateCard, error) {
+	if e.Ratecard != nil {
+		return e.Ratecard, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: ratecard.Label}
+	}
+	return nil, &NotLoadedError{edge: "ratecard"}
+}
+
 // BillingLinesOrErr returns the BillingLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionItemEdges) BillingLinesOrErr() ([]*BillingInvoiceLine, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.BillingLines, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_lines"}
@@ -125,7 +141,7 @@ func (*SubscriptionItem) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case subscriptionitem.FieldRestartsBillingPeriod:
 			values[i] = new(sql.NullBool)
-		case subscriptionitem.FieldID, subscriptionitem.FieldNamespace, subscriptionitem.FieldPhaseID, subscriptionitem.FieldKey, subscriptionitem.FieldEntitlementID, subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart, subscriptionitem.FieldName, subscriptionitem.FieldDescription, subscriptionitem.FieldFeatureKey, subscriptionitem.FieldBillingCadence:
+		case subscriptionitem.FieldID, subscriptionitem.FieldNamespace, subscriptionitem.FieldPhaseID, subscriptionitem.FieldKey, subscriptionitem.FieldEntitlementID, subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart, subscriptionitem.FieldName, subscriptionitem.FieldDescription, subscriptionitem.FieldFeatureKey, subscriptionitem.FieldBillingCadence, subscriptionitem.FieldRatecardID:
 			values[i] = new(sql.NullString)
 		case subscriptionitem.FieldCreatedAt, subscriptionitem.FieldUpdatedAt, subscriptionitem.FieldDeletedAt, subscriptionitem.FieldActiveFrom, subscriptionitem.FieldActiveTo:
 			values[i] = new(sql.NullTime)
@@ -303,6 +319,12 @@ func (si *SubscriptionItem) assignValues(columns []string, values []any) error {
 			} else {
 				si.Discounts = value
 			}
+		case subscriptionitem.FieldRatecardID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ratecard_id", values[i])
+			} else if value.Valid {
+				si.RatecardID = value.String
+			}
 		default:
 			si.selectValues.Set(columns[i], values[i])
 		}
@@ -324,6 +346,11 @@ func (si *SubscriptionItem) QueryPhase() *SubscriptionPhaseQuery {
 // QueryEntitlement queries the "entitlement" edge of the SubscriptionItem entity.
 func (si *SubscriptionItem) QueryEntitlement() *EntitlementQuery {
 	return NewSubscriptionItemClient(si.config).QueryEntitlement(si)
+}
+
+// QueryRatecard queries the "ratecard" edge of the SubscriptionItem entity.
+func (si *SubscriptionItem) QueryRatecard() *RateCardQuery {
+	return NewSubscriptionItemClient(si.config).QueryRatecard(si)
 }
 
 // QueryBillingLines queries the "billing_lines" edge of the SubscriptionItem entity.
@@ -445,6 +472,9 @@ func (si *SubscriptionItem) String() string {
 		builder.WriteString("discounts=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("ratecard_id=")
+	builder.WriteString(si.RatecardID)
 	builder.WriteByte(')')
 	return builder.String()
 }

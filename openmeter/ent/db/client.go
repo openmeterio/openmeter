@@ -50,6 +50,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
@@ -135,6 +136,8 @@ type Client struct {
 	PlanPhase *PlanPhaseClient
 	// PlanRateCard is the client for interacting with the PlanRateCard builders.
 	PlanRateCard *PlanRateCardClient
+	// RateCard is the client for interacting with the RateCard builders.
+	RateCard *RateCardClient
 	// Subscription is the client for interacting with the Subscription builders.
 	Subscription *SubscriptionClient
 	// SubscriptionAddon is the client for interacting with the SubscriptionAddon builders.
@@ -193,6 +196,7 @@ func (c *Client) init() {
 	c.PlanAddon = NewPlanAddonClient(c.config)
 	c.PlanPhase = NewPlanPhaseClient(c.config)
 	c.PlanRateCard = NewPlanRateCardClient(c.config)
+	c.RateCard = NewRateCardClient(c.config)
 	c.Subscription = NewSubscriptionClient(c.config)
 	c.SubscriptionAddon = NewSubscriptionAddonClient(c.config)
 	c.SubscriptionAddonQuantity = NewSubscriptionAddonQuantityClient(c.config)
@@ -326,6 +330,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PlanAddon:                          NewPlanAddonClient(cfg),
 		PlanPhase:                          NewPlanPhaseClient(cfg),
 		PlanRateCard:                       NewPlanRateCardClient(cfg),
+		RateCard:                           NewRateCardClient(cfg),
 		Subscription:                       NewSubscriptionClient(cfg),
 		SubscriptionAddon:                  NewSubscriptionAddonClient(cfg),
 		SubscriptionAddonQuantity:          NewSubscriptionAddonQuantityClient(cfg),
@@ -386,6 +391,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PlanAddon:                          NewPlanAddonClient(cfg),
 		PlanPhase:                          NewPlanPhaseClient(cfg),
 		PlanRateCard:                       NewPlanRateCardClient(cfg),
+		RateCard:                           NewRateCardClient(cfg),
 		Subscription:                       NewSubscriptionClient(cfg),
 		SubscriptionAddon:                  NewSubscriptionAddonClient(cfg),
 		SubscriptionAddonQuantity:          NewSubscriptionAddonQuantityClient(cfg),
@@ -431,7 +437,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
 		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
 		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
-		c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.RateCard, c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
 		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
 	} {
 		n.Use(hooks...)
@@ -452,7 +458,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
 		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
 		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
-		c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.RateCard, c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
 		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
@@ -532,6 +538,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PlanPhase.mutate(ctx, m)
 	case *PlanRateCardMutation:
 		return c.PlanRateCard.mutate(ctx, m)
+	case *RateCardMutation:
+		return c.RateCard.mutate(ctx, m)
 	case *SubscriptionMutation:
 		return c.Subscription.mutate(ctx, m)
 	case *SubscriptionAddonMutation:
@@ -836,6 +844,22 @@ func (c *AddonRateCardClient) GetX(ctx context.Context, id string) *AddonRateCar
 		panic(err)
 	}
 	return obj
+}
+
+// QueryRatecard queries the ratecard edge of a AddonRateCard.
+func (c *AddonRateCardClient) QueryRatecard(arc *AddonRateCard) *RateCardQuery {
+	query := (&RateCardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := arc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, id),
+			sqlgraph.To(ratecard.Table, ratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, addonratecard.RatecardTable, addonratecard.RatecardColumn),
+		)
+		fromV = sqlgraph.Neighbors(arc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // QueryAddon queries the addon edge of a AddonRateCard.
@@ -4905,15 +4929,15 @@ func (c *FeatureClient) QueryEntitlement(f *Feature) *EntitlementQuery {
 	return query
 }
 
-// QueryRatecard queries the ratecard edge of a Feature.
-func (c *FeatureClient) QueryRatecard(f *Feature) *PlanRateCardQuery {
+// QueryPlanRatecard queries the plan_ratecard edge of a Feature.
+func (c *FeatureClient) QueryPlanRatecard(f *Feature) *PlanRateCardQuery {
 	query := (&PlanRateCardClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := f.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(feature.Table, feature.FieldID, id),
 			sqlgraph.To(planratecard.Table, planratecard.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, feature.RatecardTable, feature.RatecardColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, feature.PlanRatecardTable, feature.PlanRatecardColumn),
 		)
 		fromV = sqlgraph.Neighbors(f.driver.Dialect(), step)
 		return fromV, nil
@@ -4930,6 +4954,22 @@ func (c *FeatureClient) QueryAddonRatecard(f *Feature) *AddonRateCardQuery {
 			sqlgraph.From(feature.Table, feature.FieldID, id),
 			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, feature.AddonRatecardTable, feature.AddonRatecardColumn),
+		)
+		fromV = sqlgraph.Neighbors(f.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRatecards queries the ratecards edge of a Feature.
+func (c *FeatureClient) QueryRatecards(f *Feature) *RateCardQuery {
+	query := (&RateCardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := f.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(feature.Table, feature.FieldID, id),
+			sqlgraph.To(ratecard.Table, ratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, feature.RatecardsTable, feature.RatecardsColumn),
 		)
 		fromV = sqlgraph.Neighbors(f.driver.Dialect(), step)
 		return fromV, nil
@@ -6491,6 +6531,22 @@ func (c *PlanRateCardClient) GetX(ctx context.Context, id string) *PlanRateCard 
 	return obj
 }
 
+// QueryRatecard queries the ratecard edge of a PlanRateCard.
+func (c *PlanRateCardClient) QueryRatecard(prc *PlanRateCard) *RateCardQuery {
+	query := (&RateCardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := prc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(planratecard.Table, planratecard.FieldID, id),
+			sqlgraph.To(ratecard.Table, ratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, planratecard.RatecardTable, planratecard.RatecardColumn),
+		)
+		fromV = sqlgraph.Neighbors(prc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryPhase queries the phase edge of a PlanRateCard.
 func (c *PlanRateCardClient) QueryPhase(prc *PlanRateCard) *PlanPhaseQuery {
 	query := (&PlanPhaseClient{config: c.config}).Query()
@@ -6545,6 +6601,203 @@ func (c *PlanRateCardClient) mutate(ctx context.Context, m *PlanRateCardMutation
 		return (&PlanRateCardDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown PlanRateCard mutation op: %q", m.Op())
+	}
+}
+
+// RateCardClient is a client for the RateCard schema.
+type RateCardClient struct {
+	config
+}
+
+// NewRateCardClient returns a client for the RateCard from the given config.
+func NewRateCardClient(c config) *RateCardClient {
+	return &RateCardClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ratecard.Hooks(f(g(h())))`.
+func (c *RateCardClient) Use(hooks ...Hook) {
+	c.hooks.RateCard = append(c.hooks.RateCard, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ratecard.Intercept(f(g(h())))`.
+func (c *RateCardClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RateCard = append(c.inters.RateCard, interceptors...)
+}
+
+// Create returns a builder for creating a RateCard entity.
+func (c *RateCardClient) Create() *RateCardCreate {
+	mutation := newRateCardMutation(c.config, OpCreate)
+	return &RateCardCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RateCard entities.
+func (c *RateCardClient) CreateBulk(builders ...*RateCardCreate) *RateCardCreateBulk {
+	return &RateCardCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RateCardClient) MapCreateBulk(slice any, setFunc func(*RateCardCreate, int)) *RateCardCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RateCardCreateBulk{err: fmt.Errorf("calling to RateCardClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RateCardCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RateCardCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RateCard.
+func (c *RateCardClient) Update() *RateCardUpdate {
+	mutation := newRateCardMutation(c.config, OpUpdate)
+	return &RateCardUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RateCardClient) UpdateOne(rc *RateCard) *RateCardUpdateOne {
+	mutation := newRateCardMutation(c.config, OpUpdateOne, withRateCard(rc))
+	return &RateCardUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RateCardClient) UpdateOneID(id string) *RateCardUpdateOne {
+	mutation := newRateCardMutation(c.config, OpUpdateOne, withRateCardID(id))
+	return &RateCardUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RateCard.
+func (c *RateCardClient) Delete() *RateCardDelete {
+	mutation := newRateCardMutation(c.config, OpDelete)
+	return &RateCardDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RateCardClient) DeleteOne(rc *RateCard) *RateCardDeleteOne {
+	return c.DeleteOneID(rc.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RateCardClient) DeleteOneID(id string) *RateCardDeleteOne {
+	builder := c.Delete().Where(ratecard.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RateCardDeleteOne{builder}
+}
+
+// Query returns a query builder for RateCard.
+func (c *RateCardClient) Query() *RateCardQuery {
+	return &RateCardQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRateCard},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RateCard entity by its id.
+func (c *RateCardClient) Get(ctx context.Context, id string) (*RateCard, error) {
+	return c.Query().Where(ratecard.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RateCardClient) GetX(ctx context.Context, id string) *RateCard {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAddonRatecard queries the addon_ratecard edge of a RateCard.
+func (c *RateCardClient) QueryAddonRatecard(rc *RateCard) *AddonRateCardQuery {
+	query := (&AddonRateCardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := rc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ratecard.Table, ratecard.FieldID, id),
+			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, ratecard.AddonRatecardTable, ratecard.AddonRatecardColumn),
+		)
+		fromV = sqlgraph.Neighbors(rc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPlanRatecard queries the plan_ratecard edge of a RateCard.
+func (c *RateCardClient) QueryPlanRatecard(rc *RateCard) *PlanRateCardQuery {
+	query := (&PlanRateCardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := rc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ratecard.Table, ratecard.FieldID, id),
+			sqlgraph.To(planratecard.Table, planratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, ratecard.PlanRatecardTable, ratecard.PlanRatecardColumn),
+		)
+		fromV = sqlgraph.Neighbors(rc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionItem queries the subscription_item edge of a RateCard.
+func (c *RateCardClient) QuerySubscriptionItem(rc *RateCard) *SubscriptionItemQuery {
+	query := (&SubscriptionItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := rc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ratecard.Table, ratecard.FieldID, id),
+			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, ratecard.SubscriptionItemTable, ratecard.SubscriptionItemColumn),
+		)
+		fromV = sqlgraph.Neighbors(rc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFeature queries the feature edge of a RateCard.
+func (c *RateCardClient) QueryFeature(rc *RateCard) *FeatureQuery {
+	query := (&FeatureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := rc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ratecard.Table, ratecard.FieldID, id),
+			sqlgraph.To(feature.Table, feature.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ratecard.FeatureTable, ratecard.FeatureColumn),
+		)
+		fromV = sqlgraph.Neighbors(rc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *RateCardClient) Hooks() []Hook {
+	return c.hooks.RateCard
+}
+
+// Interceptors returns the client interceptors.
+func (c *RateCardClient) Interceptors() []Interceptor {
+	return c.inters.RateCard
+}
+
+func (c *RateCardClient) mutate(ctx context.Context, m *RateCardMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RateCardCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RateCardUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RateCardUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RateCardDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown RateCard mutation op: %q", m.Op())
 	}
 }
 
@@ -7231,6 +7484,22 @@ func (c *SubscriptionItemClient) QueryEntitlement(si *SubscriptionItem) *Entitle
 	return query
 }
 
+// QueryRatecard queries the ratecard edge of a SubscriptionItem.
+func (c *SubscriptionItemClient) QueryRatecard(si *SubscriptionItem) *RateCardQuery {
+	query := (&RateCardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := si.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
+			sqlgraph.To(ratecard.Table, ratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, subscriptionitem.RatecardTable, subscriptionitem.RatecardColumn),
+		)
+		fromV = sqlgraph.Neighbors(si.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryBillingLines queries the billing_lines edge of a SubscriptionItem.
 func (c *SubscriptionItemClient) QueryBillingLines(si *SubscriptionItem) *BillingInvoiceLineQuery {
 	query := (&BillingInvoiceLineClient{config: c.config}).Query()
@@ -7614,7 +7883,7 @@ type (
 		BillingProfile, BillingSequenceNumbers, BillingWorkflowConfig, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, Subscription, SubscriptionAddon,
+		PlanAddon, PlanPhase, PlanRateCard, RateCard, Subscription, SubscriptionAddon,
 		SubscriptionAddonQuantity, SubscriptionItem, SubscriptionPhase,
 		UsageReset []ent.Hook
 	}
@@ -7628,7 +7897,7 @@ type (
 		BillingProfile, BillingSequenceNumbers, BillingWorkflowConfig, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, Subscription, SubscriptionAddon,
+		PlanAddon, PlanPhase, PlanRateCard, RateCard, Subscription, SubscriptionAddon,
 		SubscriptionAddonQuantity, SubscriptionItem, SubscriptionPhase,
 		UsageReset []ent.Interceptor
 	}

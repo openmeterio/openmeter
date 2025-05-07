@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -248,6 +249,20 @@ func (sic *SubscriptionItemCreate) SetDiscounts(pr *productcatalog.Discounts) *S
 	return sic
 }
 
+// SetRatecardID sets the "ratecard_id" field.
+func (sic *SubscriptionItemCreate) SetRatecardID(s string) *SubscriptionItemCreate {
+	sic.mutation.SetRatecardID(s)
+	return sic
+}
+
+// SetNillableRatecardID sets the "ratecard_id" field if the given value is not nil.
+func (sic *SubscriptionItemCreate) SetNillableRatecardID(s *string) *SubscriptionItemCreate {
+	if s != nil {
+		sic.SetRatecardID(*s)
+	}
+	return sic
+}
+
 // SetID sets the "id" field.
 func (sic *SubscriptionItemCreate) SetID(s string) *SubscriptionItemCreate {
 	sic.mutation.SetID(s)
@@ -270,6 +285,11 @@ func (sic *SubscriptionItemCreate) SetPhase(s *SubscriptionPhase) *SubscriptionI
 // SetEntitlement sets the "entitlement" edge to the Entitlement entity.
 func (sic *SubscriptionItemCreate) SetEntitlement(e *Entitlement) *SubscriptionItemCreate {
 	return sic.SetEntitlementID(e.ID)
+}
+
+// SetRatecard sets the "ratecard" edge to the RateCard entity.
+func (sic *SubscriptionItemCreate) SetRatecard(r *RateCard) *SubscriptionItemCreate {
+	return sic.SetRatecardID(r.ID)
 }
 
 // AddBillingLineIDs adds the "billing_lines" edge to the BillingInvoiceLine entity by IDs.
@@ -397,6 +417,11 @@ func (sic *SubscriptionItemCreate) check() error {
 	if v, ok := sic.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.discounts": %w`, err)}
+		}
+	}
+	if v, ok := sic.mutation.RatecardID(); ok {
+		if err := subscriptionitem.RatecardIDValidator(v); err != nil {
+			return &ValidationError{Name: "ratecard_id", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.ratecard_id": %w`, err)}
 		}
 	}
 	if len(sic.mutation.PhaseIDs()) == 0 {
@@ -573,6 +598,23 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.EntitlementID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := sic.mutation.RatecardIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   subscriptionitem.RatecardTable,
+			Columns: []string{subscriptionitem.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.RatecardID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := sic.mutation.BillingLinesIDs(); len(nodes) > 0 {
@@ -946,6 +988,24 @@ func (u *SubscriptionItemUpsert) UpdateDiscounts() *SubscriptionItemUpsert {
 // ClearDiscounts clears the value of the "discounts" field.
 func (u *SubscriptionItemUpsert) ClearDiscounts() *SubscriptionItemUpsert {
 	u.SetNull(subscriptionitem.FieldDiscounts)
+	return u
+}
+
+// SetRatecardID sets the "ratecard_id" field.
+func (u *SubscriptionItemUpsert) SetRatecardID(v string) *SubscriptionItemUpsert {
+	u.Set(subscriptionitem.FieldRatecardID, v)
+	return u
+}
+
+// UpdateRatecardID sets the "ratecard_id" field to the value that was provided on create.
+func (u *SubscriptionItemUpsert) UpdateRatecardID() *SubscriptionItemUpsert {
+	u.SetExcluded(subscriptionitem.FieldRatecardID)
+	return u
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (u *SubscriptionItemUpsert) ClearRatecardID() *SubscriptionItemUpsert {
+	u.SetNull(subscriptionitem.FieldRatecardID)
 	return u
 }
 
@@ -1363,6 +1423,27 @@ func (u *SubscriptionItemUpsertOne) UpdateDiscounts() *SubscriptionItemUpsertOne
 func (u *SubscriptionItemUpsertOne) ClearDiscounts() *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetRatecardID sets the "ratecard_id" field.
+func (u *SubscriptionItemUpsertOne) SetRatecardID(v string) *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetRatecardID(v)
+	})
+}
+
+// UpdateRatecardID sets the "ratecard_id" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertOne) UpdateRatecardID() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateRatecardID()
+	})
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (u *SubscriptionItemUpsertOne) ClearRatecardID() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearRatecardID()
 	})
 }
 
@@ -1950,6 +2031,27 @@ func (u *SubscriptionItemUpsertBulk) UpdateDiscounts() *SubscriptionItemUpsertBu
 func (u *SubscriptionItemUpsertBulk) ClearDiscounts() *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetRatecardID sets the "ratecard_id" field.
+func (u *SubscriptionItemUpsertBulk) SetRatecardID(v string) *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetRatecardID(v)
+	})
+}
+
+// UpdateRatecardID sets the "ratecard_id" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertBulk) UpdateRatecardID() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateRatecardID()
+	})
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (u *SubscriptionItemUpsertBulk) ClearRatecardID() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearRatecardID()
 	})
 }
 

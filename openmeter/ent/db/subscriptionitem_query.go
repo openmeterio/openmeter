@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 )
@@ -29,6 +30,7 @@ type SubscriptionItemQuery struct {
 	predicates       []predicate.SubscriptionItem
 	withPhase        *SubscriptionPhaseQuery
 	withEntitlement  *EntitlementQuery
+	withRatecard     *RateCardQuery
 	withBillingLines *BillingInvoiceLineQuery
 	modifiers        []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -104,6 +106,28 @@ func (siq *SubscriptionItemQuery) QueryEntitlement() *EntitlementQuery {
 			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, selector),
 			sqlgraph.To(entitlement.Table, entitlement.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionitem.EntitlementTable, subscriptionitem.EntitlementColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(siq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryRatecard chains the current query on the "ratecard" edge.
+func (siq *SubscriptionItemQuery) QueryRatecard() *RateCardQuery {
+	query := (&RateCardClient{config: siq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := siq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := siq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, selector),
+			sqlgraph.To(ratecard.Table, ratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, subscriptionitem.RatecardTable, subscriptionitem.RatecardColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(siq.driver.Dialect(), step)
 		return fromU, nil
@@ -327,6 +351,7 @@ func (siq *SubscriptionItemQuery) Clone() *SubscriptionItemQuery {
 		predicates:       append([]predicate.SubscriptionItem{}, siq.predicates...),
 		withPhase:        siq.withPhase.Clone(),
 		withEntitlement:  siq.withEntitlement.Clone(),
+		withRatecard:     siq.withRatecard.Clone(),
 		withBillingLines: siq.withBillingLines.Clone(),
 		// clone intermediate query.
 		sql:  siq.sql.Clone(),
@@ -353,6 +378,17 @@ func (siq *SubscriptionItemQuery) WithEntitlement(opts ...func(*EntitlementQuery
 		opt(query)
 	}
 	siq.withEntitlement = query
+	return siq
+}
+
+// WithRatecard tells the query-builder to eager-load the nodes that are connected to
+// the "ratecard" edge. The optional arguments are used to configure the query builder of the edge.
+func (siq *SubscriptionItemQuery) WithRatecard(opts ...func(*RateCardQuery)) *SubscriptionItemQuery {
+	query := (&RateCardClient{config: siq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	siq.withRatecard = query
 	return siq
 }
 
@@ -445,9 +481,10 @@ func (siq *SubscriptionItemQuery) sqlAll(ctx context.Context, hooks ...queryHook
 	var (
 		nodes       = []*SubscriptionItem{}
 		_spec       = siq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			siq.withPhase != nil,
 			siq.withEntitlement != nil,
+			siq.withRatecard != nil,
 			siq.withBillingLines != nil,
 		}
 	)
@@ -481,6 +518,12 @@ func (siq *SubscriptionItemQuery) sqlAll(ctx context.Context, hooks ...queryHook
 	if query := siq.withEntitlement; query != nil {
 		if err := siq.loadEntitlement(ctx, query, nodes, nil,
 			func(n *SubscriptionItem, e *Entitlement) { n.Edges.Entitlement = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := siq.withRatecard; query != nil {
+		if err := siq.loadRatecard(ctx, query, nodes, nil,
+			func(n *SubscriptionItem, e *RateCard) { n.Edges.Ratecard = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -557,6 +600,35 @@ func (siq *SubscriptionItemQuery) loadEntitlement(ctx context.Context, query *En
 	}
 	return nil
 }
+func (siq *SubscriptionItemQuery) loadRatecard(ctx context.Context, query *RateCardQuery, nodes []*SubscriptionItem, init func(*SubscriptionItem), assign func(*SubscriptionItem, *RateCard)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*SubscriptionItem)
+	for i := range nodes {
+		fk := nodes[i].RatecardID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(ratecard.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "ratecard_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (siq *SubscriptionItemQuery) loadBillingLines(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*SubscriptionItem, init func(*SubscriptionItem), assign func(*SubscriptionItem, *BillingInvoiceLine)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*SubscriptionItem)
@@ -625,6 +697,9 @@ func (siq *SubscriptionItemQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if siq.withEntitlement != nil {
 			_spec.Node.AddColumnOnce(subscriptionitem.FieldEntitlementID)
+		}
+		if siq.withRatecard != nil {
+			_spec.Node.AddColumnOnce(subscriptionitem.FieldRatecardID)
 		}
 	}
 	if ps := siq.predicates; len(ps) > 0 {

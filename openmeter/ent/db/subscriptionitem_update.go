@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
@@ -318,9 +319,34 @@ func (siu *SubscriptionItemUpdate) ClearDiscounts() *SubscriptionItemUpdate {
 	return siu
 }
 
+// SetRatecardID sets the "ratecard_id" field.
+func (siu *SubscriptionItemUpdate) SetRatecardID(s string) *SubscriptionItemUpdate {
+	siu.mutation.SetRatecardID(s)
+	return siu
+}
+
+// SetNillableRatecardID sets the "ratecard_id" field if the given value is not nil.
+func (siu *SubscriptionItemUpdate) SetNillableRatecardID(s *string) *SubscriptionItemUpdate {
+	if s != nil {
+		siu.SetRatecardID(*s)
+	}
+	return siu
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (siu *SubscriptionItemUpdate) ClearRatecardID() *SubscriptionItemUpdate {
+	siu.mutation.ClearRatecardID()
+	return siu
+}
+
 // SetEntitlement sets the "entitlement" edge to the Entitlement entity.
 func (siu *SubscriptionItemUpdate) SetEntitlement(e *Entitlement) *SubscriptionItemUpdate {
 	return siu.SetEntitlementID(e.ID)
+}
+
+// SetRatecard sets the "ratecard" edge to the RateCard entity.
+func (siu *SubscriptionItemUpdate) SetRatecard(r *RateCard) *SubscriptionItemUpdate {
+	return siu.SetRatecardID(r.ID)
 }
 
 // AddBillingLineIDs adds the "billing_lines" edge to the BillingInvoiceLine entity by IDs.
@@ -346,6 +372,12 @@ func (siu *SubscriptionItemUpdate) Mutation() *SubscriptionItemMutation {
 // ClearEntitlement clears the "entitlement" edge to the Entitlement entity.
 func (siu *SubscriptionItemUpdate) ClearEntitlement() *SubscriptionItemUpdate {
 	siu.mutation.ClearEntitlement()
+	return siu
+}
+
+// ClearRatecard clears the "ratecard" edge to the RateCard entity.
+func (siu *SubscriptionItemUpdate) ClearRatecard() *SubscriptionItemUpdate {
+	siu.mutation.ClearRatecard()
 	return siu
 }
 
@@ -431,6 +463,11 @@ func (siu *SubscriptionItemUpdate) check() error {
 	if v, ok := siu.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.discounts": %w`, err)}
+		}
+	}
+	if v, ok := siu.mutation.RatecardID(); ok {
+		if err := subscriptionitem.RatecardIDValidator(v); err != nil {
+			return &ValidationError{Name: "ratecard_id", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.ratecard_id": %w`, err)}
 		}
 	}
 	if siu.mutation.PhaseCleared() && len(siu.mutation.PhaseIDs()) > 0 {
@@ -586,6 +623,35 @@ func (siu *SubscriptionItemUpdate) sqlSave(ctx context.Context) (n int, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if siu.mutation.RatecardCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   subscriptionitem.RatecardTable,
+			Columns: []string{subscriptionitem.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := siu.mutation.RatecardIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   subscriptionitem.RatecardTable,
+			Columns: []string{subscriptionitem.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -944,9 +1010,34 @@ func (siuo *SubscriptionItemUpdateOne) ClearDiscounts() *SubscriptionItemUpdateO
 	return siuo
 }
 
+// SetRatecardID sets the "ratecard_id" field.
+func (siuo *SubscriptionItemUpdateOne) SetRatecardID(s string) *SubscriptionItemUpdateOne {
+	siuo.mutation.SetRatecardID(s)
+	return siuo
+}
+
+// SetNillableRatecardID sets the "ratecard_id" field if the given value is not nil.
+func (siuo *SubscriptionItemUpdateOne) SetNillableRatecardID(s *string) *SubscriptionItemUpdateOne {
+	if s != nil {
+		siuo.SetRatecardID(*s)
+	}
+	return siuo
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (siuo *SubscriptionItemUpdateOne) ClearRatecardID() *SubscriptionItemUpdateOne {
+	siuo.mutation.ClearRatecardID()
+	return siuo
+}
+
 // SetEntitlement sets the "entitlement" edge to the Entitlement entity.
 func (siuo *SubscriptionItemUpdateOne) SetEntitlement(e *Entitlement) *SubscriptionItemUpdateOne {
 	return siuo.SetEntitlementID(e.ID)
+}
+
+// SetRatecard sets the "ratecard" edge to the RateCard entity.
+func (siuo *SubscriptionItemUpdateOne) SetRatecard(r *RateCard) *SubscriptionItemUpdateOne {
+	return siuo.SetRatecardID(r.ID)
 }
 
 // AddBillingLineIDs adds the "billing_lines" edge to the BillingInvoiceLine entity by IDs.
@@ -972,6 +1063,12 @@ func (siuo *SubscriptionItemUpdateOne) Mutation() *SubscriptionItemMutation {
 // ClearEntitlement clears the "entitlement" edge to the Entitlement entity.
 func (siuo *SubscriptionItemUpdateOne) ClearEntitlement() *SubscriptionItemUpdateOne {
 	siuo.mutation.ClearEntitlement()
+	return siuo
+}
+
+// ClearRatecard clears the "ratecard" edge to the RateCard entity.
+func (siuo *SubscriptionItemUpdateOne) ClearRatecard() *SubscriptionItemUpdateOne {
+	siuo.mutation.ClearRatecard()
 	return siuo
 }
 
@@ -1070,6 +1167,11 @@ func (siuo *SubscriptionItemUpdateOne) check() error {
 	if v, ok := siuo.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.discounts": %w`, err)}
+		}
+	}
+	if v, ok := siuo.mutation.RatecardID(); ok {
+		if err := subscriptionitem.RatecardIDValidator(v); err != nil {
+			return &ValidationError{Name: "ratecard_id", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.ratecard_id": %w`, err)}
 		}
 	}
 	if siuo.mutation.PhaseCleared() && len(siuo.mutation.PhaseIDs()) > 0 {
@@ -1242,6 +1344,35 @@ func (siuo *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subs
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if siuo.mutation.RatecardCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   subscriptionitem.RatecardTable,
+			Columns: []string{subscriptionitem.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := siuo.mutation.RatecardIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   subscriptionitem.RatecardTable,
+			Columns: []string{subscriptionitem.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

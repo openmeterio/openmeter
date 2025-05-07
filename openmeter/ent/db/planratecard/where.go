@@ -113,6 +113,11 @@ func BillingCadence(v isodate.String) predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldEQ(FieldBillingCadence, vc))
 }
 
+// RatecardID applies equality check predicate on the "ratecard_id" field. It's identical to RatecardIDEQ.
+func RatecardID(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldEQ(FieldRatecardID, v))
+}
+
 // PhaseID applies equality check predicate on the "phase_id" field. It's identical to PhaseIDEQ.
 func PhaseID(v string) predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldEQ(FieldPhaseID, v))
@@ -772,6 +777,81 @@ func DiscountsNotNil() predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldNotNull(FieldDiscounts))
 }
 
+// RatecardIDEQ applies the EQ predicate on the "ratecard_id" field.
+func RatecardIDEQ(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldEQ(FieldRatecardID, v))
+}
+
+// RatecardIDNEQ applies the NEQ predicate on the "ratecard_id" field.
+func RatecardIDNEQ(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNEQ(FieldRatecardID, v))
+}
+
+// RatecardIDIn applies the In predicate on the "ratecard_id" field.
+func RatecardIDIn(vs ...string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldIn(FieldRatecardID, vs...))
+}
+
+// RatecardIDNotIn applies the NotIn predicate on the "ratecard_id" field.
+func RatecardIDNotIn(vs ...string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNotIn(FieldRatecardID, vs...))
+}
+
+// RatecardIDGT applies the GT predicate on the "ratecard_id" field.
+func RatecardIDGT(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldGT(FieldRatecardID, v))
+}
+
+// RatecardIDGTE applies the GTE predicate on the "ratecard_id" field.
+func RatecardIDGTE(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldGTE(FieldRatecardID, v))
+}
+
+// RatecardIDLT applies the LT predicate on the "ratecard_id" field.
+func RatecardIDLT(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldLT(FieldRatecardID, v))
+}
+
+// RatecardIDLTE applies the LTE predicate on the "ratecard_id" field.
+func RatecardIDLTE(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldLTE(FieldRatecardID, v))
+}
+
+// RatecardIDContains applies the Contains predicate on the "ratecard_id" field.
+func RatecardIDContains(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldContains(FieldRatecardID, v))
+}
+
+// RatecardIDHasPrefix applies the HasPrefix predicate on the "ratecard_id" field.
+func RatecardIDHasPrefix(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldHasPrefix(FieldRatecardID, v))
+}
+
+// RatecardIDHasSuffix applies the HasSuffix predicate on the "ratecard_id" field.
+func RatecardIDHasSuffix(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldHasSuffix(FieldRatecardID, v))
+}
+
+// RatecardIDIsNil applies the IsNil predicate on the "ratecard_id" field.
+func RatecardIDIsNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldIsNull(FieldRatecardID))
+}
+
+// RatecardIDNotNil applies the NotNil predicate on the "ratecard_id" field.
+func RatecardIDNotNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNotNull(FieldRatecardID))
+}
+
+// RatecardIDEqualFold applies the EqualFold predicate on the "ratecard_id" field.
+func RatecardIDEqualFold(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldEqualFold(FieldRatecardID, v))
+}
+
+// RatecardIDContainsFold applies the ContainsFold predicate on the "ratecard_id" field.
+func RatecardIDContainsFold(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldContainsFold(FieldRatecardID, v))
+}
+
 // PhaseIDEQ applies the EQ predicate on the "phase_id" field.
 func PhaseIDEQ(v string) predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldEQ(FieldPhaseID, v))
@@ -910,6 +990,29 @@ func FeatureIDEqualFold(v string) predicate.PlanRateCard {
 // FeatureIDContainsFold applies the ContainsFold predicate on the "feature_id" field.
 func FeatureIDContainsFold(v string) predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldContainsFold(FieldFeatureID, v))
+}
+
+// HasRatecard applies the HasEdge predicate on the "ratecard" edge.
+func HasRatecard() predicate.PlanRateCard {
+	return predicate.PlanRateCard(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, RatecardTable, RatecardColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRatecardWith applies the HasEdge predicate on the "ratecard" edge with a given conditions (other predicates).
+func HasRatecardWith(preds ...predicate.RateCard) predicate.PlanRateCard {
+	return predicate.PlanRateCard(func(s *sql.Selector) {
+		step := newRatecardStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // HasPhase applies the HasEdge predicate on the "phase" edge.

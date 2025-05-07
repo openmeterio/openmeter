@@ -223,6 +223,20 @@ func (u *AddonRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Disc
 	return u.SetDiscounts(*value)
 }
 
+func (u *AddonRateCardUpdate) SetOrClearRatecardID(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearRatecardID()
+	}
+	return u.SetRatecardID(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearRatecardID(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearRatecardID()
+	}
+	return u.SetRatecardID(*value)
+}
+
 func (u *AddonRateCardUpdate) SetOrClearFeatureID(value *string) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearFeatureID()
@@ -2491,6 +2505,20 @@ func (u *PlanRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Disco
 	return u.SetDiscounts(*value)
 }
 
+func (u *PlanRateCardUpdate) SetOrClearRatecardID(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearRatecardID()
+	}
+	return u.SetRatecardID(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearRatecardID(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearRatecardID()
+	}
+	return u.SetRatecardID(*value)
+}
+
 func (u *PlanRateCardUpdate) SetOrClearFeatureID(value *string) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearFeatureID()
@@ -2503,6 +2531,160 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 		return u.ClearFeatureID()
 	}
 	return u.SetFeatureID(*value)
+}
+
+func (u *RateCardUpdate) SetOrClearMetadata(value *map[string]string) *RateCardUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *RateCardUpdateOne) SetOrClearMetadata(value *map[string]string) *RateCardUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *RateCardUpdate) SetOrClearDeletedAt(value *time.Time) *RateCardUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RateCardUpdateOne) SetOrClearDeletedAt(value *time.Time) *RateCardUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RateCardUpdate) SetOrClearDescription(value *string) *RateCardUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *RateCardUpdateOne) SetOrClearDescription(value *string) *RateCardUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *RateCardUpdate) SetOrClearEntitlementTemplateMetadata(value *map[string]string) *RateCardUpdate {
+	if value == nil {
+		return u.ClearEntitlementTemplateMetadata()
+	}
+	return u.SetEntitlementTemplateMetadata(*value)
+}
+
+func (u *RateCardUpdateOne) SetOrClearEntitlementTemplateMetadata(value *map[string]string) *RateCardUpdateOne {
+	if value == nil {
+		return u.ClearEntitlementTemplateMetadata()
+	}
+	return u.SetEntitlementTemplateMetadata(*value)
+}
+
+func (u *RateCardUpdate) SetOrClearEntitlementTemplateConfig(value *[]uint8) *RateCardUpdate {
+	if value == nil {
+		return u.ClearEntitlementTemplateConfig()
+	}
+	return u.SetEntitlementTemplateConfig(*value)
+}
+
+func (u *RateCardUpdateOne) SetOrClearEntitlementTemplateConfig(value *[]uint8) *RateCardUpdateOne {
+	if value == nil {
+		return u.ClearEntitlementTemplateConfig()
+	}
+	return u.SetEntitlementTemplateConfig(*value)
+}
+
+func (u *RateCardUpdate) SetOrClearFeatureKey(value *string) *RateCardUpdate {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *RateCardUpdateOne) SetOrClearFeatureKey(value *string) *RateCardUpdateOne {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *RateCardUpdate) SetOrClearFeatureID(value *string) *RateCardUpdate {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
+}
+
+func (u *RateCardUpdateOne) SetOrClearFeatureID(value *string) *RateCardUpdateOne {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
+}
+
+func (u *RateCardUpdate) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *RateCardUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *RateCardUpdateOne) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *RateCardUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *RateCardUpdate) SetOrClearBillingCadence(value *isodate.String) *RateCardUpdate {
+	if value == nil {
+		return u.ClearBillingCadence()
+	}
+	return u.SetBillingCadence(*value)
+}
+
+func (u *RateCardUpdateOne) SetOrClearBillingCadence(value *isodate.String) *RateCardUpdateOne {
+	if value == nil {
+		return u.ClearBillingCadence()
+	}
+	return u.SetBillingCadence(*value)
+}
+
+func (u *RateCardUpdate) SetOrClearPrice(value **productcatalog.Price) *RateCardUpdate {
+	if value == nil {
+		return u.ClearPrice()
+	}
+	return u.SetPrice(*value)
+}
+
+func (u *RateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *RateCardUpdateOne {
+	if value == nil {
+		return u.ClearPrice()
+	}
+	return u.SetPrice(*value)
+}
+
+func (u *RateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *RateCardUpdate {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
+func (u *RateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Discounts) *RateCardUpdateOne {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
 }
 
 func (u *SubscriptionUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionUpdate {
@@ -2825,6 +3007,20 @@ func (u *SubscriptionItemUpdateOne) SetOrClearDiscounts(value **productcatalog.D
 		return u.ClearDiscounts()
 	}
 	return u.SetDiscounts(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearRatecardID(value *string) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearRatecardID()
+	}
+	return u.SetRatecardID(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearRatecardID(value *string) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearRatecardID()
+	}
+	return u.SetRatecardID(*value)
 }
 
 func (u *SubscriptionPhaseUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionPhaseUpdate {

@@ -149,6 +149,11 @@ func BillingCadence(v isodate.String) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldBillingCadence, vc))
 }
 
+// RatecardID applies equality check predicate on the "ratecard_id" field. It's identical to RatecardIDEQ.
+func RatecardID(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldEQ(FieldRatecardID, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldNamespace, v))
@@ -1216,6 +1221,81 @@ func DiscountsNotNil() predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldNotNull(FieldDiscounts))
 }
 
+// RatecardIDEQ applies the EQ predicate on the "ratecard_id" field.
+func RatecardIDEQ(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldEQ(FieldRatecardID, v))
+}
+
+// RatecardIDNEQ applies the NEQ predicate on the "ratecard_id" field.
+func RatecardIDNEQ(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNEQ(FieldRatecardID, v))
+}
+
+// RatecardIDIn applies the In predicate on the "ratecard_id" field.
+func RatecardIDIn(vs ...string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldIn(FieldRatecardID, vs...))
+}
+
+// RatecardIDNotIn applies the NotIn predicate on the "ratecard_id" field.
+func RatecardIDNotIn(vs ...string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNotIn(FieldRatecardID, vs...))
+}
+
+// RatecardIDGT applies the GT predicate on the "ratecard_id" field.
+func RatecardIDGT(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldGT(FieldRatecardID, v))
+}
+
+// RatecardIDGTE applies the GTE predicate on the "ratecard_id" field.
+func RatecardIDGTE(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldGTE(FieldRatecardID, v))
+}
+
+// RatecardIDLT applies the LT predicate on the "ratecard_id" field.
+func RatecardIDLT(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldLT(FieldRatecardID, v))
+}
+
+// RatecardIDLTE applies the LTE predicate on the "ratecard_id" field.
+func RatecardIDLTE(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldLTE(FieldRatecardID, v))
+}
+
+// RatecardIDContains applies the Contains predicate on the "ratecard_id" field.
+func RatecardIDContains(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldContains(FieldRatecardID, v))
+}
+
+// RatecardIDHasPrefix applies the HasPrefix predicate on the "ratecard_id" field.
+func RatecardIDHasPrefix(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldHasPrefix(FieldRatecardID, v))
+}
+
+// RatecardIDHasSuffix applies the HasSuffix predicate on the "ratecard_id" field.
+func RatecardIDHasSuffix(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldHasSuffix(FieldRatecardID, v))
+}
+
+// RatecardIDIsNil applies the IsNil predicate on the "ratecard_id" field.
+func RatecardIDIsNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldIsNull(FieldRatecardID))
+}
+
+// RatecardIDNotNil applies the NotNil predicate on the "ratecard_id" field.
+func RatecardIDNotNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNotNull(FieldRatecardID))
+}
+
+// RatecardIDEqualFold applies the EqualFold predicate on the "ratecard_id" field.
+func RatecardIDEqualFold(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldEqualFold(FieldRatecardID, v))
+}
+
+// RatecardIDContainsFold applies the ContainsFold predicate on the "ratecard_id" field.
+func RatecardIDContainsFold(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldContainsFold(FieldRatecardID, v))
+}
+
 // HasPhase applies the HasEdge predicate on the "phase" edge.
 func HasPhase() predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(func(s *sql.Selector) {
@@ -1254,6 +1334,29 @@ func HasEntitlement() predicate.SubscriptionItem {
 func HasEntitlementWith(preds ...predicate.Entitlement) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(func(s *sql.Selector) {
 		step := newEntitlementStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasRatecard applies the HasEdge predicate on the "ratecard" edge.
+func HasRatecard() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, RatecardTable, RatecardColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRatecardWith applies the HasEdge predicate on the "ratecard" edge with a given conditions (other predicates).
+func HasRatecardWith(preds ...predicate.RateCard) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(func(s *sql.Selector) {
+		step := newRatecardStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

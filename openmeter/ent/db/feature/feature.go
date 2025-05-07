@@ -36,10 +36,12 @@ const (
 	FieldArchivedAt = "archived_at"
 	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
 	EdgeEntitlement = "entitlement"
-	// EdgeRatecard holds the string denoting the ratecard edge name in mutations.
-	EdgeRatecard = "ratecard"
+	// EdgePlanRatecard holds the string denoting the plan_ratecard edge name in mutations.
+	EdgePlanRatecard = "plan_ratecard"
 	// EdgeAddonRatecard holds the string denoting the addon_ratecard edge name in mutations.
 	EdgeAddonRatecard = "addon_ratecard"
+	// EdgeRatecards holds the string denoting the ratecards edge name in mutations.
+	EdgeRatecards = "ratecards"
 	// Table holds the table name of the feature in the database.
 	Table = "features"
 	// EntitlementTable is the table that holds the entitlement relation/edge.
@@ -49,13 +51,13 @@ const (
 	EntitlementInverseTable = "entitlements"
 	// EntitlementColumn is the table column denoting the entitlement relation/edge.
 	EntitlementColumn = "feature_id"
-	// RatecardTable is the table that holds the ratecard relation/edge.
-	RatecardTable = "plan_rate_cards"
-	// RatecardInverseTable is the table name for the PlanRateCard entity.
+	// PlanRatecardTable is the table that holds the plan_ratecard relation/edge.
+	PlanRatecardTable = "plan_rate_cards"
+	// PlanRatecardInverseTable is the table name for the PlanRateCard entity.
 	// It exists in this package in order to avoid circular dependency with the "planratecard" package.
-	RatecardInverseTable = "plan_rate_cards"
-	// RatecardColumn is the table column denoting the ratecard relation/edge.
-	RatecardColumn = "feature_id"
+	PlanRatecardInverseTable = "plan_rate_cards"
+	// PlanRatecardColumn is the table column denoting the plan_ratecard relation/edge.
+	PlanRatecardColumn = "feature_id"
 	// AddonRatecardTable is the table that holds the addon_ratecard relation/edge.
 	AddonRatecardTable = "addon_rate_cards"
 	// AddonRatecardInverseTable is the table name for the AddonRateCard entity.
@@ -63,6 +65,13 @@ const (
 	AddonRatecardInverseTable = "addon_rate_cards"
 	// AddonRatecardColumn is the table column denoting the addon_ratecard relation/edge.
 	AddonRatecardColumn = "feature_id"
+	// RatecardsTable is the table that holds the ratecards relation/edge.
+	RatecardsTable = "rate_cards"
+	// RatecardsInverseTable is the table name for the RateCard entity.
+	// It exists in this package in order to avoid circular dependency with the "ratecard" package.
+	RatecardsInverseTable = "rate_cards"
+	// RatecardsColumn is the table column denoting the ratecards relation/edge.
+	RatecardsColumn = "feature_id"
 )
 
 // Columns holds all SQL columns for feature fields.
@@ -169,17 +178,17 @@ func ByEntitlement(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByRatecardCount orders the results by ratecard count.
-func ByRatecardCount(opts ...sql.OrderTermOption) OrderOption {
+// ByPlanRatecardCount orders the results by plan_ratecard count.
+func ByPlanRatecardCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newRatecardStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newPlanRatecardStep(), opts...)
 	}
 }
 
-// ByRatecard orders the results by ratecard terms.
-func ByRatecard(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByPlanRatecard orders the results by plan_ratecard terms.
+func ByPlanRatecard(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newRatecardStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newPlanRatecardStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -196,6 +205,20 @@ func ByAddonRatecard(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newAddonRatecardStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByRatecardsCount orders the results by ratecards count.
+func ByRatecardsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newRatecardsStep(), opts...)
+	}
+}
+
+// ByRatecards orders the results by ratecards terms.
+func ByRatecards(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRatecardsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newEntitlementStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -203,11 +226,11 @@ func newEntitlementStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, EntitlementTable, EntitlementColumn),
 	)
 }
-func newRatecardStep() *sqlgraph.Step {
+func newPlanRatecardStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(RatecardInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, RatecardTable, RatecardColumn),
+		sqlgraph.To(PlanRatecardInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PlanRatecardTable, PlanRatecardColumn),
 	)
 }
 func newAddonRatecardStep() *sqlgraph.Step {
@@ -215,5 +238,12 @@ func newAddonRatecardStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AddonRatecardInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, AddonRatecardTable, AddonRatecardColumn),
+	)
+}
+func newRatecardsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RatecardsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, RatecardsTable, RatecardsColumn),
 	)
 }

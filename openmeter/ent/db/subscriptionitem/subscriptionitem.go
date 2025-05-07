@@ -60,10 +60,14 @@ const (
 	FieldPrice = "price"
 	// FieldDiscounts holds the string denoting the discounts field in the database.
 	FieldDiscounts = "discounts"
+	// FieldRatecardID holds the string denoting the ratecard_id field in the database.
+	FieldRatecardID = "ratecard_id"
 	// EdgePhase holds the string denoting the phase edge name in mutations.
 	EdgePhase = "phase"
 	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
 	EdgeEntitlement = "entitlement"
+	// EdgeRatecard holds the string denoting the ratecard edge name in mutations.
+	EdgeRatecard = "ratecard"
 	// EdgeBillingLines holds the string denoting the billing_lines edge name in mutations.
 	EdgeBillingLines = "billing_lines"
 	// Table holds the table name of the subscriptionitem in the database.
@@ -82,6 +86,13 @@ const (
 	EntitlementInverseTable = "entitlements"
 	// EntitlementColumn is the table column denoting the entitlement relation/edge.
 	EntitlementColumn = "entitlement_id"
+	// RatecardTable is the table that holds the ratecard relation/edge.
+	RatecardTable = "subscription_items"
+	// RatecardInverseTable is the table name for the RateCard entity.
+	// It exists in this package in order to avoid circular dependency with the "ratecard" package.
+	RatecardInverseTable = "rate_cards"
+	// RatecardColumn is the table column denoting the ratecard relation/edge.
+	RatecardColumn = "ratecard_id"
 	// BillingLinesTable is the table that holds the billing_lines relation/edge.
 	BillingLinesTable = "billing_invoice_lines"
 	// BillingLinesInverseTable is the table name for the BillingInvoiceLine entity.
@@ -116,6 +127,7 @@ var Columns = []string{
 	FieldBillingCadence,
 	FieldPrice,
 	FieldDiscounts,
+	FieldRatecardID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -143,6 +155,8 @@ var (
 	KeyValidator func(string) error
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
+	// RatecardIDValidator is a validator for the "ratecard_id" field. It is called by the builders before save.
+	RatecardIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all SubscriptionItem fields.
@@ -268,6 +282,11 @@ func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
 }
 
+// ByRatecardID orders the results by the ratecard_id field.
+func ByRatecardID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRatecardID, opts...).ToFunc()
+}
+
 // ByPhaseField orders the results by phase field.
 func ByPhaseField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -279,6 +298,13 @@ func ByPhaseField(field string, opts ...sql.OrderTermOption) OrderOption {
 func ByEntitlementField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newEntitlementStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByRatecardField orders the results by ratecard field.
+func ByRatecardField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRatecardStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -307,6 +333,13 @@ func newEntitlementStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(EntitlementInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, EntitlementTable, EntitlementColumn),
+	)
+}
+func newRatecardStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RatecardInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, RatecardTable, RatecardColumn),
 	)
 }
 func newBillingLinesStep() *sqlgraph.Step {

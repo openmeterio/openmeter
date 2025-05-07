@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
@@ -192,6 +193,26 @@ func (prcu *PlanRateCardUpdate) ClearDiscounts() *PlanRateCardUpdate {
 	return prcu
 }
 
+// SetRatecardID sets the "ratecard_id" field.
+func (prcu *PlanRateCardUpdate) SetRatecardID(s string) *PlanRateCardUpdate {
+	prcu.mutation.SetRatecardID(s)
+	return prcu
+}
+
+// SetNillableRatecardID sets the "ratecard_id" field if the given value is not nil.
+func (prcu *PlanRateCardUpdate) SetNillableRatecardID(s *string) *PlanRateCardUpdate {
+	if s != nil {
+		prcu.SetRatecardID(*s)
+	}
+	return prcu
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (prcu *PlanRateCardUpdate) ClearRatecardID() *PlanRateCardUpdate {
+	prcu.mutation.ClearRatecardID()
+	return prcu
+}
+
 // SetPhaseID sets the "phase_id" field.
 func (prcu *PlanRateCardUpdate) SetPhaseID(s string) *PlanRateCardUpdate {
 	prcu.mutation.SetPhaseID(s)
@@ -226,6 +247,11 @@ func (prcu *PlanRateCardUpdate) ClearFeatureID() *PlanRateCardUpdate {
 	return prcu
 }
 
+// SetRatecard sets the "ratecard" edge to the RateCard entity.
+func (prcu *PlanRateCardUpdate) SetRatecard(r *RateCard) *PlanRateCardUpdate {
+	return prcu.SetRatecardID(r.ID)
+}
+
 // SetPhase sets the "phase" edge to the PlanPhase entity.
 func (prcu *PlanRateCardUpdate) SetPhase(p *PlanPhase) *PlanRateCardUpdate {
 	return prcu.SetPhaseID(p.ID)
@@ -253,6 +279,12 @@ func (prcu *PlanRateCardUpdate) SetFeatures(f *Feature) *PlanRateCardUpdate {
 // Mutation returns the PlanRateCardMutation object of the builder.
 func (prcu *PlanRateCardUpdate) Mutation() *PlanRateCardMutation {
 	return prcu.mutation
+}
+
+// ClearRatecard clears the "ratecard" edge to the RateCard entity.
+func (prcu *PlanRateCardUpdate) ClearRatecard() *PlanRateCardUpdate {
+	prcu.mutation.ClearRatecard()
+	return prcu
 }
 
 // ClearPhase clears the "phase" edge to the PlanPhase entity.
@@ -323,6 +355,11 @@ func (prcu *PlanRateCardUpdate) check() error {
 	if v, ok := prcu.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.discounts": %w`, err)}
+		}
+	}
+	if v, ok := prcu.mutation.RatecardID(); ok {
+		if err := planratecard.RatecardIDValidator(v); err != nil {
+			return &ValidationError{Name: "ratecard_id", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.ratecard_id": %w`, err)}
 		}
 	}
 	if v, ok := prcu.mutation.PhaseID(); ok {
@@ -423,6 +460,35 @@ func (prcu *PlanRateCardUpdate) sqlSave(ctx context.Context) (n int, err error) 
 	}
 	if prcu.mutation.DiscountsCleared() {
 		_spec.ClearField(planratecard.FieldDiscounts, field.TypeString)
+	}
+	if prcu.mutation.RatecardCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   planratecard.RatecardTable,
+			Columns: []string{planratecard.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := prcu.mutation.RatecardIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   planratecard.RatecardTable,
+			Columns: []string{planratecard.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if prcu.mutation.PhaseCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -662,6 +728,26 @@ func (prcuo *PlanRateCardUpdateOne) ClearDiscounts() *PlanRateCardUpdateOne {
 	return prcuo
 }
 
+// SetRatecardID sets the "ratecard_id" field.
+func (prcuo *PlanRateCardUpdateOne) SetRatecardID(s string) *PlanRateCardUpdateOne {
+	prcuo.mutation.SetRatecardID(s)
+	return prcuo
+}
+
+// SetNillableRatecardID sets the "ratecard_id" field if the given value is not nil.
+func (prcuo *PlanRateCardUpdateOne) SetNillableRatecardID(s *string) *PlanRateCardUpdateOne {
+	if s != nil {
+		prcuo.SetRatecardID(*s)
+	}
+	return prcuo
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (prcuo *PlanRateCardUpdateOne) ClearRatecardID() *PlanRateCardUpdateOne {
+	prcuo.mutation.ClearRatecardID()
+	return prcuo
+}
+
 // SetPhaseID sets the "phase_id" field.
 func (prcuo *PlanRateCardUpdateOne) SetPhaseID(s string) *PlanRateCardUpdateOne {
 	prcuo.mutation.SetPhaseID(s)
@@ -696,6 +782,11 @@ func (prcuo *PlanRateCardUpdateOne) ClearFeatureID() *PlanRateCardUpdateOne {
 	return prcuo
 }
 
+// SetRatecard sets the "ratecard" edge to the RateCard entity.
+func (prcuo *PlanRateCardUpdateOne) SetRatecard(r *RateCard) *PlanRateCardUpdateOne {
+	return prcuo.SetRatecardID(r.ID)
+}
+
 // SetPhase sets the "phase" edge to the PlanPhase entity.
 func (prcuo *PlanRateCardUpdateOne) SetPhase(p *PlanPhase) *PlanRateCardUpdateOne {
 	return prcuo.SetPhaseID(p.ID)
@@ -723,6 +814,12 @@ func (prcuo *PlanRateCardUpdateOne) SetFeatures(f *Feature) *PlanRateCardUpdateO
 // Mutation returns the PlanRateCardMutation object of the builder.
 func (prcuo *PlanRateCardUpdateOne) Mutation() *PlanRateCardMutation {
 	return prcuo.mutation
+}
+
+// ClearRatecard clears the "ratecard" edge to the RateCard entity.
+func (prcuo *PlanRateCardUpdateOne) ClearRatecard() *PlanRateCardUpdateOne {
+	prcuo.mutation.ClearRatecard()
+	return prcuo
 }
 
 // ClearPhase clears the "phase" edge to the PlanPhase entity.
@@ -806,6 +903,11 @@ func (prcuo *PlanRateCardUpdateOne) check() error {
 	if v, ok := prcuo.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.discounts": %w`, err)}
+		}
+	}
+	if v, ok := prcuo.mutation.RatecardID(); ok {
+		if err := planratecard.RatecardIDValidator(v); err != nil {
+			return &ValidationError{Name: "ratecard_id", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.ratecard_id": %w`, err)}
 		}
 	}
 	if v, ok := prcuo.mutation.PhaseID(); ok {
@@ -923,6 +1025,35 @@ func (prcuo *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRat
 	}
 	if prcuo.mutation.DiscountsCleared() {
 		_spec.ClearField(planratecard.FieldDiscounts, field.TypeString)
+	}
+	if prcuo.mutation.RatecardCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   planratecard.RatecardTable,
+			Columns: []string{planratecard.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := prcuo.mutation.RatecardIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   planratecard.RatecardTable,
+			Columns: []string{planratecard.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if prcuo.mutation.PhaseCleared() {
 		edge := &sqlgraph.EdgeSpec{

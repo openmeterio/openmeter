@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
@@ -52,6 +53,8 @@ type PlanRateCard struct {
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
+	// RatecardID holds the value of the "ratecard_id" field.
+	RatecardID string `json:"ratecard_id,omitempty"`
 	// The phase identifier the ratecard is assigned to.
 	PhaseID string `json:"phase_id,omitempty"`
 	// The feature identifier the ratecard is related to.
@@ -64,13 +67,26 @@ type PlanRateCard struct {
 
 // PlanRateCardEdges holds the relations/edges for other nodes in the graph.
 type PlanRateCardEdges struct {
+	// Ratecard holds the value of the ratecard edge.
+	Ratecard *RateCard `json:"ratecard,omitempty"`
 	// Phase holds the value of the phase edge.
 	Phase *PlanPhase `json:"phase,omitempty"`
 	// Features holds the value of the features edge.
 	Features *Feature `json:"features,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
+}
+
+// RatecardOrErr returns the Ratecard value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PlanRateCardEdges) RatecardOrErr() (*RateCard, error) {
+	if e.Ratecard != nil {
+		return e.Ratecard, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: ratecard.Label}
+	}
+	return nil, &NotLoadedError{edge: "ratecard"}
 }
 
 // PhaseOrErr returns the Phase value or an error if the edge
@@ -78,7 +94,7 @@ type PlanRateCardEdges struct {
 func (e PlanRateCardEdges) PhaseOrErr() (*PlanPhase, error) {
 	if e.Phase != nil {
 		return e.Phase, nil
-	} else if e.loadedTypes[0] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: planphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "phase"}
@@ -89,7 +105,7 @@ func (e PlanRateCardEdges) PhaseOrErr() (*PlanPhase, error) {
 func (e PlanRateCardEdges) FeaturesOrErr() (*Feature, error) {
 	if e.Features != nil {
 		return e.Features, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: feature.Label}
 	}
 	return nil, &NotLoadedError{edge: "features"}
@@ -102,7 +118,7 @@ func (*PlanRateCard) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case planratecard.FieldMetadata:
 			values[i] = new([]byte)
-		case planratecard.FieldID, planratecard.FieldNamespace, planratecard.FieldName, planratecard.FieldDescription, planratecard.FieldKey, planratecard.FieldType, planratecard.FieldFeatureKey, planratecard.FieldBillingCadence, planratecard.FieldPhaseID, planratecard.FieldFeatureID:
+		case planratecard.FieldID, planratecard.FieldNamespace, planratecard.FieldName, planratecard.FieldDescription, planratecard.FieldKey, planratecard.FieldType, planratecard.FieldFeatureKey, planratecard.FieldBillingCadence, planratecard.FieldRatecardID, planratecard.FieldPhaseID, planratecard.FieldFeatureID:
 			values[i] = new(sql.NullString)
 		case planratecard.FieldCreatedAt, planratecard.FieldUpdatedAt, planratecard.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -231,6 +247,12 @@ func (prc *PlanRateCard) assignValues(columns []string, values []any) error {
 			} else {
 				prc.Discounts = value
 			}
+		case planratecard.FieldRatecardID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ratecard_id", values[i])
+			} else if value.Valid {
+				prc.RatecardID = value.String
+			}
 		case planratecard.FieldPhaseID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field phase_id", values[i])
@@ -255,6 +277,11 @@ func (prc *PlanRateCard) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (prc *PlanRateCard) Value(name string) (ent.Value, error) {
 	return prc.selectValues.Get(name)
+}
+
+// QueryRatecard queries the "ratecard" edge of the PlanRateCard entity.
+func (prc *PlanRateCard) QueryRatecard() *RateCardQuery {
+	return NewPlanRateCardClient(prc.config).QueryRatecard(prc)
 }
 
 // QueryPhase queries the "phase" edge of the PlanRateCard entity.
@@ -350,6 +377,9 @@ func (prc *PlanRateCard) String() string {
 		builder.WriteString("discounts=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("ratecard_id=")
+	builder.WriteString(prc.RatecardID)
 	builder.WriteString(", ")
 	builder.WriteString("phase_id=")
 	builder.WriteString(prc.PhaseID)

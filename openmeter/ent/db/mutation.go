@@ -52,6 +52,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
@@ -110,6 +111,7 @@ const (
 	TypePlanAddon                          = "PlanAddon"
 	TypePlanPhase                          = "PlanPhase"
 	TypePlanRateCard                       = "PlanRateCard"
+	TypeRateCard                           = "RateCard"
 	TypeSubscription                       = "Subscription"
 	TypeSubscriptionAddon                  = "SubscriptionAddon"
 	TypeSubscriptionAddonQuantity          = "SubscriptionAddonQuantity"
@@ -1586,6 +1588,8 @@ type AddonRateCardMutation struct {
 	price                **productcatalog.Price
 	discounts            **productcatalog.Discounts
 	clearedFields        map[string]struct{}
+	ratecard             *string
+	clearedratecard      bool
 	addon                *string
 	clearedaddon         bool
 	features             *string
@@ -2356,6 +2360,55 @@ func (m *AddonRateCardMutation) ResetDiscounts() {
 	delete(m.clearedFields, addonratecard.FieldDiscounts)
 }
 
+// SetRatecardID sets the "ratecard_id" field.
+func (m *AddonRateCardMutation) SetRatecardID(s string) {
+	m.ratecard = &s
+}
+
+// RatecardID returns the value of the "ratecard_id" field in the mutation.
+func (m *AddonRateCardMutation) RatecardID() (r string, exists bool) {
+	v := m.ratecard
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRatecardID returns the old "ratecard_id" field's value of the AddonRateCard entity.
+// If the AddonRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AddonRateCardMutation) OldRatecardID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRatecardID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRatecardID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRatecardID: %w", err)
+	}
+	return oldValue.RatecardID, nil
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (m *AddonRateCardMutation) ClearRatecardID() {
+	m.ratecard = nil
+	m.clearedFields[addonratecard.FieldRatecardID] = struct{}{}
+}
+
+// RatecardIDCleared returns if the "ratecard_id" field was cleared in this mutation.
+func (m *AddonRateCardMutation) RatecardIDCleared() bool {
+	_, ok := m.clearedFields[addonratecard.FieldRatecardID]
+	return ok
+}
+
+// ResetRatecardID resets all changes to the "ratecard_id" field.
+func (m *AddonRateCardMutation) ResetRatecardID() {
+	m.ratecard = nil
+	delete(m.clearedFields, addonratecard.FieldRatecardID)
+}
+
 // SetAddonID sets the "addon_id" field.
 func (m *AddonRateCardMutation) SetAddonID(s string) {
 	m.addon = &s
@@ -2439,6 +2492,33 @@ func (m *AddonRateCardMutation) FeatureIDCleared() bool {
 func (m *AddonRateCardMutation) ResetFeatureID() {
 	m.features = nil
 	delete(m.clearedFields, addonratecard.FieldFeatureID)
+}
+
+// ClearRatecard clears the "ratecard" edge to the RateCard entity.
+func (m *AddonRateCardMutation) ClearRatecard() {
+	m.clearedratecard = true
+	m.clearedFields[addonratecard.FieldRatecardID] = struct{}{}
+}
+
+// RatecardCleared reports if the "ratecard" edge to the RateCard entity was cleared.
+func (m *AddonRateCardMutation) RatecardCleared() bool {
+	return m.RatecardIDCleared() || m.clearedratecard
+}
+
+// RatecardIDs returns the "ratecard" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// RatecardID instead. It exists only for internal usage by the builders.
+func (m *AddonRateCardMutation) RatecardIDs() (ids []string) {
+	if id := m.ratecard; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetRatecard resets all changes to the "ratecard" edge.
+func (m *AddonRateCardMutation) ResetRatecard() {
+	m.ratecard = nil
+	m.clearedratecard = false
 }
 
 // ClearAddon clears the "addon" edge to the Addon entity.
@@ -2542,7 +2622,7 @@ func (m *AddonRateCardMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AddonRateCardMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, addonratecard.FieldNamespace)
 	}
@@ -2588,6 +2668,9 @@ func (m *AddonRateCardMutation) Fields() []string {
 	if m.discounts != nil {
 		fields = append(fields, addonratecard.FieldDiscounts)
 	}
+	if m.ratecard != nil {
+		fields = append(fields, addonratecard.FieldRatecardID)
+	}
 	if m.addon != nil {
 		fields = append(fields, addonratecard.FieldAddonID)
 	}
@@ -2632,6 +2715,8 @@ func (m *AddonRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.Price()
 	case addonratecard.FieldDiscounts:
 		return m.Discounts()
+	case addonratecard.FieldRatecardID:
+		return m.RatecardID()
 	case addonratecard.FieldAddonID:
 		return m.AddonID()
 	case addonratecard.FieldFeatureID:
@@ -2675,6 +2760,8 @@ func (m *AddonRateCardMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldPrice(ctx)
 	case addonratecard.FieldDiscounts:
 		return m.OldDiscounts(ctx)
+	case addonratecard.FieldRatecardID:
+		return m.OldRatecardID(ctx)
 	case addonratecard.FieldAddonID:
 		return m.OldAddonID(ctx)
 	case addonratecard.FieldFeatureID:
@@ -2793,6 +2880,13 @@ func (m *AddonRateCardMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDiscounts(v)
 		return nil
+	case addonratecard.FieldRatecardID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRatecardID(v)
+		return nil
 	case addonratecard.FieldAddonID:
 		v, ok := value.(string)
 		if !ok {
@@ -2864,6 +2958,9 @@ func (m *AddonRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(addonratecard.FieldDiscounts) {
 		fields = append(fields, addonratecard.FieldDiscounts)
 	}
+	if m.FieldCleared(addonratecard.FieldRatecardID) {
+		fields = append(fields, addonratecard.FieldRatecardID)
+	}
 	if m.FieldCleared(addonratecard.FieldFeatureID) {
 		fields = append(fields, addonratecard.FieldFeatureID)
 	}
@@ -2907,6 +3004,9 @@ func (m *AddonRateCardMutation) ClearField(name string) error {
 		return nil
 	case addonratecard.FieldDiscounts:
 		m.ClearDiscounts()
+		return nil
+	case addonratecard.FieldRatecardID:
+		m.ClearRatecardID()
 		return nil
 	case addonratecard.FieldFeatureID:
 		m.ClearFeatureID()
@@ -2964,6 +3064,9 @@ func (m *AddonRateCardMutation) ResetField(name string) error {
 	case addonratecard.FieldDiscounts:
 		m.ResetDiscounts()
 		return nil
+	case addonratecard.FieldRatecardID:
+		m.ResetRatecardID()
+		return nil
 	case addonratecard.FieldAddonID:
 		m.ResetAddonID()
 		return nil
@@ -2976,7 +3079,10 @@ func (m *AddonRateCardMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AddonRateCardMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
+	if m.ratecard != nil {
+		edges = append(edges, addonratecard.EdgeRatecard)
+	}
 	if m.addon != nil {
 		edges = append(edges, addonratecard.EdgeAddon)
 	}
@@ -2990,6 +3096,10 @@ func (m *AddonRateCardMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *AddonRateCardMutation) AddedIDs(name string) []ent.Value {
 	switch name {
+	case addonratecard.EdgeRatecard:
+		if id := m.ratecard; id != nil {
+			return []ent.Value{*id}
+		}
 	case addonratecard.EdgeAddon:
 		if id := m.addon; id != nil {
 			return []ent.Value{*id}
@@ -3004,7 +3114,7 @@ func (m *AddonRateCardMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AddonRateCardMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -3016,7 +3126,10 @@ func (m *AddonRateCardMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AddonRateCardMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
+	if m.clearedratecard {
+		edges = append(edges, addonratecard.EdgeRatecard)
+	}
 	if m.clearedaddon {
 		edges = append(edges, addonratecard.EdgeAddon)
 	}
@@ -3030,6 +3143,8 @@ func (m *AddonRateCardMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *AddonRateCardMutation) EdgeCleared(name string) bool {
 	switch name {
+	case addonratecard.EdgeRatecard:
+		return m.clearedratecard
 	case addonratecard.EdgeAddon:
 		return m.clearedaddon
 	case addonratecard.EdgeFeatures:
@@ -3042,6 +3157,9 @@ func (m *AddonRateCardMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *AddonRateCardMutation) ClearEdge(name string) error {
 	switch name {
+	case addonratecard.EdgeRatecard:
+		m.ClearRatecard()
+		return nil
 	case addonratecard.EdgeAddon:
 		m.ClearAddon()
 		return nil
@@ -3056,6 +3174,9 @@ func (m *AddonRateCardMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *AddonRateCardMutation) ResetEdge(name string) error {
 	switch name {
+	case addonratecard.EdgeRatecard:
+		m.ResetRatecard()
+		return nil
 	case addonratecard.EdgeAddon:
 		m.ResetAddon()
 		return nil
@@ -31326,12 +31447,15 @@ type FeatureMutation struct {
 	entitlement            map[string]struct{}
 	removedentitlement     map[string]struct{}
 	clearedentitlement     bool
-	ratecard               map[string]struct{}
-	removedratecard        map[string]struct{}
-	clearedratecard        bool
+	plan_ratecard          map[string]struct{}
+	removedplan_ratecard   map[string]struct{}
+	clearedplan_ratecard   bool
 	addon_ratecard         map[string]struct{}
 	removedaddon_ratecard  map[string]struct{}
 	clearedaddon_ratecard  bool
+	ratecards              map[string]struct{}
+	removedratecards       map[string]struct{}
+	clearedratecards       bool
 	done                   bool
 	oldValue               func(context.Context) (*Feature, error)
 	predicates             []predicate.Feature
@@ -31920,58 +32044,58 @@ func (m *FeatureMutation) ResetEntitlement() {
 	m.removedentitlement = nil
 }
 
-// AddRatecardIDs adds the "ratecard" edge to the PlanRateCard entity by ids.
-func (m *FeatureMutation) AddRatecardIDs(ids ...string) {
-	if m.ratecard == nil {
-		m.ratecard = make(map[string]struct{})
+// AddPlanRatecardIDs adds the "plan_ratecard" edge to the PlanRateCard entity by ids.
+func (m *FeatureMutation) AddPlanRatecardIDs(ids ...string) {
+	if m.plan_ratecard == nil {
+		m.plan_ratecard = make(map[string]struct{})
 	}
 	for i := range ids {
-		m.ratecard[ids[i]] = struct{}{}
+		m.plan_ratecard[ids[i]] = struct{}{}
 	}
 }
 
-// ClearRatecard clears the "ratecard" edge to the PlanRateCard entity.
-func (m *FeatureMutation) ClearRatecard() {
-	m.clearedratecard = true
+// ClearPlanRatecard clears the "plan_ratecard" edge to the PlanRateCard entity.
+func (m *FeatureMutation) ClearPlanRatecard() {
+	m.clearedplan_ratecard = true
 }
 
-// RatecardCleared reports if the "ratecard" edge to the PlanRateCard entity was cleared.
-func (m *FeatureMutation) RatecardCleared() bool {
-	return m.clearedratecard
+// PlanRatecardCleared reports if the "plan_ratecard" edge to the PlanRateCard entity was cleared.
+func (m *FeatureMutation) PlanRatecardCleared() bool {
+	return m.clearedplan_ratecard
 }
 
-// RemoveRatecardIDs removes the "ratecard" edge to the PlanRateCard entity by IDs.
-func (m *FeatureMutation) RemoveRatecardIDs(ids ...string) {
-	if m.removedratecard == nil {
-		m.removedratecard = make(map[string]struct{})
+// RemovePlanRatecardIDs removes the "plan_ratecard" edge to the PlanRateCard entity by IDs.
+func (m *FeatureMutation) RemovePlanRatecardIDs(ids ...string) {
+	if m.removedplan_ratecard == nil {
+		m.removedplan_ratecard = make(map[string]struct{})
 	}
 	for i := range ids {
-		delete(m.ratecard, ids[i])
-		m.removedratecard[ids[i]] = struct{}{}
+		delete(m.plan_ratecard, ids[i])
+		m.removedplan_ratecard[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedRatecard returns the removed IDs of the "ratecard" edge to the PlanRateCard entity.
-func (m *FeatureMutation) RemovedRatecardIDs() (ids []string) {
-	for id := range m.removedratecard {
+// RemovedPlanRatecard returns the removed IDs of the "plan_ratecard" edge to the PlanRateCard entity.
+func (m *FeatureMutation) RemovedPlanRatecardIDs() (ids []string) {
+	for id := range m.removedplan_ratecard {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// RatecardIDs returns the "ratecard" edge IDs in the mutation.
-func (m *FeatureMutation) RatecardIDs() (ids []string) {
-	for id := range m.ratecard {
+// PlanRatecardIDs returns the "plan_ratecard" edge IDs in the mutation.
+func (m *FeatureMutation) PlanRatecardIDs() (ids []string) {
+	for id := range m.plan_ratecard {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetRatecard resets all changes to the "ratecard" edge.
-func (m *FeatureMutation) ResetRatecard() {
-	m.ratecard = nil
-	m.clearedratecard = false
-	m.removedratecard = nil
+// ResetPlanRatecard resets all changes to the "plan_ratecard" edge.
+func (m *FeatureMutation) ResetPlanRatecard() {
+	m.plan_ratecard = nil
+	m.clearedplan_ratecard = false
+	m.removedplan_ratecard = nil
 }
 
 // AddAddonRatecardIDs adds the "addon_ratecard" edge to the AddonRateCard entity by ids.
@@ -32026,6 +32150,60 @@ func (m *FeatureMutation) ResetAddonRatecard() {
 	m.addon_ratecard = nil
 	m.clearedaddon_ratecard = false
 	m.removedaddon_ratecard = nil
+}
+
+// AddRatecardIDs adds the "ratecards" edge to the RateCard entity by ids.
+func (m *FeatureMutation) AddRatecardIDs(ids ...string) {
+	if m.ratecards == nil {
+		m.ratecards = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.ratecards[ids[i]] = struct{}{}
+	}
+}
+
+// ClearRatecards clears the "ratecards" edge to the RateCard entity.
+func (m *FeatureMutation) ClearRatecards() {
+	m.clearedratecards = true
+}
+
+// RatecardsCleared reports if the "ratecards" edge to the RateCard entity was cleared.
+func (m *FeatureMutation) RatecardsCleared() bool {
+	return m.clearedratecards
+}
+
+// RemoveRatecardIDs removes the "ratecards" edge to the RateCard entity by IDs.
+func (m *FeatureMutation) RemoveRatecardIDs(ids ...string) {
+	if m.removedratecards == nil {
+		m.removedratecards = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.ratecards, ids[i])
+		m.removedratecards[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedRatecards returns the removed IDs of the "ratecards" edge to the RateCard entity.
+func (m *FeatureMutation) RemovedRatecardsIDs() (ids []string) {
+	for id := range m.removedratecards {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// RatecardsIDs returns the "ratecards" edge IDs in the mutation.
+func (m *FeatureMutation) RatecardsIDs() (ids []string) {
+	for id := range m.ratecards {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetRatecards resets all changes to the "ratecards" edge.
+func (m *FeatureMutation) ResetRatecards() {
+	m.ratecards = nil
+	m.clearedratecards = false
+	m.removedratecards = nil
 }
 
 // Where appends a list predicates to the FeatureMutation builder.
@@ -32347,15 +32525,18 @@ func (m *FeatureMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *FeatureMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.entitlement != nil {
 		edges = append(edges, feature.EdgeEntitlement)
 	}
-	if m.ratecard != nil {
-		edges = append(edges, feature.EdgeRatecard)
+	if m.plan_ratecard != nil {
+		edges = append(edges, feature.EdgePlanRatecard)
 	}
 	if m.addon_ratecard != nil {
 		edges = append(edges, feature.EdgeAddonRatecard)
+	}
+	if m.ratecards != nil {
+		edges = append(edges, feature.EdgeRatecards)
 	}
 	return edges
 }
@@ -32370,9 +32551,9 @@ func (m *FeatureMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case feature.EdgeRatecard:
-		ids := make([]ent.Value, 0, len(m.ratecard))
-		for id := range m.ratecard {
+	case feature.EdgePlanRatecard:
+		ids := make([]ent.Value, 0, len(m.plan_ratecard))
+		for id := range m.plan_ratecard {
 			ids = append(ids, id)
 		}
 		return ids
@@ -32382,21 +32563,30 @@ func (m *FeatureMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case feature.EdgeRatecards:
+		ids := make([]ent.Value, 0, len(m.ratecards))
+		for id := range m.ratecards {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *FeatureMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.removedentitlement != nil {
 		edges = append(edges, feature.EdgeEntitlement)
 	}
-	if m.removedratecard != nil {
-		edges = append(edges, feature.EdgeRatecard)
+	if m.removedplan_ratecard != nil {
+		edges = append(edges, feature.EdgePlanRatecard)
 	}
 	if m.removedaddon_ratecard != nil {
 		edges = append(edges, feature.EdgeAddonRatecard)
+	}
+	if m.removedratecards != nil {
+		edges = append(edges, feature.EdgeRatecards)
 	}
 	return edges
 }
@@ -32411,9 +32601,9 @@ func (m *FeatureMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case feature.EdgeRatecard:
-		ids := make([]ent.Value, 0, len(m.removedratecard))
-		for id := range m.removedratecard {
+	case feature.EdgePlanRatecard:
+		ids := make([]ent.Value, 0, len(m.removedplan_ratecard))
+		for id := range m.removedplan_ratecard {
 			ids = append(ids, id)
 		}
 		return ids
@@ -32423,21 +32613,30 @@ func (m *FeatureMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case feature.EdgeRatecards:
+		ids := make([]ent.Value, 0, len(m.removedratecards))
+		for id := range m.removedratecards {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *FeatureMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedentitlement {
 		edges = append(edges, feature.EdgeEntitlement)
 	}
-	if m.clearedratecard {
-		edges = append(edges, feature.EdgeRatecard)
+	if m.clearedplan_ratecard {
+		edges = append(edges, feature.EdgePlanRatecard)
 	}
 	if m.clearedaddon_ratecard {
 		edges = append(edges, feature.EdgeAddonRatecard)
+	}
+	if m.clearedratecards {
+		edges = append(edges, feature.EdgeRatecards)
 	}
 	return edges
 }
@@ -32448,10 +32647,12 @@ func (m *FeatureMutation) EdgeCleared(name string) bool {
 	switch name {
 	case feature.EdgeEntitlement:
 		return m.clearedentitlement
-	case feature.EdgeRatecard:
-		return m.clearedratecard
+	case feature.EdgePlanRatecard:
+		return m.clearedplan_ratecard
 	case feature.EdgeAddonRatecard:
 		return m.clearedaddon_ratecard
+	case feature.EdgeRatecards:
+		return m.clearedratecards
 	}
 	return false
 }
@@ -32471,11 +32672,14 @@ func (m *FeatureMutation) ResetEdge(name string) error {
 	case feature.EdgeEntitlement:
 		m.ResetEntitlement()
 		return nil
-	case feature.EdgeRatecard:
-		m.ResetRatecard()
+	case feature.EdgePlanRatecard:
+		m.ResetPlanRatecard()
 		return nil
 	case feature.EdgeAddonRatecard:
 		m.ResetAddonRatecard()
+		return nil
+	case feature.EdgeRatecards:
+		m.ResetRatecards()
 		return nil
 	}
 	return fmt.Errorf("unknown Feature edge %s", name)
@@ -41893,6 +42097,8 @@ type PlanRateCardMutation struct {
 	price                **productcatalog.Price
 	discounts            **productcatalog.Discounts
 	clearedFields        map[string]struct{}
+	ratecard             *string
+	clearedratecard      bool
 	phase                *string
 	clearedphase         bool
 	features             *string
@@ -42663,6 +42869,55 @@ func (m *PlanRateCardMutation) ResetDiscounts() {
 	delete(m.clearedFields, planratecard.FieldDiscounts)
 }
 
+// SetRatecardID sets the "ratecard_id" field.
+func (m *PlanRateCardMutation) SetRatecardID(s string) {
+	m.ratecard = &s
+}
+
+// RatecardID returns the value of the "ratecard_id" field in the mutation.
+func (m *PlanRateCardMutation) RatecardID() (r string, exists bool) {
+	v := m.ratecard
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRatecardID returns the old "ratecard_id" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldRatecardID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRatecardID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRatecardID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRatecardID: %w", err)
+	}
+	return oldValue.RatecardID, nil
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (m *PlanRateCardMutation) ClearRatecardID() {
+	m.ratecard = nil
+	m.clearedFields[planratecard.FieldRatecardID] = struct{}{}
+}
+
+// RatecardIDCleared returns if the "ratecard_id" field was cleared in this mutation.
+func (m *PlanRateCardMutation) RatecardIDCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldRatecardID]
+	return ok
+}
+
+// ResetRatecardID resets all changes to the "ratecard_id" field.
+func (m *PlanRateCardMutation) ResetRatecardID() {
+	m.ratecard = nil
+	delete(m.clearedFields, planratecard.FieldRatecardID)
+}
+
 // SetPhaseID sets the "phase_id" field.
 func (m *PlanRateCardMutation) SetPhaseID(s string) {
 	m.phase = &s
@@ -42746,6 +43001,33 @@ func (m *PlanRateCardMutation) FeatureIDCleared() bool {
 func (m *PlanRateCardMutation) ResetFeatureID() {
 	m.features = nil
 	delete(m.clearedFields, planratecard.FieldFeatureID)
+}
+
+// ClearRatecard clears the "ratecard" edge to the RateCard entity.
+func (m *PlanRateCardMutation) ClearRatecard() {
+	m.clearedratecard = true
+	m.clearedFields[planratecard.FieldRatecardID] = struct{}{}
+}
+
+// RatecardCleared reports if the "ratecard" edge to the RateCard entity was cleared.
+func (m *PlanRateCardMutation) RatecardCleared() bool {
+	return m.RatecardIDCleared() || m.clearedratecard
+}
+
+// RatecardIDs returns the "ratecard" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// RatecardID instead. It exists only for internal usage by the builders.
+func (m *PlanRateCardMutation) RatecardIDs() (ids []string) {
+	if id := m.ratecard; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetRatecard resets all changes to the "ratecard" edge.
+func (m *PlanRateCardMutation) ResetRatecard() {
+	m.ratecard = nil
+	m.clearedratecard = false
 }
 
 // ClearPhase clears the "phase" edge to the PlanPhase entity.
@@ -42849,7 +43131,7 @@ func (m *PlanRateCardMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanRateCardMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, planratecard.FieldNamespace)
 	}
@@ -42895,6 +43177,9 @@ func (m *PlanRateCardMutation) Fields() []string {
 	if m.discounts != nil {
 		fields = append(fields, planratecard.FieldDiscounts)
 	}
+	if m.ratecard != nil {
+		fields = append(fields, planratecard.FieldRatecardID)
+	}
 	if m.phase != nil {
 		fields = append(fields, planratecard.FieldPhaseID)
 	}
@@ -42939,6 +43224,8 @@ func (m *PlanRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.Price()
 	case planratecard.FieldDiscounts:
 		return m.Discounts()
+	case planratecard.FieldRatecardID:
+		return m.RatecardID()
 	case planratecard.FieldPhaseID:
 		return m.PhaseID()
 	case planratecard.FieldFeatureID:
@@ -42982,6 +43269,8 @@ func (m *PlanRateCardMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldPrice(ctx)
 	case planratecard.FieldDiscounts:
 		return m.OldDiscounts(ctx)
+	case planratecard.FieldRatecardID:
+		return m.OldRatecardID(ctx)
 	case planratecard.FieldPhaseID:
 		return m.OldPhaseID(ctx)
 	case planratecard.FieldFeatureID:
@@ -43100,6 +43389,13 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDiscounts(v)
 		return nil
+	case planratecard.FieldRatecardID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRatecardID(v)
+		return nil
 	case planratecard.FieldPhaseID:
 		v, ok := value.(string)
 		if !ok {
@@ -43171,6 +43467,9 @@ func (m *PlanRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(planratecard.FieldDiscounts) {
 		fields = append(fields, planratecard.FieldDiscounts)
 	}
+	if m.FieldCleared(planratecard.FieldRatecardID) {
+		fields = append(fields, planratecard.FieldRatecardID)
+	}
 	if m.FieldCleared(planratecard.FieldFeatureID) {
 		fields = append(fields, planratecard.FieldFeatureID)
 	}
@@ -43214,6 +43513,9 @@ func (m *PlanRateCardMutation) ClearField(name string) error {
 		return nil
 	case planratecard.FieldDiscounts:
 		m.ClearDiscounts()
+		return nil
+	case planratecard.FieldRatecardID:
+		m.ClearRatecardID()
 		return nil
 	case planratecard.FieldFeatureID:
 		m.ClearFeatureID()
@@ -43271,6 +43573,9 @@ func (m *PlanRateCardMutation) ResetField(name string) error {
 	case planratecard.FieldDiscounts:
 		m.ResetDiscounts()
 		return nil
+	case planratecard.FieldRatecardID:
+		m.ResetRatecardID()
+		return nil
 	case planratecard.FieldPhaseID:
 		m.ResetPhaseID()
 		return nil
@@ -43283,7 +43588,10 @@ func (m *PlanRateCardMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PlanRateCardMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
+	if m.ratecard != nil {
+		edges = append(edges, planratecard.EdgeRatecard)
+	}
 	if m.phase != nil {
 		edges = append(edges, planratecard.EdgePhase)
 	}
@@ -43297,6 +43605,10 @@ func (m *PlanRateCardMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *PlanRateCardMutation) AddedIDs(name string) []ent.Value {
 	switch name {
+	case planratecard.EdgeRatecard:
+		if id := m.ratecard; id != nil {
+			return []ent.Value{*id}
+		}
 	case planratecard.EdgePhase:
 		if id := m.phase; id != nil {
 			return []ent.Value{*id}
@@ -43311,7 +43623,7 @@ func (m *PlanRateCardMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PlanRateCardMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -43323,7 +43635,10 @@ func (m *PlanRateCardMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PlanRateCardMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
+	if m.clearedratecard {
+		edges = append(edges, planratecard.EdgeRatecard)
+	}
 	if m.clearedphase {
 		edges = append(edges, planratecard.EdgePhase)
 	}
@@ -43337,6 +43652,8 @@ func (m *PlanRateCardMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *PlanRateCardMutation) EdgeCleared(name string) bool {
 	switch name {
+	case planratecard.EdgeRatecard:
+		return m.clearedratecard
 	case planratecard.EdgePhase:
 		return m.clearedphase
 	case planratecard.EdgeFeatures:
@@ -43349,6 +43666,9 @@ func (m *PlanRateCardMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *PlanRateCardMutation) ClearEdge(name string) error {
 	switch name {
+	case planratecard.EdgeRatecard:
+		m.ClearRatecard()
+		return nil
 	case planratecard.EdgePhase:
 		m.ClearPhase()
 		return nil
@@ -43363,6 +43683,9 @@ func (m *PlanRateCardMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *PlanRateCardMutation) ResetEdge(name string) error {
 	switch name {
+	case planratecard.EdgeRatecard:
+		m.ResetRatecard()
+		return nil
 	case planratecard.EdgePhase:
 		m.ResetPhase()
 		return nil
@@ -43371,6 +43694,2152 @@ func (m *PlanRateCardMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown PlanRateCard edge %s", name)
+}
+
+// RateCardMutation represents an operation that mutates the RateCard nodes in the graph.
+type RateCardMutation struct {
+	config
+	op                                                 Op
+	typ                                                string
+	id                                                 *string
+	namespace                                          *string
+	metadata                                           *map[string]string
+	created_at                                         *time.Time
+	updated_at                                         *time.Time
+	deleted_at                                         *time.Time
+	name                                               *string
+	description                                        *string
+	key                                                *string
+	entitlement_template_entitlement_type              *ratecard.EntitlementTemplateEntitlementType
+	entitlement_template_metadata                      *map[string]string
+	entitlement_template_is_soft_limit                 *bool
+	entitlement_template_issue_after_reset             *float64
+	addentitlement_template_issue_after_reset          *float64
+	entitlement_template_issue_after_reset_priority    *uint8
+	addentitlement_template_issue_after_reset_priority *int8
+	entitlement_template_preserve_overage_at_reset     *bool
+	entitlement_template_config                        *[]uint8
+	appendentitlement_template_config                  []uint8
+	entitlement_template_usage_period                  *string
+	_type                                              *productcatalog.RateCardType
+	feature_key                                        *string
+	tax_config                                         **productcatalog.TaxConfig
+	billing_cadence                                    *isodate.String
+	price                                              **productcatalog.Price
+	discounts                                          **productcatalog.Discounts
+	clearedFields                                      map[string]struct{}
+	addon_ratecard                                     *string
+	clearedaddon_ratecard                              bool
+	plan_ratecard                                      *string
+	clearedplan_ratecard                               bool
+	subscription_item                                  *string
+	clearedsubscription_item                           bool
+	feature                                            *string
+	clearedfeature                                     bool
+	done                                               bool
+	oldValue                                           func(context.Context) (*RateCard, error)
+	predicates                                         []predicate.RateCard
+}
+
+var _ ent.Mutation = (*RateCardMutation)(nil)
+
+// ratecardOption allows management of the mutation configuration using functional options.
+type ratecardOption func(*RateCardMutation)
+
+// newRateCardMutation creates new mutation for the RateCard entity.
+func newRateCardMutation(c config, op Op, opts ...ratecardOption) *RateCardMutation {
+	m := &RateCardMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRateCard,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRateCardID sets the ID field of the mutation.
+func withRateCardID(id string) ratecardOption {
+	return func(m *RateCardMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RateCard
+		)
+		m.oldValue = func(ctx context.Context) (*RateCard, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RateCard.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRateCard sets the old RateCard of the mutation.
+func withRateCard(node *RateCard) ratecardOption {
+	return func(m *RateCardMutation) {
+		m.oldValue = func(context.Context) (*RateCard, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RateCardMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RateCardMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of RateCard entities.
+func (m *RateCardMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RateCardMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RateCardMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RateCard.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *RateCardMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *RateCardMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *RateCardMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *RateCardMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *RateCardMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *RateCardMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[ratecard.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *RateCardMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *RateCardMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, ratecard.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RateCardMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RateCardMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RateCardMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RateCardMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RateCardMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RateCardMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *RateCardMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *RateCardMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *RateCardMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[ratecard.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *RateCardMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *RateCardMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, ratecard.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *RateCardMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *RateCardMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *RateCardMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *RateCardMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *RateCardMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *RateCardMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[ratecard.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *RateCardMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *RateCardMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, ratecard.FieldDescription)
+}
+
+// SetKey sets the "key" field.
+func (m *RateCardMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *RateCardMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *RateCardMutation) ResetKey() {
+	m.key = nil
+}
+
+// SetEntitlementTemplateEntitlementType sets the "entitlement_template_entitlement_type" field.
+func (m *RateCardMutation) SetEntitlementTemplateEntitlementType(rtet ratecard.EntitlementTemplateEntitlementType) {
+	m.entitlement_template_entitlement_type = &rtet
+}
+
+// EntitlementTemplateEntitlementType returns the value of the "entitlement_template_entitlement_type" field in the mutation.
+func (m *RateCardMutation) EntitlementTemplateEntitlementType() (r ratecard.EntitlementTemplateEntitlementType, exists bool) {
+	v := m.entitlement_template_entitlement_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntitlementTemplateEntitlementType returns the old "entitlement_template_entitlement_type" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldEntitlementTemplateEntitlementType(ctx context.Context) (v ratecard.EntitlementTemplateEntitlementType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntitlementTemplateEntitlementType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntitlementTemplateEntitlementType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntitlementTemplateEntitlementType: %w", err)
+	}
+	return oldValue.EntitlementTemplateEntitlementType, nil
+}
+
+// ResetEntitlementTemplateEntitlementType resets all changes to the "entitlement_template_entitlement_type" field.
+func (m *RateCardMutation) ResetEntitlementTemplateEntitlementType() {
+	m.entitlement_template_entitlement_type = nil
+}
+
+// SetEntitlementTemplateMetadata sets the "entitlement_template_metadata" field.
+func (m *RateCardMutation) SetEntitlementTemplateMetadata(value map[string]string) {
+	m.entitlement_template_metadata = &value
+}
+
+// EntitlementTemplateMetadata returns the value of the "entitlement_template_metadata" field in the mutation.
+func (m *RateCardMutation) EntitlementTemplateMetadata() (r map[string]string, exists bool) {
+	v := m.entitlement_template_metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntitlementTemplateMetadata returns the old "entitlement_template_metadata" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldEntitlementTemplateMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntitlementTemplateMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntitlementTemplateMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntitlementTemplateMetadata: %w", err)
+	}
+	return oldValue.EntitlementTemplateMetadata, nil
+}
+
+// ClearEntitlementTemplateMetadata clears the value of the "entitlement_template_metadata" field.
+func (m *RateCardMutation) ClearEntitlementTemplateMetadata() {
+	m.entitlement_template_metadata = nil
+	m.clearedFields[ratecard.FieldEntitlementTemplateMetadata] = struct{}{}
+}
+
+// EntitlementTemplateMetadataCleared returns if the "entitlement_template_metadata" field was cleared in this mutation.
+func (m *RateCardMutation) EntitlementTemplateMetadataCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldEntitlementTemplateMetadata]
+	return ok
+}
+
+// ResetEntitlementTemplateMetadata resets all changes to the "entitlement_template_metadata" field.
+func (m *RateCardMutation) ResetEntitlementTemplateMetadata() {
+	m.entitlement_template_metadata = nil
+	delete(m.clearedFields, ratecard.FieldEntitlementTemplateMetadata)
+}
+
+// SetEntitlementTemplateIsSoftLimit sets the "entitlement_template_is_soft_limit" field.
+func (m *RateCardMutation) SetEntitlementTemplateIsSoftLimit(b bool) {
+	m.entitlement_template_is_soft_limit = &b
+}
+
+// EntitlementTemplateIsSoftLimit returns the value of the "entitlement_template_is_soft_limit" field in the mutation.
+func (m *RateCardMutation) EntitlementTemplateIsSoftLimit() (r bool, exists bool) {
+	v := m.entitlement_template_is_soft_limit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntitlementTemplateIsSoftLimit returns the old "entitlement_template_is_soft_limit" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldEntitlementTemplateIsSoftLimit(ctx context.Context) (v *bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntitlementTemplateIsSoftLimit is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntitlementTemplateIsSoftLimit requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntitlementTemplateIsSoftLimit: %w", err)
+	}
+	return oldValue.EntitlementTemplateIsSoftLimit, nil
+}
+
+// ClearEntitlementTemplateIsSoftLimit clears the value of the "entitlement_template_is_soft_limit" field.
+func (m *RateCardMutation) ClearEntitlementTemplateIsSoftLimit() {
+	m.entitlement_template_is_soft_limit = nil
+	m.clearedFields[ratecard.FieldEntitlementTemplateIsSoftLimit] = struct{}{}
+}
+
+// EntitlementTemplateIsSoftLimitCleared returns if the "entitlement_template_is_soft_limit" field was cleared in this mutation.
+func (m *RateCardMutation) EntitlementTemplateIsSoftLimitCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldEntitlementTemplateIsSoftLimit]
+	return ok
+}
+
+// ResetEntitlementTemplateIsSoftLimit resets all changes to the "entitlement_template_is_soft_limit" field.
+func (m *RateCardMutation) ResetEntitlementTemplateIsSoftLimit() {
+	m.entitlement_template_is_soft_limit = nil
+	delete(m.clearedFields, ratecard.FieldEntitlementTemplateIsSoftLimit)
+}
+
+// SetEntitlementTemplateIssueAfterReset sets the "entitlement_template_issue_after_reset" field.
+func (m *RateCardMutation) SetEntitlementTemplateIssueAfterReset(f float64) {
+	m.entitlement_template_issue_after_reset = &f
+	m.addentitlement_template_issue_after_reset = nil
+}
+
+// EntitlementTemplateIssueAfterReset returns the value of the "entitlement_template_issue_after_reset" field in the mutation.
+func (m *RateCardMutation) EntitlementTemplateIssueAfterReset() (r float64, exists bool) {
+	v := m.entitlement_template_issue_after_reset
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntitlementTemplateIssueAfterReset returns the old "entitlement_template_issue_after_reset" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldEntitlementTemplateIssueAfterReset(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntitlementTemplateIssueAfterReset is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntitlementTemplateIssueAfterReset requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntitlementTemplateIssueAfterReset: %w", err)
+	}
+	return oldValue.EntitlementTemplateIssueAfterReset, nil
+}
+
+// AddEntitlementTemplateIssueAfterReset adds f to the "entitlement_template_issue_after_reset" field.
+func (m *RateCardMutation) AddEntitlementTemplateIssueAfterReset(f float64) {
+	if m.addentitlement_template_issue_after_reset != nil {
+		*m.addentitlement_template_issue_after_reset += f
+	} else {
+		m.addentitlement_template_issue_after_reset = &f
+	}
+}
+
+// AddedEntitlementTemplateIssueAfterReset returns the value that was added to the "entitlement_template_issue_after_reset" field in this mutation.
+func (m *RateCardMutation) AddedEntitlementTemplateIssueAfterReset() (r float64, exists bool) {
+	v := m.addentitlement_template_issue_after_reset
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearEntitlementTemplateIssueAfterReset clears the value of the "entitlement_template_issue_after_reset" field.
+func (m *RateCardMutation) ClearEntitlementTemplateIssueAfterReset() {
+	m.entitlement_template_issue_after_reset = nil
+	m.addentitlement_template_issue_after_reset = nil
+	m.clearedFields[ratecard.FieldEntitlementTemplateIssueAfterReset] = struct{}{}
+}
+
+// EntitlementTemplateIssueAfterResetCleared returns if the "entitlement_template_issue_after_reset" field was cleared in this mutation.
+func (m *RateCardMutation) EntitlementTemplateIssueAfterResetCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldEntitlementTemplateIssueAfterReset]
+	return ok
+}
+
+// ResetEntitlementTemplateIssueAfterReset resets all changes to the "entitlement_template_issue_after_reset" field.
+func (m *RateCardMutation) ResetEntitlementTemplateIssueAfterReset() {
+	m.entitlement_template_issue_after_reset = nil
+	m.addentitlement_template_issue_after_reset = nil
+	delete(m.clearedFields, ratecard.FieldEntitlementTemplateIssueAfterReset)
+}
+
+// SetEntitlementTemplateIssueAfterResetPriority sets the "entitlement_template_issue_after_reset_priority" field.
+func (m *RateCardMutation) SetEntitlementTemplateIssueAfterResetPriority(u uint8) {
+	m.entitlement_template_issue_after_reset_priority = &u
+	m.addentitlement_template_issue_after_reset_priority = nil
+}
+
+// EntitlementTemplateIssueAfterResetPriority returns the value of the "entitlement_template_issue_after_reset_priority" field in the mutation.
+func (m *RateCardMutation) EntitlementTemplateIssueAfterResetPriority() (r uint8, exists bool) {
+	v := m.entitlement_template_issue_after_reset_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntitlementTemplateIssueAfterResetPriority returns the old "entitlement_template_issue_after_reset_priority" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldEntitlementTemplateIssueAfterResetPriority(ctx context.Context) (v *uint8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntitlementTemplateIssueAfterResetPriority is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntitlementTemplateIssueAfterResetPriority requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntitlementTemplateIssueAfterResetPriority: %w", err)
+	}
+	return oldValue.EntitlementTemplateIssueAfterResetPriority, nil
+}
+
+// AddEntitlementTemplateIssueAfterResetPriority adds u to the "entitlement_template_issue_after_reset_priority" field.
+func (m *RateCardMutation) AddEntitlementTemplateIssueAfterResetPriority(u int8) {
+	if m.addentitlement_template_issue_after_reset_priority != nil {
+		*m.addentitlement_template_issue_after_reset_priority += u
+	} else {
+		m.addentitlement_template_issue_after_reset_priority = &u
+	}
+}
+
+// AddedEntitlementTemplateIssueAfterResetPriority returns the value that was added to the "entitlement_template_issue_after_reset_priority" field in this mutation.
+func (m *RateCardMutation) AddedEntitlementTemplateIssueAfterResetPriority() (r int8, exists bool) {
+	v := m.addentitlement_template_issue_after_reset_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearEntitlementTemplateIssueAfterResetPriority clears the value of the "entitlement_template_issue_after_reset_priority" field.
+func (m *RateCardMutation) ClearEntitlementTemplateIssueAfterResetPriority() {
+	m.entitlement_template_issue_after_reset_priority = nil
+	m.addentitlement_template_issue_after_reset_priority = nil
+	m.clearedFields[ratecard.FieldEntitlementTemplateIssueAfterResetPriority] = struct{}{}
+}
+
+// EntitlementTemplateIssueAfterResetPriorityCleared returns if the "entitlement_template_issue_after_reset_priority" field was cleared in this mutation.
+func (m *RateCardMutation) EntitlementTemplateIssueAfterResetPriorityCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldEntitlementTemplateIssueAfterResetPriority]
+	return ok
+}
+
+// ResetEntitlementTemplateIssueAfterResetPriority resets all changes to the "entitlement_template_issue_after_reset_priority" field.
+func (m *RateCardMutation) ResetEntitlementTemplateIssueAfterResetPriority() {
+	m.entitlement_template_issue_after_reset_priority = nil
+	m.addentitlement_template_issue_after_reset_priority = nil
+	delete(m.clearedFields, ratecard.FieldEntitlementTemplateIssueAfterResetPriority)
+}
+
+// SetEntitlementTemplatePreserveOverageAtReset sets the "entitlement_template_preserve_overage_at_reset" field.
+func (m *RateCardMutation) SetEntitlementTemplatePreserveOverageAtReset(b bool) {
+	m.entitlement_template_preserve_overage_at_reset = &b
+}
+
+// EntitlementTemplatePreserveOverageAtReset returns the value of the "entitlement_template_preserve_overage_at_reset" field in the mutation.
+func (m *RateCardMutation) EntitlementTemplatePreserveOverageAtReset() (r bool, exists bool) {
+	v := m.entitlement_template_preserve_overage_at_reset
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntitlementTemplatePreserveOverageAtReset returns the old "entitlement_template_preserve_overage_at_reset" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldEntitlementTemplatePreserveOverageAtReset(ctx context.Context) (v *bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntitlementTemplatePreserveOverageAtReset is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntitlementTemplatePreserveOverageAtReset requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntitlementTemplatePreserveOverageAtReset: %w", err)
+	}
+	return oldValue.EntitlementTemplatePreserveOverageAtReset, nil
+}
+
+// ClearEntitlementTemplatePreserveOverageAtReset clears the value of the "entitlement_template_preserve_overage_at_reset" field.
+func (m *RateCardMutation) ClearEntitlementTemplatePreserveOverageAtReset() {
+	m.entitlement_template_preserve_overage_at_reset = nil
+	m.clearedFields[ratecard.FieldEntitlementTemplatePreserveOverageAtReset] = struct{}{}
+}
+
+// EntitlementTemplatePreserveOverageAtResetCleared returns if the "entitlement_template_preserve_overage_at_reset" field was cleared in this mutation.
+func (m *RateCardMutation) EntitlementTemplatePreserveOverageAtResetCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldEntitlementTemplatePreserveOverageAtReset]
+	return ok
+}
+
+// ResetEntitlementTemplatePreserveOverageAtReset resets all changes to the "entitlement_template_preserve_overage_at_reset" field.
+func (m *RateCardMutation) ResetEntitlementTemplatePreserveOverageAtReset() {
+	m.entitlement_template_preserve_overage_at_reset = nil
+	delete(m.clearedFields, ratecard.FieldEntitlementTemplatePreserveOverageAtReset)
+}
+
+// SetEntitlementTemplateConfig sets the "entitlement_template_config" field.
+func (m *RateCardMutation) SetEntitlementTemplateConfig(u []uint8) {
+	m.entitlement_template_config = &u
+	m.appendentitlement_template_config = nil
+}
+
+// EntitlementTemplateConfig returns the value of the "entitlement_template_config" field in the mutation.
+func (m *RateCardMutation) EntitlementTemplateConfig() (r []uint8, exists bool) {
+	v := m.entitlement_template_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntitlementTemplateConfig returns the old "entitlement_template_config" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldEntitlementTemplateConfig(ctx context.Context) (v []uint8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntitlementTemplateConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntitlementTemplateConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntitlementTemplateConfig: %w", err)
+	}
+	return oldValue.EntitlementTemplateConfig, nil
+}
+
+// AppendEntitlementTemplateConfig adds u to the "entitlement_template_config" field.
+func (m *RateCardMutation) AppendEntitlementTemplateConfig(u []uint8) {
+	m.appendentitlement_template_config = append(m.appendentitlement_template_config, u...)
+}
+
+// AppendedEntitlementTemplateConfig returns the list of values that were appended to the "entitlement_template_config" field in this mutation.
+func (m *RateCardMutation) AppendedEntitlementTemplateConfig() ([]uint8, bool) {
+	if len(m.appendentitlement_template_config) == 0 {
+		return nil, false
+	}
+	return m.appendentitlement_template_config, true
+}
+
+// ClearEntitlementTemplateConfig clears the value of the "entitlement_template_config" field.
+func (m *RateCardMutation) ClearEntitlementTemplateConfig() {
+	m.entitlement_template_config = nil
+	m.appendentitlement_template_config = nil
+	m.clearedFields[ratecard.FieldEntitlementTemplateConfig] = struct{}{}
+}
+
+// EntitlementTemplateConfigCleared returns if the "entitlement_template_config" field was cleared in this mutation.
+func (m *RateCardMutation) EntitlementTemplateConfigCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldEntitlementTemplateConfig]
+	return ok
+}
+
+// ResetEntitlementTemplateConfig resets all changes to the "entitlement_template_config" field.
+func (m *RateCardMutation) ResetEntitlementTemplateConfig() {
+	m.entitlement_template_config = nil
+	m.appendentitlement_template_config = nil
+	delete(m.clearedFields, ratecard.FieldEntitlementTemplateConfig)
+}
+
+// SetEntitlementTemplateUsagePeriod sets the "entitlement_template_usage_period" field.
+func (m *RateCardMutation) SetEntitlementTemplateUsagePeriod(s string) {
+	m.entitlement_template_usage_period = &s
+}
+
+// EntitlementTemplateUsagePeriod returns the value of the "entitlement_template_usage_period" field in the mutation.
+func (m *RateCardMutation) EntitlementTemplateUsagePeriod() (r string, exists bool) {
+	v := m.entitlement_template_usage_period
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntitlementTemplateUsagePeriod returns the old "entitlement_template_usage_period" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldEntitlementTemplateUsagePeriod(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntitlementTemplateUsagePeriod is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntitlementTemplateUsagePeriod requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntitlementTemplateUsagePeriod: %w", err)
+	}
+	return oldValue.EntitlementTemplateUsagePeriod, nil
+}
+
+// ClearEntitlementTemplateUsagePeriod clears the value of the "entitlement_template_usage_period" field.
+func (m *RateCardMutation) ClearEntitlementTemplateUsagePeriod() {
+	m.entitlement_template_usage_period = nil
+	m.clearedFields[ratecard.FieldEntitlementTemplateUsagePeriod] = struct{}{}
+}
+
+// EntitlementTemplateUsagePeriodCleared returns if the "entitlement_template_usage_period" field was cleared in this mutation.
+func (m *RateCardMutation) EntitlementTemplateUsagePeriodCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldEntitlementTemplateUsagePeriod]
+	return ok
+}
+
+// ResetEntitlementTemplateUsagePeriod resets all changes to the "entitlement_template_usage_period" field.
+func (m *RateCardMutation) ResetEntitlementTemplateUsagePeriod() {
+	m.entitlement_template_usage_period = nil
+	delete(m.clearedFields, ratecard.FieldEntitlementTemplateUsagePeriod)
+}
+
+// SetType sets the "type" field.
+func (m *RateCardMutation) SetType(pct productcatalog.RateCardType) {
+	m._type = &pct
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *RateCardMutation) GetType() (r productcatalog.RateCardType, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldType(ctx context.Context) (v productcatalog.RateCardType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *RateCardMutation) ResetType() {
+	m._type = nil
+}
+
+// SetFeatureKey sets the "feature_key" field.
+func (m *RateCardMutation) SetFeatureKey(s string) {
+	m.feature_key = &s
+}
+
+// FeatureKey returns the value of the "feature_key" field in the mutation.
+func (m *RateCardMutation) FeatureKey() (r string, exists bool) {
+	v := m.feature_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatureKey returns the old "feature_key" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldFeatureKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatureKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatureKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatureKey: %w", err)
+	}
+	return oldValue.FeatureKey, nil
+}
+
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (m *RateCardMutation) ClearFeatureKey() {
+	m.feature_key = nil
+	m.clearedFields[ratecard.FieldFeatureKey] = struct{}{}
+}
+
+// FeatureKeyCleared returns if the "feature_key" field was cleared in this mutation.
+func (m *RateCardMutation) FeatureKeyCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldFeatureKey]
+	return ok
+}
+
+// ResetFeatureKey resets all changes to the "feature_key" field.
+func (m *RateCardMutation) ResetFeatureKey() {
+	m.feature_key = nil
+	delete(m.clearedFields, ratecard.FieldFeatureKey)
+}
+
+// SetFeatureID sets the "feature_id" field.
+func (m *RateCardMutation) SetFeatureID(s string) {
+	m.feature = &s
+}
+
+// FeatureID returns the value of the "feature_id" field in the mutation.
+func (m *RateCardMutation) FeatureID() (r string, exists bool) {
+	v := m.feature
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatureID returns the old "feature_id" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldFeatureID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatureID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatureID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatureID: %w", err)
+	}
+	return oldValue.FeatureID, nil
+}
+
+// ClearFeatureID clears the value of the "feature_id" field.
+func (m *RateCardMutation) ClearFeatureID() {
+	m.feature = nil
+	m.clearedFields[ratecard.FieldFeatureID] = struct{}{}
+}
+
+// FeatureIDCleared returns if the "feature_id" field was cleared in this mutation.
+func (m *RateCardMutation) FeatureIDCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldFeatureID]
+	return ok
+}
+
+// ResetFeatureID resets all changes to the "feature_id" field.
+func (m *RateCardMutation) ResetFeatureID() {
+	m.feature = nil
+	delete(m.clearedFields, ratecard.FieldFeatureID)
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (m *RateCardMutation) SetTaxConfig(pc *productcatalog.TaxConfig) {
+	m.tax_config = &pc
+}
+
+// TaxConfig returns the value of the "tax_config" field in the mutation.
+func (m *RateCardMutation) TaxConfig() (r *productcatalog.TaxConfig, exists bool) {
+	v := m.tax_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxConfig returns the old "tax_config" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldTaxConfig(ctx context.Context) (v *productcatalog.TaxConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
+	}
+	return oldValue.TaxConfig, nil
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (m *RateCardMutation) ClearTaxConfig() {
+	m.tax_config = nil
+	m.clearedFields[ratecard.FieldTaxConfig] = struct{}{}
+}
+
+// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
+func (m *RateCardMutation) TaxConfigCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldTaxConfig]
+	return ok
+}
+
+// ResetTaxConfig resets all changes to the "tax_config" field.
+func (m *RateCardMutation) ResetTaxConfig() {
+	m.tax_config = nil
+	delete(m.clearedFields, ratecard.FieldTaxConfig)
+}
+
+// SetBillingCadence sets the "billing_cadence" field.
+func (m *RateCardMutation) SetBillingCadence(i isodate.String) {
+	m.billing_cadence = &i
+}
+
+// BillingCadence returns the value of the "billing_cadence" field in the mutation.
+func (m *RateCardMutation) BillingCadence() (r isodate.String, exists bool) {
+	v := m.billing_cadence
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillingCadence returns the old "billing_cadence" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldBillingCadence(ctx context.Context) (v *isodate.String, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillingCadence is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillingCadence requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillingCadence: %w", err)
+	}
+	return oldValue.BillingCadence, nil
+}
+
+// ClearBillingCadence clears the value of the "billing_cadence" field.
+func (m *RateCardMutation) ClearBillingCadence() {
+	m.billing_cadence = nil
+	m.clearedFields[ratecard.FieldBillingCadence] = struct{}{}
+}
+
+// BillingCadenceCleared returns if the "billing_cadence" field was cleared in this mutation.
+func (m *RateCardMutation) BillingCadenceCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldBillingCadence]
+	return ok
+}
+
+// ResetBillingCadence resets all changes to the "billing_cadence" field.
+func (m *RateCardMutation) ResetBillingCadence() {
+	m.billing_cadence = nil
+	delete(m.clearedFields, ratecard.FieldBillingCadence)
+}
+
+// SetPrice sets the "price" field.
+func (m *RateCardMutation) SetPrice(pr *productcatalog.Price) {
+	m.price = &pr
+}
+
+// Price returns the value of the "price" field in the mutation.
+func (m *RateCardMutation) Price() (r *productcatalog.Price, exists bool) {
+	v := m.price
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrice returns the old "price" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldPrice(ctx context.Context) (v *productcatalog.Price, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrice is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrice requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrice: %w", err)
+	}
+	return oldValue.Price, nil
+}
+
+// ClearPrice clears the value of the "price" field.
+func (m *RateCardMutation) ClearPrice() {
+	m.price = nil
+	m.clearedFields[ratecard.FieldPrice] = struct{}{}
+}
+
+// PriceCleared returns if the "price" field was cleared in this mutation.
+func (m *RateCardMutation) PriceCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldPrice]
+	return ok
+}
+
+// ResetPrice resets all changes to the "price" field.
+func (m *RateCardMutation) ResetPrice() {
+	m.price = nil
+	delete(m.clearedFields, ratecard.FieldPrice)
+}
+
+// SetDiscounts sets the "discounts" field.
+func (m *RateCardMutation) SetDiscounts(pr *productcatalog.Discounts) {
+	m.discounts = &pr
+}
+
+// Discounts returns the value of the "discounts" field in the mutation.
+func (m *RateCardMutation) Discounts() (r *productcatalog.Discounts, exists bool) {
+	v := m.discounts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiscounts returns the old "discounts" field's value of the RateCard entity.
+// If the RateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RateCardMutation) OldDiscounts(ctx context.Context) (v *productcatalog.Discounts, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiscounts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiscounts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiscounts: %w", err)
+	}
+	return oldValue.Discounts, nil
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (m *RateCardMutation) ClearDiscounts() {
+	m.discounts = nil
+	m.clearedFields[ratecard.FieldDiscounts] = struct{}{}
+}
+
+// DiscountsCleared returns if the "discounts" field was cleared in this mutation.
+func (m *RateCardMutation) DiscountsCleared() bool {
+	_, ok := m.clearedFields[ratecard.FieldDiscounts]
+	return ok
+}
+
+// ResetDiscounts resets all changes to the "discounts" field.
+func (m *RateCardMutation) ResetDiscounts() {
+	m.discounts = nil
+	delete(m.clearedFields, ratecard.FieldDiscounts)
+}
+
+// SetAddonRatecardID sets the "addon_ratecard" edge to the AddonRateCard entity by id.
+func (m *RateCardMutation) SetAddonRatecardID(id string) {
+	m.addon_ratecard = &id
+}
+
+// ClearAddonRatecard clears the "addon_ratecard" edge to the AddonRateCard entity.
+func (m *RateCardMutation) ClearAddonRatecard() {
+	m.clearedaddon_ratecard = true
+}
+
+// AddonRatecardCleared reports if the "addon_ratecard" edge to the AddonRateCard entity was cleared.
+func (m *RateCardMutation) AddonRatecardCleared() bool {
+	return m.clearedaddon_ratecard
+}
+
+// AddonRatecardID returns the "addon_ratecard" edge ID in the mutation.
+func (m *RateCardMutation) AddonRatecardID() (id string, exists bool) {
+	if m.addon_ratecard != nil {
+		return *m.addon_ratecard, true
+	}
+	return
+}
+
+// AddonRatecardIDs returns the "addon_ratecard" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AddonRatecardID instead. It exists only for internal usage by the builders.
+func (m *RateCardMutation) AddonRatecardIDs() (ids []string) {
+	if id := m.addon_ratecard; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAddonRatecard resets all changes to the "addon_ratecard" edge.
+func (m *RateCardMutation) ResetAddonRatecard() {
+	m.addon_ratecard = nil
+	m.clearedaddon_ratecard = false
+}
+
+// SetPlanRatecardID sets the "plan_ratecard" edge to the PlanRateCard entity by id.
+func (m *RateCardMutation) SetPlanRatecardID(id string) {
+	m.plan_ratecard = &id
+}
+
+// ClearPlanRatecard clears the "plan_ratecard" edge to the PlanRateCard entity.
+func (m *RateCardMutation) ClearPlanRatecard() {
+	m.clearedplan_ratecard = true
+}
+
+// PlanRatecardCleared reports if the "plan_ratecard" edge to the PlanRateCard entity was cleared.
+func (m *RateCardMutation) PlanRatecardCleared() bool {
+	return m.clearedplan_ratecard
+}
+
+// PlanRatecardID returns the "plan_ratecard" edge ID in the mutation.
+func (m *RateCardMutation) PlanRatecardID() (id string, exists bool) {
+	if m.plan_ratecard != nil {
+		return *m.plan_ratecard, true
+	}
+	return
+}
+
+// PlanRatecardIDs returns the "plan_ratecard" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PlanRatecardID instead. It exists only for internal usage by the builders.
+func (m *RateCardMutation) PlanRatecardIDs() (ids []string) {
+	if id := m.plan_ratecard; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPlanRatecard resets all changes to the "plan_ratecard" edge.
+func (m *RateCardMutation) ResetPlanRatecard() {
+	m.plan_ratecard = nil
+	m.clearedplan_ratecard = false
+}
+
+// SetSubscriptionItemID sets the "subscription_item" edge to the SubscriptionItem entity by id.
+func (m *RateCardMutation) SetSubscriptionItemID(id string) {
+	m.subscription_item = &id
+}
+
+// ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
+func (m *RateCardMutation) ClearSubscriptionItem() {
+	m.clearedsubscription_item = true
+}
+
+// SubscriptionItemCleared reports if the "subscription_item" edge to the SubscriptionItem entity was cleared.
+func (m *RateCardMutation) SubscriptionItemCleared() bool {
+	return m.clearedsubscription_item
+}
+
+// SubscriptionItemID returns the "subscription_item" edge ID in the mutation.
+func (m *RateCardMutation) SubscriptionItemID() (id string, exists bool) {
+	if m.subscription_item != nil {
+		return *m.subscription_item, true
+	}
+	return
+}
+
+// SubscriptionItemIDs returns the "subscription_item" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SubscriptionItemID instead. It exists only for internal usage by the builders.
+func (m *RateCardMutation) SubscriptionItemIDs() (ids []string) {
+	if id := m.subscription_item; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSubscriptionItem resets all changes to the "subscription_item" edge.
+func (m *RateCardMutation) ResetSubscriptionItem() {
+	m.subscription_item = nil
+	m.clearedsubscription_item = false
+}
+
+// ClearFeature clears the "feature" edge to the Feature entity.
+func (m *RateCardMutation) ClearFeature() {
+	m.clearedfeature = true
+	m.clearedFields[ratecard.FieldFeatureID] = struct{}{}
+}
+
+// FeatureCleared reports if the "feature" edge to the Feature entity was cleared.
+func (m *RateCardMutation) FeatureCleared() bool {
+	return m.FeatureIDCleared() || m.clearedfeature
+}
+
+// FeatureIDs returns the "feature" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FeatureID instead. It exists only for internal usage by the builders.
+func (m *RateCardMutation) FeatureIDs() (ids []string) {
+	if id := m.feature; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFeature resets all changes to the "feature" edge.
+func (m *RateCardMutation) ResetFeature() {
+	m.feature = nil
+	m.clearedfeature = false
+}
+
+// Where appends a list predicates to the RateCardMutation builder.
+func (m *RateCardMutation) Where(ps ...predicate.RateCard) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RateCardMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RateCardMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RateCard, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RateCardMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RateCardMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RateCard).
+func (m *RateCardMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RateCardMutation) Fields() []string {
+	fields := make([]string, 0, 23)
+	if m.namespace != nil {
+		fields = append(fields, ratecard.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, ratecard.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, ratecard.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, ratecard.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, ratecard.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, ratecard.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, ratecard.FieldDescription)
+	}
+	if m.key != nil {
+		fields = append(fields, ratecard.FieldKey)
+	}
+	if m.entitlement_template_entitlement_type != nil {
+		fields = append(fields, ratecard.FieldEntitlementTemplateEntitlementType)
+	}
+	if m.entitlement_template_metadata != nil {
+		fields = append(fields, ratecard.FieldEntitlementTemplateMetadata)
+	}
+	if m.entitlement_template_is_soft_limit != nil {
+		fields = append(fields, ratecard.FieldEntitlementTemplateIsSoftLimit)
+	}
+	if m.entitlement_template_issue_after_reset != nil {
+		fields = append(fields, ratecard.FieldEntitlementTemplateIssueAfterReset)
+	}
+	if m.entitlement_template_issue_after_reset_priority != nil {
+		fields = append(fields, ratecard.FieldEntitlementTemplateIssueAfterResetPriority)
+	}
+	if m.entitlement_template_preserve_overage_at_reset != nil {
+		fields = append(fields, ratecard.FieldEntitlementTemplatePreserveOverageAtReset)
+	}
+	if m.entitlement_template_config != nil {
+		fields = append(fields, ratecard.FieldEntitlementTemplateConfig)
+	}
+	if m.entitlement_template_usage_period != nil {
+		fields = append(fields, ratecard.FieldEntitlementTemplateUsagePeriod)
+	}
+	if m._type != nil {
+		fields = append(fields, ratecard.FieldType)
+	}
+	if m.feature_key != nil {
+		fields = append(fields, ratecard.FieldFeatureKey)
+	}
+	if m.feature != nil {
+		fields = append(fields, ratecard.FieldFeatureID)
+	}
+	if m.tax_config != nil {
+		fields = append(fields, ratecard.FieldTaxConfig)
+	}
+	if m.billing_cadence != nil {
+		fields = append(fields, ratecard.FieldBillingCadence)
+	}
+	if m.price != nil {
+		fields = append(fields, ratecard.FieldPrice)
+	}
+	if m.discounts != nil {
+		fields = append(fields, ratecard.FieldDiscounts)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RateCardMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case ratecard.FieldNamespace:
+		return m.Namespace()
+	case ratecard.FieldMetadata:
+		return m.Metadata()
+	case ratecard.FieldCreatedAt:
+		return m.CreatedAt()
+	case ratecard.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case ratecard.FieldDeletedAt:
+		return m.DeletedAt()
+	case ratecard.FieldName:
+		return m.Name()
+	case ratecard.FieldDescription:
+		return m.Description()
+	case ratecard.FieldKey:
+		return m.Key()
+	case ratecard.FieldEntitlementTemplateEntitlementType:
+		return m.EntitlementTemplateEntitlementType()
+	case ratecard.FieldEntitlementTemplateMetadata:
+		return m.EntitlementTemplateMetadata()
+	case ratecard.FieldEntitlementTemplateIsSoftLimit:
+		return m.EntitlementTemplateIsSoftLimit()
+	case ratecard.FieldEntitlementTemplateIssueAfterReset:
+		return m.EntitlementTemplateIssueAfterReset()
+	case ratecard.FieldEntitlementTemplateIssueAfterResetPriority:
+		return m.EntitlementTemplateIssueAfterResetPriority()
+	case ratecard.FieldEntitlementTemplatePreserveOverageAtReset:
+		return m.EntitlementTemplatePreserveOverageAtReset()
+	case ratecard.FieldEntitlementTemplateConfig:
+		return m.EntitlementTemplateConfig()
+	case ratecard.FieldEntitlementTemplateUsagePeriod:
+		return m.EntitlementTemplateUsagePeriod()
+	case ratecard.FieldType:
+		return m.GetType()
+	case ratecard.FieldFeatureKey:
+		return m.FeatureKey()
+	case ratecard.FieldFeatureID:
+		return m.FeatureID()
+	case ratecard.FieldTaxConfig:
+		return m.TaxConfig()
+	case ratecard.FieldBillingCadence:
+		return m.BillingCadence()
+	case ratecard.FieldPrice:
+		return m.Price()
+	case ratecard.FieldDiscounts:
+		return m.Discounts()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RateCardMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case ratecard.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case ratecard.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case ratecard.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case ratecard.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case ratecard.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case ratecard.FieldName:
+		return m.OldName(ctx)
+	case ratecard.FieldDescription:
+		return m.OldDescription(ctx)
+	case ratecard.FieldKey:
+		return m.OldKey(ctx)
+	case ratecard.FieldEntitlementTemplateEntitlementType:
+		return m.OldEntitlementTemplateEntitlementType(ctx)
+	case ratecard.FieldEntitlementTemplateMetadata:
+		return m.OldEntitlementTemplateMetadata(ctx)
+	case ratecard.FieldEntitlementTemplateIsSoftLimit:
+		return m.OldEntitlementTemplateIsSoftLimit(ctx)
+	case ratecard.FieldEntitlementTemplateIssueAfterReset:
+		return m.OldEntitlementTemplateIssueAfterReset(ctx)
+	case ratecard.FieldEntitlementTemplateIssueAfterResetPriority:
+		return m.OldEntitlementTemplateIssueAfterResetPriority(ctx)
+	case ratecard.FieldEntitlementTemplatePreserveOverageAtReset:
+		return m.OldEntitlementTemplatePreserveOverageAtReset(ctx)
+	case ratecard.FieldEntitlementTemplateConfig:
+		return m.OldEntitlementTemplateConfig(ctx)
+	case ratecard.FieldEntitlementTemplateUsagePeriod:
+		return m.OldEntitlementTemplateUsagePeriod(ctx)
+	case ratecard.FieldType:
+		return m.OldType(ctx)
+	case ratecard.FieldFeatureKey:
+		return m.OldFeatureKey(ctx)
+	case ratecard.FieldFeatureID:
+		return m.OldFeatureID(ctx)
+	case ratecard.FieldTaxConfig:
+		return m.OldTaxConfig(ctx)
+	case ratecard.FieldBillingCadence:
+		return m.OldBillingCadence(ctx)
+	case ratecard.FieldPrice:
+		return m.OldPrice(ctx)
+	case ratecard.FieldDiscounts:
+		return m.OldDiscounts(ctx)
+	}
+	return nil, fmt.Errorf("unknown RateCard field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RateCardMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case ratecard.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case ratecard.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case ratecard.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case ratecard.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case ratecard.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case ratecard.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case ratecard.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case ratecard.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
+		return nil
+	case ratecard.FieldEntitlementTemplateEntitlementType:
+		v, ok := value.(ratecard.EntitlementTemplateEntitlementType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntitlementTemplateEntitlementType(v)
+		return nil
+	case ratecard.FieldEntitlementTemplateMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntitlementTemplateMetadata(v)
+		return nil
+	case ratecard.FieldEntitlementTemplateIsSoftLimit:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntitlementTemplateIsSoftLimit(v)
+		return nil
+	case ratecard.FieldEntitlementTemplateIssueAfterReset:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntitlementTemplateIssueAfterReset(v)
+		return nil
+	case ratecard.FieldEntitlementTemplateIssueAfterResetPriority:
+		v, ok := value.(uint8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntitlementTemplateIssueAfterResetPriority(v)
+		return nil
+	case ratecard.FieldEntitlementTemplatePreserveOverageAtReset:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntitlementTemplatePreserveOverageAtReset(v)
+		return nil
+	case ratecard.FieldEntitlementTemplateConfig:
+		v, ok := value.([]uint8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntitlementTemplateConfig(v)
+		return nil
+	case ratecard.FieldEntitlementTemplateUsagePeriod:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntitlementTemplateUsagePeriod(v)
+		return nil
+	case ratecard.FieldType:
+		v, ok := value.(productcatalog.RateCardType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case ratecard.FieldFeatureKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatureKey(v)
+		return nil
+	case ratecard.FieldFeatureID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatureID(v)
+		return nil
+	case ratecard.FieldTaxConfig:
+		v, ok := value.(*productcatalog.TaxConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxConfig(v)
+		return nil
+	case ratecard.FieldBillingCadence:
+		v, ok := value.(isodate.String)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillingCadence(v)
+		return nil
+	case ratecard.FieldPrice:
+		v, ok := value.(*productcatalog.Price)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrice(v)
+		return nil
+	case ratecard.FieldDiscounts:
+		v, ok := value.(*productcatalog.Discounts)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiscounts(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RateCard field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RateCardMutation) AddedFields() []string {
+	var fields []string
+	if m.addentitlement_template_issue_after_reset != nil {
+		fields = append(fields, ratecard.FieldEntitlementTemplateIssueAfterReset)
+	}
+	if m.addentitlement_template_issue_after_reset_priority != nil {
+		fields = append(fields, ratecard.FieldEntitlementTemplateIssueAfterResetPriority)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RateCardMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case ratecard.FieldEntitlementTemplateIssueAfterReset:
+		return m.AddedEntitlementTemplateIssueAfterReset()
+	case ratecard.FieldEntitlementTemplateIssueAfterResetPriority:
+		return m.AddedEntitlementTemplateIssueAfterResetPriority()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RateCardMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case ratecard.FieldEntitlementTemplateIssueAfterReset:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddEntitlementTemplateIssueAfterReset(v)
+		return nil
+	case ratecard.FieldEntitlementTemplateIssueAfterResetPriority:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddEntitlementTemplateIssueAfterResetPriority(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RateCard numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RateCardMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(ratecard.FieldMetadata) {
+		fields = append(fields, ratecard.FieldMetadata)
+	}
+	if m.FieldCleared(ratecard.FieldDeletedAt) {
+		fields = append(fields, ratecard.FieldDeletedAt)
+	}
+	if m.FieldCleared(ratecard.FieldDescription) {
+		fields = append(fields, ratecard.FieldDescription)
+	}
+	if m.FieldCleared(ratecard.FieldEntitlementTemplateMetadata) {
+		fields = append(fields, ratecard.FieldEntitlementTemplateMetadata)
+	}
+	if m.FieldCleared(ratecard.FieldEntitlementTemplateIsSoftLimit) {
+		fields = append(fields, ratecard.FieldEntitlementTemplateIsSoftLimit)
+	}
+	if m.FieldCleared(ratecard.FieldEntitlementTemplateIssueAfterReset) {
+		fields = append(fields, ratecard.FieldEntitlementTemplateIssueAfterReset)
+	}
+	if m.FieldCleared(ratecard.FieldEntitlementTemplateIssueAfterResetPriority) {
+		fields = append(fields, ratecard.FieldEntitlementTemplateIssueAfterResetPriority)
+	}
+	if m.FieldCleared(ratecard.FieldEntitlementTemplatePreserveOverageAtReset) {
+		fields = append(fields, ratecard.FieldEntitlementTemplatePreserveOverageAtReset)
+	}
+	if m.FieldCleared(ratecard.FieldEntitlementTemplateConfig) {
+		fields = append(fields, ratecard.FieldEntitlementTemplateConfig)
+	}
+	if m.FieldCleared(ratecard.FieldEntitlementTemplateUsagePeriod) {
+		fields = append(fields, ratecard.FieldEntitlementTemplateUsagePeriod)
+	}
+	if m.FieldCleared(ratecard.FieldFeatureKey) {
+		fields = append(fields, ratecard.FieldFeatureKey)
+	}
+	if m.FieldCleared(ratecard.FieldFeatureID) {
+		fields = append(fields, ratecard.FieldFeatureID)
+	}
+	if m.FieldCleared(ratecard.FieldTaxConfig) {
+		fields = append(fields, ratecard.FieldTaxConfig)
+	}
+	if m.FieldCleared(ratecard.FieldBillingCadence) {
+		fields = append(fields, ratecard.FieldBillingCadence)
+	}
+	if m.FieldCleared(ratecard.FieldPrice) {
+		fields = append(fields, ratecard.FieldPrice)
+	}
+	if m.FieldCleared(ratecard.FieldDiscounts) {
+		fields = append(fields, ratecard.FieldDiscounts)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RateCardMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RateCardMutation) ClearField(name string) error {
+	switch name {
+	case ratecard.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case ratecard.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case ratecard.FieldDescription:
+		m.ClearDescription()
+		return nil
+	case ratecard.FieldEntitlementTemplateMetadata:
+		m.ClearEntitlementTemplateMetadata()
+		return nil
+	case ratecard.FieldEntitlementTemplateIsSoftLimit:
+		m.ClearEntitlementTemplateIsSoftLimit()
+		return nil
+	case ratecard.FieldEntitlementTemplateIssueAfterReset:
+		m.ClearEntitlementTemplateIssueAfterReset()
+		return nil
+	case ratecard.FieldEntitlementTemplateIssueAfterResetPriority:
+		m.ClearEntitlementTemplateIssueAfterResetPriority()
+		return nil
+	case ratecard.FieldEntitlementTemplatePreserveOverageAtReset:
+		m.ClearEntitlementTemplatePreserveOverageAtReset()
+		return nil
+	case ratecard.FieldEntitlementTemplateConfig:
+		m.ClearEntitlementTemplateConfig()
+		return nil
+	case ratecard.FieldEntitlementTemplateUsagePeriod:
+		m.ClearEntitlementTemplateUsagePeriod()
+		return nil
+	case ratecard.FieldFeatureKey:
+		m.ClearFeatureKey()
+		return nil
+	case ratecard.FieldFeatureID:
+		m.ClearFeatureID()
+		return nil
+	case ratecard.FieldTaxConfig:
+		m.ClearTaxConfig()
+		return nil
+	case ratecard.FieldBillingCadence:
+		m.ClearBillingCadence()
+		return nil
+	case ratecard.FieldPrice:
+		m.ClearPrice()
+		return nil
+	case ratecard.FieldDiscounts:
+		m.ClearDiscounts()
+		return nil
+	}
+	return fmt.Errorf("unknown RateCard nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RateCardMutation) ResetField(name string) error {
+	switch name {
+	case ratecard.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case ratecard.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case ratecard.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case ratecard.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case ratecard.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case ratecard.FieldName:
+		m.ResetName()
+		return nil
+	case ratecard.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case ratecard.FieldKey:
+		m.ResetKey()
+		return nil
+	case ratecard.FieldEntitlementTemplateEntitlementType:
+		m.ResetEntitlementTemplateEntitlementType()
+		return nil
+	case ratecard.FieldEntitlementTemplateMetadata:
+		m.ResetEntitlementTemplateMetadata()
+		return nil
+	case ratecard.FieldEntitlementTemplateIsSoftLimit:
+		m.ResetEntitlementTemplateIsSoftLimit()
+		return nil
+	case ratecard.FieldEntitlementTemplateIssueAfterReset:
+		m.ResetEntitlementTemplateIssueAfterReset()
+		return nil
+	case ratecard.FieldEntitlementTemplateIssueAfterResetPriority:
+		m.ResetEntitlementTemplateIssueAfterResetPriority()
+		return nil
+	case ratecard.FieldEntitlementTemplatePreserveOverageAtReset:
+		m.ResetEntitlementTemplatePreserveOverageAtReset()
+		return nil
+	case ratecard.FieldEntitlementTemplateConfig:
+		m.ResetEntitlementTemplateConfig()
+		return nil
+	case ratecard.FieldEntitlementTemplateUsagePeriod:
+		m.ResetEntitlementTemplateUsagePeriod()
+		return nil
+	case ratecard.FieldType:
+		m.ResetType()
+		return nil
+	case ratecard.FieldFeatureKey:
+		m.ResetFeatureKey()
+		return nil
+	case ratecard.FieldFeatureID:
+		m.ResetFeatureID()
+		return nil
+	case ratecard.FieldTaxConfig:
+		m.ResetTaxConfig()
+		return nil
+	case ratecard.FieldBillingCadence:
+		m.ResetBillingCadence()
+		return nil
+	case ratecard.FieldPrice:
+		m.ResetPrice()
+		return nil
+	case ratecard.FieldDiscounts:
+		m.ResetDiscounts()
+		return nil
+	}
+	return fmt.Errorf("unknown RateCard field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RateCardMutation) AddedEdges() []string {
+	edges := make([]string, 0, 4)
+	if m.addon_ratecard != nil {
+		edges = append(edges, ratecard.EdgeAddonRatecard)
+	}
+	if m.plan_ratecard != nil {
+		edges = append(edges, ratecard.EdgePlanRatecard)
+	}
+	if m.subscription_item != nil {
+		edges = append(edges, ratecard.EdgeSubscriptionItem)
+	}
+	if m.feature != nil {
+		edges = append(edges, ratecard.EdgeFeature)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RateCardMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case ratecard.EdgeAddonRatecard:
+		if id := m.addon_ratecard; id != nil {
+			return []ent.Value{*id}
+		}
+	case ratecard.EdgePlanRatecard:
+		if id := m.plan_ratecard; id != nil {
+			return []ent.Value{*id}
+		}
+	case ratecard.EdgeSubscriptionItem:
+		if id := m.subscription_item; id != nil {
+			return []ent.Value{*id}
+		}
+	case ratecard.EdgeFeature:
+		if id := m.feature; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RateCardMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 4)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RateCardMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RateCardMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 4)
+	if m.clearedaddon_ratecard {
+		edges = append(edges, ratecard.EdgeAddonRatecard)
+	}
+	if m.clearedplan_ratecard {
+		edges = append(edges, ratecard.EdgePlanRatecard)
+	}
+	if m.clearedsubscription_item {
+		edges = append(edges, ratecard.EdgeSubscriptionItem)
+	}
+	if m.clearedfeature {
+		edges = append(edges, ratecard.EdgeFeature)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RateCardMutation) EdgeCleared(name string) bool {
+	switch name {
+	case ratecard.EdgeAddonRatecard:
+		return m.clearedaddon_ratecard
+	case ratecard.EdgePlanRatecard:
+		return m.clearedplan_ratecard
+	case ratecard.EdgeSubscriptionItem:
+		return m.clearedsubscription_item
+	case ratecard.EdgeFeature:
+		return m.clearedfeature
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RateCardMutation) ClearEdge(name string) error {
+	switch name {
+	case ratecard.EdgeAddonRatecard:
+		m.ClearAddonRatecard()
+		return nil
+	case ratecard.EdgePlanRatecard:
+		m.ClearPlanRatecard()
+		return nil
+	case ratecard.EdgeSubscriptionItem:
+		m.ClearSubscriptionItem()
+		return nil
+	case ratecard.EdgeFeature:
+		m.ClearFeature()
+		return nil
+	}
+	return fmt.Errorf("unknown RateCard unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RateCardMutation) ResetEdge(name string) error {
+	switch name {
+	case ratecard.EdgeAddonRatecard:
+		m.ResetAddonRatecard()
+		return nil
+	case ratecard.EdgePlanRatecard:
+		m.ResetPlanRatecard()
+		return nil
+	case ratecard.EdgeSubscriptionItem:
+		m.ResetSubscriptionItem()
+		return nil
+	case ratecard.EdgeFeature:
+		m.ResetFeature()
+		return nil
+	}
+	return fmt.Errorf("unknown RateCard edge %s", name)
 }
 
 // SubscriptionMutation represents an operation that mutates the Subscription nodes in the graph.
@@ -46483,6 +48952,8 @@ type SubscriptionItemMutation struct {
 	clearedphase                                 bool
 	entitlement                                  *string
 	clearedentitlement                           bool
+	ratecard                                     *string
+	clearedratecard                              bool
 	billing_lines                                map[string]struct{}
 	removedbilling_lines                         map[string]struct{}
 	clearedbilling_lines                         bool
@@ -47582,6 +50053,55 @@ func (m *SubscriptionItemMutation) ResetDiscounts() {
 	delete(m.clearedFields, subscriptionitem.FieldDiscounts)
 }
 
+// SetRatecardID sets the "ratecard_id" field.
+func (m *SubscriptionItemMutation) SetRatecardID(s string) {
+	m.ratecard = &s
+}
+
+// RatecardID returns the value of the "ratecard_id" field in the mutation.
+func (m *SubscriptionItemMutation) RatecardID() (r string, exists bool) {
+	v := m.ratecard
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRatecardID returns the old "ratecard_id" field's value of the SubscriptionItem entity.
+// If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionItemMutation) OldRatecardID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRatecardID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRatecardID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRatecardID: %w", err)
+	}
+	return oldValue.RatecardID, nil
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (m *SubscriptionItemMutation) ClearRatecardID() {
+	m.ratecard = nil
+	m.clearedFields[subscriptionitem.FieldRatecardID] = struct{}{}
+}
+
+// RatecardIDCleared returns if the "ratecard_id" field was cleared in this mutation.
+func (m *SubscriptionItemMutation) RatecardIDCleared() bool {
+	_, ok := m.clearedFields[subscriptionitem.FieldRatecardID]
+	return ok
+}
+
+// ResetRatecardID resets all changes to the "ratecard_id" field.
+func (m *SubscriptionItemMutation) ResetRatecardID() {
+	m.ratecard = nil
+	delete(m.clearedFields, subscriptionitem.FieldRatecardID)
+}
+
 // ClearPhase clears the "phase" edge to the SubscriptionPhase entity.
 func (m *SubscriptionItemMutation) ClearPhase() {
 	m.clearedphase = true
@@ -47634,6 +50154,33 @@ func (m *SubscriptionItemMutation) EntitlementIDs() (ids []string) {
 func (m *SubscriptionItemMutation) ResetEntitlement() {
 	m.entitlement = nil
 	m.clearedentitlement = false
+}
+
+// ClearRatecard clears the "ratecard" edge to the RateCard entity.
+func (m *SubscriptionItemMutation) ClearRatecard() {
+	m.clearedratecard = true
+	m.clearedFields[subscriptionitem.FieldRatecardID] = struct{}{}
+}
+
+// RatecardCleared reports if the "ratecard" edge to the RateCard entity was cleared.
+func (m *SubscriptionItemMutation) RatecardCleared() bool {
+	return m.RatecardIDCleared() || m.clearedratecard
+}
+
+// RatecardIDs returns the "ratecard" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// RatecardID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionItemMutation) RatecardIDs() (ids []string) {
+	if id := m.ratecard; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetRatecard resets all changes to the "ratecard" edge.
+func (m *SubscriptionItemMutation) ResetRatecard() {
+	m.ratecard = nil
+	m.clearedratecard = false
 }
 
 // AddBillingLineIDs adds the "billing_lines" edge to the BillingInvoiceLine entity by ids.
@@ -47724,7 +50271,7 @@ func (m *SubscriptionItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionItemMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 23)
 	if m.namespace != nil {
 		fields = append(fields, subscriptionitem.FieldNamespace)
 	}
@@ -47791,6 +50338,9 @@ func (m *SubscriptionItemMutation) Fields() []string {
 	if m.discounts != nil {
 		fields = append(fields, subscriptionitem.FieldDiscounts)
 	}
+	if m.ratecard != nil {
+		fields = append(fields, subscriptionitem.FieldRatecardID)
+	}
 	return fields
 }
 
@@ -47843,6 +50393,8 @@ func (m *SubscriptionItemMutation) Field(name string) (ent.Value, bool) {
 		return m.Price()
 	case subscriptionitem.FieldDiscounts:
 		return m.Discounts()
+	case subscriptionitem.FieldRatecardID:
+		return m.RatecardID()
 	}
 	return nil, false
 }
@@ -47896,6 +50448,8 @@ func (m *SubscriptionItemMutation) OldField(ctx context.Context, name string) (e
 		return m.OldPrice(ctx)
 	case subscriptionitem.FieldDiscounts:
 		return m.OldDiscounts(ctx)
+	case subscriptionitem.FieldRatecardID:
+		return m.OldRatecardID(ctx)
 	}
 	return nil, fmt.Errorf("unknown SubscriptionItem field %s", name)
 }
@@ -48059,6 +50613,13 @@ func (m *SubscriptionItemMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetDiscounts(v)
 		return nil
+	case subscriptionitem.FieldRatecardID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRatecardID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionItem field %s", name)
 }
@@ -48134,6 +50695,9 @@ func (m *SubscriptionItemMutation) ClearedFields() []string {
 	if m.FieldCleared(subscriptionitem.FieldDiscounts) {
 		fields = append(fields, subscriptionitem.FieldDiscounts)
 	}
+	if m.FieldCleared(subscriptionitem.FieldRatecardID) {
+		fields = append(fields, subscriptionitem.FieldRatecardID)
+	}
 	return fields
 }
 
@@ -48192,6 +50756,9 @@ func (m *SubscriptionItemMutation) ClearField(name string) error {
 		return nil
 	case subscriptionitem.FieldDiscounts:
 		m.ClearDiscounts()
+		return nil
+	case subscriptionitem.FieldRatecardID:
+		m.ClearRatecardID()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionItem nullable field %s", name)
@@ -48267,18 +50834,24 @@ func (m *SubscriptionItemMutation) ResetField(name string) error {
 	case subscriptionitem.FieldDiscounts:
 		m.ResetDiscounts()
 		return nil
+	case subscriptionitem.FieldRatecardID:
+		m.ResetRatecardID()
+		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionItem field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SubscriptionItemMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.phase != nil {
 		edges = append(edges, subscriptionitem.EdgePhase)
 	}
 	if m.entitlement != nil {
 		edges = append(edges, subscriptionitem.EdgeEntitlement)
+	}
+	if m.ratecard != nil {
+		edges = append(edges, subscriptionitem.EdgeRatecard)
 	}
 	if m.billing_lines != nil {
 		edges = append(edges, subscriptionitem.EdgeBillingLines)
@@ -48298,6 +50871,10 @@ func (m *SubscriptionItemMutation) AddedIDs(name string) []ent.Value {
 		if id := m.entitlement; id != nil {
 			return []ent.Value{*id}
 		}
+	case subscriptionitem.EdgeRatecard:
+		if id := m.ratecard; id != nil {
+			return []ent.Value{*id}
+		}
 	case subscriptionitem.EdgeBillingLines:
 		ids := make([]ent.Value, 0, len(m.billing_lines))
 		for id := range m.billing_lines {
@@ -48310,7 +50887,7 @@ func (m *SubscriptionItemMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SubscriptionItemMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.removedbilling_lines != nil {
 		edges = append(edges, subscriptionitem.EdgeBillingLines)
 	}
@@ -48333,12 +50910,15 @@ func (m *SubscriptionItemMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SubscriptionItemMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedphase {
 		edges = append(edges, subscriptionitem.EdgePhase)
 	}
 	if m.clearedentitlement {
 		edges = append(edges, subscriptionitem.EdgeEntitlement)
+	}
+	if m.clearedratecard {
+		edges = append(edges, subscriptionitem.EdgeRatecard)
 	}
 	if m.clearedbilling_lines {
 		edges = append(edges, subscriptionitem.EdgeBillingLines)
@@ -48354,6 +50934,8 @@ func (m *SubscriptionItemMutation) EdgeCleared(name string) bool {
 		return m.clearedphase
 	case subscriptionitem.EdgeEntitlement:
 		return m.clearedentitlement
+	case subscriptionitem.EdgeRatecard:
+		return m.clearedratecard
 	case subscriptionitem.EdgeBillingLines:
 		return m.clearedbilling_lines
 	}
@@ -48370,6 +50952,9 @@ func (m *SubscriptionItemMutation) ClearEdge(name string) error {
 	case subscriptionitem.EdgeEntitlement:
 		m.ClearEntitlement()
 		return nil
+	case subscriptionitem.EdgeRatecard:
+		m.ClearRatecard()
+		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionItem unique edge %s", name)
 }
@@ -48383,6 +50968,9 @@ func (m *SubscriptionItemMutation) ResetEdge(name string) error {
 		return nil
 	case subscriptionitem.EdgeEntitlement:
 		m.ResetEntitlement()
+		return nil
+	case subscriptionitem.EdgeRatecard:
+		m.ResetRatecard()
 		return nil
 	case subscriptionitem.EdgeBillingLines:
 		m.ResetBillingLines()

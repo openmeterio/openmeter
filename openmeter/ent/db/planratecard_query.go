@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 )
 
 // PlanRateCardQuery is the builder for querying PlanRateCard entities.
@@ -25,6 +26,7 @@ type PlanRateCardQuery struct {
 	order        []planratecard.OrderOption
 	inters       []Interceptor
 	predicates   []predicate.PlanRateCard
+	withRatecard *RateCardQuery
 	withPhase    *PlanPhaseQuery
 	withFeatures *FeatureQuery
 	modifiers    []func(*sql.Selector)
@@ -62,6 +64,28 @@ func (prcq *PlanRateCardQuery) Unique(unique bool) *PlanRateCardQuery {
 func (prcq *PlanRateCardQuery) Order(o ...planratecard.OrderOption) *PlanRateCardQuery {
 	prcq.order = append(prcq.order, o...)
 	return prcq
+}
+
+// QueryRatecard chains the current query on the "ratecard" edge.
+func (prcq *PlanRateCardQuery) QueryRatecard() *RateCardQuery {
+	query := (&RateCardClient{config: prcq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := prcq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := prcq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(planratecard.Table, planratecard.FieldID, selector),
+			sqlgraph.To(ratecard.Table, ratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, planratecard.RatecardTable, planratecard.RatecardColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(prcq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryPhase chains the current query on the "phase" edge.
@@ -300,12 +324,24 @@ func (prcq *PlanRateCardQuery) Clone() *PlanRateCardQuery {
 		order:        append([]planratecard.OrderOption{}, prcq.order...),
 		inters:       append([]Interceptor{}, prcq.inters...),
 		predicates:   append([]predicate.PlanRateCard{}, prcq.predicates...),
+		withRatecard: prcq.withRatecard.Clone(),
 		withPhase:    prcq.withPhase.Clone(),
 		withFeatures: prcq.withFeatures.Clone(),
 		// clone intermediate query.
 		sql:  prcq.sql.Clone(),
 		path: prcq.path,
 	}
+}
+
+// WithRatecard tells the query-builder to eager-load the nodes that are connected to
+// the "ratecard" edge. The optional arguments are used to configure the query builder of the edge.
+func (prcq *PlanRateCardQuery) WithRatecard(opts ...func(*RateCardQuery)) *PlanRateCardQuery {
+	query := (&RateCardClient{config: prcq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	prcq.withRatecard = query
+	return prcq
 }
 
 // WithPhase tells the query-builder to eager-load the nodes that are connected to
@@ -408,7 +444,8 @@ func (prcq *PlanRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	var (
 		nodes       = []*PlanRateCard{}
 		_spec       = prcq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
+			prcq.withRatecard != nil,
 			prcq.withPhase != nil,
 			prcq.withFeatures != nil,
 		}
@@ -434,6 +471,12 @@ func (prcq *PlanRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := prcq.withRatecard; query != nil {
+		if err := prcq.loadRatecard(ctx, query, nodes, nil,
+			func(n *PlanRateCard, e *RateCard) { n.Edges.Ratecard = e }); err != nil {
+			return nil, err
+		}
+	}
 	if query := prcq.withPhase; query != nil {
 		if err := prcq.loadPhase(ctx, query, nodes, nil,
 			func(n *PlanRateCard, e *PlanPhase) { n.Edges.Phase = e }); err != nil {
@@ -449,6 +492,35 @@ func (prcq *PlanRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	return nodes, nil
 }
 
+func (prcq *PlanRateCardQuery) loadRatecard(ctx context.Context, query *RateCardQuery, nodes []*PlanRateCard, init func(*PlanRateCard), assign func(*PlanRateCard, *RateCard)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*PlanRateCard)
+	for i := range nodes {
+		fk := nodes[i].RatecardID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(ratecard.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "ratecard_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (prcq *PlanRateCardQuery) loadPhase(ctx context.Context, query *PlanPhaseQuery, nodes []*PlanRateCard, init func(*PlanRateCard), assign func(*PlanRateCard, *PlanPhase)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*PlanRateCard)
@@ -538,6 +610,9 @@ func (prcq *PlanRateCardQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != planratecard.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if prcq.withRatecard != nil {
+			_spec.Node.AddColumnOnce(planratecard.FieldRatecardID)
 		}
 		if prcq.withPhase != nil {
 			_spec.Node.AddColumnOnce(planratecard.FieldPhaseID)

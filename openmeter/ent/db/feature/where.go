@@ -598,21 +598,21 @@ func HasEntitlementWith(preds ...predicate.Entitlement) predicate.Feature {
 	})
 }
 
-// HasRatecard applies the HasEdge predicate on the "ratecard" edge.
-func HasRatecard() predicate.Feature {
+// HasPlanRatecard applies the HasEdge predicate on the "plan_ratecard" edge.
+func HasPlanRatecard() predicate.Feature {
 	return predicate.Feature(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, RatecardTable, RatecardColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, PlanRatecardTable, PlanRatecardColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasRatecardWith applies the HasEdge predicate on the "ratecard" edge with a given conditions (other predicates).
-func HasRatecardWith(preds ...predicate.PlanRateCard) predicate.Feature {
+// HasPlanRatecardWith applies the HasEdge predicate on the "plan_ratecard" edge with a given conditions (other predicates).
+func HasPlanRatecardWith(preds ...predicate.PlanRateCard) predicate.Feature {
 	return predicate.Feature(func(s *sql.Selector) {
-		step := newRatecardStep()
+		step := newPlanRatecardStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -636,6 +636,29 @@ func HasAddonRatecard() predicate.Feature {
 func HasAddonRatecardWith(preds ...predicate.AddonRateCard) predicate.Feature {
 	return predicate.Feature(func(s *sql.Selector) {
 		step := newAddonRatecardStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasRatecards applies the HasEdge predicate on the "ratecards" edge.
+func HasRatecards() predicate.Feature {
+	return predicate.Feature(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, RatecardsTable, RatecardsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRatecardsWith applies the HasEdge predicate on the "ratecards" edge with a given conditions (other predicates).
+func HasRatecardsWith(preds ...predicate.RateCard) predicate.Feature {
+	return predicate.Feature(func(s *sql.Selector) {
+		step := newRatecardsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

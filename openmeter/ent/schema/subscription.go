@@ -174,6 +174,7 @@ func (SubscriptionItem) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
+		field.String("ratecard_id").NotEmpty().Optional(),
 	}
 }
 
@@ -188,6 +189,9 @@ func (SubscriptionItem) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("phase", SubscriptionPhase.Type).Field("phase_id").Ref("items").Unique().Immutable().Required(),
 		edge.From("entitlement", Entitlement.Type).Field("entitlement_id").Ref("subscription_item").Unique(),
+		edge.From("ratecard", RateCard.Type).Field("ratecard_id").Ref("subscription_item").Unique().Annotations(entsql.Annotation{
+			OnDelete: entsql.Cascade,
+		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
 	}
 }

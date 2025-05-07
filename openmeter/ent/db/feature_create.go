@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 )
 
 // FeatureCreate is the builder for creating a Feature entity.
@@ -155,19 +156,19 @@ func (fc *FeatureCreate) AddEntitlement(e ...*Entitlement) *FeatureCreate {
 	return fc.AddEntitlementIDs(ids...)
 }
 
-// AddRatecardIDs adds the "ratecard" edge to the PlanRateCard entity by IDs.
-func (fc *FeatureCreate) AddRatecardIDs(ids ...string) *FeatureCreate {
-	fc.mutation.AddRatecardIDs(ids...)
+// AddPlanRatecardIDs adds the "plan_ratecard" edge to the PlanRateCard entity by IDs.
+func (fc *FeatureCreate) AddPlanRatecardIDs(ids ...string) *FeatureCreate {
+	fc.mutation.AddPlanRatecardIDs(ids...)
 	return fc
 }
 
-// AddRatecard adds the "ratecard" edges to the PlanRateCard entity.
-func (fc *FeatureCreate) AddRatecard(p ...*PlanRateCard) *FeatureCreate {
+// AddPlanRatecard adds the "plan_ratecard" edges to the PlanRateCard entity.
+func (fc *FeatureCreate) AddPlanRatecard(p ...*PlanRateCard) *FeatureCreate {
 	ids := make([]string, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
-	return fc.AddRatecardIDs(ids...)
+	return fc.AddPlanRatecardIDs(ids...)
 }
 
 // AddAddonRatecardIDs adds the "addon_ratecard" edge to the AddonRateCard entity by IDs.
@@ -183,6 +184,21 @@ func (fc *FeatureCreate) AddAddonRatecard(a ...*AddonRateCard) *FeatureCreate {
 		ids[i] = a[i].ID
 	}
 	return fc.AddAddonRatecardIDs(ids...)
+}
+
+// AddRatecardIDs adds the "ratecards" edge to the RateCard entity by IDs.
+func (fc *FeatureCreate) AddRatecardIDs(ids ...string) *FeatureCreate {
+	fc.mutation.AddRatecardIDs(ids...)
+	return fc
+}
+
+// AddRatecards adds the "ratecards" edges to the RateCard entity.
+func (fc *FeatureCreate) AddRatecards(r ...*RateCard) *FeatureCreate {
+	ids := make([]string, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
+	}
+	return fc.AddRatecardIDs(ids...)
 }
 
 // Mutation returns the FeatureMutation object of the builder.
@@ -358,12 +374,12 @@ func (fc *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := fc.mutation.RatecardIDs(); len(nodes) > 0 {
+	if nodes := fc.mutation.PlanRatecardIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.RatecardTable,
-			Columns: []string{feature.RatecardColumn},
+			Table:   feature.PlanRatecardTable,
+			Columns: []string{feature.PlanRatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
@@ -383,6 +399,22 @@ func (fc *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := fc.mutation.RatecardsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.RatecardsTable,
+			Columns: []string{feature.RatecardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

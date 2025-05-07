@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 )
 
 // FeatureQuery is the builder for querying Feature entities.
@@ -28,8 +29,9 @@ type FeatureQuery struct {
 	inters            []Interceptor
 	predicates        []predicate.Feature
 	withEntitlement   *EntitlementQuery
-	withRatecard      *PlanRateCardQuery
+	withPlanRatecard  *PlanRateCardQuery
 	withAddonRatecard *AddonRateCardQuery
+	withRatecards     *RateCardQuery
 	modifiers         []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -89,8 +91,8 @@ func (fq *FeatureQuery) QueryEntitlement() *EntitlementQuery {
 	return query
 }
 
-// QueryRatecard chains the current query on the "ratecard" edge.
-func (fq *FeatureQuery) QueryRatecard() *PlanRateCardQuery {
+// QueryPlanRatecard chains the current query on the "plan_ratecard" edge.
+func (fq *FeatureQuery) QueryPlanRatecard() *PlanRateCardQuery {
 	query := (&PlanRateCardClient{config: fq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := fq.prepareQuery(ctx); err != nil {
@@ -103,7 +105,7 @@ func (fq *FeatureQuery) QueryRatecard() *PlanRateCardQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(feature.Table, feature.FieldID, selector),
 			sqlgraph.To(planratecard.Table, planratecard.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, feature.RatecardTable, feature.RatecardColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, feature.PlanRatecardTable, feature.PlanRatecardColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(fq.driver.Dialect(), step)
 		return fromU, nil
@@ -126,6 +128,28 @@ func (fq *FeatureQuery) QueryAddonRatecard() *AddonRateCardQuery {
 			sqlgraph.From(feature.Table, feature.FieldID, selector),
 			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, feature.AddonRatecardTable, feature.AddonRatecardColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(fq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryRatecards chains the current query on the "ratecards" edge.
+func (fq *FeatureQuery) QueryRatecards() *RateCardQuery {
+	query := (&RateCardClient{config: fq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := fq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := fq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(feature.Table, feature.FieldID, selector),
+			sqlgraph.To(ratecard.Table, ratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, feature.RatecardsTable, feature.RatecardsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(fq.driver.Dialect(), step)
 		return fromU, nil
@@ -326,8 +350,9 @@ func (fq *FeatureQuery) Clone() *FeatureQuery {
 		inters:            append([]Interceptor{}, fq.inters...),
 		predicates:        append([]predicate.Feature{}, fq.predicates...),
 		withEntitlement:   fq.withEntitlement.Clone(),
-		withRatecard:      fq.withRatecard.Clone(),
+		withPlanRatecard:  fq.withPlanRatecard.Clone(),
 		withAddonRatecard: fq.withAddonRatecard.Clone(),
+		withRatecards:     fq.withRatecards.Clone(),
 		// clone intermediate query.
 		sql:  fq.sql.Clone(),
 		path: fq.path,
@@ -345,14 +370,14 @@ func (fq *FeatureQuery) WithEntitlement(opts ...func(*EntitlementQuery)) *Featur
 	return fq
 }
 
-// WithRatecard tells the query-builder to eager-load the nodes that are connected to
-// the "ratecard" edge. The optional arguments are used to configure the query builder of the edge.
-func (fq *FeatureQuery) WithRatecard(opts ...func(*PlanRateCardQuery)) *FeatureQuery {
+// WithPlanRatecard tells the query-builder to eager-load the nodes that are connected to
+// the "plan_ratecard" edge. The optional arguments are used to configure the query builder of the edge.
+func (fq *FeatureQuery) WithPlanRatecard(opts ...func(*PlanRateCardQuery)) *FeatureQuery {
 	query := (&PlanRateCardClient{config: fq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	fq.withRatecard = query
+	fq.withPlanRatecard = query
 	return fq
 }
 
@@ -364,6 +389,17 @@ func (fq *FeatureQuery) WithAddonRatecard(opts ...func(*AddonRateCardQuery)) *Fe
 		opt(query)
 	}
 	fq.withAddonRatecard = query
+	return fq
+}
+
+// WithRatecards tells the query-builder to eager-load the nodes that are connected to
+// the "ratecards" edge. The optional arguments are used to configure the query builder of the edge.
+func (fq *FeatureQuery) WithRatecards(opts ...func(*RateCardQuery)) *FeatureQuery {
+	query := (&RateCardClient{config: fq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	fq.withRatecards = query
 	return fq
 }
 
@@ -445,10 +481,11 @@ func (fq *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feat
 	var (
 		nodes       = []*Feature{}
 		_spec       = fq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			fq.withEntitlement != nil,
-			fq.withRatecard != nil,
+			fq.withPlanRatecard != nil,
 			fq.withAddonRatecard != nil,
+			fq.withRatecards != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -479,10 +516,10 @@ func (fq *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feat
 			return nil, err
 		}
 	}
-	if query := fq.withRatecard; query != nil {
-		if err := fq.loadRatecard(ctx, query, nodes,
-			func(n *Feature) { n.Edges.Ratecard = []*PlanRateCard{} },
-			func(n *Feature, e *PlanRateCard) { n.Edges.Ratecard = append(n.Edges.Ratecard, e) }); err != nil {
+	if query := fq.withPlanRatecard; query != nil {
+		if err := fq.loadPlanRatecard(ctx, query, nodes,
+			func(n *Feature) { n.Edges.PlanRatecard = []*PlanRateCard{} },
+			func(n *Feature, e *PlanRateCard) { n.Edges.PlanRatecard = append(n.Edges.PlanRatecard, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -490,6 +527,13 @@ func (fq *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feat
 		if err := fq.loadAddonRatecard(ctx, query, nodes,
 			func(n *Feature) { n.Edges.AddonRatecard = []*AddonRateCard{} },
 			func(n *Feature, e *AddonRateCard) { n.Edges.AddonRatecard = append(n.Edges.AddonRatecard, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := fq.withRatecards; query != nil {
+		if err := fq.loadRatecards(ctx, query, nodes,
+			func(n *Feature) { n.Edges.Ratecards = []*RateCard{} },
+			func(n *Feature, e *RateCard) { n.Edges.Ratecards = append(n.Edges.Ratecards, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -526,7 +570,7 @@ func (fq *FeatureQuery) loadEntitlement(ctx context.Context, query *EntitlementQ
 	}
 	return nil
 }
-func (fq *FeatureQuery) loadRatecard(ctx context.Context, query *PlanRateCardQuery, nodes []*Feature, init func(*Feature), assign func(*Feature, *PlanRateCard)) error {
+func (fq *FeatureQuery) loadPlanRatecard(ctx context.Context, query *PlanRateCardQuery, nodes []*Feature, init func(*Feature), assign func(*Feature, *PlanRateCard)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Feature)
 	for i := range nodes {
@@ -540,7 +584,7 @@ func (fq *FeatureQuery) loadRatecard(ctx context.Context, query *PlanRateCardQue
 		query.ctx.AppendFieldOnce(planratecard.FieldFeatureID)
 	}
 	query.Where(predicate.PlanRateCard(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(feature.RatecardColumn), fks...))
+		s.Where(sql.InValues(s.C(feature.PlanRatecardColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -574,6 +618,39 @@ func (fq *FeatureQuery) loadAddonRatecard(ctx context.Context, query *AddonRateC
 	}
 	query.Where(predicate.AddonRateCard(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(feature.AddonRatecardColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.FeatureID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "feature_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "feature_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (fq *FeatureQuery) loadRatecards(ctx context.Context, query *RateCardQuery, nodes []*Feature, init func(*Feature), assign func(*Feature, *RateCard)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Feature)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(ratecard.FieldFeatureID)
+	}
+	query.Where(predicate.RateCard(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(feature.RatecardsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

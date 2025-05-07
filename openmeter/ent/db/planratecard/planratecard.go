@@ -47,16 +47,27 @@ const (
 	FieldPrice = "price"
 	// FieldDiscounts holds the string denoting the discounts field in the database.
 	FieldDiscounts = "discounts"
+	// FieldRatecardID holds the string denoting the ratecard_id field in the database.
+	FieldRatecardID = "ratecard_id"
 	// FieldPhaseID holds the string denoting the phase_id field in the database.
 	FieldPhaseID = "phase_id"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
 	FieldFeatureID = "feature_id"
+	// EdgeRatecard holds the string denoting the ratecard edge name in mutations.
+	EdgeRatecard = "ratecard"
 	// EdgePhase holds the string denoting the phase edge name in mutations.
 	EdgePhase = "phase"
 	// EdgeFeatures holds the string denoting the features edge name in mutations.
 	EdgeFeatures = "features"
 	// Table holds the table name of the planratecard in the database.
 	Table = "plan_rate_cards"
+	// RatecardTable is the table that holds the ratecard relation/edge.
+	RatecardTable = "plan_rate_cards"
+	// RatecardInverseTable is the table name for the RateCard entity.
+	// It exists in this package in order to avoid circular dependency with the "ratecard" package.
+	RatecardInverseTable = "rate_cards"
+	// RatecardColumn is the table column denoting the ratecard relation/edge.
+	RatecardColumn = "ratecard_id"
 	// PhaseTable is the table that holds the phase relation/edge.
 	PhaseTable = "plan_rate_cards"
 	// PhaseInverseTable is the table name for the PlanPhase entity.
@@ -91,6 +102,7 @@ var Columns = []string{
 	FieldBillingCadence,
 	FieldPrice,
 	FieldDiscounts,
+	FieldRatecardID,
 	FieldPhaseID,
 	FieldFeatureID,
 }
@@ -116,6 +128,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	KeyValidator func(string) error
+	// RatecardIDValidator is a validator for the "ratecard_id" field. It is called by the builders before save.
+	RatecardIDValidator func(string) error
 	// PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.
 	PhaseIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
@@ -217,6 +231,11 @@ func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
 }
 
+// ByRatecardID orders the results by the ratecard_id field.
+func ByRatecardID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRatecardID, opts...).ToFunc()
+}
+
 // ByPhaseID orders the results by the phase_id field.
 func ByPhaseID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPhaseID, opts...).ToFunc()
@@ -225,6 +244,13 @@ func ByPhaseID(opts ...sql.OrderTermOption) OrderOption {
 // ByFeatureID orders the results by the feature_id field.
 func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
+}
+
+// ByRatecardField orders the results by ratecard field.
+func ByRatecardField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRatecardStep(), sql.OrderByField(field, opts...))
+	}
 }
 
 // ByPhaseField orders the results by phase field.
@@ -239,6 +265,13 @@ func ByFeaturesField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newFeaturesStep(), sql.OrderByField(field, opts...))
 	}
+}
+func newRatecardStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RatecardInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, RatecardTable, RatecardColumn),
+	)
 }
 func newPhaseStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

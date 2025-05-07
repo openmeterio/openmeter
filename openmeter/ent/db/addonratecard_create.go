@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
@@ -165,6 +166,20 @@ func (arcc *AddonRateCardCreate) SetDiscounts(pr *productcatalog.Discounts) *Add
 	return arcc
 }
 
+// SetRatecardID sets the "ratecard_id" field.
+func (arcc *AddonRateCardCreate) SetRatecardID(s string) *AddonRateCardCreate {
+	arcc.mutation.SetRatecardID(s)
+	return arcc
+}
+
+// SetNillableRatecardID sets the "ratecard_id" field if the given value is not nil.
+func (arcc *AddonRateCardCreate) SetNillableRatecardID(s *string) *AddonRateCardCreate {
+	if s != nil {
+		arcc.SetRatecardID(*s)
+	}
+	return arcc
+}
+
 // SetAddonID sets the "addon_id" field.
 func (arcc *AddonRateCardCreate) SetAddonID(s string) *AddonRateCardCreate {
 	arcc.mutation.SetAddonID(s)
@@ -197,6 +212,11 @@ func (arcc *AddonRateCardCreate) SetNillableID(s *string) *AddonRateCardCreate {
 		arcc.SetID(*s)
 	}
 	return arcc
+}
+
+// SetRatecard sets the "ratecard" edge to the RateCard entity.
+func (arcc *AddonRateCardCreate) SetRatecard(r *RateCard) *AddonRateCardCreate {
+	return arcc.SetRatecardID(r.ID)
 }
 
 // SetAddon sets the "addon" edge to the Addon entity.
@@ -327,6 +347,11 @@ func (arcc *AddonRateCardCreate) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.discounts": %w`, err)}
 		}
 	}
+	if v, ok := arcc.mutation.RatecardID(); ok {
+		if err := addonratecard.RatecardIDValidator(v); err != nil {
+			return &ValidationError{Name: "ratecard_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.ratecard_id": %w`, err)}
+		}
+	}
 	if _, ok := arcc.mutation.AddonID(); !ok {
 		return &ValidationError{Name: "addon_id", err: errors.New(`db: missing required field "AddonRateCard.addon_id"`)}
 	}
@@ -452,6 +477,23 @@ func (arcc *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateS
 		}
 		_spec.SetField(addonratecard.FieldDiscounts, field.TypeString, vv)
 		_node.Discounts = value
+	}
+	if nodes := arcc.mutation.RatecardIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   addonratecard.RatecardTable,
+			Columns: []string{addonratecard.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.RatecardID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := arcc.mutation.AddonIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -722,6 +764,24 @@ func (u *AddonRateCardUpsert) UpdateDiscounts() *AddonRateCardUpsert {
 // ClearDiscounts clears the value of the "discounts" field.
 func (u *AddonRateCardUpsert) ClearDiscounts() *AddonRateCardUpsert {
 	u.SetNull(addonratecard.FieldDiscounts)
+	return u
+}
+
+// SetRatecardID sets the "ratecard_id" field.
+func (u *AddonRateCardUpsert) SetRatecardID(v string) *AddonRateCardUpsert {
+	u.Set(addonratecard.FieldRatecardID, v)
+	return u
+}
+
+// UpdateRatecardID sets the "ratecard_id" field to the value that was provided on create.
+func (u *AddonRateCardUpsert) UpdateRatecardID() *AddonRateCardUpsert {
+	u.SetExcluded(addonratecard.FieldRatecardID)
+	return u
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (u *AddonRateCardUpsert) ClearRatecardID() *AddonRateCardUpsert {
+	u.SetNull(addonratecard.FieldRatecardID)
 	return u
 }
 
@@ -1029,6 +1089,27 @@ func (u *AddonRateCardUpsertOne) UpdateDiscounts() *AddonRateCardUpsertOne {
 func (u *AddonRateCardUpsertOne) ClearDiscounts() *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetRatecardID sets the "ratecard_id" field.
+func (u *AddonRateCardUpsertOne) SetRatecardID(v string) *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetRatecardID(v)
+	})
+}
+
+// UpdateRatecardID sets the "ratecard_id" field to the value that was provided on create.
+func (u *AddonRateCardUpsertOne) UpdateRatecardID() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateRatecardID()
+	})
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (u *AddonRateCardUpsertOne) ClearRatecardID() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearRatecardID()
 	})
 }
 
@@ -1511,6 +1592,27 @@ func (u *AddonRateCardUpsertBulk) UpdateDiscounts() *AddonRateCardUpsertBulk {
 func (u *AddonRateCardUpsertBulk) ClearDiscounts() *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetRatecardID sets the "ratecard_id" field.
+func (u *AddonRateCardUpsertBulk) SetRatecardID(v string) *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetRatecardID(v)
+	})
+}
+
+// UpdateRatecardID sets the "ratecard_id" field to the value that was provided on create.
+func (u *AddonRateCardUpsertBulk) UpdateRatecardID() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateRatecardID()
+	})
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (u *AddonRateCardUpsertBulk) ClearRatecardID() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearRatecardID()
 	})
 }
 

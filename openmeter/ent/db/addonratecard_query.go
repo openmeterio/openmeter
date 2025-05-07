@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 )
 
 // AddonRateCardQuery is the builder for querying AddonRateCard entities.
@@ -25,6 +26,7 @@ type AddonRateCardQuery struct {
 	order        []addonratecard.OrderOption
 	inters       []Interceptor
 	predicates   []predicate.AddonRateCard
+	withRatecard *RateCardQuery
 	withAddon    *AddonQuery
 	withFeatures *FeatureQuery
 	modifiers    []func(*sql.Selector)
@@ -62,6 +64,28 @@ func (arcq *AddonRateCardQuery) Unique(unique bool) *AddonRateCardQuery {
 func (arcq *AddonRateCardQuery) Order(o ...addonratecard.OrderOption) *AddonRateCardQuery {
 	arcq.order = append(arcq.order, o...)
 	return arcq
+}
+
+// QueryRatecard chains the current query on the "ratecard" edge.
+func (arcq *AddonRateCardQuery) QueryRatecard() *RateCardQuery {
+	query := (&RateCardClient{config: arcq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := arcq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := arcq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, selector),
+			sqlgraph.To(ratecard.Table, ratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, addonratecard.RatecardTable, addonratecard.RatecardColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(arcq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryAddon chains the current query on the "addon" edge.
@@ -300,12 +324,24 @@ func (arcq *AddonRateCardQuery) Clone() *AddonRateCardQuery {
 		order:        append([]addonratecard.OrderOption{}, arcq.order...),
 		inters:       append([]Interceptor{}, arcq.inters...),
 		predicates:   append([]predicate.AddonRateCard{}, arcq.predicates...),
+		withRatecard: arcq.withRatecard.Clone(),
 		withAddon:    arcq.withAddon.Clone(),
 		withFeatures: arcq.withFeatures.Clone(),
 		// clone intermediate query.
 		sql:  arcq.sql.Clone(),
 		path: arcq.path,
 	}
+}
+
+// WithRatecard tells the query-builder to eager-load the nodes that are connected to
+// the "ratecard" edge. The optional arguments are used to configure the query builder of the edge.
+func (arcq *AddonRateCardQuery) WithRatecard(opts ...func(*RateCardQuery)) *AddonRateCardQuery {
+	query := (&RateCardClient{config: arcq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	arcq.withRatecard = query
+	return arcq
 }
 
 // WithAddon tells the query-builder to eager-load the nodes that are connected to
@@ -408,7 +444,8 @@ func (arcq *AddonRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	var (
 		nodes       = []*AddonRateCard{}
 		_spec       = arcq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
+			arcq.withRatecard != nil,
 			arcq.withAddon != nil,
 			arcq.withFeatures != nil,
 		}
@@ -434,6 +471,12 @@ func (arcq *AddonRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := arcq.withRatecard; query != nil {
+		if err := arcq.loadRatecard(ctx, query, nodes, nil,
+			func(n *AddonRateCard, e *RateCard) { n.Edges.Ratecard = e }); err != nil {
+			return nil, err
+		}
+	}
 	if query := arcq.withAddon; query != nil {
 		if err := arcq.loadAddon(ctx, query, nodes, nil,
 			func(n *AddonRateCard, e *Addon) { n.Edges.Addon = e }); err != nil {
@@ -449,6 +492,35 @@ func (arcq *AddonRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	return nodes, nil
 }
 
+func (arcq *AddonRateCardQuery) loadRatecard(ctx context.Context, query *RateCardQuery, nodes []*AddonRateCard, init func(*AddonRateCard), assign func(*AddonRateCard, *RateCard)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*AddonRateCard)
+	for i := range nodes {
+		fk := nodes[i].RatecardID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(ratecard.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "ratecard_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (arcq *AddonRateCardQuery) loadAddon(ctx context.Context, query *AddonQuery, nodes []*AddonRateCard, init func(*AddonRateCard), assign func(*AddonRateCard, *Addon)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*AddonRateCard)
@@ -538,6 +610,9 @@ func (arcq *AddonRateCardQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != addonratecard.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if arcq.withRatecard != nil {
+			_spec.Node.AddColumnOnce(addonratecard.FieldRatecardID)
 		}
 		if arcq.withAddon != nil {
 			_spec.Node.AddColumnOnce(addonratecard.FieldAddonID)

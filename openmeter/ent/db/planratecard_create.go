@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
@@ -165,6 +166,20 @@ func (prcc *PlanRateCardCreate) SetDiscounts(pr *productcatalog.Discounts) *Plan
 	return prcc
 }
 
+// SetRatecardID sets the "ratecard_id" field.
+func (prcc *PlanRateCardCreate) SetRatecardID(s string) *PlanRateCardCreate {
+	prcc.mutation.SetRatecardID(s)
+	return prcc
+}
+
+// SetNillableRatecardID sets the "ratecard_id" field if the given value is not nil.
+func (prcc *PlanRateCardCreate) SetNillableRatecardID(s *string) *PlanRateCardCreate {
+	if s != nil {
+		prcc.SetRatecardID(*s)
+	}
+	return prcc
+}
+
 // SetPhaseID sets the "phase_id" field.
 func (prcc *PlanRateCardCreate) SetPhaseID(s string) *PlanRateCardCreate {
 	prcc.mutation.SetPhaseID(s)
@@ -197,6 +212,11 @@ func (prcc *PlanRateCardCreate) SetNillableID(s *string) *PlanRateCardCreate {
 		prcc.SetID(*s)
 	}
 	return prcc
+}
+
+// SetRatecard sets the "ratecard" edge to the RateCard entity.
+func (prcc *PlanRateCardCreate) SetRatecard(r *RateCard) *PlanRateCardCreate {
+	return prcc.SetRatecardID(r.ID)
 }
 
 // SetPhase sets the "phase" edge to the PlanPhase entity.
@@ -327,6 +347,11 @@ func (prcc *PlanRateCardCreate) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.discounts": %w`, err)}
 		}
 	}
+	if v, ok := prcc.mutation.RatecardID(); ok {
+		if err := planratecard.RatecardIDValidator(v); err != nil {
+			return &ValidationError{Name: "ratecard_id", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.ratecard_id": %w`, err)}
+		}
+	}
 	if _, ok := prcc.mutation.PhaseID(); !ok {
 		return &ValidationError{Name: "phase_id", err: errors.New(`db: missing required field "PlanRateCard.phase_id"`)}
 	}
@@ -452,6 +477,23 @@ func (prcc *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpe
 		}
 		_spec.SetField(planratecard.FieldDiscounts, field.TypeString, vv)
 		_node.Discounts = value
+	}
+	if nodes := prcc.mutation.RatecardIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   planratecard.RatecardTable,
+			Columns: []string{planratecard.RatecardColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.RatecardID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := prcc.mutation.PhaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -722,6 +764,24 @@ func (u *PlanRateCardUpsert) UpdateDiscounts() *PlanRateCardUpsert {
 // ClearDiscounts clears the value of the "discounts" field.
 func (u *PlanRateCardUpsert) ClearDiscounts() *PlanRateCardUpsert {
 	u.SetNull(planratecard.FieldDiscounts)
+	return u
+}
+
+// SetRatecardID sets the "ratecard_id" field.
+func (u *PlanRateCardUpsert) SetRatecardID(v string) *PlanRateCardUpsert {
+	u.Set(planratecard.FieldRatecardID, v)
+	return u
+}
+
+// UpdateRatecardID sets the "ratecard_id" field to the value that was provided on create.
+func (u *PlanRateCardUpsert) UpdateRatecardID() *PlanRateCardUpsert {
+	u.SetExcluded(planratecard.FieldRatecardID)
+	return u
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (u *PlanRateCardUpsert) ClearRatecardID() *PlanRateCardUpsert {
+	u.SetNull(planratecard.FieldRatecardID)
 	return u
 }
 
@@ -1029,6 +1089,27 @@ func (u *PlanRateCardUpsertOne) UpdateDiscounts() *PlanRateCardUpsertOne {
 func (u *PlanRateCardUpsertOne) ClearDiscounts() *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetRatecardID sets the "ratecard_id" field.
+func (u *PlanRateCardUpsertOne) SetRatecardID(v string) *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetRatecardID(v)
+	})
+}
+
+// UpdateRatecardID sets the "ratecard_id" field to the value that was provided on create.
+func (u *PlanRateCardUpsertOne) UpdateRatecardID() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateRatecardID()
+	})
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (u *PlanRateCardUpsertOne) ClearRatecardID() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearRatecardID()
 	})
 }
 
@@ -1511,6 +1592,27 @@ func (u *PlanRateCardUpsertBulk) UpdateDiscounts() *PlanRateCardUpsertBulk {
 func (u *PlanRateCardUpsertBulk) ClearDiscounts() *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetRatecardID sets the "ratecard_id" field.
+func (u *PlanRateCardUpsertBulk) SetRatecardID(v string) *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetRatecardID(v)
+	})
+}
+
+// UpdateRatecardID sets the "ratecard_id" field to the value that was provided on create.
+func (u *PlanRateCardUpsertBulk) UpdateRatecardID() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateRatecardID()
+	})
+}
+
+// ClearRatecardID clears the value of the "ratecard_id" field.
+func (u *PlanRateCardUpsertBulk) ClearRatecardID() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearRatecardID()
 	})
 }
 
