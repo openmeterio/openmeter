@@ -33,12 +33,12 @@
             languages = {
               go = {
                 enable = true;
-                package = pkgs.go_1_23;
+                package = pkgs.go_1_24;
               };
 
               python = {
                 enable = true;
-                package = pkgs.python39;
+                package = pkgs.python312;
               };
 
               javascript = {
