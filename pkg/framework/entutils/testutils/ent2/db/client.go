@@ -253,8 +253,8 @@ func (c *Example2Client) Update() *Example2Update {
 }
 
 // UpdateOne returns an update builder for the given entity.
-func (c *Example2Client) UpdateOne(e *Example2) *Example2UpdateOne {
-	mutation := newExample2Mutation(c.config, OpUpdateOne, withExample2(e))
+func (c *Example2Client) UpdateOne(_m *Example2) *Example2UpdateOne {
+	mutation := newExample2Mutation(c.config, OpUpdateOne, withExample2(_m))
 	return &Example2UpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
@@ -271,8 +271,8 @@ func (c *Example2Client) Delete() *Example2Delete {
 }
 
 // DeleteOne returns a builder for deleting the given entity.
-func (c *Example2Client) DeleteOne(e *Example2) *Example2DeleteOne {
-	return c.DeleteOneID(e.ID)
+func (c *Example2Client) DeleteOne(_m *Example2) *Example2DeleteOne {
+	return c.DeleteOneID(_m.ID)
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.

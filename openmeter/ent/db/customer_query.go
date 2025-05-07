@@ -41,44 +41,44 @@ type CustomerQuery struct {
 }
 
 // Where adds a new predicate for the CustomerQuery builder.
-func (cq *CustomerQuery) Where(ps ...predicate.Customer) *CustomerQuery {
-	cq.predicates = append(cq.predicates, ps...)
-	return cq
+func (_q *CustomerQuery) Where(ps ...predicate.Customer) *CustomerQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (cq *CustomerQuery) Limit(limit int) *CustomerQuery {
-	cq.ctx.Limit = &limit
-	return cq
+func (_q *CustomerQuery) Limit(limit int) *CustomerQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (cq *CustomerQuery) Offset(offset int) *CustomerQuery {
-	cq.ctx.Offset = &offset
-	return cq
+func (_q *CustomerQuery) Offset(offset int) *CustomerQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (cq *CustomerQuery) Unique(unique bool) *CustomerQuery {
-	cq.ctx.Unique = &unique
-	return cq
+func (_q *CustomerQuery) Unique(unique bool) *CustomerQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (cq *CustomerQuery) Order(o ...customer.OrderOption) *CustomerQuery {
-	cq.order = append(cq.order, o...)
-	return cq
+func (_q *CustomerQuery) Order(o ...customer.OrderOption) *CustomerQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryApps chains the current query on the "apps" edge.
-func (cq *CustomerQuery) QueryApps() *AppCustomerQuery {
-	query := (&AppCustomerClient{config: cq.config}).Query()
+func (_q *CustomerQuery) QueryApps() *AppCustomerQuery {
+	query := (&AppCustomerClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := cq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := cq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -87,20 +87,20 @@ func (cq *CustomerQuery) QueryApps() *AppCustomerQuery {
 			sqlgraph.To(appcustomer.Table, appcustomer.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.AppsTable, customer.AppsColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QuerySubjects chains the current query on the "subjects" edge.
-func (cq *CustomerQuery) QuerySubjects() *CustomerSubjectsQuery {
-	query := (&CustomerSubjectsClient{config: cq.config}).Query()
+func (_q *CustomerQuery) QuerySubjects() *CustomerSubjectsQuery {
+	query := (&CustomerSubjectsClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := cq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := cq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -109,20 +109,20 @@ func (cq *CustomerQuery) QuerySubjects() *CustomerSubjectsQuery {
 			sqlgraph.To(customersubjects.Table, customersubjects.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.SubjectsTable, customer.SubjectsColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingCustomerOverride chains the current query on the "billing_customer_override" edge.
-func (cq *CustomerQuery) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery {
-	query := (&BillingCustomerOverrideClient{config: cq.config}).Query()
+func (_q *CustomerQuery) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery {
+	query := (&BillingCustomerOverrideClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := cq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := cq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -131,20 +131,20 @@ func (cq *CustomerQuery) QueryBillingCustomerOverride() *BillingCustomerOverride
 			sqlgraph.To(billingcustomeroverride.Table, billingcustomeroverride.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, customer.BillingCustomerOverrideTable, customer.BillingCustomerOverrideColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingInvoice chains the current query on the "billing_invoice" edge.
-func (cq *CustomerQuery) QueryBillingInvoice() *BillingInvoiceQuery {
-	query := (&BillingInvoiceClient{config: cq.config}).Query()
+func (_q *CustomerQuery) QueryBillingInvoice() *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := cq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := cq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -153,20 +153,20 @@ func (cq *CustomerQuery) QueryBillingInvoice() *BillingInvoiceQuery {
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingInvoiceTable, customer.BillingInvoiceColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QuerySubscription chains the current query on the "subscription" edge.
-func (cq *CustomerQuery) QuerySubscription() *SubscriptionQuery {
-	query := (&SubscriptionClient{config: cq.config}).Query()
+func (_q *CustomerQuery) QuerySubscription() *SubscriptionQuery {
+	query := (&SubscriptionClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := cq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := cq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -175,7 +175,7 @@ func (cq *CustomerQuery) QuerySubscription() *SubscriptionQuery {
 			sqlgraph.To(subscription.Table, subscription.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.SubscriptionTable, customer.SubscriptionColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -183,8 +183,8 @@ func (cq *CustomerQuery) QuerySubscription() *SubscriptionQuery {
 
 // First returns the first Customer entity from the query.
 // Returns a *NotFoundError when no Customer was found.
-func (cq *CustomerQuery) First(ctx context.Context) (*Customer, error) {
-	nodes, err := cq.Limit(1).All(setContextOp(ctx, cq.ctx, ent.OpQueryFirst))
+func (_q *CustomerQuery) First(ctx context.Context) (*Customer, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -195,8 +195,8 @@ func (cq *CustomerQuery) First(ctx context.Context) (*Customer, error) {
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (cq *CustomerQuery) FirstX(ctx context.Context) *Customer {
-	node, err := cq.First(ctx)
+func (_q *CustomerQuery) FirstX(ctx context.Context) *Customer {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -205,9 +205,9 @@ func (cq *CustomerQuery) FirstX(ctx context.Context) *Customer {
 
 // FirstID returns the first Customer ID from the query.
 // Returns a *NotFoundError when no Customer ID was found.
-func (cq *CustomerQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *CustomerQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = cq.Limit(1).IDs(setContextOp(ctx, cq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -218,8 +218,8 @@ func (cq *CustomerQuery) FirstID(ctx context.Context) (id string, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (cq *CustomerQuery) FirstIDX(ctx context.Context) string {
-	id, err := cq.FirstID(ctx)
+func (_q *CustomerQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -229,8 +229,8 @@ func (cq *CustomerQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single Customer entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one Customer entity is found.
 // Returns a *NotFoundError when no Customer entities are found.
-func (cq *CustomerQuery) Only(ctx context.Context) (*Customer, error) {
-	nodes, err := cq.Limit(2).All(setContextOp(ctx, cq.ctx, ent.OpQueryOnly))
+func (_q *CustomerQuery) Only(ctx context.Context) (*Customer, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -245,8 +245,8 @@ func (cq *CustomerQuery) Only(ctx context.Context) (*Customer, error) {
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (cq *CustomerQuery) OnlyX(ctx context.Context) *Customer {
-	node, err := cq.Only(ctx)
+func (_q *CustomerQuery) OnlyX(ctx context.Context) *Customer {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -256,9 +256,9 @@ func (cq *CustomerQuery) OnlyX(ctx context.Context) *Customer {
 // OnlyID is like Only, but returns the only Customer ID in the query.
 // Returns a *NotSingularError when more than one Customer ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (cq *CustomerQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *CustomerQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = cq.Limit(2).IDs(setContextOp(ctx, cq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -273,8 +273,8 @@ func (cq *CustomerQuery) OnlyID(ctx context.Context) (id string, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (cq *CustomerQuery) OnlyIDX(ctx context.Context) string {
-	id, err := cq.OnlyID(ctx)
+func (_q *CustomerQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -282,18 +282,18 @@ func (cq *CustomerQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of Customers.
-func (cq *CustomerQuery) All(ctx context.Context) ([]*Customer, error) {
-	ctx = setContextOp(ctx, cq.ctx, ent.OpQueryAll)
-	if err := cq.prepareQuery(ctx); err != nil {
+func (_q *CustomerQuery) All(ctx context.Context) ([]*Customer, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*Customer, *CustomerQuery]()
-	return withInterceptors[[]*Customer](ctx, cq, qr, cq.inters)
+	return withInterceptors[[]*Customer](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (cq *CustomerQuery) AllX(ctx context.Context) []*Customer {
-	nodes, err := cq.All(ctx)
+func (_q *CustomerQuery) AllX(ctx context.Context) []*Customer {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -301,20 +301,20 @@ func (cq *CustomerQuery) AllX(ctx context.Context) []*Customer {
 }
 
 // IDs executes the query and returns a list of Customer IDs.
-func (cq *CustomerQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if cq.ctx.Unique == nil && cq.path != nil {
-		cq.Unique(true)
+func (_q *CustomerQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, cq.ctx, ent.OpQueryIDs)
-	if err = cq.Select(customer.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(customer.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (cq *CustomerQuery) IDsX(ctx context.Context) []string {
-	ids, err := cq.IDs(ctx)
+func (_q *CustomerQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -322,17 +322,17 @@ func (cq *CustomerQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (cq *CustomerQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, cq.ctx, ent.OpQueryCount)
-	if err := cq.prepareQuery(ctx); err != nil {
+func (_q *CustomerQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, cq, querierCount[*CustomerQuery](), cq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*CustomerQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (cq *CustomerQuery) CountX(ctx context.Context) int {
-	count, err := cq.Count(ctx)
+func (_q *CustomerQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -340,9 +340,9 @@ func (cq *CustomerQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (cq *CustomerQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, cq.ctx, ent.OpQueryExist)
-	switch _, err := cq.FirstID(ctx); {
+func (_q *CustomerQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -353,8 +353,8 @@ func (cq *CustomerQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (cq *CustomerQuery) ExistX(ctx context.Context) bool {
-	exist, err := cq.Exist(ctx)
+func (_q *CustomerQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -363,80 +363,80 @@ func (cq *CustomerQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the CustomerQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (cq *CustomerQuery) Clone() *CustomerQuery {
-	if cq == nil {
+func (_q *CustomerQuery) Clone() *CustomerQuery {
+	if _q == nil {
 		return nil
 	}
 	return &CustomerQuery{
-		config:                      cq.config,
-		ctx:                         cq.ctx.Clone(),
-		order:                       append([]customer.OrderOption{}, cq.order...),
-		inters:                      append([]Interceptor{}, cq.inters...),
-		predicates:                  append([]predicate.Customer{}, cq.predicates...),
-		withApps:                    cq.withApps.Clone(),
-		withSubjects:                cq.withSubjects.Clone(),
-		withBillingCustomerOverride: cq.withBillingCustomerOverride.Clone(),
-		withBillingInvoice:          cq.withBillingInvoice.Clone(),
-		withSubscription:            cq.withSubscription.Clone(),
+		config:                      _q.config,
+		ctx:                         _q.ctx.Clone(),
+		order:                       append([]customer.OrderOption{}, _q.order...),
+		inters:                      append([]Interceptor{}, _q.inters...),
+		predicates:                  append([]predicate.Customer{}, _q.predicates...),
+		withApps:                    _q.withApps.Clone(),
+		withSubjects:                _q.withSubjects.Clone(),
+		withBillingCustomerOverride: _q.withBillingCustomerOverride.Clone(),
+		withBillingInvoice:          _q.withBillingInvoice.Clone(),
+		withSubscription:            _q.withSubscription.Clone(),
 		// clone intermediate query.
-		sql:  cq.sql.Clone(),
-		path: cq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithApps tells the query-builder to eager-load the nodes that are connected to
 // the "apps" edge. The optional arguments are used to configure the query builder of the edge.
-func (cq *CustomerQuery) WithApps(opts ...func(*AppCustomerQuery)) *CustomerQuery {
-	query := (&AppCustomerClient{config: cq.config}).Query()
+func (_q *CustomerQuery) WithApps(opts ...func(*AppCustomerQuery)) *CustomerQuery {
+	query := (&AppCustomerClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	cq.withApps = query
-	return cq
+	_q.withApps = query
+	return _q
 }
 
 // WithSubjects tells the query-builder to eager-load the nodes that are connected to
 // the "subjects" edge. The optional arguments are used to configure the query builder of the edge.
-func (cq *CustomerQuery) WithSubjects(opts ...func(*CustomerSubjectsQuery)) *CustomerQuery {
-	query := (&CustomerSubjectsClient{config: cq.config}).Query()
+func (_q *CustomerQuery) WithSubjects(opts ...func(*CustomerSubjectsQuery)) *CustomerQuery {
+	query := (&CustomerSubjectsClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	cq.withSubjects = query
-	return cq
+	_q.withSubjects = query
+	return _q
 }
 
 // WithBillingCustomerOverride tells the query-builder to eager-load the nodes that are connected to
 // the "billing_customer_override" edge. The optional arguments are used to configure the query builder of the edge.
-func (cq *CustomerQuery) WithBillingCustomerOverride(opts ...func(*BillingCustomerOverrideQuery)) *CustomerQuery {
-	query := (&BillingCustomerOverrideClient{config: cq.config}).Query()
+func (_q *CustomerQuery) WithBillingCustomerOverride(opts ...func(*BillingCustomerOverrideQuery)) *CustomerQuery {
+	query := (&BillingCustomerOverrideClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	cq.withBillingCustomerOverride = query
-	return cq
+	_q.withBillingCustomerOverride = query
+	return _q
 }
 
 // WithBillingInvoice tells the query-builder to eager-load the nodes that are connected to
 // the "billing_invoice" edge. The optional arguments are used to configure the query builder of the edge.
-func (cq *CustomerQuery) WithBillingInvoice(opts ...func(*BillingInvoiceQuery)) *CustomerQuery {
-	query := (&BillingInvoiceClient{config: cq.config}).Query()
+func (_q *CustomerQuery) WithBillingInvoice(opts ...func(*BillingInvoiceQuery)) *CustomerQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	cq.withBillingInvoice = query
-	return cq
+	_q.withBillingInvoice = query
+	return _q
 }
 
 // WithSubscription tells the query-builder to eager-load the nodes that are connected to
 // the "subscription" edge. The optional arguments are used to configure the query builder of the edge.
-func (cq *CustomerQuery) WithSubscription(opts ...func(*SubscriptionQuery)) *CustomerQuery {
-	query := (&SubscriptionClient{config: cq.config}).Query()
+func (_q *CustomerQuery) WithSubscription(opts ...func(*SubscriptionQuery)) *CustomerQuery {
+	query := (&SubscriptionClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	cq.withSubscription = query
-	return cq
+	_q.withSubscription = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -453,10 +453,10 @@ func (cq *CustomerQuery) WithSubscription(opts ...func(*SubscriptionQuery)) *Cus
 //		GroupBy(customer.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (cq *CustomerQuery) GroupBy(field string, fields ...string) *CustomerGroupBy {
-	cq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &CustomerGroupBy{build: cq}
-	grbuild.flds = &cq.ctx.Fields
+func (_q *CustomerQuery) GroupBy(field string, fields ...string) *CustomerGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &CustomerGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = customer.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -474,107 +474,107 @@ func (cq *CustomerQuery) GroupBy(field string, fields ...string) *CustomerGroupB
 //	client.Customer.Query().
 //		Select(customer.FieldNamespace).
 //		Scan(ctx, &v)
-func (cq *CustomerQuery) Select(fields ...string) *CustomerSelect {
-	cq.ctx.Fields = append(cq.ctx.Fields, fields...)
-	sbuild := &CustomerSelect{CustomerQuery: cq}
+func (_q *CustomerQuery) Select(fields ...string) *CustomerSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &CustomerSelect{CustomerQuery: _q}
 	sbuild.label = customer.Label
-	sbuild.flds, sbuild.scan = &cq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a CustomerSelect configured with the given aggregations.
-func (cq *CustomerQuery) Aggregate(fns ...AggregateFunc) *CustomerSelect {
-	return cq.Select().Aggregate(fns...)
+func (_q *CustomerQuery) Aggregate(fns ...AggregateFunc) *CustomerSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (cq *CustomerQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range cq.inters {
+func (_q *CustomerQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, cq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range cq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !customer.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if cq.path != nil {
-		prev, err := cq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		cq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Customer, error) {
+func (_q *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Customer, error) {
 	var (
 		nodes       = []*Customer{}
-		_spec       = cq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [5]bool{
-			cq.withApps != nil,
-			cq.withSubjects != nil,
-			cq.withBillingCustomerOverride != nil,
-			cq.withBillingInvoice != nil,
-			cq.withSubscription != nil,
+			_q.withApps != nil,
+			_q.withSubjects != nil,
+			_q.withBillingCustomerOverride != nil,
+			_q.withBillingInvoice != nil,
+			_q.withSubscription != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Customer).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Customer{config: cq.config}
+		node := &Customer{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(cq.modifiers) > 0 {
-		_spec.Modifiers = cq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, cq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := cq.withApps; query != nil {
-		if err := cq.loadApps(ctx, query, nodes,
+	if query := _q.withApps; query != nil {
+		if err := _q.loadApps(ctx, query, nodes,
 			func(n *Customer) { n.Edges.Apps = []*AppCustomer{} },
 			func(n *Customer, e *AppCustomer) { n.Edges.Apps = append(n.Edges.Apps, e) }); err != nil {
 			return nil, err
 		}
 	}
-	if query := cq.withSubjects; query != nil {
-		if err := cq.loadSubjects(ctx, query, nodes,
+	if query := _q.withSubjects; query != nil {
+		if err := _q.loadSubjects(ctx, query, nodes,
 			func(n *Customer) { n.Edges.Subjects = []*CustomerSubjects{} },
 			func(n *Customer, e *CustomerSubjects) { n.Edges.Subjects = append(n.Edges.Subjects, e) }); err != nil {
 			return nil, err
 		}
 	}
-	if query := cq.withBillingCustomerOverride; query != nil {
-		if err := cq.loadBillingCustomerOverride(ctx, query, nodes, nil,
+	if query := _q.withBillingCustomerOverride; query != nil {
+		if err := _q.loadBillingCustomerOverride(ctx, query, nodes, nil,
 			func(n *Customer, e *BillingCustomerOverride) { n.Edges.BillingCustomerOverride = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := cq.withBillingInvoice; query != nil {
-		if err := cq.loadBillingInvoice(ctx, query, nodes,
+	if query := _q.withBillingInvoice; query != nil {
+		if err := _q.loadBillingInvoice(ctx, query, nodes,
 			func(n *Customer) { n.Edges.BillingInvoice = []*BillingInvoice{} },
 			func(n *Customer, e *BillingInvoice) { n.Edges.BillingInvoice = append(n.Edges.BillingInvoice, e) }); err != nil {
 			return nil, err
 		}
 	}
-	if query := cq.withSubscription; query != nil {
-		if err := cq.loadSubscription(ctx, query, nodes,
+	if query := _q.withSubscription; query != nil {
+		if err := _q.loadSubscription(ctx, query, nodes,
 			func(n *Customer) { n.Edges.Subscription = []*Subscription{} },
 			func(n *Customer, e *Subscription) { n.Edges.Subscription = append(n.Edges.Subscription, e) }); err != nil {
 			return nil, err
@@ -583,7 +583,7 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 	return nodes, nil
 }
 
-func (cq *CustomerQuery) loadApps(ctx context.Context, query *AppCustomerQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *AppCustomer)) error {
+func (_q *CustomerQuery) loadApps(ctx context.Context, query *AppCustomerQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *AppCustomer)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Customer)
 	for i := range nodes {
@@ -613,7 +613,7 @@ func (cq *CustomerQuery) loadApps(ctx context.Context, query *AppCustomerQuery, 
 	}
 	return nil
 }
-func (cq *CustomerQuery) loadSubjects(ctx context.Context, query *CustomerSubjectsQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *CustomerSubjects)) error {
+func (_q *CustomerQuery) loadSubjects(ctx context.Context, query *CustomerSubjectsQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *CustomerSubjects)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Customer)
 	for i := range nodes {
@@ -643,7 +643,7 @@ func (cq *CustomerQuery) loadSubjects(ctx context.Context, query *CustomerSubjec
 	}
 	return nil
 }
-func (cq *CustomerQuery) loadBillingCustomerOverride(ctx context.Context, query *BillingCustomerOverrideQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *BillingCustomerOverride)) error {
+func (_q *CustomerQuery) loadBillingCustomerOverride(ctx context.Context, query *BillingCustomerOverrideQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *BillingCustomerOverride)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Customer)
 	for i := range nodes {
@@ -670,7 +670,7 @@ func (cq *CustomerQuery) loadBillingCustomerOverride(ctx context.Context, query 
 	}
 	return nil
 }
-func (cq *CustomerQuery) loadBillingInvoice(ctx context.Context, query *BillingInvoiceQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *BillingInvoice)) error {
+func (_q *CustomerQuery) loadBillingInvoice(ctx context.Context, query *BillingInvoiceQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *BillingInvoice)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Customer)
 	for i := range nodes {
@@ -700,7 +700,7 @@ func (cq *CustomerQuery) loadBillingInvoice(ctx context.Context, query *BillingI
 	}
 	return nil
 }
-func (cq *CustomerQuery) loadSubscription(ctx context.Context, query *SubscriptionQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *Subscription)) error {
+func (_q *CustomerQuery) loadSubscription(ctx context.Context, query *SubscriptionQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *Subscription)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Customer)
 	for i := range nodes {
@@ -731,27 +731,27 @@ func (cq *CustomerQuery) loadSubscription(ctx context.Context, query *Subscripti
 	return nil
 }
 
-func (cq *CustomerQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := cq.querySpec()
-	if len(cq.modifiers) > 0 {
-		_spec.Modifiers = cq.modifiers
+func (_q *CustomerQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = cq.ctx.Fields
-	if len(cq.ctx.Fields) > 0 {
-		_spec.Unique = cq.ctx.Unique != nil && *cq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, cq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (cq *CustomerQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *CustomerQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(customer.Table, customer.Columns, sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString))
-	_spec.From = cq.sql
-	if unique := cq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if cq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := cq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, customer.FieldID)
 		for i := range fields {
@@ -760,20 +760,20 @@ func (cq *CustomerQuery) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 	}
-	if ps := cq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := cq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := cq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := cq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -783,36 +783,36 @@ func (cq *CustomerQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (cq *CustomerQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(cq.driver.Dialect())
+func (_q *CustomerQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(customer.Table)
-	columns := cq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = customer.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if cq.sql != nil {
-		selector = cq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if cq.ctx.Unique != nil && *cq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range cq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range cq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range cq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := cq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := cq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -821,27 +821,27 @@ func (cq *CustomerQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (cq *CustomerQuery) ForUpdate(opts ...sql.LockOption) *CustomerQuery {
-	if cq.driver.Dialect() == dialect.Postgres {
-		cq.Unique(false)
+func (_q *CustomerQuery) ForUpdate(opts ...sql.LockOption) *CustomerQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	cq.modifiers = append(cq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return cq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (cq *CustomerQuery) ForShare(opts ...sql.LockOption) *CustomerQuery {
-	if cq.driver.Dialect() == dialect.Postgres {
-		cq.Unique(false)
+func (_q *CustomerQuery) ForShare(opts ...sql.LockOption) *CustomerQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	cq.modifiers = append(cq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return cq
+	return _q
 }
 
 // CustomerGroupBy is the group-by builder for Customer entities.

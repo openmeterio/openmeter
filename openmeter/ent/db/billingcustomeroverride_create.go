@@ -29,223 +29,223 @@ type BillingCustomerOverrideCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (bcoc *BillingCustomerOverrideCreate) SetNamespace(s string) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetNamespace(s)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetNamespace(v string) *BillingCustomerOverrideCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (bcoc *BillingCustomerOverrideCreate) SetCreatedAt(t time.Time) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetCreatedAt(t)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetCreatedAt(v time.Time) *BillingCustomerOverrideCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableCreatedAt(t *time.Time) *BillingCustomerOverrideCreate {
-	if t != nil {
-		bcoc.SetCreatedAt(*t)
+func (_c *BillingCustomerOverrideCreate) SetNillableCreatedAt(v *time.Time) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (bcoc *BillingCustomerOverrideCreate) SetUpdatedAt(t time.Time) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetUpdatedAt(t)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetUpdatedAt(v time.Time) *BillingCustomerOverrideCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableUpdatedAt(t *time.Time) *BillingCustomerOverrideCreate {
-	if t != nil {
-		bcoc.SetUpdatedAt(*t)
+func (_c *BillingCustomerOverrideCreate) SetNillableUpdatedAt(v *time.Time) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (bcoc *BillingCustomerOverrideCreate) SetDeletedAt(t time.Time) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetDeletedAt(t)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetDeletedAt(v time.Time) *BillingCustomerOverrideCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableDeletedAt(t *time.Time) *BillingCustomerOverrideCreate {
-	if t != nil {
-		bcoc.SetDeletedAt(*t)
+func (_c *BillingCustomerOverrideCreate) SetNillableDeletedAt(v *time.Time) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetCustomerID sets the "customer_id" field.
-func (bcoc *BillingCustomerOverrideCreate) SetCustomerID(s string) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetCustomerID(s)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetCustomerID(v string) *BillingCustomerOverrideCreate {
+	_c.mutation.SetCustomerID(v)
+	return _c
 }
 
 // SetBillingProfileID sets the "billing_profile_id" field.
-func (bcoc *BillingCustomerOverrideCreate) SetBillingProfileID(s string) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetBillingProfileID(s)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetBillingProfileID(v string) *BillingCustomerOverrideCreate {
+	_c.mutation.SetBillingProfileID(v)
+	return _c
 }
 
 // SetNillableBillingProfileID sets the "billing_profile_id" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableBillingProfileID(s *string) *BillingCustomerOverrideCreate {
-	if s != nil {
-		bcoc.SetBillingProfileID(*s)
+func (_c *BillingCustomerOverrideCreate) SetNillableBillingProfileID(v *string) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetBillingProfileID(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (bcoc *BillingCustomerOverrideCreate) SetCollectionAlignment(bk billing.AlignmentKind) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetCollectionAlignment(bk)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetCollectionAlignment(v billing.AlignmentKind) *BillingCustomerOverrideCreate {
+	_c.mutation.SetCollectionAlignment(v)
+	return _c
 }
 
 // SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingCustomerOverrideCreate {
-	if bk != nil {
-		bcoc.SetCollectionAlignment(*bk)
+func (_c *BillingCustomerOverrideCreate) SetNillableCollectionAlignment(v *billing.AlignmentKind) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetCollectionAlignment(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (bcoc *BillingCustomerOverrideCreate) SetLineCollectionPeriod(i isodate.String) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetLineCollectionPeriod(i)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetLineCollectionPeriod(v isodate.String) *BillingCustomerOverrideCreate {
+	_c.mutation.SetLineCollectionPeriod(v)
+	return _c
 }
 
 // SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableLineCollectionPeriod(i *isodate.String) *BillingCustomerOverrideCreate {
-	if i != nil {
-		bcoc.SetLineCollectionPeriod(*i)
+func (_c *BillingCustomerOverrideCreate) SetNillableLineCollectionPeriod(v *isodate.String) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetLineCollectionPeriod(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetInvoiceAutoAdvance sets the "invoice_auto_advance" field.
-func (bcoc *BillingCustomerOverrideCreate) SetInvoiceAutoAdvance(b bool) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetInvoiceAutoAdvance(b)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetInvoiceAutoAdvance(v bool) *BillingCustomerOverrideCreate {
+	_c.mutation.SetInvoiceAutoAdvance(v)
+	return _c
 }
 
 // SetNillableInvoiceAutoAdvance sets the "invoice_auto_advance" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceAutoAdvance(b *bool) *BillingCustomerOverrideCreate {
-	if b != nil {
-		bcoc.SetInvoiceAutoAdvance(*b)
+func (_c *BillingCustomerOverrideCreate) SetNillableInvoiceAutoAdvance(v *bool) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetInvoiceAutoAdvance(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (bcoc *BillingCustomerOverrideCreate) SetInvoiceDraftPeriod(i isodate.String) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetInvoiceDraftPeriod(i)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetInvoiceDraftPeriod(v isodate.String) *BillingCustomerOverrideCreate {
+	_c.mutation.SetInvoiceDraftPeriod(v)
+	return _c
 }
 
 // SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceDraftPeriod(i *isodate.String) *BillingCustomerOverrideCreate {
-	if i != nil {
-		bcoc.SetInvoiceDraftPeriod(*i)
+func (_c *BillingCustomerOverrideCreate) SetNillableInvoiceDraftPeriod(v *isodate.String) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetInvoiceDraftPeriod(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (bcoc *BillingCustomerOverrideCreate) SetInvoiceDueAfter(i isodate.String) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetInvoiceDueAfter(i)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetInvoiceDueAfter(v isodate.String) *BillingCustomerOverrideCreate {
+	_c.mutation.SetInvoiceDueAfter(v)
+	return _c
 }
 
 // SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceDueAfter(i *isodate.String) *BillingCustomerOverrideCreate {
-	if i != nil {
-		bcoc.SetInvoiceDueAfter(*i)
+func (_c *BillingCustomerOverrideCreate) SetNillableInvoiceDueAfter(v *isodate.String) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetInvoiceDueAfter(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (bcoc *BillingCustomerOverrideCreate) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetInvoiceCollectionMethod(bm)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetInvoiceCollectionMethod(v billing.CollectionMethod) *BillingCustomerOverrideCreate {
+	_c.mutation.SetInvoiceCollectionMethod(v)
+	return _c
 }
 
 // SetNillableInvoiceCollectionMethod sets the "invoice_collection_method" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceCollectionMethod(bm *billing.CollectionMethod) *BillingCustomerOverrideCreate {
-	if bm != nil {
-		bcoc.SetInvoiceCollectionMethod(*bm)
+func (_c *BillingCustomerOverrideCreate) SetNillableInvoiceCollectionMethod(v *billing.CollectionMethod) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetInvoiceCollectionMethod(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
-func (bcoc *BillingCustomerOverrideCreate) SetInvoiceProgressiveBilling(b bool) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetInvoiceProgressiveBilling(b)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetInvoiceProgressiveBilling(v bool) *BillingCustomerOverrideCreate {
+	_c.mutation.SetInvoiceProgressiveBilling(v)
+	return _c
 }
 
 // SetNillableInvoiceProgressiveBilling sets the "invoice_progressive_billing" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceProgressiveBilling(b *bool) *BillingCustomerOverrideCreate {
-	if b != nil {
-		bcoc.SetInvoiceProgressiveBilling(*b)
+func (_c *BillingCustomerOverrideCreate) SetNillableInvoiceProgressiveBilling(v *bool) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetInvoiceProgressiveBilling(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetInvoiceDefaultTaxConfig sets the "invoice_default_tax_config" field.
-func (bcoc *BillingCustomerOverrideCreate) SetInvoiceDefaultTaxConfig(pc productcatalog.TaxConfig) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetInvoiceDefaultTaxConfig(pc)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetInvoiceDefaultTaxConfig(v productcatalog.TaxConfig) *BillingCustomerOverrideCreate {
+	_c.mutation.SetInvoiceDefaultTaxConfig(v)
+	return _c
 }
 
 // SetNillableInvoiceDefaultTaxConfig sets the "invoice_default_tax_config" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceDefaultTaxConfig(pc *productcatalog.TaxConfig) *BillingCustomerOverrideCreate {
-	if pc != nil {
-		bcoc.SetInvoiceDefaultTaxConfig(*pc)
+func (_c *BillingCustomerOverrideCreate) SetNillableInvoiceDefaultTaxConfig(v *productcatalog.TaxConfig) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetInvoiceDefaultTaxConfig(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetID sets the "id" field.
-func (bcoc *BillingCustomerOverrideCreate) SetID(s string) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetID(s)
-	return bcoc
+func (_c *BillingCustomerOverrideCreate) SetID(v string) *BillingCustomerOverrideCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableID(s *string) *BillingCustomerOverrideCreate {
-	if s != nil {
-		bcoc.SetID(*s)
+func (_c *BillingCustomerOverrideCreate) SetNillableID(v *string) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return bcoc
+	return _c
 }
 
 // SetCustomer sets the "customer" edge to the Customer entity.
-func (bcoc *BillingCustomerOverrideCreate) SetCustomer(c *Customer) *BillingCustomerOverrideCreate {
-	return bcoc.SetCustomerID(c.ID)
+func (_c *BillingCustomerOverrideCreate) SetCustomer(v *Customer) *BillingCustomerOverrideCreate {
+	return _c.SetCustomerID(v.ID)
 }
 
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
-func (bcoc *BillingCustomerOverrideCreate) SetBillingProfile(b *BillingProfile) *BillingCustomerOverrideCreate {
-	return bcoc.SetBillingProfileID(b.ID)
+func (_c *BillingCustomerOverrideCreate) SetBillingProfile(v *BillingProfile) *BillingCustomerOverrideCreate {
+	return _c.SetBillingProfileID(v.ID)
 }
 
 // Mutation returns the BillingCustomerOverrideMutation object of the builder.
-func (bcoc *BillingCustomerOverrideCreate) Mutation() *BillingCustomerOverrideMutation {
-	return bcoc.mutation
+func (_c *BillingCustomerOverrideCreate) Mutation() *BillingCustomerOverrideMutation {
+	return _c.mutation
 }
 
 // Save creates the BillingCustomerOverride in the database.
-func (bcoc *BillingCustomerOverrideCreate) Save(ctx context.Context) (*BillingCustomerOverride, error) {
-	bcoc.defaults()
-	return withHooks(ctx, bcoc.sqlSave, bcoc.mutation, bcoc.hooks)
+func (_c *BillingCustomerOverrideCreate) Save(ctx context.Context) (*BillingCustomerOverride, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (bcoc *BillingCustomerOverrideCreate) SaveX(ctx context.Context) *BillingCustomerOverride {
-	v, err := bcoc.Save(ctx)
+func (_c *BillingCustomerOverrideCreate) SaveX(ctx context.Context) *BillingCustomerOverride {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -253,80 +253,80 @@ func (bcoc *BillingCustomerOverrideCreate) SaveX(ctx context.Context) *BillingCu
 }
 
 // Exec executes the query.
-func (bcoc *BillingCustomerOverrideCreate) Exec(ctx context.Context) error {
-	_, err := bcoc.Save(ctx)
+func (_c *BillingCustomerOverrideCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bcoc *BillingCustomerOverrideCreate) ExecX(ctx context.Context) {
-	if err := bcoc.Exec(ctx); err != nil {
+func (_c *BillingCustomerOverrideCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bcoc *BillingCustomerOverrideCreate) defaults() {
-	if _, ok := bcoc.mutation.CreatedAt(); !ok {
+func (_c *BillingCustomerOverrideCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := billingcustomeroverride.DefaultCreatedAt()
-		bcoc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := bcoc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := billingcustomeroverride.DefaultUpdatedAt()
-		bcoc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := bcoc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := billingcustomeroverride.DefaultID()
-		bcoc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bcoc *BillingCustomerOverrideCreate) check() error {
-	if _, ok := bcoc.mutation.Namespace(); !ok {
+func (_c *BillingCustomerOverrideCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BillingCustomerOverride.namespace"`)}
 	}
-	if v, ok := bcoc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := billingcustomeroverride.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.namespace": %w`, err)}
 		}
 	}
-	if _, ok := bcoc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "BillingCustomerOverride.created_at"`)}
 	}
-	if _, ok := bcoc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingCustomerOverride.updated_at"`)}
 	}
-	if _, ok := bcoc.mutation.CustomerID(); !ok {
+	if _, ok := _c.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "BillingCustomerOverride.customer_id"`)}
 	}
-	if v, ok := bcoc.mutation.CollectionAlignment(); ok {
+	if v, ok := _c.mutation.CollectionAlignment(); ok {
 		if err := billingcustomeroverride.CollectionAlignmentValidator(v); err != nil {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.collection_alignment": %w`, err)}
 		}
 	}
-	if v, ok := bcoc.mutation.InvoiceCollectionMethod(); ok {
+	if v, ok := _c.mutation.InvoiceCollectionMethod(); ok {
 		if err := billingcustomeroverride.InvoiceCollectionMethodValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bcoc.mutation.InvoiceDefaultTaxConfig(); ok {
+	if v, ok := _c.mutation.InvoiceDefaultTaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "invoice_default_tax_config", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_default_tax_config": %w`, err)}
 		}
 	}
-	if len(bcoc.mutation.CustomerIDs()) == 0 {
+	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "BillingCustomerOverride.customer"`)}
 	}
 	return nil
 }
 
-func (bcoc *BillingCustomerOverrideCreate) sqlSave(ctx context.Context) (*BillingCustomerOverride, error) {
-	if err := bcoc.check(); err != nil {
+func (_c *BillingCustomerOverrideCreate) sqlSave(ctx context.Context) (*BillingCustomerOverride, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := bcoc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, bcoc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -339,70 +339,70 @@ func (bcoc *BillingCustomerOverrideCreate) sqlSave(ctx context.Context) (*Billin
 			return nil, fmt.Errorf("unexpected BillingCustomerOverride.ID type: %T", _spec.ID.Value)
 		}
 	}
-	bcoc.mutation.id = &_node.ID
-	bcoc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (bcoc *BillingCustomerOverrideCreate) createSpec() (*BillingCustomerOverride, *sqlgraph.CreateSpec) {
+func (_c *BillingCustomerOverrideCreate) createSpec() (*BillingCustomerOverride, *sqlgraph.CreateSpec) {
 	var (
-		_node = &BillingCustomerOverride{config: bcoc.config}
+		_node = &BillingCustomerOverride{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(billingcustomeroverride.Table, sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = bcoc.conflict
-	if id, ok := bcoc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := bcoc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(billingcustomeroverride.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := bcoc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(billingcustomeroverride.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := bcoc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(billingcustomeroverride.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := bcoc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(billingcustomeroverride.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := bcoc.mutation.CollectionAlignment(); ok {
+	if value, ok := _c.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum, value)
 		_node.CollectionAlignment = &value
 	}
-	if value, ok := bcoc.mutation.LineCollectionPeriod(); ok {
+	if value, ok := _c.mutation.LineCollectionPeriod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldLineCollectionPeriod, field.TypeString, value)
 		_node.LineCollectionPeriod = &value
 	}
-	if value, ok := bcoc.mutation.InvoiceAutoAdvance(); ok {
+	if value, ok := _c.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool, value)
 		_node.InvoiceAutoAdvance = &value
 	}
-	if value, ok := bcoc.mutation.InvoiceDraftPeriod(); ok {
+	if value, ok := _c.mutation.InvoiceDraftPeriod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceDraftPeriod, field.TypeString, value)
 		_node.InvoiceDraftPeriod = &value
 	}
-	if value, ok := bcoc.mutation.InvoiceDueAfter(); ok {
+	if value, ok := _c.mutation.InvoiceDueAfter(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceDueAfter, field.TypeString, value)
 		_node.InvoiceDueAfter = &value
 	}
-	if value, ok := bcoc.mutation.InvoiceCollectionMethod(); ok {
+	if value, ok := _c.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceCollectionMethod, field.TypeEnum, value)
 		_node.InvoiceCollectionMethod = &value
 	}
-	if value, ok := bcoc.mutation.InvoiceProgressiveBilling(); ok {
+	if value, ok := _c.mutation.InvoiceProgressiveBilling(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool, value)
 		_node.InvoiceProgressiveBilling = &value
 	}
-	if value, ok := bcoc.mutation.InvoiceDefaultTaxConfig(); ok {
+	if value, ok := _c.mutation.InvoiceDefaultTaxConfig(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON, value)
 		_node.InvoiceDefaultTaxConfig = value
 	}
-	if nodes := bcoc.mutation.CustomerIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
@@ -419,7 +419,7 @@ func (bcoc *BillingCustomerOverrideCreate) createSpec() (*BillingCustomerOverrid
 		_node.CustomerID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bcoc.mutation.BillingProfileIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -455,10 +455,10 @@ func (bcoc *BillingCustomerOverrideCreate) createSpec() (*BillingCustomerOverrid
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bcoc *BillingCustomerOverrideCreate) OnConflict(opts ...sql.ConflictOption) *BillingCustomerOverrideUpsertOne {
-	bcoc.conflict = opts
+func (_c *BillingCustomerOverrideCreate) OnConflict(opts ...sql.ConflictOption) *BillingCustomerOverrideUpsertOne {
+	_c.conflict = opts
 	return &BillingCustomerOverrideUpsertOne{
-		create: bcoc,
+		create: _c,
 	}
 }
 
@@ -468,10 +468,10 @@ func (bcoc *BillingCustomerOverrideCreate) OnConflict(opts ...sql.ConflictOption
 //	client.BillingCustomerOverride.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bcoc *BillingCustomerOverrideCreate) OnConflictColumns(columns ...string) *BillingCustomerOverrideUpsertOne {
-	bcoc.conflict = append(bcoc.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingCustomerOverrideCreate) OnConflictColumns(columns ...string) *BillingCustomerOverrideUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingCustomerOverrideUpsertOne{
-		create: bcoc,
+		create: _c,
 	}
 }
 
@@ -1008,16 +1008,16 @@ type BillingCustomerOverrideCreateBulk struct {
 }
 
 // Save creates the BillingCustomerOverride entities in the database.
-func (bcocb *BillingCustomerOverrideCreateBulk) Save(ctx context.Context) ([]*BillingCustomerOverride, error) {
-	if bcocb.err != nil {
-		return nil, bcocb.err
+func (_c *BillingCustomerOverrideCreateBulk) Save(ctx context.Context) ([]*BillingCustomerOverride, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(bcocb.builders))
-	nodes := make([]*BillingCustomerOverride, len(bcocb.builders))
-	mutators := make([]Mutator, len(bcocb.builders))
-	for i := range bcocb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*BillingCustomerOverride, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := bcocb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*BillingCustomerOverrideMutation)
@@ -1031,12 +1031,12 @@ func (bcocb *BillingCustomerOverrideCreateBulk) Save(ctx context.Context) ([]*Bi
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, bcocb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = bcocb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, bcocb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -1056,7 +1056,7 @@ func (bcocb *BillingCustomerOverrideCreateBulk) Save(ctx context.Context) ([]*Bi
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, bcocb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -1064,8 +1064,8 @@ func (bcocb *BillingCustomerOverrideCreateBulk) Save(ctx context.Context) ([]*Bi
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bcocb *BillingCustomerOverrideCreateBulk) SaveX(ctx context.Context) []*BillingCustomerOverride {
-	v, err := bcocb.Save(ctx)
+func (_c *BillingCustomerOverrideCreateBulk) SaveX(ctx context.Context) []*BillingCustomerOverride {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1073,14 +1073,14 @@ func (bcocb *BillingCustomerOverrideCreateBulk) SaveX(ctx context.Context) []*Bi
 }
 
 // Exec executes the query.
-func (bcocb *BillingCustomerOverrideCreateBulk) Exec(ctx context.Context) error {
-	_, err := bcocb.Save(ctx)
+func (_c *BillingCustomerOverrideCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bcocb *BillingCustomerOverrideCreateBulk) ExecX(ctx context.Context) {
-	if err := bcocb.Exec(ctx); err != nil {
+func (_c *BillingCustomerOverrideCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -1100,10 +1100,10 @@ func (bcocb *BillingCustomerOverrideCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bcocb *BillingCustomerOverrideCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingCustomerOverrideUpsertBulk {
-	bcocb.conflict = opts
+func (_c *BillingCustomerOverrideCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingCustomerOverrideUpsertBulk {
+	_c.conflict = opts
 	return &BillingCustomerOverrideUpsertBulk{
-		create: bcocb,
+		create: _c,
 	}
 }
 
@@ -1113,10 +1113,10 @@ func (bcocb *BillingCustomerOverrideCreateBulk) OnConflict(opts ...sql.ConflictO
 //	client.BillingCustomerOverride.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bcocb *BillingCustomerOverrideCreateBulk) OnConflictColumns(columns ...string) *BillingCustomerOverrideUpsertBulk {
-	bcocb.conflict = append(bcocb.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingCustomerOverrideCreateBulk) OnConflictColumns(columns ...string) *BillingCustomerOverrideUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingCustomerOverrideUpsertBulk{
-		create: bcocb,
+		create: _c,
 	}
 }
 

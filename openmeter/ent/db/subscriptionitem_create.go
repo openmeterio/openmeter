@@ -29,278 +29,278 @@ type SubscriptionItemCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (sic *SubscriptionItemCreate) SetNamespace(s string) *SubscriptionItemCreate {
-	sic.mutation.SetNamespace(s)
-	return sic
+func (_c *SubscriptionItemCreate) SetNamespace(v string) *SubscriptionItemCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (sic *SubscriptionItemCreate) SetCreatedAt(t time.Time) *SubscriptionItemCreate {
-	sic.mutation.SetCreatedAt(t)
-	return sic
+func (_c *SubscriptionItemCreate) SetCreatedAt(v time.Time) *SubscriptionItemCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableCreatedAt(t *time.Time) *SubscriptionItemCreate {
-	if t != nil {
-		sic.SetCreatedAt(*t)
+func (_c *SubscriptionItemCreate) SetNillableCreatedAt(v *time.Time) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return sic
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (sic *SubscriptionItemCreate) SetUpdatedAt(t time.Time) *SubscriptionItemCreate {
-	sic.mutation.SetUpdatedAt(t)
-	return sic
+func (_c *SubscriptionItemCreate) SetUpdatedAt(v time.Time) *SubscriptionItemCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableUpdatedAt(t *time.Time) *SubscriptionItemCreate {
-	if t != nil {
-		sic.SetUpdatedAt(*t)
+func (_c *SubscriptionItemCreate) SetNillableUpdatedAt(v *time.Time) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return sic
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (sic *SubscriptionItemCreate) SetDeletedAt(t time.Time) *SubscriptionItemCreate {
-	sic.mutation.SetDeletedAt(t)
-	return sic
+func (_c *SubscriptionItemCreate) SetDeletedAt(v time.Time) *SubscriptionItemCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableDeletedAt(t *time.Time) *SubscriptionItemCreate {
-	if t != nil {
-		sic.SetDeletedAt(*t)
+func (_c *SubscriptionItemCreate) SetNillableDeletedAt(v *time.Time) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return sic
+	return _c
 }
 
 // SetMetadata sets the "metadata" field.
-func (sic *SubscriptionItemCreate) SetMetadata(m map[string]string) *SubscriptionItemCreate {
-	sic.mutation.SetMetadata(m)
-	return sic
+func (_c *SubscriptionItemCreate) SetMetadata(v map[string]string) *SubscriptionItemCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
 }
 
 // SetAnnotations sets the "annotations" field.
-func (sic *SubscriptionItemCreate) SetAnnotations(m map[string]interface{}) *SubscriptionItemCreate {
-	sic.mutation.SetAnnotations(m)
-	return sic
+func (_c *SubscriptionItemCreate) SetAnnotations(v map[string]interface{}) *SubscriptionItemCreate {
+	_c.mutation.SetAnnotations(v)
+	return _c
 }
 
 // SetActiveFrom sets the "active_from" field.
-func (sic *SubscriptionItemCreate) SetActiveFrom(t time.Time) *SubscriptionItemCreate {
-	sic.mutation.SetActiveFrom(t)
-	return sic
+func (_c *SubscriptionItemCreate) SetActiveFrom(v time.Time) *SubscriptionItemCreate {
+	_c.mutation.SetActiveFrom(v)
+	return _c
 }
 
 // SetActiveTo sets the "active_to" field.
-func (sic *SubscriptionItemCreate) SetActiveTo(t time.Time) *SubscriptionItemCreate {
-	sic.mutation.SetActiveTo(t)
-	return sic
+func (_c *SubscriptionItemCreate) SetActiveTo(v time.Time) *SubscriptionItemCreate {
+	_c.mutation.SetActiveTo(v)
+	return _c
 }
 
 // SetNillableActiveTo sets the "active_to" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableActiveTo(t *time.Time) *SubscriptionItemCreate {
-	if t != nil {
-		sic.SetActiveTo(*t)
+func (_c *SubscriptionItemCreate) SetNillableActiveTo(v *time.Time) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetActiveTo(*v)
 	}
-	return sic
+	return _c
 }
 
 // SetPhaseID sets the "phase_id" field.
-func (sic *SubscriptionItemCreate) SetPhaseID(s string) *SubscriptionItemCreate {
-	sic.mutation.SetPhaseID(s)
-	return sic
+func (_c *SubscriptionItemCreate) SetPhaseID(v string) *SubscriptionItemCreate {
+	_c.mutation.SetPhaseID(v)
+	return _c
 }
 
 // SetKey sets the "key" field.
-func (sic *SubscriptionItemCreate) SetKey(s string) *SubscriptionItemCreate {
-	sic.mutation.SetKey(s)
-	return sic
+func (_c *SubscriptionItemCreate) SetKey(v string) *SubscriptionItemCreate {
+	_c.mutation.SetKey(v)
+	return _c
 }
 
 // SetEntitlementID sets the "entitlement_id" field.
-func (sic *SubscriptionItemCreate) SetEntitlementID(s string) *SubscriptionItemCreate {
-	sic.mutation.SetEntitlementID(s)
-	return sic
+func (_c *SubscriptionItemCreate) SetEntitlementID(v string) *SubscriptionItemCreate {
+	_c.mutation.SetEntitlementID(v)
+	return _c
 }
 
 // SetNillableEntitlementID sets the "entitlement_id" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableEntitlementID(s *string) *SubscriptionItemCreate {
-	if s != nil {
-		sic.SetEntitlementID(*s)
+func (_c *SubscriptionItemCreate) SetNillableEntitlementID(v *string) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetEntitlementID(*v)
 	}
-	return sic
+	return _c
 }
 
 // SetRestartsBillingPeriod sets the "restarts_billing_period" field.
-func (sic *SubscriptionItemCreate) SetRestartsBillingPeriod(b bool) *SubscriptionItemCreate {
-	sic.mutation.SetRestartsBillingPeriod(b)
-	return sic
+func (_c *SubscriptionItemCreate) SetRestartsBillingPeriod(v bool) *SubscriptionItemCreate {
+	_c.mutation.SetRestartsBillingPeriod(v)
+	return _c
 }
 
 // SetNillableRestartsBillingPeriod sets the "restarts_billing_period" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableRestartsBillingPeriod(b *bool) *SubscriptionItemCreate {
-	if b != nil {
-		sic.SetRestartsBillingPeriod(*b)
+func (_c *SubscriptionItemCreate) SetNillableRestartsBillingPeriod(v *bool) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetRestartsBillingPeriod(*v)
 	}
-	return sic
+	return _c
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (sic *SubscriptionItemCreate) SetActiveFromOverrideRelativeToPhaseStart(i isodate.String) *SubscriptionItemCreate {
-	sic.mutation.SetActiveFromOverrideRelativeToPhaseStart(i)
-	return sic
+func (_c *SubscriptionItemCreate) SetActiveFromOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemCreate {
+	_c.mutation.SetActiveFromOverrideRelativeToPhaseStart(v)
+	return _c
 }
 
 // SetNillableActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableActiveFromOverrideRelativeToPhaseStart(i *isodate.String) *SubscriptionItemCreate {
-	if i != nil {
-		sic.SetActiveFromOverrideRelativeToPhaseStart(*i)
+func (_c *SubscriptionItemCreate) SetNillableActiveFromOverrideRelativeToPhaseStart(v *isodate.String) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetActiveFromOverrideRelativeToPhaseStart(*v)
 	}
-	return sic
+	return _c
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (sic *SubscriptionItemCreate) SetActiveToOverrideRelativeToPhaseStart(i isodate.String) *SubscriptionItemCreate {
-	sic.mutation.SetActiveToOverrideRelativeToPhaseStart(i)
-	return sic
+func (_c *SubscriptionItemCreate) SetActiveToOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemCreate {
+	_c.mutation.SetActiveToOverrideRelativeToPhaseStart(v)
+	return _c
 }
 
 // SetNillableActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableActiveToOverrideRelativeToPhaseStart(i *isodate.String) *SubscriptionItemCreate {
-	if i != nil {
-		sic.SetActiveToOverrideRelativeToPhaseStart(*i)
+func (_c *SubscriptionItemCreate) SetNillableActiveToOverrideRelativeToPhaseStart(v *isodate.String) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetActiveToOverrideRelativeToPhaseStart(*v)
 	}
-	return sic
+	return _c
 }
 
 // SetName sets the "name" field.
-func (sic *SubscriptionItemCreate) SetName(s string) *SubscriptionItemCreate {
-	sic.mutation.SetName(s)
-	return sic
+func (_c *SubscriptionItemCreate) SetName(v string) *SubscriptionItemCreate {
+	_c.mutation.SetName(v)
+	return _c
 }
 
 // SetDescription sets the "description" field.
-func (sic *SubscriptionItemCreate) SetDescription(s string) *SubscriptionItemCreate {
-	sic.mutation.SetDescription(s)
-	return sic
+func (_c *SubscriptionItemCreate) SetDescription(v string) *SubscriptionItemCreate {
+	_c.mutation.SetDescription(v)
+	return _c
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableDescription(s *string) *SubscriptionItemCreate {
-	if s != nil {
-		sic.SetDescription(*s)
+func (_c *SubscriptionItemCreate) SetNillableDescription(v *string) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetDescription(*v)
 	}
-	return sic
+	return _c
 }
 
 // SetFeatureKey sets the "feature_key" field.
-func (sic *SubscriptionItemCreate) SetFeatureKey(s string) *SubscriptionItemCreate {
-	sic.mutation.SetFeatureKey(s)
-	return sic
+func (_c *SubscriptionItemCreate) SetFeatureKey(v string) *SubscriptionItemCreate {
+	_c.mutation.SetFeatureKey(v)
+	return _c
 }
 
 // SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableFeatureKey(s *string) *SubscriptionItemCreate {
-	if s != nil {
-		sic.SetFeatureKey(*s)
+func (_c *SubscriptionItemCreate) SetNillableFeatureKey(v *string) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetFeatureKey(*v)
 	}
-	return sic
+	return _c
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (sic *SubscriptionItemCreate) SetEntitlementTemplate(pt *productcatalog.EntitlementTemplate) *SubscriptionItemCreate {
-	sic.mutation.SetEntitlementTemplate(pt)
-	return sic
+func (_c *SubscriptionItemCreate) SetEntitlementTemplate(v *productcatalog.EntitlementTemplate) *SubscriptionItemCreate {
+	_c.mutation.SetEntitlementTemplate(v)
+	return _c
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (sic *SubscriptionItemCreate) SetTaxConfig(pc *productcatalog.TaxConfig) *SubscriptionItemCreate {
-	sic.mutation.SetTaxConfig(pc)
-	return sic
+func (_c *SubscriptionItemCreate) SetTaxConfig(v *productcatalog.TaxConfig) *SubscriptionItemCreate {
+	_c.mutation.SetTaxConfig(v)
+	return _c
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (sic *SubscriptionItemCreate) SetBillingCadence(i isodate.String) *SubscriptionItemCreate {
-	sic.mutation.SetBillingCadence(i)
-	return sic
+func (_c *SubscriptionItemCreate) SetBillingCadence(v isodate.String) *SubscriptionItemCreate {
+	_c.mutation.SetBillingCadence(v)
+	return _c
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableBillingCadence(i *isodate.String) *SubscriptionItemCreate {
-	if i != nil {
-		sic.SetBillingCadence(*i)
+func (_c *SubscriptionItemCreate) SetNillableBillingCadence(v *isodate.String) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetBillingCadence(*v)
 	}
-	return sic
+	return _c
 }
 
 // SetPrice sets the "price" field.
-func (sic *SubscriptionItemCreate) SetPrice(pr *productcatalog.Price) *SubscriptionItemCreate {
-	sic.mutation.SetPrice(pr)
-	return sic
+func (_c *SubscriptionItemCreate) SetPrice(v *productcatalog.Price) *SubscriptionItemCreate {
+	_c.mutation.SetPrice(v)
+	return _c
 }
 
 // SetDiscounts sets the "discounts" field.
-func (sic *SubscriptionItemCreate) SetDiscounts(pr *productcatalog.Discounts) *SubscriptionItemCreate {
-	sic.mutation.SetDiscounts(pr)
-	return sic
+func (_c *SubscriptionItemCreate) SetDiscounts(v *productcatalog.Discounts) *SubscriptionItemCreate {
+	_c.mutation.SetDiscounts(v)
+	return _c
 }
 
 // SetID sets the "id" field.
-func (sic *SubscriptionItemCreate) SetID(s string) *SubscriptionItemCreate {
-	sic.mutation.SetID(s)
-	return sic
+func (_c *SubscriptionItemCreate) SetID(v string) *SubscriptionItemCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableID(s *string) *SubscriptionItemCreate {
-	if s != nil {
-		sic.SetID(*s)
+func (_c *SubscriptionItemCreate) SetNillableID(v *string) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return sic
+	return _c
 }
 
 // SetPhase sets the "phase" edge to the SubscriptionPhase entity.
-func (sic *SubscriptionItemCreate) SetPhase(s *SubscriptionPhase) *SubscriptionItemCreate {
-	return sic.SetPhaseID(s.ID)
+func (_c *SubscriptionItemCreate) SetPhase(v *SubscriptionPhase) *SubscriptionItemCreate {
+	return _c.SetPhaseID(v.ID)
 }
 
 // SetEntitlement sets the "entitlement" edge to the Entitlement entity.
-func (sic *SubscriptionItemCreate) SetEntitlement(e *Entitlement) *SubscriptionItemCreate {
-	return sic.SetEntitlementID(e.ID)
+func (_c *SubscriptionItemCreate) SetEntitlement(v *Entitlement) *SubscriptionItemCreate {
+	return _c.SetEntitlementID(v.ID)
 }
 
 // AddBillingLineIDs adds the "billing_lines" edge to the BillingInvoiceLine entity by IDs.
-func (sic *SubscriptionItemCreate) AddBillingLineIDs(ids ...string) *SubscriptionItemCreate {
-	sic.mutation.AddBillingLineIDs(ids...)
-	return sic
+func (_c *SubscriptionItemCreate) AddBillingLineIDs(ids ...string) *SubscriptionItemCreate {
+	_c.mutation.AddBillingLineIDs(ids...)
+	return _c
 }
 
 // AddBillingLines adds the "billing_lines" edges to the BillingInvoiceLine entity.
-func (sic *SubscriptionItemCreate) AddBillingLines(b ...*BillingInvoiceLine) *SubscriptionItemCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_c *SubscriptionItemCreate) AddBillingLines(v ...*BillingInvoiceLine) *SubscriptionItemCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return sic.AddBillingLineIDs(ids...)
+	return _c.AddBillingLineIDs(ids...)
 }
 
 // Mutation returns the SubscriptionItemMutation object of the builder.
-func (sic *SubscriptionItemCreate) Mutation() *SubscriptionItemMutation {
-	return sic.mutation
+func (_c *SubscriptionItemCreate) Mutation() *SubscriptionItemMutation {
+	return _c.mutation
 }
 
 // Save creates the SubscriptionItem in the database.
-func (sic *SubscriptionItemCreate) Save(ctx context.Context) (*SubscriptionItem, error) {
-	sic.defaults()
-	return withHooks(ctx, sic.sqlSave, sic.mutation, sic.hooks)
+func (_c *SubscriptionItemCreate) Save(ctx context.Context) (*SubscriptionItem, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (sic *SubscriptionItemCreate) SaveX(ctx context.Context) *SubscriptionItem {
-	v, err := sic.Save(ctx)
+func (_c *SubscriptionItemCreate) SaveX(ctx context.Context) *SubscriptionItem {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -308,112 +308,112 @@ func (sic *SubscriptionItemCreate) SaveX(ctx context.Context) *SubscriptionItem 
 }
 
 // Exec executes the query.
-func (sic *SubscriptionItemCreate) Exec(ctx context.Context) error {
-	_, err := sic.Save(ctx)
+func (_c *SubscriptionItemCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (sic *SubscriptionItemCreate) ExecX(ctx context.Context) {
-	if err := sic.Exec(ctx); err != nil {
+func (_c *SubscriptionItemCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (sic *SubscriptionItemCreate) defaults() {
-	if _, ok := sic.mutation.CreatedAt(); !ok {
+func (_c *SubscriptionItemCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := subscriptionitem.DefaultCreatedAt()
-		sic.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := sic.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := subscriptionitem.DefaultUpdatedAt()
-		sic.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := sic.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := subscriptionitem.DefaultID()
-		sic.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (sic *SubscriptionItemCreate) check() error {
-	if _, ok := sic.mutation.Namespace(); !ok {
+func (_c *SubscriptionItemCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "SubscriptionItem.namespace"`)}
 	}
-	if v, ok := sic.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := subscriptionitem.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.namespace": %w`, err)}
 		}
 	}
-	if _, ok := sic.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "SubscriptionItem.created_at"`)}
 	}
-	if _, ok := sic.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "SubscriptionItem.updated_at"`)}
 	}
-	if _, ok := sic.mutation.ActiveFrom(); !ok {
+	if _, ok := _c.mutation.ActiveFrom(); !ok {
 		return &ValidationError{Name: "active_from", err: errors.New(`db: missing required field "SubscriptionItem.active_from"`)}
 	}
-	if _, ok := sic.mutation.PhaseID(); !ok {
+	if _, ok := _c.mutation.PhaseID(); !ok {
 		return &ValidationError{Name: "phase_id", err: errors.New(`db: missing required field "SubscriptionItem.phase_id"`)}
 	}
-	if v, ok := sic.mutation.PhaseID(); ok {
+	if v, ok := _c.mutation.PhaseID(); ok {
 		if err := subscriptionitem.PhaseIDValidator(v); err != nil {
 			return &ValidationError{Name: "phase_id", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.phase_id": %w`, err)}
 		}
 	}
-	if _, ok := sic.mutation.Key(); !ok {
+	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "SubscriptionItem.key"`)}
 	}
-	if v, ok := sic.mutation.Key(); ok {
+	if v, ok := _c.mutation.Key(); ok {
 		if err := subscriptionitem.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.key": %w`, err)}
 		}
 	}
-	if _, ok := sic.mutation.Name(); !ok {
+	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "SubscriptionItem.name"`)}
 	}
-	if v, ok := sic.mutation.Name(); ok {
+	if v, ok := _c.mutation.Name(); ok {
 		if err := subscriptionitem.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.name": %w`, err)}
 		}
 	}
-	if v, ok := sic.mutation.EntitlementTemplate(); ok {
+	if v, ok := _c.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.entitlement_template": %w`, err)}
 		}
 	}
-	if v, ok := sic.mutation.TaxConfig(); ok {
+	if v, ok := _c.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.tax_config": %w`, err)}
 		}
 	}
-	if v, ok := sic.mutation.Price(); ok {
+	if v, ok := _c.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
 		}
 	}
-	if v, ok := sic.mutation.Discounts(); ok {
+	if v, ok := _c.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.discounts": %w`, err)}
 		}
 	}
-	if len(sic.mutation.PhaseIDs()) == 0 {
+	if len(_c.mutation.PhaseIDs()) == 0 {
 		return &ValidationError{Name: "phase", err: errors.New(`db: missing required edge "SubscriptionItem.phase"`)}
 	}
 	return nil
 }
 
-func (sic *SubscriptionItemCreate) sqlSave(ctx context.Context) (*SubscriptionItem, error) {
-	if err := sic.check(); err != nil {
+func (_c *SubscriptionItemCreate) sqlSave(ctx context.Context) (*SubscriptionItem, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec, err := sic.createSpec()
+	_node, _spec, err := _c.createSpec()
 	if err != nil {
 		return nil, err
 	}
-	if err := sqlgraph.CreateNode(ctx, sic.driver, _spec); err != nil {
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -426,42 +426,42 @@ func (sic *SubscriptionItemCreate) sqlSave(ctx context.Context) (*SubscriptionIt
 			return nil, fmt.Errorf("unexpected SubscriptionItem.ID type: %T", _spec.ID.Value)
 		}
 	}
-	sic.mutation.id = &_node.ID
-	sic.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.CreateSpec, error) {
+func (_c *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.CreateSpec, error) {
 	var (
-		_node = &SubscriptionItem{config: sic.config}
+		_node = &SubscriptionItem{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(subscriptionitem.Table, sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = sic.conflict
-	if id, ok := sic.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := sic.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(subscriptionitem.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := sic.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(subscriptionitem.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := sic.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionitem.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := sic.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(subscriptionitem.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := sic.mutation.Metadata(); ok {
+	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(subscriptionitem.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := sic.mutation.Annotations(); ok {
+	if value, ok := _c.mutation.Annotations(); ok {
 		vv, err := subscriptionitem.ValueScanner.Annotations.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -469,43 +469,43 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 		_spec.SetField(subscriptionitem.FieldAnnotations, field.TypeString, vv)
 		_node.Annotations = value
 	}
-	if value, ok := sic.mutation.ActiveFrom(); ok {
+	if value, ok := _c.mutation.ActiveFrom(); ok {
 		_spec.SetField(subscriptionitem.FieldActiveFrom, field.TypeTime, value)
 		_node.ActiveFrom = value
 	}
-	if value, ok := sic.mutation.ActiveTo(); ok {
+	if value, ok := _c.mutation.ActiveTo(); ok {
 		_spec.SetField(subscriptionitem.FieldActiveTo, field.TypeTime, value)
 		_node.ActiveTo = &value
 	}
-	if value, ok := sic.mutation.Key(); ok {
+	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(subscriptionitem.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
-	if value, ok := sic.mutation.RestartsBillingPeriod(); ok {
+	if value, ok := _c.mutation.RestartsBillingPeriod(); ok {
 		_spec.SetField(subscriptionitem.FieldRestartsBillingPeriod, field.TypeBool, value)
 		_node.RestartsBillingPeriod = &value
 	}
-	if value, ok := sic.mutation.ActiveFromOverrideRelativeToPhaseStart(); ok {
+	if value, ok := _c.mutation.ActiveFromOverrideRelativeToPhaseStart(); ok {
 		_spec.SetField(subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, field.TypeString, value)
 		_node.ActiveFromOverrideRelativeToPhaseStart = &value
 	}
-	if value, ok := sic.mutation.ActiveToOverrideRelativeToPhaseStart(); ok {
+	if value, ok := _c.mutation.ActiveToOverrideRelativeToPhaseStart(); ok {
 		_spec.SetField(subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart, field.TypeString, value)
 		_node.ActiveToOverrideRelativeToPhaseStart = &value
 	}
-	if value, ok := sic.mutation.Name(); ok {
+	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(subscriptionitem.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := sic.mutation.Description(); ok {
+	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(subscriptionitem.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := sic.mutation.FeatureKey(); ok {
+	if value, ok := _c.mutation.FeatureKey(); ok {
 		_spec.SetField(subscriptionitem.FieldFeatureKey, field.TypeString, value)
 		_node.FeatureKey = &value
 	}
-	if value, ok := sic.mutation.EntitlementTemplate(); ok {
+	if value, ok := _c.mutation.EntitlementTemplate(); ok {
 		vv, err := subscriptionitem.ValueScanner.EntitlementTemplate.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -513,7 +513,7 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 		_spec.SetField(subscriptionitem.FieldEntitlementTemplate, field.TypeString, vv)
 		_node.EntitlementTemplate = value
 	}
-	if value, ok := sic.mutation.TaxConfig(); ok {
+	if value, ok := _c.mutation.TaxConfig(); ok {
 		vv, err := subscriptionitem.ValueScanner.TaxConfig.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -521,11 +521,11 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 		_spec.SetField(subscriptionitem.FieldTaxConfig, field.TypeString, vv)
 		_node.TaxConfig = value
 	}
-	if value, ok := sic.mutation.BillingCadence(); ok {
+	if value, ok := _c.mutation.BillingCadence(); ok {
 		_spec.SetField(subscriptionitem.FieldBillingCadence, field.TypeString, value)
 		_node.BillingCadence = &value
 	}
-	if value, ok := sic.mutation.Price(); ok {
+	if value, ok := _c.mutation.Price(); ok {
 		vv, err := subscriptionitem.ValueScanner.Price.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -533,7 +533,7 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 		_spec.SetField(subscriptionitem.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
-	if value, ok := sic.mutation.Discounts(); ok {
+	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := subscriptionitem.ValueScanner.Discounts.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -541,7 +541,7 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 		_spec.SetField(subscriptionitem.FieldDiscounts, field.TypeString, vv)
 		_node.Discounts = value
 	}
-	if nodes := sic.mutation.PhaseIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.PhaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -558,7 +558,7 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 		_node.PhaseID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := sic.mutation.EntitlementIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -575,7 +575,7 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 		_node.EntitlementID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := sic.mutation.BillingLinesIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -610,10 +610,10 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (sic *SubscriptionItemCreate) OnConflict(opts ...sql.ConflictOption) *SubscriptionItemUpsertOne {
-	sic.conflict = opts
+func (_c *SubscriptionItemCreate) OnConflict(opts ...sql.ConflictOption) *SubscriptionItemUpsertOne {
+	_c.conflict = opts
 	return &SubscriptionItemUpsertOne{
-		create: sic,
+		create: _c,
 	}
 }
 
@@ -623,10 +623,10 @@ func (sic *SubscriptionItemCreate) OnConflict(opts ...sql.ConflictOption) *Subsc
 //	client.SubscriptionItem.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (sic *SubscriptionItemCreate) OnConflictColumns(columns ...string) *SubscriptionItemUpsertOne {
-	sic.conflict = append(sic.conflict, sql.ConflictColumns(columns...))
+func (_c *SubscriptionItemCreate) OnConflictColumns(columns ...string) *SubscriptionItemUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &SubscriptionItemUpsertOne{
-		create: sic,
+		create: _c,
 	}
 }
 
@@ -1413,16 +1413,16 @@ type SubscriptionItemCreateBulk struct {
 }
 
 // Save creates the SubscriptionItem entities in the database.
-func (sicb *SubscriptionItemCreateBulk) Save(ctx context.Context) ([]*SubscriptionItem, error) {
-	if sicb.err != nil {
-		return nil, sicb.err
+func (_c *SubscriptionItemCreateBulk) Save(ctx context.Context) ([]*SubscriptionItem, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(sicb.builders))
-	nodes := make([]*SubscriptionItem, len(sicb.builders))
-	mutators := make([]Mutator, len(sicb.builders))
-	for i := range sicb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*SubscriptionItem, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := sicb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*SubscriptionItemMutation)
@@ -1439,12 +1439,12 @@ func (sicb *SubscriptionItemCreateBulk) Save(ctx context.Context) ([]*Subscripti
 					return nil, err
 				}
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, sicb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = sicb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, sicb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -1464,7 +1464,7 @@ func (sicb *SubscriptionItemCreateBulk) Save(ctx context.Context) ([]*Subscripti
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, sicb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -1472,8 +1472,8 @@ func (sicb *SubscriptionItemCreateBulk) Save(ctx context.Context) ([]*Subscripti
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (sicb *SubscriptionItemCreateBulk) SaveX(ctx context.Context) []*SubscriptionItem {
-	v, err := sicb.Save(ctx)
+func (_c *SubscriptionItemCreateBulk) SaveX(ctx context.Context) []*SubscriptionItem {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1481,14 +1481,14 @@ func (sicb *SubscriptionItemCreateBulk) SaveX(ctx context.Context) []*Subscripti
 }
 
 // Exec executes the query.
-func (sicb *SubscriptionItemCreateBulk) Exec(ctx context.Context) error {
-	_, err := sicb.Save(ctx)
+func (_c *SubscriptionItemCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (sicb *SubscriptionItemCreateBulk) ExecX(ctx context.Context) {
-	if err := sicb.Exec(ctx); err != nil {
+func (_c *SubscriptionItemCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -1508,10 +1508,10 @@ func (sicb *SubscriptionItemCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (sicb *SubscriptionItemCreateBulk) OnConflict(opts ...sql.ConflictOption) *SubscriptionItemUpsertBulk {
-	sicb.conflict = opts
+func (_c *SubscriptionItemCreateBulk) OnConflict(opts ...sql.ConflictOption) *SubscriptionItemUpsertBulk {
+	_c.conflict = opts
 	return &SubscriptionItemUpsertBulk{
-		create: sicb,
+		create: _c,
 	}
 }
 
@@ -1521,10 +1521,10 @@ func (sicb *SubscriptionItemCreateBulk) OnConflict(opts ...sql.ConflictOption) *
 //	client.SubscriptionItem.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (sicb *SubscriptionItemCreateBulk) OnConflictColumns(columns ...string) *SubscriptionItemUpsertBulk {
-	sicb.conflict = append(sicb.conflict, sql.ConflictColumns(columns...))
+func (_c *SubscriptionItemCreateBulk) OnConflictColumns(columns ...string) *SubscriptionItemUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &SubscriptionItemUpsertBulk{
-		create: sicb,
+		create: _c,
 	}
 }
 

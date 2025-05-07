@@ -30,40 +30,40 @@ type BillingInvoiceFlatFeeLineConfigQuery struct {
 }
 
 // Where adds a new predicate for the BillingInvoiceFlatFeeLineConfigQuery builder.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Where(ps ...predicate.BillingInvoiceFlatFeeLineConfig) *BillingInvoiceFlatFeeLineConfigQuery {
-	bifflcq.predicates = append(bifflcq.predicates, ps...)
-	return bifflcq
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) Where(ps ...predicate.BillingInvoiceFlatFeeLineConfig) *BillingInvoiceFlatFeeLineConfigQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Limit(limit int) *BillingInvoiceFlatFeeLineConfigQuery {
-	bifflcq.ctx.Limit = &limit
-	return bifflcq
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) Limit(limit int) *BillingInvoiceFlatFeeLineConfigQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Offset(offset int) *BillingInvoiceFlatFeeLineConfigQuery {
-	bifflcq.ctx.Offset = &offset
-	return bifflcq
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) Offset(offset int) *BillingInvoiceFlatFeeLineConfigQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Unique(unique bool) *BillingInvoiceFlatFeeLineConfigQuery {
-	bifflcq.ctx.Unique = &unique
-	return bifflcq
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) Unique(unique bool) *BillingInvoiceFlatFeeLineConfigQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Order(o ...billinginvoiceflatfeelineconfig.OrderOption) *BillingInvoiceFlatFeeLineConfigQuery {
-	bifflcq.order = append(bifflcq.order, o...)
-	return bifflcq
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) Order(o ...billinginvoiceflatfeelineconfig.OrderOption) *BillingInvoiceFlatFeeLineConfigQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // First returns the first BillingInvoiceFlatFeeLineConfig entity from the query.
 // Returns a *NotFoundError when no BillingInvoiceFlatFeeLineConfig was found.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) First(ctx context.Context) (*BillingInvoiceFlatFeeLineConfig, error) {
-	nodes, err := bifflcq.Limit(1).All(setContextOp(ctx, bifflcq.ctx, ent.OpQueryFirst))
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) First(ctx context.Context) (*BillingInvoiceFlatFeeLineConfig, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -74,8 +74,8 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) First(ctx context.Context) 
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) FirstX(ctx context.Context) *BillingInvoiceFlatFeeLineConfig {
-	node, err := bifflcq.First(ctx)
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) FirstX(ctx context.Context) *BillingInvoiceFlatFeeLineConfig {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -84,9 +84,9 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) FirstX(ctx context.Context)
 
 // FirstID returns the first BillingInvoiceFlatFeeLineConfig ID from the query.
 // Returns a *NotFoundError when no BillingInvoiceFlatFeeLineConfig ID was found.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = bifflcq.Limit(1).IDs(setContextOp(ctx, bifflcq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -97,8 +97,8 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) FirstID(ctx context.Context
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) FirstIDX(ctx context.Context) string {
-	id, err := bifflcq.FirstID(ctx)
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -108,8 +108,8 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) FirstIDX(ctx context.Contex
 // Only returns a single BillingInvoiceFlatFeeLineConfig entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one BillingInvoiceFlatFeeLineConfig entity is found.
 // Returns a *NotFoundError when no BillingInvoiceFlatFeeLineConfig entities are found.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Only(ctx context.Context) (*BillingInvoiceFlatFeeLineConfig, error) {
-	nodes, err := bifflcq.Limit(2).All(setContextOp(ctx, bifflcq.ctx, ent.OpQueryOnly))
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) Only(ctx context.Context) (*BillingInvoiceFlatFeeLineConfig, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +124,8 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Only(ctx context.Context) (
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) OnlyX(ctx context.Context) *BillingInvoiceFlatFeeLineConfig {
-	node, err := bifflcq.Only(ctx)
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) OnlyX(ctx context.Context) *BillingInvoiceFlatFeeLineConfig {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -135,9 +135,9 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) OnlyX(ctx context.Context) 
 // OnlyID is like Only, but returns the only BillingInvoiceFlatFeeLineConfig ID in the query.
 // Returns a *NotSingularError when more than one BillingInvoiceFlatFeeLineConfig ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = bifflcq.Limit(2).IDs(setContextOp(ctx, bifflcq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -152,8 +152,8 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) OnlyID(ctx context.Context)
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) OnlyIDX(ctx context.Context) string {
-	id, err := bifflcq.OnlyID(ctx)
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -161,18 +161,18 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) OnlyIDX(ctx context.Context
 }
 
 // All executes the query and returns a list of BillingInvoiceFlatFeeLineConfigs.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) All(ctx context.Context) ([]*BillingInvoiceFlatFeeLineConfig, error) {
-	ctx = setContextOp(ctx, bifflcq.ctx, ent.OpQueryAll)
-	if err := bifflcq.prepareQuery(ctx); err != nil {
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) All(ctx context.Context) ([]*BillingInvoiceFlatFeeLineConfig, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*BillingInvoiceFlatFeeLineConfig, *BillingInvoiceFlatFeeLineConfigQuery]()
-	return withInterceptors[[]*BillingInvoiceFlatFeeLineConfig](ctx, bifflcq, qr, bifflcq.inters)
+	return withInterceptors[[]*BillingInvoiceFlatFeeLineConfig](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) AllX(ctx context.Context) []*BillingInvoiceFlatFeeLineConfig {
-	nodes, err := bifflcq.All(ctx)
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) AllX(ctx context.Context) []*BillingInvoiceFlatFeeLineConfig {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -180,20 +180,20 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) AllX(ctx context.Context) [
 }
 
 // IDs executes the query and returns a list of BillingInvoiceFlatFeeLineConfig IDs.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if bifflcq.ctx.Unique == nil && bifflcq.path != nil {
-		bifflcq.Unique(true)
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, bifflcq.ctx, ent.OpQueryIDs)
-	if err = bifflcq.Select(billinginvoiceflatfeelineconfig.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(billinginvoiceflatfeelineconfig.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) IDsX(ctx context.Context) []string {
-	ids, err := bifflcq.IDs(ctx)
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -201,17 +201,17 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) IDsX(ctx context.Context) [
 }
 
 // Count returns the count of the given query.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, bifflcq.ctx, ent.OpQueryCount)
-	if err := bifflcq.prepareQuery(ctx); err != nil {
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, bifflcq, querierCount[*BillingInvoiceFlatFeeLineConfigQuery](), bifflcq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BillingInvoiceFlatFeeLineConfigQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) CountX(ctx context.Context) int {
-	count, err := bifflcq.Count(ctx)
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -219,9 +219,9 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) CountX(ctx context.Context)
 }
 
 // Exist returns true if the query has elements in the graph.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, bifflcq.ctx, ent.OpQueryExist)
-	switch _, err := bifflcq.FirstID(ctx); {
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -232,8 +232,8 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Exist(ctx context.Context) 
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) ExistX(ctx context.Context) bool {
-	exist, err := bifflcq.Exist(ctx)
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -242,19 +242,19 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) ExistX(ctx context.Context)
 
 // Clone returns a duplicate of the BillingInvoiceFlatFeeLineConfigQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Clone() *BillingInvoiceFlatFeeLineConfigQuery {
-	if bifflcq == nil {
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) Clone() *BillingInvoiceFlatFeeLineConfigQuery {
+	if _q == nil {
 		return nil
 	}
 	return &BillingInvoiceFlatFeeLineConfigQuery{
-		config:     bifflcq.config,
-		ctx:        bifflcq.ctx.Clone(),
-		order:      append([]billinginvoiceflatfeelineconfig.OrderOption{}, bifflcq.order...),
-		inters:     append([]Interceptor{}, bifflcq.inters...),
-		predicates: append([]predicate.BillingInvoiceFlatFeeLineConfig{}, bifflcq.predicates...),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]billinginvoiceflatfeelineconfig.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.BillingInvoiceFlatFeeLineConfig{}, _q.predicates...),
 		// clone intermediate query.
-		sql:  bifflcq.sql.Clone(),
-		path: bifflcq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
@@ -272,10 +272,10 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Clone() *BillingInvoiceFlat
 //		GroupBy(billinginvoiceflatfeelineconfig.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) GroupBy(field string, fields ...string) *BillingInvoiceFlatFeeLineConfigGroupBy {
-	bifflcq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &BillingInvoiceFlatFeeLineConfigGroupBy{build: bifflcq}
-	grbuild.flds = &bifflcq.ctx.Fields
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) GroupBy(field string, fields ...string) *BillingInvoiceFlatFeeLineConfigGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &BillingInvoiceFlatFeeLineConfigGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = billinginvoiceflatfeelineconfig.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -293,65 +293,65 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) GroupBy(field string, field
 //	client.BillingInvoiceFlatFeeLineConfig.Query().
 //		Select(billinginvoiceflatfeelineconfig.FieldNamespace).
 //		Scan(ctx, &v)
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Select(fields ...string) *BillingInvoiceFlatFeeLineConfigSelect {
-	bifflcq.ctx.Fields = append(bifflcq.ctx.Fields, fields...)
-	sbuild := &BillingInvoiceFlatFeeLineConfigSelect{BillingInvoiceFlatFeeLineConfigQuery: bifflcq}
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) Select(fields ...string) *BillingInvoiceFlatFeeLineConfigSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &BillingInvoiceFlatFeeLineConfigSelect{BillingInvoiceFlatFeeLineConfigQuery: _q}
 	sbuild.label = billinginvoiceflatfeelineconfig.Label
-	sbuild.flds, sbuild.scan = &bifflcq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a BillingInvoiceFlatFeeLineConfigSelect configured with the given aggregations.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) Aggregate(fns ...AggregateFunc) *BillingInvoiceFlatFeeLineConfigSelect {
-	return bifflcq.Select().Aggregate(fns...)
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) Aggregate(fns ...AggregateFunc) *BillingInvoiceFlatFeeLineConfigSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range bifflcq.inters {
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, bifflcq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range bifflcq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !billinginvoiceflatfeelineconfig.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if bifflcq.path != nil {
-		prev, err := bifflcq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		bifflcq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoiceFlatFeeLineConfig, error) {
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoiceFlatFeeLineConfig, error) {
 	var (
 		nodes = []*BillingInvoiceFlatFeeLineConfig{}
-		_spec = bifflcq.querySpec()
+		_spec = _q.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingInvoiceFlatFeeLineConfig).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &BillingInvoiceFlatFeeLineConfig{config: bifflcq.config}
+		node := &BillingInvoiceFlatFeeLineConfig{config: _q.config}
 		nodes = append(nodes, node)
 		return node.assignValues(columns, values)
 	}
-	if len(bifflcq.modifiers) > 0 {
-		_spec.Modifiers = bifflcq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, bifflcq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
@@ -360,27 +360,27 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) sqlAll(ctx context.Context,
 	return nodes, nil
 }
 
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := bifflcq.querySpec()
-	if len(bifflcq.modifiers) > 0 {
-		_spec.Modifiers = bifflcq.modifiers
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = bifflcq.ctx.Fields
-	if len(bifflcq.ctx.Fields) > 0 {
-		_spec.Unique = bifflcq.ctx.Unique != nil && *bifflcq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, bifflcq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(billinginvoiceflatfeelineconfig.Table, billinginvoiceflatfeelineconfig.Columns, sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString))
-	_spec.From = bifflcq.sql
-	if unique := bifflcq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if bifflcq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := bifflcq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billinginvoiceflatfeelineconfig.FieldID)
 		for i := range fields {
@@ -389,20 +389,20 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) querySpec() *sqlgraph.Query
 			}
 		}
 	}
-	if ps := bifflcq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := bifflcq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := bifflcq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := bifflcq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -412,36 +412,36 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) querySpec() *sqlgraph.Query
 	return _spec
 }
 
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(bifflcq.driver.Dialect())
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(billinginvoiceflatfeelineconfig.Table)
-	columns := bifflcq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = billinginvoiceflatfeelineconfig.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if bifflcq.sql != nil {
-		selector = bifflcq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if bifflcq.ctx.Unique != nil && *bifflcq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range bifflcq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range bifflcq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range bifflcq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := bifflcq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := bifflcq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -450,27 +450,27 @@ func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) sqlQuery(ctx context.Contex
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) ForUpdate(opts ...sql.LockOption) *BillingInvoiceFlatFeeLineConfigQuery {
-	if bifflcq.driver.Dialect() == dialect.Postgres {
-		bifflcq.Unique(false)
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) ForUpdate(opts ...sql.LockOption) *BillingInvoiceFlatFeeLineConfigQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bifflcq.modifiers = append(bifflcq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return bifflcq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (bifflcq *BillingInvoiceFlatFeeLineConfigQuery) ForShare(opts ...sql.LockOption) *BillingInvoiceFlatFeeLineConfigQuery {
-	if bifflcq.driver.Dialect() == dialect.Postgres {
-		bifflcq.Unique(false)
+func (_q *BillingInvoiceFlatFeeLineConfigQuery) ForShare(opts ...sql.LockOption) *BillingInvoiceFlatFeeLineConfigQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bifflcq.modifiers = append(bifflcq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return bifflcq
+	return _q
 }
 
 // BillingInvoiceFlatFeeLineConfigGroupBy is the group-by builder for BillingInvoiceFlatFeeLineConfig entities.

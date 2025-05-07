@@ -87,7 +87,7 @@ func (*AppCustomInvoicing) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the AppCustomInvoicing fields.
-func (aci *AppCustomInvoicing) assignValues(columns []string, values []any) error {
+func (_m *AppCustomInvoicing) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -97,47 +97,47 @@ func (aci *AppCustomInvoicing) assignValues(columns []string, values []any) erro
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				aci.ID = value.String
+				_m.ID = value.String
 			}
 		case appcustominvoicing.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				aci.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case appcustominvoicing.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				aci.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case appcustominvoicing.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				aci.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case appcustominvoicing.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				aci.DeletedAt = new(time.Time)
-				*aci.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case appcustominvoicing.FieldEnableDraftSyncHook:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field enable_draft_sync_hook", values[i])
 			} else if value.Valid {
-				aci.EnableDraftSyncHook = value.Bool
+				_m.EnableDraftSyncHook = value.Bool
 			}
 		case appcustominvoicing.FieldEnableIssuingSyncHook:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field enable_issuing_sync_hook", values[i])
 			} else if value.Valid {
-				aci.EnableIssuingSyncHook = value.Bool
+				_m.EnableIssuingSyncHook = value.Bool
 			}
 		default:
-			aci.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -145,62 +145,62 @@ func (aci *AppCustomInvoicing) assignValues(columns []string, values []any) erro
 
 // Value returns the ent.Value that was dynamically selected and assigned to the AppCustomInvoicing.
 // This includes values selected through modifiers, order, etc.
-func (aci *AppCustomInvoicing) Value(name string) (ent.Value, error) {
-	return aci.selectValues.Get(name)
+func (_m *AppCustomInvoicing) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryCustomerApps queries the "customer_apps" edge of the AppCustomInvoicing entity.
-func (aci *AppCustomInvoicing) QueryCustomerApps() *AppCustomInvoicingCustomerQuery {
-	return NewAppCustomInvoicingClient(aci.config).QueryCustomerApps(aci)
+func (_m *AppCustomInvoicing) QueryCustomerApps() *AppCustomInvoicingCustomerQuery {
+	return NewAppCustomInvoicingClient(_m.config).QueryCustomerApps(_m)
 }
 
 // QueryApp queries the "app" edge of the AppCustomInvoicing entity.
-func (aci *AppCustomInvoicing) QueryApp() *AppQuery {
-	return NewAppCustomInvoicingClient(aci.config).QueryApp(aci)
+func (_m *AppCustomInvoicing) QueryApp() *AppQuery {
+	return NewAppCustomInvoicingClient(_m.config).QueryApp(_m)
 }
 
 // Update returns a builder for updating this AppCustomInvoicing.
 // Note that you need to call AppCustomInvoicing.Unwrap() before calling this method if this AppCustomInvoicing
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (aci *AppCustomInvoicing) Update() *AppCustomInvoicingUpdateOne {
-	return NewAppCustomInvoicingClient(aci.config).UpdateOne(aci)
+func (_m *AppCustomInvoicing) Update() *AppCustomInvoicingUpdateOne {
+	return NewAppCustomInvoicingClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the AppCustomInvoicing entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (aci *AppCustomInvoicing) Unwrap() *AppCustomInvoicing {
-	_tx, ok := aci.config.driver.(*txDriver)
+func (_m *AppCustomInvoicing) Unwrap() *AppCustomInvoicing {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: AppCustomInvoicing is not a transactional entity")
 	}
-	aci.config.driver = _tx.drv
-	return aci
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (aci *AppCustomInvoicing) String() string {
+func (_m *AppCustomInvoicing) String() string {
 	var builder strings.Builder
 	builder.WriteString("AppCustomInvoicing(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", aci.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(aci.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(aci.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(aci.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := aci.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("enable_draft_sync_hook=")
-	builder.WriteString(fmt.Sprintf("%v", aci.EnableDraftSyncHook))
+	builder.WriteString(fmt.Sprintf("%v", _m.EnableDraftSyncHook))
 	builder.WriteString(", ")
 	builder.WriteString("enable_issuing_sync_hook=")
-	builder.WriteString(fmt.Sprintf("%v", aci.EnableIssuingSyncHook))
+	builder.WriteString(fmt.Sprintf("%v", _m.EnableIssuingSyncHook))
 	builder.WriteByte(')')
 	return builder.String()
 }

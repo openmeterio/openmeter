@@ -26,217 +26,217 @@ type FeatureUpdate struct {
 }
 
 // Where appends a list predicates to the FeatureUpdate builder.
-func (fu *FeatureUpdate) Where(ps ...predicate.Feature) *FeatureUpdate {
-	fu.mutation.Where(ps...)
-	return fu
+func (_u *FeatureUpdate) Where(ps ...predicate.Feature) *FeatureUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (fu *FeatureUpdate) SetUpdatedAt(t time.Time) *FeatureUpdate {
-	fu.mutation.SetUpdatedAt(t)
-	return fu
+func (_u *FeatureUpdate) SetUpdatedAt(v time.Time) *FeatureUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (fu *FeatureUpdate) SetDeletedAt(t time.Time) *FeatureUpdate {
-	fu.mutation.SetDeletedAt(t)
-	return fu
+func (_u *FeatureUpdate) SetDeletedAt(v time.Time) *FeatureUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (fu *FeatureUpdate) SetNillableDeletedAt(t *time.Time) *FeatureUpdate {
-	if t != nil {
-		fu.SetDeletedAt(*t)
+func (_u *FeatureUpdate) SetNillableDeletedAt(v *time.Time) *FeatureUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return fu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (fu *FeatureUpdate) ClearDeletedAt() *FeatureUpdate {
-	fu.mutation.ClearDeletedAt()
-	return fu
+func (_u *FeatureUpdate) ClearDeletedAt() *FeatureUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (fu *FeatureUpdate) SetMetadata(m map[string]string) *FeatureUpdate {
-	fu.mutation.SetMetadata(m)
-	return fu
+func (_u *FeatureUpdate) SetMetadata(v map[string]string) *FeatureUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (fu *FeatureUpdate) ClearMetadata() *FeatureUpdate {
-	fu.mutation.ClearMetadata()
-	return fu
+func (_u *FeatureUpdate) ClearMetadata() *FeatureUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (fu *FeatureUpdate) SetName(s string) *FeatureUpdate {
-	fu.mutation.SetName(s)
-	return fu
+func (_u *FeatureUpdate) SetName(v string) *FeatureUpdate {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (fu *FeatureUpdate) SetNillableName(s *string) *FeatureUpdate {
-	if s != nil {
-		fu.SetName(*s)
+func (_u *FeatureUpdate) SetNillableName(v *string) *FeatureUpdate {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return fu
+	return _u
 }
 
 // SetMeterGroupByFilters sets the "meter_group_by_filters" field.
-func (fu *FeatureUpdate) SetMeterGroupByFilters(m map[string]string) *FeatureUpdate {
-	fu.mutation.SetMeterGroupByFilters(m)
-	return fu
+func (_u *FeatureUpdate) SetMeterGroupByFilters(v map[string]string) *FeatureUpdate {
+	_u.mutation.SetMeterGroupByFilters(v)
+	return _u
 }
 
 // ClearMeterGroupByFilters clears the value of the "meter_group_by_filters" field.
-func (fu *FeatureUpdate) ClearMeterGroupByFilters() *FeatureUpdate {
-	fu.mutation.ClearMeterGroupByFilters()
-	return fu
+func (_u *FeatureUpdate) ClearMeterGroupByFilters() *FeatureUpdate {
+	_u.mutation.ClearMeterGroupByFilters()
+	return _u
 }
 
 // SetArchivedAt sets the "archived_at" field.
-func (fu *FeatureUpdate) SetArchivedAt(t time.Time) *FeatureUpdate {
-	fu.mutation.SetArchivedAt(t)
-	return fu
+func (_u *FeatureUpdate) SetArchivedAt(v time.Time) *FeatureUpdate {
+	_u.mutation.SetArchivedAt(v)
+	return _u
 }
 
 // SetNillableArchivedAt sets the "archived_at" field if the given value is not nil.
-func (fu *FeatureUpdate) SetNillableArchivedAt(t *time.Time) *FeatureUpdate {
-	if t != nil {
-		fu.SetArchivedAt(*t)
+func (_u *FeatureUpdate) SetNillableArchivedAt(v *time.Time) *FeatureUpdate {
+	if v != nil {
+		_u.SetArchivedAt(*v)
 	}
-	return fu
+	return _u
 }
 
 // ClearArchivedAt clears the value of the "archived_at" field.
-func (fu *FeatureUpdate) ClearArchivedAt() *FeatureUpdate {
-	fu.mutation.ClearArchivedAt()
-	return fu
+func (_u *FeatureUpdate) ClearArchivedAt() *FeatureUpdate {
+	_u.mutation.ClearArchivedAt()
+	return _u
 }
 
 // AddEntitlementIDs adds the "entitlement" edge to the Entitlement entity by IDs.
-func (fu *FeatureUpdate) AddEntitlementIDs(ids ...string) *FeatureUpdate {
-	fu.mutation.AddEntitlementIDs(ids...)
-	return fu
+func (_u *FeatureUpdate) AddEntitlementIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.AddEntitlementIDs(ids...)
+	return _u
 }
 
 // AddEntitlement adds the "entitlement" edges to the Entitlement entity.
-func (fu *FeatureUpdate) AddEntitlement(e ...*Entitlement) *FeatureUpdate {
-	ids := make([]string, len(e))
-	for i := range e {
-		ids[i] = e[i].ID
+func (_u *FeatureUpdate) AddEntitlement(v ...*Entitlement) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return fu.AddEntitlementIDs(ids...)
+	return _u.AddEntitlementIDs(ids...)
 }
 
 // AddRatecardIDs adds the "ratecard" edge to the PlanRateCard entity by IDs.
-func (fu *FeatureUpdate) AddRatecardIDs(ids ...string) *FeatureUpdate {
-	fu.mutation.AddRatecardIDs(ids...)
-	return fu
+func (_u *FeatureUpdate) AddRatecardIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.AddRatecardIDs(ids...)
+	return _u
 }
 
 // AddRatecard adds the "ratecard" edges to the PlanRateCard entity.
-func (fu *FeatureUpdate) AddRatecard(p ...*PlanRateCard) *FeatureUpdate {
-	ids := make([]string, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+func (_u *FeatureUpdate) AddRatecard(v ...*PlanRateCard) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return fu.AddRatecardIDs(ids...)
+	return _u.AddRatecardIDs(ids...)
 }
 
 // AddAddonRatecardIDs adds the "addon_ratecard" edge to the AddonRateCard entity by IDs.
-func (fu *FeatureUpdate) AddAddonRatecardIDs(ids ...string) *FeatureUpdate {
-	fu.mutation.AddAddonRatecardIDs(ids...)
-	return fu
+func (_u *FeatureUpdate) AddAddonRatecardIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.AddAddonRatecardIDs(ids...)
+	return _u
 }
 
 // AddAddonRatecard adds the "addon_ratecard" edges to the AddonRateCard entity.
-func (fu *FeatureUpdate) AddAddonRatecard(a ...*AddonRateCard) *FeatureUpdate {
-	ids := make([]string, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_u *FeatureUpdate) AddAddonRatecard(v ...*AddonRateCard) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return fu.AddAddonRatecardIDs(ids...)
+	return _u.AddAddonRatecardIDs(ids...)
 }
 
 // Mutation returns the FeatureMutation object of the builder.
-func (fu *FeatureUpdate) Mutation() *FeatureMutation {
-	return fu.mutation
+func (_u *FeatureUpdate) Mutation() *FeatureMutation {
+	return _u.mutation
 }
 
 // ClearEntitlement clears all "entitlement" edges to the Entitlement entity.
-func (fu *FeatureUpdate) ClearEntitlement() *FeatureUpdate {
-	fu.mutation.ClearEntitlement()
-	return fu
+func (_u *FeatureUpdate) ClearEntitlement() *FeatureUpdate {
+	_u.mutation.ClearEntitlement()
+	return _u
 }
 
 // RemoveEntitlementIDs removes the "entitlement" edge to Entitlement entities by IDs.
-func (fu *FeatureUpdate) RemoveEntitlementIDs(ids ...string) *FeatureUpdate {
-	fu.mutation.RemoveEntitlementIDs(ids...)
-	return fu
+func (_u *FeatureUpdate) RemoveEntitlementIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.RemoveEntitlementIDs(ids...)
+	return _u
 }
 
 // RemoveEntitlement removes "entitlement" edges to Entitlement entities.
-func (fu *FeatureUpdate) RemoveEntitlement(e ...*Entitlement) *FeatureUpdate {
-	ids := make([]string, len(e))
-	for i := range e {
-		ids[i] = e[i].ID
+func (_u *FeatureUpdate) RemoveEntitlement(v ...*Entitlement) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return fu.RemoveEntitlementIDs(ids...)
+	return _u.RemoveEntitlementIDs(ids...)
 }
 
 // ClearRatecard clears all "ratecard" edges to the PlanRateCard entity.
-func (fu *FeatureUpdate) ClearRatecard() *FeatureUpdate {
-	fu.mutation.ClearRatecard()
-	return fu
+func (_u *FeatureUpdate) ClearRatecard() *FeatureUpdate {
+	_u.mutation.ClearRatecard()
+	return _u
 }
 
 // RemoveRatecardIDs removes the "ratecard" edge to PlanRateCard entities by IDs.
-func (fu *FeatureUpdate) RemoveRatecardIDs(ids ...string) *FeatureUpdate {
-	fu.mutation.RemoveRatecardIDs(ids...)
-	return fu
+func (_u *FeatureUpdate) RemoveRatecardIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.RemoveRatecardIDs(ids...)
+	return _u
 }
 
 // RemoveRatecard removes "ratecard" edges to PlanRateCard entities.
-func (fu *FeatureUpdate) RemoveRatecard(p ...*PlanRateCard) *FeatureUpdate {
-	ids := make([]string, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+func (_u *FeatureUpdate) RemoveRatecard(v ...*PlanRateCard) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return fu.RemoveRatecardIDs(ids...)
+	return _u.RemoveRatecardIDs(ids...)
 }
 
 // ClearAddonRatecard clears all "addon_ratecard" edges to the AddonRateCard entity.
-func (fu *FeatureUpdate) ClearAddonRatecard() *FeatureUpdate {
-	fu.mutation.ClearAddonRatecard()
-	return fu
+func (_u *FeatureUpdate) ClearAddonRatecard() *FeatureUpdate {
+	_u.mutation.ClearAddonRatecard()
+	return _u
 }
 
 // RemoveAddonRatecardIDs removes the "addon_ratecard" edge to AddonRateCard entities by IDs.
-func (fu *FeatureUpdate) RemoveAddonRatecardIDs(ids ...string) *FeatureUpdate {
-	fu.mutation.RemoveAddonRatecardIDs(ids...)
-	return fu
+func (_u *FeatureUpdate) RemoveAddonRatecardIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.RemoveAddonRatecardIDs(ids...)
+	return _u
 }
 
 // RemoveAddonRatecard removes "addon_ratecard" edges to AddonRateCard entities.
-func (fu *FeatureUpdate) RemoveAddonRatecard(a ...*AddonRateCard) *FeatureUpdate {
-	ids := make([]string, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_u *FeatureUpdate) RemoveAddonRatecard(v ...*AddonRateCard) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return fu.RemoveAddonRatecardIDs(ids...)
+	return _u.RemoveAddonRatecardIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (fu *FeatureUpdate) Save(ctx context.Context) (int, error) {
-	fu.defaults()
-	return withHooks(ctx, fu.sqlSave, fu.mutation, fu.hooks)
+func (_u *FeatureUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (fu *FeatureUpdate) SaveX(ctx context.Context) int {
-	affected, err := fu.Save(ctx)
+func (_u *FeatureUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -244,29 +244,29 @@ func (fu *FeatureUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (fu *FeatureUpdate) Exec(ctx context.Context) error {
-	_, err := fu.Save(ctx)
+func (_u *FeatureUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (fu *FeatureUpdate) ExecX(ctx context.Context) {
-	if err := fu.Exec(ctx); err != nil {
+func (_u *FeatureUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (fu *FeatureUpdate) defaults() {
-	if _, ok := fu.mutation.UpdatedAt(); !ok {
+func (_u *FeatureUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := feature.UpdateDefaultUpdatedAt()
-		fu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (fu *FeatureUpdate) check() error {
-	if v, ok := fu.mutation.Name(); ok {
+func (_u *FeatureUpdate) check() error {
+	if v, ok := _u.mutation.Name(); ok {
 		if err := feature.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Feature.name": %w`, err)}
 		}
@@ -274,52 +274,52 @@ func (fu *FeatureUpdate) check() error {
 	return nil
 }
 
-func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := fu.check(); err != nil {
-		return n, err
+func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(feature.Table, feature.Columns, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString))
-	if ps := fu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := fu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(feature.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := fu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(feature.FieldDeletedAt, field.TypeTime, value)
 	}
-	if fu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(feature.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := fu.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(feature.FieldMetadata, field.TypeJSON, value)
 	}
-	if fu.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(feature.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := fu.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(feature.FieldName, field.TypeString, value)
 	}
-	if fu.mutation.MeterSlugCleared() {
+	if _u.mutation.MeterSlugCleared() {
 		_spec.ClearField(feature.FieldMeterSlug, field.TypeString)
 	}
-	if value, ok := fu.mutation.MeterGroupByFilters(); ok {
+	if value, ok := _u.mutation.MeterGroupByFilters(); ok {
 		_spec.SetField(feature.FieldMeterGroupByFilters, field.TypeJSON, value)
 	}
-	if fu.mutation.MeterGroupByFiltersCleared() {
+	if _u.mutation.MeterGroupByFiltersCleared() {
 		_spec.ClearField(feature.FieldMeterGroupByFilters, field.TypeJSON)
 	}
-	if value, ok := fu.mutation.ArchivedAt(); ok {
+	if value, ok := _u.mutation.ArchivedAt(); ok {
 		_spec.SetField(feature.FieldArchivedAt, field.TypeTime, value)
 	}
-	if fu.mutation.ArchivedAtCleared() {
+	if _u.mutation.ArchivedAtCleared() {
 		_spec.ClearField(feature.FieldArchivedAt, field.TypeTime)
 	}
-	if fu.mutation.EntitlementCleared() {
+	if _u.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -332,7 +332,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := fu.mutation.RemovedEntitlementIDs(); len(nodes) > 0 && !fu.mutation.EntitlementCleared() {
+	if nodes := _u.mutation.RemovedEntitlementIDs(); len(nodes) > 0 && !_u.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -348,7 +348,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := fu.mutation.EntitlementIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -364,7 +364,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if fu.mutation.RatecardCleared() {
+	if _u.mutation.RatecardCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -377,7 +377,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := fu.mutation.RemovedRatecardIDs(); len(nodes) > 0 && !fu.mutation.RatecardCleared() {
+	if nodes := _u.mutation.RemovedRatecardIDs(); len(nodes) > 0 && !_u.mutation.RatecardCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -393,7 +393,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := fu.mutation.RatecardIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.RatecardIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -409,7 +409,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if fu.mutation.AddonRatecardCleared() {
+	if _u.mutation.AddonRatecardCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -422,7 +422,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := fu.mutation.RemovedAddonRatecardIDs(); len(nodes) > 0 && !fu.mutation.AddonRatecardCleared() {
+	if nodes := _u.mutation.RemovedAddonRatecardIDs(); len(nodes) > 0 && !_u.mutation.AddonRatecardCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -438,7 +438,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := fu.mutation.AddonRatecardIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.AddonRatecardIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -454,7 +454,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, fu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{feature.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -462,8 +462,8 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
-	fu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // FeatureUpdateOne is the builder for updating a single Feature entity.
@@ -475,224 +475,224 @@ type FeatureUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (fuo *FeatureUpdateOne) SetUpdatedAt(t time.Time) *FeatureUpdateOne {
-	fuo.mutation.SetUpdatedAt(t)
-	return fuo
+func (_u *FeatureUpdateOne) SetUpdatedAt(v time.Time) *FeatureUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (fuo *FeatureUpdateOne) SetDeletedAt(t time.Time) *FeatureUpdateOne {
-	fuo.mutation.SetDeletedAt(t)
-	return fuo
+func (_u *FeatureUpdateOne) SetDeletedAt(v time.Time) *FeatureUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (fuo *FeatureUpdateOne) SetNillableDeletedAt(t *time.Time) *FeatureUpdateOne {
-	if t != nil {
-		fuo.SetDeletedAt(*t)
+func (_u *FeatureUpdateOne) SetNillableDeletedAt(v *time.Time) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return fuo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (fuo *FeatureUpdateOne) ClearDeletedAt() *FeatureUpdateOne {
-	fuo.mutation.ClearDeletedAt()
-	return fuo
+func (_u *FeatureUpdateOne) ClearDeletedAt() *FeatureUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (fuo *FeatureUpdateOne) SetMetadata(m map[string]string) *FeatureUpdateOne {
-	fuo.mutation.SetMetadata(m)
-	return fuo
+func (_u *FeatureUpdateOne) SetMetadata(v map[string]string) *FeatureUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (fuo *FeatureUpdateOne) ClearMetadata() *FeatureUpdateOne {
-	fuo.mutation.ClearMetadata()
-	return fuo
+func (_u *FeatureUpdateOne) ClearMetadata() *FeatureUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (fuo *FeatureUpdateOne) SetName(s string) *FeatureUpdateOne {
-	fuo.mutation.SetName(s)
-	return fuo
+func (_u *FeatureUpdateOne) SetName(v string) *FeatureUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (fuo *FeatureUpdateOne) SetNillableName(s *string) *FeatureUpdateOne {
-	if s != nil {
-		fuo.SetName(*s)
+func (_u *FeatureUpdateOne) SetNillableName(v *string) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return fuo
+	return _u
 }
 
 // SetMeterGroupByFilters sets the "meter_group_by_filters" field.
-func (fuo *FeatureUpdateOne) SetMeterGroupByFilters(m map[string]string) *FeatureUpdateOne {
-	fuo.mutation.SetMeterGroupByFilters(m)
-	return fuo
+func (_u *FeatureUpdateOne) SetMeterGroupByFilters(v map[string]string) *FeatureUpdateOne {
+	_u.mutation.SetMeterGroupByFilters(v)
+	return _u
 }
 
 // ClearMeterGroupByFilters clears the value of the "meter_group_by_filters" field.
-func (fuo *FeatureUpdateOne) ClearMeterGroupByFilters() *FeatureUpdateOne {
-	fuo.mutation.ClearMeterGroupByFilters()
-	return fuo
+func (_u *FeatureUpdateOne) ClearMeterGroupByFilters() *FeatureUpdateOne {
+	_u.mutation.ClearMeterGroupByFilters()
+	return _u
 }
 
 // SetArchivedAt sets the "archived_at" field.
-func (fuo *FeatureUpdateOne) SetArchivedAt(t time.Time) *FeatureUpdateOne {
-	fuo.mutation.SetArchivedAt(t)
-	return fuo
+func (_u *FeatureUpdateOne) SetArchivedAt(v time.Time) *FeatureUpdateOne {
+	_u.mutation.SetArchivedAt(v)
+	return _u
 }
 
 // SetNillableArchivedAt sets the "archived_at" field if the given value is not nil.
-func (fuo *FeatureUpdateOne) SetNillableArchivedAt(t *time.Time) *FeatureUpdateOne {
-	if t != nil {
-		fuo.SetArchivedAt(*t)
+func (_u *FeatureUpdateOne) SetNillableArchivedAt(v *time.Time) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetArchivedAt(*v)
 	}
-	return fuo
+	return _u
 }
 
 // ClearArchivedAt clears the value of the "archived_at" field.
-func (fuo *FeatureUpdateOne) ClearArchivedAt() *FeatureUpdateOne {
-	fuo.mutation.ClearArchivedAt()
-	return fuo
+func (_u *FeatureUpdateOne) ClearArchivedAt() *FeatureUpdateOne {
+	_u.mutation.ClearArchivedAt()
+	return _u
 }
 
 // AddEntitlementIDs adds the "entitlement" edge to the Entitlement entity by IDs.
-func (fuo *FeatureUpdateOne) AddEntitlementIDs(ids ...string) *FeatureUpdateOne {
-	fuo.mutation.AddEntitlementIDs(ids...)
-	return fuo
+func (_u *FeatureUpdateOne) AddEntitlementIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.AddEntitlementIDs(ids...)
+	return _u
 }
 
 // AddEntitlement adds the "entitlement" edges to the Entitlement entity.
-func (fuo *FeatureUpdateOne) AddEntitlement(e ...*Entitlement) *FeatureUpdateOne {
-	ids := make([]string, len(e))
-	for i := range e {
-		ids[i] = e[i].ID
+func (_u *FeatureUpdateOne) AddEntitlement(v ...*Entitlement) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return fuo.AddEntitlementIDs(ids...)
+	return _u.AddEntitlementIDs(ids...)
 }
 
 // AddRatecardIDs adds the "ratecard" edge to the PlanRateCard entity by IDs.
-func (fuo *FeatureUpdateOne) AddRatecardIDs(ids ...string) *FeatureUpdateOne {
-	fuo.mutation.AddRatecardIDs(ids...)
-	return fuo
+func (_u *FeatureUpdateOne) AddRatecardIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.AddRatecardIDs(ids...)
+	return _u
 }
 
 // AddRatecard adds the "ratecard" edges to the PlanRateCard entity.
-func (fuo *FeatureUpdateOne) AddRatecard(p ...*PlanRateCard) *FeatureUpdateOne {
-	ids := make([]string, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+func (_u *FeatureUpdateOne) AddRatecard(v ...*PlanRateCard) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return fuo.AddRatecardIDs(ids...)
+	return _u.AddRatecardIDs(ids...)
 }
 
 // AddAddonRatecardIDs adds the "addon_ratecard" edge to the AddonRateCard entity by IDs.
-func (fuo *FeatureUpdateOne) AddAddonRatecardIDs(ids ...string) *FeatureUpdateOne {
-	fuo.mutation.AddAddonRatecardIDs(ids...)
-	return fuo
+func (_u *FeatureUpdateOne) AddAddonRatecardIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.AddAddonRatecardIDs(ids...)
+	return _u
 }
 
 // AddAddonRatecard adds the "addon_ratecard" edges to the AddonRateCard entity.
-func (fuo *FeatureUpdateOne) AddAddonRatecard(a ...*AddonRateCard) *FeatureUpdateOne {
-	ids := make([]string, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_u *FeatureUpdateOne) AddAddonRatecard(v ...*AddonRateCard) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return fuo.AddAddonRatecardIDs(ids...)
+	return _u.AddAddonRatecardIDs(ids...)
 }
 
 // Mutation returns the FeatureMutation object of the builder.
-func (fuo *FeatureUpdateOne) Mutation() *FeatureMutation {
-	return fuo.mutation
+func (_u *FeatureUpdateOne) Mutation() *FeatureMutation {
+	return _u.mutation
 }
 
 // ClearEntitlement clears all "entitlement" edges to the Entitlement entity.
-func (fuo *FeatureUpdateOne) ClearEntitlement() *FeatureUpdateOne {
-	fuo.mutation.ClearEntitlement()
-	return fuo
+func (_u *FeatureUpdateOne) ClearEntitlement() *FeatureUpdateOne {
+	_u.mutation.ClearEntitlement()
+	return _u
 }
 
 // RemoveEntitlementIDs removes the "entitlement" edge to Entitlement entities by IDs.
-func (fuo *FeatureUpdateOne) RemoveEntitlementIDs(ids ...string) *FeatureUpdateOne {
-	fuo.mutation.RemoveEntitlementIDs(ids...)
-	return fuo
+func (_u *FeatureUpdateOne) RemoveEntitlementIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.RemoveEntitlementIDs(ids...)
+	return _u
 }
 
 // RemoveEntitlement removes "entitlement" edges to Entitlement entities.
-func (fuo *FeatureUpdateOne) RemoveEntitlement(e ...*Entitlement) *FeatureUpdateOne {
-	ids := make([]string, len(e))
-	for i := range e {
-		ids[i] = e[i].ID
+func (_u *FeatureUpdateOne) RemoveEntitlement(v ...*Entitlement) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return fuo.RemoveEntitlementIDs(ids...)
+	return _u.RemoveEntitlementIDs(ids...)
 }
 
 // ClearRatecard clears all "ratecard" edges to the PlanRateCard entity.
-func (fuo *FeatureUpdateOne) ClearRatecard() *FeatureUpdateOne {
-	fuo.mutation.ClearRatecard()
-	return fuo
+func (_u *FeatureUpdateOne) ClearRatecard() *FeatureUpdateOne {
+	_u.mutation.ClearRatecard()
+	return _u
 }
 
 // RemoveRatecardIDs removes the "ratecard" edge to PlanRateCard entities by IDs.
-func (fuo *FeatureUpdateOne) RemoveRatecardIDs(ids ...string) *FeatureUpdateOne {
-	fuo.mutation.RemoveRatecardIDs(ids...)
-	return fuo
+func (_u *FeatureUpdateOne) RemoveRatecardIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.RemoveRatecardIDs(ids...)
+	return _u
 }
 
 // RemoveRatecard removes "ratecard" edges to PlanRateCard entities.
-func (fuo *FeatureUpdateOne) RemoveRatecard(p ...*PlanRateCard) *FeatureUpdateOne {
-	ids := make([]string, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+func (_u *FeatureUpdateOne) RemoveRatecard(v ...*PlanRateCard) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return fuo.RemoveRatecardIDs(ids...)
+	return _u.RemoveRatecardIDs(ids...)
 }
 
 // ClearAddonRatecard clears all "addon_ratecard" edges to the AddonRateCard entity.
-func (fuo *FeatureUpdateOne) ClearAddonRatecard() *FeatureUpdateOne {
-	fuo.mutation.ClearAddonRatecard()
-	return fuo
+func (_u *FeatureUpdateOne) ClearAddonRatecard() *FeatureUpdateOne {
+	_u.mutation.ClearAddonRatecard()
+	return _u
 }
 
 // RemoveAddonRatecardIDs removes the "addon_ratecard" edge to AddonRateCard entities by IDs.
-func (fuo *FeatureUpdateOne) RemoveAddonRatecardIDs(ids ...string) *FeatureUpdateOne {
-	fuo.mutation.RemoveAddonRatecardIDs(ids...)
-	return fuo
+func (_u *FeatureUpdateOne) RemoveAddonRatecardIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.RemoveAddonRatecardIDs(ids...)
+	return _u
 }
 
 // RemoveAddonRatecard removes "addon_ratecard" edges to AddonRateCard entities.
-func (fuo *FeatureUpdateOne) RemoveAddonRatecard(a ...*AddonRateCard) *FeatureUpdateOne {
-	ids := make([]string, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_u *FeatureUpdateOne) RemoveAddonRatecard(v ...*AddonRateCard) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return fuo.RemoveAddonRatecardIDs(ids...)
+	return _u.RemoveAddonRatecardIDs(ids...)
 }
 
 // Where appends a list predicates to the FeatureUpdate builder.
-func (fuo *FeatureUpdateOne) Where(ps ...predicate.Feature) *FeatureUpdateOne {
-	fuo.mutation.Where(ps...)
-	return fuo
+func (_u *FeatureUpdateOne) Where(ps ...predicate.Feature) *FeatureUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (fuo *FeatureUpdateOne) Select(field string, fields ...string) *FeatureUpdateOne {
-	fuo.fields = append([]string{field}, fields...)
-	return fuo
+func (_u *FeatureUpdateOne) Select(field string, fields ...string) *FeatureUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated Feature entity.
-func (fuo *FeatureUpdateOne) Save(ctx context.Context) (*Feature, error) {
-	fuo.defaults()
-	return withHooks(ctx, fuo.sqlSave, fuo.mutation, fuo.hooks)
+func (_u *FeatureUpdateOne) Save(ctx context.Context) (*Feature, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (fuo *FeatureUpdateOne) SaveX(ctx context.Context) *Feature {
-	node, err := fuo.Save(ctx)
+func (_u *FeatureUpdateOne) SaveX(ctx context.Context) *Feature {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -700,29 +700,29 @@ func (fuo *FeatureUpdateOne) SaveX(ctx context.Context) *Feature {
 }
 
 // Exec executes the query on the entity.
-func (fuo *FeatureUpdateOne) Exec(ctx context.Context) error {
-	_, err := fuo.Save(ctx)
+func (_u *FeatureUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (fuo *FeatureUpdateOne) ExecX(ctx context.Context) {
-	if err := fuo.Exec(ctx); err != nil {
+func (_u *FeatureUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (fuo *FeatureUpdateOne) defaults() {
-	if _, ok := fuo.mutation.UpdatedAt(); !ok {
+func (_u *FeatureUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := feature.UpdateDefaultUpdatedAt()
-		fuo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (fuo *FeatureUpdateOne) check() error {
-	if v, ok := fuo.mutation.Name(); ok {
+func (_u *FeatureUpdateOne) check() error {
+	if v, ok := _u.mutation.Name(); ok {
 		if err := feature.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Feature.name": %w`, err)}
 		}
@@ -730,17 +730,17 @@ func (fuo *FeatureUpdateOne) check() error {
 	return nil
 }
 
-func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err error) {
-	if err := fuo.check(); err != nil {
+func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(feature.Table, feature.Columns, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString))
-	id, ok := fuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "Feature.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := fuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, feature.FieldID)
 		for _, f := range fields {
@@ -752,47 +752,47 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 			}
 		}
 	}
-	if ps := fuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := fuo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(feature.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := fuo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(feature.FieldDeletedAt, field.TypeTime, value)
 	}
-	if fuo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(feature.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := fuo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(feature.FieldMetadata, field.TypeJSON, value)
 	}
-	if fuo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(feature.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := fuo.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(feature.FieldName, field.TypeString, value)
 	}
-	if fuo.mutation.MeterSlugCleared() {
+	if _u.mutation.MeterSlugCleared() {
 		_spec.ClearField(feature.FieldMeterSlug, field.TypeString)
 	}
-	if value, ok := fuo.mutation.MeterGroupByFilters(); ok {
+	if value, ok := _u.mutation.MeterGroupByFilters(); ok {
 		_spec.SetField(feature.FieldMeterGroupByFilters, field.TypeJSON, value)
 	}
-	if fuo.mutation.MeterGroupByFiltersCleared() {
+	if _u.mutation.MeterGroupByFiltersCleared() {
 		_spec.ClearField(feature.FieldMeterGroupByFilters, field.TypeJSON)
 	}
-	if value, ok := fuo.mutation.ArchivedAt(); ok {
+	if value, ok := _u.mutation.ArchivedAt(); ok {
 		_spec.SetField(feature.FieldArchivedAt, field.TypeTime, value)
 	}
-	if fuo.mutation.ArchivedAtCleared() {
+	if _u.mutation.ArchivedAtCleared() {
 		_spec.ClearField(feature.FieldArchivedAt, field.TypeTime)
 	}
-	if fuo.mutation.EntitlementCleared() {
+	if _u.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -805,7 +805,7 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := fuo.mutation.RemovedEntitlementIDs(); len(nodes) > 0 && !fuo.mutation.EntitlementCleared() {
+	if nodes := _u.mutation.RemovedEntitlementIDs(); len(nodes) > 0 && !_u.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -821,7 +821,7 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := fuo.mutation.EntitlementIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -837,7 +837,7 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if fuo.mutation.RatecardCleared() {
+	if _u.mutation.RatecardCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -850,7 +850,7 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := fuo.mutation.RemovedRatecardIDs(); len(nodes) > 0 && !fuo.mutation.RatecardCleared() {
+	if nodes := _u.mutation.RemovedRatecardIDs(); len(nodes) > 0 && !_u.mutation.RatecardCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -866,7 +866,7 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := fuo.mutation.RatecardIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.RatecardIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -882,7 +882,7 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if fuo.mutation.AddonRatecardCleared() {
+	if _u.mutation.AddonRatecardCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -895,7 +895,7 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := fuo.mutation.RemovedAddonRatecardIDs(); len(nodes) > 0 && !fuo.mutation.AddonRatecardCleared() {
+	if nodes := _u.mutation.RemovedAddonRatecardIDs(); len(nodes) > 0 && !_u.mutation.AddonRatecardCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -911,7 +911,7 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := fuo.mutation.AddonRatecardIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.AddonRatecardIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -927,10 +927,10 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &Feature{config: fuo.config}
+	_node = &Feature{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, fuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{feature.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -938,6 +938,6 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 		}
 		return nil, err
 	}
-	fuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

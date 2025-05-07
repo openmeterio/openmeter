@@ -27,255 +27,255 @@ type PlanRateCardUpdate struct {
 }
 
 // Where appends a list predicates to the PlanRateCardUpdate builder.
-func (prcu *PlanRateCardUpdate) Where(ps ...predicate.PlanRateCard) *PlanRateCardUpdate {
-	prcu.mutation.Where(ps...)
-	return prcu
+func (_u *PlanRateCardUpdate) Where(ps ...predicate.PlanRateCard) *PlanRateCardUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (prcu *PlanRateCardUpdate) SetMetadata(m map[string]string) *PlanRateCardUpdate {
-	prcu.mutation.SetMetadata(m)
-	return prcu
+func (_u *PlanRateCardUpdate) SetMetadata(v map[string]string) *PlanRateCardUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (prcu *PlanRateCardUpdate) ClearMetadata() *PlanRateCardUpdate {
-	prcu.mutation.ClearMetadata()
-	return prcu
+func (_u *PlanRateCardUpdate) ClearMetadata() *PlanRateCardUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (prcu *PlanRateCardUpdate) SetUpdatedAt(t time.Time) *PlanRateCardUpdate {
-	prcu.mutation.SetUpdatedAt(t)
-	return prcu
+func (_u *PlanRateCardUpdate) SetUpdatedAt(v time.Time) *PlanRateCardUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (prcu *PlanRateCardUpdate) SetDeletedAt(t time.Time) *PlanRateCardUpdate {
-	prcu.mutation.SetDeletedAt(t)
-	return prcu
+func (_u *PlanRateCardUpdate) SetDeletedAt(v time.Time) *PlanRateCardUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (prcu *PlanRateCardUpdate) SetNillableDeletedAt(t *time.Time) *PlanRateCardUpdate {
-	if t != nil {
-		prcu.SetDeletedAt(*t)
+func (_u *PlanRateCardUpdate) SetNillableDeletedAt(v *time.Time) *PlanRateCardUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return prcu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (prcu *PlanRateCardUpdate) ClearDeletedAt() *PlanRateCardUpdate {
-	prcu.mutation.ClearDeletedAt()
-	return prcu
+func (_u *PlanRateCardUpdate) ClearDeletedAt() *PlanRateCardUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (prcu *PlanRateCardUpdate) SetName(s string) *PlanRateCardUpdate {
-	prcu.mutation.SetName(s)
-	return prcu
+func (_u *PlanRateCardUpdate) SetName(v string) *PlanRateCardUpdate {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (prcu *PlanRateCardUpdate) SetNillableName(s *string) *PlanRateCardUpdate {
-	if s != nil {
-		prcu.SetName(*s)
+func (_u *PlanRateCardUpdate) SetNillableName(v *string) *PlanRateCardUpdate {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return prcu
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (prcu *PlanRateCardUpdate) SetDescription(s string) *PlanRateCardUpdate {
-	prcu.mutation.SetDescription(s)
-	return prcu
+func (_u *PlanRateCardUpdate) SetDescription(v string) *PlanRateCardUpdate {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (prcu *PlanRateCardUpdate) SetNillableDescription(s *string) *PlanRateCardUpdate {
-	if s != nil {
-		prcu.SetDescription(*s)
+func (_u *PlanRateCardUpdate) SetNillableDescription(v *string) *PlanRateCardUpdate {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return prcu
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (prcu *PlanRateCardUpdate) ClearDescription() *PlanRateCardUpdate {
-	prcu.mutation.ClearDescription()
-	return prcu
+func (_u *PlanRateCardUpdate) ClearDescription() *PlanRateCardUpdate {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetFeatureKey sets the "feature_key" field.
-func (prcu *PlanRateCardUpdate) SetFeatureKey(s string) *PlanRateCardUpdate {
-	prcu.mutation.SetFeatureKey(s)
-	return prcu
+func (_u *PlanRateCardUpdate) SetFeatureKey(v string) *PlanRateCardUpdate {
+	_u.mutation.SetFeatureKey(v)
+	return _u
 }
 
 // SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
-func (prcu *PlanRateCardUpdate) SetNillableFeatureKey(s *string) *PlanRateCardUpdate {
-	if s != nil {
-		prcu.SetFeatureKey(*s)
+func (_u *PlanRateCardUpdate) SetNillableFeatureKey(v *string) *PlanRateCardUpdate {
+	if v != nil {
+		_u.SetFeatureKey(*v)
 	}
-	return prcu
+	return _u
 }
 
 // ClearFeatureKey clears the value of the "feature_key" field.
-func (prcu *PlanRateCardUpdate) ClearFeatureKey() *PlanRateCardUpdate {
-	prcu.mutation.ClearFeatureKey()
-	return prcu
+func (_u *PlanRateCardUpdate) ClearFeatureKey() *PlanRateCardUpdate {
+	_u.mutation.ClearFeatureKey()
+	return _u
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (prcu *PlanRateCardUpdate) SetEntitlementTemplate(pt *productcatalog.EntitlementTemplate) *PlanRateCardUpdate {
-	prcu.mutation.SetEntitlementTemplate(pt)
-	return prcu
+func (_u *PlanRateCardUpdate) SetEntitlementTemplate(v *productcatalog.EntitlementTemplate) *PlanRateCardUpdate {
+	_u.mutation.SetEntitlementTemplate(v)
+	return _u
 }
 
 // ClearEntitlementTemplate clears the value of the "entitlement_template" field.
-func (prcu *PlanRateCardUpdate) ClearEntitlementTemplate() *PlanRateCardUpdate {
-	prcu.mutation.ClearEntitlementTemplate()
-	return prcu
+func (_u *PlanRateCardUpdate) ClearEntitlementTemplate() *PlanRateCardUpdate {
+	_u.mutation.ClearEntitlementTemplate()
+	return _u
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (prcu *PlanRateCardUpdate) SetTaxConfig(pc *productcatalog.TaxConfig) *PlanRateCardUpdate {
-	prcu.mutation.SetTaxConfig(pc)
-	return prcu
+func (_u *PlanRateCardUpdate) SetTaxConfig(v *productcatalog.TaxConfig) *PlanRateCardUpdate {
+	_u.mutation.SetTaxConfig(v)
+	return _u
 }
 
 // ClearTaxConfig clears the value of the "tax_config" field.
-func (prcu *PlanRateCardUpdate) ClearTaxConfig() *PlanRateCardUpdate {
-	prcu.mutation.ClearTaxConfig()
-	return prcu
+func (_u *PlanRateCardUpdate) ClearTaxConfig() *PlanRateCardUpdate {
+	_u.mutation.ClearTaxConfig()
+	return _u
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (prcu *PlanRateCardUpdate) SetBillingCadence(i isodate.String) *PlanRateCardUpdate {
-	prcu.mutation.SetBillingCadence(i)
-	return prcu
+func (_u *PlanRateCardUpdate) SetBillingCadence(v isodate.String) *PlanRateCardUpdate {
+	_u.mutation.SetBillingCadence(v)
+	return _u
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (prcu *PlanRateCardUpdate) SetNillableBillingCadence(i *isodate.String) *PlanRateCardUpdate {
-	if i != nil {
-		prcu.SetBillingCadence(*i)
+func (_u *PlanRateCardUpdate) SetNillableBillingCadence(v *isodate.String) *PlanRateCardUpdate {
+	if v != nil {
+		_u.SetBillingCadence(*v)
 	}
-	return prcu
+	return _u
 }
 
 // ClearBillingCadence clears the value of the "billing_cadence" field.
-func (prcu *PlanRateCardUpdate) ClearBillingCadence() *PlanRateCardUpdate {
-	prcu.mutation.ClearBillingCadence()
-	return prcu
+func (_u *PlanRateCardUpdate) ClearBillingCadence() *PlanRateCardUpdate {
+	_u.mutation.ClearBillingCadence()
+	return _u
 }
 
 // SetPrice sets the "price" field.
-func (prcu *PlanRateCardUpdate) SetPrice(pr *productcatalog.Price) *PlanRateCardUpdate {
-	prcu.mutation.SetPrice(pr)
-	return prcu
+func (_u *PlanRateCardUpdate) SetPrice(v *productcatalog.Price) *PlanRateCardUpdate {
+	_u.mutation.SetPrice(v)
+	return _u
 }
 
 // ClearPrice clears the value of the "price" field.
-func (prcu *PlanRateCardUpdate) ClearPrice() *PlanRateCardUpdate {
-	prcu.mutation.ClearPrice()
-	return prcu
+func (_u *PlanRateCardUpdate) ClearPrice() *PlanRateCardUpdate {
+	_u.mutation.ClearPrice()
+	return _u
 }
 
 // SetDiscounts sets the "discounts" field.
-func (prcu *PlanRateCardUpdate) SetDiscounts(pr *productcatalog.Discounts) *PlanRateCardUpdate {
-	prcu.mutation.SetDiscounts(pr)
-	return prcu
+func (_u *PlanRateCardUpdate) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpdate {
+	_u.mutation.SetDiscounts(v)
+	return _u
 }
 
 // ClearDiscounts clears the value of the "discounts" field.
-func (prcu *PlanRateCardUpdate) ClearDiscounts() *PlanRateCardUpdate {
-	prcu.mutation.ClearDiscounts()
-	return prcu
+func (_u *PlanRateCardUpdate) ClearDiscounts() *PlanRateCardUpdate {
+	_u.mutation.ClearDiscounts()
+	return _u
 }
 
 // SetPhaseID sets the "phase_id" field.
-func (prcu *PlanRateCardUpdate) SetPhaseID(s string) *PlanRateCardUpdate {
-	prcu.mutation.SetPhaseID(s)
-	return prcu
+func (_u *PlanRateCardUpdate) SetPhaseID(v string) *PlanRateCardUpdate {
+	_u.mutation.SetPhaseID(v)
+	return _u
 }
 
 // SetNillablePhaseID sets the "phase_id" field if the given value is not nil.
-func (prcu *PlanRateCardUpdate) SetNillablePhaseID(s *string) *PlanRateCardUpdate {
-	if s != nil {
-		prcu.SetPhaseID(*s)
+func (_u *PlanRateCardUpdate) SetNillablePhaseID(v *string) *PlanRateCardUpdate {
+	if v != nil {
+		_u.SetPhaseID(*v)
 	}
-	return prcu
+	return _u
 }
 
 // SetFeatureID sets the "feature_id" field.
-func (prcu *PlanRateCardUpdate) SetFeatureID(s string) *PlanRateCardUpdate {
-	prcu.mutation.SetFeatureID(s)
-	return prcu
+func (_u *PlanRateCardUpdate) SetFeatureID(v string) *PlanRateCardUpdate {
+	_u.mutation.SetFeatureID(v)
+	return _u
 }
 
 // SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
-func (prcu *PlanRateCardUpdate) SetNillableFeatureID(s *string) *PlanRateCardUpdate {
-	if s != nil {
-		prcu.SetFeatureID(*s)
+func (_u *PlanRateCardUpdate) SetNillableFeatureID(v *string) *PlanRateCardUpdate {
+	if v != nil {
+		_u.SetFeatureID(*v)
 	}
-	return prcu
+	return _u
 }
 
 // ClearFeatureID clears the value of the "feature_id" field.
-func (prcu *PlanRateCardUpdate) ClearFeatureID() *PlanRateCardUpdate {
-	prcu.mutation.ClearFeatureID()
-	return prcu
+func (_u *PlanRateCardUpdate) ClearFeatureID() *PlanRateCardUpdate {
+	_u.mutation.ClearFeatureID()
+	return _u
 }
 
 // SetPhase sets the "phase" edge to the PlanPhase entity.
-func (prcu *PlanRateCardUpdate) SetPhase(p *PlanPhase) *PlanRateCardUpdate {
-	return prcu.SetPhaseID(p.ID)
+func (_u *PlanRateCardUpdate) SetPhase(v *PlanPhase) *PlanRateCardUpdate {
+	return _u.SetPhaseID(v.ID)
 }
 
 // SetFeaturesID sets the "features" edge to the Feature entity by ID.
-func (prcu *PlanRateCardUpdate) SetFeaturesID(id string) *PlanRateCardUpdate {
-	prcu.mutation.SetFeaturesID(id)
-	return prcu
+func (_u *PlanRateCardUpdate) SetFeaturesID(id string) *PlanRateCardUpdate {
+	_u.mutation.SetFeaturesID(id)
+	return _u
 }
 
 // SetNillableFeaturesID sets the "features" edge to the Feature entity by ID if the given value is not nil.
-func (prcu *PlanRateCardUpdate) SetNillableFeaturesID(id *string) *PlanRateCardUpdate {
+func (_u *PlanRateCardUpdate) SetNillableFeaturesID(id *string) *PlanRateCardUpdate {
 	if id != nil {
-		prcu = prcu.SetFeaturesID(*id)
+		_u = _u.SetFeaturesID(*id)
 	}
-	return prcu
+	return _u
 }
 
 // SetFeatures sets the "features" edge to the Feature entity.
-func (prcu *PlanRateCardUpdate) SetFeatures(f *Feature) *PlanRateCardUpdate {
-	return prcu.SetFeaturesID(f.ID)
+func (_u *PlanRateCardUpdate) SetFeatures(v *Feature) *PlanRateCardUpdate {
+	return _u.SetFeaturesID(v.ID)
 }
 
 // Mutation returns the PlanRateCardMutation object of the builder.
-func (prcu *PlanRateCardUpdate) Mutation() *PlanRateCardMutation {
-	return prcu.mutation
+func (_u *PlanRateCardUpdate) Mutation() *PlanRateCardMutation {
+	return _u.mutation
 }
 
 // ClearPhase clears the "phase" edge to the PlanPhase entity.
-func (prcu *PlanRateCardUpdate) ClearPhase() *PlanRateCardUpdate {
-	prcu.mutation.ClearPhase()
-	return prcu
+func (_u *PlanRateCardUpdate) ClearPhase() *PlanRateCardUpdate {
+	_u.mutation.ClearPhase()
+	return _u
 }
 
 // ClearFeatures clears the "features" edge to the Feature entity.
-func (prcu *PlanRateCardUpdate) ClearFeatures() *PlanRateCardUpdate {
-	prcu.mutation.ClearFeatures()
-	return prcu
+func (_u *PlanRateCardUpdate) ClearFeatures() *PlanRateCardUpdate {
+	_u.mutation.ClearFeatures()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (prcu *PlanRateCardUpdate) Save(ctx context.Context) (int, error) {
-	prcu.defaults()
-	return withHooks(ctx, prcu.sqlSave, prcu.mutation, prcu.hooks)
+func (_u *PlanRateCardUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (prcu *PlanRateCardUpdate) SaveX(ctx context.Context) int {
-	affected, err := prcu.Save(ctx)
+func (_u *PlanRateCardUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -283,148 +283,148 @@ func (prcu *PlanRateCardUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (prcu *PlanRateCardUpdate) Exec(ctx context.Context) error {
-	_, err := prcu.Save(ctx)
+func (_u *PlanRateCardUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (prcu *PlanRateCardUpdate) ExecX(ctx context.Context) {
-	if err := prcu.Exec(ctx); err != nil {
+func (_u *PlanRateCardUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (prcu *PlanRateCardUpdate) defaults() {
-	if _, ok := prcu.mutation.UpdatedAt(); !ok {
+func (_u *PlanRateCardUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := planratecard.UpdateDefaultUpdatedAt()
-		prcu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (prcu *PlanRateCardUpdate) check() error {
-	if v, ok := prcu.mutation.EntitlementTemplate(); ok {
+func (_u *PlanRateCardUpdate) check() error {
+	if v, ok := _u.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.entitlement_template": %w`, err)}
 		}
 	}
-	if v, ok := prcu.mutation.TaxConfig(); ok {
+	if v, ok := _u.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.tax_config": %w`, err)}
 		}
 	}
-	if v, ok := prcu.mutation.Price(); ok {
+	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.price": %w`, err)}
 		}
 	}
-	if v, ok := prcu.mutation.Discounts(); ok {
+	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.discounts": %w`, err)}
 		}
 	}
-	if v, ok := prcu.mutation.PhaseID(); ok {
+	if v, ok := _u.mutation.PhaseID(); ok {
 		if err := planratecard.PhaseIDValidator(v); err != nil {
 			return &ValidationError{Name: "phase_id", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.phase_id": %w`, err)}
 		}
 	}
-	if prcu.mutation.PhaseCleared() && len(prcu.mutation.PhaseIDs()) > 0 {
+	if _u.mutation.PhaseCleared() && len(_u.mutation.PhaseIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "PlanRateCard.phase"`)
 	}
 	return nil
 }
 
-func (prcu *PlanRateCardUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := prcu.check(); err != nil {
-		return n, err
+func (_u *PlanRateCardUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(planratecard.Table, planratecard.Columns, sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString))
-	if ps := prcu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := prcu.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(planratecard.FieldMetadata, field.TypeJSON, value)
 	}
-	if prcu.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(planratecard.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := prcu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(planratecard.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := prcu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(planratecard.FieldDeletedAt, field.TypeTime, value)
 	}
-	if prcu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(planratecard.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := prcu.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(planratecard.FieldName, field.TypeString, value)
 	}
-	if value, ok := prcu.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(planratecard.FieldDescription, field.TypeString, value)
 	}
-	if prcu.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(planratecard.FieldDescription, field.TypeString)
 	}
-	if value, ok := prcu.mutation.FeatureKey(); ok {
+	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(planratecard.FieldFeatureKey, field.TypeString, value)
 	}
-	if prcu.mutation.FeatureKeyCleared() {
+	if _u.mutation.FeatureKeyCleared() {
 		_spec.ClearField(planratecard.FieldFeatureKey, field.TypeString)
 	}
-	if value, ok := prcu.mutation.EntitlementTemplate(); ok {
+	if value, ok := _u.mutation.EntitlementTemplate(); ok {
 		vv, err := planratecard.ValueScanner.EntitlementTemplate.Value(value)
 		if err != nil {
 			return 0, err
 		}
 		_spec.SetField(planratecard.FieldEntitlementTemplate, field.TypeString, vv)
 	}
-	if prcu.mutation.EntitlementTemplateCleared() {
+	if _u.mutation.EntitlementTemplateCleared() {
 		_spec.ClearField(planratecard.FieldEntitlementTemplate, field.TypeString)
 	}
-	if value, ok := prcu.mutation.TaxConfig(); ok {
+	if value, ok := _u.mutation.TaxConfig(); ok {
 		vv, err := planratecard.ValueScanner.TaxConfig.Value(value)
 		if err != nil {
 			return 0, err
 		}
 		_spec.SetField(planratecard.FieldTaxConfig, field.TypeString, vv)
 	}
-	if prcu.mutation.TaxConfigCleared() {
+	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(planratecard.FieldTaxConfig, field.TypeString)
 	}
-	if value, ok := prcu.mutation.BillingCadence(); ok {
+	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(planratecard.FieldBillingCadence, field.TypeString, value)
 	}
-	if prcu.mutation.BillingCadenceCleared() {
+	if _u.mutation.BillingCadenceCleared() {
 		_spec.ClearField(planratecard.FieldBillingCadence, field.TypeString)
 	}
-	if value, ok := prcu.mutation.Price(); ok {
+	if value, ok := _u.mutation.Price(); ok {
 		vv, err := planratecard.ValueScanner.Price.Value(value)
 		if err != nil {
 			return 0, err
 		}
 		_spec.SetField(planratecard.FieldPrice, field.TypeString, vv)
 	}
-	if prcu.mutation.PriceCleared() {
+	if _u.mutation.PriceCleared() {
 		_spec.ClearField(planratecard.FieldPrice, field.TypeString)
 	}
-	if value, ok := prcu.mutation.Discounts(); ok {
+	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := planratecard.ValueScanner.Discounts.Value(value)
 		if err != nil {
 			return 0, err
 		}
 		_spec.SetField(planratecard.FieldDiscounts, field.TypeString, vv)
 	}
-	if prcu.mutation.DiscountsCleared() {
+	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(planratecard.FieldDiscounts, field.TypeString)
 	}
-	if prcu.mutation.PhaseCleared() {
+	if _u.mutation.PhaseCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -437,7 +437,7 @@ func (prcu *PlanRateCardUpdate) sqlSave(ctx context.Context) (n int, err error) 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := prcu.mutation.PhaseIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.PhaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -453,7 +453,7 @@ func (prcu *PlanRateCardUpdate) sqlSave(ctx context.Context) (n int, err error) 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if prcu.mutation.FeaturesCleared() {
+	if _u.mutation.FeaturesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -466,7 +466,7 @@ func (prcu *PlanRateCardUpdate) sqlSave(ctx context.Context) (n int, err error) 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := prcu.mutation.FeaturesIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.FeaturesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -482,7 +482,7 @@ func (prcu *PlanRateCardUpdate) sqlSave(ctx context.Context) (n int, err error) 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, prcu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{planratecard.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -490,8 +490,8 @@ func (prcu *PlanRateCardUpdate) sqlSave(ctx context.Context) (n int, err error) 
 		}
 		return 0, err
 	}
-	prcu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // PlanRateCardUpdateOne is the builder for updating a single PlanRateCard entity.
@@ -503,262 +503,262 @@ type PlanRateCardUpdateOne struct {
 }
 
 // SetMetadata sets the "metadata" field.
-func (prcuo *PlanRateCardUpdateOne) SetMetadata(m map[string]string) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetMetadata(m)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetMetadata(v map[string]string) *PlanRateCardUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (prcuo *PlanRateCardUpdateOne) ClearMetadata() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearMetadata()
-	return prcuo
+func (_u *PlanRateCardUpdateOne) ClearMetadata() *PlanRateCardUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (prcuo *PlanRateCardUpdateOne) SetUpdatedAt(t time.Time) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetUpdatedAt(t)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetUpdatedAt(v time.Time) *PlanRateCardUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (prcuo *PlanRateCardUpdateOne) SetDeletedAt(t time.Time) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetDeletedAt(t)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetDeletedAt(v time.Time) *PlanRateCardUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (prcuo *PlanRateCardUpdateOne) SetNillableDeletedAt(t *time.Time) *PlanRateCardUpdateOne {
-	if t != nil {
-		prcuo.SetDeletedAt(*t)
+func (_u *PlanRateCardUpdateOne) SetNillableDeletedAt(v *time.Time) *PlanRateCardUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return prcuo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (prcuo *PlanRateCardUpdateOne) ClearDeletedAt() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearDeletedAt()
-	return prcuo
+func (_u *PlanRateCardUpdateOne) ClearDeletedAt() *PlanRateCardUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (prcuo *PlanRateCardUpdateOne) SetName(s string) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetName(s)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetName(v string) *PlanRateCardUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (prcuo *PlanRateCardUpdateOne) SetNillableName(s *string) *PlanRateCardUpdateOne {
-	if s != nil {
-		prcuo.SetName(*s)
+func (_u *PlanRateCardUpdateOne) SetNillableName(v *string) *PlanRateCardUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return prcuo
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (prcuo *PlanRateCardUpdateOne) SetDescription(s string) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetDescription(s)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetDescription(v string) *PlanRateCardUpdateOne {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (prcuo *PlanRateCardUpdateOne) SetNillableDescription(s *string) *PlanRateCardUpdateOne {
-	if s != nil {
-		prcuo.SetDescription(*s)
+func (_u *PlanRateCardUpdateOne) SetNillableDescription(v *string) *PlanRateCardUpdateOne {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return prcuo
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (prcuo *PlanRateCardUpdateOne) ClearDescription() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearDescription()
-	return prcuo
+func (_u *PlanRateCardUpdateOne) ClearDescription() *PlanRateCardUpdateOne {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetFeatureKey sets the "feature_key" field.
-func (prcuo *PlanRateCardUpdateOne) SetFeatureKey(s string) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetFeatureKey(s)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetFeatureKey(v string) *PlanRateCardUpdateOne {
+	_u.mutation.SetFeatureKey(v)
+	return _u
 }
 
 // SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
-func (prcuo *PlanRateCardUpdateOne) SetNillableFeatureKey(s *string) *PlanRateCardUpdateOne {
-	if s != nil {
-		prcuo.SetFeatureKey(*s)
+func (_u *PlanRateCardUpdateOne) SetNillableFeatureKey(v *string) *PlanRateCardUpdateOne {
+	if v != nil {
+		_u.SetFeatureKey(*v)
 	}
-	return prcuo
+	return _u
 }
 
 // ClearFeatureKey clears the value of the "feature_key" field.
-func (prcuo *PlanRateCardUpdateOne) ClearFeatureKey() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearFeatureKey()
-	return prcuo
+func (_u *PlanRateCardUpdateOne) ClearFeatureKey() *PlanRateCardUpdateOne {
+	_u.mutation.ClearFeatureKey()
+	return _u
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (prcuo *PlanRateCardUpdateOne) SetEntitlementTemplate(pt *productcatalog.EntitlementTemplate) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetEntitlementTemplate(pt)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetEntitlementTemplate(v *productcatalog.EntitlementTemplate) *PlanRateCardUpdateOne {
+	_u.mutation.SetEntitlementTemplate(v)
+	return _u
 }
 
 // ClearEntitlementTemplate clears the value of the "entitlement_template" field.
-func (prcuo *PlanRateCardUpdateOne) ClearEntitlementTemplate() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearEntitlementTemplate()
-	return prcuo
+func (_u *PlanRateCardUpdateOne) ClearEntitlementTemplate() *PlanRateCardUpdateOne {
+	_u.mutation.ClearEntitlementTemplate()
+	return _u
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (prcuo *PlanRateCardUpdateOne) SetTaxConfig(pc *productcatalog.TaxConfig) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetTaxConfig(pc)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetTaxConfig(v *productcatalog.TaxConfig) *PlanRateCardUpdateOne {
+	_u.mutation.SetTaxConfig(v)
+	return _u
 }
 
 // ClearTaxConfig clears the value of the "tax_config" field.
-func (prcuo *PlanRateCardUpdateOne) ClearTaxConfig() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearTaxConfig()
-	return prcuo
+func (_u *PlanRateCardUpdateOne) ClearTaxConfig() *PlanRateCardUpdateOne {
+	_u.mutation.ClearTaxConfig()
+	return _u
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (prcuo *PlanRateCardUpdateOne) SetBillingCadence(i isodate.String) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetBillingCadence(i)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetBillingCadence(v isodate.String) *PlanRateCardUpdateOne {
+	_u.mutation.SetBillingCadence(v)
+	return _u
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (prcuo *PlanRateCardUpdateOne) SetNillableBillingCadence(i *isodate.String) *PlanRateCardUpdateOne {
-	if i != nil {
-		prcuo.SetBillingCadence(*i)
+func (_u *PlanRateCardUpdateOne) SetNillableBillingCadence(v *isodate.String) *PlanRateCardUpdateOne {
+	if v != nil {
+		_u.SetBillingCadence(*v)
 	}
-	return prcuo
+	return _u
 }
 
 // ClearBillingCadence clears the value of the "billing_cadence" field.
-func (prcuo *PlanRateCardUpdateOne) ClearBillingCadence() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearBillingCadence()
-	return prcuo
+func (_u *PlanRateCardUpdateOne) ClearBillingCadence() *PlanRateCardUpdateOne {
+	_u.mutation.ClearBillingCadence()
+	return _u
 }
 
 // SetPrice sets the "price" field.
-func (prcuo *PlanRateCardUpdateOne) SetPrice(pr *productcatalog.Price) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetPrice(pr)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetPrice(v *productcatalog.Price) *PlanRateCardUpdateOne {
+	_u.mutation.SetPrice(v)
+	return _u
 }
 
 // ClearPrice clears the value of the "price" field.
-func (prcuo *PlanRateCardUpdateOne) ClearPrice() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearPrice()
-	return prcuo
+func (_u *PlanRateCardUpdateOne) ClearPrice() *PlanRateCardUpdateOne {
+	_u.mutation.ClearPrice()
+	return _u
 }
 
 // SetDiscounts sets the "discounts" field.
-func (prcuo *PlanRateCardUpdateOne) SetDiscounts(pr *productcatalog.Discounts) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetDiscounts(pr)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpdateOne {
+	_u.mutation.SetDiscounts(v)
+	return _u
 }
 
 // ClearDiscounts clears the value of the "discounts" field.
-func (prcuo *PlanRateCardUpdateOne) ClearDiscounts() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearDiscounts()
-	return prcuo
+func (_u *PlanRateCardUpdateOne) ClearDiscounts() *PlanRateCardUpdateOne {
+	_u.mutation.ClearDiscounts()
+	return _u
 }
 
 // SetPhaseID sets the "phase_id" field.
-func (prcuo *PlanRateCardUpdateOne) SetPhaseID(s string) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetPhaseID(s)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetPhaseID(v string) *PlanRateCardUpdateOne {
+	_u.mutation.SetPhaseID(v)
+	return _u
 }
 
 // SetNillablePhaseID sets the "phase_id" field if the given value is not nil.
-func (prcuo *PlanRateCardUpdateOne) SetNillablePhaseID(s *string) *PlanRateCardUpdateOne {
-	if s != nil {
-		prcuo.SetPhaseID(*s)
+func (_u *PlanRateCardUpdateOne) SetNillablePhaseID(v *string) *PlanRateCardUpdateOne {
+	if v != nil {
+		_u.SetPhaseID(*v)
 	}
-	return prcuo
+	return _u
 }
 
 // SetFeatureID sets the "feature_id" field.
-func (prcuo *PlanRateCardUpdateOne) SetFeatureID(s string) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetFeatureID(s)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetFeatureID(v string) *PlanRateCardUpdateOne {
+	_u.mutation.SetFeatureID(v)
+	return _u
 }
 
 // SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
-func (prcuo *PlanRateCardUpdateOne) SetNillableFeatureID(s *string) *PlanRateCardUpdateOne {
-	if s != nil {
-		prcuo.SetFeatureID(*s)
+func (_u *PlanRateCardUpdateOne) SetNillableFeatureID(v *string) *PlanRateCardUpdateOne {
+	if v != nil {
+		_u.SetFeatureID(*v)
 	}
-	return prcuo
+	return _u
 }
 
 // ClearFeatureID clears the value of the "feature_id" field.
-func (prcuo *PlanRateCardUpdateOne) ClearFeatureID() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearFeatureID()
-	return prcuo
+func (_u *PlanRateCardUpdateOne) ClearFeatureID() *PlanRateCardUpdateOne {
+	_u.mutation.ClearFeatureID()
+	return _u
 }
 
 // SetPhase sets the "phase" edge to the PlanPhase entity.
-func (prcuo *PlanRateCardUpdateOne) SetPhase(p *PlanPhase) *PlanRateCardUpdateOne {
-	return prcuo.SetPhaseID(p.ID)
+func (_u *PlanRateCardUpdateOne) SetPhase(v *PlanPhase) *PlanRateCardUpdateOne {
+	return _u.SetPhaseID(v.ID)
 }
 
 // SetFeaturesID sets the "features" edge to the Feature entity by ID.
-func (prcuo *PlanRateCardUpdateOne) SetFeaturesID(id string) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetFeaturesID(id)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) SetFeaturesID(id string) *PlanRateCardUpdateOne {
+	_u.mutation.SetFeaturesID(id)
+	return _u
 }
 
 // SetNillableFeaturesID sets the "features" edge to the Feature entity by ID if the given value is not nil.
-func (prcuo *PlanRateCardUpdateOne) SetNillableFeaturesID(id *string) *PlanRateCardUpdateOne {
+func (_u *PlanRateCardUpdateOne) SetNillableFeaturesID(id *string) *PlanRateCardUpdateOne {
 	if id != nil {
-		prcuo = prcuo.SetFeaturesID(*id)
+		_u = _u.SetFeaturesID(*id)
 	}
-	return prcuo
+	return _u
 }
 
 // SetFeatures sets the "features" edge to the Feature entity.
-func (prcuo *PlanRateCardUpdateOne) SetFeatures(f *Feature) *PlanRateCardUpdateOne {
-	return prcuo.SetFeaturesID(f.ID)
+func (_u *PlanRateCardUpdateOne) SetFeatures(v *Feature) *PlanRateCardUpdateOne {
+	return _u.SetFeaturesID(v.ID)
 }
 
 // Mutation returns the PlanRateCardMutation object of the builder.
-func (prcuo *PlanRateCardUpdateOne) Mutation() *PlanRateCardMutation {
-	return prcuo.mutation
+func (_u *PlanRateCardUpdateOne) Mutation() *PlanRateCardMutation {
+	return _u.mutation
 }
 
 // ClearPhase clears the "phase" edge to the PlanPhase entity.
-func (prcuo *PlanRateCardUpdateOne) ClearPhase() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearPhase()
-	return prcuo
+func (_u *PlanRateCardUpdateOne) ClearPhase() *PlanRateCardUpdateOne {
+	_u.mutation.ClearPhase()
+	return _u
 }
 
 // ClearFeatures clears the "features" edge to the Feature entity.
-func (prcuo *PlanRateCardUpdateOne) ClearFeatures() *PlanRateCardUpdateOne {
-	prcuo.mutation.ClearFeatures()
-	return prcuo
+func (_u *PlanRateCardUpdateOne) ClearFeatures() *PlanRateCardUpdateOne {
+	_u.mutation.ClearFeatures()
+	return _u
 }
 
 // Where appends a list predicates to the PlanRateCardUpdate builder.
-func (prcuo *PlanRateCardUpdateOne) Where(ps ...predicate.PlanRateCard) *PlanRateCardUpdateOne {
-	prcuo.mutation.Where(ps...)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) Where(ps ...predicate.PlanRateCard) *PlanRateCardUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (prcuo *PlanRateCardUpdateOne) Select(field string, fields ...string) *PlanRateCardUpdateOne {
-	prcuo.fields = append([]string{field}, fields...)
-	return prcuo
+func (_u *PlanRateCardUpdateOne) Select(field string, fields ...string) *PlanRateCardUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated PlanRateCard entity.
-func (prcuo *PlanRateCardUpdateOne) Save(ctx context.Context) (*PlanRateCard, error) {
-	prcuo.defaults()
-	return withHooks(ctx, prcuo.sqlSave, prcuo.mutation, prcuo.hooks)
+func (_u *PlanRateCardUpdateOne) Save(ctx context.Context) (*PlanRateCard, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (prcuo *PlanRateCardUpdateOne) SaveX(ctx context.Context) *PlanRateCard {
-	node, err := prcuo.Save(ctx)
+func (_u *PlanRateCardUpdateOne) SaveX(ctx context.Context) *PlanRateCard {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -766,70 +766,70 @@ func (prcuo *PlanRateCardUpdateOne) SaveX(ctx context.Context) *PlanRateCard {
 }
 
 // Exec executes the query on the entity.
-func (prcuo *PlanRateCardUpdateOne) Exec(ctx context.Context) error {
-	_, err := prcuo.Save(ctx)
+func (_u *PlanRateCardUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (prcuo *PlanRateCardUpdateOne) ExecX(ctx context.Context) {
-	if err := prcuo.Exec(ctx); err != nil {
+func (_u *PlanRateCardUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (prcuo *PlanRateCardUpdateOne) defaults() {
-	if _, ok := prcuo.mutation.UpdatedAt(); !ok {
+func (_u *PlanRateCardUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := planratecard.UpdateDefaultUpdatedAt()
-		prcuo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (prcuo *PlanRateCardUpdateOne) check() error {
-	if v, ok := prcuo.mutation.EntitlementTemplate(); ok {
+func (_u *PlanRateCardUpdateOne) check() error {
+	if v, ok := _u.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.entitlement_template": %w`, err)}
 		}
 	}
-	if v, ok := prcuo.mutation.TaxConfig(); ok {
+	if v, ok := _u.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.tax_config": %w`, err)}
 		}
 	}
-	if v, ok := prcuo.mutation.Price(); ok {
+	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.price": %w`, err)}
 		}
 	}
-	if v, ok := prcuo.mutation.Discounts(); ok {
+	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.discounts": %w`, err)}
 		}
 	}
-	if v, ok := prcuo.mutation.PhaseID(); ok {
+	if v, ok := _u.mutation.PhaseID(); ok {
 		if err := planratecard.PhaseIDValidator(v); err != nil {
 			return &ValidationError{Name: "phase_id", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.phase_id": %w`, err)}
 		}
 	}
-	if prcuo.mutation.PhaseCleared() && len(prcuo.mutation.PhaseIDs()) > 0 {
+	if _u.mutation.PhaseCleared() && len(_u.mutation.PhaseIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "PlanRateCard.phase"`)
 	}
 	return nil
 }
 
-func (prcuo *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRateCard, err error) {
-	if err := prcuo.check(); err != nil {
+func (_u *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRateCard, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(planratecard.Table, planratecard.Columns, sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString))
-	id, ok := prcuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "PlanRateCard.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := prcuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, planratecard.FieldID)
 		for _, f := range fields {
@@ -841,90 +841,90 @@ func (prcuo *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRat
 			}
 		}
 	}
-	if ps := prcuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := prcuo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(planratecard.FieldMetadata, field.TypeJSON, value)
 	}
-	if prcuo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(planratecard.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := prcuo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(planratecard.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := prcuo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(planratecard.FieldDeletedAt, field.TypeTime, value)
 	}
-	if prcuo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(planratecard.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := prcuo.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(planratecard.FieldName, field.TypeString, value)
 	}
-	if value, ok := prcuo.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(planratecard.FieldDescription, field.TypeString, value)
 	}
-	if prcuo.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(planratecard.FieldDescription, field.TypeString)
 	}
-	if value, ok := prcuo.mutation.FeatureKey(); ok {
+	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(planratecard.FieldFeatureKey, field.TypeString, value)
 	}
-	if prcuo.mutation.FeatureKeyCleared() {
+	if _u.mutation.FeatureKeyCleared() {
 		_spec.ClearField(planratecard.FieldFeatureKey, field.TypeString)
 	}
-	if value, ok := prcuo.mutation.EntitlementTemplate(); ok {
+	if value, ok := _u.mutation.EntitlementTemplate(); ok {
 		vv, err := planratecard.ValueScanner.EntitlementTemplate.Value(value)
 		if err != nil {
 			return nil, err
 		}
 		_spec.SetField(planratecard.FieldEntitlementTemplate, field.TypeString, vv)
 	}
-	if prcuo.mutation.EntitlementTemplateCleared() {
+	if _u.mutation.EntitlementTemplateCleared() {
 		_spec.ClearField(planratecard.FieldEntitlementTemplate, field.TypeString)
 	}
-	if value, ok := prcuo.mutation.TaxConfig(); ok {
+	if value, ok := _u.mutation.TaxConfig(); ok {
 		vv, err := planratecard.ValueScanner.TaxConfig.Value(value)
 		if err != nil {
 			return nil, err
 		}
 		_spec.SetField(planratecard.FieldTaxConfig, field.TypeString, vv)
 	}
-	if prcuo.mutation.TaxConfigCleared() {
+	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(planratecard.FieldTaxConfig, field.TypeString)
 	}
-	if value, ok := prcuo.mutation.BillingCadence(); ok {
+	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(planratecard.FieldBillingCadence, field.TypeString, value)
 	}
-	if prcuo.mutation.BillingCadenceCleared() {
+	if _u.mutation.BillingCadenceCleared() {
 		_spec.ClearField(planratecard.FieldBillingCadence, field.TypeString)
 	}
-	if value, ok := prcuo.mutation.Price(); ok {
+	if value, ok := _u.mutation.Price(); ok {
 		vv, err := planratecard.ValueScanner.Price.Value(value)
 		if err != nil {
 			return nil, err
 		}
 		_spec.SetField(planratecard.FieldPrice, field.TypeString, vv)
 	}
-	if prcuo.mutation.PriceCleared() {
+	if _u.mutation.PriceCleared() {
 		_spec.ClearField(planratecard.FieldPrice, field.TypeString)
 	}
-	if value, ok := prcuo.mutation.Discounts(); ok {
+	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := planratecard.ValueScanner.Discounts.Value(value)
 		if err != nil {
 			return nil, err
 		}
 		_spec.SetField(planratecard.FieldDiscounts, field.TypeString, vv)
 	}
-	if prcuo.mutation.DiscountsCleared() {
+	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(planratecard.FieldDiscounts, field.TypeString)
 	}
-	if prcuo.mutation.PhaseCleared() {
+	if _u.mutation.PhaseCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -937,7 +937,7 @@ func (prcuo *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRat
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := prcuo.mutation.PhaseIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.PhaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -953,7 +953,7 @@ func (prcuo *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRat
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if prcuo.mutation.FeaturesCleared() {
+	if _u.mutation.FeaturesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -966,7 +966,7 @@ func (prcuo *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRat
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := prcuo.mutation.FeaturesIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.FeaturesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -982,10 +982,10 @@ func (prcuo *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRat
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &PlanRateCard{config: prcuo.config}
+	_node = &PlanRateCard{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, prcuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{planratecard.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -993,6 +993,6 @@ func (prcuo *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRat
 		}
 		return nil, err
 	}
-	prcuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

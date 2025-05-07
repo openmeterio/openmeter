@@ -27,159 +27,159 @@ type PlanPhaseCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (ppc *PlanPhaseCreate) SetNamespace(s string) *PlanPhaseCreate {
-	ppc.mutation.SetNamespace(s)
-	return ppc
+func (_c *PlanPhaseCreate) SetNamespace(v string) *PlanPhaseCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetMetadata sets the "metadata" field.
-func (ppc *PlanPhaseCreate) SetMetadata(m map[string]string) *PlanPhaseCreate {
-	ppc.mutation.SetMetadata(m)
-	return ppc
+func (_c *PlanPhaseCreate) SetMetadata(v map[string]string) *PlanPhaseCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (ppc *PlanPhaseCreate) SetCreatedAt(t time.Time) *PlanPhaseCreate {
-	ppc.mutation.SetCreatedAt(t)
-	return ppc
+func (_c *PlanPhaseCreate) SetCreatedAt(v time.Time) *PlanPhaseCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (ppc *PlanPhaseCreate) SetNillableCreatedAt(t *time.Time) *PlanPhaseCreate {
-	if t != nil {
-		ppc.SetCreatedAt(*t)
+func (_c *PlanPhaseCreate) SetNillableCreatedAt(v *time.Time) *PlanPhaseCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return ppc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (ppc *PlanPhaseCreate) SetUpdatedAt(t time.Time) *PlanPhaseCreate {
-	ppc.mutation.SetUpdatedAt(t)
-	return ppc
+func (_c *PlanPhaseCreate) SetUpdatedAt(v time.Time) *PlanPhaseCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (ppc *PlanPhaseCreate) SetNillableUpdatedAt(t *time.Time) *PlanPhaseCreate {
-	if t != nil {
-		ppc.SetUpdatedAt(*t)
+func (_c *PlanPhaseCreate) SetNillableUpdatedAt(v *time.Time) *PlanPhaseCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return ppc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (ppc *PlanPhaseCreate) SetDeletedAt(t time.Time) *PlanPhaseCreate {
-	ppc.mutation.SetDeletedAt(t)
-	return ppc
+func (_c *PlanPhaseCreate) SetDeletedAt(v time.Time) *PlanPhaseCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (ppc *PlanPhaseCreate) SetNillableDeletedAt(t *time.Time) *PlanPhaseCreate {
-	if t != nil {
-		ppc.SetDeletedAt(*t)
+func (_c *PlanPhaseCreate) SetNillableDeletedAt(v *time.Time) *PlanPhaseCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return ppc
+	return _c
 }
 
 // SetName sets the "name" field.
-func (ppc *PlanPhaseCreate) SetName(s string) *PlanPhaseCreate {
-	ppc.mutation.SetName(s)
-	return ppc
+func (_c *PlanPhaseCreate) SetName(v string) *PlanPhaseCreate {
+	_c.mutation.SetName(v)
+	return _c
 }
 
 // SetDescription sets the "description" field.
-func (ppc *PlanPhaseCreate) SetDescription(s string) *PlanPhaseCreate {
-	ppc.mutation.SetDescription(s)
-	return ppc
+func (_c *PlanPhaseCreate) SetDescription(v string) *PlanPhaseCreate {
+	_c.mutation.SetDescription(v)
+	return _c
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (ppc *PlanPhaseCreate) SetNillableDescription(s *string) *PlanPhaseCreate {
-	if s != nil {
-		ppc.SetDescription(*s)
+func (_c *PlanPhaseCreate) SetNillableDescription(v *string) *PlanPhaseCreate {
+	if v != nil {
+		_c.SetDescription(*v)
 	}
-	return ppc
+	return _c
 }
 
 // SetKey sets the "key" field.
-func (ppc *PlanPhaseCreate) SetKey(s string) *PlanPhaseCreate {
-	ppc.mutation.SetKey(s)
-	return ppc
+func (_c *PlanPhaseCreate) SetKey(v string) *PlanPhaseCreate {
+	_c.mutation.SetKey(v)
+	return _c
 }
 
 // SetPlanID sets the "plan_id" field.
-func (ppc *PlanPhaseCreate) SetPlanID(s string) *PlanPhaseCreate {
-	ppc.mutation.SetPlanID(s)
-	return ppc
+func (_c *PlanPhaseCreate) SetPlanID(v string) *PlanPhaseCreate {
+	_c.mutation.SetPlanID(v)
+	return _c
 }
 
 // SetIndex sets the "index" field.
-func (ppc *PlanPhaseCreate) SetIndex(u uint8) *PlanPhaseCreate {
-	ppc.mutation.SetIndex(u)
-	return ppc
+func (_c *PlanPhaseCreate) SetIndex(v uint8) *PlanPhaseCreate {
+	_c.mutation.SetIndex(v)
+	return _c
 }
 
 // SetDuration sets the "duration" field.
-func (ppc *PlanPhaseCreate) SetDuration(i isodate.String) *PlanPhaseCreate {
-	ppc.mutation.SetDuration(i)
-	return ppc
+func (_c *PlanPhaseCreate) SetDuration(v isodate.String) *PlanPhaseCreate {
+	_c.mutation.SetDuration(v)
+	return _c
 }
 
 // SetNillableDuration sets the "duration" field if the given value is not nil.
-func (ppc *PlanPhaseCreate) SetNillableDuration(i *isodate.String) *PlanPhaseCreate {
-	if i != nil {
-		ppc.SetDuration(*i)
+func (_c *PlanPhaseCreate) SetNillableDuration(v *isodate.String) *PlanPhaseCreate {
+	if v != nil {
+		_c.SetDuration(*v)
 	}
-	return ppc
+	return _c
 }
 
 // SetID sets the "id" field.
-func (ppc *PlanPhaseCreate) SetID(s string) *PlanPhaseCreate {
-	ppc.mutation.SetID(s)
-	return ppc
+func (_c *PlanPhaseCreate) SetID(v string) *PlanPhaseCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (ppc *PlanPhaseCreate) SetNillableID(s *string) *PlanPhaseCreate {
-	if s != nil {
-		ppc.SetID(*s)
+func (_c *PlanPhaseCreate) SetNillableID(v *string) *PlanPhaseCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return ppc
+	return _c
 }
 
 // SetPlan sets the "plan" edge to the Plan entity.
-func (ppc *PlanPhaseCreate) SetPlan(p *Plan) *PlanPhaseCreate {
-	return ppc.SetPlanID(p.ID)
+func (_c *PlanPhaseCreate) SetPlan(v *Plan) *PlanPhaseCreate {
+	return _c.SetPlanID(v.ID)
 }
 
 // AddRatecardIDs adds the "ratecards" edge to the PlanRateCard entity by IDs.
-func (ppc *PlanPhaseCreate) AddRatecardIDs(ids ...string) *PlanPhaseCreate {
-	ppc.mutation.AddRatecardIDs(ids...)
-	return ppc
+func (_c *PlanPhaseCreate) AddRatecardIDs(ids ...string) *PlanPhaseCreate {
+	_c.mutation.AddRatecardIDs(ids...)
+	return _c
 }
 
 // AddRatecards adds the "ratecards" edges to the PlanRateCard entity.
-func (ppc *PlanPhaseCreate) AddRatecards(p ...*PlanRateCard) *PlanPhaseCreate {
-	ids := make([]string, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+func (_c *PlanPhaseCreate) AddRatecards(v ...*PlanRateCard) *PlanPhaseCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ppc.AddRatecardIDs(ids...)
+	return _c.AddRatecardIDs(ids...)
 }
 
 // Mutation returns the PlanPhaseMutation object of the builder.
-func (ppc *PlanPhaseCreate) Mutation() *PlanPhaseMutation {
-	return ppc.mutation
+func (_c *PlanPhaseCreate) Mutation() *PlanPhaseMutation {
+	return _c.mutation
 }
 
 // Save creates the PlanPhase in the database.
-func (ppc *PlanPhaseCreate) Save(ctx context.Context) (*PlanPhase, error) {
-	ppc.defaults()
-	return withHooks(ctx, ppc.sqlSave, ppc.mutation, ppc.hooks)
+func (_c *PlanPhaseCreate) Save(ctx context.Context) (*PlanPhase, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (ppc *PlanPhaseCreate) SaveX(ctx context.Context) *PlanPhase {
-	v, err := ppc.Save(ctx)
+func (_c *PlanPhaseCreate) SaveX(ctx context.Context) *PlanPhase {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -187,84 +187,84 @@ func (ppc *PlanPhaseCreate) SaveX(ctx context.Context) *PlanPhase {
 }
 
 // Exec executes the query.
-func (ppc *PlanPhaseCreate) Exec(ctx context.Context) error {
-	_, err := ppc.Save(ctx)
+func (_c *PlanPhaseCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ppc *PlanPhaseCreate) ExecX(ctx context.Context) {
-	if err := ppc.Exec(ctx); err != nil {
+func (_c *PlanPhaseCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (ppc *PlanPhaseCreate) defaults() {
-	if _, ok := ppc.mutation.CreatedAt(); !ok {
+func (_c *PlanPhaseCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := planphase.DefaultCreatedAt()
-		ppc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := ppc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := planphase.DefaultUpdatedAt()
-		ppc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := ppc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := planphase.DefaultID()
-		ppc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (ppc *PlanPhaseCreate) check() error {
-	if _, ok := ppc.mutation.Namespace(); !ok {
+func (_c *PlanPhaseCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "PlanPhase.namespace"`)}
 	}
-	if v, ok := ppc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := planphase.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "PlanPhase.namespace": %w`, err)}
 		}
 	}
-	if _, ok := ppc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "PlanPhase.created_at"`)}
 	}
-	if _, ok := ppc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "PlanPhase.updated_at"`)}
 	}
-	if _, ok := ppc.mutation.Name(); !ok {
+	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "PlanPhase.name"`)}
 	}
-	if _, ok := ppc.mutation.Key(); !ok {
+	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "PlanPhase.key"`)}
 	}
-	if v, ok := ppc.mutation.Key(); ok {
+	if v, ok := _c.mutation.Key(); ok {
 		if err := planphase.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "PlanPhase.key": %w`, err)}
 		}
 	}
-	if _, ok := ppc.mutation.PlanID(); !ok {
+	if _, ok := _c.mutation.PlanID(); !ok {
 		return &ValidationError{Name: "plan_id", err: errors.New(`db: missing required field "PlanPhase.plan_id"`)}
 	}
-	if v, ok := ppc.mutation.PlanID(); ok {
+	if v, ok := _c.mutation.PlanID(); ok {
 		if err := planphase.PlanIDValidator(v); err != nil {
 			return &ValidationError{Name: "plan_id", err: fmt.Errorf(`db: validator failed for field "PlanPhase.plan_id": %w`, err)}
 		}
 	}
-	if _, ok := ppc.mutation.Index(); !ok {
+	if _, ok := _c.mutation.Index(); !ok {
 		return &ValidationError{Name: "index", err: errors.New(`db: missing required field "PlanPhase.index"`)}
 	}
-	if len(ppc.mutation.PlanIDs()) == 0 {
+	if len(_c.mutation.PlanIDs()) == 0 {
 		return &ValidationError{Name: "plan", err: errors.New(`db: missing required edge "PlanPhase.plan"`)}
 	}
 	return nil
 }
 
-func (ppc *PlanPhaseCreate) sqlSave(ctx context.Context) (*PlanPhase, error) {
-	if err := ppc.check(); err != nil {
+func (_c *PlanPhaseCreate) sqlSave(ctx context.Context) (*PlanPhase, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := ppc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, ppc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -277,62 +277,62 @@ func (ppc *PlanPhaseCreate) sqlSave(ctx context.Context) (*PlanPhase, error) {
 			return nil, fmt.Errorf("unexpected PlanPhase.ID type: %T", _spec.ID.Value)
 		}
 	}
-	ppc.mutation.id = &_node.ID
-	ppc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (ppc *PlanPhaseCreate) createSpec() (*PlanPhase, *sqlgraph.CreateSpec) {
+func (_c *PlanPhaseCreate) createSpec() (*PlanPhase, *sqlgraph.CreateSpec) {
 	var (
-		_node = &PlanPhase{config: ppc.config}
+		_node = &PlanPhase{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(planphase.Table, sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = ppc.conflict
-	if id, ok := ppc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := ppc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(planphase.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := ppc.mutation.Metadata(); ok {
+	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(planphase.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := ppc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(planphase.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := ppc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(planphase.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := ppc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(planphase.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := ppc.mutation.Name(); ok {
+	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(planphase.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := ppc.mutation.Description(); ok {
+	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(planphase.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := ppc.mutation.Key(); ok {
+	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(planphase.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
-	if value, ok := ppc.mutation.Index(); ok {
+	if value, ok := _c.mutation.Index(); ok {
 		_spec.SetField(planphase.FieldIndex, field.TypeUint8, value)
 		_node.Index = value
 	}
-	if value, ok := ppc.mutation.Duration(); ok {
+	if value, ok := _c.mutation.Duration(); ok {
 		_spec.SetField(planphase.FieldDuration, field.TypeString, value)
 		_node.Duration = &value
 	}
-	if nodes := ppc.mutation.PlanIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.PlanIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -349,7 +349,7 @@ func (ppc *PlanPhaseCreate) createSpec() (*PlanPhase, *sqlgraph.CreateSpec) {
 		_node.PlanID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ppc.mutation.RatecardsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.RatecardsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -384,10 +384,10 @@ func (ppc *PlanPhaseCreate) createSpec() (*PlanPhase, *sqlgraph.CreateSpec) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (ppc *PlanPhaseCreate) OnConflict(opts ...sql.ConflictOption) *PlanPhaseUpsertOne {
-	ppc.conflict = opts
+func (_c *PlanPhaseCreate) OnConflict(opts ...sql.ConflictOption) *PlanPhaseUpsertOne {
+	_c.conflict = opts
 	return &PlanPhaseUpsertOne{
-		create: ppc,
+		create: _c,
 	}
 }
 
@@ -397,10 +397,10 @@ func (ppc *PlanPhaseCreate) OnConflict(opts ...sql.ConflictOption) *PlanPhaseUps
 //	client.PlanPhase.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (ppc *PlanPhaseCreate) OnConflictColumns(columns ...string) *PlanPhaseUpsertOne {
-	ppc.conflict = append(ppc.conflict, sql.ConflictColumns(columns...))
+func (_c *PlanPhaseCreate) OnConflictColumns(columns ...string) *PlanPhaseUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &PlanPhaseUpsertOne{
-		create: ppc,
+		create: _c,
 	}
 }
 
@@ -794,16 +794,16 @@ type PlanPhaseCreateBulk struct {
 }
 
 // Save creates the PlanPhase entities in the database.
-func (ppcb *PlanPhaseCreateBulk) Save(ctx context.Context) ([]*PlanPhase, error) {
-	if ppcb.err != nil {
-		return nil, ppcb.err
+func (_c *PlanPhaseCreateBulk) Save(ctx context.Context) ([]*PlanPhase, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(ppcb.builders))
-	nodes := make([]*PlanPhase, len(ppcb.builders))
-	mutators := make([]Mutator, len(ppcb.builders))
-	for i := range ppcb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*PlanPhase, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := ppcb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*PlanPhaseMutation)
@@ -817,12 +817,12 @@ func (ppcb *PlanPhaseCreateBulk) Save(ctx context.Context) ([]*PlanPhase, error)
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, ppcb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = ppcb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, ppcb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -842,7 +842,7 @@ func (ppcb *PlanPhaseCreateBulk) Save(ctx context.Context) ([]*PlanPhase, error)
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, ppcb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -850,8 +850,8 @@ func (ppcb *PlanPhaseCreateBulk) Save(ctx context.Context) ([]*PlanPhase, error)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (ppcb *PlanPhaseCreateBulk) SaveX(ctx context.Context) []*PlanPhase {
-	v, err := ppcb.Save(ctx)
+func (_c *PlanPhaseCreateBulk) SaveX(ctx context.Context) []*PlanPhase {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -859,14 +859,14 @@ func (ppcb *PlanPhaseCreateBulk) SaveX(ctx context.Context) []*PlanPhase {
 }
 
 // Exec executes the query.
-func (ppcb *PlanPhaseCreateBulk) Exec(ctx context.Context) error {
-	_, err := ppcb.Save(ctx)
+func (_c *PlanPhaseCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ppcb *PlanPhaseCreateBulk) ExecX(ctx context.Context) {
-	if err := ppcb.Exec(ctx); err != nil {
+func (_c *PlanPhaseCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -886,10 +886,10 @@ func (ppcb *PlanPhaseCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (ppcb *PlanPhaseCreateBulk) OnConflict(opts ...sql.ConflictOption) *PlanPhaseUpsertBulk {
-	ppcb.conflict = opts
+func (_c *PlanPhaseCreateBulk) OnConflict(opts ...sql.ConflictOption) *PlanPhaseUpsertBulk {
+	_c.conflict = opts
 	return &PlanPhaseUpsertBulk{
-		create: ppcb,
+		create: _c,
 	}
 }
 
@@ -899,10 +899,10 @@ func (ppcb *PlanPhaseCreateBulk) OnConflict(opts ...sql.ConflictOption) *PlanPha
 //	client.PlanPhase.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (ppcb *PlanPhaseCreateBulk) OnConflictColumns(columns ...string) *PlanPhaseUpsertBulk {
-	ppcb.conflict = append(ppcb.conflict, sql.ConflictColumns(columns...))
+func (_c *PlanPhaseCreateBulk) OnConflictColumns(columns ...string) *PlanPhaseUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &PlanPhaseUpsertBulk{
-		create: ppcb,
+		create: _c,
 	}
 }
 

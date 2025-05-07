@@ -68,7 +68,7 @@ func (*Meter) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the Meter fields.
-func (m *Meter) assignValues(columns []string, values []any) error {
+func (_m *Meter) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -78,19 +78,19 @@ func (m *Meter) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				m.ID = value.String
+				_m.ID = value.String
 			}
 		case dbmeter.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				m.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case dbmeter.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &m.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -98,58 +98,58 @@ func (m *Meter) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				m.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case dbmeter.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				m.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case dbmeter.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				m.DeletedAt = new(time.Time)
-				*m.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case dbmeter.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				m.Name = value.String
+				_m.Name = value.String
 			}
 		case dbmeter.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				m.Description = new(string)
-				*m.Description = value.String
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case dbmeter.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
-				m.Key = value.String
+				_m.Key = value.String
 			}
 		case dbmeter.FieldEventType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field event_type", values[i])
 			} else if value.Valid {
-				m.EventType = value.String
+				_m.EventType = value.String
 			}
 		case dbmeter.FieldValueProperty:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field value_property", values[i])
 			} else if value.Valid {
-				m.ValueProperty = new(string)
-				*m.ValueProperty = value.String
+				_m.ValueProperty = new(string)
+				*_m.ValueProperty = value.String
 			}
 		case dbmeter.FieldGroupBy:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field group_by", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &m.GroupBy); err != nil {
+				if err := json.Unmarshal(*value, &_m.GroupBy); err != nil {
 					return fmt.Errorf("unmarshal field group_by: %w", err)
 				}
 			}
@@ -157,17 +157,17 @@ func (m *Meter) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field aggregation", values[i])
 			} else if value.Valid {
-				m.Aggregation = meter.MeterAggregation(value.String)
+				_m.Aggregation = meter.MeterAggregation(value.String)
 			}
 		case dbmeter.FieldEventFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field event_from", values[i])
 			} else if value.Valid {
-				m.EventFrom = new(time.Time)
-				*m.EventFrom = value.Time
+				_m.EventFrom = new(time.Time)
+				*_m.EventFrom = value.Time
 			}
 		default:
-			m.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -175,76 +175,76 @@ func (m *Meter) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the Meter.
 // This includes values selected through modifiers, order, etc.
-func (m *Meter) Value(name string) (ent.Value, error) {
-	return m.selectValues.Get(name)
+func (_m *Meter) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // Update returns a builder for updating this Meter.
 // Note that you need to call Meter.Unwrap() before calling this method if this Meter
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (m *Meter) Update() *MeterUpdateOne {
-	return NewMeterClient(m.config).UpdateOne(m)
+func (_m *Meter) Update() *MeterUpdateOne {
+	return NewMeterClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the Meter entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (m *Meter) Unwrap() *Meter {
-	_tx, ok := m.config.driver.(*txDriver)
+func (_m *Meter) Unwrap() *Meter {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: Meter is not a transactional entity")
 	}
-	m.config.driver = _tx.drv
-	return m
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (m *Meter) String() string {
+func (_m *Meter) String() string {
 	var builder strings.Builder
 	builder.WriteString("Meter(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", m.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(m.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", m.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(m.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := m.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
-	builder.WriteString(m.Name)
+	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
-	if v := m.Description; v != nil {
+	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("key=")
-	builder.WriteString(m.Key)
+	builder.WriteString(_m.Key)
 	builder.WriteString(", ")
 	builder.WriteString("event_type=")
-	builder.WriteString(m.EventType)
+	builder.WriteString(_m.EventType)
 	builder.WriteString(", ")
-	if v := m.ValueProperty; v != nil {
+	if v := _m.ValueProperty; v != nil {
 		builder.WriteString("value_property=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("group_by=")
-	builder.WriteString(fmt.Sprintf("%v", m.GroupBy))
+	builder.WriteString(fmt.Sprintf("%v", _m.GroupBy))
 	builder.WriteString(", ")
 	builder.WriteString("aggregation=")
-	builder.WriteString(fmt.Sprintf("%v", m.Aggregation))
+	builder.WriteString(fmt.Sprintf("%v", _m.Aggregation))
 	builder.WriteString(", ")
-	if v := m.EventFrom; v != nil {
+	if v := _m.EventFrom; v != nil {
 		builder.WriteString("event_from=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}

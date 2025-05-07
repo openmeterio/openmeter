@@ -32,44 +32,44 @@ type UsageResetQuery struct {
 }
 
 // Where adds a new predicate for the UsageResetQuery builder.
-func (urq *UsageResetQuery) Where(ps ...predicate.UsageReset) *UsageResetQuery {
-	urq.predicates = append(urq.predicates, ps...)
-	return urq
+func (_q *UsageResetQuery) Where(ps ...predicate.UsageReset) *UsageResetQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (urq *UsageResetQuery) Limit(limit int) *UsageResetQuery {
-	urq.ctx.Limit = &limit
-	return urq
+func (_q *UsageResetQuery) Limit(limit int) *UsageResetQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (urq *UsageResetQuery) Offset(offset int) *UsageResetQuery {
-	urq.ctx.Offset = &offset
-	return urq
+func (_q *UsageResetQuery) Offset(offset int) *UsageResetQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (urq *UsageResetQuery) Unique(unique bool) *UsageResetQuery {
-	urq.ctx.Unique = &unique
-	return urq
+func (_q *UsageResetQuery) Unique(unique bool) *UsageResetQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (urq *UsageResetQuery) Order(o ...usagereset.OrderOption) *UsageResetQuery {
-	urq.order = append(urq.order, o...)
-	return urq
+func (_q *UsageResetQuery) Order(o ...usagereset.OrderOption) *UsageResetQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryEntitlement chains the current query on the "entitlement" edge.
-func (urq *UsageResetQuery) QueryEntitlement() *EntitlementQuery {
-	query := (&EntitlementClient{config: urq.config}).Query()
+func (_q *UsageResetQuery) QueryEntitlement() *EntitlementQuery {
+	query := (&EntitlementClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := urq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := urq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -78,7 +78,7 @@ func (urq *UsageResetQuery) QueryEntitlement() *EntitlementQuery {
 			sqlgraph.To(entitlement.Table, entitlement.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, usagereset.EntitlementTable, usagereset.EntitlementColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(urq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -86,8 +86,8 @@ func (urq *UsageResetQuery) QueryEntitlement() *EntitlementQuery {
 
 // First returns the first UsageReset entity from the query.
 // Returns a *NotFoundError when no UsageReset was found.
-func (urq *UsageResetQuery) First(ctx context.Context) (*UsageReset, error) {
-	nodes, err := urq.Limit(1).All(setContextOp(ctx, urq.ctx, ent.OpQueryFirst))
+func (_q *UsageResetQuery) First(ctx context.Context) (*UsageReset, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +98,8 @@ func (urq *UsageResetQuery) First(ctx context.Context) (*UsageReset, error) {
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (urq *UsageResetQuery) FirstX(ctx context.Context) *UsageReset {
-	node, err := urq.First(ctx)
+func (_q *UsageResetQuery) FirstX(ctx context.Context) *UsageReset {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -108,9 +108,9 @@ func (urq *UsageResetQuery) FirstX(ctx context.Context) *UsageReset {
 
 // FirstID returns the first UsageReset ID from the query.
 // Returns a *NotFoundError when no UsageReset ID was found.
-func (urq *UsageResetQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *UsageResetQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = urq.Limit(1).IDs(setContextOp(ctx, urq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -121,8 +121,8 @@ func (urq *UsageResetQuery) FirstID(ctx context.Context) (id string, err error) 
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (urq *UsageResetQuery) FirstIDX(ctx context.Context) string {
-	id, err := urq.FirstID(ctx)
+func (_q *UsageResetQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -132,8 +132,8 @@ func (urq *UsageResetQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single UsageReset entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one UsageReset entity is found.
 // Returns a *NotFoundError when no UsageReset entities are found.
-func (urq *UsageResetQuery) Only(ctx context.Context) (*UsageReset, error) {
-	nodes, err := urq.Limit(2).All(setContextOp(ctx, urq.ctx, ent.OpQueryOnly))
+func (_q *UsageResetQuery) Only(ctx context.Context) (*UsageReset, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +148,8 @@ func (urq *UsageResetQuery) Only(ctx context.Context) (*UsageReset, error) {
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (urq *UsageResetQuery) OnlyX(ctx context.Context) *UsageReset {
-	node, err := urq.Only(ctx)
+func (_q *UsageResetQuery) OnlyX(ctx context.Context) *UsageReset {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -159,9 +159,9 @@ func (urq *UsageResetQuery) OnlyX(ctx context.Context) *UsageReset {
 // OnlyID is like Only, but returns the only UsageReset ID in the query.
 // Returns a *NotSingularError when more than one UsageReset ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (urq *UsageResetQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *UsageResetQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = urq.Limit(2).IDs(setContextOp(ctx, urq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -176,8 +176,8 @@ func (urq *UsageResetQuery) OnlyID(ctx context.Context) (id string, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (urq *UsageResetQuery) OnlyIDX(ctx context.Context) string {
-	id, err := urq.OnlyID(ctx)
+func (_q *UsageResetQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -185,18 +185,18 @@ func (urq *UsageResetQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of UsageResets.
-func (urq *UsageResetQuery) All(ctx context.Context) ([]*UsageReset, error) {
-	ctx = setContextOp(ctx, urq.ctx, ent.OpQueryAll)
-	if err := urq.prepareQuery(ctx); err != nil {
+func (_q *UsageResetQuery) All(ctx context.Context) ([]*UsageReset, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*UsageReset, *UsageResetQuery]()
-	return withInterceptors[[]*UsageReset](ctx, urq, qr, urq.inters)
+	return withInterceptors[[]*UsageReset](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (urq *UsageResetQuery) AllX(ctx context.Context) []*UsageReset {
-	nodes, err := urq.All(ctx)
+func (_q *UsageResetQuery) AllX(ctx context.Context) []*UsageReset {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -204,20 +204,20 @@ func (urq *UsageResetQuery) AllX(ctx context.Context) []*UsageReset {
 }
 
 // IDs executes the query and returns a list of UsageReset IDs.
-func (urq *UsageResetQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if urq.ctx.Unique == nil && urq.path != nil {
-		urq.Unique(true)
+func (_q *UsageResetQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, urq.ctx, ent.OpQueryIDs)
-	if err = urq.Select(usagereset.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(usagereset.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (urq *UsageResetQuery) IDsX(ctx context.Context) []string {
-	ids, err := urq.IDs(ctx)
+func (_q *UsageResetQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -225,17 +225,17 @@ func (urq *UsageResetQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (urq *UsageResetQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, urq.ctx, ent.OpQueryCount)
-	if err := urq.prepareQuery(ctx); err != nil {
+func (_q *UsageResetQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, urq, querierCount[*UsageResetQuery](), urq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*UsageResetQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (urq *UsageResetQuery) CountX(ctx context.Context) int {
-	count, err := urq.Count(ctx)
+func (_q *UsageResetQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -243,9 +243,9 @@ func (urq *UsageResetQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (urq *UsageResetQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, urq.ctx, ent.OpQueryExist)
-	switch _, err := urq.FirstID(ctx); {
+func (_q *UsageResetQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -256,8 +256,8 @@ func (urq *UsageResetQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (urq *UsageResetQuery) ExistX(ctx context.Context) bool {
-	exist, err := urq.Exist(ctx)
+func (_q *UsageResetQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -266,32 +266,32 @@ func (urq *UsageResetQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the UsageResetQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (urq *UsageResetQuery) Clone() *UsageResetQuery {
-	if urq == nil {
+func (_q *UsageResetQuery) Clone() *UsageResetQuery {
+	if _q == nil {
 		return nil
 	}
 	return &UsageResetQuery{
-		config:          urq.config,
-		ctx:             urq.ctx.Clone(),
-		order:           append([]usagereset.OrderOption{}, urq.order...),
-		inters:          append([]Interceptor{}, urq.inters...),
-		predicates:      append([]predicate.UsageReset{}, urq.predicates...),
-		withEntitlement: urq.withEntitlement.Clone(),
+		config:          _q.config,
+		ctx:             _q.ctx.Clone(),
+		order:           append([]usagereset.OrderOption{}, _q.order...),
+		inters:          append([]Interceptor{}, _q.inters...),
+		predicates:      append([]predicate.UsageReset{}, _q.predicates...),
+		withEntitlement: _q.withEntitlement.Clone(),
 		// clone intermediate query.
-		sql:  urq.sql.Clone(),
-		path: urq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithEntitlement tells the query-builder to eager-load the nodes that are connected to
 // the "entitlement" edge. The optional arguments are used to configure the query builder of the edge.
-func (urq *UsageResetQuery) WithEntitlement(opts ...func(*EntitlementQuery)) *UsageResetQuery {
-	query := (&EntitlementClient{config: urq.config}).Query()
+func (_q *UsageResetQuery) WithEntitlement(opts ...func(*EntitlementQuery)) *UsageResetQuery {
+	query := (&EntitlementClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	urq.withEntitlement = query
-	return urq
+	_q.withEntitlement = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -308,10 +308,10 @@ func (urq *UsageResetQuery) WithEntitlement(opts ...func(*EntitlementQuery)) *Us
 //		GroupBy(usagereset.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (urq *UsageResetQuery) GroupBy(field string, fields ...string) *UsageResetGroupBy {
-	urq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &UsageResetGroupBy{build: urq}
-	grbuild.flds = &urq.ctx.Fields
+func (_q *UsageResetQuery) GroupBy(field string, fields ...string) *UsageResetGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &UsageResetGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = usagereset.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -329,76 +329,76 @@ func (urq *UsageResetQuery) GroupBy(field string, fields ...string) *UsageResetG
 //	client.UsageReset.Query().
 //		Select(usagereset.FieldNamespace).
 //		Scan(ctx, &v)
-func (urq *UsageResetQuery) Select(fields ...string) *UsageResetSelect {
-	urq.ctx.Fields = append(urq.ctx.Fields, fields...)
-	sbuild := &UsageResetSelect{UsageResetQuery: urq}
+func (_q *UsageResetQuery) Select(fields ...string) *UsageResetSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &UsageResetSelect{UsageResetQuery: _q}
 	sbuild.label = usagereset.Label
-	sbuild.flds, sbuild.scan = &urq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a UsageResetSelect configured with the given aggregations.
-func (urq *UsageResetQuery) Aggregate(fns ...AggregateFunc) *UsageResetSelect {
-	return urq.Select().Aggregate(fns...)
+func (_q *UsageResetQuery) Aggregate(fns ...AggregateFunc) *UsageResetSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (urq *UsageResetQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range urq.inters {
+func (_q *UsageResetQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, urq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range urq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !usagereset.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if urq.path != nil {
-		prev, err := urq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		urq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (urq *UsageResetQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*UsageReset, error) {
+func (_q *UsageResetQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*UsageReset, error) {
 	var (
 		nodes       = []*UsageReset{}
-		_spec       = urq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [1]bool{
-			urq.withEntitlement != nil,
+			_q.withEntitlement != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*UsageReset).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &UsageReset{config: urq.config}
+		node := &UsageReset{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(urq.modifiers) > 0 {
-		_spec.Modifiers = urq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, urq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := urq.withEntitlement; query != nil {
-		if err := urq.loadEntitlement(ctx, query, nodes, nil,
+	if query := _q.withEntitlement; query != nil {
+		if err := _q.loadEntitlement(ctx, query, nodes, nil,
 			func(n *UsageReset, e *Entitlement) { n.Edges.Entitlement = e }); err != nil {
 			return nil, err
 		}
@@ -406,7 +406,7 @@ func (urq *UsageResetQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 	return nodes, nil
 }
 
-func (urq *UsageResetQuery) loadEntitlement(ctx context.Context, query *EntitlementQuery, nodes []*UsageReset, init func(*UsageReset), assign func(*UsageReset, *Entitlement)) error {
+func (_q *UsageResetQuery) loadEntitlement(ctx context.Context, query *EntitlementQuery, nodes []*UsageReset, init func(*UsageReset), assign func(*UsageReset, *Entitlement)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*UsageReset)
 	for i := range nodes {
@@ -436,27 +436,27 @@ func (urq *UsageResetQuery) loadEntitlement(ctx context.Context, query *Entitlem
 	return nil
 }
 
-func (urq *UsageResetQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := urq.querySpec()
-	if len(urq.modifiers) > 0 {
-		_spec.Modifiers = urq.modifiers
+func (_q *UsageResetQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = urq.ctx.Fields
-	if len(urq.ctx.Fields) > 0 {
-		_spec.Unique = urq.ctx.Unique != nil && *urq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, urq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (urq *UsageResetQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *UsageResetQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(usagereset.Table, usagereset.Columns, sqlgraph.NewFieldSpec(usagereset.FieldID, field.TypeString))
-	_spec.From = urq.sql
-	if unique := urq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if urq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := urq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, usagereset.FieldID)
 		for i := range fields {
@@ -464,24 +464,24 @@ func (urq *UsageResetQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if urq.withEntitlement != nil {
+		if _q.withEntitlement != nil {
 			_spec.Node.AddColumnOnce(usagereset.FieldEntitlementID)
 		}
 	}
-	if ps := urq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := urq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := urq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := urq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -491,36 +491,36 @@ func (urq *UsageResetQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (urq *UsageResetQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(urq.driver.Dialect())
+func (_q *UsageResetQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(usagereset.Table)
-	columns := urq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = usagereset.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if urq.sql != nil {
-		selector = urq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if urq.ctx.Unique != nil && *urq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range urq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range urq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range urq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := urq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := urq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -529,27 +529,27 @@ func (urq *UsageResetQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (urq *UsageResetQuery) ForUpdate(opts ...sql.LockOption) *UsageResetQuery {
-	if urq.driver.Dialect() == dialect.Postgres {
-		urq.Unique(false)
+func (_q *UsageResetQuery) ForUpdate(opts ...sql.LockOption) *UsageResetQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	urq.modifiers = append(urq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return urq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (urq *UsageResetQuery) ForShare(opts ...sql.LockOption) *UsageResetQuery {
-	if urq.driver.Dialect() == dialect.Postgres {
-		urq.Unique(false)
+func (_q *UsageResetQuery) ForShare(opts ...sql.LockOption) *UsageResetQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	urq.modifiers = append(urq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return urq
+	return _q
 }
 
 // UsageResetGroupBy is the group-by builder for UsageReset entities.

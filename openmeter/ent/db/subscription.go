@@ -141,7 +141,7 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the Subscription fields.
-func (s *Subscription) assignValues(columns []string, values []any) error {
+func (_m *Subscription) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -151,38 +151,38 @@ func (s *Subscription) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				s.ID = value.String
+				_m.ID = value.String
 			}
 		case subscription.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				s.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case subscription.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				s.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case subscription.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				s.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case subscription.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				s.DeletedAt = new(time.Time)
-				*s.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case subscription.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &s.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -190,55 +190,55 @@ func (s *Subscription) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field active_from", values[i])
 			} else if value.Valid {
-				s.ActiveFrom = value.Time
+				_m.ActiveFrom = value.Time
 			}
 		case subscription.FieldActiveTo:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field active_to", values[i])
 			} else if value.Valid {
-				s.ActiveTo = new(time.Time)
-				*s.ActiveTo = value.Time
+				_m.ActiveTo = new(time.Time)
+				*_m.ActiveTo = value.Time
 			}
 		case subscription.FieldBillablesMustAlign:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field billables_must_align", values[i])
 			} else if value.Valid {
-				s.BillablesMustAlign = value.Bool
+				_m.BillablesMustAlign = value.Bool
 			}
 		case subscription.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				s.Name = value.String
+				_m.Name = value.String
 			}
 		case subscription.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				s.Description = new(string)
-				*s.Description = value.String
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case subscription.FieldPlanID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field plan_id", values[i])
 			} else if value.Valid {
-				s.PlanID = new(string)
-				*s.PlanID = value.String
+				_m.PlanID = new(string)
+				*_m.PlanID = value.String
 			}
 		case subscription.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
 			} else if value.Valid {
-				s.CustomerID = value.String
+				_m.CustomerID = value.String
 			}
 		case subscription.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				s.Currency = currencyx.Code(value.String)
+				_m.Currency = currencyx.Code(value.String)
 			}
 		default:
-			s.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -246,104 +246,104 @@ func (s *Subscription) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the Subscription.
 // This includes values selected through modifiers, order, etc.
-func (s *Subscription) Value(name string) (ent.Value, error) {
-	return s.selectValues.Get(name)
+func (_m *Subscription) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryPlan queries the "plan" edge of the Subscription entity.
-func (s *Subscription) QueryPlan() *PlanQuery {
-	return NewSubscriptionClient(s.config).QueryPlan(s)
+func (_m *Subscription) QueryPlan() *PlanQuery {
+	return NewSubscriptionClient(_m.config).QueryPlan(_m)
 }
 
 // QueryCustomer queries the "customer" edge of the Subscription entity.
-func (s *Subscription) QueryCustomer() *CustomerQuery {
-	return NewSubscriptionClient(s.config).QueryCustomer(s)
+func (_m *Subscription) QueryCustomer() *CustomerQuery {
+	return NewSubscriptionClient(_m.config).QueryCustomer(_m)
 }
 
 // QueryPhases queries the "phases" edge of the Subscription entity.
-func (s *Subscription) QueryPhases() *SubscriptionPhaseQuery {
-	return NewSubscriptionClient(s.config).QueryPhases(s)
+func (_m *Subscription) QueryPhases() *SubscriptionPhaseQuery {
+	return NewSubscriptionClient(_m.config).QueryPhases(_m)
 }
 
 // QueryBillingLines queries the "billing_lines" edge of the Subscription entity.
-func (s *Subscription) QueryBillingLines() *BillingInvoiceLineQuery {
-	return NewSubscriptionClient(s.config).QueryBillingLines(s)
+func (_m *Subscription) QueryBillingLines() *BillingInvoiceLineQuery {
+	return NewSubscriptionClient(_m.config).QueryBillingLines(_m)
 }
 
 // QueryAddons queries the "addons" edge of the Subscription entity.
-func (s *Subscription) QueryAddons() *SubscriptionAddonQuery {
-	return NewSubscriptionClient(s.config).QueryAddons(s)
+func (_m *Subscription) QueryAddons() *SubscriptionAddonQuery {
+	return NewSubscriptionClient(_m.config).QueryAddons(_m)
 }
 
 // Update returns a builder for updating this Subscription.
 // Note that you need to call Subscription.Unwrap() before calling this method if this Subscription
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (s *Subscription) Update() *SubscriptionUpdateOne {
-	return NewSubscriptionClient(s.config).UpdateOne(s)
+func (_m *Subscription) Update() *SubscriptionUpdateOne {
+	return NewSubscriptionClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the Subscription entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (s *Subscription) Unwrap() *Subscription {
-	_tx, ok := s.config.driver.(*txDriver)
+func (_m *Subscription) Unwrap() *Subscription {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: Subscription is not a transactional entity")
 	}
-	s.config.driver = _tx.drv
-	return s
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (s *Subscription) String() string {
+func (_m *Subscription) String() string {
 	var builder strings.Builder
 	builder.WriteString("Subscription(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", s.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(s.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(s.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(s.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := s.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", s.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("active_from=")
-	builder.WriteString(s.ActiveFrom.Format(time.ANSIC))
+	builder.WriteString(_m.ActiveFrom.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := s.ActiveTo; v != nil {
+	if v := _m.ActiveTo; v != nil {
 		builder.WriteString("active_to=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("billables_must_align=")
-	builder.WriteString(fmt.Sprintf("%v", s.BillablesMustAlign))
+	builder.WriteString(fmt.Sprintf("%v", _m.BillablesMustAlign))
 	builder.WriteString(", ")
 	builder.WriteString("name=")
-	builder.WriteString(s.Name)
+	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
-	if v := s.Description; v != nil {
+	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := s.PlanID; v != nil {
+	if v := _m.PlanID; v != nil {
 		builder.WriteString("plan_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
-	builder.WriteString(s.CustomerID)
+	builder.WriteString(_m.CustomerID)
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", s.Currency))
+	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
 	builder.WriteByte(')')
 	return builder.String()
 }

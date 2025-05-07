@@ -28,215 +28,215 @@ type AddonRateCardCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (arcc *AddonRateCardCreate) SetNamespace(s string) *AddonRateCardCreate {
-	arcc.mutation.SetNamespace(s)
-	return arcc
+func (_c *AddonRateCardCreate) SetNamespace(v string) *AddonRateCardCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetMetadata sets the "metadata" field.
-func (arcc *AddonRateCardCreate) SetMetadata(m map[string]string) *AddonRateCardCreate {
-	arcc.mutation.SetMetadata(m)
-	return arcc
+func (_c *AddonRateCardCreate) SetMetadata(v map[string]string) *AddonRateCardCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (arcc *AddonRateCardCreate) SetCreatedAt(t time.Time) *AddonRateCardCreate {
-	arcc.mutation.SetCreatedAt(t)
-	return arcc
+func (_c *AddonRateCardCreate) SetCreatedAt(v time.Time) *AddonRateCardCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (arcc *AddonRateCardCreate) SetNillableCreatedAt(t *time.Time) *AddonRateCardCreate {
-	if t != nil {
-		arcc.SetCreatedAt(*t)
+func (_c *AddonRateCardCreate) SetNillableCreatedAt(v *time.Time) *AddonRateCardCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return arcc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (arcc *AddonRateCardCreate) SetUpdatedAt(t time.Time) *AddonRateCardCreate {
-	arcc.mutation.SetUpdatedAt(t)
-	return arcc
+func (_c *AddonRateCardCreate) SetUpdatedAt(v time.Time) *AddonRateCardCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (arcc *AddonRateCardCreate) SetNillableUpdatedAt(t *time.Time) *AddonRateCardCreate {
-	if t != nil {
-		arcc.SetUpdatedAt(*t)
+func (_c *AddonRateCardCreate) SetNillableUpdatedAt(v *time.Time) *AddonRateCardCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return arcc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (arcc *AddonRateCardCreate) SetDeletedAt(t time.Time) *AddonRateCardCreate {
-	arcc.mutation.SetDeletedAt(t)
-	return arcc
+func (_c *AddonRateCardCreate) SetDeletedAt(v time.Time) *AddonRateCardCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (arcc *AddonRateCardCreate) SetNillableDeletedAt(t *time.Time) *AddonRateCardCreate {
-	if t != nil {
-		arcc.SetDeletedAt(*t)
+func (_c *AddonRateCardCreate) SetNillableDeletedAt(v *time.Time) *AddonRateCardCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return arcc
+	return _c
 }
 
 // SetName sets the "name" field.
-func (arcc *AddonRateCardCreate) SetName(s string) *AddonRateCardCreate {
-	arcc.mutation.SetName(s)
-	return arcc
+func (_c *AddonRateCardCreate) SetName(v string) *AddonRateCardCreate {
+	_c.mutation.SetName(v)
+	return _c
 }
 
 // SetDescription sets the "description" field.
-func (arcc *AddonRateCardCreate) SetDescription(s string) *AddonRateCardCreate {
-	arcc.mutation.SetDescription(s)
-	return arcc
+func (_c *AddonRateCardCreate) SetDescription(v string) *AddonRateCardCreate {
+	_c.mutation.SetDescription(v)
+	return _c
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (arcc *AddonRateCardCreate) SetNillableDescription(s *string) *AddonRateCardCreate {
-	if s != nil {
-		arcc.SetDescription(*s)
+func (_c *AddonRateCardCreate) SetNillableDescription(v *string) *AddonRateCardCreate {
+	if v != nil {
+		_c.SetDescription(*v)
 	}
-	return arcc
+	return _c
 }
 
 // SetKey sets the "key" field.
-func (arcc *AddonRateCardCreate) SetKey(s string) *AddonRateCardCreate {
-	arcc.mutation.SetKey(s)
-	return arcc
+func (_c *AddonRateCardCreate) SetKey(v string) *AddonRateCardCreate {
+	_c.mutation.SetKey(v)
+	return _c
 }
 
 // SetType sets the "type" field.
-func (arcc *AddonRateCardCreate) SetType(pct productcatalog.RateCardType) *AddonRateCardCreate {
-	arcc.mutation.SetType(pct)
-	return arcc
+func (_c *AddonRateCardCreate) SetType(v productcatalog.RateCardType) *AddonRateCardCreate {
+	_c.mutation.SetType(v)
+	return _c
 }
 
 // SetFeatureKey sets the "feature_key" field.
-func (arcc *AddonRateCardCreate) SetFeatureKey(s string) *AddonRateCardCreate {
-	arcc.mutation.SetFeatureKey(s)
-	return arcc
+func (_c *AddonRateCardCreate) SetFeatureKey(v string) *AddonRateCardCreate {
+	_c.mutation.SetFeatureKey(v)
+	return _c
 }
 
 // SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
-func (arcc *AddonRateCardCreate) SetNillableFeatureKey(s *string) *AddonRateCardCreate {
-	if s != nil {
-		arcc.SetFeatureKey(*s)
+func (_c *AddonRateCardCreate) SetNillableFeatureKey(v *string) *AddonRateCardCreate {
+	if v != nil {
+		_c.SetFeatureKey(*v)
 	}
-	return arcc
+	return _c
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (arcc *AddonRateCardCreate) SetEntitlementTemplate(pt *productcatalog.EntitlementTemplate) *AddonRateCardCreate {
-	arcc.mutation.SetEntitlementTemplate(pt)
-	return arcc
+func (_c *AddonRateCardCreate) SetEntitlementTemplate(v *productcatalog.EntitlementTemplate) *AddonRateCardCreate {
+	_c.mutation.SetEntitlementTemplate(v)
+	return _c
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (arcc *AddonRateCardCreate) SetTaxConfig(pc *productcatalog.TaxConfig) *AddonRateCardCreate {
-	arcc.mutation.SetTaxConfig(pc)
-	return arcc
+func (_c *AddonRateCardCreate) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardCreate {
+	_c.mutation.SetTaxConfig(v)
+	return _c
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (arcc *AddonRateCardCreate) SetBillingCadence(i isodate.String) *AddonRateCardCreate {
-	arcc.mutation.SetBillingCadence(i)
-	return arcc
+func (_c *AddonRateCardCreate) SetBillingCadence(v isodate.String) *AddonRateCardCreate {
+	_c.mutation.SetBillingCadence(v)
+	return _c
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (arcc *AddonRateCardCreate) SetNillableBillingCadence(i *isodate.String) *AddonRateCardCreate {
-	if i != nil {
-		arcc.SetBillingCadence(*i)
+func (_c *AddonRateCardCreate) SetNillableBillingCadence(v *isodate.String) *AddonRateCardCreate {
+	if v != nil {
+		_c.SetBillingCadence(*v)
 	}
-	return arcc
+	return _c
 }
 
 // SetPrice sets the "price" field.
-func (arcc *AddonRateCardCreate) SetPrice(pr *productcatalog.Price) *AddonRateCardCreate {
-	arcc.mutation.SetPrice(pr)
-	return arcc
+func (_c *AddonRateCardCreate) SetPrice(v *productcatalog.Price) *AddonRateCardCreate {
+	_c.mutation.SetPrice(v)
+	return _c
 }
 
 // SetDiscounts sets the "discounts" field.
-func (arcc *AddonRateCardCreate) SetDiscounts(pr *productcatalog.Discounts) *AddonRateCardCreate {
-	arcc.mutation.SetDiscounts(pr)
-	return arcc
+func (_c *AddonRateCardCreate) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardCreate {
+	_c.mutation.SetDiscounts(v)
+	return _c
 }
 
 // SetAddonID sets the "addon_id" field.
-func (arcc *AddonRateCardCreate) SetAddonID(s string) *AddonRateCardCreate {
-	arcc.mutation.SetAddonID(s)
-	return arcc
+func (_c *AddonRateCardCreate) SetAddonID(v string) *AddonRateCardCreate {
+	_c.mutation.SetAddonID(v)
+	return _c
 }
 
 // SetFeatureID sets the "feature_id" field.
-func (arcc *AddonRateCardCreate) SetFeatureID(s string) *AddonRateCardCreate {
-	arcc.mutation.SetFeatureID(s)
-	return arcc
+func (_c *AddonRateCardCreate) SetFeatureID(v string) *AddonRateCardCreate {
+	_c.mutation.SetFeatureID(v)
+	return _c
 }
 
 // SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
-func (arcc *AddonRateCardCreate) SetNillableFeatureID(s *string) *AddonRateCardCreate {
-	if s != nil {
-		arcc.SetFeatureID(*s)
+func (_c *AddonRateCardCreate) SetNillableFeatureID(v *string) *AddonRateCardCreate {
+	if v != nil {
+		_c.SetFeatureID(*v)
 	}
-	return arcc
+	return _c
 }
 
 // SetID sets the "id" field.
-func (arcc *AddonRateCardCreate) SetID(s string) *AddonRateCardCreate {
-	arcc.mutation.SetID(s)
-	return arcc
+func (_c *AddonRateCardCreate) SetID(v string) *AddonRateCardCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (arcc *AddonRateCardCreate) SetNillableID(s *string) *AddonRateCardCreate {
-	if s != nil {
-		arcc.SetID(*s)
+func (_c *AddonRateCardCreate) SetNillableID(v *string) *AddonRateCardCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return arcc
+	return _c
 }
 
 // SetAddon sets the "addon" edge to the Addon entity.
-func (arcc *AddonRateCardCreate) SetAddon(a *Addon) *AddonRateCardCreate {
-	return arcc.SetAddonID(a.ID)
+func (_c *AddonRateCardCreate) SetAddon(v *Addon) *AddonRateCardCreate {
+	return _c.SetAddonID(v.ID)
 }
 
 // SetFeaturesID sets the "features" edge to the Feature entity by ID.
-func (arcc *AddonRateCardCreate) SetFeaturesID(id string) *AddonRateCardCreate {
-	arcc.mutation.SetFeaturesID(id)
-	return arcc
+func (_c *AddonRateCardCreate) SetFeaturesID(id string) *AddonRateCardCreate {
+	_c.mutation.SetFeaturesID(id)
+	return _c
 }
 
 // SetNillableFeaturesID sets the "features" edge to the Feature entity by ID if the given value is not nil.
-func (arcc *AddonRateCardCreate) SetNillableFeaturesID(id *string) *AddonRateCardCreate {
+func (_c *AddonRateCardCreate) SetNillableFeaturesID(id *string) *AddonRateCardCreate {
 	if id != nil {
-		arcc = arcc.SetFeaturesID(*id)
+		_c = _c.SetFeaturesID(*id)
 	}
-	return arcc
+	return _c
 }
 
 // SetFeatures sets the "features" edge to the Feature entity.
-func (arcc *AddonRateCardCreate) SetFeatures(f *Feature) *AddonRateCardCreate {
-	return arcc.SetFeaturesID(f.ID)
+func (_c *AddonRateCardCreate) SetFeatures(v *Feature) *AddonRateCardCreate {
+	return _c.SetFeaturesID(v.ID)
 }
 
 // Mutation returns the AddonRateCardMutation object of the builder.
-func (arcc *AddonRateCardCreate) Mutation() *AddonRateCardMutation {
-	return arcc.mutation
+func (_c *AddonRateCardCreate) Mutation() *AddonRateCardMutation {
+	return _c.mutation
 }
 
 // Save creates the AddonRateCard in the database.
-func (arcc *AddonRateCardCreate) Save(ctx context.Context) (*AddonRateCard, error) {
-	arcc.defaults()
-	return withHooks(ctx, arcc.sqlSave, arcc.mutation, arcc.hooks)
+func (_c *AddonRateCardCreate) Save(ctx context.Context) (*AddonRateCard, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (arcc *AddonRateCardCreate) SaveX(ctx context.Context) *AddonRateCard {
-	v, err := arcc.Save(ctx)
+func (_c *AddonRateCardCreate) SaveX(ctx context.Context) *AddonRateCard {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -244,112 +244,112 @@ func (arcc *AddonRateCardCreate) SaveX(ctx context.Context) *AddonRateCard {
 }
 
 // Exec executes the query.
-func (arcc *AddonRateCardCreate) Exec(ctx context.Context) error {
-	_, err := arcc.Save(ctx)
+func (_c *AddonRateCardCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (arcc *AddonRateCardCreate) ExecX(ctx context.Context) {
-	if err := arcc.Exec(ctx); err != nil {
+func (_c *AddonRateCardCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (arcc *AddonRateCardCreate) defaults() {
-	if _, ok := arcc.mutation.CreatedAt(); !ok {
+func (_c *AddonRateCardCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := addonratecard.DefaultCreatedAt()
-		arcc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := arcc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := addonratecard.DefaultUpdatedAt()
-		arcc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := arcc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := addonratecard.DefaultID()
-		arcc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (arcc *AddonRateCardCreate) check() error {
-	if _, ok := arcc.mutation.Namespace(); !ok {
+func (_c *AddonRateCardCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "AddonRateCard.namespace"`)}
 	}
-	if v, ok := arcc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := addonratecard.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.namespace": %w`, err)}
 		}
 	}
-	if _, ok := arcc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "AddonRateCard.created_at"`)}
 	}
-	if _, ok := arcc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "AddonRateCard.updated_at"`)}
 	}
-	if _, ok := arcc.mutation.Name(); !ok {
+	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "AddonRateCard.name"`)}
 	}
-	if _, ok := arcc.mutation.Key(); !ok {
+	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "AddonRateCard.key"`)}
 	}
-	if v, ok := arcc.mutation.Key(); ok {
+	if v, ok := _c.mutation.Key(); ok {
 		if err := addonratecard.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.key": %w`, err)}
 		}
 	}
-	if _, ok := arcc.mutation.GetType(); !ok {
+	if _, ok := _c.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "AddonRateCard.type"`)}
 	}
-	if v, ok := arcc.mutation.GetType(); ok {
+	if v, ok := _c.mutation.GetType(); ok {
 		if err := addonratecard.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.type": %w`, err)}
 		}
 	}
-	if v, ok := arcc.mutation.EntitlementTemplate(); ok {
+	if v, ok := _c.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.entitlement_template": %w`, err)}
 		}
 	}
-	if v, ok := arcc.mutation.TaxConfig(); ok {
+	if v, ok := _c.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
 		}
 	}
-	if v, ok := arcc.mutation.Price(); ok {
+	if v, ok := _c.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
 		}
 	}
-	if v, ok := arcc.mutation.Discounts(); ok {
+	if v, ok := _c.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.discounts": %w`, err)}
 		}
 	}
-	if _, ok := arcc.mutation.AddonID(); !ok {
+	if _, ok := _c.mutation.AddonID(); !ok {
 		return &ValidationError{Name: "addon_id", err: errors.New(`db: missing required field "AddonRateCard.addon_id"`)}
 	}
-	if v, ok := arcc.mutation.AddonID(); ok {
+	if v, ok := _c.mutation.AddonID(); ok {
 		if err := addonratecard.AddonIDValidator(v); err != nil {
 			return &ValidationError{Name: "addon_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.addon_id": %w`, err)}
 		}
 	}
-	if len(arcc.mutation.AddonIDs()) == 0 {
+	if len(_c.mutation.AddonIDs()) == 0 {
 		return &ValidationError{Name: "addon", err: errors.New(`db: missing required edge "AddonRateCard.addon"`)}
 	}
 	return nil
 }
 
-func (arcc *AddonRateCardCreate) sqlSave(ctx context.Context) (*AddonRateCard, error) {
-	if err := arcc.check(); err != nil {
+func (_c *AddonRateCardCreate) sqlSave(ctx context.Context) (*AddonRateCard, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec, err := arcc.createSpec()
+	_node, _spec, err := _c.createSpec()
 	if err != nil {
 		return nil, err
 	}
-	if err := sqlgraph.CreateNode(ctx, arcc.driver, _spec); err != nil {
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -362,62 +362,62 @@ func (arcc *AddonRateCardCreate) sqlSave(ctx context.Context) (*AddonRateCard, e
 			return nil, fmt.Errorf("unexpected AddonRateCard.ID type: %T", _spec.ID.Value)
 		}
 	}
-	arcc.mutation.id = &_node.ID
-	arcc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (arcc *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateSpec, error) {
+func (_c *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateSpec, error) {
 	var (
-		_node = &AddonRateCard{config: arcc.config}
+		_node = &AddonRateCard{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(addonratecard.Table, sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = arcc.conflict
-	if id, ok := arcc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := arcc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(addonratecard.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := arcc.mutation.Metadata(); ok {
+	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(addonratecard.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := arcc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(addonratecard.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := arcc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(addonratecard.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := arcc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(addonratecard.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := arcc.mutation.Name(); ok {
+	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(addonratecard.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := arcc.mutation.Description(); ok {
+	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(addonratecard.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := arcc.mutation.Key(); ok {
+	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(addonratecard.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
-	if value, ok := arcc.mutation.GetType(); ok {
+	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(addonratecard.FieldType, field.TypeEnum, value)
 		_node.Type = value
 	}
-	if value, ok := arcc.mutation.FeatureKey(); ok {
+	if value, ok := _c.mutation.FeatureKey(); ok {
 		_spec.SetField(addonratecard.FieldFeatureKey, field.TypeString, value)
 		_node.FeatureKey = &value
 	}
-	if value, ok := arcc.mutation.EntitlementTemplate(); ok {
+	if value, ok := _c.mutation.EntitlementTemplate(); ok {
 		vv, err := addonratecard.ValueScanner.EntitlementTemplate.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -425,7 +425,7 @@ func (arcc *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateS
 		_spec.SetField(addonratecard.FieldEntitlementTemplate, field.TypeString, vv)
 		_node.EntitlementTemplate = value
 	}
-	if value, ok := arcc.mutation.TaxConfig(); ok {
+	if value, ok := _c.mutation.TaxConfig(); ok {
 		vv, err := addonratecard.ValueScanner.TaxConfig.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -433,11 +433,11 @@ func (arcc *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateS
 		_spec.SetField(addonratecard.FieldTaxConfig, field.TypeString, vv)
 		_node.TaxConfig = value
 	}
-	if value, ok := arcc.mutation.BillingCadence(); ok {
+	if value, ok := _c.mutation.BillingCadence(); ok {
 		_spec.SetField(addonratecard.FieldBillingCadence, field.TypeString, value)
 		_node.BillingCadence = &value
 	}
-	if value, ok := arcc.mutation.Price(); ok {
+	if value, ok := _c.mutation.Price(); ok {
 		vv, err := addonratecard.ValueScanner.Price.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -445,7 +445,7 @@ func (arcc *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateS
 		_spec.SetField(addonratecard.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
-	if value, ok := arcc.mutation.Discounts(); ok {
+	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := addonratecard.ValueScanner.Discounts.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -453,7 +453,7 @@ func (arcc *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateS
 		_spec.SetField(addonratecard.FieldDiscounts, field.TypeString, vv)
 		_node.Discounts = value
 	}
-	if nodes := arcc.mutation.AddonIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.AddonIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -470,7 +470,7 @@ func (arcc *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateS
 		_node.AddonID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := arcc.mutation.FeaturesIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.FeaturesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -506,10 +506,10 @@ func (arcc *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateS
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (arcc *AddonRateCardCreate) OnConflict(opts ...sql.ConflictOption) *AddonRateCardUpsertOne {
-	arcc.conflict = opts
+func (_c *AddonRateCardCreate) OnConflict(opts ...sql.ConflictOption) *AddonRateCardUpsertOne {
+	_c.conflict = opts
 	return &AddonRateCardUpsertOne{
-		create: arcc,
+		create: _c,
 	}
 }
 
@@ -519,10 +519,10 @@ func (arcc *AddonRateCardCreate) OnConflict(opts ...sql.ConflictOption) *AddonRa
 //	client.AddonRateCard.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (arcc *AddonRateCardCreate) OnConflictColumns(columns ...string) *AddonRateCardUpsertOne {
-	arcc.conflict = append(arcc.conflict, sql.ConflictColumns(columns...))
+func (_c *AddonRateCardCreate) OnConflictColumns(columns ...string) *AddonRateCardUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &AddonRateCardUpsertOne{
-		create: arcc,
+		create: _c,
 	}
 }
 
@@ -1114,16 +1114,16 @@ type AddonRateCardCreateBulk struct {
 }
 
 // Save creates the AddonRateCard entities in the database.
-func (arccb *AddonRateCardCreateBulk) Save(ctx context.Context) ([]*AddonRateCard, error) {
-	if arccb.err != nil {
-		return nil, arccb.err
+func (_c *AddonRateCardCreateBulk) Save(ctx context.Context) ([]*AddonRateCard, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(arccb.builders))
-	nodes := make([]*AddonRateCard, len(arccb.builders))
-	mutators := make([]Mutator, len(arccb.builders))
-	for i := range arccb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*AddonRateCard, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := arccb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*AddonRateCardMutation)
@@ -1140,12 +1140,12 @@ func (arccb *AddonRateCardCreateBulk) Save(ctx context.Context) ([]*AddonRateCar
 					return nil, err
 				}
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, arccb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = arccb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, arccb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -1165,7 +1165,7 @@ func (arccb *AddonRateCardCreateBulk) Save(ctx context.Context) ([]*AddonRateCar
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, arccb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -1173,8 +1173,8 @@ func (arccb *AddonRateCardCreateBulk) Save(ctx context.Context) ([]*AddonRateCar
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (arccb *AddonRateCardCreateBulk) SaveX(ctx context.Context) []*AddonRateCard {
-	v, err := arccb.Save(ctx)
+func (_c *AddonRateCardCreateBulk) SaveX(ctx context.Context) []*AddonRateCard {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1182,14 +1182,14 @@ func (arccb *AddonRateCardCreateBulk) SaveX(ctx context.Context) []*AddonRateCar
 }
 
 // Exec executes the query.
-func (arccb *AddonRateCardCreateBulk) Exec(ctx context.Context) error {
-	_, err := arccb.Save(ctx)
+func (_c *AddonRateCardCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (arccb *AddonRateCardCreateBulk) ExecX(ctx context.Context) {
-	if err := arccb.Exec(ctx); err != nil {
+func (_c *AddonRateCardCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -1209,10 +1209,10 @@ func (arccb *AddonRateCardCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (arccb *AddonRateCardCreateBulk) OnConflict(opts ...sql.ConflictOption) *AddonRateCardUpsertBulk {
-	arccb.conflict = opts
+func (_c *AddonRateCardCreateBulk) OnConflict(opts ...sql.ConflictOption) *AddonRateCardUpsertBulk {
+	_c.conflict = opts
 	return &AddonRateCardUpsertBulk{
-		create: arccb,
+		create: _c,
 	}
 }
 
@@ -1222,10 +1222,10 @@ func (arccb *AddonRateCardCreateBulk) OnConflict(opts ...sql.ConflictOption) *Ad
 //	client.AddonRateCard.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (arccb *AddonRateCardCreateBulk) OnConflictColumns(columns ...string) *AddonRateCardUpsertBulk {
-	arccb.conflict = append(arccb.conflict, sql.ConflictColumns(columns...))
+func (_c *AddonRateCardCreateBulk) OnConflictColumns(columns ...string) *AddonRateCardUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &AddonRateCardUpsertBulk{
-		create: arccb,
+		create: _c,
 	}
 }
 

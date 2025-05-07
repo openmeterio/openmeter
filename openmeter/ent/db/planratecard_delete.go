@@ -20,56 +20,56 @@ type PlanRateCardDelete struct {
 }
 
 // Where appends a list predicates to the PlanRateCardDelete builder.
-func (prcd *PlanRateCardDelete) Where(ps ...predicate.PlanRateCard) *PlanRateCardDelete {
-	prcd.mutation.Where(ps...)
-	return prcd
+func (_d *PlanRateCardDelete) Where(ps ...predicate.PlanRateCard) *PlanRateCardDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (prcd *PlanRateCardDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, prcd.sqlExec, prcd.mutation, prcd.hooks)
+func (_d *PlanRateCardDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (prcd *PlanRateCardDelete) ExecX(ctx context.Context) int {
-	n, err := prcd.Exec(ctx)
+func (_d *PlanRateCardDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (prcd *PlanRateCardDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *PlanRateCardDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(planratecard.Table, sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString))
-	if ps := prcd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, prcd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	prcd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // PlanRateCardDeleteOne is the builder for deleting a single PlanRateCard entity.
 type PlanRateCardDeleteOne struct {
-	prcd *PlanRateCardDelete
+	_d *PlanRateCardDelete
 }
 
 // Where appends a list predicates to the PlanRateCardDelete builder.
-func (prcdo *PlanRateCardDeleteOne) Where(ps ...predicate.PlanRateCard) *PlanRateCardDeleteOne {
-	prcdo.prcd.mutation.Where(ps...)
-	return prcdo
+func (_d *PlanRateCardDeleteOne) Where(ps ...predicate.PlanRateCard) *PlanRateCardDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (prcdo *PlanRateCardDeleteOne) Exec(ctx context.Context) error {
-	n, err := prcdo.prcd.Exec(ctx)
+func (_d *PlanRateCardDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (prcdo *PlanRateCardDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (prcdo *PlanRateCardDeleteOne) ExecX(ctx context.Context) {
-	if err := prcdo.Exec(ctx); err != nil {
+func (_d *PlanRateCardDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

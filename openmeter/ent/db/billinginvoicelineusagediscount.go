@@ -94,7 +94,7 @@ func (*BillingInvoiceLineUsageDiscount) scanValues(columns []string) ([]any, err
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the BillingInvoiceLineUsageDiscount fields.
-func (bilud *BillingInvoiceLineUsageDiscount) assignValues(columns []string, values []any) error {
+func (_m *BillingInvoiceLineUsageDiscount) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -104,87 +104,87 @@ func (bilud *BillingInvoiceLineUsageDiscount) assignValues(columns []string, val
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				bilud.ID = value.String
+				_m.ID = value.String
 			}
 		case billinginvoicelineusagediscount.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				bilud.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case billinginvoicelineusagediscount.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				bilud.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case billinginvoicelineusagediscount.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				bilud.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case billinginvoicelineusagediscount.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				bilud.DeletedAt = new(time.Time)
-				*bilud.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case billinginvoicelineusagediscount.FieldLineID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field line_id", values[i])
 			} else if value.Valid {
-				bilud.LineID = value.String
+				_m.LineID = value.String
 			}
 		case billinginvoicelineusagediscount.FieldChildUniqueReferenceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field child_unique_reference_id", values[i])
 			} else if value.Valid {
-				bilud.ChildUniqueReferenceID = new(string)
-				*bilud.ChildUniqueReferenceID = value.String
+				_m.ChildUniqueReferenceID = new(string)
+				*_m.ChildUniqueReferenceID = value.String
 			}
 		case billinginvoicelineusagediscount.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				bilud.Description = new(string)
-				*bilud.Description = value.String
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case billinginvoicelineusagediscount.FieldReason:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field reason", values[i])
 			} else if value.Valid {
-				bilud.Reason = billing.DiscountReasonType(value.String)
+				_m.Reason = billing.DiscountReasonType(value.String)
 			}
 		case billinginvoicelineusagediscount.FieldInvoicingAppExternalID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
 			} else if value.Valid {
-				bilud.InvoicingAppExternalID = new(string)
-				*bilud.InvoicingAppExternalID = value.String
+				_m.InvoicingAppExternalID = new(string)
+				*_m.InvoicingAppExternalID = value.String
 			}
 		case billinginvoicelineusagediscount.FieldQuantity:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field quantity", values[i])
 			} else if value != nil {
-				bilud.Quantity = *value
+				_m.Quantity = *value
 			}
 		case billinginvoicelineusagediscount.FieldPreLinePeriodQuantity:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field pre_line_period_quantity", values[i])
 			} else if value.Valid {
-				bilud.PreLinePeriodQuantity = new(alpacadecimal.Decimal)
-				*bilud.PreLinePeriodQuantity = *value.S.(*alpacadecimal.Decimal)
+				_m.PreLinePeriodQuantity = new(alpacadecimal.Decimal)
+				*_m.PreLinePeriodQuantity = *value.S.(*alpacadecimal.Decimal)
 			}
 		case billinginvoicelineusagediscount.FieldReasonDetails:
 			if value, err := billinginvoicelineusagediscount.ValueScanner.ReasonDetails.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				bilud.ReasonDetails = value
+				_m.ReasonDetails = value
 			}
 		default:
-			bilud.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -192,82 +192,82 @@ func (bilud *BillingInvoiceLineUsageDiscount) assignValues(columns []string, val
 
 // Value returns the ent.Value that was dynamically selected and assigned to the BillingInvoiceLineUsageDiscount.
 // This includes values selected through modifiers, order, etc.
-func (bilud *BillingInvoiceLineUsageDiscount) Value(name string) (ent.Value, error) {
-	return bilud.selectValues.Get(name)
+func (_m *BillingInvoiceLineUsageDiscount) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the BillingInvoiceLineUsageDiscount entity.
-func (bilud *BillingInvoiceLineUsageDiscount) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
-	return NewBillingInvoiceLineUsageDiscountClient(bilud.config).QueryBillingInvoiceLine(bilud)
+func (_m *BillingInvoiceLineUsageDiscount) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
+	return NewBillingInvoiceLineUsageDiscountClient(_m.config).QueryBillingInvoiceLine(_m)
 }
 
 // Update returns a builder for updating this BillingInvoiceLineUsageDiscount.
 // Note that you need to call BillingInvoiceLineUsageDiscount.Unwrap() before calling this method if this BillingInvoiceLineUsageDiscount
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (bilud *BillingInvoiceLineUsageDiscount) Update() *BillingInvoiceLineUsageDiscountUpdateOne {
-	return NewBillingInvoiceLineUsageDiscountClient(bilud.config).UpdateOne(bilud)
+func (_m *BillingInvoiceLineUsageDiscount) Update() *BillingInvoiceLineUsageDiscountUpdateOne {
+	return NewBillingInvoiceLineUsageDiscountClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the BillingInvoiceLineUsageDiscount entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (bilud *BillingInvoiceLineUsageDiscount) Unwrap() *BillingInvoiceLineUsageDiscount {
-	_tx, ok := bilud.config.driver.(*txDriver)
+func (_m *BillingInvoiceLineUsageDiscount) Unwrap() *BillingInvoiceLineUsageDiscount {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: BillingInvoiceLineUsageDiscount is not a transactional entity")
 	}
-	bilud.config.driver = _tx.drv
-	return bilud
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (bilud *BillingInvoiceLineUsageDiscount) String() string {
+func (_m *BillingInvoiceLineUsageDiscount) String() string {
 	var builder strings.Builder
 	builder.WriteString("BillingInvoiceLineUsageDiscount(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", bilud.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(bilud.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(bilud.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(bilud.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := bilud.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("line_id=")
-	builder.WriteString(bilud.LineID)
+	builder.WriteString(_m.LineID)
 	builder.WriteString(", ")
-	if v := bilud.ChildUniqueReferenceID; v != nil {
+	if v := _m.ChildUniqueReferenceID; v != nil {
 		builder.WriteString("child_unique_reference_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bilud.Description; v != nil {
+	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("reason=")
-	builder.WriteString(fmt.Sprintf("%v", bilud.Reason))
+	builder.WriteString(fmt.Sprintf("%v", _m.Reason))
 	builder.WriteString(", ")
-	if v := bilud.InvoicingAppExternalID; v != nil {
+	if v := _m.InvoicingAppExternalID; v != nil {
 		builder.WriteString("invoicing_app_external_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("quantity=")
-	builder.WriteString(fmt.Sprintf("%v", bilud.Quantity))
+	builder.WriteString(fmt.Sprintf("%v", _m.Quantity))
 	builder.WriteString(", ")
-	if v := bilud.PreLinePeriodQuantity; v != nil {
+	if v := _m.PreLinePeriodQuantity; v != nil {
 		builder.WriteString("pre_line_period_quantity=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bilud.ReasonDetails; v != nil {
+	if v := _m.ReasonDetails; v != nil {
 		builder.WriteString("reason_details=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}

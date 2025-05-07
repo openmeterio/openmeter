@@ -20,56 +20,56 @@ type NotificationEventDeliveryStatusDelete struct {
 }
 
 // Where appends a list predicates to the NotificationEventDeliveryStatusDelete builder.
-func (nedsd *NotificationEventDeliveryStatusDelete) Where(ps ...predicate.NotificationEventDeliveryStatus) *NotificationEventDeliveryStatusDelete {
-	nedsd.mutation.Where(ps...)
-	return nedsd
+func (_d *NotificationEventDeliveryStatusDelete) Where(ps ...predicate.NotificationEventDeliveryStatus) *NotificationEventDeliveryStatusDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (nedsd *NotificationEventDeliveryStatusDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, nedsd.sqlExec, nedsd.mutation, nedsd.hooks)
+func (_d *NotificationEventDeliveryStatusDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nedsd *NotificationEventDeliveryStatusDelete) ExecX(ctx context.Context) int {
-	n, err := nedsd.Exec(ctx)
+func (_d *NotificationEventDeliveryStatusDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (nedsd *NotificationEventDeliveryStatusDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *NotificationEventDeliveryStatusDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(notificationeventdeliverystatus.Table, sqlgraph.NewFieldSpec(notificationeventdeliverystatus.FieldID, field.TypeString))
-	if ps := nedsd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, nedsd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	nedsd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // NotificationEventDeliveryStatusDeleteOne is the builder for deleting a single NotificationEventDeliveryStatus entity.
 type NotificationEventDeliveryStatusDeleteOne struct {
-	nedsd *NotificationEventDeliveryStatusDelete
+	_d *NotificationEventDeliveryStatusDelete
 }
 
 // Where appends a list predicates to the NotificationEventDeliveryStatusDelete builder.
-func (nedsdo *NotificationEventDeliveryStatusDeleteOne) Where(ps ...predicate.NotificationEventDeliveryStatus) *NotificationEventDeliveryStatusDeleteOne {
-	nedsdo.nedsd.mutation.Where(ps...)
-	return nedsdo
+func (_d *NotificationEventDeliveryStatusDeleteOne) Where(ps ...predicate.NotificationEventDeliveryStatus) *NotificationEventDeliveryStatusDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (nedsdo *NotificationEventDeliveryStatusDeleteOne) Exec(ctx context.Context) error {
-	n, err := nedsdo.nedsd.Exec(ctx)
+func (_d *NotificationEventDeliveryStatusDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (nedsdo *NotificationEventDeliveryStatusDeleteOne) Exec(ctx context.Context
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nedsdo *NotificationEventDeliveryStatusDeleteOne) ExecX(ctx context.Context) {
-	if err := nedsdo.Exec(ctx); err != nil {
+func (_d *NotificationEventDeliveryStatusDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

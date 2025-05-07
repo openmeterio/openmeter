@@ -26,199 +26,199 @@ type PlanPhaseUpdate struct {
 }
 
 // Where appends a list predicates to the PlanPhaseUpdate builder.
-func (ppu *PlanPhaseUpdate) Where(ps ...predicate.PlanPhase) *PlanPhaseUpdate {
-	ppu.mutation.Where(ps...)
-	return ppu
+func (_u *PlanPhaseUpdate) Where(ps ...predicate.PlanPhase) *PlanPhaseUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (ppu *PlanPhaseUpdate) SetMetadata(m map[string]string) *PlanPhaseUpdate {
-	ppu.mutation.SetMetadata(m)
-	return ppu
+func (_u *PlanPhaseUpdate) SetMetadata(v map[string]string) *PlanPhaseUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (ppu *PlanPhaseUpdate) ClearMetadata() *PlanPhaseUpdate {
-	ppu.mutation.ClearMetadata()
-	return ppu
+func (_u *PlanPhaseUpdate) ClearMetadata() *PlanPhaseUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (ppu *PlanPhaseUpdate) SetUpdatedAt(t time.Time) *PlanPhaseUpdate {
-	ppu.mutation.SetUpdatedAt(t)
-	return ppu
+func (_u *PlanPhaseUpdate) SetUpdatedAt(v time.Time) *PlanPhaseUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (ppu *PlanPhaseUpdate) SetDeletedAt(t time.Time) *PlanPhaseUpdate {
-	ppu.mutation.SetDeletedAt(t)
-	return ppu
+func (_u *PlanPhaseUpdate) SetDeletedAt(v time.Time) *PlanPhaseUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (ppu *PlanPhaseUpdate) SetNillableDeletedAt(t *time.Time) *PlanPhaseUpdate {
-	if t != nil {
-		ppu.SetDeletedAt(*t)
+func (_u *PlanPhaseUpdate) SetNillableDeletedAt(v *time.Time) *PlanPhaseUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return ppu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (ppu *PlanPhaseUpdate) ClearDeletedAt() *PlanPhaseUpdate {
-	ppu.mutation.ClearDeletedAt()
-	return ppu
+func (_u *PlanPhaseUpdate) ClearDeletedAt() *PlanPhaseUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (ppu *PlanPhaseUpdate) SetName(s string) *PlanPhaseUpdate {
-	ppu.mutation.SetName(s)
-	return ppu
+func (_u *PlanPhaseUpdate) SetName(v string) *PlanPhaseUpdate {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (ppu *PlanPhaseUpdate) SetNillableName(s *string) *PlanPhaseUpdate {
-	if s != nil {
-		ppu.SetName(*s)
+func (_u *PlanPhaseUpdate) SetNillableName(v *string) *PlanPhaseUpdate {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return ppu
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (ppu *PlanPhaseUpdate) SetDescription(s string) *PlanPhaseUpdate {
-	ppu.mutation.SetDescription(s)
-	return ppu
+func (_u *PlanPhaseUpdate) SetDescription(v string) *PlanPhaseUpdate {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (ppu *PlanPhaseUpdate) SetNillableDescription(s *string) *PlanPhaseUpdate {
-	if s != nil {
-		ppu.SetDescription(*s)
+func (_u *PlanPhaseUpdate) SetNillableDescription(v *string) *PlanPhaseUpdate {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return ppu
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (ppu *PlanPhaseUpdate) ClearDescription() *PlanPhaseUpdate {
-	ppu.mutation.ClearDescription()
-	return ppu
+func (_u *PlanPhaseUpdate) ClearDescription() *PlanPhaseUpdate {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetPlanID sets the "plan_id" field.
-func (ppu *PlanPhaseUpdate) SetPlanID(s string) *PlanPhaseUpdate {
-	ppu.mutation.SetPlanID(s)
-	return ppu
+func (_u *PlanPhaseUpdate) SetPlanID(v string) *PlanPhaseUpdate {
+	_u.mutation.SetPlanID(v)
+	return _u
 }
 
 // SetNillablePlanID sets the "plan_id" field if the given value is not nil.
-func (ppu *PlanPhaseUpdate) SetNillablePlanID(s *string) *PlanPhaseUpdate {
-	if s != nil {
-		ppu.SetPlanID(*s)
+func (_u *PlanPhaseUpdate) SetNillablePlanID(v *string) *PlanPhaseUpdate {
+	if v != nil {
+		_u.SetPlanID(*v)
 	}
-	return ppu
+	return _u
 }
 
 // SetIndex sets the "index" field.
-func (ppu *PlanPhaseUpdate) SetIndex(u uint8) *PlanPhaseUpdate {
-	ppu.mutation.ResetIndex()
-	ppu.mutation.SetIndex(u)
-	return ppu
+func (_u *PlanPhaseUpdate) SetIndex(v uint8) *PlanPhaseUpdate {
+	_u.mutation.ResetIndex()
+	_u.mutation.SetIndex(v)
+	return _u
 }
 
 // SetNillableIndex sets the "index" field if the given value is not nil.
-func (ppu *PlanPhaseUpdate) SetNillableIndex(u *uint8) *PlanPhaseUpdate {
-	if u != nil {
-		ppu.SetIndex(*u)
+func (_u *PlanPhaseUpdate) SetNillableIndex(v *uint8) *PlanPhaseUpdate {
+	if v != nil {
+		_u.SetIndex(*v)
 	}
-	return ppu
+	return _u
 }
 
-// AddIndex adds u to the "index" field.
-func (ppu *PlanPhaseUpdate) AddIndex(u int8) *PlanPhaseUpdate {
-	ppu.mutation.AddIndex(u)
-	return ppu
+// AddIndex adds value to the "index" field.
+func (_u *PlanPhaseUpdate) AddIndex(v int8) *PlanPhaseUpdate {
+	_u.mutation.AddIndex(v)
+	return _u
 }
 
 // SetDuration sets the "duration" field.
-func (ppu *PlanPhaseUpdate) SetDuration(i isodate.String) *PlanPhaseUpdate {
-	ppu.mutation.SetDuration(i)
-	return ppu
+func (_u *PlanPhaseUpdate) SetDuration(v isodate.String) *PlanPhaseUpdate {
+	_u.mutation.SetDuration(v)
+	return _u
 }
 
 // SetNillableDuration sets the "duration" field if the given value is not nil.
-func (ppu *PlanPhaseUpdate) SetNillableDuration(i *isodate.String) *PlanPhaseUpdate {
-	if i != nil {
-		ppu.SetDuration(*i)
+func (_u *PlanPhaseUpdate) SetNillableDuration(v *isodate.String) *PlanPhaseUpdate {
+	if v != nil {
+		_u.SetDuration(*v)
 	}
-	return ppu
+	return _u
 }
 
 // ClearDuration clears the value of the "duration" field.
-func (ppu *PlanPhaseUpdate) ClearDuration() *PlanPhaseUpdate {
-	ppu.mutation.ClearDuration()
-	return ppu
+func (_u *PlanPhaseUpdate) ClearDuration() *PlanPhaseUpdate {
+	_u.mutation.ClearDuration()
+	return _u
 }
 
 // SetPlan sets the "plan" edge to the Plan entity.
-func (ppu *PlanPhaseUpdate) SetPlan(p *Plan) *PlanPhaseUpdate {
-	return ppu.SetPlanID(p.ID)
+func (_u *PlanPhaseUpdate) SetPlan(v *Plan) *PlanPhaseUpdate {
+	return _u.SetPlanID(v.ID)
 }
 
 // AddRatecardIDs adds the "ratecards" edge to the PlanRateCard entity by IDs.
-func (ppu *PlanPhaseUpdate) AddRatecardIDs(ids ...string) *PlanPhaseUpdate {
-	ppu.mutation.AddRatecardIDs(ids...)
-	return ppu
+func (_u *PlanPhaseUpdate) AddRatecardIDs(ids ...string) *PlanPhaseUpdate {
+	_u.mutation.AddRatecardIDs(ids...)
+	return _u
 }
 
 // AddRatecards adds the "ratecards" edges to the PlanRateCard entity.
-func (ppu *PlanPhaseUpdate) AddRatecards(p ...*PlanRateCard) *PlanPhaseUpdate {
-	ids := make([]string, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+func (_u *PlanPhaseUpdate) AddRatecards(v ...*PlanRateCard) *PlanPhaseUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ppu.AddRatecardIDs(ids...)
+	return _u.AddRatecardIDs(ids...)
 }
 
 // Mutation returns the PlanPhaseMutation object of the builder.
-func (ppu *PlanPhaseUpdate) Mutation() *PlanPhaseMutation {
-	return ppu.mutation
+func (_u *PlanPhaseUpdate) Mutation() *PlanPhaseMutation {
+	return _u.mutation
 }
 
 // ClearPlan clears the "plan" edge to the Plan entity.
-func (ppu *PlanPhaseUpdate) ClearPlan() *PlanPhaseUpdate {
-	ppu.mutation.ClearPlan()
-	return ppu
+func (_u *PlanPhaseUpdate) ClearPlan() *PlanPhaseUpdate {
+	_u.mutation.ClearPlan()
+	return _u
 }
 
 // ClearRatecards clears all "ratecards" edges to the PlanRateCard entity.
-func (ppu *PlanPhaseUpdate) ClearRatecards() *PlanPhaseUpdate {
-	ppu.mutation.ClearRatecards()
-	return ppu
+func (_u *PlanPhaseUpdate) ClearRatecards() *PlanPhaseUpdate {
+	_u.mutation.ClearRatecards()
+	return _u
 }
 
 // RemoveRatecardIDs removes the "ratecards" edge to PlanRateCard entities by IDs.
-func (ppu *PlanPhaseUpdate) RemoveRatecardIDs(ids ...string) *PlanPhaseUpdate {
-	ppu.mutation.RemoveRatecardIDs(ids...)
-	return ppu
+func (_u *PlanPhaseUpdate) RemoveRatecardIDs(ids ...string) *PlanPhaseUpdate {
+	_u.mutation.RemoveRatecardIDs(ids...)
+	return _u
 }
 
 // RemoveRatecards removes "ratecards" edges to PlanRateCard entities.
-func (ppu *PlanPhaseUpdate) RemoveRatecards(p ...*PlanRateCard) *PlanPhaseUpdate {
-	ids := make([]string, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+func (_u *PlanPhaseUpdate) RemoveRatecards(v ...*PlanRateCard) *PlanPhaseUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ppu.RemoveRatecardIDs(ids...)
+	return _u.RemoveRatecardIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (ppu *PlanPhaseUpdate) Save(ctx context.Context) (int, error) {
-	ppu.defaults()
-	return withHooks(ctx, ppu.sqlSave, ppu.mutation, ppu.hooks)
+func (_u *PlanPhaseUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (ppu *PlanPhaseUpdate) SaveX(ctx context.Context) int {
-	affected, err := ppu.Save(ctx)
+func (_u *PlanPhaseUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -226,88 +226,88 @@ func (ppu *PlanPhaseUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (ppu *PlanPhaseUpdate) Exec(ctx context.Context) error {
-	_, err := ppu.Save(ctx)
+func (_u *PlanPhaseUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ppu *PlanPhaseUpdate) ExecX(ctx context.Context) {
-	if err := ppu.Exec(ctx); err != nil {
+func (_u *PlanPhaseUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (ppu *PlanPhaseUpdate) defaults() {
-	if _, ok := ppu.mutation.UpdatedAt(); !ok {
+func (_u *PlanPhaseUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := planphase.UpdateDefaultUpdatedAt()
-		ppu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (ppu *PlanPhaseUpdate) check() error {
-	if v, ok := ppu.mutation.PlanID(); ok {
+func (_u *PlanPhaseUpdate) check() error {
+	if v, ok := _u.mutation.PlanID(); ok {
 		if err := planphase.PlanIDValidator(v); err != nil {
 			return &ValidationError{Name: "plan_id", err: fmt.Errorf(`db: validator failed for field "PlanPhase.plan_id": %w`, err)}
 		}
 	}
-	if ppu.mutation.PlanCleared() && len(ppu.mutation.PlanIDs()) > 0 {
+	if _u.mutation.PlanCleared() && len(_u.mutation.PlanIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "PlanPhase.plan"`)
 	}
 	return nil
 }
 
-func (ppu *PlanPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := ppu.check(); err != nil {
-		return n, err
+func (_u *PlanPhaseUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(planphase.Table, planphase.Columns, sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString))
-	if ps := ppu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := ppu.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(planphase.FieldMetadata, field.TypeJSON, value)
 	}
-	if ppu.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(planphase.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := ppu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(planphase.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := ppu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(planphase.FieldDeletedAt, field.TypeTime, value)
 	}
-	if ppu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(planphase.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := ppu.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(planphase.FieldName, field.TypeString, value)
 	}
-	if value, ok := ppu.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(planphase.FieldDescription, field.TypeString, value)
 	}
-	if ppu.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(planphase.FieldDescription, field.TypeString)
 	}
-	if value, ok := ppu.mutation.Index(); ok {
+	if value, ok := _u.mutation.Index(); ok {
 		_spec.SetField(planphase.FieldIndex, field.TypeUint8, value)
 	}
-	if value, ok := ppu.mutation.AddedIndex(); ok {
+	if value, ok := _u.mutation.AddedIndex(); ok {
 		_spec.AddField(planphase.FieldIndex, field.TypeUint8, value)
 	}
-	if value, ok := ppu.mutation.Duration(); ok {
+	if value, ok := _u.mutation.Duration(); ok {
 		_spec.SetField(planphase.FieldDuration, field.TypeString, value)
 	}
-	if ppu.mutation.DurationCleared() {
+	if _u.mutation.DurationCleared() {
 		_spec.ClearField(planphase.FieldDuration, field.TypeString)
 	}
-	if ppu.mutation.PlanCleared() {
+	if _u.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -320,7 +320,7 @@ func (ppu *PlanPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := ppu.mutation.PlanIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.PlanIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -336,7 +336,7 @@ func (ppu *PlanPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if ppu.mutation.RatecardsCleared() {
+	if _u.mutation.RatecardsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -349,7 +349,7 @@ func (ppu *PlanPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := ppu.mutation.RemovedRatecardsIDs(); len(nodes) > 0 && !ppu.mutation.RatecardsCleared() {
+	if nodes := _u.mutation.RemovedRatecardsIDs(); len(nodes) > 0 && !_u.mutation.RatecardsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -365,7 +365,7 @@ func (ppu *PlanPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := ppu.mutation.RatecardsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.RatecardsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -381,7 +381,7 @@ func (ppu *PlanPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, ppu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{planphase.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -389,8 +389,8 @@ func (ppu *PlanPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
-	ppu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // PlanPhaseUpdateOne is the builder for updating a single PlanPhase entity.
@@ -402,206 +402,206 @@ type PlanPhaseUpdateOne struct {
 }
 
 // SetMetadata sets the "metadata" field.
-func (ppuo *PlanPhaseUpdateOne) SetMetadata(m map[string]string) *PlanPhaseUpdateOne {
-	ppuo.mutation.SetMetadata(m)
-	return ppuo
+func (_u *PlanPhaseUpdateOne) SetMetadata(v map[string]string) *PlanPhaseUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (ppuo *PlanPhaseUpdateOne) ClearMetadata() *PlanPhaseUpdateOne {
-	ppuo.mutation.ClearMetadata()
-	return ppuo
+func (_u *PlanPhaseUpdateOne) ClearMetadata() *PlanPhaseUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (ppuo *PlanPhaseUpdateOne) SetUpdatedAt(t time.Time) *PlanPhaseUpdateOne {
-	ppuo.mutation.SetUpdatedAt(t)
-	return ppuo
+func (_u *PlanPhaseUpdateOne) SetUpdatedAt(v time.Time) *PlanPhaseUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (ppuo *PlanPhaseUpdateOne) SetDeletedAt(t time.Time) *PlanPhaseUpdateOne {
-	ppuo.mutation.SetDeletedAt(t)
-	return ppuo
+func (_u *PlanPhaseUpdateOne) SetDeletedAt(v time.Time) *PlanPhaseUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (ppuo *PlanPhaseUpdateOne) SetNillableDeletedAt(t *time.Time) *PlanPhaseUpdateOne {
-	if t != nil {
-		ppuo.SetDeletedAt(*t)
+func (_u *PlanPhaseUpdateOne) SetNillableDeletedAt(v *time.Time) *PlanPhaseUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return ppuo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (ppuo *PlanPhaseUpdateOne) ClearDeletedAt() *PlanPhaseUpdateOne {
-	ppuo.mutation.ClearDeletedAt()
-	return ppuo
+func (_u *PlanPhaseUpdateOne) ClearDeletedAt() *PlanPhaseUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (ppuo *PlanPhaseUpdateOne) SetName(s string) *PlanPhaseUpdateOne {
-	ppuo.mutation.SetName(s)
-	return ppuo
+func (_u *PlanPhaseUpdateOne) SetName(v string) *PlanPhaseUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (ppuo *PlanPhaseUpdateOne) SetNillableName(s *string) *PlanPhaseUpdateOne {
-	if s != nil {
-		ppuo.SetName(*s)
+func (_u *PlanPhaseUpdateOne) SetNillableName(v *string) *PlanPhaseUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return ppuo
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (ppuo *PlanPhaseUpdateOne) SetDescription(s string) *PlanPhaseUpdateOne {
-	ppuo.mutation.SetDescription(s)
-	return ppuo
+func (_u *PlanPhaseUpdateOne) SetDescription(v string) *PlanPhaseUpdateOne {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (ppuo *PlanPhaseUpdateOne) SetNillableDescription(s *string) *PlanPhaseUpdateOne {
-	if s != nil {
-		ppuo.SetDescription(*s)
+func (_u *PlanPhaseUpdateOne) SetNillableDescription(v *string) *PlanPhaseUpdateOne {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return ppuo
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (ppuo *PlanPhaseUpdateOne) ClearDescription() *PlanPhaseUpdateOne {
-	ppuo.mutation.ClearDescription()
-	return ppuo
+func (_u *PlanPhaseUpdateOne) ClearDescription() *PlanPhaseUpdateOne {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetPlanID sets the "plan_id" field.
-func (ppuo *PlanPhaseUpdateOne) SetPlanID(s string) *PlanPhaseUpdateOne {
-	ppuo.mutation.SetPlanID(s)
-	return ppuo
+func (_u *PlanPhaseUpdateOne) SetPlanID(v string) *PlanPhaseUpdateOne {
+	_u.mutation.SetPlanID(v)
+	return _u
 }
 
 // SetNillablePlanID sets the "plan_id" field if the given value is not nil.
-func (ppuo *PlanPhaseUpdateOne) SetNillablePlanID(s *string) *PlanPhaseUpdateOne {
-	if s != nil {
-		ppuo.SetPlanID(*s)
+func (_u *PlanPhaseUpdateOne) SetNillablePlanID(v *string) *PlanPhaseUpdateOne {
+	if v != nil {
+		_u.SetPlanID(*v)
 	}
-	return ppuo
+	return _u
 }
 
 // SetIndex sets the "index" field.
-func (ppuo *PlanPhaseUpdateOne) SetIndex(u uint8) *PlanPhaseUpdateOne {
-	ppuo.mutation.ResetIndex()
-	ppuo.mutation.SetIndex(u)
-	return ppuo
+func (_u *PlanPhaseUpdateOne) SetIndex(v uint8) *PlanPhaseUpdateOne {
+	_u.mutation.ResetIndex()
+	_u.mutation.SetIndex(v)
+	return _u
 }
 
 // SetNillableIndex sets the "index" field if the given value is not nil.
-func (ppuo *PlanPhaseUpdateOne) SetNillableIndex(u *uint8) *PlanPhaseUpdateOne {
-	if u != nil {
-		ppuo.SetIndex(*u)
+func (_u *PlanPhaseUpdateOne) SetNillableIndex(v *uint8) *PlanPhaseUpdateOne {
+	if v != nil {
+		_u.SetIndex(*v)
 	}
-	return ppuo
+	return _u
 }
 
-// AddIndex adds u to the "index" field.
-func (ppuo *PlanPhaseUpdateOne) AddIndex(u int8) *PlanPhaseUpdateOne {
-	ppuo.mutation.AddIndex(u)
-	return ppuo
+// AddIndex adds value to the "index" field.
+func (_u *PlanPhaseUpdateOne) AddIndex(v int8) *PlanPhaseUpdateOne {
+	_u.mutation.AddIndex(v)
+	return _u
 }
 
 // SetDuration sets the "duration" field.
-func (ppuo *PlanPhaseUpdateOne) SetDuration(i isodate.String) *PlanPhaseUpdateOne {
-	ppuo.mutation.SetDuration(i)
-	return ppuo
+func (_u *PlanPhaseUpdateOne) SetDuration(v isodate.String) *PlanPhaseUpdateOne {
+	_u.mutation.SetDuration(v)
+	return _u
 }
 
 // SetNillableDuration sets the "duration" field if the given value is not nil.
-func (ppuo *PlanPhaseUpdateOne) SetNillableDuration(i *isodate.String) *PlanPhaseUpdateOne {
-	if i != nil {
-		ppuo.SetDuration(*i)
+func (_u *PlanPhaseUpdateOne) SetNillableDuration(v *isodate.String) *PlanPhaseUpdateOne {
+	if v != nil {
+		_u.SetDuration(*v)
 	}
-	return ppuo
+	return _u
 }
 
 // ClearDuration clears the value of the "duration" field.
-func (ppuo *PlanPhaseUpdateOne) ClearDuration() *PlanPhaseUpdateOne {
-	ppuo.mutation.ClearDuration()
-	return ppuo
+func (_u *PlanPhaseUpdateOne) ClearDuration() *PlanPhaseUpdateOne {
+	_u.mutation.ClearDuration()
+	return _u
 }
 
 // SetPlan sets the "plan" edge to the Plan entity.
-func (ppuo *PlanPhaseUpdateOne) SetPlan(p *Plan) *PlanPhaseUpdateOne {
-	return ppuo.SetPlanID(p.ID)
+func (_u *PlanPhaseUpdateOne) SetPlan(v *Plan) *PlanPhaseUpdateOne {
+	return _u.SetPlanID(v.ID)
 }
 
 // AddRatecardIDs adds the "ratecards" edge to the PlanRateCard entity by IDs.
-func (ppuo *PlanPhaseUpdateOne) AddRatecardIDs(ids ...string) *PlanPhaseUpdateOne {
-	ppuo.mutation.AddRatecardIDs(ids...)
-	return ppuo
+func (_u *PlanPhaseUpdateOne) AddRatecardIDs(ids ...string) *PlanPhaseUpdateOne {
+	_u.mutation.AddRatecardIDs(ids...)
+	return _u
 }
 
 // AddRatecards adds the "ratecards" edges to the PlanRateCard entity.
-func (ppuo *PlanPhaseUpdateOne) AddRatecards(p ...*PlanRateCard) *PlanPhaseUpdateOne {
-	ids := make([]string, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+func (_u *PlanPhaseUpdateOne) AddRatecards(v ...*PlanRateCard) *PlanPhaseUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ppuo.AddRatecardIDs(ids...)
+	return _u.AddRatecardIDs(ids...)
 }
 
 // Mutation returns the PlanPhaseMutation object of the builder.
-func (ppuo *PlanPhaseUpdateOne) Mutation() *PlanPhaseMutation {
-	return ppuo.mutation
+func (_u *PlanPhaseUpdateOne) Mutation() *PlanPhaseMutation {
+	return _u.mutation
 }
 
 // ClearPlan clears the "plan" edge to the Plan entity.
-func (ppuo *PlanPhaseUpdateOne) ClearPlan() *PlanPhaseUpdateOne {
-	ppuo.mutation.ClearPlan()
-	return ppuo
+func (_u *PlanPhaseUpdateOne) ClearPlan() *PlanPhaseUpdateOne {
+	_u.mutation.ClearPlan()
+	return _u
 }
 
 // ClearRatecards clears all "ratecards" edges to the PlanRateCard entity.
-func (ppuo *PlanPhaseUpdateOne) ClearRatecards() *PlanPhaseUpdateOne {
-	ppuo.mutation.ClearRatecards()
-	return ppuo
+func (_u *PlanPhaseUpdateOne) ClearRatecards() *PlanPhaseUpdateOne {
+	_u.mutation.ClearRatecards()
+	return _u
 }
 
 // RemoveRatecardIDs removes the "ratecards" edge to PlanRateCard entities by IDs.
-func (ppuo *PlanPhaseUpdateOne) RemoveRatecardIDs(ids ...string) *PlanPhaseUpdateOne {
-	ppuo.mutation.RemoveRatecardIDs(ids...)
-	return ppuo
+func (_u *PlanPhaseUpdateOne) RemoveRatecardIDs(ids ...string) *PlanPhaseUpdateOne {
+	_u.mutation.RemoveRatecardIDs(ids...)
+	return _u
 }
 
 // RemoveRatecards removes "ratecards" edges to PlanRateCard entities.
-func (ppuo *PlanPhaseUpdateOne) RemoveRatecards(p ...*PlanRateCard) *PlanPhaseUpdateOne {
-	ids := make([]string, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+func (_u *PlanPhaseUpdateOne) RemoveRatecards(v ...*PlanRateCard) *PlanPhaseUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ppuo.RemoveRatecardIDs(ids...)
+	return _u.RemoveRatecardIDs(ids...)
 }
 
 // Where appends a list predicates to the PlanPhaseUpdate builder.
-func (ppuo *PlanPhaseUpdateOne) Where(ps ...predicate.PlanPhase) *PlanPhaseUpdateOne {
-	ppuo.mutation.Where(ps...)
-	return ppuo
+func (_u *PlanPhaseUpdateOne) Where(ps ...predicate.PlanPhase) *PlanPhaseUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (ppuo *PlanPhaseUpdateOne) Select(field string, fields ...string) *PlanPhaseUpdateOne {
-	ppuo.fields = append([]string{field}, fields...)
-	return ppuo
+func (_u *PlanPhaseUpdateOne) Select(field string, fields ...string) *PlanPhaseUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated PlanPhase entity.
-func (ppuo *PlanPhaseUpdateOne) Save(ctx context.Context) (*PlanPhase, error) {
-	ppuo.defaults()
-	return withHooks(ctx, ppuo.sqlSave, ppuo.mutation, ppuo.hooks)
+func (_u *PlanPhaseUpdateOne) Save(ctx context.Context) (*PlanPhase, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (ppuo *PlanPhaseUpdateOne) SaveX(ctx context.Context) *PlanPhase {
-	node, err := ppuo.Save(ctx)
+func (_u *PlanPhaseUpdateOne) SaveX(ctx context.Context) *PlanPhase {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -609,50 +609,50 @@ func (ppuo *PlanPhaseUpdateOne) SaveX(ctx context.Context) *PlanPhase {
 }
 
 // Exec executes the query on the entity.
-func (ppuo *PlanPhaseUpdateOne) Exec(ctx context.Context) error {
-	_, err := ppuo.Save(ctx)
+func (_u *PlanPhaseUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ppuo *PlanPhaseUpdateOne) ExecX(ctx context.Context) {
-	if err := ppuo.Exec(ctx); err != nil {
+func (_u *PlanPhaseUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (ppuo *PlanPhaseUpdateOne) defaults() {
-	if _, ok := ppuo.mutation.UpdatedAt(); !ok {
+func (_u *PlanPhaseUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := planphase.UpdateDefaultUpdatedAt()
-		ppuo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (ppuo *PlanPhaseUpdateOne) check() error {
-	if v, ok := ppuo.mutation.PlanID(); ok {
+func (_u *PlanPhaseUpdateOne) check() error {
+	if v, ok := _u.mutation.PlanID(); ok {
 		if err := planphase.PlanIDValidator(v); err != nil {
 			return &ValidationError{Name: "plan_id", err: fmt.Errorf(`db: validator failed for field "PlanPhase.plan_id": %w`, err)}
 		}
 	}
-	if ppuo.mutation.PlanCleared() && len(ppuo.mutation.PlanIDs()) > 0 {
+	if _u.mutation.PlanCleared() && len(_u.mutation.PlanIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "PlanPhase.plan"`)
 	}
 	return nil
 }
 
-func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, err error) {
-	if err := ppuo.check(); err != nil {
+func (_u *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(planphase.Table, planphase.Columns, sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString))
-	id, ok := ppuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "PlanPhase.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := ppuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, planphase.FieldID)
 		for _, f := range fields {
@@ -664,50 +664,50 @@ func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, 
 			}
 		}
 	}
-	if ps := ppuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := ppuo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(planphase.FieldMetadata, field.TypeJSON, value)
 	}
-	if ppuo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(planphase.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := ppuo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(planphase.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := ppuo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(planphase.FieldDeletedAt, field.TypeTime, value)
 	}
-	if ppuo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(planphase.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := ppuo.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(planphase.FieldName, field.TypeString, value)
 	}
-	if value, ok := ppuo.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(planphase.FieldDescription, field.TypeString, value)
 	}
-	if ppuo.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(planphase.FieldDescription, field.TypeString)
 	}
-	if value, ok := ppuo.mutation.Index(); ok {
+	if value, ok := _u.mutation.Index(); ok {
 		_spec.SetField(planphase.FieldIndex, field.TypeUint8, value)
 	}
-	if value, ok := ppuo.mutation.AddedIndex(); ok {
+	if value, ok := _u.mutation.AddedIndex(); ok {
 		_spec.AddField(planphase.FieldIndex, field.TypeUint8, value)
 	}
-	if value, ok := ppuo.mutation.Duration(); ok {
+	if value, ok := _u.mutation.Duration(); ok {
 		_spec.SetField(planphase.FieldDuration, field.TypeString, value)
 	}
-	if ppuo.mutation.DurationCleared() {
+	if _u.mutation.DurationCleared() {
 		_spec.ClearField(planphase.FieldDuration, field.TypeString)
 	}
-	if ppuo.mutation.PlanCleared() {
+	if _u.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -720,7 +720,7 @@ func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := ppuo.mutation.PlanIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.PlanIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -736,7 +736,7 @@ func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if ppuo.mutation.RatecardsCleared() {
+	if _u.mutation.RatecardsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -749,7 +749,7 @@ func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := ppuo.mutation.RemovedRatecardsIDs(); len(nodes) > 0 && !ppuo.mutation.RatecardsCleared() {
+	if nodes := _u.mutation.RemovedRatecardsIDs(); len(nodes) > 0 && !_u.mutation.RatecardsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -765,7 +765,7 @@ func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := ppuo.mutation.RatecardsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.RatecardsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -781,10 +781,10 @@ func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &PlanPhase{config: ppuo.config}
+	_node = &PlanPhase{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, ppuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{planphase.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -792,6 +792,6 @@ func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, 
 		}
 		return nil, err
 	}
-	ppuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

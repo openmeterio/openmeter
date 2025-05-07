@@ -46,7 +46,7 @@ func (*Example2) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the Example2 fields.
-func (e *Example2) assignValues(columns []string, values []any) error {
+func (_m *Example2) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -56,35 +56,35 @@ func (e *Example2) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				e.ID = value.String
+				_m.ID = value.String
 			}
 		case example2.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				e.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case example2.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				e.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case example2.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				e.DeletedAt = new(time.Time)
-				*e.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case example2.FieldExampleValue2:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field example_value_2", values[i])
 			} else if value.Valid {
-				e.ExampleValue2 = value.String
+				_m.ExampleValue2 = value.String
 			}
 		default:
-			e.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -92,46 +92,46 @@ func (e *Example2) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the Example2.
 // This includes values selected through modifiers, order, etc.
-func (e *Example2) Value(name string) (ent.Value, error) {
-	return e.selectValues.Get(name)
+func (_m *Example2) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // Update returns a builder for updating this Example2.
 // Note that you need to call Example2.Unwrap() before calling this method if this Example2
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (e *Example2) Update() *Example2UpdateOne {
-	return NewExample2Client(e.config).UpdateOne(e)
+func (_m *Example2) Update() *Example2UpdateOne {
+	return NewExample2Client(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the Example2 entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (e *Example2) Unwrap() *Example2 {
-	_tx, ok := e.config.driver.(*txDriver)
+func (_m *Example2) Unwrap() *Example2 {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: Example2 is not a transactional entity")
 	}
-	e.config.driver = _tx.drv
-	return e
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (e *Example2) String() string {
+func (_m *Example2) String() string {
 	var builder strings.Builder
 	builder.WriteString("Example2(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", e.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("created_at=")
-	builder.WriteString(e.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(e.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := e.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("example_value_2=")
-	builder.WriteString(e.ExampleValue2)
+	builder.WriteString(_m.ExampleValue2)
 	builder.WriteByte(')')
 	return builder.String()
 }

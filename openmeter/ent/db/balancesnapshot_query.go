@@ -32,44 +32,44 @@ type BalanceSnapshotQuery struct {
 }
 
 // Where adds a new predicate for the BalanceSnapshotQuery builder.
-func (bsq *BalanceSnapshotQuery) Where(ps ...predicate.BalanceSnapshot) *BalanceSnapshotQuery {
-	bsq.predicates = append(bsq.predicates, ps...)
-	return bsq
+func (_q *BalanceSnapshotQuery) Where(ps ...predicate.BalanceSnapshot) *BalanceSnapshotQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (bsq *BalanceSnapshotQuery) Limit(limit int) *BalanceSnapshotQuery {
-	bsq.ctx.Limit = &limit
-	return bsq
+func (_q *BalanceSnapshotQuery) Limit(limit int) *BalanceSnapshotQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (bsq *BalanceSnapshotQuery) Offset(offset int) *BalanceSnapshotQuery {
-	bsq.ctx.Offset = &offset
-	return bsq
+func (_q *BalanceSnapshotQuery) Offset(offset int) *BalanceSnapshotQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (bsq *BalanceSnapshotQuery) Unique(unique bool) *BalanceSnapshotQuery {
-	bsq.ctx.Unique = &unique
-	return bsq
+func (_q *BalanceSnapshotQuery) Unique(unique bool) *BalanceSnapshotQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (bsq *BalanceSnapshotQuery) Order(o ...balancesnapshot.OrderOption) *BalanceSnapshotQuery {
-	bsq.order = append(bsq.order, o...)
-	return bsq
+func (_q *BalanceSnapshotQuery) Order(o ...balancesnapshot.OrderOption) *BalanceSnapshotQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryEntitlement chains the current query on the "entitlement" edge.
-func (bsq *BalanceSnapshotQuery) QueryEntitlement() *EntitlementQuery {
-	query := (&EntitlementClient{config: bsq.config}).Query()
+func (_q *BalanceSnapshotQuery) QueryEntitlement() *EntitlementQuery {
+	query := (&EntitlementClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bsq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := bsq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -78,7 +78,7 @@ func (bsq *BalanceSnapshotQuery) QueryEntitlement() *EntitlementQuery {
 			sqlgraph.To(entitlement.Table, entitlement.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, balancesnapshot.EntitlementTable, balancesnapshot.EntitlementColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(bsq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -86,8 +86,8 @@ func (bsq *BalanceSnapshotQuery) QueryEntitlement() *EntitlementQuery {
 
 // First returns the first BalanceSnapshot entity from the query.
 // Returns a *NotFoundError when no BalanceSnapshot was found.
-func (bsq *BalanceSnapshotQuery) First(ctx context.Context) (*BalanceSnapshot, error) {
-	nodes, err := bsq.Limit(1).All(setContextOp(ctx, bsq.ctx, ent.OpQueryFirst))
+func (_q *BalanceSnapshotQuery) First(ctx context.Context) (*BalanceSnapshot, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +98,8 @@ func (bsq *BalanceSnapshotQuery) First(ctx context.Context) (*BalanceSnapshot, e
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (bsq *BalanceSnapshotQuery) FirstX(ctx context.Context) *BalanceSnapshot {
-	node, err := bsq.First(ctx)
+func (_q *BalanceSnapshotQuery) FirstX(ctx context.Context) *BalanceSnapshot {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -108,9 +108,9 @@ func (bsq *BalanceSnapshotQuery) FirstX(ctx context.Context) *BalanceSnapshot {
 
 // FirstID returns the first BalanceSnapshot ID from the query.
 // Returns a *NotFoundError when no BalanceSnapshot ID was found.
-func (bsq *BalanceSnapshotQuery) FirstID(ctx context.Context) (id int, err error) {
+func (_q *BalanceSnapshotQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = bsq.Limit(1).IDs(setContextOp(ctx, bsq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -121,8 +121,8 @@ func (bsq *BalanceSnapshotQuery) FirstID(ctx context.Context) (id int, err error
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (bsq *BalanceSnapshotQuery) FirstIDX(ctx context.Context) int {
-	id, err := bsq.FirstID(ctx)
+func (_q *BalanceSnapshotQuery) FirstIDX(ctx context.Context) int {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -132,8 +132,8 @@ func (bsq *BalanceSnapshotQuery) FirstIDX(ctx context.Context) int {
 // Only returns a single BalanceSnapshot entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one BalanceSnapshot entity is found.
 // Returns a *NotFoundError when no BalanceSnapshot entities are found.
-func (bsq *BalanceSnapshotQuery) Only(ctx context.Context) (*BalanceSnapshot, error) {
-	nodes, err := bsq.Limit(2).All(setContextOp(ctx, bsq.ctx, ent.OpQueryOnly))
+func (_q *BalanceSnapshotQuery) Only(ctx context.Context) (*BalanceSnapshot, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +148,8 @@ func (bsq *BalanceSnapshotQuery) Only(ctx context.Context) (*BalanceSnapshot, er
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (bsq *BalanceSnapshotQuery) OnlyX(ctx context.Context) *BalanceSnapshot {
-	node, err := bsq.Only(ctx)
+func (_q *BalanceSnapshotQuery) OnlyX(ctx context.Context) *BalanceSnapshot {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -159,9 +159,9 @@ func (bsq *BalanceSnapshotQuery) OnlyX(ctx context.Context) *BalanceSnapshot {
 // OnlyID is like Only, but returns the only BalanceSnapshot ID in the query.
 // Returns a *NotSingularError when more than one BalanceSnapshot ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (bsq *BalanceSnapshotQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *BalanceSnapshotQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = bsq.Limit(2).IDs(setContextOp(ctx, bsq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -176,8 +176,8 @@ func (bsq *BalanceSnapshotQuery) OnlyID(ctx context.Context) (id int, err error)
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (bsq *BalanceSnapshotQuery) OnlyIDX(ctx context.Context) int {
-	id, err := bsq.OnlyID(ctx)
+func (_q *BalanceSnapshotQuery) OnlyIDX(ctx context.Context) int {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -185,18 +185,18 @@ func (bsq *BalanceSnapshotQuery) OnlyIDX(ctx context.Context) int {
 }
 
 // All executes the query and returns a list of BalanceSnapshots.
-func (bsq *BalanceSnapshotQuery) All(ctx context.Context) ([]*BalanceSnapshot, error) {
-	ctx = setContextOp(ctx, bsq.ctx, ent.OpQueryAll)
-	if err := bsq.prepareQuery(ctx); err != nil {
+func (_q *BalanceSnapshotQuery) All(ctx context.Context) ([]*BalanceSnapshot, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*BalanceSnapshot, *BalanceSnapshotQuery]()
-	return withInterceptors[[]*BalanceSnapshot](ctx, bsq, qr, bsq.inters)
+	return withInterceptors[[]*BalanceSnapshot](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (bsq *BalanceSnapshotQuery) AllX(ctx context.Context) []*BalanceSnapshot {
-	nodes, err := bsq.All(ctx)
+func (_q *BalanceSnapshotQuery) AllX(ctx context.Context) []*BalanceSnapshot {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -204,20 +204,20 @@ func (bsq *BalanceSnapshotQuery) AllX(ctx context.Context) []*BalanceSnapshot {
 }
 
 // IDs executes the query and returns a list of BalanceSnapshot IDs.
-func (bsq *BalanceSnapshotQuery) IDs(ctx context.Context) (ids []int, err error) {
-	if bsq.ctx.Unique == nil && bsq.path != nil {
-		bsq.Unique(true)
+func (_q *BalanceSnapshotQuery) IDs(ctx context.Context) (ids []int, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, bsq.ctx, ent.OpQueryIDs)
-	if err = bsq.Select(balancesnapshot.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(balancesnapshot.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (bsq *BalanceSnapshotQuery) IDsX(ctx context.Context) []int {
-	ids, err := bsq.IDs(ctx)
+func (_q *BalanceSnapshotQuery) IDsX(ctx context.Context) []int {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -225,17 +225,17 @@ func (bsq *BalanceSnapshotQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (bsq *BalanceSnapshotQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, bsq.ctx, ent.OpQueryCount)
-	if err := bsq.prepareQuery(ctx); err != nil {
+func (_q *BalanceSnapshotQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, bsq, querierCount[*BalanceSnapshotQuery](), bsq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BalanceSnapshotQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (bsq *BalanceSnapshotQuery) CountX(ctx context.Context) int {
-	count, err := bsq.Count(ctx)
+func (_q *BalanceSnapshotQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -243,9 +243,9 @@ func (bsq *BalanceSnapshotQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (bsq *BalanceSnapshotQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, bsq.ctx, ent.OpQueryExist)
-	switch _, err := bsq.FirstID(ctx); {
+func (_q *BalanceSnapshotQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -256,8 +256,8 @@ func (bsq *BalanceSnapshotQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (bsq *BalanceSnapshotQuery) ExistX(ctx context.Context) bool {
-	exist, err := bsq.Exist(ctx)
+func (_q *BalanceSnapshotQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -266,32 +266,32 @@ func (bsq *BalanceSnapshotQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the BalanceSnapshotQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (bsq *BalanceSnapshotQuery) Clone() *BalanceSnapshotQuery {
-	if bsq == nil {
+func (_q *BalanceSnapshotQuery) Clone() *BalanceSnapshotQuery {
+	if _q == nil {
 		return nil
 	}
 	return &BalanceSnapshotQuery{
-		config:          bsq.config,
-		ctx:             bsq.ctx.Clone(),
-		order:           append([]balancesnapshot.OrderOption{}, bsq.order...),
-		inters:          append([]Interceptor{}, bsq.inters...),
-		predicates:      append([]predicate.BalanceSnapshot{}, bsq.predicates...),
-		withEntitlement: bsq.withEntitlement.Clone(),
+		config:          _q.config,
+		ctx:             _q.ctx.Clone(),
+		order:           append([]balancesnapshot.OrderOption{}, _q.order...),
+		inters:          append([]Interceptor{}, _q.inters...),
+		predicates:      append([]predicate.BalanceSnapshot{}, _q.predicates...),
+		withEntitlement: _q.withEntitlement.Clone(),
 		// clone intermediate query.
-		sql:  bsq.sql.Clone(),
-		path: bsq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithEntitlement tells the query-builder to eager-load the nodes that are connected to
 // the "entitlement" edge. The optional arguments are used to configure the query builder of the edge.
-func (bsq *BalanceSnapshotQuery) WithEntitlement(opts ...func(*EntitlementQuery)) *BalanceSnapshotQuery {
-	query := (&EntitlementClient{config: bsq.config}).Query()
+func (_q *BalanceSnapshotQuery) WithEntitlement(opts ...func(*EntitlementQuery)) *BalanceSnapshotQuery {
+	query := (&EntitlementClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bsq.withEntitlement = query
-	return bsq
+	_q.withEntitlement = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -308,10 +308,10 @@ func (bsq *BalanceSnapshotQuery) WithEntitlement(opts ...func(*EntitlementQuery)
 //		GroupBy(balancesnapshot.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (bsq *BalanceSnapshotQuery) GroupBy(field string, fields ...string) *BalanceSnapshotGroupBy {
-	bsq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &BalanceSnapshotGroupBy{build: bsq}
-	grbuild.flds = &bsq.ctx.Fields
+func (_q *BalanceSnapshotQuery) GroupBy(field string, fields ...string) *BalanceSnapshotGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &BalanceSnapshotGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = balancesnapshot.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -329,76 +329,76 @@ func (bsq *BalanceSnapshotQuery) GroupBy(field string, fields ...string) *Balanc
 //	client.BalanceSnapshot.Query().
 //		Select(balancesnapshot.FieldNamespace).
 //		Scan(ctx, &v)
-func (bsq *BalanceSnapshotQuery) Select(fields ...string) *BalanceSnapshotSelect {
-	bsq.ctx.Fields = append(bsq.ctx.Fields, fields...)
-	sbuild := &BalanceSnapshotSelect{BalanceSnapshotQuery: bsq}
+func (_q *BalanceSnapshotQuery) Select(fields ...string) *BalanceSnapshotSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &BalanceSnapshotSelect{BalanceSnapshotQuery: _q}
 	sbuild.label = balancesnapshot.Label
-	sbuild.flds, sbuild.scan = &bsq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a BalanceSnapshotSelect configured with the given aggregations.
-func (bsq *BalanceSnapshotQuery) Aggregate(fns ...AggregateFunc) *BalanceSnapshotSelect {
-	return bsq.Select().Aggregate(fns...)
+func (_q *BalanceSnapshotQuery) Aggregate(fns ...AggregateFunc) *BalanceSnapshotSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (bsq *BalanceSnapshotQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range bsq.inters {
+func (_q *BalanceSnapshotQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, bsq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range bsq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !balancesnapshot.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if bsq.path != nil {
-		prev, err := bsq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		bsq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (bsq *BalanceSnapshotQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BalanceSnapshot, error) {
+func (_q *BalanceSnapshotQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BalanceSnapshot, error) {
 	var (
 		nodes       = []*BalanceSnapshot{}
-		_spec       = bsq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [1]bool{
-			bsq.withEntitlement != nil,
+			_q.withEntitlement != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BalanceSnapshot).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &BalanceSnapshot{config: bsq.config}
+		node := &BalanceSnapshot{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(bsq.modifiers) > 0 {
-		_spec.Modifiers = bsq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, bsq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := bsq.withEntitlement; query != nil {
-		if err := bsq.loadEntitlement(ctx, query, nodes, nil,
+	if query := _q.withEntitlement; query != nil {
+		if err := _q.loadEntitlement(ctx, query, nodes, nil,
 			func(n *BalanceSnapshot, e *Entitlement) { n.Edges.Entitlement = e }); err != nil {
 			return nil, err
 		}
@@ -406,7 +406,7 @@ func (bsq *BalanceSnapshotQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	return nodes, nil
 }
 
-func (bsq *BalanceSnapshotQuery) loadEntitlement(ctx context.Context, query *EntitlementQuery, nodes []*BalanceSnapshot, init func(*BalanceSnapshot), assign func(*BalanceSnapshot, *Entitlement)) error {
+func (_q *BalanceSnapshotQuery) loadEntitlement(ctx context.Context, query *EntitlementQuery, nodes []*BalanceSnapshot, init func(*BalanceSnapshot), assign func(*BalanceSnapshot, *Entitlement)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BalanceSnapshot)
 	for i := range nodes {
@@ -436,27 +436,27 @@ func (bsq *BalanceSnapshotQuery) loadEntitlement(ctx context.Context, query *Ent
 	return nil
 }
 
-func (bsq *BalanceSnapshotQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := bsq.querySpec()
-	if len(bsq.modifiers) > 0 {
-		_spec.Modifiers = bsq.modifiers
+func (_q *BalanceSnapshotQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = bsq.ctx.Fields
-	if len(bsq.ctx.Fields) > 0 {
-		_spec.Unique = bsq.ctx.Unique != nil && *bsq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, bsq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (bsq *BalanceSnapshotQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *BalanceSnapshotQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(balancesnapshot.Table, balancesnapshot.Columns, sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt))
-	_spec.From = bsq.sql
-	if unique := bsq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if bsq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := bsq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, balancesnapshot.FieldID)
 		for i := range fields {
@@ -464,24 +464,24 @@ func (bsq *BalanceSnapshotQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if bsq.withEntitlement != nil {
+		if _q.withEntitlement != nil {
 			_spec.Node.AddColumnOnce(balancesnapshot.FieldOwnerID)
 		}
 	}
-	if ps := bsq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := bsq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := bsq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := bsq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -491,36 +491,36 @@ func (bsq *BalanceSnapshotQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (bsq *BalanceSnapshotQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(bsq.driver.Dialect())
+func (_q *BalanceSnapshotQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(balancesnapshot.Table)
-	columns := bsq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = balancesnapshot.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if bsq.sql != nil {
-		selector = bsq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if bsq.ctx.Unique != nil && *bsq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range bsq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range bsq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range bsq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := bsq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := bsq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -529,27 +529,27 @@ func (bsq *BalanceSnapshotQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (bsq *BalanceSnapshotQuery) ForUpdate(opts ...sql.LockOption) *BalanceSnapshotQuery {
-	if bsq.driver.Dialect() == dialect.Postgres {
-		bsq.Unique(false)
+func (_q *BalanceSnapshotQuery) ForUpdate(opts ...sql.LockOption) *BalanceSnapshotQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bsq.modifiers = append(bsq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return bsq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (bsq *BalanceSnapshotQuery) ForShare(opts ...sql.LockOption) *BalanceSnapshotQuery {
-	if bsq.driver.Dialect() == dialect.Postgres {
-		bsq.Unique(false)
+func (_q *BalanceSnapshotQuery) ForShare(opts ...sql.LockOption) *BalanceSnapshotQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bsq.modifiers = append(bsq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return bsq
+	return _q
 }
 
 // BalanceSnapshotGroupBy is the group-by builder for BalanceSnapshot entities.

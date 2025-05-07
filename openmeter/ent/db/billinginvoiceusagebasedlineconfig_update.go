@@ -24,104 +24,104 @@ type BillingInvoiceUsageBasedLineConfigUpdate struct {
 }
 
 // Where appends a list predicates to the BillingInvoiceUsageBasedLineConfigUpdate builder.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) *BillingInvoiceUsageBasedLineConfigUpdate {
-	biublcu.mutation.Where(ps...)
-	return biublcu
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetPriceType sets the "price_type" field.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetPriceType(pt productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigUpdate {
-	biublcu.mutation.SetPriceType(pt)
-	return biublcu
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetPriceType(v productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.SetPriceType(v)
+	return _u
 }
 
 // SetNillablePriceType sets the "price_type" field if the given value is not nil.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetNillablePriceType(pt *productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigUpdate {
-	if pt != nil {
-		biublcu.SetPriceType(*pt)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetNillablePriceType(v *productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigUpdate {
+	if v != nil {
+		_u.SetPriceType(*v)
 	}
-	return biublcu
+	return _u
 }
 
 // SetPrice sets the "price" field.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetPrice(pr *productcatalog.Price) *BillingInvoiceUsageBasedLineConfigUpdate {
-	biublcu.mutation.SetPrice(pr)
-	return biublcu
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetPrice(v *productcatalog.Price) *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.SetPrice(v)
+	return _u
 }
 
 // SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
-	biublcu.mutation.SetPreLinePeriodQuantity(a)
-	return biublcu
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.SetPreLinePeriodQuantity(v)
+	return _u
 }
 
 // SetNillablePreLinePeriodQuantity sets the "pre_line_period_quantity" field if the given value is not nil.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetNillablePreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
-	if a != nil {
-		biublcu.SetPreLinePeriodQuantity(*a)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetNillablePreLinePeriodQuantity(v *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
+	if v != nil {
+		_u.SetPreLinePeriodQuantity(*v)
 	}
-	return biublcu
+	return _u
 }
 
 // ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdate {
-	biublcu.mutation.ClearPreLinePeriodQuantity()
-	return biublcu
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.ClearPreLinePeriodQuantity()
+	return _u
 }
 
 // SetMeteredPreLinePeriodQuantity sets the "metered_pre_line_period_quantity" field.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetMeteredPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
-	biublcu.mutation.SetMeteredPreLinePeriodQuantity(a)
-	return biublcu
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetMeteredPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.SetMeteredPreLinePeriodQuantity(v)
+	return _u
 }
 
 // SetNillableMeteredPreLinePeriodQuantity sets the "metered_pre_line_period_quantity" field if the given value is not nil.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetNillableMeteredPreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
-	if a != nil {
-		biublcu.SetMeteredPreLinePeriodQuantity(*a)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetNillableMeteredPreLinePeriodQuantity(v *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
+	if v != nil {
+		_u.SetMeteredPreLinePeriodQuantity(*v)
 	}
-	return biublcu
+	return _u
 }
 
 // ClearMeteredPreLinePeriodQuantity clears the value of the "metered_pre_line_period_quantity" field.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) ClearMeteredPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdate {
-	biublcu.mutation.ClearMeteredPreLinePeriodQuantity()
-	return biublcu
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) ClearMeteredPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.ClearMeteredPreLinePeriodQuantity()
+	return _u
 }
 
 // SetMeteredQuantity sets the "metered_quantity" field.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetMeteredQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
-	biublcu.mutation.SetMeteredQuantity(a)
-	return biublcu
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetMeteredQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.SetMeteredQuantity(v)
+	return _u
 }
 
 // SetNillableMeteredQuantity sets the "metered_quantity" field if the given value is not nil.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SetNillableMeteredQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
-	if a != nil {
-		biublcu.SetMeteredQuantity(*a)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetNillableMeteredQuantity(v *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
+	if v != nil {
+		_u.SetMeteredQuantity(*v)
 	}
-	return biublcu
+	return _u
 }
 
 // ClearMeteredQuantity clears the value of the "metered_quantity" field.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpdate {
-	biublcu.mutation.ClearMeteredQuantity()
-	return biublcu
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.ClearMeteredQuantity()
+	return _u
 }
 
 // Mutation returns the BillingInvoiceUsageBasedLineConfigMutation object of the builder.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) Mutation() *BillingInvoiceUsageBasedLineConfigMutation {
-	return biublcu.mutation
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) Mutation() *BillingInvoiceUsageBasedLineConfigMutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) Save(ctx context.Context) (int, error) {
-	return withHooks(ctx, biublcu.sqlSave, biublcu.mutation, biublcu.hooks)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) Save(ctx context.Context) (int, error) {
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SaveX(ctx context.Context) int {
-	affected, err := biublcu.Save(ctx)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -129,26 +129,26 @@ func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) SaveX(ctx context.Conte
 }
 
 // Exec executes the query.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) Exec(ctx context.Context) error {
-	_, err := biublcu.Save(ctx)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) ExecX(ctx context.Context) {
-	if err := biublcu.Exec(ctx); err != nil {
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) check() error {
-	if v, ok := biublcu.mutation.PriceType(); ok {
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) check() error {
+	if v, ok := _u.mutation.PriceType(); ok {
 		if err := billinginvoiceusagebasedlineconfig.PriceTypeValidator(v); err != nil {
 			return &ValidationError{Name: "price_type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.price_type": %w`, err)}
 		}
 	}
-	if v, ok := biublcu.mutation.Price(); ok {
+	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.price": %w`, err)}
 		}
@@ -156,47 +156,47 @@ func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) check() error {
 	return nil
 }
 
-func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := biublcu.check(); err != nil {
-		return n, err
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoiceusagebasedlineconfig.Table, billinginvoiceusagebasedlineconfig.Columns, sqlgraph.NewFieldSpec(billinginvoiceusagebasedlineconfig.FieldID, field.TypeString))
-	if ps := biublcu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := biublcu.mutation.PriceType(); ok {
+	if value, ok := _u.mutation.PriceType(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPriceType, field.TypeEnum, value)
 	}
-	if value, ok := biublcu.mutation.Price(); ok {
+	if value, ok := _u.mutation.Price(); ok {
 		vv, err := billinginvoiceusagebasedlineconfig.ValueScanner.Price.Value(value)
 		if err != nil {
 			return 0, err
 		}
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPrice, field.TypeString, vv)
 	}
-	if value, ok := biublcu.mutation.PreLinePeriodQuantity(); ok {
+	if value, ok := _u.mutation.PreLinePeriodQuantity(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther, value)
 	}
-	if biublcu.mutation.PreLinePeriodQuantityCleared() {
+	if _u.mutation.PreLinePeriodQuantityCleared() {
 		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther)
 	}
-	if value, ok := biublcu.mutation.MeteredPreLinePeriodQuantity(); ok {
+	if value, ok := _u.mutation.MeteredPreLinePeriodQuantity(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity, field.TypeOther, value)
 	}
-	if biublcu.mutation.MeteredPreLinePeriodQuantityCleared() {
+	if _u.mutation.MeteredPreLinePeriodQuantityCleared() {
 		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity, field.TypeOther)
 	}
-	if value, ok := biublcu.mutation.MeteredQuantity(); ok {
+	if value, ok := _u.mutation.MeteredQuantity(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther, value)
 	}
-	if biublcu.mutation.MeteredQuantityCleared() {
+	if _u.mutation.MeteredQuantityCleared() {
 		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, biublcu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billinginvoiceusagebasedlineconfig.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -204,8 +204,8 @@ func (biublcu *BillingInvoiceUsageBasedLineConfigUpdate) sqlSave(ctx context.Con
 		}
 		return 0, err
 	}
-	biublcu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // BillingInvoiceUsageBasedLineConfigUpdateOne is the builder for updating a single BillingInvoiceUsageBasedLineConfig entity.
@@ -217,111 +217,111 @@ type BillingInvoiceUsageBasedLineConfigUpdateOne struct {
 }
 
 // SetPriceType sets the "price_type" field.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetPriceType(pt productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	biublcuo.mutation.SetPriceType(pt)
-	return biublcuo
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetPriceType(v productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.SetPriceType(v)
+	return _u
 }
 
 // SetNillablePriceType sets the "price_type" field if the given value is not nil.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillablePriceType(pt *productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	if pt != nil {
-		biublcuo.SetPriceType(*pt)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillablePriceType(v *productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	if v != nil {
+		_u.SetPriceType(*v)
 	}
-	return biublcuo
+	return _u
 }
 
 // SetPrice sets the "price" field.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetPrice(pr *productcatalog.Price) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	biublcuo.mutation.SetPrice(pr)
-	return biublcuo
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetPrice(v *productcatalog.Price) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.SetPrice(v)
+	return _u
 }
 
 // SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	biublcuo.mutation.SetPreLinePeriodQuantity(a)
-	return biublcuo
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.SetPreLinePeriodQuantity(v)
+	return _u
 }
 
 // SetNillablePreLinePeriodQuantity sets the "pre_line_period_quantity" field if the given value is not nil.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillablePreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	if a != nil {
-		biublcuo.SetPreLinePeriodQuantity(*a)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillablePreLinePeriodQuantity(v *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	if v != nil {
+		_u.SetPreLinePeriodQuantity(*v)
 	}
-	return biublcuo
+	return _u
 }
 
 // ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	biublcuo.mutation.ClearPreLinePeriodQuantity()
-	return biublcuo
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.ClearPreLinePeriodQuantity()
+	return _u
 }
 
 // SetMeteredPreLinePeriodQuantity sets the "metered_pre_line_period_quantity" field.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetMeteredPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	biublcuo.mutation.SetMeteredPreLinePeriodQuantity(a)
-	return biublcuo
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetMeteredPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.SetMeteredPreLinePeriodQuantity(v)
+	return _u
 }
 
 // SetNillableMeteredPreLinePeriodQuantity sets the "metered_pre_line_period_quantity" field if the given value is not nil.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillableMeteredPreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	if a != nil {
-		biublcuo.SetMeteredPreLinePeriodQuantity(*a)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillableMeteredPreLinePeriodQuantity(v *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	if v != nil {
+		_u.SetMeteredPreLinePeriodQuantity(*v)
 	}
-	return biublcuo
+	return _u
 }
 
 // ClearMeteredPreLinePeriodQuantity clears the value of the "metered_pre_line_period_quantity" field.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearMeteredPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	biublcuo.mutation.ClearMeteredPreLinePeriodQuantity()
-	return biublcuo
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearMeteredPreLinePeriodQuantity() *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.ClearMeteredPreLinePeriodQuantity()
+	return _u
 }
 
 // SetMeteredQuantity sets the "metered_quantity" field.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetMeteredQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	biublcuo.mutation.SetMeteredQuantity(a)
-	return biublcuo
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetMeteredQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.SetMeteredQuantity(v)
+	return _u
 }
 
 // SetNillableMeteredQuantity sets the "metered_quantity" field if the given value is not nil.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillableMeteredQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	if a != nil {
-		biublcuo.SetMeteredQuantity(*a)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillableMeteredQuantity(v *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	if v != nil {
+		_u.SetMeteredQuantity(*v)
 	}
-	return biublcuo
+	return _u
 }
 
 // ClearMeteredQuantity clears the value of the "metered_quantity" field.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	biublcuo.mutation.ClearMeteredQuantity()
-	return biublcuo
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.ClearMeteredQuantity()
+	return _u
 }
 
 // Mutation returns the BillingInvoiceUsageBasedLineConfigMutation object of the builder.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) Mutation() *BillingInvoiceUsageBasedLineConfigMutation {
-	return biublcuo.mutation
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) Mutation() *BillingInvoiceUsageBasedLineConfigMutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the BillingInvoiceUsageBasedLineConfigUpdate builder.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	biublcuo.mutation.Where(ps...)
-	return biublcuo
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) Select(field string, fields ...string) *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	biublcuo.fields = append([]string{field}, fields...)
-	return biublcuo
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) Select(field string, fields ...string) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated BillingInvoiceUsageBasedLineConfig entity.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) Save(ctx context.Context) (*BillingInvoiceUsageBasedLineConfig, error) {
-	return withHooks(ctx, biublcuo.sqlSave, biublcuo.mutation, biublcuo.hooks)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) Save(ctx context.Context) (*BillingInvoiceUsageBasedLineConfig, error) {
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SaveX(ctx context.Context) *BillingInvoiceUsageBasedLineConfig {
-	node, err := biublcuo.Save(ctx)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SaveX(ctx context.Context) *BillingInvoiceUsageBasedLineConfig {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -329,26 +329,26 @@ func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) SaveX(ctx context.C
 }
 
 // Exec executes the query on the entity.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) Exec(ctx context.Context) error {
-	_, err := biublcuo.Save(ctx)
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) ExecX(ctx context.Context) {
-	if err := biublcuo.Exec(ctx); err != nil {
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) check() error {
-	if v, ok := biublcuo.mutation.PriceType(); ok {
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) check() error {
+	if v, ok := _u.mutation.PriceType(); ok {
 		if err := billinginvoiceusagebasedlineconfig.PriceTypeValidator(v); err != nil {
 			return &ValidationError{Name: "price_type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.price_type": %w`, err)}
 		}
 	}
-	if v, ok := biublcuo.mutation.Price(); ok {
+	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.price": %w`, err)}
 		}
@@ -356,17 +356,17 @@ func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) check() error {
 	return nil
 }
 
-func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) sqlSave(ctx context.Context) (_node *BillingInvoiceUsageBasedLineConfig, err error) {
-	if err := biublcuo.check(); err != nil {
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) sqlSave(ctx context.Context) (_node *BillingInvoiceUsageBasedLineConfig, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoiceusagebasedlineconfig.Table, billinginvoiceusagebasedlineconfig.Columns, sqlgraph.NewFieldSpec(billinginvoiceusagebasedlineconfig.FieldID, field.TypeString))
-	id, ok := biublcuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "BillingInvoiceUsageBasedLineConfig.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := biublcuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billinginvoiceusagebasedlineconfig.FieldID)
 		for _, f := range fields {
@@ -378,45 +378,45 @@ func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) sqlSave(ctx context
 			}
 		}
 	}
-	if ps := biublcuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := biublcuo.mutation.PriceType(); ok {
+	if value, ok := _u.mutation.PriceType(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPriceType, field.TypeEnum, value)
 	}
-	if value, ok := biublcuo.mutation.Price(); ok {
+	if value, ok := _u.mutation.Price(); ok {
 		vv, err := billinginvoiceusagebasedlineconfig.ValueScanner.Price.Value(value)
 		if err != nil {
 			return nil, err
 		}
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPrice, field.TypeString, vv)
 	}
-	if value, ok := biublcuo.mutation.PreLinePeriodQuantity(); ok {
+	if value, ok := _u.mutation.PreLinePeriodQuantity(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther, value)
 	}
-	if biublcuo.mutation.PreLinePeriodQuantityCleared() {
+	if _u.mutation.PreLinePeriodQuantityCleared() {
 		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther)
 	}
-	if value, ok := biublcuo.mutation.MeteredPreLinePeriodQuantity(); ok {
+	if value, ok := _u.mutation.MeteredPreLinePeriodQuantity(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity, field.TypeOther, value)
 	}
-	if biublcuo.mutation.MeteredPreLinePeriodQuantityCleared() {
+	if _u.mutation.MeteredPreLinePeriodQuantityCleared() {
 		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity, field.TypeOther)
 	}
-	if value, ok := biublcuo.mutation.MeteredQuantity(); ok {
+	if value, ok := _u.mutation.MeteredQuantity(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther, value)
 	}
-	if biublcuo.mutation.MeteredQuantityCleared() {
+	if _u.mutation.MeteredQuantityCleared() {
 		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther)
 	}
-	_node = &BillingInvoiceUsageBasedLineConfig{config: biublcuo.config}
+	_node = &BillingInvoiceUsageBasedLineConfig{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, biublcuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billinginvoiceusagebasedlineconfig.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -424,6 +424,6 @@ func (biublcuo *BillingInvoiceUsageBasedLineConfigUpdateOne) sqlSave(ctx context
 		}
 		return nil, err
 	}
-	biublcuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

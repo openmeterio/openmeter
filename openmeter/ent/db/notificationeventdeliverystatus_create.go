@@ -26,122 +26,122 @@ type NotificationEventDeliveryStatusCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetNamespace(s string) *NotificationEventDeliveryStatusCreate {
-	nedsc.mutation.SetNamespace(s)
-	return nedsc
+func (_c *NotificationEventDeliveryStatusCreate) SetNamespace(v string) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetCreatedAt(t time.Time) *NotificationEventDeliveryStatusCreate {
-	nedsc.mutation.SetCreatedAt(t)
-	return nedsc
+func (_c *NotificationEventDeliveryStatusCreate) SetCreatedAt(v time.Time) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetNillableCreatedAt(t *time.Time) *NotificationEventDeliveryStatusCreate {
-	if t != nil {
-		nedsc.SetCreatedAt(*t)
+func (_c *NotificationEventDeliveryStatusCreate) SetNillableCreatedAt(v *time.Time) *NotificationEventDeliveryStatusCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return nedsc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetUpdatedAt(t time.Time) *NotificationEventDeliveryStatusCreate {
-	nedsc.mutation.SetUpdatedAt(t)
-	return nedsc
+func (_c *NotificationEventDeliveryStatusCreate) SetUpdatedAt(v time.Time) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetNillableUpdatedAt(t *time.Time) *NotificationEventDeliveryStatusCreate {
-	if t != nil {
-		nedsc.SetUpdatedAt(*t)
+func (_c *NotificationEventDeliveryStatusCreate) SetNillableUpdatedAt(v *time.Time) *NotificationEventDeliveryStatusCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return nedsc
+	return _c
 }
 
 // SetEventID sets the "event_id" field.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetEventID(s string) *NotificationEventDeliveryStatusCreate {
-	nedsc.mutation.SetEventID(s)
-	return nedsc
+func (_c *NotificationEventDeliveryStatusCreate) SetEventID(v string) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.SetEventID(v)
+	return _c
 }
 
 // SetChannelID sets the "channel_id" field.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetChannelID(s string) *NotificationEventDeliveryStatusCreate {
-	nedsc.mutation.SetChannelID(s)
-	return nedsc
+func (_c *NotificationEventDeliveryStatusCreate) SetChannelID(v string) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.SetChannelID(v)
+	return _c
 }
 
 // SetState sets the "state" field.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetState(ndss notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusCreate {
-	nedsc.mutation.SetState(ndss)
-	return nedsc
+func (_c *NotificationEventDeliveryStatusCreate) SetState(v notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.SetState(v)
+	return _c
 }
 
 // SetNillableState sets the "state" field if the given value is not nil.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetNillableState(ndss *notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusCreate {
-	if ndss != nil {
-		nedsc.SetState(*ndss)
+func (_c *NotificationEventDeliveryStatusCreate) SetNillableState(v *notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusCreate {
+	if v != nil {
+		_c.SetState(*v)
 	}
-	return nedsc
+	return _c
 }
 
 // SetReason sets the "reason" field.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetReason(s string) *NotificationEventDeliveryStatusCreate {
-	nedsc.mutation.SetReason(s)
-	return nedsc
+func (_c *NotificationEventDeliveryStatusCreate) SetReason(v string) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.SetReason(v)
+	return _c
 }
 
 // SetNillableReason sets the "reason" field if the given value is not nil.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetNillableReason(s *string) *NotificationEventDeliveryStatusCreate {
-	if s != nil {
-		nedsc.SetReason(*s)
+func (_c *NotificationEventDeliveryStatusCreate) SetNillableReason(v *string) *NotificationEventDeliveryStatusCreate {
+	if v != nil {
+		_c.SetReason(*v)
 	}
-	return nedsc
+	return _c
 }
 
 // SetID sets the "id" field.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetID(s string) *NotificationEventDeliveryStatusCreate {
-	nedsc.mutation.SetID(s)
-	return nedsc
+func (_c *NotificationEventDeliveryStatusCreate) SetID(v string) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetNillableID(s *string) *NotificationEventDeliveryStatusCreate {
-	if s != nil {
-		nedsc.SetID(*s)
+func (_c *NotificationEventDeliveryStatusCreate) SetNillableID(v *string) *NotificationEventDeliveryStatusCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return nedsc
+	return _c
 }
 
 // AddEventIDs adds the "events" edge to the NotificationEvent entity by IDs.
-func (nedsc *NotificationEventDeliveryStatusCreate) AddEventIDs(ids ...string) *NotificationEventDeliveryStatusCreate {
-	nedsc.mutation.AddEventIDs(ids...)
-	return nedsc
+func (_c *NotificationEventDeliveryStatusCreate) AddEventIDs(ids ...string) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.AddEventIDs(ids...)
+	return _c
 }
 
 // AddEvents adds the "events" edges to the NotificationEvent entity.
-func (nedsc *NotificationEventDeliveryStatusCreate) AddEvents(n ...*NotificationEvent) *NotificationEventDeliveryStatusCreate {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_c *NotificationEventDeliveryStatusCreate) AddEvents(v ...*NotificationEvent) *NotificationEventDeliveryStatusCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nedsc.AddEventIDs(ids...)
+	return _c.AddEventIDs(ids...)
 }
 
 // Mutation returns the NotificationEventDeliveryStatusMutation object of the builder.
-func (nedsc *NotificationEventDeliveryStatusCreate) Mutation() *NotificationEventDeliveryStatusMutation {
-	return nedsc.mutation
+func (_c *NotificationEventDeliveryStatusCreate) Mutation() *NotificationEventDeliveryStatusMutation {
+	return _c.mutation
 }
 
 // Save creates the NotificationEventDeliveryStatus in the database.
-func (nedsc *NotificationEventDeliveryStatusCreate) Save(ctx context.Context) (*NotificationEventDeliveryStatus, error) {
-	nedsc.defaults()
-	return withHooks(ctx, nedsc.sqlSave, nedsc.mutation, nedsc.hooks)
+func (_c *NotificationEventDeliveryStatusCreate) Save(ctx context.Context) (*NotificationEventDeliveryStatus, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (nedsc *NotificationEventDeliveryStatusCreate) SaveX(ctx context.Context) *NotificationEventDeliveryStatus {
-	v, err := nedsc.Save(ctx)
+func (_c *NotificationEventDeliveryStatusCreate) SaveX(ctx context.Context) *NotificationEventDeliveryStatus {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -149,74 +149,74 @@ func (nedsc *NotificationEventDeliveryStatusCreate) SaveX(ctx context.Context) *
 }
 
 // Exec executes the query.
-func (nedsc *NotificationEventDeliveryStatusCreate) Exec(ctx context.Context) error {
-	_, err := nedsc.Save(ctx)
+func (_c *NotificationEventDeliveryStatusCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nedsc *NotificationEventDeliveryStatusCreate) ExecX(ctx context.Context) {
-	if err := nedsc.Exec(ctx); err != nil {
+func (_c *NotificationEventDeliveryStatusCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (nedsc *NotificationEventDeliveryStatusCreate) defaults() {
-	if _, ok := nedsc.mutation.CreatedAt(); !ok {
+func (_c *NotificationEventDeliveryStatusCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := notificationeventdeliverystatus.DefaultCreatedAt()
-		nedsc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := nedsc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := notificationeventdeliverystatus.DefaultUpdatedAt()
-		nedsc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := nedsc.mutation.State(); !ok {
+	if _, ok := _c.mutation.State(); !ok {
 		v := notificationeventdeliverystatus.DefaultState
-		nedsc.mutation.SetState(v)
+		_c.mutation.SetState(v)
 	}
-	if _, ok := nedsc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := notificationeventdeliverystatus.DefaultID()
-		nedsc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (nedsc *NotificationEventDeliveryStatusCreate) check() error {
-	if _, ok := nedsc.mutation.Namespace(); !ok {
+func (_c *NotificationEventDeliveryStatusCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.namespace"`)}
 	}
-	if v, ok := nedsc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := notificationeventdeliverystatus.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.namespace": %w`, err)}
 		}
 	}
-	if _, ok := nedsc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.created_at"`)}
 	}
-	if _, ok := nedsc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.updated_at"`)}
 	}
-	if _, ok := nedsc.mutation.EventID(); !ok {
+	if _, ok := _c.mutation.EventID(); !ok {
 		return &ValidationError{Name: "event_id", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.event_id"`)}
 	}
-	if v, ok := nedsc.mutation.EventID(); ok {
+	if v, ok := _c.mutation.EventID(); ok {
 		if err := notificationeventdeliverystatus.EventIDValidator(v); err != nil {
 			return &ValidationError{Name: "event_id", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.event_id": %w`, err)}
 		}
 	}
-	if _, ok := nedsc.mutation.ChannelID(); !ok {
+	if _, ok := _c.mutation.ChannelID(); !ok {
 		return &ValidationError{Name: "channel_id", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.channel_id"`)}
 	}
-	if v, ok := nedsc.mutation.ChannelID(); ok {
+	if v, ok := _c.mutation.ChannelID(); ok {
 		if err := notificationeventdeliverystatus.ChannelIDValidator(v); err != nil {
 			return &ValidationError{Name: "channel_id", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.channel_id": %w`, err)}
 		}
 	}
-	if _, ok := nedsc.mutation.State(); !ok {
+	if _, ok := _c.mutation.State(); !ok {
 		return &ValidationError{Name: "state", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.state"`)}
 	}
-	if v, ok := nedsc.mutation.State(); ok {
+	if v, ok := _c.mutation.State(); ok {
 		if err := notificationeventdeliverystatus.StateValidator(v); err != nil {
 			return &ValidationError{Name: "state", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.state": %w`, err)}
 		}
@@ -224,12 +224,12 @@ func (nedsc *NotificationEventDeliveryStatusCreate) check() error {
 	return nil
 }
 
-func (nedsc *NotificationEventDeliveryStatusCreate) sqlSave(ctx context.Context) (*NotificationEventDeliveryStatus, error) {
-	if err := nedsc.check(); err != nil {
+func (_c *NotificationEventDeliveryStatusCreate) sqlSave(ctx context.Context) (*NotificationEventDeliveryStatus, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := nedsc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, nedsc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -242,50 +242,50 @@ func (nedsc *NotificationEventDeliveryStatusCreate) sqlSave(ctx context.Context)
 			return nil, fmt.Errorf("unexpected NotificationEventDeliveryStatus.ID type: %T", _spec.ID.Value)
 		}
 	}
-	nedsc.mutation.id = &_node.ID
-	nedsc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (nedsc *NotificationEventDeliveryStatusCreate) createSpec() (*NotificationEventDeliveryStatus, *sqlgraph.CreateSpec) {
+func (_c *NotificationEventDeliveryStatusCreate) createSpec() (*NotificationEventDeliveryStatus, *sqlgraph.CreateSpec) {
 	var (
-		_node = &NotificationEventDeliveryStatus{config: nedsc.config}
+		_node = &NotificationEventDeliveryStatus{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(notificationeventdeliverystatus.Table, sqlgraph.NewFieldSpec(notificationeventdeliverystatus.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = nedsc.conflict
-	if id, ok := nedsc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := nedsc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := nedsc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := nedsc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := nedsc.mutation.EventID(); ok {
+	if value, ok := _c.mutation.EventID(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldEventID, field.TypeString, value)
 		_node.EventID = value
 	}
-	if value, ok := nedsc.mutation.ChannelID(); ok {
+	if value, ok := _c.mutation.ChannelID(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldChannelID, field.TypeString, value)
 		_node.ChannelID = value
 	}
-	if value, ok := nedsc.mutation.State(); ok {
+	if value, ok := _c.mutation.State(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeEnum, value)
 		_node.State = value
 	}
-	if value, ok := nedsc.mutation.Reason(); ok {
+	if value, ok := _c.mutation.Reason(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldReason, field.TypeString, value)
 		_node.Reason = value
 	}
-	if nodes := nedsc.mutation.EventsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.EventsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: false,
@@ -320,10 +320,10 @@ func (nedsc *NotificationEventDeliveryStatusCreate) createSpec() (*NotificationE
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (nedsc *NotificationEventDeliveryStatusCreate) OnConflict(opts ...sql.ConflictOption) *NotificationEventDeliveryStatusUpsertOne {
-	nedsc.conflict = opts
+func (_c *NotificationEventDeliveryStatusCreate) OnConflict(opts ...sql.ConflictOption) *NotificationEventDeliveryStatusUpsertOne {
+	_c.conflict = opts
 	return &NotificationEventDeliveryStatusUpsertOne{
-		create: nedsc,
+		create: _c,
 	}
 }
 
@@ -333,10 +333,10 @@ func (nedsc *NotificationEventDeliveryStatusCreate) OnConflict(opts ...sql.Confl
 //	client.NotificationEventDeliveryStatus.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (nedsc *NotificationEventDeliveryStatusCreate) OnConflictColumns(columns ...string) *NotificationEventDeliveryStatusUpsertOne {
-	nedsc.conflict = append(nedsc.conflict, sql.ConflictColumns(columns...))
+func (_c *NotificationEventDeliveryStatusCreate) OnConflictColumns(columns ...string) *NotificationEventDeliveryStatusUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &NotificationEventDeliveryStatusUpsertOne{
-		create: nedsc,
+		create: _c,
 	}
 }
 
@@ -551,16 +551,16 @@ type NotificationEventDeliveryStatusCreateBulk struct {
 }
 
 // Save creates the NotificationEventDeliveryStatus entities in the database.
-func (nedscb *NotificationEventDeliveryStatusCreateBulk) Save(ctx context.Context) ([]*NotificationEventDeliveryStatus, error) {
-	if nedscb.err != nil {
-		return nil, nedscb.err
+func (_c *NotificationEventDeliveryStatusCreateBulk) Save(ctx context.Context) ([]*NotificationEventDeliveryStatus, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(nedscb.builders))
-	nodes := make([]*NotificationEventDeliveryStatus, len(nedscb.builders))
-	mutators := make([]Mutator, len(nedscb.builders))
-	for i := range nedscb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*NotificationEventDeliveryStatus, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := nedscb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*NotificationEventDeliveryStatusMutation)
@@ -574,12 +574,12 @@ func (nedscb *NotificationEventDeliveryStatusCreateBulk) Save(ctx context.Contex
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, nedscb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = nedscb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, nedscb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -599,7 +599,7 @@ func (nedscb *NotificationEventDeliveryStatusCreateBulk) Save(ctx context.Contex
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, nedscb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -607,8 +607,8 @@ func (nedscb *NotificationEventDeliveryStatusCreateBulk) Save(ctx context.Contex
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (nedscb *NotificationEventDeliveryStatusCreateBulk) SaveX(ctx context.Context) []*NotificationEventDeliveryStatus {
-	v, err := nedscb.Save(ctx)
+func (_c *NotificationEventDeliveryStatusCreateBulk) SaveX(ctx context.Context) []*NotificationEventDeliveryStatus {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -616,14 +616,14 @@ func (nedscb *NotificationEventDeliveryStatusCreateBulk) SaveX(ctx context.Conte
 }
 
 // Exec executes the query.
-func (nedscb *NotificationEventDeliveryStatusCreateBulk) Exec(ctx context.Context) error {
-	_, err := nedscb.Save(ctx)
+func (_c *NotificationEventDeliveryStatusCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nedscb *NotificationEventDeliveryStatusCreateBulk) ExecX(ctx context.Context) {
-	if err := nedscb.Exec(ctx); err != nil {
+func (_c *NotificationEventDeliveryStatusCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -643,10 +643,10 @@ func (nedscb *NotificationEventDeliveryStatusCreateBulk) ExecX(ctx context.Conte
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (nedscb *NotificationEventDeliveryStatusCreateBulk) OnConflict(opts ...sql.ConflictOption) *NotificationEventDeliveryStatusUpsertBulk {
-	nedscb.conflict = opts
+func (_c *NotificationEventDeliveryStatusCreateBulk) OnConflict(opts ...sql.ConflictOption) *NotificationEventDeliveryStatusUpsertBulk {
+	_c.conflict = opts
 	return &NotificationEventDeliveryStatusUpsertBulk{
-		create: nedscb,
+		create: _c,
 	}
 }
 
@@ -656,10 +656,10 @@ func (nedscb *NotificationEventDeliveryStatusCreateBulk) OnConflict(opts ...sql.
 //	client.NotificationEventDeliveryStatus.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (nedscb *NotificationEventDeliveryStatusCreateBulk) OnConflictColumns(columns ...string) *NotificationEventDeliveryStatusUpsertBulk {
-	nedscb.conflict = append(nedscb.conflict, sql.ConflictColumns(columns...))
+func (_c *NotificationEventDeliveryStatusCreateBulk) OnConflictColumns(columns ...string) *NotificationEventDeliveryStatusUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &NotificationEventDeliveryStatusUpsertBulk{
-		create: nedscb,
+		create: _c,
 	}
 }
 

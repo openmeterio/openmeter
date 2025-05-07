@@ -162,7 +162,7 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the Entitlement fields.
-func (e *Entitlement) assignValues(columns []string, values []any) error {
+func (_m *Entitlement) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -172,19 +172,19 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				e.ID = value.String
+				_m.ID = value.String
 			}
 		case entitlement.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				e.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case entitlement.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &e.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -192,99 +192,99 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				e.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case entitlement.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				e.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case entitlement.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				e.DeletedAt = new(time.Time)
-				*e.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case entitlement.FieldEntitlementType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field entitlement_type", values[i])
 			} else if value.Valid {
-				e.EntitlementType = entitlement.EntitlementType(value.String)
+				_m.EntitlementType = entitlement.EntitlementType(value.String)
 			}
 		case entitlement.FieldFeatureID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
 			} else if value.Valid {
-				e.FeatureID = value.String
+				_m.FeatureID = value.String
 			}
 		case entitlement.FieldActiveFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field active_from", values[i])
 			} else if value.Valid {
-				e.ActiveFrom = new(time.Time)
-				*e.ActiveFrom = value.Time
+				_m.ActiveFrom = new(time.Time)
+				*_m.ActiveFrom = value.Time
 			}
 		case entitlement.FieldActiveTo:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field active_to", values[i])
 			} else if value.Valid {
-				e.ActiveTo = new(time.Time)
-				*e.ActiveTo = value.Time
+				_m.ActiveTo = new(time.Time)
+				*_m.ActiveTo = value.Time
 			}
 		case entitlement.FieldFeatureKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_key", values[i])
 			} else if value.Valid {
-				e.FeatureKey = value.String
+				_m.FeatureKey = value.String
 			}
 		case entitlement.FieldSubjectKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field subject_key", values[i])
 			} else if value.Valid {
-				e.SubjectKey = value.String
+				_m.SubjectKey = value.String
 			}
 		case entitlement.FieldMeasureUsageFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field measure_usage_from", values[i])
 			} else if value.Valid {
-				e.MeasureUsageFrom = new(time.Time)
-				*e.MeasureUsageFrom = value.Time
+				_m.MeasureUsageFrom = new(time.Time)
+				*_m.MeasureUsageFrom = value.Time
 			}
 		case entitlement.FieldIssueAfterReset:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field issue_after_reset", values[i])
 			} else if value.Valid {
-				e.IssueAfterReset = new(float64)
-				*e.IssueAfterReset = value.Float64
+				_m.IssueAfterReset = new(float64)
+				*_m.IssueAfterReset = value.Float64
 			}
 		case entitlement.FieldIssueAfterResetPriority:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field issue_after_reset_priority", values[i])
 			} else if value.Valid {
-				e.IssueAfterResetPriority = new(uint8)
-				*e.IssueAfterResetPriority = uint8(value.Int64)
+				_m.IssueAfterResetPriority = new(uint8)
+				*_m.IssueAfterResetPriority = uint8(value.Int64)
 			}
 		case entitlement.FieldIsSoftLimit:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field is_soft_limit", values[i])
 			} else if value.Valid {
-				e.IsSoftLimit = new(bool)
-				*e.IsSoftLimit = value.Bool
+				_m.IsSoftLimit = new(bool)
+				*_m.IsSoftLimit = value.Bool
 			}
 		case entitlement.FieldPreserveOverageAtReset:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field preserve_overage_at_reset", values[i])
 			} else if value.Valid {
-				e.PreserveOverageAtReset = new(bool)
-				*e.PreserveOverageAtReset = value.Bool
+				_m.PreserveOverageAtReset = new(bool)
+				*_m.PreserveOverageAtReset = value.Bool
 			}
 		case entitlement.FieldConfig:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field config", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &e.Config); err != nil {
+				if err := json.Unmarshal(*value, &_m.Config); err != nil {
 					return fmt.Errorf("unmarshal field config: %w", err)
 				}
 			}
@@ -292,38 +292,38 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field usage_period_interval", values[i])
 			} else if value.Valid {
-				e.UsagePeriodInterval = new(isodate.String)
-				*e.UsagePeriodInterval = isodate.String(value.String)
+				_m.UsagePeriodInterval = new(isodate.String)
+				*_m.UsagePeriodInterval = isodate.String(value.String)
 			}
 		case entitlement.FieldUsagePeriodAnchor:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field usage_period_anchor", values[i])
 			} else if value.Valid {
-				e.UsagePeriodAnchor = new(time.Time)
-				*e.UsagePeriodAnchor = value.Time
+				_m.UsagePeriodAnchor = new(time.Time)
+				*_m.UsagePeriodAnchor = value.Time
 			}
 		case entitlement.FieldCurrentUsagePeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field current_usage_period_start", values[i])
 			} else if value.Valid {
-				e.CurrentUsagePeriodStart = new(time.Time)
-				*e.CurrentUsagePeriodStart = value.Time
+				_m.CurrentUsagePeriodStart = new(time.Time)
+				*_m.CurrentUsagePeriodStart = value.Time
 			}
 		case entitlement.FieldCurrentUsagePeriodEnd:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field current_usage_period_end", values[i])
 			} else if value.Valid {
-				e.CurrentUsagePeriodEnd = new(time.Time)
-				*e.CurrentUsagePeriodEnd = value.Time
+				_m.CurrentUsagePeriodEnd = new(time.Time)
+				*_m.CurrentUsagePeriodEnd = value.Time
 			}
 		case entitlement.FieldAnnotations:
 			if value, err := entitlement.ValueScanner.Annotations.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				e.Annotations = value
+				_m.Annotations = value
 			}
 		default:
-			e.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -331,147 +331,147 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the Entitlement.
 // This includes values selected through modifiers, order, etc.
-func (e *Entitlement) Value(name string) (ent.Value, error) {
-	return e.selectValues.Get(name)
+func (_m *Entitlement) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryUsageReset queries the "usage_reset" edge of the Entitlement entity.
-func (e *Entitlement) QueryUsageReset() *UsageResetQuery {
-	return NewEntitlementClient(e.config).QueryUsageReset(e)
+func (_m *Entitlement) QueryUsageReset() *UsageResetQuery {
+	return NewEntitlementClient(_m.config).QueryUsageReset(_m)
 }
 
 // QueryGrant queries the "grant" edge of the Entitlement entity.
-func (e *Entitlement) QueryGrant() *GrantQuery {
-	return NewEntitlementClient(e.config).QueryGrant(e)
+func (_m *Entitlement) QueryGrant() *GrantQuery {
+	return NewEntitlementClient(_m.config).QueryGrant(_m)
 }
 
 // QueryBalanceSnapshot queries the "balance_snapshot" edge of the Entitlement entity.
-func (e *Entitlement) QueryBalanceSnapshot() *BalanceSnapshotQuery {
-	return NewEntitlementClient(e.config).QueryBalanceSnapshot(e)
+func (_m *Entitlement) QueryBalanceSnapshot() *BalanceSnapshotQuery {
+	return NewEntitlementClient(_m.config).QueryBalanceSnapshot(_m)
 }
 
 // QuerySubscriptionItem queries the "subscription_item" edge of the Entitlement entity.
-func (e *Entitlement) QuerySubscriptionItem() *SubscriptionItemQuery {
-	return NewEntitlementClient(e.config).QuerySubscriptionItem(e)
+func (_m *Entitlement) QuerySubscriptionItem() *SubscriptionItemQuery {
+	return NewEntitlementClient(_m.config).QuerySubscriptionItem(_m)
 }
 
 // QueryFeature queries the "feature" edge of the Entitlement entity.
-func (e *Entitlement) QueryFeature() *FeatureQuery {
-	return NewEntitlementClient(e.config).QueryFeature(e)
+func (_m *Entitlement) QueryFeature() *FeatureQuery {
+	return NewEntitlementClient(_m.config).QueryFeature(_m)
 }
 
 // Update returns a builder for updating this Entitlement.
 // Note that you need to call Entitlement.Unwrap() before calling this method if this Entitlement
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (e *Entitlement) Update() *EntitlementUpdateOne {
-	return NewEntitlementClient(e.config).UpdateOne(e)
+func (_m *Entitlement) Update() *EntitlementUpdateOne {
+	return NewEntitlementClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the Entitlement entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (e *Entitlement) Unwrap() *Entitlement {
-	_tx, ok := e.config.driver.(*txDriver)
+func (_m *Entitlement) Unwrap() *Entitlement {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: Entitlement is not a transactional entity")
 	}
-	e.config.driver = _tx.drv
-	return e
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (e *Entitlement) String() string {
+func (_m *Entitlement) String() string {
 	var builder strings.Builder
 	builder.WriteString("Entitlement(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", e.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(e.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", e.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(e.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(e.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := e.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("entitlement_type=")
-	builder.WriteString(fmt.Sprintf("%v", e.EntitlementType))
+	builder.WriteString(fmt.Sprintf("%v", _m.EntitlementType))
 	builder.WriteString(", ")
 	builder.WriteString("feature_id=")
-	builder.WriteString(e.FeatureID)
+	builder.WriteString(_m.FeatureID)
 	builder.WriteString(", ")
-	if v := e.ActiveFrom; v != nil {
+	if v := _m.ActiveFrom; v != nil {
 		builder.WriteString("active_from=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	if v := e.ActiveTo; v != nil {
+	if v := _m.ActiveTo; v != nil {
 		builder.WriteString("active_to=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("feature_key=")
-	builder.WriteString(e.FeatureKey)
+	builder.WriteString(_m.FeatureKey)
 	builder.WriteString(", ")
 	builder.WriteString("subject_key=")
-	builder.WriteString(e.SubjectKey)
+	builder.WriteString(_m.SubjectKey)
 	builder.WriteString(", ")
-	if v := e.MeasureUsageFrom; v != nil {
+	if v := _m.MeasureUsageFrom; v != nil {
 		builder.WriteString("measure_usage_from=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	if v := e.IssueAfterReset; v != nil {
+	if v := _m.IssueAfterReset; v != nil {
 		builder.WriteString("issue_after_reset=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := e.IssueAfterResetPriority; v != nil {
+	if v := _m.IssueAfterResetPriority; v != nil {
 		builder.WriteString("issue_after_reset_priority=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := e.IsSoftLimit; v != nil {
+	if v := _m.IsSoftLimit; v != nil {
 		builder.WriteString("is_soft_limit=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := e.PreserveOverageAtReset; v != nil {
+	if v := _m.PreserveOverageAtReset; v != nil {
 		builder.WriteString("preserve_overage_at_reset=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("config=")
-	builder.WriteString(fmt.Sprintf("%v", e.Config))
+	builder.WriteString(fmt.Sprintf("%v", _m.Config))
 	builder.WriteString(", ")
-	if v := e.UsagePeriodInterval; v != nil {
+	if v := _m.UsagePeriodInterval; v != nil {
 		builder.WriteString("usage_period_interval=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := e.UsagePeriodAnchor; v != nil {
+	if v := _m.UsagePeriodAnchor; v != nil {
 		builder.WriteString("usage_period_anchor=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	if v := e.CurrentUsagePeriodStart; v != nil {
+	if v := _m.CurrentUsagePeriodStart; v != nil {
 		builder.WriteString("current_usage_period_start=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	if v := e.CurrentUsagePeriodEnd; v != nil {
+	if v := _m.CurrentUsagePeriodEnd; v != nil {
 		builder.WriteString("current_usage_period_end=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")
-	builder.WriteString(fmt.Sprintf("%v", e.Annotations))
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteByte(')')
 	return builder.String()
 }

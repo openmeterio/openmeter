@@ -74,7 +74,7 @@ func (*CustomerSubjects) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the CustomerSubjects fields.
-func (cs *CustomerSubjects) assignValues(columns []string, values []any) error {
+func (_m *CustomerSubjects) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -85,40 +85,40 @@ func (cs *CustomerSubjects) assignValues(columns []string, values []any) error {
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
-			cs.ID = int(value.Int64)
+			_m.ID = int(value.Int64)
 		case customersubjects.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				cs.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case customersubjects.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
 			} else if value.Valid {
-				cs.CustomerID = value.String
+				_m.CustomerID = value.String
 			}
 		case customersubjects.FieldSubjectKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field subject_key", values[i])
 			} else if value.Valid {
-				cs.SubjectKey = value.String
+				_m.SubjectKey = value.String
 			}
 		case customersubjects.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				cs.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case customersubjects.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				cs.DeletedAt = new(time.Time)
-				*cs.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		default:
-			cs.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -126,51 +126,51 @@ func (cs *CustomerSubjects) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the CustomerSubjects.
 // This includes values selected through modifiers, order, etc.
-func (cs *CustomerSubjects) Value(name string) (ent.Value, error) {
-	return cs.selectValues.Get(name)
+func (_m *CustomerSubjects) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryCustomer queries the "customer" edge of the CustomerSubjects entity.
-func (cs *CustomerSubjects) QueryCustomer() *CustomerQuery {
-	return NewCustomerSubjectsClient(cs.config).QueryCustomer(cs)
+func (_m *CustomerSubjects) QueryCustomer() *CustomerQuery {
+	return NewCustomerSubjectsClient(_m.config).QueryCustomer(_m)
 }
 
 // Update returns a builder for updating this CustomerSubjects.
 // Note that you need to call CustomerSubjects.Unwrap() before calling this method if this CustomerSubjects
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (cs *CustomerSubjects) Update() *CustomerSubjectsUpdateOne {
-	return NewCustomerSubjectsClient(cs.config).UpdateOne(cs)
+func (_m *CustomerSubjects) Update() *CustomerSubjectsUpdateOne {
+	return NewCustomerSubjectsClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the CustomerSubjects entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (cs *CustomerSubjects) Unwrap() *CustomerSubjects {
-	_tx, ok := cs.config.driver.(*txDriver)
+func (_m *CustomerSubjects) Unwrap() *CustomerSubjects {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: CustomerSubjects is not a transactional entity")
 	}
-	cs.config.driver = _tx.drv
-	return cs
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (cs *CustomerSubjects) String() string {
+func (_m *CustomerSubjects) String() string {
 	var builder strings.Builder
 	builder.WriteString("CustomerSubjects(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", cs.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(cs.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
-	builder.WriteString(cs.CustomerID)
+	builder.WriteString(_m.CustomerID)
 	builder.WriteString(", ")
 	builder.WriteString("subject_key=")
-	builder.WriteString(cs.SubjectKey)
+	builder.WriteString(_m.SubjectKey)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(cs.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := cs.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}

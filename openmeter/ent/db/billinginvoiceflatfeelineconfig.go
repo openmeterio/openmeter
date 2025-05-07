@@ -48,7 +48,7 @@ func (*BillingInvoiceFlatFeeLineConfig) scanValues(columns []string) ([]any, err
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the BillingInvoiceFlatFeeLineConfig fields.
-func (bifflc *BillingInvoiceFlatFeeLineConfig) assignValues(columns []string, values []any) error {
+func (_m *BillingInvoiceFlatFeeLineConfig) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -58,34 +58,34 @@ func (bifflc *BillingInvoiceFlatFeeLineConfig) assignValues(columns []string, va
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				bifflc.ID = value.String
+				_m.ID = value.String
 			}
 		case billinginvoiceflatfeelineconfig.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				bifflc.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case billinginvoiceflatfeelineconfig.FieldPerUnitAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field per_unit_amount", values[i])
 			} else if value != nil {
-				bifflc.PerUnitAmount = *value
+				_m.PerUnitAmount = *value
 			}
 		case billinginvoiceflatfeelineconfig.FieldCategory:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field category", values[i])
 			} else if value.Valid {
-				bifflc.Category = billing.FlatFeeCategory(value.String)
+				_m.Category = billing.FlatFeeCategory(value.String)
 			}
 		case billinginvoiceflatfeelineconfig.FieldPaymentTerm:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field payment_term", values[i])
 			} else if value.Valid {
-				bifflc.PaymentTerm = productcatalog.PaymentTermType(value.String)
+				_m.PaymentTerm = productcatalog.PaymentTermType(value.String)
 			}
 		default:
-			bifflc.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -93,44 +93,44 @@ func (bifflc *BillingInvoiceFlatFeeLineConfig) assignValues(columns []string, va
 
 // Value returns the ent.Value that was dynamically selected and assigned to the BillingInvoiceFlatFeeLineConfig.
 // This includes values selected through modifiers, order, etc.
-func (bifflc *BillingInvoiceFlatFeeLineConfig) Value(name string) (ent.Value, error) {
-	return bifflc.selectValues.Get(name)
+func (_m *BillingInvoiceFlatFeeLineConfig) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // Update returns a builder for updating this BillingInvoiceFlatFeeLineConfig.
 // Note that you need to call BillingInvoiceFlatFeeLineConfig.Unwrap() before calling this method if this BillingInvoiceFlatFeeLineConfig
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (bifflc *BillingInvoiceFlatFeeLineConfig) Update() *BillingInvoiceFlatFeeLineConfigUpdateOne {
-	return NewBillingInvoiceFlatFeeLineConfigClient(bifflc.config).UpdateOne(bifflc)
+func (_m *BillingInvoiceFlatFeeLineConfig) Update() *BillingInvoiceFlatFeeLineConfigUpdateOne {
+	return NewBillingInvoiceFlatFeeLineConfigClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the BillingInvoiceFlatFeeLineConfig entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (bifflc *BillingInvoiceFlatFeeLineConfig) Unwrap() *BillingInvoiceFlatFeeLineConfig {
-	_tx, ok := bifflc.config.driver.(*txDriver)
+func (_m *BillingInvoiceFlatFeeLineConfig) Unwrap() *BillingInvoiceFlatFeeLineConfig {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: BillingInvoiceFlatFeeLineConfig is not a transactional entity")
 	}
-	bifflc.config.driver = _tx.drv
-	return bifflc
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (bifflc *BillingInvoiceFlatFeeLineConfig) String() string {
+func (_m *BillingInvoiceFlatFeeLineConfig) String() string {
 	var builder strings.Builder
 	builder.WriteString("BillingInvoiceFlatFeeLineConfig(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", bifflc.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(bifflc.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("per_unit_amount=")
-	builder.WriteString(fmt.Sprintf("%v", bifflc.PerUnitAmount))
+	builder.WriteString(fmt.Sprintf("%v", _m.PerUnitAmount))
 	builder.WriteString(", ")
 	builder.WriteString("category=")
-	builder.WriteString(fmt.Sprintf("%v", bifflc.Category))
+	builder.WriteString(fmt.Sprintf("%v", _m.Category))
 	builder.WriteString(", ")
 	builder.WriteString("payment_term=")
-	builder.WriteString(fmt.Sprintf("%v", bifflc.PaymentTerm))
+	builder.WriteString(fmt.Sprintf("%v", _m.PaymentTerm))
 	builder.WriteByte(')')
 	return builder.String()
 }

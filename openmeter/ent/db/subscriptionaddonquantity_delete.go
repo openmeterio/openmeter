@@ -20,56 +20,56 @@ type SubscriptionAddonQuantityDelete struct {
 }
 
 // Where appends a list predicates to the SubscriptionAddonQuantityDelete builder.
-func (saqd *SubscriptionAddonQuantityDelete) Where(ps ...predicate.SubscriptionAddonQuantity) *SubscriptionAddonQuantityDelete {
-	saqd.mutation.Where(ps...)
-	return saqd
+func (_d *SubscriptionAddonQuantityDelete) Where(ps ...predicate.SubscriptionAddonQuantity) *SubscriptionAddonQuantityDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (saqd *SubscriptionAddonQuantityDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, saqd.sqlExec, saqd.mutation, saqd.hooks)
+func (_d *SubscriptionAddonQuantityDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (saqd *SubscriptionAddonQuantityDelete) ExecX(ctx context.Context) int {
-	n, err := saqd.Exec(ctx)
+func (_d *SubscriptionAddonQuantityDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (saqd *SubscriptionAddonQuantityDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *SubscriptionAddonQuantityDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(subscriptionaddonquantity.Table, sqlgraph.NewFieldSpec(subscriptionaddonquantity.FieldID, field.TypeString))
-	if ps := saqd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, saqd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	saqd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // SubscriptionAddonQuantityDeleteOne is the builder for deleting a single SubscriptionAddonQuantity entity.
 type SubscriptionAddonQuantityDeleteOne struct {
-	saqd *SubscriptionAddonQuantityDelete
+	_d *SubscriptionAddonQuantityDelete
 }
 
 // Where appends a list predicates to the SubscriptionAddonQuantityDelete builder.
-func (saqdo *SubscriptionAddonQuantityDeleteOne) Where(ps ...predicate.SubscriptionAddonQuantity) *SubscriptionAddonQuantityDeleteOne {
-	saqdo.saqd.mutation.Where(ps...)
-	return saqdo
+func (_d *SubscriptionAddonQuantityDeleteOne) Where(ps ...predicate.SubscriptionAddonQuantity) *SubscriptionAddonQuantityDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (saqdo *SubscriptionAddonQuantityDeleteOne) Exec(ctx context.Context) error {
-	n, err := saqdo.saqd.Exec(ctx)
+func (_d *SubscriptionAddonQuantityDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (saqdo *SubscriptionAddonQuantityDeleteOne) Exec(ctx context.Context) error
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (saqdo *SubscriptionAddonQuantityDeleteOne) ExecX(ctx context.Context) {
-	if err := saqdo.Exec(ctx); err != nil {
+func (_d *SubscriptionAddonQuantityDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

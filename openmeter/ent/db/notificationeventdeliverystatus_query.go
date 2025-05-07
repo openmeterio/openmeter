@@ -33,44 +33,44 @@ type NotificationEventDeliveryStatusQuery struct {
 }
 
 // Where adds a new predicate for the NotificationEventDeliveryStatusQuery builder.
-func (nedsq *NotificationEventDeliveryStatusQuery) Where(ps ...predicate.NotificationEventDeliveryStatus) *NotificationEventDeliveryStatusQuery {
-	nedsq.predicates = append(nedsq.predicates, ps...)
-	return nedsq
+func (_q *NotificationEventDeliveryStatusQuery) Where(ps ...predicate.NotificationEventDeliveryStatus) *NotificationEventDeliveryStatusQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (nedsq *NotificationEventDeliveryStatusQuery) Limit(limit int) *NotificationEventDeliveryStatusQuery {
-	nedsq.ctx.Limit = &limit
-	return nedsq
+func (_q *NotificationEventDeliveryStatusQuery) Limit(limit int) *NotificationEventDeliveryStatusQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (nedsq *NotificationEventDeliveryStatusQuery) Offset(offset int) *NotificationEventDeliveryStatusQuery {
-	nedsq.ctx.Offset = &offset
-	return nedsq
+func (_q *NotificationEventDeliveryStatusQuery) Offset(offset int) *NotificationEventDeliveryStatusQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (nedsq *NotificationEventDeliveryStatusQuery) Unique(unique bool) *NotificationEventDeliveryStatusQuery {
-	nedsq.ctx.Unique = &unique
-	return nedsq
+func (_q *NotificationEventDeliveryStatusQuery) Unique(unique bool) *NotificationEventDeliveryStatusQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (nedsq *NotificationEventDeliveryStatusQuery) Order(o ...notificationeventdeliverystatus.OrderOption) *NotificationEventDeliveryStatusQuery {
-	nedsq.order = append(nedsq.order, o...)
-	return nedsq
+func (_q *NotificationEventDeliveryStatusQuery) Order(o ...notificationeventdeliverystatus.OrderOption) *NotificationEventDeliveryStatusQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryEvents chains the current query on the "events" edge.
-func (nedsq *NotificationEventDeliveryStatusQuery) QueryEvents() *NotificationEventQuery {
-	query := (&NotificationEventClient{config: nedsq.config}).Query()
+func (_q *NotificationEventDeliveryStatusQuery) QueryEvents() *NotificationEventQuery {
+	query := (&NotificationEventClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := nedsq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := nedsq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -79,7 +79,7 @@ func (nedsq *NotificationEventDeliveryStatusQuery) QueryEvents() *NotificationEv
 			sqlgraph.To(notificationevent.Table, notificationevent.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, notificationeventdeliverystatus.EventsTable, notificationeventdeliverystatus.EventsPrimaryKey...),
 		)
-		fromU = sqlgraph.SetNeighbors(nedsq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -87,8 +87,8 @@ func (nedsq *NotificationEventDeliveryStatusQuery) QueryEvents() *NotificationEv
 
 // First returns the first NotificationEventDeliveryStatus entity from the query.
 // Returns a *NotFoundError when no NotificationEventDeliveryStatus was found.
-func (nedsq *NotificationEventDeliveryStatusQuery) First(ctx context.Context) (*NotificationEventDeliveryStatus, error) {
-	nodes, err := nedsq.Limit(1).All(setContextOp(ctx, nedsq.ctx, ent.OpQueryFirst))
+func (_q *NotificationEventDeliveryStatusQuery) First(ctx context.Context) (*NotificationEventDeliveryStatus, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +99,8 @@ func (nedsq *NotificationEventDeliveryStatusQuery) First(ctx context.Context) (*
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (nedsq *NotificationEventDeliveryStatusQuery) FirstX(ctx context.Context) *NotificationEventDeliveryStatus {
-	node, err := nedsq.First(ctx)
+func (_q *NotificationEventDeliveryStatusQuery) FirstX(ctx context.Context) *NotificationEventDeliveryStatus {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -109,9 +109,9 @@ func (nedsq *NotificationEventDeliveryStatusQuery) FirstX(ctx context.Context) *
 
 // FirstID returns the first NotificationEventDeliveryStatus ID from the query.
 // Returns a *NotFoundError when no NotificationEventDeliveryStatus ID was found.
-func (nedsq *NotificationEventDeliveryStatusQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *NotificationEventDeliveryStatusQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = nedsq.Limit(1).IDs(setContextOp(ctx, nedsq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -122,8 +122,8 @@ func (nedsq *NotificationEventDeliveryStatusQuery) FirstID(ctx context.Context) 
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (nedsq *NotificationEventDeliveryStatusQuery) FirstIDX(ctx context.Context) string {
-	id, err := nedsq.FirstID(ctx)
+func (_q *NotificationEventDeliveryStatusQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -133,8 +133,8 @@ func (nedsq *NotificationEventDeliveryStatusQuery) FirstIDX(ctx context.Context)
 // Only returns a single NotificationEventDeliveryStatus entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one NotificationEventDeliveryStatus entity is found.
 // Returns a *NotFoundError when no NotificationEventDeliveryStatus entities are found.
-func (nedsq *NotificationEventDeliveryStatusQuery) Only(ctx context.Context) (*NotificationEventDeliveryStatus, error) {
-	nodes, err := nedsq.Limit(2).All(setContextOp(ctx, nedsq.ctx, ent.OpQueryOnly))
+func (_q *NotificationEventDeliveryStatusQuery) Only(ctx context.Context) (*NotificationEventDeliveryStatus, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -149,8 +149,8 @@ func (nedsq *NotificationEventDeliveryStatusQuery) Only(ctx context.Context) (*N
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (nedsq *NotificationEventDeliveryStatusQuery) OnlyX(ctx context.Context) *NotificationEventDeliveryStatus {
-	node, err := nedsq.Only(ctx)
+func (_q *NotificationEventDeliveryStatusQuery) OnlyX(ctx context.Context) *NotificationEventDeliveryStatus {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -160,9 +160,9 @@ func (nedsq *NotificationEventDeliveryStatusQuery) OnlyX(ctx context.Context) *N
 // OnlyID is like Only, but returns the only NotificationEventDeliveryStatus ID in the query.
 // Returns a *NotSingularError when more than one NotificationEventDeliveryStatus ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (nedsq *NotificationEventDeliveryStatusQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *NotificationEventDeliveryStatusQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = nedsq.Limit(2).IDs(setContextOp(ctx, nedsq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -177,8 +177,8 @@ func (nedsq *NotificationEventDeliveryStatusQuery) OnlyID(ctx context.Context) (
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (nedsq *NotificationEventDeliveryStatusQuery) OnlyIDX(ctx context.Context) string {
-	id, err := nedsq.OnlyID(ctx)
+func (_q *NotificationEventDeliveryStatusQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -186,18 +186,18 @@ func (nedsq *NotificationEventDeliveryStatusQuery) OnlyIDX(ctx context.Context) 
 }
 
 // All executes the query and returns a list of NotificationEventDeliveryStatusSlice.
-func (nedsq *NotificationEventDeliveryStatusQuery) All(ctx context.Context) ([]*NotificationEventDeliveryStatus, error) {
-	ctx = setContextOp(ctx, nedsq.ctx, ent.OpQueryAll)
-	if err := nedsq.prepareQuery(ctx); err != nil {
+func (_q *NotificationEventDeliveryStatusQuery) All(ctx context.Context) ([]*NotificationEventDeliveryStatus, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*NotificationEventDeliveryStatus, *NotificationEventDeliveryStatusQuery]()
-	return withInterceptors[[]*NotificationEventDeliveryStatus](ctx, nedsq, qr, nedsq.inters)
+	return withInterceptors[[]*NotificationEventDeliveryStatus](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (nedsq *NotificationEventDeliveryStatusQuery) AllX(ctx context.Context) []*NotificationEventDeliveryStatus {
-	nodes, err := nedsq.All(ctx)
+func (_q *NotificationEventDeliveryStatusQuery) AllX(ctx context.Context) []*NotificationEventDeliveryStatus {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -205,20 +205,20 @@ func (nedsq *NotificationEventDeliveryStatusQuery) AllX(ctx context.Context) []*
 }
 
 // IDs executes the query and returns a list of NotificationEventDeliveryStatus IDs.
-func (nedsq *NotificationEventDeliveryStatusQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if nedsq.ctx.Unique == nil && nedsq.path != nil {
-		nedsq.Unique(true)
+func (_q *NotificationEventDeliveryStatusQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, nedsq.ctx, ent.OpQueryIDs)
-	if err = nedsq.Select(notificationeventdeliverystatus.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(notificationeventdeliverystatus.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (nedsq *NotificationEventDeliveryStatusQuery) IDsX(ctx context.Context) []string {
-	ids, err := nedsq.IDs(ctx)
+func (_q *NotificationEventDeliveryStatusQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -226,17 +226,17 @@ func (nedsq *NotificationEventDeliveryStatusQuery) IDsX(ctx context.Context) []s
 }
 
 // Count returns the count of the given query.
-func (nedsq *NotificationEventDeliveryStatusQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, nedsq.ctx, ent.OpQueryCount)
-	if err := nedsq.prepareQuery(ctx); err != nil {
+func (_q *NotificationEventDeliveryStatusQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, nedsq, querierCount[*NotificationEventDeliveryStatusQuery](), nedsq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*NotificationEventDeliveryStatusQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (nedsq *NotificationEventDeliveryStatusQuery) CountX(ctx context.Context) int {
-	count, err := nedsq.Count(ctx)
+func (_q *NotificationEventDeliveryStatusQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -244,9 +244,9 @@ func (nedsq *NotificationEventDeliveryStatusQuery) CountX(ctx context.Context) i
 }
 
 // Exist returns true if the query has elements in the graph.
-func (nedsq *NotificationEventDeliveryStatusQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, nedsq.ctx, ent.OpQueryExist)
-	switch _, err := nedsq.FirstID(ctx); {
+func (_q *NotificationEventDeliveryStatusQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -257,8 +257,8 @@ func (nedsq *NotificationEventDeliveryStatusQuery) Exist(ctx context.Context) (b
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (nedsq *NotificationEventDeliveryStatusQuery) ExistX(ctx context.Context) bool {
-	exist, err := nedsq.Exist(ctx)
+func (_q *NotificationEventDeliveryStatusQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -267,32 +267,32 @@ func (nedsq *NotificationEventDeliveryStatusQuery) ExistX(ctx context.Context) b
 
 // Clone returns a duplicate of the NotificationEventDeliveryStatusQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (nedsq *NotificationEventDeliveryStatusQuery) Clone() *NotificationEventDeliveryStatusQuery {
-	if nedsq == nil {
+func (_q *NotificationEventDeliveryStatusQuery) Clone() *NotificationEventDeliveryStatusQuery {
+	if _q == nil {
 		return nil
 	}
 	return &NotificationEventDeliveryStatusQuery{
-		config:     nedsq.config,
-		ctx:        nedsq.ctx.Clone(),
-		order:      append([]notificationeventdeliverystatus.OrderOption{}, nedsq.order...),
-		inters:     append([]Interceptor{}, nedsq.inters...),
-		predicates: append([]predicate.NotificationEventDeliveryStatus{}, nedsq.predicates...),
-		withEvents: nedsq.withEvents.Clone(),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]notificationeventdeliverystatus.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.NotificationEventDeliveryStatus{}, _q.predicates...),
+		withEvents: _q.withEvents.Clone(),
 		// clone intermediate query.
-		sql:  nedsq.sql.Clone(),
-		path: nedsq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithEvents tells the query-builder to eager-load the nodes that are connected to
 // the "events" edge. The optional arguments are used to configure the query builder of the edge.
-func (nedsq *NotificationEventDeliveryStatusQuery) WithEvents(opts ...func(*NotificationEventQuery)) *NotificationEventDeliveryStatusQuery {
-	query := (&NotificationEventClient{config: nedsq.config}).Query()
+func (_q *NotificationEventDeliveryStatusQuery) WithEvents(opts ...func(*NotificationEventQuery)) *NotificationEventDeliveryStatusQuery {
+	query := (&NotificationEventClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	nedsq.withEvents = query
-	return nedsq
+	_q.withEvents = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -309,10 +309,10 @@ func (nedsq *NotificationEventDeliveryStatusQuery) WithEvents(opts ...func(*Noti
 //		GroupBy(notificationeventdeliverystatus.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (nedsq *NotificationEventDeliveryStatusQuery) GroupBy(field string, fields ...string) *NotificationEventDeliveryStatusGroupBy {
-	nedsq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &NotificationEventDeliveryStatusGroupBy{build: nedsq}
-	grbuild.flds = &nedsq.ctx.Fields
+func (_q *NotificationEventDeliveryStatusQuery) GroupBy(field string, fields ...string) *NotificationEventDeliveryStatusGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &NotificationEventDeliveryStatusGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = notificationeventdeliverystatus.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -330,76 +330,76 @@ func (nedsq *NotificationEventDeliveryStatusQuery) GroupBy(field string, fields 
 //	client.NotificationEventDeliveryStatus.Query().
 //		Select(notificationeventdeliverystatus.FieldNamespace).
 //		Scan(ctx, &v)
-func (nedsq *NotificationEventDeliveryStatusQuery) Select(fields ...string) *NotificationEventDeliveryStatusSelect {
-	nedsq.ctx.Fields = append(nedsq.ctx.Fields, fields...)
-	sbuild := &NotificationEventDeliveryStatusSelect{NotificationEventDeliveryStatusQuery: nedsq}
+func (_q *NotificationEventDeliveryStatusQuery) Select(fields ...string) *NotificationEventDeliveryStatusSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &NotificationEventDeliveryStatusSelect{NotificationEventDeliveryStatusQuery: _q}
 	sbuild.label = notificationeventdeliverystatus.Label
-	sbuild.flds, sbuild.scan = &nedsq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a NotificationEventDeliveryStatusSelect configured with the given aggregations.
-func (nedsq *NotificationEventDeliveryStatusQuery) Aggregate(fns ...AggregateFunc) *NotificationEventDeliveryStatusSelect {
-	return nedsq.Select().Aggregate(fns...)
+func (_q *NotificationEventDeliveryStatusQuery) Aggregate(fns ...AggregateFunc) *NotificationEventDeliveryStatusSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (nedsq *NotificationEventDeliveryStatusQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range nedsq.inters {
+func (_q *NotificationEventDeliveryStatusQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, nedsq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range nedsq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !notificationeventdeliverystatus.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if nedsq.path != nil {
-		prev, err := nedsq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		nedsq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (nedsq *NotificationEventDeliveryStatusQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*NotificationEventDeliveryStatus, error) {
+func (_q *NotificationEventDeliveryStatusQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*NotificationEventDeliveryStatus, error) {
 	var (
 		nodes       = []*NotificationEventDeliveryStatus{}
-		_spec       = nedsq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [1]bool{
-			nedsq.withEvents != nil,
+			_q.withEvents != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*NotificationEventDeliveryStatus).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &NotificationEventDeliveryStatus{config: nedsq.config}
+		node := &NotificationEventDeliveryStatus{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(nedsq.modifiers) > 0 {
-		_spec.Modifiers = nedsq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, nedsq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := nedsq.withEvents; query != nil {
-		if err := nedsq.loadEvents(ctx, query, nodes,
+	if query := _q.withEvents; query != nil {
+		if err := _q.loadEvents(ctx, query, nodes,
 			func(n *NotificationEventDeliveryStatus) { n.Edges.Events = []*NotificationEvent{} },
 			func(n *NotificationEventDeliveryStatus, e *NotificationEvent) {
 				n.Edges.Events = append(n.Edges.Events, e)
@@ -410,7 +410,7 @@ func (nedsq *NotificationEventDeliveryStatusQuery) sqlAll(ctx context.Context, h
 	return nodes, nil
 }
 
-func (nedsq *NotificationEventDeliveryStatusQuery) loadEvents(ctx context.Context, query *NotificationEventQuery, nodes []*NotificationEventDeliveryStatus, init func(*NotificationEventDeliveryStatus), assign func(*NotificationEventDeliveryStatus, *NotificationEvent)) error {
+func (_q *NotificationEventDeliveryStatusQuery) loadEvents(ctx context.Context, query *NotificationEventQuery, nodes []*NotificationEventDeliveryStatus, init func(*NotificationEventDeliveryStatus), assign func(*NotificationEventDeliveryStatus, *NotificationEvent)) error {
 	edgeIDs := make([]driver.Value, len(nodes))
 	byID := make(map[string]*NotificationEventDeliveryStatus)
 	nids := make(map[string]map[*NotificationEventDeliveryStatus]struct{})
@@ -472,27 +472,27 @@ func (nedsq *NotificationEventDeliveryStatusQuery) loadEvents(ctx context.Contex
 	return nil
 }
 
-func (nedsq *NotificationEventDeliveryStatusQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := nedsq.querySpec()
-	if len(nedsq.modifiers) > 0 {
-		_spec.Modifiers = nedsq.modifiers
+func (_q *NotificationEventDeliveryStatusQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = nedsq.ctx.Fields
-	if len(nedsq.ctx.Fields) > 0 {
-		_spec.Unique = nedsq.ctx.Unique != nil && *nedsq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, nedsq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (nedsq *NotificationEventDeliveryStatusQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *NotificationEventDeliveryStatusQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(notificationeventdeliverystatus.Table, notificationeventdeliverystatus.Columns, sqlgraph.NewFieldSpec(notificationeventdeliverystatus.FieldID, field.TypeString))
-	_spec.From = nedsq.sql
-	if unique := nedsq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if nedsq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := nedsq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, notificationeventdeliverystatus.FieldID)
 		for i := range fields {
@@ -501,20 +501,20 @@ func (nedsq *NotificationEventDeliveryStatusQuery) querySpec() *sqlgraph.QuerySp
 			}
 		}
 	}
-	if ps := nedsq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := nedsq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := nedsq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := nedsq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -524,36 +524,36 @@ func (nedsq *NotificationEventDeliveryStatusQuery) querySpec() *sqlgraph.QuerySp
 	return _spec
 }
 
-func (nedsq *NotificationEventDeliveryStatusQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(nedsq.driver.Dialect())
+func (_q *NotificationEventDeliveryStatusQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(notificationeventdeliverystatus.Table)
-	columns := nedsq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = notificationeventdeliverystatus.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if nedsq.sql != nil {
-		selector = nedsq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if nedsq.ctx.Unique != nil && *nedsq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range nedsq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range nedsq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range nedsq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := nedsq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := nedsq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -562,27 +562,27 @@ func (nedsq *NotificationEventDeliveryStatusQuery) sqlQuery(ctx context.Context)
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (nedsq *NotificationEventDeliveryStatusQuery) ForUpdate(opts ...sql.LockOption) *NotificationEventDeliveryStatusQuery {
-	if nedsq.driver.Dialect() == dialect.Postgres {
-		nedsq.Unique(false)
+func (_q *NotificationEventDeliveryStatusQuery) ForUpdate(opts ...sql.LockOption) *NotificationEventDeliveryStatusQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	nedsq.modifiers = append(nedsq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return nedsq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (nedsq *NotificationEventDeliveryStatusQuery) ForShare(opts ...sql.LockOption) *NotificationEventDeliveryStatusQuery {
-	if nedsq.driver.Dialect() == dialect.Postgres {
-		nedsq.Unique(false)
+func (_q *NotificationEventDeliveryStatusQuery) ForShare(opts ...sql.LockOption) *NotificationEventDeliveryStatusQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	nedsq.modifiers = append(nedsq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return nedsq
+	return _q
 }
 
 // NotificationEventDeliveryStatusGroupBy is the group-by builder for NotificationEventDeliveryStatus entities.

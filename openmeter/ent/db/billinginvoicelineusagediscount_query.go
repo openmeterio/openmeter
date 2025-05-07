@@ -32,44 +32,44 @@ type BillingInvoiceLineUsageDiscountQuery struct {
 }
 
 // Where adds a new predicate for the BillingInvoiceLineUsageDiscountQuery builder.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) Where(ps ...predicate.BillingInvoiceLineUsageDiscount) *BillingInvoiceLineUsageDiscountQuery {
-	biludq.predicates = append(biludq.predicates, ps...)
-	return biludq
+func (_q *BillingInvoiceLineUsageDiscountQuery) Where(ps ...predicate.BillingInvoiceLineUsageDiscount) *BillingInvoiceLineUsageDiscountQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) Limit(limit int) *BillingInvoiceLineUsageDiscountQuery {
-	biludq.ctx.Limit = &limit
-	return biludq
+func (_q *BillingInvoiceLineUsageDiscountQuery) Limit(limit int) *BillingInvoiceLineUsageDiscountQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) Offset(offset int) *BillingInvoiceLineUsageDiscountQuery {
-	biludq.ctx.Offset = &offset
-	return biludq
+func (_q *BillingInvoiceLineUsageDiscountQuery) Offset(offset int) *BillingInvoiceLineUsageDiscountQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) Unique(unique bool) *BillingInvoiceLineUsageDiscountQuery {
-	biludq.ctx.Unique = &unique
-	return biludq
+func (_q *BillingInvoiceLineUsageDiscountQuery) Unique(unique bool) *BillingInvoiceLineUsageDiscountQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) Order(o ...billinginvoicelineusagediscount.OrderOption) *BillingInvoiceLineUsageDiscountQuery {
-	biludq.order = append(biludq.order, o...)
-	return biludq
+func (_q *BillingInvoiceLineUsageDiscountQuery) Order(o ...billinginvoicelineusagediscount.OrderOption) *BillingInvoiceLineUsageDiscountQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryBillingInvoiceLine chains the current query on the "billing_invoice_line" edge.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceLineClient{config: biludq.config}).Query()
+func (_q *BillingInvoiceLineUsageDiscountQuery) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := biludq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := biludq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -78,7 +78,7 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) QueryBillingInvoiceLine() *B
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicelineusagediscount.BillingInvoiceLineTable, billinginvoicelineusagediscount.BillingInvoiceLineColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(biludq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -86,8 +86,8 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) QueryBillingInvoiceLine() *B
 
 // First returns the first BillingInvoiceLineUsageDiscount entity from the query.
 // Returns a *NotFoundError when no BillingInvoiceLineUsageDiscount was found.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) First(ctx context.Context) (*BillingInvoiceLineUsageDiscount, error) {
-	nodes, err := biludq.Limit(1).All(setContextOp(ctx, biludq.ctx, ent.OpQueryFirst))
+func (_q *BillingInvoiceLineUsageDiscountQuery) First(ctx context.Context) (*BillingInvoiceLineUsageDiscount, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +98,8 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) First(ctx context.Context) (
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) FirstX(ctx context.Context) *BillingInvoiceLineUsageDiscount {
-	node, err := biludq.First(ctx)
+func (_q *BillingInvoiceLineUsageDiscountQuery) FirstX(ctx context.Context) *BillingInvoiceLineUsageDiscount {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -108,9 +108,9 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) FirstX(ctx context.Context) 
 
 // FirstID returns the first BillingInvoiceLineUsageDiscount ID from the query.
 // Returns a *NotFoundError when no BillingInvoiceLineUsageDiscount ID was found.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *BillingInvoiceLineUsageDiscountQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = biludq.Limit(1).IDs(setContextOp(ctx, biludq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -121,8 +121,8 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) FirstID(ctx context.Context)
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) FirstIDX(ctx context.Context) string {
-	id, err := biludq.FirstID(ctx)
+func (_q *BillingInvoiceLineUsageDiscountQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -132,8 +132,8 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) FirstIDX(ctx context.Context
 // Only returns a single BillingInvoiceLineUsageDiscount entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one BillingInvoiceLineUsageDiscount entity is found.
 // Returns a *NotFoundError when no BillingInvoiceLineUsageDiscount entities are found.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) Only(ctx context.Context) (*BillingInvoiceLineUsageDiscount, error) {
-	nodes, err := biludq.Limit(2).All(setContextOp(ctx, biludq.ctx, ent.OpQueryOnly))
+func (_q *BillingInvoiceLineUsageDiscountQuery) Only(ctx context.Context) (*BillingInvoiceLineUsageDiscount, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +148,8 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) Only(ctx context.Context) (*
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) OnlyX(ctx context.Context) *BillingInvoiceLineUsageDiscount {
-	node, err := biludq.Only(ctx)
+func (_q *BillingInvoiceLineUsageDiscountQuery) OnlyX(ctx context.Context) *BillingInvoiceLineUsageDiscount {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -159,9 +159,9 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) OnlyX(ctx context.Context) *
 // OnlyID is like Only, but returns the only BillingInvoiceLineUsageDiscount ID in the query.
 // Returns a *NotSingularError when more than one BillingInvoiceLineUsageDiscount ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *BillingInvoiceLineUsageDiscountQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = biludq.Limit(2).IDs(setContextOp(ctx, biludq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -176,8 +176,8 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) OnlyID(ctx context.Context) 
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) OnlyIDX(ctx context.Context) string {
-	id, err := biludq.OnlyID(ctx)
+func (_q *BillingInvoiceLineUsageDiscountQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -185,18 +185,18 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) OnlyIDX(ctx context.Context)
 }
 
 // All executes the query and returns a list of BillingInvoiceLineUsageDiscounts.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) All(ctx context.Context) ([]*BillingInvoiceLineUsageDiscount, error) {
-	ctx = setContextOp(ctx, biludq.ctx, ent.OpQueryAll)
-	if err := biludq.prepareQuery(ctx); err != nil {
+func (_q *BillingInvoiceLineUsageDiscountQuery) All(ctx context.Context) ([]*BillingInvoiceLineUsageDiscount, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*BillingInvoiceLineUsageDiscount, *BillingInvoiceLineUsageDiscountQuery]()
-	return withInterceptors[[]*BillingInvoiceLineUsageDiscount](ctx, biludq, qr, biludq.inters)
+	return withInterceptors[[]*BillingInvoiceLineUsageDiscount](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) AllX(ctx context.Context) []*BillingInvoiceLineUsageDiscount {
-	nodes, err := biludq.All(ctx)
+func (_q *BillingInvoiceLineUsageDiscountQuery) AllX(ctx context.Context) []*BillingInvoiceLineUsageDiscount {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -204,20 +204,20 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) AllX(ctx context.Context) []
 }
 
 // IDs executes the query and returns a list of BillingInvoiceLineUsageDiscount IDs.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if biludq.ctx.Unique == nil && biludq.path != nil {
-		biludq.Unique(true)
+func (_q *BillingInvoiceLineUsageDiscountQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, biludq.ctx, ent.OpQueryIDs)
-	if err = biludq.Select(billinginvoicelineusagediscount.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(billinginvoicelineusagediscount.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) IDsX(ctx context.Context) []string {
-	ids, err := biludq.IDs(ctx)
+func (_q *BillingInvoiceLineUsageDiscountQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -225,17 +225,17 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) IDsX(ctx context.Context) []
 }
 
 // Count returns the count of the given query.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, biludq.ctx, ent.OpQueryCount)
-	if err := biludq.prepareQuery(ctx); err != nil {
+func (_q *BillingInvoiceLineUsageDiscountQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, biludq, querierCount[*BillingInvoiceLineUsageDiscountQuery](), biludq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BillingInvoiceLineUsageDiscountQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) CountX(ctx context.Context) int {
-	count, err := biludq.Count(ctx)
+func (_q *BillingInvoiceLineUsageDiscountQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -243,9 +243,9 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) CountX(ctx context.Context) 
 }
 
 // Exist returns true if the query has elements in the graph.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, biludq.ctx, ent.OpQueryExist)
-	switch _, err := biludq.FirstID(ctx); {
+func (_q *BillingInvoiceLineUsageDiscountQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -256,8 +256,8 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) Exist(ctx context.Context) (
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) ExistX(ctx context.Context) bool {
-	exist, err := biludq.Exist(ctx)
+func (_q *BillingInvoiceLineUsageDiscountQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -266,32 +266,32 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) ExistX(ctx context.Context) 
 
 // Clone returns a duplicate of the BillingInvoiceLineUsageDiscountQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) Clone() *BillingInvoiceLineUsageDiscountQuery {
-	if biludq == nil {
+func (_q *BillingInvoiceLineUsageDiscountQuery) Clone() *BillingInvoiceLineUsageDiscountQuery {
+	if _q == nil {
 		return nil
 	}
 	return &BillingInvoiceLineUsageDiscountQuery{
-		config:                 biludq.config,
-		ctx:                    biludq.ctx.Clone(),
-		order:                  append([]billinginvoicelineusagediscount.OrderOption{}, biludq.order...),
-		inters:                 append([]Interceptor{}, biludq.inters...),
-		predicates:             append([]predicate.BillingInvoiceLineUsageDiscount{}, biludq.predicates...),
-		withBillingInvoiceLine: biludq.withBillingInvoiceLine.Clone(),
+		config:                 _q.config,
+		ctx:                    _q.ctx.Clone(),
+		order:                  append([]billinginvoicelineusagediscount.OrderOption{}, _q.order...),
+		inters:                 append([]Interceptor{}, _q.inters...),
+		predicates:             append([]predicate.BillingInvoiceLineUsageDiscount{}, _q.predicates...),
+		withBillingInvoiceLine: _q.withBillingInvoiceLine.Clone(),
 		// clone intermediate query.
-		sql:  biludq.sql.Clone(),
-		path: biludq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithBillingInvoiceLine tells the query-builder to eager-load the nodes that are connected to
 // the "billing_invoice_line" edge. The optional arguments are used to configure the query builder of the edge.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) WithBillingInvoiceLine(opts ...func(*BillingInvoiceLineQuery)) *BillingInvoiceLineUsageDiscountQuery {
-	query := (&BillingInvoiceLineClient{config: biludq.config}).Query()
+func (_q *BillingInvoiceLineUsageDiscountQuery) WithBillingInvoiceLine(opts ...func(*BillingInvoiceLineQuery)) *BillingInvoiceLineUsageDiscountQuery {
+	query := (&BillingInvoiceLineClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	biludq.withBillingInvoiceLine = query
-	return biludq
+	_q.withBillingInvoiceLine = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -308,10 +308,10 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) WithBillingInvoiceLine(opts 
 //		GroupBy(billinginvoicelineusagediscount.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (biludq *BillingInvoiceLineUsageDiscountQuery) GroupBy(field string, fields ...string) *BillingInvoiceLineUsageDiscountGroupBy {
-	biludq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &BillingInvoiceLineUsageDiscountGroupBy{build: biludq}
-	grbuild.flds = &biludq.ctx.Fields
+func (_q *BillingInvoiceLineUsageDiscountQuery) GroupBy(field string, fields ...string) *BillingInvoiceLineUsageDiscountGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &BillingInvoiceLineUsageDiscountGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = billinginvoicelineusagediscount.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -329,76 +329,76 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) GroupBy(field string, fields
 //	client.BillingInvoiceLineUsageDiscount.Query().
 //		Select(billinginvoicelineusagediscount.FieldNamespace).
 //		Scan(ctx, &v)
-func (biludq *BillingInvoiceLineUsageDiscountQuery) Select(fields ...string) *BillingInvoiceLineUsageDiscountSelect {
-	biludq.ctx.Fields = append(biludq.ctx.Fields, fields...)
-	sbuild := &BillingInvoiceLineUsageDiscountSelect{BillingInvoiceLineUsageDiscountQuery: biludq}
+func (_q *BillingInvoiceLineUsageDiscountQuery) Select(fields ...string) *BillingInvoiceLineUsageDiscountSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &BillingInvoiceLineUsageDiscountSelect{BillingInvoiceLineUsageDiscountQuery: _q}
 	sbuild.label = billinginvoicelineusagediscount.Label
-	sbuild.flds, sbuild.scan = &biludq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a BillingInvoiceLineUsageDiscountSelect configured with the given aggregations.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) Aggregate(fns ...AggregateFunc) *BillingInvoiceLineUsageDiscountSelect {
-	return biludq.Select().Aggregate(fns...)
+func (_q *BillingInvoiceLineUsageDiscountQuery) Aggregate(fns ...AggregateFunc) *BillingInvoiceLineUsageDiscountSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (biludq *BillingInvoiceLineUsageDiscountQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range biludq.inters {
+func (_q *BillingInvoiceLineUsageDiscountQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, biludq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range biludq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !billinginvoicelineusagediscount.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if biludq.path != nil {
-		prev, err := biludq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		biludq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (biludq *BillingInvoiceLineUsageDiscountQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoiceLineUsageDiscount, error) {
+func (_q *BillingInvoiceLineUsageDiscountQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoiceLineUsageDiscount, error) {
 	var (
 		nodes       = []*BillingInvoiceLineUsageDiscount{}
-		_spec       = biludq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [1]bool{
-			biludq.withBillingInvoiceLine != nil,
+			_q.withBillingInvoiceLine != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingInvoiceLineUsageDiscount).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &BillingInvoiceLineUsageDiscount{config: biludq.config}
+		node := &BillingInvoiceLineUsageDiscount{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(biludq.modifiers) > 0 {
-		_spec.Modifiers = biludq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, biludq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := biludq.withBillingInvoiceLine; query != nil {
-		if err := biludq.loadBillingInvoiceLine(ctx, query, nodes, nil,
+	if query := _q.withBillingInvoiceLine; query != nil {
+		if err := _q.loadBillingInvoiceLine(ctx, query, nodes, nil,
 			func(n *BillingInvoiceLineUsageDiscount, e *BillingInvoiceLine) { n.Edges.BillingInvoiceLine = e }); err != nil {
 			return nil, err
 		}
@@ -406,7 +406,7 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) sqlAll(ctx context.Context, 
 	return nodes, nil
 }
 
-func (biludq *BillingInvoiceLineUsageDiscountQuery) loadBillingInvoiceLine(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*BillingInvoiceLineUsageDiscount, init func(*BillingInvoiceLineUsageDiscount), assign func(*BillingInvoiceLineUsageDiscount, *BillingInvoiceLine)) error {
+func (_q *BillingInvoiceLineUsageDiscountQuery) loadBillingInvoiceLine(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*BillingInvoiceLineUsageDiscount, init func(*BillingInvoiceLineUsageDiscount), assign func(*BillingInvoiceLineUsageDiscount, *BillingInvoiceLine)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingInvoiceLineUsageDiscount)
 	for i := range nodes {
@@ -436,27 +436,27 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) loadBillingInvoiceLine(ctx c
 	return nil
 }
 
-func (biludq *BillingInvoiceLineUsageDiscountQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := biludq.querySpec()
-	if len(biludq.modifiers) > 0 {
-		_spec.Modifiers = biludq.modifiers
+func (_q *BillingInvoiceLineUsageDiscountQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = biludq.ctx.Fields
-	if len(biludq.ctx.Fields) > 0 {
-		_spec.Unique = biludq.ctx.Unique != nil && *biludq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, biludq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (biludq *BillingInvoiceLineUsageDiscountQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *BillingInvoiceLineUsageDiscountQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(billinginvoicelineusagediscount.Table, billinginvoicelineusagediscount.Columns, sqlgraph.NewFieldSpec(billinginvoicelineusagediscount.FieldID, field.TypeString))
-	_spec.From = biludq.sql
-	if unique := biludq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if biludq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := biludq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billinginvoicelineusagediscount.FieldID)
 		for i := range fields {
@@ -464,24 +464,24 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) querySpec() *sqlgraph.QueryS
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if biludq.withBillingInvoiceLine != nil {
+		if _q.withBillingInvoiceLine != nil {
 			_spec.Node.AddColumnOnce(billinginvoicelineusagediscount.FieldLineID)
 		}
 	}
-	if ps := biludq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := biludq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := biludq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := biludq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -491,36 +491,36 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) querySpec() *sqlgraph.QueryS
 	return _spec
 }
 
-func (biludq *BillingInvoiceLineUsageDiscountQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(biludq.driver.Dialect())
+func (_q *BillingInvoiceLineUsageDiscountQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(billinginvoicelineusagediscount.Table)
-	columns := biludq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = billinginvoicelineusagediscount.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if biludq.sql != nil {
-		selector = biludq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if biludq.ctx.Unique != nil && *biludq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range biludq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range biludq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range biludq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := biludq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := biludq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -529,27 +529,27 @@ func (biludq *BillingInvoiceLineUsageDiscountQuery) sqlQuery(ctx context.Context
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) ForUpdate(opts ...sql.LockOption) *BillingInvoiceLineUsageDiscountQuery {
-	if biludq.driver.Dialect() == dialect.Postgres {
-		biludq.Unique(false)
+func (_q *BillingInvoiceLineUsageDiscountQuery) ForUpdate(opts ...sql.LockOption) *BillingInvoiceLineUsageDiscountQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	biludq.modifiers = append(biludq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return biludq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (biludq *BillingInvoiceLineUsageDiscountQuery) ForShare(opts ...sql.LockOption) *BillingInvoiceLineUsageDiscountQuery {
-	if biludq.driver.Dialect() == dialect.Postgres {
-		biludq.Unique(false)
+func (_q *BillingInvoiceLineUsageDiscountQuery) ForShare(opts ...sql.LockOption) *BillingInvoiceLineUsageDiscountQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	biludq.modifiers = append(biludq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return biludq
+	return _q
 }
 
 // BillingInvoiceLineUsageDiscountGroupBy is the group-by builder for BillingInvoiceLineUsageDiscount entities.

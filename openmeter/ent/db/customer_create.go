@@ -31,326 +31,326 @@ type CustomerCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (cc *CustomerCreate) SetNamespace(s string) *CustomerCreate {
-	cc.mutation.SetNamespace(s)
-	return cc
+func (_c *CustomerCreate) SetNamespace(v string) *CustomerCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetMetadata sets the "metadata" field.
-func (cc *CustomerCreate) SetMetadata(m map[string]string) *CustomerCreate {
-	cc.mutation.SetMetadata(m)
-	return cc
+func (_c *CustomerCreate) SetMetadata(v map[string]string) *CustomerCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (cc *CustomerCreate) SetCreatedAt(t time.Time) *CustomerCreate {
-	cc.mutation.SetCreatedAt(t)
-	return cc
+func (_c *CustomerCreate) SetCreatedAt(v time.Time) *CustomerCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableCreatedAt(t *time.Time) *CustomerCreate {
-	if t != nil {
-		cc.SetCreatedAt(*t)
+func (_c *CustomerCreate) SetNillableCreatedAt(v *time.Time) *CustomerCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (cc *CustomerCreate) SetUpdatedAt(t time.Time) *CustomerCreate {
-	cc.mutation.SetUpdatedAt(t)
-	return cc
+func (_c *CustomerCreate) SetUpdatedAt(v time.Time) *CustomerCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableUpdatedAt(t *time.Time) *CustomerCreate {
-	if t != nil {
-		cc.SetUpdatedAt(*t)
+func (_c *CustomerCreate) SetNillableUpdatedAt(v *time.Time) *CustomerCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (cc *CustomerCreate) SetDeletedAt(t time.Time) *CustomerCreate {
-	cc.mutation.SetDeletedAt(t)
-	return cc
+func (_c *CustomerCreate) SetDeletedAt(v time.Time) *CustomerCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableDeletedAt(t *time.Time) *CustomerCreate {
-	if t != nil {
-		cc.SetDeletedAt(*t)
+func (_c *CustomerCreate) SetNillableDeletedAt(v *time.Time) *CustomerCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetName sets the "name" field.
-func (cc *CustomerCreate) SetName(s string) *CustomerCreate {
-	cc.mutation.SetName(s)
-	return cc
+func (_c *CustomerCreate) SetName(v string) *CustomerCreate {
+	_c.mutation.SetName(v)
+	return _c
 }
 
 // SetDescription sets the "description" field.
-func (cc *CustomerCreate) SetDescription(s string) *CustomerCreate {
-	cc.mutation.SetDescription(s)
-	return cc
+func (_c *CustomerCreate) SetDescription(v string) *CustomerCreate {
+	_c.mutation.SetDescription(v)
+	return _c
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableDescription(s *string) *CustomerCreate {
-	if s != nil {
-		cc.SetDescription(*s)
+func (_c *CustomerCreate) SetNillableDescription(v *string) *CustomerCreate {
+	if v != nil {
+		_c.SetDescription(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetBillingAddressCountry sets the "billing_address_country" field.
-func (cc *CustomerCreate) SetBillingAddressCountry(mc models.CountryCode) *CustomerCreate {
-	cc.mutation.SetBillingAddressCountry(mc)
-	return cc
+func (_c *CustomerCreate) SetBillingAddressCountry(v models.CountryCode) *CustomerCreate {
+	_c.mutation.SetBillingAddressCountry(v)
+	return _c
 }
 
 // SetNillableBillingAddressCountry sets the "billing_address_country" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableBillingAddressCountry(mc *models.CountryCode) *CustomerCreate {
-	if mc != nil {
-		cc.SetBillingAddressCountry(*mc)
+func (_c *CustomerCreate) SetNillableBillingAddressCountry(v *models.CountryCode) *CustomerCreate {
+	if v != nil {
+		_c.SetBillingAddressCountry(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetBillingAddressPostalCode sets the "billing_address_postal_code" field.
-func (cc *CustomerCreate) SetBillingAddressPostalCode(s string) *CustomerCreate {
-	cc.mutation.SetBillingAddressPostalCode(s)
-	return cc
+func (_c *CustomerCreate) SetBillingAddressPostalCode(v string) *CustomerCreate {
+	_c.mutation.SetBillingAddressPostalCode(v)
+	return _c
 }
 
 // SetNillableBillingAddressPostalCode sets the "billing_address_postal_code" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableBillingAddressPostalCode(s *string) *CustomerCreate {
-	if s != nil {
-		cc.SetBillingAddressPostalCode(*s)
+func (_c *CustomerCreate) SetNillableBillingAddressPostalCode(v *string) *CustomerCreate {
+	if v != nil {
+		_c.SetBillingAddressPostalCode(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetBillingAddressState sets the "billing_address_state" field.
-func (cc *CustomerCreate) SetBillingAddressState(s string) *CustomerCreate {
-	cc.mutation.SetBillingAddressState(s)
-	return cc
+func (_c *CustomerCreate) SetBillingAddressState(v string) *CustomerCreate {
+	_c.mutation.SetBillingAddressState(v)
+	return _c
 }
 
 // SetNillableBillingAddressState sets the "billing_address_state" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableBillingAddressState(s *string) *CustomerCreate {
-	if s != nil {
-		cc.SetBillingAddressState(*s)
+func (_c *CustomerCreate) SetNillableBillingAddressState(v *string) *CustomerCreate {
+	if v != nil {
+		_c.SetBillingAddressState(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetBillingAddressCity sets the "billing_address_city" field.
-func (cc *CustomerCreate) SetBillingAddressCity(s string) *CustomerCreate {
-	cc.mutation.SetBillingAddressCity(s)
-	return cc
+func (_c *CustomerCreate) SetBillingAddressCity(v string) *CustomerCreate {
+	_c.mutation.SetBillingAddressCity(v)
+	return _c
 }
 
 // SetNillableBillingAddressCity sets the "billing_address_city" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableBillingAddressCity(s *string) *CustomerCreate {
-	if s != nil {
-		cc.SetBillingAddressCity(*s)
+func (_c *CustomerCreate) SetNillableBillingAddressCity(v *string) *CustomerCreate {
+	if v != nil {
+		_c.SetBillingAddressCity(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetBillingAddressLine1 sets the "billing_address_line1" field.
-func (cc *CustomerCreate) SetBillingAddressLine1(s string) *CustomerCreate {
-	cc.mutation.SetBillingAddressLine1(s)
-	return cc
+func (_c *CustomerCreate) SetBillingAddressLine1(v string) *CustomerCreate {
+	_c.mutation.SetBillingAddressLine1(v)
+	return _c
 }
 
 // SetNillableBillingAddressLine1 sets the "billing_address_line1" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableBillingAddressLine1(s *string) *CustomerCreate {
-	if s != nil {
-		cc.SetBillingAddressLine1(*s)
+func (_c *CustomerCreate) SetNillableBillingAddressLine1(v *string) *CustomerCreate {
+	if v != nil {
+		_c.SetBillingAddressLine1(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetBillingAddressLine2 sets the "billing_address_line2" field.
-func (cc *CustomerCreate) SetBillingAddressLine2(s string) *CustomerCreate {
-	cc.mutation.SetBillingAddressLine2(s)
-	return cc
+func (_c *CustomerCreate) SetBillingAddressLine2(v string) *CustomerCreate {
+	_c.mutation.SetBillingAddressLine2(v)
+	return _c
 }
 
 // SetNillableBillingAddressLine2 sets the "billing_address_line2" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableBillingAddressLine2(s *string) *CustomerCreate {
-	if s != nil {
-		cc.SetBillingAddressLine2(*s)
+func (_c *CustomerCreate) SetNillableBillingAddressLine2(v *string) *CustomerCreate {
+	if v != nil {
+		_c.SetBillingAddressLine2(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetBillingAddressPhoneNumber sets the "billing_address_phone_number" field.
-func (cc *CustomerCreate) SetBillingAddressPhoneNumber(s string) *CustomerCreate {
-	cc.mutation.SetBillingAddressPhoneNumber(s)
-	return cc
+func (_c *CustomerCreate) SetBillingAddressPhoneNumber(v string) *CustomerCreate {
+	_c.mutation.SetBillingAddressPhoneNumber(v)
+	return _c
 }
 
 // SetNillableBillingAddressPhoneNumber sets the "billing_address_phone_number" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableBillingAddressPhoneNumber(s *string) *CustomerCreate {
-	if s != nil {
-		cc.SetBillingAddressPhoneNumber(*s)
+func (_c *CustomerCreate) SetNillableBillingAddressPhoneNumber(v *string) *CustomerCreate {
+	if v != nil {
+		_c.SetBillingAddressPhoneNumber(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetKey sets the "key" field.
-func (cc *CustomerCreate) SetKey(s string) *CustomerCreate {
-	cc.mutation.SetKey(s)
-	return cc
+func (_c *CustomerCreate) SetKey(v string) *CustomerCreate {
+	_c.mutation.SetKey(v)
+	return _c
 }
 
 // SetNillableKey sets the "key" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableKey(s *string) *CustomerCreate {
-	if s != nil {
-		cc.SetKey(*s)
+func (_c *CustomerCreate) SetNillableKey(v *string) *CustomerCreate {
+	if v != nil {
+		_c.SetKey(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetPrimaryEmail sets the "primary_email" field.
-func (cc *CustomerCreate) SetPrimaryEmail(s string) *CustomerCreate {
-	cc.mutation.SetPrimaryEmail(s)
-	return cc
+func (_c *CustomerCreate) SetPrimaryEmail(v string) *CustomerCreate {
+	_c.mutation.SetPrimaryEmail(v)
+	return _c
 }
 
 // SetNillablePrimaryEmail sets the "primary_email" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillablePrimaryEmail(s *string) *CustomerCreate {
-	if s != nil {
-		cc.SetPrimaryEmail(*s)
+func (_c *CustomerCreate) SetNillablePrimaryEmail(v *string) *CustomerCreate {
+	if v != nil {
+		_c.SetPrimaryEmail(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetCurrency sets the "currency" field.
-func (cc *CustomerCreate) SetCurrency(c currencyx.Code) *CustomerCreate {
-	cc.mutation.SetCurrency(c)
-	return cc
+func (_c *CustomerCreate) SetCurrency(v currencyx.Code) *CustomerCreate {
+	_c.mutation.SetCurrency(v)
+	return _c
 }
 
 // SetNillableCurrency sets the "currency" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableCurrency(c *currencyx.Code) *CustomerCreate {
-	if c != nil {
-		cc.SetCurrency(*c)
+func (_c *CustomerCreate) SetNillableCurrency(v *currencyx.Code) *CustomerCreate {
+	if v != nil {
+		_c.SetCurrency(*v)
 	}
-	return cc
+	return _c
 }
 
 // SetID sets the "id" field.
-func (cc *CustomerCreate) SetID(s string) *CustomerCreate {
-	cc.mutation.SetID(s)
-	return cc
+func (_c *CustomerCreate) SetID(v string) *CustomerCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableID(s *string) *CustomerCreate {
-	if s != nil {
-		cc.SetID(*s)
+func (_c *CustomerCreate) SetNillableID(v *string) *CustomerCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return cc
+	return _c
 }
 
 // AddAppIDs adds the "apps" edge to the AppCustomer entity by IDs.
-func (cc *CustomerCreate) AddAppIDs(ids ...int) *CustomerCreate {
-	cc.mutation.AddAppIDs(ids...)
-	return cc
+func (_c *CustomerCreate) AddAppIDs(ids ...int) *CustomerCreate {
+	_c.mutation.AddAppIDs(ids...)
+	return _c
 }
 
 // AddApps adds the "apps" edges to the AppCustomer entity.
-func (cc *CustomerCreate) AddApps(a ...*AppCustomer) *CustomerCreate {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_c *CustomerCreate) AddApps(v ...*AppCustomer) *CustomerCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return cc.AddAppIDs(ids...)
+	return _c.AddAppIDs(ids...)
 }
 
 // AddSubjectIDs adds the "subjects" edge to the CustomerSubjects entity by IDs.
-func (cc *CustomerCreate) AddSubjectIDs(ids ...int) *CustomerCreate {
-	cc.mutation.AddSubjectIDs(ids...)
-	return cc
+func (_c *CustomerCreate) AddSubjectIDs(ids ...int) *CustomerCreate {
+	_c.mutation.AddSubjectIDs(ids...)
+	return _c
 }
 
 // AddSubjects adds the "subjects" edges to the CustomerSubjects entity.
-func (cc *CustomerCreate) AddSubjects(c ...*CustomerSubjects) *CustomerCreate {
-	ids := make([]int, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
+func (_c *CustomerCreate) AddSubjects(v ...*CustomerSubjects) *CustomerCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return cc.AddSubjectIDs(ids...)
+	return _c.AddSubjectIDs(ids...)
 }
 
 // SetBillingCustomerOverrideID sets the "billing_customer_override" edge to the BillingCustomerOverride entity by ID.
-func (cc *CustomerCreate) SetBillingCustomerOverrideID(id string) *CustomerCreate {
-	cc.mutation.SetBillingCustomerOverrideID(id)
-	return cc
+func (_c *CustomerCreate) SetBillingCustomerOverrideID(id string) *CustomerCreate {
+	_c.mutation.SetBillingCustomerOverrideID(id)
+	return _c
 }
 
 // SetNillableBillingCustomerOverrideID sets the "billing_customer_override" edge to the BillingCustomerOverride entity by ID if the given value is not nil.
-func (cc *CustomerCreate) SetNillableBillingCustomerOverrideID(id *string) *CustomerCreate {
+func (_c *CustomerCreate) SetNillableBillingCustomerOverrideID(id *string) *CustomerCreate {
 	if id != nil {
-		cc = cc.SetBillingCustomerOverrideID(*id)
+		_c = _c.SetBillingCustomerOverrideID(*id)
 	}
-	return cc
+	return _c
 }
 
 // SetBillingCustomerOverride sets the "billing_customer_override" edge to the BillingCustomerOverride entity.
-func (cc *CustomerCreate) SetBillingCustomerOverride(b *BillingCustomerOverride) *CustomerCreate {
-	return cc.SetBillingCustomerOverrideID(b.ID)
+func (_c *CustomerCreate) SetBillingCustomerOverride(v *BillingCustomerOverride) *CustomerCreate {
+	return _c.SetBillingCustomerOverrideID(v.ID)
 }
 
 // AddBillingInvoiceIDs adds the "billing_invoice" edge to the BillingInvoice entity by IDs.
-func (cc *CustomerCreate) AddBillingInvoiceIDs(ids ...string) *CustomerCreate {
-	cc.mutation.AddBillingInvoiceIDs(ids...)
-	return cc
+func (_c *CustomerCreate) AddBillingInvoiceIDs(ids ...string) *CustomerCreate {
+	_c.mutation.AddBillingInvoiceIDs(ids...)
+	return _c
 }
 
 // AddBillingInvoice adds the "billing_invoice" edges to the BillingInvoice entity.
-func (cc *CustomerCreate) AddBillingInvoice(b ...*BillingInvoice) *CustomerCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_c *CustomerCreate) AddBillingInvoice(v ...*BillingInvoice) *CustomerCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return cc.AddBillingInvoiceIDs(ids...)
+	return _c.AddBillingInvoiceIDs(ids...)
 }
 
 // AddSubscriptionIDs adds the "subscription" edge to the Subscription entity by IDs.
-func (cc *CustomerCreate) AddSubscriptionIDs(ids ...string) *CustomerCreate {
-	cc.mutation.AddSubscriptionIDs(ids...)
-	return cc
+func (_c *CustomerCreate) AddSubscriptionIDs(ids ...string) *CustomerCreate {
+	_c.mutation.AddSubscriptionIDs(ids...)
+	return _c
 }
 
 // AddSubscription adds the "subscription" edges to the Subscription entity.
-func (cc *CustomerCreate) AddSubscription(s ...*Subscription) *CustomerCreate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_c *CustomerCreate) AddSubscription(v ...*Subscription) *CustomerCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return cc.AddSubscriptionIDs(ids...)
+	return _c.AddSubscriptionIDs(ids...)
 }
 
 // Mutation returns the CustomerMutation object of the builder.
-func (cc *CustomerCreate) Mutation() *CustomerMutation {
-	return cc.mutation
+func (_c *CustomerCreate) Mutation() *CustomerMutation {
+	return _c.mutation
 }
 
 // Save creates the Customer in the database.
-func (cc *CustomerCreate) Save(ctx context.Context) (*Customer, error) {
-	cc.defaults()
-	return withHooks(ctx, cc.sqlSave, cc.mutation, cc.hooks)
+func (_c *CustomerCreate) Save(ctx context.Context) (*Customer, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (cc *CustomerCreate) SaveX(ctx context.Context) *Customer {
-	v, err := cc.Save(ctx)
+func (_c *CustomerCreate) SaveX(ctx context.Context) *Customer {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -358,59 +358,59 @@ func (cc *CustomerCreate) SaveX(ctx context.Context) *Customer {
 }
 
 // Exec executes the query.
-func (cc *CustomerCreate) Exec(ctx context.Context) error {
-	_, err := cc.Save(ctx)
+func (_c *CustomerCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (cc *CustomerCreate) ExecX(ctx context.Context) {
-	if err := cc.Exec(ctx); err != nil {
+func (_c *CustomerCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (cc *CustomerCreate) defaults() {
-	if _, ok := cc.mutation.CreatedAt(); !ok {
+func (_c *CustomerCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := customer.DefaultCreatedAt()
-		cc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := cc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := customer.DefaultUpdatedAt()
-		cc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := cc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := customer.DefaultID()
-		cc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (cc *CustomerCreate) check() error {
-	if _, ok := cc.mutation.Namespace(); !ok {
+func (_c *CustomerCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "Customer.namespace"`)}
 	}
-	if v, ok := cc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := customer.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "Customer.namespace": %w`, err)}
 		}
 	}
-	if _, ok := cc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "Customer.created_at"`)}
 	}
-	if _, ok := cc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "Customer.updated_at"`)}
 	}
-	if _, ok := cc.mutation.Name(); !ok {
+	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "Customer.name"`)}
 	}
-	if v, ok := cc.mutation.BillingAddressCountry(); ok {
+	if v, ok := _c.mutation.BillingAddressCountry(); ok {
 		if err := customer.BillingAddressCountryValidator(string(v)); err != nil {
 			return &ValidationError{Name: "billing_address_country", err: fmt.Errorf(`db: validator failed for field "Customer.billing_address_country": %w`, err)}
 		}
 	}
-	if v, ok := cc.mutation.Currency(); ok {
+	if v, ok := _c.mutation.Currency(); ok {
 		if err := customer.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Customer.currency": %w`, err)}
 		}
@@ -418,12 +418,12 @@ func (cc *CustomerCreate) check() error {
 	return nil
 }
 
-func (cc *CustomerCreate) sqlSave(ctx context.Context) (*Customer, error) {
-	if err := cc.check(); err != nil {
+func (_c *CustomerCreate) sqlSave(ctx context.Context) (*Customer, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := cc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, cc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -436,90 +436,90 @@ func (cc *CustomerCreate) sqlSave(ctx context.Context) (*Customer, error) {
 			return nil, fmt.Errorf("unexpected Customer.ID type: %T", _spec.ID.Value)
 		}
 	}
-	cc.mutation.id = &_node.ID
-	cc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
+func (_c *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 	var (
-		_node = &Customer{config: cc.config}
+		_node = &Customer{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(customer.Table, sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = cc.conflict
-	if id, ok := cc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := cc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(customer.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := cc.mutation.Metadata(); ok {
+	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(customer.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := cc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(customer.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := cc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(customer.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := cc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(customer.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := cc.mutation.Name(); ok {
+	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(customer.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := cc.mutation.Description(); ok {
+	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(customer.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := cc.mutation.BillingAddressCountry(); ok {
+	if value, ok := _c.mutation.BillingAddressCountry(); ok {
 		_spec.SetField(customer.FieldBillingAddressCountry, field.TypeString, value)
 		_node.BillingAddressCountry = &value
 	}
-	if value, ok := cc.mutation.BillingAddressPostalCode(); ok {
+	if value, ok := _c.mutation.BillingAddressPostalCode(); ok {
 		_spec.SetField(customer.FieldBillingAddressPostalCode, field.TypeString, value)
 		_node.BillingAddressPostalCode = &value
 	}
-	if value, ok := cc.mutation.BillingAddressState(); ok {
+	if value, ok := _c.mutation.BillingAddressState(); ok {
 		_spec.SetField(customer.FieldBillingAddressState, field.TypeString, value)
 		_node.BillingAddressState = &value
 	}
-	if value, ok := cc.mutation.BillingAddressCity(); ok {
+	if value, ok := _c.mutation.BillingAddressCity(); ok {
 		_spec.SetField(customer.FieldBillingAddressCity, field.TypeString, value)
 		_node.BillingAddressCity = &value
 	}
-	if value, ok := cc.mutation.BillingAddressLine1(); ok {
+	if value, ok := _c.mutation.BillingAddressLine1(); ok {
 		_spec.SetField(customer.FieldBillingAddressLine1, field.TypeString, value)
 		_node.BillingAddressLine1 = &value
 	}
-	if value, ok := cc.mutation.BillingAddressLine2(); ok {
+	if value, ok := _c.mutation.BillingAddressLine2(); ok {
 		_spec.SetField(customer.FieldBillingAddressLine2, field.TypeString, value)
 		_node.BillingAddressLine2 = &value
 	}
-	if value, ok := cc.mutation.BillingAddressPhoneNumber(); ok {
+	if value, ok := _c.mutation.BillingAddressPhoneNumber(); ok {
 		_spec.SetField(customer.FieldBillingAddressPhoneNumber, field.TypeString, value)
 		_node.BillingAddressPhoneNumber = &value
 	}
-	if value, ok := cc.mutation.Key(); ok {
+	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(customer.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
-	if value, ok := cc.mutation.PrimaryEmail(); ok {
+	if value, ok := _c.mutation.PrimaryEmail(); ok {
 		_spec.SetField(customer.FieldPrimaryEmail, field.TypeString, value)
 		_node.PrimaryEmail = &value
 	}
-	if value, ok := cc.mutation.Currency(); ok {
+	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(customer.FieldCurrency, field.TypeString, value)
 		_node.Currency = &value
 	}
-	if nodes := cc.mutation.AppsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.AppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -535,7 +535,7 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := cc.mutation.SubjectsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.SubjectsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -551,7 +551,7 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := cc.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: false,
@@ -567,7 +567,7 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := cc.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -583,7 +583,7 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := cc.mutation.SubscriptionIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.SubscriptionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -618,10 +618,10 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (cc *CustomerCreate) OnConflict(opts ...sql.ConflictOption) *CustomerUpsertOne {
-	cc.conflict = opts
+func (_c *CustomerCreate) OnConflict(opts ...sql.ConflictOption) *CustomerUpsertOne {
+	_c.conflict = opts
 	return &CustomerUpsertOne{
-		create: cc,
+		create: _c,
 	}
 }
 
@@ -631,10 +631,10 @@ func (cc *CustomerCreate) OnConflict(opts ...sql.ConflictOption) *CustomerUpsert
 //	client.Customer.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (cc *CustomerCreate) OnConflictColumns(columns ...string) *CustomerUpsertOne {
-	cc.conflict = append(cc.conflict, sql.ConflictColumns(columns...))
+func (_c *CustomerCreate) OnConflictColumns(columns ...string) *CustomerUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &CustomerUpsertOne{
-		create: cc,
+		create: _c,
 	}
 }
 
@@ -1311,16 +1311,16 @@ type CustomerCreateBulk struct {
 }
 
 // Save creates the Customer entities in the database.
-func (ccb *CustomerCreateBulk) Save(ctx context.Context) ([]*Customer, error) {
-	if ccb.err != nil {
-		return nil, ccb.err
+func (_c *CustomerCreateBulk) Save(ctx context.Context) ([]*Customer, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(ccb.builders))
-	nodes := make([]*Customer, len(ccb.builders))
-	mutators := make([]Mutator, len(ccb.builders))
-	for i := range ccb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*Customer, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := ccb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*CustomerMutation)
@@ -1334,12 +1334,12 @@ func (ccb *CustomerCreateBulk) Save(ctx context.Context) ([]*Customer, error) {
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, ccb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = ccb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, ccb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -1359,7 +1359,7 @@ func (ccb *CustomerCreateBulk) Save(ctx context.Context) ([]*Customer, error) {
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, ccb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -1367,8 +1367,8 @@ func (ccb *CustomerCreateBulk) Save(ctx context.Context) ([]*Customer, error) {
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (ccb *CustomerCreateBulk) SaveX(ctx context.Context) []*Customer {
-	v, err := ccb.Save(ctx)
+func (_c *CustomerCreateBulk) SaveX(ctx context.Context) []*Customer {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1376,14 +1376,14 @@ func (ccb *CustomerCreateBulk) SaveX(ctx context.Context) []*Customer {
 }
 
 // Exec executes the query.
-func (ccb *CustomerCreateBulk) Exec(ctx context.Context) error {
-	_, err := ccb.Save(ctx)
+func (_c *CustomerCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ccb *CustomerCreateBulk) ExecX(ctx context.Context) {
-	if err := ccb.Exec(ctx); err != nil {
+func (_c *CustomerCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -1403,10 +1403,10 @@ func (ccb *CustomerCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (ccb *CustomerCreateBulk) OnConflict(opts ...sql.ConflictOption) *CustomerUpsertBulk {
-	ccb.conflict = opts
+func (_c *CustomerCreateBulk) OnConflict(opts ...sql.ConflictOption) *CustomerUpsertBulk {
+	_c.conflict = opts
 	return &CustomerUpsertBulk{
-		create: ccb,
+		create: _c,
 	}
 }
 
@@ -1416,10 +1416,10 @@ func (ccb *CustomerCreateBulk) OnConflict(opts ...sql.ConflictOption) *CustomerU
 //	client.Customer.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (ccb *CustomerCreateBulk) OnConflictColumns(columns ...string) *CustomerUpsertBulk {
-	ccb.conflict = append(ccb.conflict, sql.ConflictColumns(columns...))
+func (_c *CustomerCreateBulk) OnConflictColumns(columns ...string) *CustomerUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &CustomerUpsertBulk{
-		create: ccb,
+		create: _c,
 	}
 }
 

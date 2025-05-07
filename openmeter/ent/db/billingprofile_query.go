@@ -41,44 +41,44 @@ type BillingProfileQuery struct {
 }
 
 // Where adds a new predicate for the BillingProfileQuery builder.
-func (bpq *BillingProfileQuery) Where(ps ...predicate.BillingProfile) *BillingProfileQuery {
-	bpq.predicates = append(bpq.predicates, ps...)
-	return bpq
+func (_q *BillingProfileQuery) Where(ps ...predicate.BillingProfile) *BillingProfileQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (bpq *BillingProfileQuery) Limit(limit int) *BillingProfileQuery {
-	bpq.ctx.Limit = &limit
-	return bpq
+func (_q *BillingProfileQuery) Limit(limit int) *BillingProfileQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (bpq *BillingProfileQuery) Offset(offset int) *BillingProfileQuery {
-	bpq.ctx.Offset = &offset
-	return bpq
+func (_q *BillingProfileQuery) Offset(offset int) *BillingProfileQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (bpq *BillingProfileQuery) Unique(unique bool) *BillingProfileQuery {
-	bpq.ctx.Unique = &unique
-	return bpq
+func (_q *BillingProfileQuery) Unique(unique bool) *BillingProfileQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (bpq *BillingProfileQuery) Order(o ...billingprofile.OrderOption) *BillingProfileQuery {
-	bpq.order = append(bpq.order, o...)
-	return bpq
+func (_q *BillingProfileQuery) Order(o ...billingprofile.OrderOption) *BillingProfileQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryBillingInvoices chains the current query on the "billing_invoices" edge.
-func (bpq *BillingProfileQuery) QueryBillingInvoices() *BillingInvoiceQuery {
-	query := (&BillingInvoiceClient{config: bpq.config}).Query()
+func (_q *BillingProfileQuery) QueryBillingInvoices() *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bpq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := bpq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -87,20 +87,20 @@ func (bpq *BillingProfileQuery) QueryBillingInvoices() *BillingInvoiceQuery {
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billingprofile.BillingInvoicesTable, billingprofile.BillingInvoicesColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingCustomerOverride chains the current query on the "billing_customer_override" edge.
-func (bpq *BillingProfileQuery) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery {
-	query := (&BillingCustomerOverrideClient{config: bpq.config}).Query()
+func (_q *BillingProfileQuery) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery {
+	query := (&BillingCustomerOverrideClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bpq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := bpq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -109,20 +109,20 @@ func (bpq *BillingProfileQuery) QueryBillingCustomerOverride() *BillingCustomerO
 			sqlgraph.To(billingcustomeroverride.Table, billingcustomeroverride.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billingprofile.BillingCustomerOverrideTable, billingprofile.BillingCustomerOverrideColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryWorkflowConfig chains the current query on the "workflow_config" edge.
-func (bpq *BillingProfileQuery) QueryWorkflowConfig() *BillingWorkflowConfigQuery {
-	query := (&BillingWorkflowConfigClient{config: bpq.config}).Query()
+func (_q *BillingProfileQuery) QueryWorkflowConfig() *BillingWorkflowConfigQuery {
+	query := (&BillingWorkflowConfigClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bpq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := bpq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -131,20 +131,20 @@ func (bpq *BillingProfileQuery) QueryWorkflowConfig() *BillingWorkflowConfigQuer
 			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, billingprofile.WorkflowConfigTable, billingprofile.WorkflowConfigColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryTaxApp chains the current query on the "tax_app" edge.
-func (bpq *BillingProfileQuery) QueryTaxApp() *AppQuery {
-	query := (&AppClient{config: bpq.config}).Query()
+func (_q *BillingProfileQuery) QueryTaxApp() *AppQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bpq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := bpq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -153,20 +153,20 @@ func (bpq *BillingProfileQuery) QueryTaxApp() *AppQuery {
 			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.TaxAppTable, billingprofile.TaxAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryInvoicingApp chains the current query on the "invoicing_app" edge.
-func (bpq *BillingProfileQuery) QueryInvoicingApp() *AppQuery {
-	query := (&AppClient{config: bpq.config}).Query()
+func (_q *BillingProfileQuery) QueryInvoicingApp() *AppQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bpq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := bpq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -175,20 +175,20 @@ func (bpq *BillingProfileQuery) QueryInvoicingApp() *AppQuery {
 			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.InvoicingAppTable, billingprofile.InvoicingAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryPaymentApp chains the current query on the "payment_app" edge.
-func (bpq *BillingProfileQuery) QueryPaymentApp() *AppQuery {
-	query := (&AppClient{config: bpq.config}).Query()
+func (_q *BillingProfileQuery) QueryPaymentApp() *AppQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bpq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := bpq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -197,7 +197,7 @@ func (bpq *BillingProfileQuery) QueryPaymentApp() *AppQuery {
 			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.PaymentAppTable, billingprofile.PaymentAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -205,8 +205,8 @@ func (bpq *BillingProfileQuery) QueryPaymentApp() *AppQuery {
 
 // First returns the first BillingProfile entity from the query.
 // Returns a *NotFoundError when no BillingProfile was found.
-func (bpq *BillingProfileQuery) First(ctx context.Context) (*BillingProfile, error) {
-	nodes, err := bpq.Limit(1).All(setContextOp(ctx, bpq.ctx, ent.OpQueryFirst))
+func (_q *BillingProfileQuery) First(ctx context.Context) (*BillingProfile, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -217,8 +217,8 @@ func (bpq *BillingProfileQuery) First(ctx context.Context) (*BillingProfile, err
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (bpq *BillingProfileQuery) FirstX(ctx context.Context) *BillingProfile {
-	node, err := bpq.First(ctx)
+func (_q *BillingProfileQuery) FirstX(ctx context.Context) *BillingProfile {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -227,9 +227,9 @@ func (bpq *BillingProfileQuery) FirstX(ctx context.Context) *BillingProfile {
 
 // FirstID returns the first BillingProfile ID from the query.
 // Returns a *NotFoundError when no BillingProfile ID was found.
-func (bpq *BillingProfileQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *BillingProfileQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = bpq.Limit(1).IDs(setContextOp(ctx, bpq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -240,8 +240,8 @@ func (bpq *BillingProfileQuery) FirstID(ctx context.Context) (id string, err err
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (bpq *BillingProfileQuery) FirstIDX(ctx context.Context) string {
-	id, err := bpq.FirstID(ctx)
+func (_q *BillingProfileQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -251,8 +251,8 @@ func (bpq *BillingProfileQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single BillingProfile entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one BillingProfile entity is found.
 // Returns a *NotFoundError when no BillingProfile entities are found.
-func (bpq *BillingProfileQuery) Only(ctx context.Context) (*BillingProfile, error) {
-	nodes, err := bpq.Limit(2).All(setContextOp(ctx, bpq.ctx, ent.OpQueryOnly))
+func (_q *BillingProfileQuery) Only(ctx context.Context) (*BillingProfile, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -267,8 +267,8 @@ func (bpq *BillingProfileQuery) Only(ctx context.Context) (*BillingProfile, erro
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (bpq *BillingProfileQuery) OnlyX(ctx context.Context) *BillingProfile {
-	node, err := bpq.Only(ctx)
+func (_q *BillingProfileQuery) OnlyX(ctx context.Context) *BillingProfile {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -278,9 +278,9 @@ func (bpq *BillingProfileQuery) OnlyX(ctx context.Context) *BillingProfile {
 // OnlyID is like Only, but returns the only BillingProfile ID in the query.
 // Returns a *NotSingularError when more than one BillingProfile ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (bpq *BillingProfileQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *BillingProfileQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = bpq.Limit(2).IDs(setContextOp(ctx, bpq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -295,8 +295,8 @@ func (bpq *BillingProfileQuery) OnlyID(ctx context.Context) (id string, err erro
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (bpq *BillingProfileQuery) OnlyIDX(ctx context.Context) string {
-	id, err := bpq.OnlyID(ctx)
+func (_q *BillingProfileQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -304,18 +304,18 @@ func (bpq *BillingProfileQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of BillingProfiles.
-func (bpq *BillingProfileQuery) All(ctx context.Context) ([]*BillingProfile, error) {
-	ctx = setContextOp(ctx, bpq.ctx, ent.OpQueryAll)
-	if err := bpq.prepareQuery(ctx); err != nil {
+func (_q *BillingProfileQuery) All(ctx context.Context) ([]*BillingProfile, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*BillingProfile, *BillingProfileQuery]()
-	return withInterceptors[[]*BillingProfile](ctx, bpq, qr, bpq.inters)
+	return withInterceptors[[]*BillingProfile](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (bpq *BillingProfileQuery) AllX(ctx context.Context) []*BillingProfile {
-	nodes, err := bpq.All(ctx)
+func (_q *BillingProfileQuery) AllX(ctx context.Context) []*BillingProfile {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -323,20 +323,20 @@ func (bpq *BillingProfileQuery) AllX(ctx context.Context) []*BillingProfile {
 }
 
 // IDs executes the query and returns a list of BillingProfile IDs.
-func (bpq *BillingProfileQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if bpq.ctx.Unique == nil && bpq.path != nil {
-		bpq.Unique(true)
+func (_q *BillingProfileQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, bpq.ctx, ent.OpQueryIDs)
-	if err = bpq.Select(billingprofile.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(billingprofile.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (bpq *BillingProfileQuery) IDsX(ctx context.Context) []string {
-	ids, err := bpq.IDs(ctx)
+func (_q *BillingProfileQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -344,17 +344,17 @@ func (bpq *BillingProfileQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (bpq *BillingProfileQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, bpq.ctx, ent.OpQueryCount)
-	if err := bpq.prepareQuery(ctx); err != nil {
+func (_q *BillingProfileQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, bpq, querierCount[*BillingProfileQuery](), bpq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BillingProfileQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (bpq *BillingProfileQuery) CountX(ctx context.Context) int {
-	count, err := bpq.Count(ctx)
+func (_q *BillingProfileQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -362,9 +362,9 @@ func (bpq *BillingProfileQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (bpq *BillingProfileQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, bpq.ctx, ent.OpQueryExist)
-	switch _, err := bpq.FirstID(ctx); {
+func (_q *BillingProfileQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -375,8 +375,8 @@ func (bpq *BillingProfileQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (bpq *BillingProfileQuery) ExistX(ctx context.Context) bool {
-	exist, err := bpq.Exist(ctx)
+func (_q *BillingProfileQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -385,92 +385,92 @@ func (bpq *BillingProfileQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the BillingProfileQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (bpq *BillingProfileQuery) Clone() *BillingProfileQuery {
-	if bpq == nil {
+func (_q *BillingProfileQuery) Clone() *BillingProfileQuery {
+	if _q == nil {
 		return nil
 	}
 	return &BillingProfileQuery{
-		config:                      bpq.config,
-		ctx:                         bpq.ctx.Clone(),
-		order:                       append([]billingprofile.OrderOption{}, bpq.order...),
-		inters:                      append([]Interceptor{}, bpq.inters...),
-		predicates:                  append([]predicate.BillingProfile{}, bpq.predicates...),
-		withBillingInvoices:         bpq.withBillingInvoices.Clone(),
-		withBillingCustomerOverride: bpq.withBillingCustomerOverride.Clone(),
-		withWorkflowConfig:          bpq.withWorkflowConfig.Clone(),
-		withTaxApp:                  bpq.withTaxApp.Clone(),
-		withInvoicingApp:            bpq.withInvoicingApp.Clone(),
-		withPaymentApp:              bpq.withPaymentApp.Clone(),
+		config:                      _q.config,
+		ctx:                         _q.ctx.Clone(),
+		order:                       append([]billingprofile.OrderOption{}, _q.order...),
+		inters:                      append([]Interceptor{}, _q.inters...),
+		predicates:                  append([]predicate.BillingProfile{}, _q.predicates...),
+		withBillingInvoices:         _q.withBillingInvoices.Clone(),
+		withBillingCustomerOverride: _q.withBillingCustomerOverride.Clone(),
+		withWorkflowConfig:          _q.withWorkflowConfig.Clone(),
+		withTaxApp:                  _q.withTaxApp.Clone(),
+		withInvoicingApp:            _q.withInvoicingApp.Clone(),
+		withPaymentApp:              _q.withPaymentApp.Clone(),
 		// clone intermediate query.
-		sql:  bpq.sql.Clone(),
-		path: bpq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithBillingInvoices tells the query-builder to eager-load the nodes that are connected to
 // the "billing_invoices" edge. The optional arguments are used to configure the query builder of the edge.
-func (bpq *BillingProfileQuery) WithBillingInvoices(opts ...func(*BillingInvoiceQuery)) *BillingProfileQuery {
-	query := (&BillingInvoiceClient{config: bpq.config}).Query()
+func (_q *BillingProfileQuery) WithBillingInvoices(opts ...func(*BillingInvoiceQuery)) *BillingProfileQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bpq.withBillingInvoices = query
-	return bpq
+	_q.withBillingInvoices = query
+	return _q
 }
 
 // WithBillingCustomerOverride tells the query-builder to eager-load the nodes that are connected to
 // the "billing_customer_override" edge. The optional arguments are used to configure the query builder of the edge.
-func (bpq *BillingProfileQuery) WithBillingCustomerOverride(opts ...func(*BillingCustomerOverrideQuery)) *BillingProfileQuery {
-	query := (&BillingCustomerOverrideClient{config: bpq.config}).Query()
+func (_q *BillingProfileQuery) WithBillingCustomerOverride(opts ...func(*BillingCustomerOverrideQuery)) *BillingProfileQuery {
+	query := (&BillingCustomerOverrideClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bpq.withBillingCustomerOverride = query
-	return bpq
+	_q.withBillingCustomerOverride = query
+	return _q
 }
 
 // WithWorkflowConfig tells the query-builder to eager-load the nodes that are connected to
 // the "workflow_config" edge. The optional arguments are used to configure the query builder of the edge.
-func (bpq *BillingProfileQuery) WithWorkflowConfig(opts ...func(*BillingWorkflowConfigQuery)) *BillingProfileQuery {
-	query := (&BillingWorkflowConfigClient{config: bpq.config}).Query()
+func (_q *BillingProfileQuery) WithWorkflowConfig(opts ...func(*BillingWorkflowConfigQuery)) *BillingProfileQuery {
+	query := (&BillingWorkflowConfigClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bpq.withWorkflowConfig = query
-	return bpq
+	_q.withWorkflowConfig = query
+	return _q
 }
 
 // WithTaxApp tells the query-builder to eager-load the nodes that are connected to
 // the "tax_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (bpq *BillingProfileQuery) WithTaxApp(opts ...func(*AppQuery)) *BillingProfileQuery {
-	query := (&AppClient{config: bpq.config}).Query()
+func (_q *BillingProfileQuery) WithTaxApp(opts ...func(*AppQuery)) *BillingProfileQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bpq.withTaxApp = query
-	return bpq
+	_q.withTaxApp = query
+	return _q
 }
 
 // WithInvoicingApp tells the query-builder to eager-load the nodes that are connected to
 // the "invoicing_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (bpq *BillingProfileQuery) WithInvoicingApp(opts ...func(*AppQuery)) *BillingProfileQuery {
-	query := (&AppClient{config: bpq.config}).Query()
+func (_q *BillingProfileQuery) WithInvoicingApp(opts ...func(*AppQuery)) *BillingProfileQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bpq.withInvoicingApp = query
-	return bpq
+	_q.withInvoicingApp = query
+	return _q
 }
 
 // WithPaymentApp tells the query-builder to eager-load the nodes that are connected to
 // the "payment_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (bpq *BillingProfileQuery) WithPaymentApp(opts ...func(*AppQuery)) *BillingProfileQuery {
-	query := (&AppClient{config: bpq.config}).Query()
+func (_q *BillingProfileQuery) WithPaymentApp(opts ...func(*AppQuery)) *BillingProfileQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bpq.withPaymentApp = query
-	return bpq
+	_q.withPaymentApp = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -487,10 +487,10 @@ func (bpq *BillingProfileQuery) WithPaymentApp(opts ...func(*AppQuery)) *Billing
 //		GroupBy(billingprofile.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (bpq *BillingProfileQuery) GroupBy(field string, fields ...string) *BillingProfileGroupBy {
-	bpq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &BillingProfileGroupBy{build: bpq}
-	grbuild.flds = &bpq.ctx.Fields
+func (_q *BillingProfileQuery) GroupBy(field string, fields ...string) *BillingProfileGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &BillingProfileGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = billingprofile.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -508,81 +508,81 @@ func (bpq *BillingProfileQuery) GroupBy(field string, fields ...string) *Billing
 //	client.BillingProfile.Query().
 //		Select(billingprofile.FieldNamespace).
 //		Scan(ctx, &v)
-func (bpq *BillingProfileQuery) Select(fields ...string) *BillingProfileSelect {
-	bpq.ctx.Fields = append(bpq.ctx.Fields, fields...)
-	sbuild := &BillingProfileSelect{BillingProfileQuery: bpq}
+func (_q *BillingProfileQuery) Select(fields ...string) *BillingProfileSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &BillingProfileSelect{BillingProfileQuery: _q}
 	sbuild.label = billingprofile.Label
-	sbuild.flds, sbuild.scan = &bpq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a BillingProfileSelect configured with the given aggregations.
-func (bpq *BillingProfileQuery) Aggregate(fns ...AggregateFunc) *BillingProfileSelect {
-	return bpq.Select().Aggregate(fns...)
+func (_q *BillingProfileQuery) Aggregate(fns ...AggregateFunc) *BillingProfileSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (bpq *BillingProfileQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range bpq.inters {
+func (_q *BillingProfileQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, bpq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range bpq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !billingprofile.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if bpq.path != nil {
-		prev, err := bpq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		bpq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (bpq *BillingProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingProfile, error) {
+func (_q *BillingProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingProfile, error) {
 	var (
 		nodes       = []*BillingProfile{}
-		_spec       = bpq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [6]bool{
-			bpq.withBillingInvoices != nil,
-			bpq.withBillingCustomerOverride != nil,
-			bpq.withWorkflowConfig != nil,
-			bpq.withTaxApp != nil,
-			bpq.withInvoicingApp != nil,
-			bpq.withPaymentApp != nil,
+			_q.withBillingInvoices != nil,
+			_q.withBillingCustomerOverride != nil,
+			_q.withWorkflowConfig != nil,
+			_q.withTaxApp != nil,
+			_q.withInvoicingApp != nil,
+			_q.withPaymentApp != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingProfile).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &BillingProfile{config: bpq.config}
+		node := &BillingProfile{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(bpq.modifiers) > 0 {
-		_spec.Modifiers = bpq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, bpq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := bpq.withBillingInvoices; query != nil {
-		if err := bpq.loadBillingInvoices(ctx, query, nodes,
+	if query := _q.withBillingInvoices; query != nil {
+		if err := _q.loadBillingInvoices(ctx, query, nodes,
 			func(n *BillingProfile) { n.Edges.BillingInvoices = []*BillingInvoice{} },
 			func(n *BillingProfile, e *BillingInvoice) {
 				n.Edges.BillingInvoices = append(n.Edges.BillingInvoices, e)
@@ -590,8 +590,8 @@ func (bpq *BillingProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 			return nil, err
 		}
 	}
-	if query := bpq.withBillingCustomerOverride; query != nil {
-		if err := bpq.loadBillingCustomerOverride(ctx, query, nodes,
+	if query := _q.withBillingCustomerOverride; query != nil {
+		if err := _q.loadBillingCustomerOverride(ctx, query, nodes,
 			func(n *BillingProfile) { n.Edges.BillingCustomerOverride = []*BillingCustomerOverride{} },
 			func(n *BillingProfile, e *BillingCustomerOverride) {
 				n.Edges.BillingCustomerOverride = append(n.Edges.BillingCustomerOverride, e)
@@ -599,26 +599,26 @@ func (bpq *BillingProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 			return nil, err
 		}
 	}
-	if query := bpq.withWorkflowConfig; query != nil {
-		if err := bpq.loadWorkflowConfig(ctx, query, nodes, nil,
+	if query := _q.withWorkflowConfig; query != nil {
+		if err := _q.loadWorkflowConfig(ctx, query, nodes, nil,
 			func(n *BillingProfile, e *BillingWorkflowConfig) { n.Edges.WorkflowConfig = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := bpq.withTaxApp; query != nil {
-		if err := bpq.loadTaxApp(ctx, query, nodes, nil,
+	if query := _q.withTaxApp; query != nil {
+		if err := _q.loadTaxApp(ctx, query, nodes, nil,
 			func(n *BillingProfile, e *App) { n.Edges.TaxApp = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := bpq.withInvoicingApp; query != nil {
-		if err := bpq.loadInvoicingApp(ctx, query, nodes, nil,
+	if query := _q.withInvoicingApp; query != nil {
+		if err := _q.loadInvoicingApp(ctx, query, nodes, nil,
 			func(n *BillingProfile, e *App) { n.Edges.InvoicingApp = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := bpq.withPaymentApp; query != nil {
-		if err := bpq.loadPaymentApp(ctx, query, nodes, nil,
+	if query := _q.withPaymentApp; query != nil {
+		if err := _q.loadPaymentApp(ctx, query, nodes, nil,
 			func(n *BillingProfile, e *App) { n.Edges.PaymentApp = e }); err != nil {
 			return nil, err
 		}
@@ -626,7 +626,7 @@ func (bpq *BillingProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	return nodes, nil
 }
 
-func (bpq *BillingProfileQuery) loadBillingInvoices(ctx context.Context, query *BillingInvoiceQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *BillingInvoice)) error {
+func (_q *BillingProfileQuery) loadBillingInvoices(ctx context.Context, query *BillingInvoiceQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *BillingInvoice)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*BillingProfile)
 	for i := range nodes {
@@ -656,7 +656,7 @@ func (bpq *BillingProfileQuery) loadBillingInvoices(ctx context.Context, query *
 	}
 	return nil
 }
-func (bpq *BillingProfileQuery) loadBillingCustomerOverride(ctx context.Context, query *BillingCustomerOverrideQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *BillingCustomerOverride)) error {
+func (_q *BillingProfileQuery) loadBillingCustomerOverride(ctx context.Context, query *BillingCustomerOverrideQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *BillingCustomerOverride)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*BillingProfile)
 	for i := range nodes {
@@ -689,7 +689,7 @@ func (bpq *BillingProfileQuery) loadBillingCustomerOverride(ctx context.Context,
 	}
 	return nil
 }
-func (bpq *BillingProfileQuery) loadWorkflowConfig(ctx context.Context, query *BillingWorkflowConfigQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *BillingWorkflowConfig)) error {
+func (_q *BillingProfileQuery) loadWorkflowConfig(ctx context.Context, query *BillingWorkflowConfigQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *BillingWorkflowConfig)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingProfile)
 	for i := range nodes {
@@ -718,7 +718,7 @@ func (bpq *BillingProfileQuery) loadWorkflowConfig(ctx context.Context, query *B
 	}
 	return nil
 }
-func (bpq *BillingProfileQuery) loadTaxApp(ctx context.Context, query *AppQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *App)) error {
+func (_q *BillingProfileQuery) loadTaxApp(ctx context.Context, query *AppQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *App)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingProfile)
 	for i := range nodes {
@@ -747,7 +747,7 @@ func (bpq *BillingProfileQuery) loadTaxApp(ctx context.Context, query *AppQuery,
 	}
 	return nil
 }
-func (bpq *BillingProfileQuery) loadInvoicingApp(ctx context.Context, query *AppQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *App)) error {
+func (_q *BillingProfileQuery) loadInvoicingApp(ctx context.Context, query *AppQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *App)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingProfile)
 	for i := range nodes {
@@ -776,7 +776,7 @@ func (bpq *BillingProfileQuery) loadInvoicingApp(ctx context.Context, query *App
 	}
 	return nil
 }
-func (bpq *BillingProfileQuery) loadPaymentApp(ctx context.Context, query *AppQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *App)) error {
+func (_q *BillingProfileQuery) loadPaymentApp(ctx context.Context, query *AppQuery, nodes []*BillingProfile, init func(*BillingProfile), assign func(*BillingProfile, *App)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingProfile)
 	for i := range nodes {
@@ -806,27 +806,27 @@ func (bpq *BillingProfileQuery) loadPaymentApp(ctx context.Context, query *AppQu
 	return nil
 }
 
-func (bpq *BillingProfileQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := bpq.querySpec()
-	if len(bpq.modifiers) > 0 {
-		_spec.Modifiers = bpq.modifiers
+func (_q *BillingProfileQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = bpq.ctx.Fields
-	if len(bpq.ctx.Fields) > 0 {
-		_spec.Unique = bpq.ctx.Unique != nil && *bpq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, bpq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (bpq *BillingProfileQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *BillingProfileQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(billingprofile.Table, billingprofile.Columns, sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString))
-	_spec.From = bpq.sql
-	if unique := bpq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if bpq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := bpq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billingprofile.FieldID)
 		for i := range fields {
@@ -834,33 +834,33 @@ func (bpq *BillingProfileQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if bpq.withWorkflowConfig != nil {
+		if _q.withWorkflowConfig != nil {
 			_spec.Node.AddColumnOnce(billingprofile.FieldWorkflowConfigID)
 		}
-		if bpq.withTaxApp != nil {
+		if _q.withTaxApp != nil {
 			_spec.Node.AddColumnOnce(billingprofile.FieldTaxAppID)
 		}
-		if bpq.withInvoicingApp != nil {
+		if _q.withInvoicingApp != nil {
 			_spec.Node.AddColumnOnce(billingprofile.FieldInvoicingAppID)
 		}
-		if bpq.withPaymentApp != nil {
+		if _q.withPaymentApp != nil {
 			_spec.Node.AddColumnOnce(billingprofile.FieldPaymentAppID)
 		}
 	}
-	if ps := bpq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := bpq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := bpq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := bpq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -870,36 +870,36 @@ func (bpq *BillingProfileQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (bpq *BillingProfileQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(bpq.driver.Dialect())
+func (_q *BillingProfileQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(billingprofile.Table)
-	columns := bpq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = billingprofile.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if bpq.sql != nil {
-		selector = bpq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if bpq.ctx.Unique != nil && *bpq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range bpq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range bpq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range bpq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := bpq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := bpq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -908,27 +908,27 @@ func (bpq *BillingProfileQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (bpq *BillingProfileQuery) ForUpdate(opts ...sql.LockOption) *BillingProfileQuery {
-	if bpq.driver.Dialect() == dialect.Postgres {
-		bpq.Unique(false)
+func (_q *BillingProfileQuery) ForUpdate(opts ...sql.LockOption) *BillingProfileQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bpq.modifiers = append(bpq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return bpq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (bpq *BillingProfileQuery) ForShare(opts ...sql.LockOption) *BillingProfileQuery {
-	if bpq.driver.Dialect() == dialect.Postgres {
-		bpq.Unique(false)
+func (_q *BillingProfileQuery) ForShare(opts ...sql.LockOption) *BillingProfileQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bpq.modifiers = append(bpq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return bpq
+	return _q
 }
 
 // BillingProfileGroupBy is the group-by builder for BillingProfile entities.

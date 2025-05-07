@@ -172,7 +172,7 @@ func (*BillingProfile) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the BillingProfile fields.
-func (bp *BillingProfile) assignValues(columns []string, values []any) error {
+func (_m *BillingProfile) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -182,19 +182,19 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				bp.ID = value.String
+				_m.ID = value.String
 			}
 		case billingprofile.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				bp.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case billingprofile.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &bp.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -202,128 +202,128 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				bp.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case billingprofile.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				bp.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case billingprofile.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				bp.DeletedAt = new(time.Time)
-				*bp.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case billingprofile.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				bp.Name = value.String
+				_m.Name = value.String
 			}
 		case billingprofile.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				bp.Description = new(string)
-				*bp.Description = value.String
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case billingprofile.FieldSupplierAddressCountry:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field supplier_address_country", values[i])
 			} else if value.Valid {
-				bp.SupplierAddressCountry = new(models.CountryCode)
-				*bp.SupplierAddressCountry = models.CountryCode(value.String)
+				_m.SupplierAddressCountry = new(models.CountryCode)
+				*_m.SupplierAddressCountry = models.CountryCode(value.String)
 			}
 		case billingprofile.FieldSupplierAddressPostalCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field supplier_address_postal_code", values[i])
 			} else if value.Valid {
-				bp.SupplierAddressPostalCode = new(string)
-				*bp.SupplierAddressPostalCode = value.String
+				_m.SupplierAddressPostalCode = new(string)
+				*_m.SupplierAddressPostalCode = value.String
 			}
 		case billingprofile.FieldSupplierAddressState:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field supplier_address_state", values[i])
 			} else if value.Valid {
-				bp.SupplierAddressState = new(string)
-				*bp.SupplierAddressState = value.String
+				_m.SupplierAddressState = new(string)
+				*_m.SupplierAddressState = value.String
 			}
 		case billingprofile.FieldSupplierAddressCity:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field supplier_address_city", values[i])
 			} else if value.Valid {
-				bp.SupplierAddressCity = new(string)
-				*bp.SupplierAddressCity = value.String
+				_m.SupplierAddressCity = new(string)
+				*_m.SupplierAddressCity = value.String
 			}
 		case billingprofile.FieldSupplierAddressLine1:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field supplier_address_line1", values[i])
 			} else if value.Valid {
-				bp.SupplierAddressLine1 = new(string)
-				*bp.SupplierAddressLine1 = value.String
+				_m.SupplierAddressLine1 = new(string)
+				*_m.SupplierAddressLine1 = value.String
 			}
 		case billingprofile.FieldSupplierAddressLine2:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field supplier_address_line2", values[i])
 			} else if value.Valid {
-				bp.SupplierAddressLine2 = new(string)
-				*bp.SupplierAddressLine2 = value.String
+				_m.SupplierAddressLine2 = new(string)
+				*_m.SupplierAddressLine2 = value.String
 			}
 		case billingprofile.FieldSupplierAddressPhoneNumber:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field supplier_address_phone_number", values[i])
 			} else if value.Valid {
-				bp.SupplierAddressPhoneNumber = new(string)
-				*bp.SupplierAddressPhoneNumber = value.String
+				_m.SupplierAddressPhoneNumber = new(string)
+				*_m.SupplierAddressPhoneNumber = value.String
 			}
 		case billingprofile.FieldTaxAppID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field tax_app_id", values[i])
 			} else if value.Valid {
-				bp.TaxAppID = value.String
+				_m.TaxAppID = value.String
 			}
 		case billingprofile.FieldInvoicingAppID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoicing_app_id", values[i])
 			} else if value.Valid {
-				bp.InvoicingAppID = value.String
+				_m.InvoicingAppID = value.String
 			}
 		case billingprofile.FieldPaymentAppID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field payment_app_id", values[i])
 			} else if value.Valid {
-				bp.PaymentAppID = value.String
+				_m.PaymentAppID = value.String
 			}
 		case billingprofile.FieldWorkflowConfigID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field workflow_config_id", values[i])
 			} else if value.Valid {
-				bp.WorkflowConfigID = value.String
+				_m.WorkflowConfigID = value.String
 			}
 		case billingprofile.FieldDefault:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field default", values[i])
 			} else if value.Valid {
-				bp.Default = value.Bool
+				_m.Default = value.Bool
 			}
 		case billingprofile.FieldSupplierName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field supplier_name", values[i])
 			} else if value.Valid {
-				bp.SupplierName = value.String
+				_m.SupplierName = value.String
 			}
 		case billingprofile.FieldSupplierTaxCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field supplier_tax_code", values[i])
 			} else if value.Valid {
-				bp.SupplierTaxCode = new(string)
-				*bp.SupplierTaxCode = value.String
+				_m.SupplierTaxCode = new(string)
+				*_m.SupplierTaxCode = value.String
 			}
 		default:
-			bp.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -331,142 +331,142 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the BillingProfile.
 // This includes values selected through modifiers, order, etc.
-func (bp *BillingProfile) Value(name string) (ent.Value, error) {
-	return bp.selectValues.Get(name)
+func (_m *BillingProfile) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryBillingInvoices queries the "billing_invoices" edge of the BillingProfile entity.
-func (bp *BillingProfile) QueryBillingInvoices() *BillingInvoiceQuery {
-	return NewBillingProfileClient(bp.config).QueryBillingInvoices(bp)
+func (_m *BillingProfile) QueryBillingInvoices() *BillingInvoiceQuery {
+	return NewBillingProfileClient(_m.config).QueryBillingInvoices(_m)
 }
 
 // QueryBillingCustomerOverride queries the "billing_customer_override" edge of the BillingProfile entity.
-func (bp *BillingProfile) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery {
-	return NewBillingProfileClient(bp.config).QueryBillingCustomerOverride(bp)
+func (_m *BillingProfile) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery {
+	return NewBillingProfileClient(_m.config).QueryBillingCustomerOverride(_m)
 }
 
 // QueryWorkflowConfig queries the "workflow_config" edge of the BillingProfile entity.
-func (bp *BillingProfile) QueryWorkflowConfig() *BillingWorkflowConfigQuery {
-	return NewBillingProfileClient(bp.config).QueryWorkflowConfig(bp)
+func (_m *BillingProfile) QueryWorkflowConfig() *BillingWorkflowConfigQuery {
+	return NewBillingProfileClient(_m.config).QueryWorkflowConfig(_m)
 }
 
 // QueryTaxApp queries the "tax_app" edge of the BillingProfile entity.
-func (bp *BillingProfile) QueryTaxApp() *AppQuery {
-	return NewBillingProfileClient(bp.config).QueryTaxApp(bp)
+func (_m *BillingProfile) QueryTaxApp() *AppQuery {
+	return NewBillingProfileClient(_m.config).QueryTaxApp(_m)
 }
 
 // QueryInvoicingApp queries the "invoicing_app" edge of the BillingProfile entity.
-func (bp *BillingProfile) QueryInvoicingApp() *AppQuery {
-	return NewBillingProfileClient(bp.config).QueryInvoicingApp(bp)
+func (_m *BillingProfile) QueryInvoicingApp() *AppQuery {
+	return NewBillingProfileClient(_m.config).QueryInvoicingApp(_m)
 }
 
 // QueryPaymentApp queries the "payment_app" edge of the BillingProfile entity.
-func (bp *BillingProfile) QueryPaymentApp() *AppQuery {
-	return NewBillingProfileClient(bp.config).QueryPaymentApp(bp)
+func (_m *BillingProfile) QueryPaymentApp() *AppQuery {
+	return NewBillingProfileClient(_m.config).QueryPaymentApp(_m)
 }
 
 // Update returns a builder for updating this BillingProfile.
 // Note that you need to call BillingProfile.Unwrap() before calling this method if this BillingProfile
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (bp *BillingProfile) Update() *BillingProfileUpdateOne {
-	return NewBillingProfileClient(bp.config).UpdateOne(bp)
+func (_m *BillingProfile) Update() *BillingProfileUpdateOne {
+	return NewBillingProfileClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the BillingProfile entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (bp *BillingProfile) Unwrap() *BillingProfile {
-	_tx, ok := bp.config.driver.(*txDriver)
+func (_m *BillingProfile) Unwrap() *BillingProfile {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: BillingProfile is not a transactional entity")
 	}
-	bp.config.driver = _tx.drv
-	return bp
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (bp *BillingProfile) String() string {
+func (_m *BillingProfile) String() string {
 	var builder strings.Builder
 	builder.WriteString("BillingProfile(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", bp.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(bp.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", bp.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(bp.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(bp.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := bp.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
-	builder.WriteString(bp.Name)
+	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
-	if v := bp.Description; v != nil {
+	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bp.SupplierAddressCountry; v != nil {
+	if v := _m.SupplierAddressCountry; v != nil {
 		builder.WriteString("supplier_address_country=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bp.SupplierAddressPostalCode; v != nil {
+	if v := _m.SupplierAddressPostalCode; v != nil {
 		builder.WriteString("supplier_address_postal_code=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bp.SupplierAddressState; v != nil {
+	if v := _m.SupplierAddressState; v != nil {
 		builder.WriteString("supplier_address_state=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bp.SupplierAddressCity; v != nil {
+	if v := _m.SupplierAddressCity; v != nil {
 		builder.WriteString("supplier_address_city=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bp.SupplierAddressLine1; v != nil {
+	if v := _m.SupplierAddressLine1; v != nil {
 		builder.WriteString("supplier_address_line1=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bp.SupplierAddressLine2; v != nil {
+	if v := _m.SupplierAddressLine2; v != nil {
 		builder.WriteString("supplier_address_line2=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bp.SupplierAddressPhoneNumber; v != nil {
+	if v := _m.SupplierAddressPhoneNumber; v != nil {
 		builder.WriteString("supplier_address_phone_number=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("tax_app_id=")
-	builder.WriteString(bp.TaxAppID)
+	builder.WriteString(_m.TaxAppID)
 	builder.WriteString(", ")
 	builder.WriteString("invoicing_app_id=")
-	builder.WriteString(bp.InvoicingAppID)
+	builder.WriteString(_m.InvoicingAppID)
 	builder.WriteString(", ")
 	builder.WriteString("payment_app_id=")
-	builder.WriteString(bp.PaymentAppID)
+	builder.WriteString(_m.PaymentAppID)
 	builder.WriteString(", ")
 	builder.WriteString("workflow_config_id=")
-	builder.WriteString(bp.WorkflowConfigID)
+	builder.WriteString(_m.WorkflowConfigID)
 	builder.WriteString(", ")
 	builder.WriteString("default=")
-	builder.WriteString(fmt.Sprintf("%v", bp.Default))
+	builder.WriteString(fmt.Sprintf("%v", _m.Default))
 	builder.WriteString(", ")
 	builder.WriteString("supplier_name=")
-	builder.WriteString(bp.SupplierName)
+	builder.WriteString(_m.SupplierName)
 	builder.WriteString(", ")
-	if v := bp.SupplierTaxCode; v != nil {
+	if v := _m.SupplierTaxCode; v != nil {
 		builder.WriteString("supplier_tax_code=")
 		builder.WriteString(*v)
 	}

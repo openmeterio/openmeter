@@ -20,56 +20,56 @@ type BillingProfileDelete struct {
 }
 
 // Where appends a list predicates to the BillingProfileDelete builder.
-func (bpd *BillingProfileDelete) Where(ps ...predicate.BillingProfile) *BillingProfileDelete {
-	bpd.mutation.Where(ps...)
-	return bpd
+func (_d *BillingProfileDelete) Where(ps ...predicate.BillingProfile) *BillingProfileDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (bpd *BillingProfileDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, bpd.sqlExec, bpd.mutation, bpd.hooks)
+func (_d *BillingProfileDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bpd *BillingProfileDelete) ExecX(ctx context.Context) int {
-	n, err := bpd.Exec(ctx)
+func (_d *BillingProfileDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (bpd *BillingProfileDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *BillingProfileDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(billingprofile.Table, sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString))
-	if ps := bpd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, bpd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	bpd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // BillingProfileDeleteOne is the builder for deleting a single BillingProfile entity.
 type BillingProfileDeleteOne struct {
-	bpd *BillingProfileDelete
+	_d *BillingProfileDelete
 }
 
 // Where appends a list predicates to the BillingProfileDelete builder.
-func (bpdo *BillingProfileDeleteOne) Where(ps ...predicate.BillingProfile) *BillingProfileDeleteOne {
-	bpdo.bpd.mutation.Where(ps...)
-	return bpdo
+func (_d *BillingProfileDeleteOne) Where(ps ...predicate.BillingProfile) *BillingProfileDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (bpdo *BillingProfileDeleteOne) Exec(ctx context.Context) error {
-	n, err := bpdo.bpd.Exec(ctx)
+func (_d *BillingProfileDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (bpdo *BillingProfileDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bpdo *BillingProfileDeleteOne) ExecX(ctx context.Context) {
-	if err := bpdo.Exec(ctx); err != nil {
+func (_d *BillingProfileDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

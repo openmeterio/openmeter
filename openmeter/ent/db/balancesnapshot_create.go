@@ -25,114 +25,114 @@ type BalanceSnapshotCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (bsc *BalanceSnapshotCreate) SetNamespace(s string) *BalanceSnapshotCreate {
-	bsc.mutation.SetNamespace(s)
-	return bsc
+func (_c *BalanceSnapshotCreate) SetNamespace(v string) *BalanceSnapshotCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (bsc *BalanceSnapshotCreate) SetCreatedAt(t time.Time) *BalanceSnapshotCreate {
-	bsc.mutation.SetCreatedAt(t)
-	return bsc
+func (_c *BalanceSnapshotCreate) SetCreatedAt(v time.Time) *BalanceSnapshotCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (bsc *BalanceSnapshotCreate) SetNillableCreatedAt(t *time.Time) *BalanceSnapshotCreate {
-	if t != nil {
-		bsc.SetCreatedAt(*t)
+func (_c *BalanceSnapshotCreate) SetNillableCreatedAt(v *time.Time) *BalanceSnapshotCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return bsc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (bsc *BalanceSnapshotCreate) SetUpdatedAt(t time.Time) *BalanceSnapshotCreate {
-	bsc.mutation.SetUpdatedAt(t)
-	return bsc
+func (_c *BalanceSnapshotCreate) SetUpdatedAt(v time.Time) *BalanceSnapshotCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (bsc *BalanceSnapshotCreate) SetNillableUpdatedAt(t *time.Time) *BalanceSnapshotCreate {
-	if t != nil {
-		bsc.SetUpdatedAt(*t)
+func (_c *BalanceSnapshotCreate) SetNillableUpdatedAt(v *time.Time) *BalanceSnapshotCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return bsc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (bsc *BalanceSnapshotCreate) SetDeletedAt(t time.Time) *BalanceSnapshotCreate {
-	bsc.mutation.SetDeletedAt(t)
-	return bsc
+func (_c *BalanceSnapshotCreate) SetDeletedAt(v time.Time) *BalanceSnapshotCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bsc *BalanceSnapshotCreate) SetNillableDeletedAt(t *time.Time) *BalanceSnapshotCreate {
-	if t != nil {
-		bsc.SetDeletedAt(*t)
+func (_c *BalanceSnapshotCreate) SetNillableDeletedAt(v *time.Time) *BalanceSnapshotCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return bsc
+	return _c
 }
 
 // SetOwnerID sets the "owner_id" field.
-func (bsc *BalanceSnapshotCreate) SetOwnerID(s string) *BalanceSnapshotCreate {
-	bsc.mutation.SetOwnerID(s)
-	return bsc
+func (_c *BalanceSnapshotCreate) SetOwnerID(v string) *BalanceSnapshotCreate {
+	_c.mutation.SetOwnerID(v)
+	return _c
 }
 
 // SetGrantBalances sets the "grant_balances" field.
-func (bsc *BalanceSnapshotCreate) SetGrantBalances(b balance.Map) *BalanceSnapshotCreate {
-	bsc.mutation.SetGrantBalances(b)
-	return bsc
+func (_c *BalanceSnapshotCreate) SetGrantBalances(v balance.Map) *BalanceSnapshotCreate {
+	_c.mutation.SetGrantBalances(v)
+	return _c
 }
 
 // SetUsage sets the "usage" field.
-func (bsc *BalanceSnapshotCreate) SetUsage(bu *balance.SnapshottedUsage) *BalanceSnapshotCreate {
-	bsc.mutation.SetUsage(bu)
-	return bsc
+func (_c *BalanceSnapshotCreate) SetUsage(v *balance.SnapshottedUsage) *BalanceSnapshotCreate {
+	_c.mutation.SetUsage(v)
+	return _c
 }
 
 // SetBalance sets the "balance" field.
-func (bsc *BalanceSnapshotCreate) SetBalance(f float64) *BalanceSnapshotCreate {
-	bsc.mutation.SetBalance(f)
-	return bsc
+func (_c *BalanceSnapshotCreate) SetBalance(v float64) *BalanceSnapshotCreate {
+	_c.mutation.SetBalance(v)
+	return _c
 }
 
 // SetOverage sets the "overage" field.
-func (bsc *BalanceSnapshotCreate) SetOverage(f float64) *BalanceSnapshotCreate {
-	bsc.mutation.SetOverage(f)
-	return bsc
+func (_c *BalanceSnapshotCreate) SetOverage(v float64) *BalanceSnapshotCreate {
+	_c.mutation.SetOverage(v)
+	return _c
 }
 
 // SetAt sets the "at" field.
-func (bsc *BalanceSnapshotCreate) SetAt(t time.Time) *BalanceSnapshotCreate {
-	bsc.mutation.SetAt(t)
-	return bsc
+func (_c *BalanceSnapshotCreate) SetAt(v time.Time) *BalanceSnapshotCreate {
+	_c.mutation.SetAt(v)
+	return _c
 }
 
 // SetEntitlementID sets the "entitlement" edge to the Entitlement entity by ID.
-func (bsc *BalanceSnapshotCreate) SetEntitlementID(id string) *BalanceSnapshotCreate {
-	bsc.mutation.SetEntitlementID(id)
-	return bsc
+func (_c *BalanceSnapshotCreate) SetEntitlementID(id string) *BalanceSnapshotCreate {
+	_c.mutation.SetEntitlementID(id)
+	return _c
 }
 
 // SetEntitlement sets the "entitlement" edge to the Entitlement entity.
-func (bsc *BalanceSnapshotCreate) SetEntitlement(e *Entitlement) *BalanceSnapshotCreate {
-	return bsc.SetEntitlementID(e.ID)
+func (_c *BalanceSnapshotCreate) SetEntitlement(v *Entitlement) *BalanceSnapshotCreate {
+	return _c.SetEntitlementID(v.ID)
 }
 
 // Mutation returns the BalanceSnapshotMutation object of the builder.
-func (bsc *BalanceSnapshotCreate) Mutation() *BalanceSnapshotMutation {
-	return bsc.mutation
+func (_c *BalanceSnapshotCreate) Mutation() *BalanceSnapshotMutation {
+	return _c.mutation
 }
 
 // Save creates the BalanceSnapshot in the database.
-func (bsc *BalanceSnapshotCreate) Save(ctx context.Context) (*BalanceSnapshot, error) {
-	bsc.defaults()
-	return withHooks(ctx, bsc.sqlSave, bsc.mutation, bsc.hooks)
+func (_c *BalanceSnapshotCreate) Save(ctx context.Context) (*BalanceSnapshot, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (bsc *BalanceSnapshotCreate) SaveX(ctx context.Context) *BalanceSnapshot {
-	v, err := bsc.Save(ctx)
+func (_c *BalanceSnapshotCreate) SaveX(ctx context.Context) *BalanceSnapshot {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -140,73 +140,73 @@ func (bsc *BalanceSnapshotCreate) SaveX(ctx context.Context) *BalanceSnapshot {
 }
 
 // Exec executes the query.
-func (bsc *BalanceSnapshotCreate) Exec(ctx context.Context) error {
-	_, err := bsc.Save(ctx)
+func (_c *BalanceSnapshotCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bsc *BalanceSnapshotCreate) ExecX(ctx context.Context) {
-	if err := bsc.Exec(ctx); err != nil {
+func (_c *BalanceSnapshotCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bsc *BalanceSnapshotCreate) defaults() {
-	if _, ok := bsc.mutation.CreatedAt(); !ok {
+func (_c *BalanceSnapshotCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := balancesnapshot.DefaultCreatedAt()
-		bsc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := bsc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := balancesnapshot.DefaultUpdatedAt()
-		bsc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bsc *BalanceSnapshotCreate) check() error {
-	if _, ok := bsc.mutation.Namespace(); !ok {
+func (_c *BalanceSnapshotCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BalanceSnapshot.namespace"`)}
 	}
-	if v, ok := bsc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := balancesnapshot.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BalanceSnapshot.namespace": %w`, err)}
 		}
 	}
-	if _, ok := bsc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "BalanceSnapshot.created_at"`)}
 	}
-	if _, ok := bsc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BalanceSnapshot.updated_at"`)}
 	}
-	if _, ok := bsc.mutation.OwnerID(); !ok {
+	if _, ok := _c.mutation.OwnerID(); !ok {
 		return &ValidationError{Name: "owner_id", err: errors.New(`db: missing required field "BalanceSnapshot.owner_id"`)}
 	}
-	if _, ok := bsc.mutation.GrantBalances(); !ok {
+	if _, ok := _c.mutation.GrantBalances(); !ok {
 		return &ValidationError{Name: "grant_balances", err: errors.New(`db: missing required field "BalanceSnapshot.grant_balances"`)}
 	}
-	if _, ok := bsc.mutation.Balance(); !ok {
+	if _, ok := _c.mutation.Balance(); !ok {
 		return &ValidationError{Name: "balance", err: errors.New(`db: missing required field "BalanceSnapshot.balance"`)}
 	}
-	if _, ok := bsc.mutation.Overage(); !ok {
+	if _, ok := _c.mutation.Overage(); !ok {
 		return &ValidationError{Name: "overage", err: errors.New(`db: missing required field "BalanceSnapshot.overage"`)}
 	}
-	if _, ok := bsc.mutation.At(); !ok {
+	if _, ok := _c.mutation.At(); !ok {
 		return &ValidationError{Name: "at", err: errors.New(`db: missing required field "BalanceSnapshot.at"`)}
 	}
-	if len(bsc.mutation.EntitlementIDs()) == 0 {
+	if len(_c.mutation.EntitlementIDs()) == 0 {
 		return &ValidationError{Name: "entitlement", err: errors.New(`db: missing required edge "BalanceSnapshot.entitlement"`)}
 	}
 	return nil
 }
 
-func (bsc *BalanceSnapshotCreate) sqlSave(ctx context.Context) (*BalanceSnapshot, error) {
-	if err := bsc.check(); err != nil {
+func (_c *BalanceSnapshotCreate) sqlSave(ctx context.Context) (*BalanceSnapshot, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := bsc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, bsc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -214,54 +214,54 @@ func (bsc *BalanceSnapshotCreate) sqlSave(ctx context.Context) (*BalanceSnapshot
 	}
 	id := _spec.ID.Value.(int64)
 	_node.ID = int(id)
-	bsc.mutation.id = &_node.ID
-	bsc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (bsc *BalanceSnapshotCreate) createSpec() (*BalanceSnapshot, *sqlgraph.CreateSpec) {
+func (_c *BalanceSnapshotCreate) createSpec() (*BalanceSnapshot, *sqlgraph.CreateSpec) {
 	var (
-		_node = &BalanceSnapshot{config: bsc.config}
+		_node = &BalanceSnapshot{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(balancesnapshot.Table, sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt))
 	)
-	_spec.OnConflict = bsc.conflict
-	if value, ok := bsc.mutation.Namespace(); ok {
+	_spec.OnConflict = _c.conflict
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(balancesnapshot.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := bsc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(balancesnapshot.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := bsc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(balancesnapshot.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := bsc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(balancesnapshot.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := bsc.mutation.GrantBalances(); ok {
+	if value, ok := _c.mutation.GrantBalances(); ok {
 		_spec.SetField(balancesnapshot.FieldGrantBalances, field.TypeJSON, value)
 		_node.GrantBalances = value
 	}
-	if value, ok := bsc.mutation.Usage(); ok {
+	if value, ok := _c.mutation.Usage(); ok {
 		_spec.SetField(balancesnapshot.FieldUsage, field.TypeJSON, value)
 		_node.Usage = value
 	}
-	if value, ok := bsc.mutation.Balance(); ok {
+	if value, ok := _c.mutation.Balance(); ok {
 		_spec.SetField(balancesnapshot.FieldBalance, field.TypeFloat64, value)
 		_node.Balance = value
 	}
-	if value, ok := bsc.mutation.Overage(); ok {
+	if value, ok := _c.mutation.Overage(); ok {
 		_spec.SetField(balancesnapshot.FieldOverage, field.TypeFloat64, value)
 		_node.Overage = value
 	}
-	if value, ok := bsc.mutation.At(); ok {
+	if value, ok := _c.mutation.At(); ok {
 		_spec.SetField(balancesnapshot.FieldAt, field.TypeTime, value)
 		_node.At = value
 	}
-	if nodes := bsc.mutation.EntitlementIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -297,10 +297,10 @@ func (bsc *BalanceSnapshotCreate) createSpec() (*BalanceSnapshot, *sqlgraph.Crea
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bsc *BalanceSnapshotCreate) OnConflict(opts ...sql.ConflictOption) *BalanceSnapshotUpsertOne {
-	bsc.conflict = opts
+func (_c *BalanceSnapshotCreate) OnConflict(opts ...sql.ConflictOption) *BalanceSnapshotUpsertOne {
+	_c.conflict = opts
 	return &BalanceSnapshotUpsertOne{
-		create: bsc,
+		create: _c,
 	}
 }
 
@@ -310,10 +310,10 @@ func (bsc *BalanceSnapshotCreate) OnConflict(opts ...sql.ConflictOption) *Balanc
 //	client.BalanceSnapshot.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bsc *BalanceSnapshotCreate) OnConflictColumns(columns ...string) *BalanceSnapshotUpsertOne {
-	bsc.conflict = append(bsc.conflict, sql.ConflictColumns(columns...))
+func (_c *BalanceSnapshotCreate) OnConflictColumns(columns ...string) *BalanceSnapshotUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BalanceSnapshotUpsertOne{
-		create: bsc,
+		create: _c,
 	}
 }
 
@@ -503,16 +503,16 @@ type BalanceSnapshotCreateBulk struct {
 }
 
 // Save creates the BalanceSnapshot entities in the database.
-func (bscb *BalanceSnapshotCreateBulk) Save(ctx context.Context) ([]*BalanceSnapshot, error) {
-	if bscb.err != nil {
-		return nil, bscb.err
+func (_c *BalanceSnapshotCreateBulk) Save(ctx context.Context) ([]*BalanceSnapshot, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(bscb.builders))
-	nodes := make([]*BalanceSnapshot, len(bscb.builders))
-	mutators := make([]Mutator, len(bscb.builders))
-	for i := range bscb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*BalanceSnapshot, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := bscb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*BalanceSnapshotMutation)
@@ -526,12 +526,12 @@ func (bscb *BalanceSnapshotCreateBulk) Save(ctx context.Context) ([]*BalanceSnap
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, bscb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = bscb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, bscb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -555,7 +555,7 @@ func (bscb *BalanceSnapshotCreateBulk) Save(ctx context.Context) ([]*BalanceSnap
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, bscb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -563,8 +563,8 @@ func (bscb *BalanceSnapshotCreateBulk) Save(ctx context.Context) ([]*BalanceSnap
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bscb *BalanceSnapshotCreateBulk) SaveX(ctx context.Context) []*BalanceSnapshot {
-	v, err := bscb.Save(ctx)
+func (_c *BalanceSnapshotCreateBulk) SaveX(ctx context.Context) []*BalanceSnapshot {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -572,14 +572,14 @@ func (bscb *BalanceSnapshotCreateBulk) SaveX(ctx context.Context) []*BalanceSnap
 }
 
 // Exec executes the query.
-func (bscb *BalanceSnapshotCreateBulk) Exec(ctx context.Context) error {
-	_, err := bscb.Save(ctx)
+func (_c *BalanceSnapshotCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bscb *BalanceSnapshotCreateBulk) ExecX(ctx context.Context) {
-	if err := bscb.Exec(ctx); err != nil {
+func (_c *BalanceSnapshotCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -599,10 +599,10 @@ func (bscb *BalanceSnapshotCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bscb *BalanceSnapshotCreateBulk) OnConflict(opts ...sql.ConflictOption) *BalanceSnapshotUpsertBulk {
-	bscb.conflict = opts
+func (_c *BalanceSnapshotCreateBulk) OnConflict(opts ...sql.ConflictOption) *BalanceSnapshotUpsertBulk {
+	_c.conflict = opts
 	return &BalanceSnapshotUpsertBulk{
-		create: bscb,
+		create: _c,
 	}
 }
 
@@ -612,10 +612,10 @@ func (bscb *BalanceSnapshotCreateBulk) OnConflict(opts ...sql.ConflictOption) *B
 //	client.BalanceSnapshot.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bscb *BalanceSnapshotCreateBulk) OnConflictColumns(columns ...string) *BalanceSnapshotUpsertBulk {
-	bscb.conflict = append(bscb.conflict, sql.ConflictColumns(columns...))
+func (_c *BalanceSnapshotCreateBulk) OnConflictColumns(columns ...string) *BalanceSnapshotUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BalanceSnapshotUpsertBulk{
-		create: bscb,
+		create: _c,
 	}
 }
 

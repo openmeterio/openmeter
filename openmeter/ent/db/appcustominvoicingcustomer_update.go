@@ -23,63 +23,63 @@ type AppCustomInvoicingCustomerUpdate struct {
 }
 
 // Where appends a list predicates to the AppCustomInvoicingCustomerUpdate builder.
-func (acicu *AppCustomInvoicingCustomerUpdate) Where(ps ...predicate.AppCustomInvoicingCustomer) *AppCustomInvoicingCustomerUpdate {
-	acicu.mutation.Where(ps...)
-	return acicu
+func (_u *AppCustomInvoicingCustomerUpdate) Where(ps ...predicate.AppCustomInvoicingCustomer) *AppCustomInvoicingCustomerUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (acicu *AppCustomInvoicingCustomerUpdate) SetUpdatedAt(t time.Time) *AppCustomInvoicingCustomerUpdate {
-	acicu.mutation.SetUpdatedAt(t)
-	return acicu
+func (_u *AppCustomInvoicingCustomerUpdate) SetUpdatedAt(v time.Time) *AppCustomInvoicingCustomerUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (acicu *AppCustomInvoicingCustomerUpdate) SetDeletedAt(t time.Time) *AppCustomInvoicingCustomerUpdate {
-	acicu.mutation.SetDeletedAt(t)
-	return acicu
+func (_u *AppCustomInvoicingCustomerUpdate) SetDeletedAt(v time.Time) *AppCustomInvoicingCustomerUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (acicu *AppCustomInvoicingCustomerUpdate) SetNillableDeletedAt(t *time.Time) *AppCustomInvoicingCustomerUpdate {
-	if t != nil {
-		acicu.SetDeletedAt(*t)
+func (_u *AppCustomInvoicingCustomerUpdate) SetNillableDeletedAt(v *time.Time) *AppCustomInvoicingCustomerUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return acicu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (acicu *AppCustomInvoicingCustomerUpdate) ClearDeletedAt() *AppCustomInvoicingCustomerUpdate {
-	acicu.mutation.ClearDeletedAt()
-	return acicu
+func (_u *AppCustomInvoicingCustomerUpdate) ClearDeletedAt() *AppCustomInvoicingCustomerUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (acicu *AppCustomInvoicingCustomerUpdate) SetMetadata(m map[string]string) *AppCustomInvoicingCustomerUpdate {
-	acicu.mutation.SetMetadata(m)
-	return acicu
+func (_u *AppCustomInvoicingCustomerUpdate) SetMetadata(v map[string]string) *AppCustomInvoicingCustomerUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (acicu *AppCustomInvoicingCustomerUpdate) ClearMetadata() *AppCustomInvoicingCustomerUpdate {
-	acicu.mutation.ClearMetadata()
-	return acicu
+func (_u *AppCustomInvoicingCustomerUpdate) ClearMetadata() *AppCustomInvoicingCustomerUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // Mutation returns the AppCustomInvoicingCustomerMutation object of the builder.
-func (acicu *AppCustomInvoicingCustomerUpdate) Mutation() *AppCustomInvoicingCustomerMutation {
-	return acicu.mutation
+func (_u *AppCustomInvoicingCustomerUpdate) Mutation() *AppCustomInvoicingCustomerMutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (acicu *AppCustomInvoicingCustomerUpdate) Save(ctx context.Context) (int, error) {
-	acicu.defaults()
-	return withHooks(ctx, acicu.sqlSave, acicu.mutation, acicu.hooks)
+func (_u *AppCustomInvoicingCustomerUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (acicu *AppCustomInvoicingCustomerUpdate) SaveX(ctx context.Context) int {
-	affected, err := acicu.Save(ctx)
+func (_u *AppCustomInvoicingCustomerUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -87,65 +87,65 @@ func (acicu *AppCustomInvoicingCustomerUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (acicu *AppCustomInvoicingCustomerUpdate) Exec(ctx context.Context) error {
-	_, err := acicu.Save(ctx)
+func (_u *AppCustomInvoicingCustomerUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (acicu *AppCustomInvoicingCustomerUpdate) ExecX(ctx context.Context) {
-	if err := acicu.Exec(ctx); err != nil {
+func (_u *AppCustomInvoicingCustomerUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (acicu *AppCustomInvoicingCustomerUpdate) defaults() {
-	if _, ok := acicu.mutation.UpdatedAt(); !ok {
+func (_u *AppCustomInvoicingCustomerUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := appcustominvoicingcustomer.UpdateDefaultUpdatedAt()
-		acicu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (acicu *AppCustomInvoicingCustomerUpdate) check() error {
-	if acicu.mutation.CustomInvoicingAppCleared() && len(acicu.mutation.CustomInvoicingAppIDs()) > 0 {
+func (_u *AppCustomInvoicingCustomerUpdate) check() error {
+	if _u.mutation.CustomInvoicingAppCleared() && len(_u.mutation.CustomInvoicingAppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppCustomInvoicingCustomer.custom_invoicing_app"`)
 	}
-	if acicu.mutation.CustomerCleared() && len(acicu.mutation.CustomerIDs()) > 0 {
+	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppCustomInvoicingCustomer.customer"`)
 	}
 	return nil
 }
 
-func (acicu *AppCustomInvoicingCustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := acicu.check(); err != nil {
-		return n, err
+func (_u *AppCustomInvoicingCustomerUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(appcustominvoicingcustomer.Table, appcustominvoicingcustomer.Columns, sqlgraph.NewFieldSpec(appcustominvoicingcustomer.FieldID, field.TypeInt))
-	if ps := acicu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := acicu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(appcustominvoicingcustomer.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := acicu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(appcustominvoicingcustomer.FieldDeletedAt, field.TypeTime, value)
 	}
-	if acicu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(appcustominvoicingcustomer.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := acicu.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(appcustominvoicingcustomer.FieldMetadata, field.TypeJSON, value)
 	}
-	if acicu.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(appcustominvoicingcustomer.FieldMetadata, field.TypeJSON)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, acicu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{appcustominvoicingcustomer.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -153,8 +153,8 @@ func (acicu *AppCustomInvoicingCustomerUpdate) sqlSave(ctx context.Context) (n i
 		}
 		return 0, err
 	}
-	acicu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // AppCustomInvoicingCustomerUpdateOne is the builder for updating a single AppCustomInvoicingCustomer entity.
@@ -166,70 +166,70 @@ type AppCustomInvoicingCustomerUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) SetUpdatedAt(t time.Time) *AppCustomInvoicingCustomerUpdateOne {
-	acicuo.mutation.SetUpdatedAt(t)
-	return acicuo
+func (_u *AppCustomInvoicingCustomerUpdateOne) SetUpdatedAt(v time.Time) *AppCustomInvoicingCustomerUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) SetDeletedAt(t time.Time) *AppCustomInvoicingCustomerUpdateOne {
-	acicuo.mutation.SetDeletedAt(t)
-	return acicuo
+func (_u *AppCustomInvoicingCustomerUpdateOne) SetDeletedAt(v time.Time) *AppCustomInvoicingCustomerUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) SetNillableDeletedAt(t *time.Time) *AppCustomInvoicingCustomerUpdateOne {
-	if t != nil {
-		acicuo.SetDeletedAt(*t)
+func (_u *AppCustomInvoicingCustomerUpdateOne) SetNillableDeletedAt(v *time.Time) *AppCustomInvoicingCustomerUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return acicuo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) ClearDeletedAt() *AppCustomInvoicingCustomerUpdateOne {
-	acicuo.mutation.ClearDeletedAt()
-	return acicuo
+func (_u *AppCustomInvoicingCustomerUpdateOne) ClearDeletedAt() *AppCustomInvoicingCustomerUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) SetMetadata(m map[string]string) *AppCustomInvoicingCustomerUpdateOne {
-	acicuo.mutation.SetMetadata(m)
-	return acicuo
+func (_u *AppCustomInvoicingCustomerUpdateOne) SetMetadata(v map[string]string) *AppCustomInvoicingCustomerUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) ClearMetadata() *AppCustomInvoicingCustomerUpdateOne {
-	acicuo.mutation.ClearMetadata()
-	return acicuo
+func (_u *AppCustomInvoicingCustomerUpdateOne) ClearMetadata() *AppCustomInvoicingCustomerUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // Mutation returns the AppCustomInvoicingCustomerMutation object of the builder.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) Mutation() *AppCustomInvoicingCustomerMutation {
-	return acicuo.mutation
+func (_u *AppCustomInvoicingCustomerUpdateOne) Mutation() *AppCustomInvoicingCustomerMutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the AppCustomInvoicingCustomerUpdate builder.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) Where(ps ...predicate.AppCustomInvoicingCustomer) *AppCustomInvoicingCustomerUpdateOne {
-	acicuo.mutation.Where(ps...)
-	return acicuo
+func (_u *AppCustomInvoicingCustomerUpdateOne) Where(ps ...predicate.AppCustomInvoicingCustomer) *AppCustomInvoicingCustomerUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) Select(field string, fields ...string) *AppCustomInvoicingCustomerUpdateOne {
-	acicuo.fields = append([]string{field}, fields...)
-	return acicuo
+func (_u *AppCustomInvoicingCustomerUpdateOne) Select(field string, fields ...string) *AppCustomInvoicingCustomerUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated AppCustomInvoicingCustomer entity.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) Save(ctx context.Context) (*AppCustomInvoicingCustomer, error) {
-	acicuo.defaults()
-	return withHooks(ctx, acicuo.sqlSave, acicuo.mutation, acicuo.hooks)
+func (_u *AppCustomInvoicingCustomerUpdateOne) Save(ctx context.Context) (*AppCustomInvoicingCustomer, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) SaveX(ctx context.Context) *AppCustomInvoicingCustomer {
-	node, err := acicuo.Save(ctx)
+func (_u *AppCustomInvoicingCustomerUpdateOne) SaveX(ctx context.Context) *AppCustomInvoicingCustomer {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -237,48 +237,48 @@ func (acicuo *AppCustomInvoicingCustomerUpdateOne) SaveX(ctx context.Context) *A
 }
 
 // Exec executes the query on the entity.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) Exec(ctx context.Context) error {
-	_, err := acicuo.Save(ctx)
+func (_u *AppCustomInvoicingCustomerUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) ExecX(ctx context.Context) {
-	if err := acicuo.Exec(ctx); err != nil {
+func (_u *AppCustomInvoicingCustomerUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) defaults() {
-	if _, ok := acicuo.mutation.UpdatedAt(); !ok {
+func (_u *AppCustomInvoicingCustomerUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := appcustominvoicingcustomer.UpdateDefaultUpdatedAt()
-		acicuo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) check() error {
-	if acicuo.mutation.CustomInvoicingAppCleared() && len(acicuo.mutation.CustomInvoicingAppIDs()) > 0 {
+func (_u *AppCustomInvoicingCustomerUpdateOne) check() error {
+	if _u.mutation.CustomInvoicingAppCleared() && len(_u.mutation.CustomInvoicingAppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppCustomInvoicingCustomer.custom_invoicing_app"`)
 	}
-	if acicuo.mutation.CustomerCleared() && len(acicuo.mutation.CustomerIDs()) > 0 {
+	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppCustomInvoicingCustomer.customer"`)
 	}
 	return nil
 }
 
-func (acicuo *AppCustomInvoicingCustomerUpdateOne) sqlSave(ctx context.Context) (_node *AppCustomInvoicingCustomer, err error) {
-	if err := acicuo.check(); err != nil {
+func (_u *AppCustomInvoicingCustomerUpdateOne) sqlSave(ctx context.Context) (_node *AppCustomInvoicingCustomer, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(appcustominvoicingcustomer.Table, appcustominvoicingcustomer.Columns, sqlgraph.NewFieldSpec(appcustominvoicingcustomer.FieldID, field.TypeInt))
-	id, ok := acicuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "AppCustomInvoicingCustomer.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := acicuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, appcustominvoicingcustomer.FieldID)
 		for _, f := range fields {
@@ -290,32 +290,32 @@ func (acicuo *AppCustomInvoicingCustomerUpdateOne) sqlSave(ctx context.Context) 
 			}
 		}
 	}
-	if ps := acicuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := acicuo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(appcustominvoicingcustomer.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := acicuo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(appcustominvoicingcustomer.FieldDeletedAt, field.TypeTime, value)
 	}
-	if acicuo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(appcustominvoicingcustomer.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := acicuo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(appcustominvoicingcustomer.FieldMetadata, field.TypeJSON, value)
 	}
-	if acicuo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(appcustominvoicingcustomer.FieldMetadata, field.TypeJSON)
 	}
-	_node = &AppCustomInvoicingCustomer{config: acicuo.config}
+	_node = &AppCustomInvoicingCustomer{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, acicuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{appcustominvoicingcustomer.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -323,6 +323,6 @@ func (acicuo *AppCustomInvoicingCustomerUpdateOne) sqlSave(ctx context.Context) 
 		}
 		return nil, err
 	}
-	acicuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

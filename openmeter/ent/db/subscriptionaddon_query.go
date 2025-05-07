@@ -37,44 +37,44 @@ type SubscriptionAddonQuery struct {
 }
 
 // Where adds a new predicate for the SubscriptionAddonQuery builder.
-func (saq *SubscriptionAddonQuery) Where(ps ...predicate.SubscriptionAddon) *SubscriptionAddonQuery {
-	saq.predicates = append(saq.predicates, ps...)
-	return saq
+func (_q *SubscriptionAddonQuery) Where(ps ...predicate.SubscriptionAddon) *SubscriptionAddonQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (saq *SubscriptionAddonQuery) Limit(limit int) *SubscriptionAddonQuery {
-	saq.ctx.Limit = &limit
-	return saq
+func (_q *SubscriptionAddonQuery) Limit(limit int) *SubscriptionAddonQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (saq *SubscriptionAddonQuery) Offset(offset int) *SubscriptionAddonQuery {
-	saq.ctx.Offset = &offset
-	return saq
+func (_q *SubscriptionAddonQuery) Offset(offset int) *SubscriptionAddonQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (saq *SubscriptionAddonQuery) Unique(unique bool) *SubscriptionAddonQuery {
-	saq.ctx.Unique = &unique
-	return saq
+func (_q *SubscriptionAddonQuery) Unique(unique bool) *SubscriptionAddonQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (saq *SubscriptionAddonQuery) Order(o ...subscriptionaddon.OrderOption) *SubscriptionAddonQuery {
-	saq.order = append(saq.order, o...)
-	return saq
+func (_q *SubscriptionAddonQuery) Order(o ...subscriptionaddon.OrderOption) *SubscriptionAddonQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QuerySubscription chains the current query on the "subscription" edge.
-func (saq *SubscriptionAddonQuery) QuerySubscription() *SubscriptionQuery {
-	query := (&SubscriptionClient{config: saq.config}).Query()
+func (_q *SubscriptionAddonQuery) QuerySubscription() *SubscriptionQuery {
+	query := (&SubscriptionClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := saq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := saq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -83,20 +83,20 @@ func (saq *SubscriptionAddonQuery) QuerySubscription() *SubscriptionQuery {
 			sqlgraph.To(subscription.Table, subscription.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionaddon.SubscriptionTable, subscriptionaddon.SubscriptionColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(saq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryQuantities chains the current query on the "quantities" edge.
-func (saq *SubscriptionAddonQuery) QueryQuantities() *SubscriptionAddonQuantityQuery {
-	query := (&SubscriptionAddonQuantityClient{config: saq.config}).Query()
+func (_q *SubscriptionAddonQuery) QueryQuantities() *SubscriptionAddonQuantityQuery {
+	query := (&SubscriptionAddonQuantityClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := saq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := saq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -105,20 +105,20 @@ func (saq *SubscriptionAddonQuery) QueryQuantities() *SubscriptionAddonQuantityQ
 			sqlgraph.To(subscriptionaddonquantity.Table, subscriptionaddonquantity.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionaddon.QuantitiesTable, subscriptionaddon.QuantitiesColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(saq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryAddon chains the current query on the "addon" edge.
-func (saq *SubscriptionAddonQuery) QueryAddon() *AddonQuery {
-	query := (&AddonClient{config: saq.config}).Query()
+func (_q *SubscriptionAddonQuery) QueryAddon() *AddonQuery {
+	query := (&AddonClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := saq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := saq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -127,7 +127,7 @@ func (saq *SubscriptionAddonQuery) QueryAddon() *AddonQuery {
 			sqlgraph.To(addon.Table, addon.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionaddon.AddonTable, subscriptionaddon.AddonColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(saq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -135,8 +135,8 @@ func (saq *SubscriptionAddonQuery) QueryAddon() *AddonQuery {
 
 // First returns the first SubscriptionAddon entity from the query.
 // Returns a *NotFoundError when no SubscriptionAddon was found.
-func (saq *SubscriptionAddonQuery) First(ctx context.Context) (*SubscriptionAddon, error) {
-	nodes, err := saq.Limit(1).All(setContextOp(ctx, saq.ctx, ent.OpQueryFirst))
+func (_q *SubscriptionAddonQuery) First(ctx context.Context) (*SubscriptionAddon, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -147,8 +147,8 @@ func (saq *SubscriptionAddonQuery) First(ctx context.Context) (*SubscriptionAddo
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (saq *SubscriptionAddonQuery) FirstX(ctx context.Context) *SubscriptionAddon {
-	node, err := saq.First(ctx)
+func (_q *SubscriptionAddonQuery) FirstX(ctx context.Context) *SubscriptionAddon {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -157,9 +157,9 @@ func (saq *SubscriptionAddonQuery) FirstX(ctx context.Context) *SubscriptionAddo
 
 // FirstID returns the first SubscriptionAddon ID from the query.
 // Returns a *NotFoundError when no SubscriptionAddon ID was found.
-func (saq *SubscriptionAddonQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *SubscriptionAddonQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = saq.Limit(1).IDs(setContextOp(ctx, saq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -170,8 +170,8 @@ func (saq *SubscriptionAddonQuery) FirstID(ctx context.Context) (id string, err 
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (saq *SubscriptionAddonQuery) FirstIDX(ctx context.Context) string {
-	id, err := saq.FirstID(ctx)
+func (_q *SubscriptionAddonQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -181,8 +181,8 @@ func (saq *SubscriptionAddonQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single SubscriptionAddon entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one SubscriptionAddon entity is found.
 // Returns a *NotFoundError when no SubscriptionAddon entities are found.
-func (saq *SubscriptionAddonQuery) Only(ctx context.Context) (*SubscriptionAddon, error) {
-	nodes, err := saq.Limit(2).All(setContextOp(ctx, saq.ctx, ent.OpQueryOnly))
+func (_q *SubscriptionAddonQuery) Only(ctx context.Context) (*SubscriptionAddon, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -197,8 +197,8 @@ func (saq *SubscriptionAddonQuery) Only(ctx context.Context) (*SubscriptionAddon
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (saq *SubscriptionAddonQuery) OnlyX(ctx context.Context) *SubscriptionAddon {
-	node, err := saq.Only(ctx)
+func (_q *SubscriptionAddonQuery) OnlyX(ctx context.Context) *SubscriptionAddon {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -208,9 +208,9 @@ func (saq *SubscriptionAddonQuery) OnlyX(ctx context.Context) *SubscriptionAddon
 // OnlyID is like Only, but returns the only SubscriptionAddon ID in the query.
 // Returns a *NotSingularError when more than one SubscriptionAddon ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (saq *SubscriptionAddonQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *SubscriptionAddonQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = saq.Limit(2).IDs(setContextOp(ctx, saq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -225,8 +225,8 @@ func (saq *SubscriptionAddonQuery) OnlyID(ctx context.Context) (id string, err e
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (saq *SubscriptionAddonQuery) OnlyIDX(ctx context.Context) string {
-	id, err := saq.OnlyID(ctx)
+func (_q *SubscriptionAddonQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -234,18 +234,18 @@ func (saq *SubscriptionAddonQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of SubscriptionAddons.
-func (saq *SubscriptionAddonQuery) All(ctx context.Context) ([]*SubscriptionAddon, error) {
-	ctx = setContextOp(ctx, saq.ctx, ent.OpQueryAll)
-	if err := saq.prepareQuery(ctx); err != nil {
+func (_q *SubscriptionAddonQuery) All(ctx context.Context) ([]*SubscriptionAddon, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*SubscriptionAddon, *SubscriptionAddonQuery]()
-	return withInterceptors[[]*SubscriptionAddon](ctx, saq, qr, saq.inters)
+	return withInterceptors[[]*SubscriptionAddon](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (saq *SubscriptionAddonQuery) AllX(ctx context.Context) []*SubscriptionAddon {
-	nodes, err := saq.All(ctx)
+func (_q *SubscriptionAddonQuery) AllX(ctx context.Context) []*SubscriptionAddon {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -253,20 +253,20 @@ func (saq *SubscriptionAddonQuery) AllX(ctx context.Context) []*SubscriptionAddo
 }
 
 // IDs executes the query and returns a list of SubscriptionAddon IDs.
-func (saq *SubscriptionAddonQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if saq.ctx.Unique == nil && saq.path != nil {
-		saq.Unique(true)
+func (_q *SubscriptionAddonQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, saq.ctx, ent.OpQueryIDs)
-	if err = saq.Select(subscriptionaddon.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(subscriptionaddon.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (saq *SubscriptionAddonQuery) IDsX(ctx context.Context) []string {
-	ids, err := saq.IDs(ctx)
+func (_q *SubscriptionAddonQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -274,17 +274,17 @@ func (saq *SubscriptionAddonQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (saq *SubscriptionAddonQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, saq.ctx, ent.OpQueryCount)
-	if err := saq.prepareQuery(ctx); err != nil {
+func (_q *SubscriptionAddonQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, saq, querierCount[*SubscriptionAddonQuery](), saq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*SubscriptionAddonQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (saq *SubscriptionAddonQuery) CountX(ctx context.Context) int {
-	count, err := saq.Count(ctx)
+func (_q *SubscriptionAddonQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -292,9 +292,9 @@ func (saq *SubscriptionAddonQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (saq *SubscriptionAddonQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, saq.ctx, ent.OpQueryExist)
-	switch _, err := saq.FirstID(ctx); {
+func (_q *SubscriptionAddonQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -305,8 +305,8 @@ func (saq *SubscriptionAddonQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (saq *SubscriptionAddonQuery) ExistX(ctx context.Context) bool {
-	exist, err := saq.Exist(ctx)
+func (_q *SubscriptionAddonQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -315,56 +315,56 @@ func (saq *SubscriptionAddonQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the SubscriptionAddonQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (saq *SubscriptionAddonQuery) Clone() *SubscriptionAddonQuery {
-	if saq == nil {
+func (_q *SubscriptionAddonQuery) Clone() *SubscriptionAddonQuery {
+	if _q == nil {
 		return nil
 	}
 	return &SubscriptionAddonQuery{
-		config:           saq.config,
-		ctx:              saq.ctx.Clone(),
-		order:            append([]subscriptionaddon.OrderOption{}, saq.order...),
-		inters:           append([]Interceptor{}, saq.inters...),
-		predicates:       append([]predicate.SubscriptionAddon{}, saq.predicates...),
-		withSubscription: saq.withSubscription.Clone(),
-		withQuantities:   saq.withQuantities.Clone(),
-		withAddon:        saq.withAddon.Clone(),
+		config:           _q.config,
+		ctx:              _q.ctx.Clone(),
+		order:            append([]subscriptionaddon.OrderOption{}, _q.order...),
+		inters:           append([]Interceptor{}, _q.inters...),
+		predicates:       append([]predicate.SubscriptionAddon{}, _q.predicates...),
+		withSubscription: _q.withSubscription.Clone(),
+		withQuantities:   _q.withQuantities.Clone(),
+		withAddon:        _q.withAddon.Clone(),
 		// clone intermediate query.
-		sql:  saq.sql.Clone(),
-		path: saq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithSubscription tells the query-builder to eager-load the nodes that are connected to
 // the "subscription" edge. The optional arguments are used to configure the query builder of the edge.
-func (saq *SubscriptionAddonQuery) WithSubscription(opts ...func(*SubscriptionQuery)) *SubscriptionAddonQuery {
-	query := (&SubscriptionClient{config: saq.config}).Query()
+func (_q *SubscriptionAddonQuery) WithSubscription(opts ...func(*SubscriptionQuery)) *SubscriptionAddonQuery {
+	query := (&SubscriptionClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	saq.withSubscription = query
-	return saq
+	_q.withSubscription = query
+	return _q
 }
 
 // WithQuantities tells the query-builder to eager-load the nodes that are connected to
 // the "quantities" edge. The optional arguments are used to configure the query builder of the edge.
-func (saq *SubscriptionAddonQuery) WithQuantities(opts ...func(*SubscriptionAddonQuantityQuery)) *SubscriptionAddonQuery {
-	query := (&SubscriptionAddonQuantityClient{config: saq.config}).Query()
+func (_q *SubscriptionAddonQuery) WithQuantities(opts ...func(*SubscriptionAddonQuantityQuery)) *SubscriptionAddonQuery {
+	query := (&SubscriptionAddonQuantityClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	saq.withQuantities = query
-	return saq
+	_q.withQuantities = query
+	return _q
 }
 
 // WithAddon tells the query-builder to eager-load the nodes that are connected to
 // the "addon" edge. The optional arguments are used to configure the query builder of the edge.
-func (saq *SubscriptionAddonQuery) WithAddon(opts ...func(*AddonQuery)) *SubscriptionAddonQuery {
-	query := (&AddonClient{config: saq.config}).Query()
+func (_q *SubscriptionAddonQuery) WithAddon(opts ...func(*AddonQuery)) *SubscriptionAddonQuery {
+	query := (&AddonClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	saq.withAddon = query
-	return saq
+	_q.withAddon = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -381,10 +381,10 @@ func (saq *SubscriptionAddonQuery) WithAddon(opts ...func(*AddonQuery)) *Subscri
 //		GroupBy(subscriptionaddon.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (saq *SubscriptionAddonQuery) GroupBy(field string, fields ...string) *SubscriptionAddonGroupBy {
-	saq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &SubscriptionAddonGroupBy{build: saq}
-	grbuild.flds = &saq.ctx.Fields
+func (_q *SubscriptionAddonQuery) GroupBy(field string, fields ...string) *SubscriptionAddonGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &SubscriptionAddonGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = subscriptionaddon.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -402,84 +402,84 @@ func (saq *SubscriptionAddonQuery) GroupBy(field string, fields ...string) *Subs
 //	client.SubscriptionAddon.Query().
 //		Select(subscriptionaddon.FieldNamespace).
 //		Scan(ctx, &v)
-func (saq *SubscriptionAddonQuery) Select(fields ...string) *SubscriptionAddonSelect {
-	saq.ctx.Fields = append(saq.ctx.Fields, fields...)
-	sbuild := &SubscriptionAddonSelect{SubscriptionAddonQuery: saq}
+func (_q *SubscriptionAddonQuery) Select(fields ...string) *SubscriptionAddonSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &SubscriptionAddonSelect{SubscriptionAddonQuery: _q}
 	sbuild.label = subscriptionaddon.Label
-	sbuild.flds, sbuild.scan = &saq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a SubscriptionAddonSelect configured with the given aggregations.
-func (saq *SubscriptionAddonQuery) Aggregate(fns ...AggregateFunc) *SubscriptionAddonSelect {
-	return saq.Select().Aggregate(fns...)
+func (_q *SubscriptionAddonQuery) Aggregate(fns ...AggregateFunc) *SubscriptionAddonSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (saq *SubscriptionAddonQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range saq.inters {
+func (_q *SubscriptionAddonQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, saq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range saq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !subscriptionaddon.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if saq.path != nil {
-		prev, err := saq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		saq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (saq *SubscriptionAddonQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*SubscriptionAddon, error) {
+func (_q *SubscriptionAddonQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*SubscriptionAddon, error) {
 	var (
 		nodes       = []*SubscriptionAddon{}
-		_spec       = saq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [3]bool{
-			saq.withSubscription != nil,
-			saq.withQuantities != nil,
-			saq.withAddon != nil,
+			_q.withSubscription != nil,
+			_q.withQuantities != nil,
+			_q.withAddon != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*SubscriptionAddon).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &SubscriptionAddon{config: saq.config}
+		node := &SubscriptionAddon{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(saq.modifiers) > 0 {
-		_spec.Modifiers = saq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, saq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := saq.withSubscription; query != nil {
-		if err := saq.loadSubscription(ctx, query, nodes, nil,
+	if query := _q.withSubscription; query != nil {
+		if err := _q.loadSubscription(ctx, query, nodes, nil,
 			func(n *SubscriptionAddon, e *Subscription) { n.Edges.Subscription = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := saq.withQuantities; query != nil {
-		if err := saq.loadQuantities(ctx, query, nodes,
+	if query := _q.withQuantities; query != nil {
+		if err := _q.loadQuantities(ctx, query, nodes,
 			func(n *SubscriptionAddon) { n.Edges.Quantities = []*SubscriptionAddonQuantity{} },
 			func(n *SubscriptionAddon, e *SubscriptionAddonQuantity) {
 				n.Edges.Quantities = append(n.Edges.Quantities, e)
@@ -487,8 +487,8 @@ func (saq *SubscriptionAddonQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			return nil, err
 		}
 	}
-	if query := saq.withAddon; query != nil {
-		if err := saq.loadAddon(ctx, query, nodes, nil,
+	if query := _q.withAddon; query != nil {
+		if err := _q.loadAddon(ctx, query, nodes, nil,
 			func(n *SubscriptionAddon, e *Addon) { n.Edges.Addon = e }); err != nil {
 			return nil, err
 		}
@@ -496,7 +496,7 @@ func (saq *SubscriptionAddonQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 	return nodes, nil
 }
 
-func (saq *SubscriptionAddonQuery) loadSubscription(ctx context.Context, query *SubscriptionQuery, nodes []*SubscriptionAddon, init func(*SubscriptionAddon), assign func(*SubscriptionAddon, *Subscription)) error {
+func (_q *SubscriptionAddonQuery) loadSubscription(ctx context.Context, query *SubscriptionQuery, nodes []*SubscriptionAddon, init func(*SubscriptionAddon), assign func(*SubscriptionAddon, *Subscription)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*SubscriptionAddon)
 	for i := range nodes {
@@ -525,7 +525,7 @@ func (saq *SubscriptionAddonQuery) loadSubscription(ctx context.Context, query *
 	}
 	return nil
 }
-func (saq *SubscriptionAddonQuery) loadQuantities(ctx context.Context, query *SubscriptionAddonQuantityQuery, nodes []*SubscriptionAddon, init func(*SubscriptionAddon), assign func(*SubscriptionAddon, *SubscriptionAddonQuantity)) error {
+func (_q *SubscriptionAddonQuery) loadQuantities(ctx context.Context, query *SubscriptionAddonQuantityQuery, nodes []*SubscriptionAddon, init func(*SubscriptionAddon), assign func(*SubscriptionAddon, *SubscriptionAddonQuantity)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*SubscriptionAddon)
 	for i := range nodes {
@@ -555,7 +555,7 @@ func (saq *SubscriptionAddonQuery) loadQuantities(ctx context.Context, query *Su
 	}
 	return nil
 }
-func (saq *SubscriptionAddonQuery) loadAddon(ctx context.Context, query *AddonQuery, nodes []*SubscriptionAddon, init func(*SubscriptionAddon), assign func(*SubscriptionAddon, *Addon)) error {
+func (_q *SubscriptionAddonQuery) loadAddon(ctx context.Context, query *AddonQuery, nodes []*SubscriptionAddon, init func(*SubscriptionAddon), assign func(*SubscriptionAddon, *Addon)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*SubscriptionAddon)
 	for i := range nodes {
@@ -585,27 +585,27 @@ func (saq *SubscriptionAddonQuery) loadAddon(ctx context.Context, query *AddonQu
 	return nil
 }
 
-func (saq *SubscriptionAddonQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := saq.querySpec()
-	if len(saq.modifiers) > 0 {
-		_spec.Modifiers = saq.modifiers
+func (_q *SubscriptionAddonQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = saq.ctx.Fields
-	if len(saq.ctx.Fields) > 0 {
-		_spec.Unique = saq.ctx.Unique != nil && *saq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, saq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (saq *SubscriptionAddonQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *SubscriptionAddonQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(subscriptionaddon.Table, subscriptionaddon.Columns, sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString))
-	_spec.From = saq.sql
-	if unique := saq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if saq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := saq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, subscriptionaddon.FieldID)
 		for i := range fields {
@@ -613,27 +613,27 @@ func (saq *SubscriptionAddonQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if saq.withSubscription != nil {
+		if _q.withSubscription != nil {
 			_spec.Node.AddColumnOnce(subscriptionaddon.FieldSubscriptionID)
 		}
-		if saq.withAddon != nil {
+		if _q.withAddon != nil {
 			_spec.Node.AddColumnOnce(subscriptionaddon.FieldAddonID)
 		}
 	}
-	if ps := saq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := saq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := saq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := saq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -643,36 +643,36 @@ func (saq *SubscriptionAddonQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (saq *SubscriptionAddonQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(saq.driver.Dialect())
+func (_q *SubscriptionAddonQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(subscriptionaddon.Table)
-	columns := saq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = subscriptionaddon.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if saq.sql != nil {
-		selector = saq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if saq.ctx.Unique != nil && *saq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range saq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range saq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range saq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := saq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := saq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -681,27 +681,27 @@ func (saq *SubscriptionAddonQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (saq *SubscriptionAddonQuery) ForUpdate(opts ...sql.LockOption) *SubscriptionAddonQuery {
-	if saq.driver.Dialect() == dialect.Postgres {
-		saq.Unique(false)
+func (_q *SubscriptionAddonQuery) ForUpdate(opts ...sql.LockOption) *SubscriptionAddonQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	saq.modifiers = append(saq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return saq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (saq *SubscriptionAddonQuery) ForShare(opts ...sql.LockOption) *SubscriptionAddonQuery {
-	if saq.driver.Dialect() == dialect.Postgres {
-		saq.Unique(false)
+func (_q *SubscriptionAddonQuery) ForShare(opts ...sql.LockOption) *SubscriptionAddonQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	saq.modifiers = append(saq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return saq
+	return _q
 }
 
 // SubscriptionAddonGroupBy is the group-by builder for SubscriptionAddon entities.

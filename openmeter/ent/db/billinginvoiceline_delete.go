@@ -20,56 +20,56 @@ type BillingInvoiceLineDelete struct {
 }
 
 // Where appends a list predicates to the BillingInvoiceLineDelete builder.
-func (bild *BillingInvoiceLineDelete) Where(ps ...predicate.BillingInvoiceLine) *BillingInvoiceLineDelete {
-	bild.mutation.Where(ps...)
-	return bild
+func (_d *BillingInvoiceLineDelete) Where(ps ...predicate.BillingInvoiceLine) *BillingInvoiceLineDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (bild *BillingInvoiceLineDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, bild.sqlExec, bild.mutation, bild.hooks)
+func (_d *BillingInvoiceLineDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bild *BillingInvoiceLineDelete) ExecX(ctx context.Context) int {
-	n, err := bild.Exec(ctx)
+func (_d *BillingInvoiceLineDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (bild *BillingInvoiceLineDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *BillingInvoiceLineDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(billinginvoiceline.Table, sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString))
-	if ps := bild.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, bild.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	bild.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // BillingInvoiceLineDeleteOne is the builder for deleting a single BillingInvoiceLine entity.
 type BillingInvoiceLineDeleteOne struct {
-	bild *BillingInvoiceLineDelete
+	_d *BillingInvoiceLineDelete
 }
 
 // Where appends a list predicates to the BillingInvoiceLineDelete builder.
-func (bildo *BillingInvoiceLineDeleteOne) Where(ps ...predicate.BillingInvoiceLine) *BillingInvoiceLineDeleteOne {
-	bildo.bild.mutation.Where(ps...)
-	return bildo
+func (_d *BillingInvoiceLineDeleteOne) Where(ps ...predicate.BillingInvoiceLine) *BillingInvoiceLineDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (bildo *BillingInvoiceLineDeleteOne) Exec(ctx context.Context) error {
-	n, err := bildo.bild.Exec(ctx)
+func (_d *BillingInvoiceLineDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (bildo *BillingInvoiceLineDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bildo *BillingInvoiceLineDeleteOne) ExecX(ctx context.Context) {
-	if err := bildo.Exec(ctx); err != nil {
+func (_d *BillingInvoiceLineDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

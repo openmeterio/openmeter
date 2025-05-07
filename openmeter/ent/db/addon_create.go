@@ -28,226 +28,226 @@ type AddonCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (ac *AddonCreate) SetNamespace(s string) *AddonCreate {
-	ac.mutation.SetNamespace(s)
-	return ac
+func (_c *AddonCreate) SetNamespace(v string) *AddonCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetMetadata sets the "metadata" field.
-func (ac *AddonCreate) SetMetadata(m map[string]string) *AddonCreate {
-	ac.mutation.SetMetadata(m)
-	return ac
+func (_c *AddonCreate) SetMetadata(v map[string]string) *AddonCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (ac *AddonCreate) SetCreatedAt(t time.Time) *AddonCreate {
-	ac.mutation.SetCreatedAt(t)
-	return ac
+func (_c *AddonCreate) SetCreatedAt(v time.Time) *AddonCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (ac *AddonCreate) SetNillableCreatedAt(t *time.Time) *AddonCreate {
-	if t != nil {
-		ac.SetCreatedAt(*t)
+func (_c *AddonCreate) SetNillableCreatedAt(v *time.Time) *AddonCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (ac *AddonCreate) SetUpdatedAt(t time.Time) *AddonCreate {
-	ac.mutation.SetUpdatedAt(t)
-	return ac
+func (_c *AddonCreate) SetUpdatedAt(v time.Time) *AddonCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (ac *AddonCreate) SetNillableUpdatedAt(t *time.Time) *AddonCreate {
-	if t != nil {
-		ac.SetUpdatedAt(*t)
+func (_c *AddonCreate) SetNillableUpdatedAt(v *time.Time) *AddonCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (ac *AddonCreate) SetDeletedAt(t time.Time) *AddonCreate {
-	ac.mutation.SetDeletedAt(t)
-	return ac
+func (_c *AddonCreate) SetDeletedAt(v time.Time) *AddonCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (ac *AddonCreate) SetNillableDeletedAt(t *time.Time) *AddonCreate {
-	if t != nil {
-		ac.SetDeletedAt(*t)
+func (_c *AddonCreate) SetNillableDeletedAt(v *time.Time) *AddonCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetName sets the "name" field.
-func (ac *AddonCreate) SetName(s string) *AddonCreate {
-	ac.mutation.SetName(s)
-	return ac
+func (_c *AddonCreate) SetName(v string) *AddonCreate {
+	_c.mutation.SetName(v)
+	return _c
 }
 
 // SetDescription sets the "description" field.
-func (ac *AddonCreate) SetDescription(s string) *AddonCreate {
-	ac.mutation.SetDescription(s)
-	return ac
+func (_c *AddonCreate) SetDescription(v string) *AddonCreate {
+	_c.mutation.SetDescription(v)
+	return _c
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (ac *AddonCreate) SetNillableDescription(s *string) *AddonCreate {
-	if s != nil {
-		ac.SetDescription(*s)
+func (_c *AddonCreate) SetNillableDescription(v *string) *AddonCreate {
+	if v != nil {
+		_c.SetDescription(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetKey sets the "key" field.
-func (ac *AddonCreate) SetKey(s string) *AddonCreate {
-	ac.mutation.SetKey(s)
-	return ac
+func (_c *AddonCreate) SetKey(v string) *AddonCreate {
+	_c.mutation.SetKey(v)
+	return _c
 }
 
 // SetVersion sets the "version" field.
-func (ac *AddonCreate) SetVersion(i int) *AddonCreate {
-	ac.mutation.SetVersion(i)
-	return ac
+func (_c *AddonCreate) SetVersion(v int) *AddonCreate {
+	_c.mutation.SetVersion(v)
+	return _c
 }
 
 // SetCurrency sets the "currency" field.
-func (ac *AddonCreate) SetCurrency(s string) *AddonCreate {
-	ac.mutation.SetCurrency(s)
-	return ac
+func (_c *AddonCreate) SetCurrency(v string) *AddonCreate {
+	_c.mutation.SetCurrency(v)
+	return _c
 }
 
 // SetNillableCurrency sets the "currency" field if the given value is not nil.
-func (ac *AddonCreate) SetNillableCurrency(s *string) *AddonCreate {
-	if s != nil {
-		ac.SetCurrency(*s)
+func (_c *AddonCreate) SetNillableCurrency(v *string) *AddonCreate {
+	if v != nil {
+		_c.SetCurrency(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetInstanceType sets the "instance_type" field.
-func (ac *AddonCreate) SetInstanceType(pit productcatalog.AddonInstanceType) *AddonCreate {
-	ac.mutation.SetInstanceType(pit)
-	return ac
+func (_c *AddonCreate) SetInstanceType(v productcatalog.AddonInstanceType) *AddonCreate {
+	_c.mutation.SetInstanceType(v)
+	return _c
 }
 
 // SetNillableInstanceType sets the "instance_type" field if the given value is not nil.
-func (ac *AddonCreate) SetNillableInstanceType(pit *productcatalog.AddonInstanceType) *AddonCreate {
-	if pit != nil {
-		ac.SetInstanceType(*pit)
+func (_c *AddonCreate) SetNillableInstanceType(v *productcatalog.AddonInstanceType) *AddonCreate {
+	if v != nil {
+		_c.SetInstanceType(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetEffectiveFrom sets the "effective_from" field.
-func (ac *AddonCreate) SetEffectiveFrom(t time.Time) *AddonCreate {
-	ac.mutation.SetEffectiveFrom(t)
-	return ac
+func (_c *AddonCreate) SetEffectiveFrom(v time.Time) *AddonCreate {
+	_c.mutation.SetEffectiveFrom(v)
+	return _c
 }
 
 // SetNillableEffectiveFrom sets the "effective_from" field if the given value is not nil.
-func (ac *AddonCreate) SetNillableEffectiveFrom(t *time.Time) *AddonCreate {
-	if t != nil {
-		ac.SetEffectiveFrom(*t)
+func (_c *AddonCreate) SetNillableEffectiveFrom(v *time.Time) *AddonCreate {
+	if v != nil {
+		_c.SetEffectiveFrom(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetEffectiveTo sets the "effective_to" field.
-func (ac *AddonCreate) SetEffectiveTo(t time.Time) *AddonCreate {
-	ac.mutation.SetEffectiveTo(t)
-	return ac
+func (_c *AddonCreate) SetEffectiveTo(v time.Time) *AddonCreate {
+	_c.mutation.SetEffectiveTo(v)
+	return _c
 }
 
 // SetNillableEffectiveTo sets the "effective_to" field if the given value is not nil.
-func (ac *AddonCreate) SetNillableEffectiveTo(t *time.Time) *AddonCreate {
-	if t != nil {
-		ac.SetEffectiveTo(*t)
+func (_c *AddonCreate) SetNillableEffectiveTo(v *time.Time) *AddonCreate {
+	if v != nil {
+		_c.SetEffectiveTo(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetAnnotations sets the "annotations" field.
-func (ac *AddonCreate) SetAnnotations(m map[string]interface{}) *AddonCreate {
-	ac.mutation.SetAnnotations(m)
-	return ac
+func (_c *AddonCreate) SetAnnotations(v map[string]interface{}) *AddonCreate {
+	_c.mutation.SetAnnotations(v)
+	return _c
 }
 
 // SetID sets the "id" field.
-func (ac *AddonCreate) SetID(s string) *AddonCreate {
-	ac.mutation.SetID(s)
-	return ac
+func (_c *AddonCreate) SetID(v string) *AddonCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (ac *AddonCreate) SetNillableID(s *string) *AddonCreate {
-	if s != nil {
-		ac.SetID(*s)
+func (_c *AddonCreate) SetNillableID(v *string) *AddonCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return ac
+	return _c
 }
 
 // AddRatecardIDs adds the "ratecards" edge to the AddonRateCard entity by IDs.
-func (ac *AddonCreate) AddRatecardIDs(ids ...string) *AddonCreate {
-	ac.mutation.AddRatecardIDs(ids...)
-	return ac
+func (_c *AddonCreate) AddRatecardIDs(ids ...string) *AddonCreate {
+	_c.mutation.AddRatecardIDs(ids...)
+	return _c
 }
 
 // AddRatecards adds the "ratecards" edges to the AddonRateCard entity.
-func (ac *AddonCreate) AddRatecards(a ...*AddonRateCard) *AddonCreate {
-	ids := make([]string, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_c *AddonCreate) AddRatecards(v ...*AddonRateCard) *AddonCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ac.AddRatecardIDs(ids...)
+	return _c.AddRatecardIDs(ids...)
 }
 
 // AddPlanIDs adds the "plans" edge to the PlanAddon entity by IDs.
-func (ac *AddonCreate) AddPlanIDs(ids ...string) *AddonCreate {
-	ac.mutation.AddPlanIDs(ids...)
-	return ac
+func (_c *AddonCreate) AddPlanIDs(ids ...string) *AddonCreate {
+	_c.mutation.AddPlanIDs(ids...)
+	return _c
 }
 
 // AddPlans adds the "plans" edges to the PlanAddon entity.
-func (ac *AddonCreate) AddPlans(p ...*PlanAddon) *AddonCreate {
-	ids := make([]string, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+func (_c *AddonCreate) AddPlans(v ...*PlanAddon) *AddonCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ac.AddPlanIDs(ids...)
+	return _c.AddPlanIDs(ids...)
 }
 
 // AddSubscriptionAddonIDs adds the "subscription_addons" edge to the SubscriptionAddon entity by IDs.
-func (ac *AddonCreate) AddSubscriptionAddonIDs(ids ...string) *AddonCreate {
-	ac.mutation.AddSubscriptionAddonIDs(ids...)
-	return ac
+func (_c *AddonCreate) AddSubscriptionAddonIDs(ids ...string) *AddonCreate {
+	_c.mutation.AddSubscriptionAddonIDs(ids...)
+	return _c
 }
 
 // AddSubscriptionAddons adds the "subscription_addons" edges to the SubscriptionAddon entity.
-func (ac *AddonCreate) AddSubscriptionAddons(s ...*SubscriptionAddon) *AddonCreate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_c *AddonCreate) AddSubscriptionAddons(v ...*SubscriptionAddon) *AddonCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ac.AddSubscriptionAddonIDs(ids...)
+	return _c.AddSubscriptionAddonIDs(ids...)
 }
 
 // Mutation returns the AddonMutation object of the builder.
-func (ac *AddonCreate) Mutation() *AddonMutation {
-	return ac.mutation
+func (_c *AddonCreate) Mutation() *AddonMutation {
+	return _c.mutation
 }
 
 // Save creates the Addon in the database.
-func (ac *AddonCreate) Save(ctx context.Context) (*Addon, error) {
-	ac.defaults()
-	return withHooks(ctx, ac.sqlSave, ac.mutation, ac.hooks)
+func (_c *AddonCreate) Save(ctx context.Context) (*Addon, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (ac *AddonCreate) SaveX(ctx context.Context) *Addon {
-	v, err := ac.Save(ctx)
+func (_c *AddonCreate) SaveX(ctx context.Context) *Addon {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -255,89 +255,89 @@ func (ac *AddonCreate) SaveX(ctx context.Context) *Addon {
 }
 
 // Exec executes the query.
-func (ac *AddonCreate) Exec(ctx context.Context) error {
-	_, err := ac.Save(ctx)
+func (_c *AddonCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ac *AddonCreate) ExecX(ctx context.Context) {
-	if err := ac.Exec(ctx); err != nil {
+func (_c *AddonCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (ac *AddonCreate) defaults() {
-	if _, ok := ac.mutation.CreatedAt(); !ok {
+func (_c *AddonCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := addon.DefaultCreatedAt()
-		ac.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := ac.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := addon.DefaultUpdatedAt()
-		ac.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := ac.mutation.Currency(); !ok {
+	if _, ok := _c.mutation.Currency(); !ok {
 		v := addon.DefaultCurrency
-		ac.mutation.SetCurrency(v)
+		_c.mutation.SetCurrency(v)
 	}
-	if _, ok := ac.mutation.InstanceType(); !ok {
+	if _, ok := _c.mutation.InstanceType(); !ok {
 		v := addon.DefaultInstanceType
-		ac.mutation.SetInstanceType(v)
+		_c.mutation.SetInstanceType(v)
 	}
-	if _, ok := ac.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := addon.DefaultID()
-		ac.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (ac *AddonCreate) check() error {
-	if _, ok := ac.mutation.Namespace(); !ok {
+func (_c *AddonCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "Addon.namespace"`)}
 	}
-	if v, ok := ac.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := addon.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "Addon.namespace": %w`, err)}
 		}
 	}
-	if _, ok := ac.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "Addon.created_at"`)}
 	}
-	if _, ok := ac.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "Addon.updated_at"`)}
 	}
-	if _, ok := ac.mutation.Name(); !ok {
+	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "Addon.name"`)}
 	}
-	if _, ok := ac.mutation.Key(); !ok {
+	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "Addon.key"`)}
 	}
-	if v, ok := ac.mutation.Key(); ok {
+	if v, ok := _c.mutation.Key(); ok {
 		if err := addon.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "Addon.key": %w`, err)}
 		}
 	}
-	if _, ok := ac.mutation.Version(); !ok {
+	if _, ok := _c.mutation.Version(); !ok {
 		return &ValidationError{Name: "version", err: errors.New(`db: missing required field "Addon.version"`)}
 	}
-	if v, ok := ac.mutation.Version(); ok {
+	if v, ok := _c.mutation.Version(); ok {
 		if err := addon.VersionValidator(v); err != nil {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`db: validator failed for field "Addon.version": %w`, err)}
 		}
 	}
-	if _, ok := ac.mutation.Currency(); !ok {
+	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "Addon.currency"`)}
 	}
-	if v, ok := ac.mutation.Currency(); ok {
+	if v, ok := _c.mutation.Currency(); ok {
 		if err := addon.CurrencyValidator(v); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Addon.currency": %w`, err)}
 		}
 	}
-	if _, ok := ac.mutation.InstanceType(); !ok {
+	if _, ok := _c.mutation.InstanceType(); !ok {
 		return &ValidationError{Name: "instance_type", err: errors.New(`db: missing required field "Addon.instance_type"`)}
 	}
-	if v, ok := ac.mutation.InstanceType(); ok {
+	if v, ok := _c.mutation.InstanceType(); ok {
 		if err := addon.InstanceTypeValidator(v); err != nil {
 			return &ValidationError{Name: "instance_type", err: fmt.Errorf(`db: validator failed for field "Addon.instance_type": %w`, err)}
 		}
@@ -345,15 +345,15 @@ func (ac *AddonCreate) check() error {
 	return nil
 }
 
-func (ac *AddonCreate) sqlSave(ctx context.Context) (*Addon, error) {
-	if err := ac.check(); err != nil {
+func (_c *AddonCreate) sqlSave(ctx context.Context) (*Addon, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec, err := ac.createSpec()
+	_node, _spec, err := _c.createSpec()
 	if err != nil {
 		return nil, err
 	}
-	if err := sqlgraph.CreateNode(ctx, ac.driver, _spec); err != nil {
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -366,74 +366,74 @@ func (ac *AddonCreate) sqlSave(ctx context.Context) (*Addon, error) {
 			return nil, fmt.Errorf("unexpected Addon.ID type: %T", _spec.ID.Value)
 		}
 	}
-	ac.mutation.id = &_node.ID
-	ac.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (ac *AddonCreate) createSpec() (*Addon, *sqlgraph.CreateSpec, error) {
+func (_c *AddonCreate) createSpec() (*Addon, *sqlgraph.CreateSpec, error) {
 	var (
-		_node = &Addon{config: ac.config}
+		_node = &Addon{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(addon.Table, sqlgraph.NewFieldSpec(addon.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = ac.conflict
-	if id, ok := ac.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := ac.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(addon.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := ac.mutation.Metadata(); ok {
+	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(addon.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := ac.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(addon.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := ac.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(addon.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := ac.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(addon.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := ac.mutation.Name(); ok {
+	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(addon.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := ac.mutation.Description(); ok {
+	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(addon.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := ac.mutation.Key(); ok {
+	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(addon.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
-	if value, ok := ac.mutation.Version(); ok {
+	if value, ok := _c.mutation.Version(); ok {
 		_spec.SetField(addon.FieldVersion, field.TypeInt, value)
 		_node.Version = value
 	}
-	if value, ok := ac.mutation.Currency(); ok {
+	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(addon.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
 	}
-	if value, ok := ac.mutation.InstanceType(); ok {
+	if value, ok := _c.mutation.InstanceType(); ok {
 		_spec.SetField(addon.FieldInstanceType, field.TypeEnum, value)
 		_node.InstanceType = value
 	}
-	if value, ok := ac.mutation.EffectiveFrom(); ok {
+	if value, ok := _c.mutation.EffectiveFrom(); ok {
 		_spec.SetField(addon.FieldEffectiveFrom, field.TypeTime, value)
 		_node.EffectiveFrom = &value
 	}
-	if value, ok := ac.mutation.EffectiveTo(); ok {
+	if value, ok := _c.mutation.EffectiveTo(); ok {
 		_spec.SetField(addon.FieldEffectiveTo, field.TypeTime, value)
 		_node.EffectiveTo = &value
 	}
-	if value, ok := ac.mutation.Annotations(); ok {
+	if value, ok := _c.mutation.Annotations(); ok {
 		vv, err := addon.ValueScanner.Annotations.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -441,7 +441,7 @@ func (ac *AddonCreate) createSpec() (*Addon, *sqlgraph.CreateSpec, error) {
 		_spec.SetField(addon.FieldAnnotations, field.TypeString, vv)
 		_node.Annotations = value
 	}
-	if nodes := ac.mutation.RatecardsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.RatecardsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -457,7 +457,7 @@ func (ac *AddonCreate) createSpec() (*Addon, *sqlgraph.CreateSpec, error) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ac.mutation.PlansIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.PlansIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -473,7 +473,7 @@ func (ac *AddonCreate) createSpec() (*Addon, *sqlgraph.CreateSpec, error) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ac.mutation.SubscriptionAddonsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.SubscriptionAddonsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -508,10 +508,10 @@ func (ac *AddonCreate) createSpec() (*Addon, *sqlgraph.CreateSpec, error) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (ac *AddonCreate) OnConflict(opts ...sql.ConflictOption) *AddonUpsertOne {
-	ac.conflict = opts
+func (_c *AddonCreate) OnConflict(opts ...sql.ConflictOption) *AddonUpsertOne {
+	_c.conflict = opts
 	return &AddonUpsertOne{
-		create: ac,
+		create: _c,
 	}
 }
 
@@ -521,10 +521,10 @@ func (ac *AddonCreate) OnConflict(opts ...sql.ConflictOption) *AddonUpsertOne {
 //	client.Addon.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (ac *AddonCreate) OnConflictColumns(columns ...string) *AddonUpsertOne {
-	ac.conflict = append(ac.conflict, sql.ConflictColumns(columns...))
+func (_c *AddonCreate) OnConflictColumns(columns ...string) *AddonUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &AddonUpsertOne{
-		create: ac,
+		create: _c,
 	}
 }
 
@@ -999,16 +999,16 @@ type AddonCreateBulk struct {
 }
 
 // Save creates the Addon entities in the database.
-func (acb *AddonCreateBulk) Save(ctx context.Context) ([]*Addon, error) {
-	if acb.err != nil {
-		return nil, acb.err
+func (_c *AddonCreateBulk) Save(ctx context.Context) ([]*Addon, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(acb.builders))
-	nodes := make([]*Addon, len(acb.builders))
-	mutators := make([]Mutator, len(acb.builders))
-	for i := range acb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*Addon, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := acb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*AddonMutation)
@@ -1025,12 +1025,12 @@ func (acb *AddonCreateBulk) Save(ctx context.Context) ([]*Addon, error) {
 					return nil, err
 				}
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, acb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = acb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, acb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -1050,7 +1050,7 @@ func (acb *AddonCreateBulk) Save(ctx context.Context) ([]*Addon, error) {
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, acb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -1058,8 +1058,8 @@ func (acb *AddonCreateBulk) Save(ctx context.Context) ([]*Addon, error) {
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (acb *AddonCreateBulk) SaveX(ctx context.Context) []*Addon {
-	v, err := acb.Save(ctx)
+func (_c *AddonCreateBulk) SaveX(ctx context.Context) []*Addon {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1067,14 +1067,14 @@ func (acb *AddonCreateBulk) SaveX(ctx context.Context) []*Addon {
 }
 
 // Exec executes the query.
-func (acb *AddonCreateBulk) Exec(ctx context.Context) error {
-	_, err := acb.Save(ctx)
+func (_c *AddonCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (acb *AddonCreateBulk) ExecX(ctx context.Context) {
-	if err := acb.Exec(ctx); err != nil {
+func (_c *AddonCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -1094,10 +1094,10 @@ func (acb *AddonCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (acb *AddonCreateBulk) OnConflict(opts ...sql.ConflictOption) *AddonUpsertBulk {
-	acb.conflict = opts
+func (_c *AddonCreateBulk) OnConflict(opts ...sql.ConflictOption) *AddonUpsertBulk {
+	_c.conflict = opts
 	return &AddonUpsertBulk{
-		create: acb,
+		create: _c,
 	}
 }
 
@@ -1107,10 +1107,10 @@ func (acb *AddonCreateBulk) OnConflict(opts ...sql.ConflictOption) *AddonUpsertB
 //	client.Addon.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (acb *AddonCreateBulk) OnConflictColumns(columns ...string) *AddonUpsertBulk {
-	acb.conflict = append(acb.conflict, sql.ConflictColumns(columns...))
+func (_c *AddonCreateBulk) OnConflictColumns(columns ...string) *AddonUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &AddonUpsertBulk{
-		create: acb,
+		create: _c,
 	}
 }
 

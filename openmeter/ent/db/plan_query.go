@@ -37,44 +37,44 @@ type PlanQuery struct {
 }
 
 // Where adds a new predicate for the PlanQuery builder.
-func (pq *PlanQuery) Where(ps ...predicate.Plan) *PlanQuery {
-	pq.predicates = append(pq.predicates, ps...)
-	return pq
+func (_q *PlanQuery) Where(ps ...predicate.Plan) *PlanQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (pq *PlanQuery) Limit(limit int) *PlanQuery {
-	pq.ctx.Limit = &limit
-	return pq
+func (_q *PlanQuery) Limit(limit int) *PlanQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (pq *PlanQuery) Offset(offset int) *PlanQuery {
-	pq.ctx.Offset = &offset
-	return pq
+func (_q *PlanQuery) Offset(offset int) *PlanQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (pq *PlanQuery) Unique(unique bool) *PlanQuery {
-	pq.ctx.Unique = &unique
-	return pq
+func (_q *PlanQuery) Unique(unique bool) *PlanQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (pq *PlanQuery) Order(o ...plan.OrderOption) *PlanQuery {
-	pq.order = append(pq.order, o...)
-	return pq
+func (_q *PlanQuery) Order(o ...plan.OrderOption) *PlanQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryPhases chains the current query on the "phases" edge.
-func (pq *PlanQuery) QueryPhases() *PlanPhaseQuery {
-	query := (&PlanPhaseClient{config: pq.config}).Query()
+func (_q *PlanQuery) QueryPhases() *PlanPhaseQuery {
+	query := (&PlanPhaseClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := pq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := pq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -83,20 +83,20 @@ func (pq *PlanQuery) QueryPhases() *PlanPhaseQuery {
 			sqlgraph.To(planphase.Table, planphase.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, plan.PhasesTable, plan.PhasesColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryAddons chains the current query on the "addons" edge.
-func (pq *PlanQuery) QueryAddons() *PlanAddonQuery {
-	query := (&PlanAddonClient{config: pq.config}).Query()
+func (_q *PlanQuery) QueryAddons() *PlanAddonQuery {
+	query := (&PlanAddonClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := pq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := pq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -105,20 +105,20 @@ func (pq *PlanQuery) QueryAddons() *PlanAddonQuery {
 			sqlgraph.To(planaddon.Table, planaddon.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, plan.AddonsTable, plan.AddonsColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QuerySubscriptions chains the current query on the "subscriptions" edge.
-func (pq *PlanQuery) QuerySubscriptions() *SubscriptionQuery {
-	query := (&SubscriptionClient{config: pq.config}).Query()
+func (_q *PlanQuery) QuerySubscriptions() *SubscriptionQuery {
+	query := (&SubscriptionClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := pq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := pq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -127,7 +127,7 @@ func (pq *PlanQuery) QuerySubscriptions() *SubscriptionQuery {
 			sqlgraph.To(subscription.Table, subscription.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, plan.SubscriptionsTable, plan.SubscriptionsColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -135,8 +135,8 @@ func (pq *PlanQuery) QuerySubscriptions() *SubscriptionQuery {
 
 // First returns the first Plan entity from the query.
 // Returns a *NotFoundError when no Plan was found.
-func (pq *PlanQuery) First(ctx context.Context) (*Plan, error) {
-	nodes, err := pq.Limit(1).All(setContextOp(ctx, pq.ctx, ent.OpQueryFirst))
+func (_q *PlanQuery) First(ctx context.Context) (*Plan, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -147,8 +147,8 @@ func (pq *PlanQuery) First(ctx context.Context) (*Plan, error) {
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (pq *PlanQuery) FirstX(ctx context.Context) *Plan {
-	node, err := pq.First(ctx)
+func (_q *PlanQuery) FirstX(ctx context.Context) *Plan {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -157,9 +157,9 @@ func (pq *PlanQuery) FirstX(ctx context.Context) *Plan {
 
 // FirstID returns the first Plan ID from the query.
 // Returns a *NotFoundError when no Plan ID was found.
-func (pq *PlanQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *PlanQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = pq.Limit(1).IDs(setContextOp(ctx, pq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -170,8 +170,8 @@ func (pq *PlanQuery) FirstID(ctx context.Context) (id string, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (pq *PlanQuery) FirstIDX(ctx context.Context) string {
-	id, err := pq.FirstID(ctx)
+func (_q *PlanQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -181,8 +181,8 @@ func (pq *PlanQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single Plan entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one Plan entity is found.
 // Returns a *NotFoundError when no Plan entities are found.
-func (pq *PlanQuery) Only(ctx context.Context) (*Plan, error) {
-	nodes, err := pq.Limit(2).All(setContextOp(ctx, pq.ctx, ent.OpQueryOnly))
+func (_q *PlanQuery) Only(ctx context.Context) (*Plan, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -197,8 +197,8 @@ func (pq *PlanQuery) Only(ctx context.Context) (*Plan, error) {
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (pq *PlanQuery) OnlyX(ctx context.Context) *Plan {
-	node, err := pq.Only(ctx)
+func (_q *PlanQuery) OnlyX(ctx context.Context) *Plan {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -208,9 +208,9 @@ func (pq *PlanQuery) OnlyX(ctx context.Context) *Plan {
 // OnlyID is like Only, but returns the only Plan ID in the query.
 // Returns a *NotSingularError when more than one Plan ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (pq *PlanQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *PlanQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = pq.Limit(2).IDs(setContextOp(ctx, pq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -225,8 +225,8 @@ func (pq *PlanQuery) OnlyID(ctx context.Context) (id string, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (pq *PlanQuery) OnlyIDX(ctx context.Context) string {
-	id, err := pq.OnlyID(ctx)
+func (_q *PlanQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -234,18 +234,18 @@ func (pq *PlanQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of Plans.
-func (pq *PlanQuery) All(ctx context.Context) ([]*Plan, error) {
-	ctx = setContextOp(ctx, pq.ctx, ent.OpQueryAll)
-	if err := pq.prepareQuery(ctx); err != nil {
+func (_q *PlanQuery) All(ctx context.Context) ([]*Plan, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*Plan, *PlanQuery]()
-	return withInterceptors[[]*Plan](ctx, pq, qr, pq.inters)
+	return withInterceptors[[]*Plan](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (pq *PlanQuery) AllX(ctx context.Context) []*Plan {
-	nodes, err := pq.All(ctx)
+func (_q *PlanQuery) AllX(ctx context.Context) []*Plan {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -253,20 +253,20 @@ func (pq *PlanQuery) AllX(ctx context.Context) []*Plan {
 }
 
 // IDs executes the query and returns a list of Plan IDs.
-func (pq *PlanQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if pq.ctx.Unique == nil && pq.path != nil {
-		pq.Unique(true)
+func (_q *PlanQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, pq.ctx, ent.OpQueryIDs)
-	if err = pq.Select(plan.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(plan.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (pq *PlanQuery) IDsX(ctx context.Context) []string {
-	ids, err := pq.IDs(ctx)
+func (_q *PlanQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -274,17 +274,17 @@ func (pq *PlanQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (pq *PlanQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, pq.ctx, ent.OpQueryCount)
-	if err := pq.prepareQuery(ctx); err != nil {
+func (_q *PlanQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, pq, querierCount[*PlanQuery](), pq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*PlanQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (pq *PlanQuery) CountX(ctx context.Context) int {
-	count, err := pq.Count(ctx)
+func (_q *PlanQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -292,9 +292,9 @@ func (pq *PlanQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (pq *PlanQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, pq.ctx, ent.OpQueryExist)
-	switch _, err := pq.FirstID(ctx); {
+func (_q *PlanQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -305,8 +305,8 @@ func (pq *PlanQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (pq *PlanQuery) ExistX(ctx context.Context) bool {
-	exist, err := pq.Exist(ctx)
+func (_q *PlanQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -315,56 +315,56 @@ func (pq *PlanQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the PlanQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (pq *PlanQuery) Clone() *PlanQuery {
-	if pq == nil {
+func (_q *PlanQuery) Clone() *PlanQuery {
+	if _q == nil {
 		return nil
 	}
 	return &PlanQuery{
-		config:            pq.config,
-		ctx:               pq.ctx.Clone(),
-		order:             append([]plan.OrderOption{}, pq.order...),
-		inters:            append([]Interceptor{}, pq.inters...),
-		predicates:        append([]predicate.Plan{}, pq.predicates...),
-		withPhases:        pq.withPhases.Clone(),
-		withAddons:        pq.withAddons.Clone(),
-		withSubscriptions: pq.withSubscriptions.Clone(),
+		config:            _q.config,
+		ctx:               _q.ctx.Clone(),
+		order:             append([]plan.OrderOption{}, _q.order...),
+		inters:            append([]Interceptor{}, _q.inters...),
+		predicates:        append([]predicate.Plan{}, _q.predicates...),
+		withPhases:        _q.withPhases.Clone(),
+		withAddons:        _q.withAddons.Clone(),
+		withSubscriptions: _q.withSubscriptions.Clone(),
 		// clone intermediate query.
-		sql:  pq.sql.Clone(),
-		path: pq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithPhases tells the query-builder to eager-load the nodes that are connected to
 // the "phases" edge. The optional arguments are used to configure the query builder of the edge.
-func (pq *PlanQuery) WithPhases(opts ...func(*PlanPhaseQuery)) *PlanQuery {
-	query := (&PlanPhaseClient{config: pq.config}).Query()
+func (_q *PlanQuery) WithPhases(opts ...func(*PlanPhaseQuery)) *PlanQuery {
+	query := (&PlanPhaseClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	pq.withPhases = query
-	return pq
+	_q.withPhases = query
+	return _q
 }
 
 // WithAddons tells the query-builder to eager-load the nodes that are connected to
 // the "addons" edge. The optional arguments are used to configure the query builder of the edge.
-func (pq *PlanQuery) WithAddons(opts ...func(*PlanAddonQuery)) *PlanQuery {
-	query := (&PlanAddonClient{config: pq.config}).Query()
+func (_q *PlanQuery) WithAddons(opts ...func(*PlanAddonQuery)) *PlanQuery {
+	query := (&PlanAddonClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	pq.withAddons = query
-	return pq
+	_q.withAddons = query
+	return _q
 }
 
 // WithSubscriptions tells the query-builder to eager-load the nodes that are connected to
 // the "subscriptions" edge. The optional arguments are used to configure the query builder of the edge.
-func (pq *PlanQuery) WithSubscriptions(opts ...func(*SubscriptionQuery)) *PlanQuery {
-	query := (&SubscriptionClient{config: pq.config}).Query()
+func (_q *PlanQuery) WithSubscriptions(opts ...func(*SubscriptionQuery)) *PlanQuery {
+	query := (&SubscriptionClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	pq.withSubscriptions = query
-	return pq
+	_q.withSubscriptions = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -381,10 +381,10 @@ func (pq *PlanQuery) WithSubscriptions(opts ...func(*SubscriptionQuery)) *PlanQu
 //		GroupBy(plan.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (pq *PlanQuery) GroupBy(field string, fields ...string) *PlanGroupBy {
-	pq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &PlanGroupBy{build: pq}
-	grbuild.flds = &pq.ctx.Fields
+func (_q *PlanQuery) GroupBy(field string, fields ...string) *PlanGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &PlanGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = plan.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -402,92 +402,92 @@ func (pq *PlanQuery) GroupBy(field string, fields ...string) *PlanGroupBy {
 //	client.Plan.Query().
 //		Select(plan.FieldNamespace).
 //		Scan(ctx, &v)
-func (pq *PlanQuery) Select(fields ...string) *PlanSelect {
-	pq.ctx.Fields = append(pq.ctx.Fields, fields...)
-	sbuild := &PlanSelect{PlanQuery: pq}
+func (_q *PlanQuery) Select(fields ...string) *PlanSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &PlanSelect{PlanQuery: _q}
 	sbuild.label = plan.Label
-	sbuild.flds, sbuild.scan = &pq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a PlanSelect configured with the given aggregations.
-func (pq *PlanQuery) Aggregate(fns ...AggregateFunc) *PlanSelect {
-	return pq.Select().Aggregate(fns...)
+func (_q *PlanQuery) Aggregate(fns ...AggregateFunc) *PlanSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (pq *PlanQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range pq.inters {
+func (_q *PlanQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, pq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range pq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !plan.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if pq.path != nil {
-		prev, err := pq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		pq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (pq *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, error) {
+func (_q *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, error) {
 	var (
 		nodes       = []*Plan{}
-		_spec       = pq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [3]bool{
-			pq.withPhases != nil,
-			pq.withAddons != nil,
-			pq.withSubscriptions != nil,
+			_q.withPhases != nil,
+			_q.withAddons != nil,
+			_q.withSubscriptions != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Plan).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Plan{config: pq.config}
+		node := &Plan{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(pq.modifiers) > 0 {
-		_spec.Modifiers = pq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, pq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := pq.withPhases; query != nil {
-		if err := pq.loadPhases(ctx, query, nodes,
+	if query := _q.withPhases; query != nil {
+		if err := _q.loadPhases(ctx, query, nodes,
 			func(n *Plan) { n.Edges.Phases = []*PlanPhase{} },
 			func(n *Plan, e *PlanPhase) { n.Edges.Phases = append(n.Edges.Phases, e) }); err != nil {
 			return nil, err
 		}
 	}
-	if query := pq.withAddons; query != nil {
-		if err := pq.loadAddons(ctx, query, nodes,
+	if query := _q.withAddons; query != nil {
+		if err := _q.loadAddons(ctx, query, nodes,
 			func(n *Plan) { n.Edges.Addons = []*PlanAddon{} },
 			func(n *Plan, e *PlanAddon) { n.Edges.Addons = append(n.Edges.Addons, e) }); err != nil {
 			return nil, err
 		}
 	}
-	if query := pq.withSubscriptions; query != nil {
-		if err := pq.loadSubscriptions(ctx, query, nodes,
+	if query := _q.withSubscriptions; query != nil {
+		if err := _q.loadSubscriptions(ctx, query, nodes,
 			func(n *Plan) { n.Edges.Subscriptions = []*Subscription{} },
 			func(n *Plan, e *Subscription) { n.Edges.Subscriptions = append(n.Edges.Subscriptions, e) }); err != nil {
 			return nil, err
@@ -496,7 +496,7 @@ func (pq *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, e
 	return nodes, nil
 }
 
-func (pq *PlanQuery) loadPhases(ctx context.Context, query *PlanPhaseQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *PlanPhase)) error {
+func (_q *PlanQuery) loadPhases(ctx context.Context, query *PlanPhaseQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *PlanPhase)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Plan)
 	for i := range nodes {
@@ -526,7 +526,7 @@ func (pq *PlanQuery) loadPhases(ctx context.Context, query *PlanPhaseQuery, node
 	}
 	return nil
 }
-func (pq *PlanQuery) loadAddons(ctx context.Context, query *PlanAddonQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *PlanAddon)) error {
+func (_q *PlanQuery) loadAddons(ctx context.Context, query *PlanAddonQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *PlanAddon)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Plan)
 	for i := range nodes {
@@ -556,7 +556,7 @@ func (pq *PlanQuery) loadAddons(ctx context.Context, query *PlanAddonQuery, node
 	}
 	return nil
 }
-func (pq *PlanQuery) loadSubscriptions(ctx context.Context, query *SubscriptionQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *Subscription)) error {
+func (_q *PlanQuery) loadSubscriptions(ctx context.Context, query *SubscriptionQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *Subscription)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Plan)
 	for i := range nodes {
@@ -590,27 +590,27 @@ func (pq *PlanQuery) loadSubscriptions(ctx context.Context, query *SubscriptionQ
 	return nil
 }
 
-func (pq *PlanQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := pq.querySpec()
-	if len(pq.modifiers) > 0 {
-		_spec.Modifiers = pq.modifiers
+func (_q *PlanQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = pq.ctx.Fields
-	if len(pq.ctx.Fields) > 0 {
-		_spec.Unique = pq.ctx.Unique != nil && *pq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, pq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (pq *PlanQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *PlanQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(plan.Table, plan.Columns, sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString))
-	_spec.From = pq.sql
-	if unique := pq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if pq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := pq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, plan.FieldID)
 		for i := range fields {
@@ -619,20 +619,20 @@ func (pq *PlanQuery) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 	}
-	if ps := pq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := pq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := pq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := pq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -642,36 +642,36 @@ func (pq *PlanQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (pq *PlanQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(pq.driver.Dialect())
+func (_q *PlanQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(plan.Table)
-	columns := pq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = plan.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if pq.sql != nil {
-		selector = pq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if pq.ctx.Unique != nil && *pq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range pq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range pq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range pq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := pq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := pq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -680,27 +680,27 @@ func (pq *PlanQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (pq *PlanQuery) ForUpdate(opts ...sql.LockOption) *PlanQuery {
-	if pq.driver.Dialect() == dialect.Postgres {
-		pq.Unique(false)
+func (_q *PlanQuery) ForUpdate(opts ...sql.LockOption) *PlanQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	pq.modifiers = append(pq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return pq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (pq *PlanQuery) ForShare(opts ...sql.LockOption) *PlanQuery {
-	if pq.driver.Dialect() == dialect.Postgres {
-		pq.Unique(false)
+func (_q *PlanQuery) ForShare(opts ...sql.LockOption) *PlanQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	pq.modifiers = append(pq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return pq
+	return _q
 }
 
 // PlanGroupBy is the group-by builder for Plan entities.

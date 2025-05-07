@@ -20,56 +20,56 @@ type SubscriptionAddonDelete struct {
 }
 
 // Where appends a list predicates to the SubscriptionAddonDelete builder.
-func (sad *SubscriptionAddonDelete) Where(ps ...predicate.SubscriptionAddon) *SubscriptionAddonDelete {
-	sad.mutation.Where(ps...)
-	return sad
+func (_d *SubscriptionAddonDelete) Where(ps ...predicate.SubscriptionAddon) *SubscriptionAddonDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (sad *SubscriptionAddonDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, sad.sqlExec, sad.mutation, sad.hooks)
+func (_d *SubscriptionAddonDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (sad *SubscriptionAddonDelete) ExecX(ctx context.Context) int {
-	n, err := sad.Exec(ctx)
+func (_d *SubscriptionAddonDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (sad *SubscriptionAddonDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *SubscriptionAddonDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(subscriptionaddon.Table, sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString))
-	if ps := sad.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, sad.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	sad.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // SubscriptionAddonDeleteOne is the builder for deleting a single SubscriptionAddon entity.
 type SubscriptionAddonDeleteOne struct {
-	sad *SubscriptionAddonDelete
+	_d *SubscriptionAddonDelete
 }
 
 // Where appends a list predicates to the SubscriptionAddonDelete builder.
-func (sado *SubscriptionAddonDeleteOne) Where(ps ...predicate.SubscriptionAddon) *SubscriptionAddonDeleteOne {
-	sado.sad.mutation.Where(ps...)
-	return sado
+func (_d *SubscriptionAddonDeleteOne) Where(ps ...predicate.SubscriptionAddon) *SubscriptionAddonDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (sado *SubscriptionAddonDeleteOne) Exec(ctx context.Context) error {
-	n, err := sado.sad.Exec(ctx)
+func (_d *SubscriptionAddonDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (sado *SubscriptionAddonDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (sado *SubscriptionAddonDeleteOne) ExecX(ctx context.Context) {
-	if err := sado.Exec(ctx); err != nil {
+func (_d *SubscriptionAddonDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

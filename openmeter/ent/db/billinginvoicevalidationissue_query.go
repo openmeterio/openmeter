@@ -32,44 +32,44 @@ type BillingInvoiceValidationIssueQuery struct {
 }
 
 // Where adds a new predicate for the BillingInvoiceValidationIssueQuery builder.
-func (biviq *BillingInvoiceValidationIssueQuery) Where(ps ...predicate.BillingInvoiceValidationIssue) *BillingInvoiceValidationIssueQuery {
-	biviq.predicates = append(biviq.predicates, ps...)
-	return biviq
+func (_q *BillingInvoiceValidationIssueQuery) Where(ps ...predicate.BillingInvoiceValidationIssue) *BillingInvoiceValidationIssueQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (biviq *BillingInvoiceValidationIssueQuery) Limit(limit int) *BillingInvoiceValidationIssueQuery {
-	biviq.ctx.Limit = &limit
-	return biviq
+func (_q *BillingInvoiceValidationIssueQuery) Limit(limit int) *BillingInvoiceValidationIssueQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (biviq *BillingInvoiceValidationIssueQuery) Offset(offset int) *BillingInvoiceValidationIssueQuery {
-	biviq.ctx.Offset = &offset
-	return biviq
+func (_q *BillingInvoiceValidationIssueQuery) Offset(offset int) *BillingInvoiceValidationIssueQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (biviq *BillingInvoiceValidationIssueQuery) Unique(unique bool) *BillingInvoiceValidationIssueQuery {
-	biviq.ctx.Unique = &unique
-	return biviq
+func (_q *BillingInvoiceValidationIssueQuery) Unique(unique bool) *BillingInvoiceValidationIssueQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (biviq *BillingInvoiceValidationIssueQuery) Order(o ...billinginvoicevalidationissue.OrderOption) *BillingInvoiceValidationIssueQuery {
-	biviq.order = append(biviq.order, o...)
-	return biviq
+func (_q *BillingInvoiceValidationIssueQuery) Order(o ...billinginvoicevalidationissue.OrderOption) *BillingInvoiceValidationIssueQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryBillingInvoice chains the current query on the "billing_invoice" edge.
-func (biviq *BillingInvoiceValidationIssueQuery) QueryBillingInvoice() *BillingInvoiceQuery {
-	query := (&BillingInvoiceClient{config: biviq.config}).Query()
+func (_q *BillingInvoiceValidationIssueQuery) QueryBillingInvoice() *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := biviq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := biviq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -78,7 +78,7 @@ func (biviq *BillingInvoiceValidationIssueQuery) QueryBillingInvoice() *BillingI
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicevalidationissue.BillingInvoiceTable, billinginvoicevalidationissue.BillingInvoiceColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(biviq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -86,8 +86,8 @@ func (biviq *BillingInvoiceValidationIssueQuery) QueryBillingInvoice() *BillingI
 
 // First returns the first BillingInvoiceValidationIssue entity from the query.
 // Returns a *NotFoundError when no BillingInvoiceValidationIssue was found.
-func (biviq *BillingInvoiceValidationIssueQuery) First(ctx context.Context) (*BillingInvoiceValidationIssue, error) {
-	nodes, err := biviq.Limit(1).All(setContextOp(ctx, biviq.ctx, ent.OpQueryFirst))
+func (_q *BillingInvoiceValidationIssueQuery) First(ctx context.Context) (*BillingInvoiceValidationIssue, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +98,8 @@ func (biviq *BillingInvoiceValidationIssueQuery) First(ctx context.Context) (*Bi
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (biviq *BillingInvoiceValidationIssueQuery) FirstX(ctx context.Context) *BillingInvoiceValidationIssue {
-	node, err := biviq.First(ctx)
+func (_q *BillingInvoiceValidationIssueQuery) FirstX(ctx context.Context) *BillingInvoiceValidationIssue {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -108,9 +108,9 @@ func (biviq *BillingInvoiceValidationIssueQuery) FirstX(ctx context.Context) *Bi
 
 // FirstID returns the first BillingInvoiceValidationIssue ID from the query.
 // Returns a *NotFoundError when no BillingInvoiceValidationIssue ID was found.
-func (biviq *BillingInvoiceValidationIssueQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *BillingInvoiceValidationIssueQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = biviq.Limit(1).IDs(setContextOp(ctx, biviq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -121,8 +121,8 @@ func (biviq *BillingInvoiceValidationIssueQuery) FirstID(ctx context.Context) (i
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (biviq *BillingInvoiceValidationIssueQuery) FirstIDX(ctx context.Context) string {
-	id, err := biviq.FirstID(ctx)
+func (_q *BillingInvoiceValidationIssueQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -132,8 +132,8 @@ func (biviq *BillingInvoiceValidationIssueQuery) FirstIDX(ctx context.Context) s
 // Only returns a single BillingInvoiceValidationIssue entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one BillingInvoiceValidationIssue entity is found.
 // Returns a *NotFoundError when no BillingInvoiceValidationIssue entities are found.
-func (biviq *BillingInvoiceValidationIssueQuery) Only(ctx context.Context) (*BillingInvoiceValidationIssue, error) {
-	nodes, err := biviq.Limit(2).All(setContextOp(ctx, biviq.ctx, ent.OpQueryOnly))
+func (_q *BillingInvoiceValidationIssueQuery) Only(ctx context.Context) (*BillingInvoiceValidationIssue, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +148,8 @@ func (biviq *BillingInvoiceValidationIssueQuery) Only(ctx context.Context) (*Bil
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (biviq *BillingInvoiceValidationIssueQuery) OnlyX(ctx context.Context) *BillingInvoiceValidationIssue {
-	node, err := biviq.Only(ctx)
+func (_q *BillingInvoiceValidationIssueQuery) OnlyX(ctx context.Context) *BillingInvoiceValidationIssue {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -159,9 +159,9 @@ func (biviq *BillingInvoiceValidationIssueQuery) OnlyX(ctx context.Context) *Bil
 // OnlyID is like Only, but returns the only BillingInvoiceValidationIssue ID in the query.
 // Returns a *NotSingularError when more than one BillingInvoiceValidationIssue ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (biviq *BillingInvoiceValidationIssueQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *BillingInvoiceValidationIssueQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = biviq.Limit(2).IDs(setContextOp(ctx, biviq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -176,8 +176,8 @@ func (biviq *BillingInvoiceValidationIssueQuery) OnlyID(ctx context.Context) (id
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (biviq *BillingInvoiceValidationIssueQuery) OnlyIDX(ctx context.Context) string {
-	id, err := biviq.OnlyID(ctx)
+func (_q *BillingInvoiceValidationIssueQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -185,18 +185,18 @@ func (biviq *BillingInvoiceValidationIssueQuery) OnlyIDX(ctx context.Context) st
 }
 
 // All executes the query and returns a list of BillingInvoiceValidationIssues.
-func (biviq *BillingInvoiceValidationIssueQuery) All(ctx context.Context) ([]*BillingInvoiceValidationIssue, error) {
-	ctx = setContextOp(ctx, biviq.ctx, ent.OpQueryAll)
-	if err := biviq.prepareQuery(ctx); err != nil {
+func (_q *BillingInvoiceValidationIssueQuery) All(ctx context.Context) ([]*BillingInvoiceValidationIssue, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*BillingInvoiceValidationIssue, *BillingInvoiceValidationIssueQuery]()
-	return withInterceptors[[]*BillingInvoiceValidationIssue](ctx, biviq, qr, biviq.inters)
+	return withInterceptors[[]*BillingInvoiceValidationIssue](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (biviq *BillingInvoiceValidationIssueQuery) AllX(ctx context.Context) []*BillingInvoiceValidationIssue {
-	nodes, err := biviq.All(ctx)
+func (_q *BillingInvoiceValidationIssueQuery) AllX(ctx context.Context) []*BillingInvoiceValidationIssue {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -204,20 +204,20 @@ func (biviq *BillingInvoiceValidationIssueQuery) AllX(ctx context.Context) []*Bi
 }
 
 // IDs executes the query and returns a list of BillingInvoiceValidationIssue IDs.
-func (biviq *BillingInvoiceValidationIssueQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if biviq.ctx.Unique == nil && biviq.path != nil {
-		biviq.Unique(true)
+func (_q *BillingInvoiceValidationIssueQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, biviq.ctx, ent.OpQueryIDs)
-	if err = biviq.Select(billinginvoicevalidationissue.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(billinginvoicevalidationissue.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (biviq *BillingInvoiceValidationIssueQuery) IDsX(ctx context.Context) []string {
-	ids, err := biviq.IDs(ctx)
+func (_q *BillingInvoiceValidationIssueQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -225,17 +225,17 @@ func (biviq *BillingInvoiceValidationIssueQuery) IDsX(ctx context.Context) []str
 }
 
 // Count returns the count of the given query.
-func (biviq *BillingInvoiceValidationIssueQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, biviq.ctx, ent.OpQueryCount)
-	if err := biviq.prepareQuery(ctx); err != nil {
+func (_q *BillingInvoiceValidationIssueQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, biviq, querierCount[*BillingInvoiceValidationIssueQuery](), biviq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BillingInvoiceValidationIssueQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (biviq *BillingInvoiceValidationIssueQuery) CountX(ctx context.Context) int {
-	count, err := biviq.Count(ctx)
+func (_q *BillingInvoiceValidationIssueQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -243,9 +243,9 @@ func (biviq *BillingInvoiceValidationIssueQuery) CountX(ctx context.Context) int
 }
 
 // Exist returns true if the query has elements in the graph.
-func (biviq *BillingInvoiceValidationIssueQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, biviq.ctx, ent.OpQueryExist)
-	switch _, err := biviq.FirstID(ctx); {
+func (_q *BillingInvoiceValidationIssueQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -256,8 +256,8 @@ func (biviq *BillingInvoiceValidationIssueQuery) Exist(ctx context.Context) (boo
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (biviq *BillingInvoiceValidationIssueQuery) ExistX(ctx context.Context) bool {
-	exist, err := biviq.Exist(ctx)
+func (_q *BillingInvoiceValidationIssueQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -266,32 +266,32 @@ func (biviq *BillingInvoiceValidationIssueQuery) ExistX(ctx context.Context) boo
 
 // Clone returns a duplicate of the BillingInvoiceValidationIssueQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (biviq *BillingInvoiceValidationIssueQuery) Clone() *BillingInvoiceValidationIssueQuery {
-	if biviq == nil {
+func (_q *BillingInvoiceValidationIssueQuery) Clone() *BillingInvoiceValidationIssueQuery {
+	if _q == nil {
 		return nil
 	}
 	return &BillingInvoiceValidationIssueQuery{
-		config:             biviq.config,
-		ctx:                biviq.ctx.Clone(),
-		order:              append([]billinginvoicevalidationissue.OrderOption{}, biviq.order...),
-		inters:             append([]Interceptor{}, biviq.inters...),
-		predicates:         append([]predicate.BillingInvoiceValidationIssue{}, biviq.predicates...),
-		withBillingInvoice: biviq.withBillingInvoice.Clone(),
+		config:             _q.config,
+		ctx:                _q.ctx.Clone(),
+		order:              append([]billinginvoicevalidationissue.OrderOption{}, _q.order...),
+		inters:             append([]Interceptor{}, _q.inters...),
+		predicates:         append([]predicate.BillingInvoiceValidationIssue{}, _q.predicates...),
+		withBillingInvoice: _q.withBillingInvoice.Clone(),
 		// clone intermediate query.
-		sql:  biviq.sql.Clone(),
-		path: biviq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithBillingInvoice tells the query-builder to eager-load the nodes that are connected to
 // the "billing_invoice" edge. The optional arguments are used to configure the query builder of the edge.
-func (biviq *BillingInvoiceValidationIssueQuery) WithBillingInvoice(opts ...func(*BillingInvoiceQuery)) *BillingInvoiceValidationIssueQuery {
-	query := (&BillingInvoiceClient{config: biviq.config}).Query()
+func (_q *BillingInvoiceValidationIssueQuery) WithBillingInvoice(opts ...func(*BillingInvoiceQuery)) *BillingInvoiceValidationIssueQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	biviq.withBillingInvoice = query
-	return biviq
+	_q.withBillingInvoice = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -308,10 +308,10 @@ func (biviq *BillingInvoiceValidationIssueQuery) WithBillingInvoice(opts ...func
 //		GroupBy(billinginvoicevalidationissue.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (biviq *BillingInvoiceValidationIssueQuery) GroupBy(field string, fields ...string) *BillingInvoiceValidationIssueGroupBy {
-	biviq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &BillingInvoiceValidationIssueGroupBy{build: biviq}
-	grbuild.flds = &biviq.ctx.Fields
+func (_q *BillingInvoiceValidationIssueQuery) GroupBy(field string, fields ...string) *BillingInvoiceValidationIssueGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &BillingInvoiceValidationIssueGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = billinginvoicevalidationissue.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -329,76 +329,76 @@ func (biviq *BillingInvoiceValidationIssueQuery) GroupBy(field string, fields ..
 //	client.BillingInvoiceValidationIssue.Query().
 //		Select(billinginvoicevalidationissue.FieldNamespace).
 //		Scan(ctx, &v)
-func (biviq *BillingInvoiceValidationIssueQuery) Select(fields ...string) *BillingInvoiceValidationIssueSelect {
-	biviq.ctx.Fields = append(biviq.ctx.Fields, fields...)
-	sbuild := &BillingInvoiceValidationIssueSelect{BillingInvoiceValidationIssueQuery: biviq}
+func (_q *BillingInvoiceValidationIssueQuery) Select(fields ...string) *BillingInvoiceValidationIssueSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &BillingInvoiceValidationIssueSelect{BillingInvoiceValidationIssueQuery: _q}
 	sbuild.label = billinginvoicevalidationissue.Label
-	sbuild.flds, sbuild.scan = &biviq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a BillingInvoiceValidationIssueSelect configured with the given aggregations.
-func (biviq *BillingInvoiceValidationIssueQuery) Aggregate(fns ...AggregateFunc) *BillingInvoiceValidationIssueSelect {
-	return biviq.Select().Aggregate(fns...)
+func (_q *BillingInvoiceValidationIssueQuery) Aggregate(fns ...AggregateFunc) *BillingInvoiceValidationIssueSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (biviq *BillingInvoiceValidationIssueQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range biviq.inters {
+func (_q *BillingInvoiceValidationIssueQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, biviq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range biviq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !billinginvoicevalidationissue.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if biviq.path != nil {
-		prev, err := biviq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		biviq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (biviq *BillingInvoiceValidationIssueQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoiceValidationIssue, error) {
+func (_q *BillingInvoiceValidationIssueQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoiceValidationIssue, error) {
 	var (
 		nodes       = []*BillingInvoiceValidationIssue{}
-		_spec       = biviq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [1]bool{
-			biviq.withBillingInvoice != nil,
+			_q.withBillingInvoice != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingInvoiceValidationIssue).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &BillingInvoiceValidationIssue{config: biviq.config}
+		node := &BillingInvoiceValidationIssue{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(biviq.modifiers) > 0 {
-		_spec.Modifiers = biviq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, biviq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := biviq.withBillingInvoice; query != nil {
-		if err := biviq.loadBillingInvoice(ctx, query, nodes, nil,
+	if query := _q.withBillingInvoice; query != nil {
+		if err := _q.loadBillingInvoice(ctx, query, nodes, nil,
 			func(n *BillingInvoiceValidationIssue, e *BillingInvoice) { n.Edges.BillingInvoice = e }); err != nil {
 			return nil, err
 		}
@@ -406,7 +406,7 @@ func (biviq *BillingInvoiceValidationIssueQuery) sqlAll(ctx context.Context, hoo
 	return nodes, nil
 }
 
-func (biviq *BillingInvoiceValidationIssueQuery) loadBillingInvoice(ctx context.Context, query *BillingInvoiceQuery, nodes []*BillingInvoiceValidationIssue, init func(*BillingInvoiceValidationIssue), assign func(*BillingInvoiceValidationIssue, *BillingInvoice)) error {
+func (_q *BillingInvoiceValidationIssueQuery) loadBillingInvoice(ctx context.Context, query *BillingInvoiceQuery, nodes []*BillingInvoiceValidationIssue, init func(*BillingInvoiceValidationIssue), assign func(*BillingInvoiceValidationIssue, *BillingInvoice)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingInvoiceValidationIssue)
 	for i := range nodes {
@@ -436,27 +436,27 @@ func (biviq *BillingInvoiceValidationIssueQuery) loadBillingInvoice(ctx context.
 	return nil
 }
 
-func (biviq *BillingInvoiceValidationIssueQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := biviq.querySpec()
-	if len(biviq.modifiers) > 0 {
-		_spec.Modifiers = biviq.modifiers
+func (_q *BillingInvoiceValidationIssueQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = biviq.ctx.Fields
-	if len(biviq.ctx.Fields) > 0 {
-		_spec.Unique = biviq.ctx.Unique != nil && *biviq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, biviq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (biviq *BillingInvoiceValidationIssueQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *BillingInvoiceValidationIssueQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(billinginvoicevalidationissue.Table, billinginvoicevalidationissue.Columns, sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString))
-	_spec.From = biviq.sql
-	if unique := biviq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if biviq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := biviq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billinginvoicevalidationissue.FieldID)
 		for i := range fields {
@@ -464,24 +464,24 @@ func (biviq *BillingInvoiceValidationIssueQuery) querySpec() *sqlgraph.QuerySpec
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if biviq.withBillingInvoice != nil {
+		if _q.withBillingInvoice != nil {
 			_spec.Node.AddColumnOnce(billinginvoicevalidationissue.FieldInvoiceID)
 		}
 	}
-	if ps := biviq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := biviq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := biviq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := biviq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -491,36 +491,36 @@ func (biviq *BillingInvoiceValidationIssueQuery) querySpec() *sqlgraph.QuerySpec
 	return _spec
 }
 
-func (biviq *BillingInvoiceValidationIssueQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(biviq.driver.Dialect())
+func (_q *BillingInvoiceValidationIssueQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(billinginvoicevalidationissue.Table)
-	columns := biviq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = billinginvoicevalidationissue.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if biviq.sql != nil {
-		selector = biviq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if biviq.ctx.Unique != nil && *biviq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range biviq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range biviq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range biviq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := biviq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := biviq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -529,27 +529,27 @@ func (biviq *BillingInvoiceValidationIssueQuery) sqlQuery(ctx context.Context) *
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (biviq *BillingInvoiceValidationIssueQuery) ForUpdate(opts ...sql.LockOption) *BillingInvoiceValidationIssueQuery {
-	if biviq.driver.Dialect() == dialect.Postgres {
-		biviq.Unique(false)
+func (_q *BillingInvoiceValidationIssueQuery) ForUpdate(opts ...sql.LockOption) *BillingInvoiceValidationIssueQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	biviq.modifiers = append(biviq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return biviq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (biviq *BillingInvoiceValidationIssueQuery) ForShare(opts ...sql.LockOption) *BillingInvoiceValidationIssueQuery {
-	if biviq.driver.Dialect() == dialect.Postgres {
-		biviq.Unique(false)
+func (_q *BillingInvoiceValidationIssueQuery) ForShare(opts ...sql.LockOption) *BillingInvoiceValidationIssueQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	biviq.modifiers = append(biviq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return biviq
+	return _q
 }
 
 // BillingInvoiceValidationIssueGroupBy is the group-by builder for BillingInvoiceValidationIssue entities.

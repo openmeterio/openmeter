@@ -23,149 +23,149 @@ type MeterUpdate struct {
 }
 
 // Where appends a list predicates to the MeterUpdate builder.
-func (mu *MeterUpdate) Where(ps ...predicate.Meter) *MeterUpdate {
-	mu.mutation.Where(ps...)
-	return mu
+func (_u *MeterUpdate) Where(ps ...predicate.Meter) *MeterUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (mu *MeterUpdate) SetMetadata(m map[string]string) *MeterUpdate {
-	mu.mutation.SetMetadata(m)
-	return mu
+func (_u *MeterUpdate) SetMetadata(v map[string]string) *MeterUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (mu *MeterUpdate) ClearMetadata() *MeterUpdate {
-	mu.mutation.ClearMetadata()
-	return mu
+func (_u *MeterUpdate) ClearMetadata() *MeterUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (mu *MeterUpdate) SetUpdatedAt(t time.Time) *MeterUpdate {
-	mu.mutation.SetUpdatedAt(t)
-	return mu
+func (_u *MeterUpdate) SetUpdatedAt(v time.Time) *MeterUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (mu *MeterUpdate) SetDeletedAt(t time.Time) *MeterUpdate {
-	mu.mutation.SetDeletedAt(t)
-	return mu
+func (_u *MeterUpdate) SetDeletedAt(v time.Time) *MeterUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (mu *MeterUpdate) SetNillableDeletedAt(t *time.Time) *MeterUpdate {
-	if t != nil {
-		mu.SetDeletedAt(*t)
+func (_u *MeterUpdate) SetNillableDeletedAt(v *time.Time) *MeterUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return mu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (mu *MeterUpdate) ClearDeletedAt() *MeterUpdate {
-	mu.mutation.ClearDeletedAt()
-	return mu
+func (_u *MeterUpdate) ClearDeletedAt() *MeterUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (mu *MeterUpdate) SetName(s string) *MeterUpdate {
-	mu.mutation.SetName(s)
-	return mu
+func (_u *MeterUpdate) SetName(v string) *MeterUpdate {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (mu *MeterUpdate) SetNillableName(s *string) *MeterUpdate {
-	if s != nil {
-		mu.SetName(*s)
+func (_u *MeterUpdate) SetNillableName(v *string) *MeterUpdate {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return mu
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (mu *MeterUpdate) SetDescription(s string) *MeterUpdate {
-	mu.mutation.SetDescription(s)
-	return mu
+func (_u *MeterUpdate) SetDescription(v string) *MeterUpdate {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (mu *MeterUpdate) SetNillableDescription(s *string) *MeterUpdate {
-	if s != nil {
-		mu.SetDescription(*s)
+func (_u *MeterUpdate) SetNillableDescription(v *string) *MeterUpdate {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return mu
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (mu *MeterUpdate) ClearDescription() *MeterUpdate {
-	mu.mutation.ClearDescription()
-	return mu
+func (_u *MeterUpdate) ClearDescription() *MeterUpdate {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetValueProperty sets the "value_property" field.
-func (mu *MeterUpdate) SetValueProperty(s string) *MeterUpdate {
-	mu.mutation.SetValueProperty(s)
-	return mu
+func (_u *MeterUpdate) SetValueProperty(v string) *MeterUpdate {
+	_u.mutation.SetValueProperty(v)
+	return _u
 }
 
 // SetNillableValueProperty sets the "value_property" field if the given value is not nil.
-func (mu *MeterUpdate) SetNillableValueProperty(s *string) *MeterUpdate {
-	if s != nil {
-		mu.SetValueProperty(*s)
+func (_u *MeterUpdate) SetNillableValueProperty(v *string) *MeterUpdate {
+	if v != nil {
+		_u.SetValueProperty(*v)
 	}
-	return mu
+	return _u
 }
 
 // ClearValueProperty clears the value of the "value_property" field.
-func (mu *MeterUpdate) ClearValueProperty() *MeterUpdate {
-	mu.mutation.ClearValueProperty()
-	return mu
+func (_u *MeterUpdate) ClearValueProperty() *MeterUpdate {
+	_u.mutation.ClearValueProperty()
+	return _u
 }
 
 // SetGroupBy sets the "group_by" field.
-func (mu *MeterUpdate) SetGroupBy(m map[string]string) *MeterUpdate {
-	mu.mutation.SetGroupBy(m)
-	return mu
+func (_u *MeterUpdate) SetGroupBy(v map[string]string) *MeterUpdate {
+	_u.mutation.SetGroupBy(v)
+	return _u
 }
 
 // ClearGroupBy clears the value of the "group_by" field.
-func (mu *MeterUpdate) ClearGroupBy() *MeterUpdate {
-	mu.mutation.ClearGroupBy()
-	return mu
+func (_u *MeterUpdate) ClearGroupBy() *MeterUpdate {
+	_u.mutation.ClearGroupBy()
+	return _u
 }
 
 // SetEventFrom sets the "event_from" field.
-func (mu *MeterUpdate) SetEventFrom(t time.Time) *MeterUpdate {
-	mu.mutation.SetEventFrom(t)
-	return mu
+func (_u *MeterUpdate) SetEventFrom(v time.Time) *MeterUpdate {
+	_u.mutation.SetEventFrom(v)
+	return _u
 }
 
 // SetNillableEventFrom sets the "event_from" field if the given value is not nil.
-func (mu *MeterUpdate) SetNillableEventFrom(t *time.Time) *MeterUpdate {
-	if t != nil {
-		mu.SetEventFrom(*t)
+func (_u *MeterUpdate) SetNillableEventFrom(v *time.Time) *MeterUpdate {
+	if v != nil {
+		_u.SetEventFrom(*v)
 	}
-	return mu
+	return _u
 }
 
 // ClearEventFrom clears the value of the "event_from" field.
-func (mu *MeterUpdate) ClearEventFrom() *MeterUpdate {
-	mu.mutation.ClearEventFrom()
-	return mu
+func (_u *MeterUpdate) ClearEventFrom() *MeterUpdate {
+	_u.mutation.ClearEventFrom()
+	return _u
 }
 
 // Mutation returns the MeterMutation object of the builder.
-func (mu *MeterUpdate) Mutation() *MeterMutation {
-	return mu.mutation
+func (_u *MeterUpdate) Mutation() *MeterMutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (mu *MeterUpdate) Save(ctx context.Context) (int, error) {
-	mu.defaults()
-	return withHooks(ctx, mu.sqlSave, mu.mutation, mu.hooks)
+func (_u *MeterUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (mu *MeterUpdate) SaveX(ctx context.Context) int {
-	affected, err := mu.Save(ctx)
+func (_u *MeterUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -173,78 +173,78 @@ func (mu *MeterUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (mu *MeterUpdate) Exec(ctx context.Context) error {
-	_, err := mu.Save(ctx)
+func (_u *MeterUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (mu *MeterUpdate) ExecX(ctx context.Context) {
-	if err := mu.Exec(ctx); err != nil {
+func (_u *MeterUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (mu *MeterUpdate) defaults() {
-	if _, ok := mu.mutation.UpdatedAt(); !ok {
+func (_u *MeterUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := dbmeter.UpdateDefaultUpdatedAt()
-		mu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
-func (mu *MeterUpdate) sqlSave(ctx context.Context) (n int, err error) {
+func (_u *MeterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	_spec := sqlgraph.NewUpdateSpec(dbmeter.Table, dbmeter.Columns, sqlgraph.NewFieldSpec(dbmeter.FieldID, field.TypeString))
-	if ps := mu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := mu.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(dbmeter.FieldMetadata, field.TypeJSON, value)
 	}
-	if mu.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(dbmeter.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := mu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbmeter.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := mu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(dbmeter.FieldDeletedAt, field.TypeTime, value)
 	}
-	if mu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(dbmeter.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := mu.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(dbmeter.FieldName, field.TypeString, value)
 	}
-	if value, ok := mu.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(dbmeter.FieldDescription, field.TypeString, value)
 	}
-	if mu.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(dbmeter.FieldDescription, field.TypeString)
 	}
-	if value, ok := mu.mutation.ValueProperty(); ok {
+	if value, ok := _u.mutation.ValueProperty(); ok {
 		_spec.SetField(dbmeter.FieldValueProperty, field.TypeString, value)
 	}
-	if mu.mutation.ValuePropertyCleared() {
+	if _u.mutation.ValuePropertyCleared() {
 		_spec.ClearField(dbmeter.FieldValueProperty, field.TypeString)
 	}
-	if value, ok := mu.mutation.GroupBy(); ok {
+	if value, ok := _u.mutation.GroupBy(); ok {
 		_spec.SetField(dbmeter.FieldGroupBy, field.TypeJSON, value)
 	}
-	if mu.mutation.GroupByCleared() {
+	if _u.mutation.GroupByCleared() {
 		_spec.ClearField(dbmeter.FieldGroupBy, field.TypeJSON)
 	}
-	if value, ok := mu.mutation.EventFrom(); ok {
+	if value, ok := _u.mutation.EventFrom(); ok {
 		_spec.SetField(dbmeter.FieldEventFrom, field.TypeTime, value)
 	}
-	if mu.mutation.EventFromCleared() {
+	if _u.mutation.EventFromCleared() {
 		_spec.ClearField(dbmeter.FieldEventFrom, field.TypeTime)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, mu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{dbmeter.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -252,8 +252,8 @@ func (mu *MeterUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
-	mu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // MeterUpdateOne is the builder for updating a single Meter entity.
@@ -265,156 +265,156 @@ type MeterUpdateOne struct {
 }
 
 // SetMetadata sets the "metadata" field.
-func (muo *MeterUpdateOne) SetMetadata(m map[string]string) *MeterUpdateOne {
-	muo.mutation.SetMetadata(m)
-	return muo
+func (_u *MeterUpdateOne) SetMetadata(v map[string]string) *MeterUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (muo *MeterUpdateOne) ClearMetadata() *MeterUpdateOne {
-	muo.mutation.ClearMetadata()
-	return muo
+func (_u *MeterUpdateOne) ClearMetadata() *MeterUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (muo *MeterUpdateOne) SetUpdatedAt(t time.Time) *MeterUpdateOne {
-	muo.mutation.SetUpdatedAt(t)
-	return muo
+func (_u *MeterUpdateOne) SetUpdatedAt(v time.Time) *MeterUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (muo *MeterUpdateOne) SetDeletedAt(t time.Time) *MeterUpdateOne {
-	muo.mutation.SetDeletedAt(t)
-	return muo
+func (_u *MeterUpdateOne) SetDeletedAt(v time.Time) *MeterUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (muo *MeterUpdateOne) SetNillableDeletedAt(t *time.Time) *MeterUpdateOne {
-	if t != nil {
-		muo.SetDeletedAt(*t)
+func (_u *MeterUpdateOne) SetNillableDeletedAt(v *time.Time) *MeterUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return muo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (muo *MeterUpdateOne) ClearDeletedAt() *MeterUpdateOne {
-	muo.mutation.ClearDeletedAt()
-	return muo
+func (_u *MeterUpdateOne) ClearDeletedAt() *MeterUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (muo *MeterUpdateOne) SetName(s string) *MeterUpdateOne {
-	muo.mutation.SetName(s)
-	return muo
+func (_u *MeterUpdateOne) SetName(v string) *MeterUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (muo *MeterUpdateOne) SetNillableName(s *string) *MeterUpdateOne {
-	if s != nil {
-		muo.SetName(*s)
+func (_u *MeterUpdateOne) SetNillableName(v *string) *MeterUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return muo
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (muo *MeterUpdateOne) SetDescription(s string) *MeterUpdateOne {
-	muo.mutation.SetDescription(s)
-	return muo
+func (_u *MeterUpdateOne) SetDescription(v string) *MeterUpdateOne {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (muo *MeterUpdateOne) SetNillableDescription(s *string) *MeterUpdateOne {
-	if s != nil {
-		muo.SetDescription(*s)
+func (_u *MeterUpdateOne) SetNillableDescription(v *string) *MeterUpdateOne {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return muo
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (muo *MeterUpdateOne) ClearDescription() *MeterUpdateOne {
-	muo.mutation.ClearDescription()
-	return muo
+func (_u *MeterUpdateOne) ClearDescription() *MeterUpdateOne {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetValueProperty sets the "value_property" field.
-func (muo *MeterUpdateOne) SetValueProperty(s string) *MeterUpdateOne {
-	muo.mutation.SetValueProperty(s)
-	return muo
+func (_u *MeterUpdateOne) SetValueProperty(v string) *MeterUpdateOne {
+	_u.mutation.SetValueProperty(v)
+	return _u
 }
 
 // SetNillableValueProperty sets the "value_property" field if the given value is not nil.
-func (muo *MeterUpdateOne) SetNillableValueProperty(s *string) *MeterUpdateOne {
-	if s != nil {
-		muo.SetValueProperty(*s)
+func (_u *MeterUpdateOne) SetNillableValueProperty(v *string) *MeterUpdateOne {
+	if v != nil {
+		_u.SetValueProperty(*v)
 	}
-	return muo
+	return _u
 }
 
 // ClearValueProperty clears the value of the "value_property" field.
-func (muo *MeterUpdateOne) ClearValueProperty() *MeterUpdateOne {
-	muo.mutation.ClearValueProperty()
-	return muo
+func (_u *MeterUpdateOne) ClearValueProperty() *MeterUpdateOne {
+	_u.mutation.ClearValueProperty()
+	return _u
 }
 
 // SetGroupBy sets the "group_by" field.
-func (muo *MeterUpdateOne) SetGroupBy(m map[string]string) *MeterUpdateOne {
-	muo.mutation.SetGroupBy(m)
-	return muo
+func (_u *MeterUpdateOne) SetGroupBy(v map[string]string) *MeterUpdateOne {
+	_u.mutation.SetGroupBy(v)
+	return _u
 }
 
 // ClearGroupBy clears the value of the "group_by" field.
-func (muo *MeterUpdateOne) ClearGroupBy() *MeterUpdateOne {
-	muo.mutation.ClearGroupBy()
-	return muo
+func (_u *MeterUpdateOne) ClearGroupBy() *MeterUpdateOne {
+	_u.mutation.ClearGroupBy()
+	return _u
 }
 
 // SetEventFrom sets the "event_from" field.
-func (muo *MeterUpdateOne) SetEventFrom(t time.Time) *MeterUpdateOne {
-	muo.mutation.SetEventFrom(t)
-	return muo
+func (_u *MeterUpdateOne) SetEventFrom(v time.Time) *MeterUpdateOne {
+	_u.mutation.SetEventFrom(v)
+	return _u
 }
 
 // SetNillableEventFrom sets the "event_from" field if the given value is not nil.
-func (muo *MeterUpdateOne) SetNillableEventFrom(t *time.Time) *MeterUpdateOne {
-	if t != nil {
-		muo.SetEventFrom(*t)
+func (_u *MeterUpdateOne) SetNillableEventFrom(v *time.Time) *MeterUpdateOne {
+	if v != nil {
+		_u.SetEventFrom(*v)
 	}
-	return muo
+	return _u
 }
 
 // ClearEventFrom clears the value of the "event_from" field.
-func (muo *MeterUpdateOne) ClearEventFrom() *MeterUpdateOne {
-	muo.mutation.ClearEventFrom()
-	return muo
+func (_u *MeterUpdateOne) ClearEventFrom() *MeterUpdateOne {
+	_u.mutation.ClearEventFrom()
+	return _u
 }
 
 // Mutation returns the MeterMutation object of the builder.
-func (muo *MeterUpdateOne) Mutation() *MeterMutation {
-	return muo.mutation
+func (_u *MeterUpdateOne) Mutation() *MeterMutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the MeterUpdate builder.
-func (muo *MeterUpdateOne) Where(ps ...predicate.Meter) *MeterUpdateOne {
-	muo.mutation.Where(ps...)
-	return muo
+func (_u *MeterUpdateOne) Where(ps ...predicate.Meter) *MeterUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (muo *MeterUpdateOne) Select(field string, fields ...string) *MeterUpdateOne {
-	muo.fields = append([]string{field}, fields...)
-	return muo
+func (_u *MeterUpdateOne) Select(field string, fields ...string) *MeterUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated Meter entity.
-func (muo *MeterUpdateOne) Save(ctx context.Context) (*Meter, error) {
-	muo.defaults()
-	return withHooks(ctx, muo.sqlSave, muo.mutation, muo.hooks)
+func (_u *MeterUpdateOne) Save(ctx context.Context) (*Meter, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (muo *MeterUpdateOne) SaveX(ctx context.Context) *Meter {
-	node, err := muo.Save(ctx)
+func (_u *MeterUpdateOne) SaveX(ctx context.Context) *Meter {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -422,34 +422,34 @@ func (muo *MeterUpdateOne) SaveX(ctx context.Context) *Meter {
 }
 
 // Exec executes the query on the entity.
-func (muo *MeterUpdateOne) Exec(ctx context.Context) error {
-	_, err := muo.Save(ctx)
+func (_u *MeterUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (muo *MeterUpdateOne) ExecX(ctx context.Context) {
-	if err := muo.Exec(ctx); err != nil {
+func (_u *MeterUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (muo *MeterUpdateOne) defaults() {
-	if _, ok := muo.mutation.UpdatedAt(); !ok {
+func (_u *MeterUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := dbmeter.UpdateDefaultUpdatedAt()
-		muo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
-func (muo *MeterUpdateOne) sqlSave(ctx context.Context) (_node *Meter, err error) {
+func (_u *MeterUpdateOne) sqlSave(ctx context.Context) (_node *Meter, err error) {
 	_spec := sqlgraph.NewUpdateSpec(dbmeter.Table, dbmeter.Columns, sqlgraph.NewFieldSpec(dbmeter.FieldID, field.TypeString))
-	id, ok := muo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "Meter.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := muo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, dbmeter.FieldID)
 		for _, f := range fields {
@@ -461,59 +461,59 @@ func (muo *MeterUpdateOne) sqlSave(ctx context.Context) (_node *Meter, err error
 			}
 		}
 	}
-	if ps := muo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := muo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(dbmeter.FieldMetadata, field.TypeJSON, value)
 	}
-	if muo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(dbmeter.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := muo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbmeter.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := muo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(dbmeter.FieldDeletedAt, field.TypeTime, value)
 	}
-	if muo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(dbmeter.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := muo.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(dbmeter.FieldName, field.TypeString, value)
 	}
-	if value, ok := muo.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(dbmeter.FieldDescription, field.TypeString, value)
 	}
-	if muo.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(dbmeter.FieldDescription, field.TypeString)
 	}
-	if value, ok := muo.mutation.ValueProperty(); ok {
+	if value, ok := _u.mutation.ValueProperty(); ok {
 		_spec.SetField(dbmeter.FieldValueProperty, field.TypeString, value)
 	}
-	if muo.mutation.ValuePropertyCleared() {
+	if _u.mutation.ValuePropertyCleared() {
 		_spec.ClearField(dbmeter.FieldValueProperty, field.TypeString)
 	}
-	if value, ok := muo.mutation.GroupBy(); ok {
+	if value, ok := _u.mutation.GroupBy(); ok {
 		_spec.SetField(dbmeter.FieldGroupBy, field.TypeJSON, value)
 	}
-	if muo.mutation.GroupByCleared() {
+	if _u.mutation.GroupByCleared() {
 		_spec.ClearField(dbmeter.FieldGroupBy, field.TypeJSON)
 	}
-	if value, ok := muo.mutation.EventFrom(); ok {
+	if value, ok := _u.mutation.EventFrom(); ok {
 		_spec.SetField(dbmeter.FieldEventFrom, field.TypeTime, value)
 	}
-	if muo.mutation.EventFromCleared() {
+	if _u.mutation.EventFromCleared() {
 		_spec.ClearField(dbmeter.FieldEventFrom, field.TypeTime)
 	}
-	_node = &Meter{config: muo.config}
+	_node = &Meter{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, muo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{dbmeter.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -521,6 +521,6 @@ func (muo *MeterUpdateOne) sqlSave(ctx context.Context) (_node *Meter, err error
 		}
 		return nil, err
 	}
-	muo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

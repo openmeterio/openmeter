@@ -123,7 +123,7 @@ func (*AddonRateCard) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the AddonRateCard fields.
-func (arc *AddonRateCard) assignValues(columns []string, values []any) error {
+func (_m *AddonRateCard) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -133,19 +133,19 @@ func (arc *AddonRateCard) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				arc.ID = value.String
+				_m.ID = value.String
 			}
 		case addonratecard.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				arc.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case addonratecard.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &arc.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -153,99 +153,99 @@ func (arc *AddonRateCard) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				arc.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case addonratecard.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				arc.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case addonratecard.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				arc.DeletedAt = new(time.Time)
-				*arc.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case addonratecard.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				arc.Name = value.String
+				_m.Name = value.String
 			}
 		case addonratecard.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				arc.Description = new(string)
-				*arc.Description = value.String
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case addonratecard.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
-				arc.Key = value.String
+				_m.Key = value.String
 			}
 		case addonratecard.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				arc.Type = productcatalog.RateCardType(value.String)
+				_m.Type = productcatalog.RateCardType(value.String)
 			}
 		case addonratecard.FieldFeatureKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_key", values[i])
 			} else if value.Valid {
-				arc.FeatureKey = new(string)
-				*arc.FeatureKey = value.String
+				_m.FeatureKey = new(string)
+				*_m.FeatureKey = value.String
 			}
 		case addonratecard.FieldEntitlementTemplate:
 			if value, err := addonratecard.ValueScanner.EntitlementTemplate.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				arc.EntitlementTemplate = value
+				_m.EntitlementTemplate = value
 			}
 		case addonratecard.FieldTaxConfig:
 			if value, err := addonratecard.ValueScanner.TaxConfig.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				arc.TaxConfig = value
+				_m.TaxConfig = value
 			}
 		case addonratecard.FieldBillingCadence:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_cadence", values[i])
 			} else if value.Valid {
-				arc.BillingCadence = new(isodate.String)
-				*arc.BillingCadence = isodate.String(value.String)
+				_m.BillingCadence = new(isodate.String)
+				*_m.BillingCadence = isodate.String(value.String)
 			}
 		case addonratecard.FieldPrice:
 			if value, err := addonratecard.ValueScanner.Price.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				arc.Price = value
+				_m.Price = value
 			}
 		case addonratecard.FieldDiscounts:
 			if value, err := addonratecard.ValueScanner.Discounts.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				arc.Discounts = value
+				_m.Discounts = value
 			}
 		case addonratecard.FieldAddonID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field addon_id", values[i])
 			} else if value.Valid {
-				arc.AddonID = value.String
+				_m.AddonID = value.String
 			}
 		case addonratecard.FieldFeatureID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
 			} else if value.Valid {
-				arc.FeatureID = new(string)
-				*arc.FeatureID = value.String
+				_m.FeatureID = new(string)
+				*_m.FeatureID = value.String
 			}
 		default:
-			arc.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -253,108 +253,108 @@ func (arc *AddonRateCard) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the AddonRateCard.
 // This includes values selected through modifiers, order, etc.
-func (arc *AddonRateCard) Value(name string) (ent.Value, error) {
-	return arc.selectValues.Get(name)
+func (_m *AddonRateCard) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryAddon queries the "addon" edge of the AddonRateCard entity.
-func (arc *AddonRateCard) QueryAddon() *AddonQuery {
-	return NewAddonRateCardClient(arc.config).QueryAddon(arc)
+func (_m *AddonRateCard) QueryAddon() *AddonQuery {
+	return NewAddonRateCardClient(_m.config).QueryAddon(_m)
 }
 
 // QueryFeatures queries the "features" edge of the AddonRateCard entity.
-func (arc *AddonRateCard) QueryFeatures() *FeatureQuery {
-	return NewAddonRateCardClient(arc.config).QueryFeatures(arc)
+func (_m *AddonRateCard) QueryFeatures() *FeatureQuery {
+	return NewAddonRateCardClient(_m.config).QueryFeatures(_m)
 }
 
 // Update returns a builder for updating this AddonRateCard.
 // Note that you need to call AddonRateCard.Unwrap() before calling this method if this AddonRateCard
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (arc *AddonRateCard) Update() *AddonRateCardUpdateOne {
-	return NewAddonRateCardClient(arc.config).UpdateOne(arc)
+func (_m *AddonRateCard) Update() *AddonRateCardUpdateOne {
+	return NewAddonRateCardClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the AddonRateCard entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (arc *AddonRateCard) Unwrap() *AddonRateCard {
-	_tx, ok := arc.config.driver.(*txDriver)
+func (_m *AddonRateCard) Unwrap() *AddonRateCard {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: AddonRateCard is not a transactional entity")
 	}
-	arc.config.driver = _tx.drv
-	return arc
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (arc *AddonRateCard) String() string {
+func (_m *AddonRateCard) String() string {
 	var builder strings.Builder
 	builder.WriteString("AddonRateCard(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", arc.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(arc.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", arc.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(arc.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(arc.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := arc.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
-	builder.WriteString(arc.Name)
+	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
-	if v := arc.Description; v != nil {
+	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("key=")
-	builder.WriteString(arc.Key)
+	builder.WriteString(_m.Key)
 	builder.WriteString(", ")
 	builder.WriteString("type=")
-	builder.WriteString(fmt.Sprintf("%v", arc.Type))
+	builder.WriteString(fmt.Sprintf("%v", _m.Type))
 	builder.WriteString(", ")
-	if v := arc.FeatureKey; v != nil {
+	if v := _m.FeatureKey; v != nil {
 		builder.WriteString("feature_key=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := arc.EntitlementTemplate; v != nil {
+	if v := _m.EntitlementTemplate; v != nil {
 		builder.WriteString("entitlement_template=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := arc.TaxConfig; v != nil {
+	if v := _m.TaxConfig; v != nil {
 		builder.WriteString("tax_config=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := arc.BillingCadence; v != nil {
+	if v := _m.BillingCadence; v != nil {
 		builder.WriteString("billing_cadence=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := arc.Price; v != nil {
+	if v := _m.Price; v != nil {
 		builder.WriteString("price=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := arc.Discounts; v != nil {
+	if v := _m.Discounts; v != nil {
 		builder.WriteString("discounts=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("addon_id=")
-	builder.WriteString(arc.AddonID)
+	builder.WriteString(_m.AddonID)
 	builder.WriteString(", ")
-	if v := arc.FeatureID; v != nil {
+	if v := _m.FeatureID; v != nil {
 		builder.WriteString("feature_id=")
 		builder.WriteString(*v)
 	}

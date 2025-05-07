@@ -23,51 +23,51 @@ type AppCustomerUpdate struct {
 }
 
 // Where appends a list predicates to the AppCustomerUpdate builder.
-func (acu *AppCustomerUpdate) Where(ps ...predicate.AppCustomer) *AppCustomerUpdate {
-	acu.mutation.Where(ps...)
-	return acu
+func (_u *AppCustomerUpdate) Where(ps ...predicate.AppCustomer) *AppCustomerUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (acu *AppCustomerUpdate) SetUpdatedAt(t time.Time) *AppCustomerUpdate {
-	acu.mutation.SetUpdatedAt(t)
-	return acu
+func (_u *AppCustomerUpdate) SetUpdatedAt(v time.Time) *AppCustomerUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (acu *AppCustomerUpdate) SetDeletedAt(t time.Time) *AppCustomerUpdate {
-	acu.mutation.SetDeletedAt(t)
-	return acu
+func (_u *AppCustomerUpdate) SetDeletedAt(v time.Time) *AppCustomerUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (acu *AppCustomerUpdate) SetNillableDeletedAt(t *time.Time) *AppCustomerUpdate {
-	if t != nil {
-		acu.SetDeletedAt(*t)
+func (_u *AppCustomerUpdate) SetNillableDeletedAt(v *time.Time) *AppCustomerUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return acu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (acu *AppCustomerUpdate) ClearDeletedAt() *AppCustomerUpdate {
-	acu.mutation.ClearDeletedAt()
-	return acu
+func (_u *AppCustomerUpdate) ClearDeletedAt() *AppCustomerUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // Mutation returns the AppCustomerMutation object of the builder.
-func (acu *AppCustomerUpdate) Mutation() *AppCustomerMutation {
-	return acu.mutation
+func (_u *AppCustomerUpdate) Mutation() *AppCustomerMutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (acu *AppCustomerUpdate) Save(ctx context.Context) (int, error) {
-	acu.defaults()
-	return withHooks(ctx, acu.sqlSave, acu.mutation, acu.hooks)
+func (_u *AppCustomerUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (acu *AppCustomerUpdate) SaveX(ctx context.Context) int {
-	affected, err := acu.Save(ctx)
+func (_u *AppCustomerUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -75,59 +75,59 @@ func (acu *AppCustomerUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (acu *AppCustomerUpdate) Exec(ctx context.Context) error {
-	_, err := acu.Save(ctx)
+func (_u *AppCustomerUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (acu *AppCustomerUpdate) ExecX(ctx context.Context) {
-	if err := acu.Exec(ctx); err != nil {
+func (_u *AppCustomerUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (acu *AppCustomerUpdate) defaults() {
-	if _, ok := acu.mutation.UpdatedAt(); !ok {
+func (_u *AppCustomerUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := appcustomer.UpdateDefaultUpdatedAt()
-		acu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (acu *AppCustomerUpdate) check() error {
-	if acu.mutation.AppCleared() && len(acu.mutation.AppIDs()) > 0 {
+func (_u *AppCustomerUpdate) check() error {
+	if _u.mutation.AppCleared() && len(_u.mutation.AppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppCustomer.app"`)
 	}
-	if acu.mutation.CustomerCleared() && len(acu.mutation.CustomerIDs()) > 0 {
+	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppCustomer.customer"`)
 	}
 	return nil
 }
 
-func (acu *AppCustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := acu.check(); err != nil {
-		return n, err
+func (_u *AppCustomerUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(appcustomer.Table, appcustomer.Columns, sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt))
-	if ps := acu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := acu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(appcustomer.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := acu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(appcustomer.FieldDeletedAt, field.TypeTime, value)
 	}
-	if acu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(appcustomer.FieldDeletedAt, field.TypeTime)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, acu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{appcustomer.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -135,8 +135,8 @@ func (acu *AppCustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
-	acu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // AppCustomerUpdateOne is the builder for updating a single AppCustomer entity.
@@ -148,58 +148,58 @@ type AppCustomerUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (acuo *AppCustomerUpdateOne) SetUpdatedAt(t time.Time) *AppCustomerUpdateOne {
-	acuo.mutation.SetUpdatedAt(t)
-	return acuo
+func (_u *AppCustomerUpdateOne) SetUpdatedAt(v time.Time) *AppCustomerUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (acuo *AppCustomerUpdateOne) SetDeletedAt(t time.Time) *AppCustomerUpdateOne {
-	acuo.mutation.SetDeletedAt(t)
-	return acuo
+func (_u *AppCustomerUpdateOne) SetDeletedAt(v time.Time) *AppCustomerUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (acuo *AppCustomerUpdateOne) SetNillableDeletedAt(t *time.Time) *AppCustomerUpdateOne {
-	if t != nil {
-		acuo.SetDeletedAt(*t)
+func (_u *AppCustomerUpdateOne) SetNillableDeletedAt(v *time.Time) *AppCustomerUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return acuo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (acuo *AppCustomerUpdateOne) ClearDeletedAt() *AppCustomerUpdateOne {
-	acuo.mutation.ClearDeletedAt()
-	return acuo
+func (_u *AppCustomerUpdateOne) ClearDeletedAt() *AppCustomerUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // Mutation returns the AppCustomerMutation object of the builder.
-func (acuo *AppCustomerUpdateOne) Mutation() *AppCustomerMutation {
-	return acuo.mutation
+func (_u *AppCustomerUpdateOne) Mutation() *AppCustomerMutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the AppCustomerUpdate builder.
-func (acuo *AppCustomerUpdateOne) Where(ps ...predicate.AppCustomer) *AppCustomerUpdateOne {
-	acuo.mutation.Where(ps...)
-	return acuo
+func (_u *AppCustomerUpdateOne) Where(ps ...predicate.AppCustomer) *AppCustomerUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (acuo *AppCustomerUpdateOne) Select(field string, fields ...string) *AppCustomerUpdateOne {
-	acuo.fields = append([]string{field}, fields...)
-	return acuo
+func (_u *AppCustomerUpdateOne) Select(field string, fields ...string) *AppCustomerUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated AppCustomer entity.
-func (acuo *AppCustomerUpdateOne) Save(ctx context.Context) (*AppCustomer, error) {
-	acuo.defaults()
-	return withHooks(ctx, acuo.sqlSave, acuo.mutation, acuo.hooks)
+func (_u *AppCustomerUpdateOne) Save(ctx context.Context) (*AppCustomer, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (acuo *AppCustomerUpdateOne) SaveX(ctx context.Context) *AppCustomer {
-	node, err := acuo.Save(ctx)
+func (_u *AppCustomerUpdateOne) SaveX(ctx context.Context) *AppCustomer {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -207,48 +207,48 @@ func (acuo *AppCustomerUpdateOne) SaveX(ctx context.Context) *AppCustomer {
 }
 
 // Exec executes the query on the entity.
-func (acuo *AppCustomerUpdateOne) Exec(ctx context.Context) error {
-	_, err := acuo.Save(ctx)
+func (_u *AppCustomerUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (acuo *AppCustomerUpdateOne) ExecX(ctx context.Context) {
-	if err := acuo.Exec(ctx); err != nil {
+func (_u *AppCustomerUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (acuo *AppCustomerUpdateOne) defaults() {
-	if _, ok := acuo.mutation.UpdatedAt(); !ok {
+func (_u *AppCustomerUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := appcustomer.UpdateDefaultUpdatedAt()
-		acuo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (acuo *AppCustomerUpdateOne) check() error {
-	if acuo.mutation.AppCleared() && len(acuo.mutation.AppIDs()) > 0 {
+func (_u *AppCustomerUpdateOne) check() error {
+	if _u.mutation.AppCleared() && len(_u.mutation.AppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppCustomer.app"`)
 	}
-	if acuo.mutation.CustomerCleared() && len(acuo.mutation.CustomerIDs()) > 0 {
+	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppCustomer.customer"`)
 	}
 	return nil
 }
 
-func (acuo *AppCustomerUpdateOne) sqlSave(ctx context.Context) (_node *AppCustomer, err error) {
-	if err := acuo.check(); err != nil {
+func (_u *AppCustomerUpdateOne) sqlSave(ctx context.Context) (_node *AppCustomer, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(appcustomer.Table, appcustomer.Columns, sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt))
-	id, ok := acuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "AppCustomer.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := acuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, appcustomer.FieldID)
 		for _, f := range fields {
@@ -260,26 +260,26 @@ func (acuo *AppCustomerUpdateOne) sqlSave(ctx context.Context) (_node *AppCustom
 			}
 		}
 	}
-	if ps := acuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := acuo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(appcustomer.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := acuo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(appcustomer.FieldDeletedAt, field.TypeTime, value)
 	}
-	if acuo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(appcustomer.FieldDeletedAt, field.TypeTime)
 	}
-	_node = &AppCustomer{config: acuo.config}
+	_node = &AppCustomer{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, acuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{appcustomer.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -287,6 +287,6 @@ func (acuo *AppCustomerUpdateOne) sqlSave(ctx context.Context) (_node *AppCustom
 		}
 		return nil, err
 	}
-	acuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

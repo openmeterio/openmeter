@@ -25,120 +25,120 @@ type SubscriptionAddonQuantityCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (saqc *SubscriptionAddonQuantityCreate) SetNamespace(s string) *SubscriptionAddonQuantityCreate {
-	saqc.mutation.SetNamespace(s)
-	return saqc
+func (_c *SubscriptionAddonQuantityCreate) SetNamespace(v string) *SubscriptionAddonQuantityCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (saqc *SubscriptionAddonQuantityCreate) SetCreatedAt(t time.Time) *SubscriptionAddonQuantityCreate {
-	saqc.mutation.SetCreatedAt(t)
-	return saqc
+func (_c *SubscriptionAddonQuantityCreate) SetCreatedAt(v time.Time) *SubscriptionAddonQuantityCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (saqc *SubscriptionAddonQuantityCreate) SetNillableCreatedAt(t *time.Time) *SubscriptionAddonQuantityCreate {
-	if t != nil {
-		saqc.SetCreatedAt(*t)
+func (_c *SubscriptionAddonQuantityCreate) SetNillableCreatedAt(v *time.Time) *SubscriptionAddonQuantityCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return saqc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (saqc *SubscriptionAddonQuantityCreate) SetUpdatedAt(t time.Time) *SubscriptionAddonQuantityCreate {
-	saqc.mutation.SetUpdatedAt(t)
-	return saqc
+func (_c *SubscriptionAddonQuantityCreate) SetUpdatedAt(v time.Time) *SubscriptionAddonQuantityCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (saqc *SubscriptionAddonQuantityCreate) SetNillableUpdatedAt(t *time.Time) *SubscriptionAddonQuantityCreate {
-	if t != nil {
-		saqc.SetUpdatedAt(*t)
+func (_c *SubscriptionAddonQuantityCreate) SetNillableUpdatedAt(v *time.Time) *SubscriptionAddonQuantityCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return saqc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (saqc *SubscriptionAddonQuantityCreate) SetDeletedAt(t time.Time) *SubscriptionAddonQuantityCreate {
-	saqc.mutation.SetDeletedAt(t)
-	return saqc
+func (_c *SubscriptionAddonQuantityCreate) SetDeletedAt(v time.Time) *SubscriptionAddonQuantityCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (saqc *SubscriptionAddonQuantityCreate) SetNillableDeletedAt(t *time.Time) *SubscriptionAddonQuantityCreate {
-	if t != nil {
-		saqc.SetDeletedAt(*t)
+func (_c *SubscriptionAddonQuantityCreate) SetNillableDeletedAt(v *time.Time) *SubscriptionAddonQuantityCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return saqc
+	return _c
 }
 
 // SetActiveFrom sets the "active_from" field.
-func (saqc *SubscriptionAddonQuantityCreate) SetActiveFrom(t time.Time) *SubscriptionAddonQuantityCreate {
-	saqc.mutation.SetActiveFrom(t)
-	return saqc
+func (_c *SubscriptionAddonQuantityCreate) SetActiveFrom(v time.Time) *SubscriptionAddonQuantityCreate {
+	_c.mutation.SetActiveFrom(v)
+	return _c
 }
 
 // SetNillableActiveFrom sets the "active_from" field if the given value is not nil.
-func (saqc *SubscriptionAddonQuantityCreate) SetNillableActiveFrom(t *time.Time) *SubscriptionAddonQuantityCreate {
-	if t != nil {
-		saqc.SetActiveFrom(*t)
+func (_c *SubscriptionAddonQuantityCreate) SetNillableActiveFrom(v *time.Time) *SubscriptionAddonQuantityCreate {
+	if v != nil {
+		_c.SetActiveFrom(*v)
 	}
-	return saqc
+	return _c
 }
 
 // SetQuantity sets the "quantity" field.
-func (saqc *SubscriptionAddonQuantityCreate) SetQuantity(i int) *SubscriptionAddonQuantityCreate {
-	saqc.mutation.SetQuantity(i)
-	return saqc
+func (_c *SubscriptionAddonQuantityCreate) SetQuantity(v int) *SubscriptionAddonQuantityCreate {
+	_c.mutation.SetQuantity(v)
+	return _c
 }
 
 // SetNillableQuantity sets the "quantity" field if the given value is not nil.
-func (saqc *SubscriptionAddonQuantityCreate) SetNillableQuantity(i *int) *SubscriptionAddonQuantityCreate {
-	if i != nil {
-		saqc.SetQuantity(*i)
+func (_c *SubscriptionAddonQuantityCreate) SetNillableQuantity(v *int) *SubscriptionAddonQuantityCreate {
+	if v != nil {
+		_c.SetQuantity(*v)
 	}
-	return saqc
+	return _c
 }
 
 // SetSubscriptionAddonID sets the "subscription_addon_id" field.
-func (saqc *SubscriptionAddonQuantityCreate) SetSubscriptionAddonID(s string) *SubscriptionAddonQuantityCreate {
-	saqc.mutation.SetSubscriptionAddonID(s)
-	return saqc
+func (_c *SubscriptionAddonQuantityCreate) SetSubscriptionAddonID(v string) *SubscriptionAddonQuantityCreate {
+	_c.mutation.SetSubscriptionAddonID(v)
+	return _c
 }
 
 // SetID sets the "id" field.
-func (saqc *SubscriptionAddonQuantityCreate) SetID(s string) *SubscriptionAddonQuantityCreate {
-	saqc.mutation.SetID(s)
-	return saqc
+func (_c *SubscriptionAddonQuantityCreate) SetID(v string) *SubscriptionAddonQuantityCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (saqc *SubscriptionAddonQuantityCreate) SetNillableID(s *string) *SubscriptionAddonQuantityCreate {
-	if s != nil {
-		saqc.SetID(*s)
+func (_c *SubscriptionAddonQuantityCreate) SetNillableID(v *string) *SubscriptionAddonQuantityCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return saqc
+	return _c
 }
 
 // SetSubscriptionAddon sets the "subscription_addon" edge to the SubscriptionAddon entity.
-func (saqc *SubscriptionAddonQuantityCreate) SetSubscriptionAddon(s *SubscriptionAddon) *SubscriptionAddonQuantityCreate {
-	return saqc.SetSubscriptionAddonID(s.ID)
+func (_c *SubscriptionAddonQuantityCreate) SetSubscriptionAddon(v *SubscriptionAddon) *SubscriptionAddonQuantityCreate {
+	return _c.SetSubscriptionAddonID(v.ID)
 }
 
 // Mutation returns the SubscriptionAddonQuantityMutation object of the builder.
-func (saqc *SubscriptionAddonQuantityCreate) Mutation() *SubscriptionAddonQuantityMutation {
-	return saqc.mutation
+func (_c *SubscriptionAddonQuantityCreate) Mutation() *SubscriptionAddonQuantityMutation {
+	return _c.mutation
 }
 
 // Save creates the SubscriptionAddonQuantity in the database.
-func (saqc *SubscriptionAddonQuantityCreate) Save(ctx context.Context) (*SubscriptionAddonQuantity, error) {
-	saqc.defaults()
-	return withHooks(ctx, saqc.sqlSave, saqc.mutation, saqc.hooks)
+func (_c *SubscriptionAddonQuantityCreate) Save(ctx context.Context) (*SubscriptionAddonQuantity, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (saqc *SubscriptionAddonQuantityCreate) SaveX(ctx context.Context) *SubscriptionAddonQuantity {
-	v, err := saqc.Save(ctx)
+func (_c *SubscriptionAddonQuantityCreate) SaveX(ctx context.Context) *SubscriptionAddonQuantity {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -146,89 +146,89 @@ func (saqc *SubscriptionAddonQuantityCreate) SaveX(ctx context.Context) *Subscri
 }
 
 // Exec executes the query.
-func (saqc *SubscriptionAddonQuantityCreate) Exec(ctx context.Context) error {
-	_, err := saqc.Save(ctx)
+func (_c *SubscriptionAddonQuantityCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (saqc *SubscriptionAddonQuantityCreate) ExecX(ctx context.Context) {
-	if err := saqc.Exec(ctx); err != nil {
+func (_c *SubscriptionAddonQuantityCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (saqc *SubscriptionAddonQuantityCreate) defaults() {
-	if _, ok := saqc.mutation.CreatedAt(); !ok {
+func (_c *SubscriptionAddonQuantityCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := subscriptionaddonquantity.DefaultCreatedAt()
-		saqc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := saqc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := subscriptionaddonquantity.DefaultUpdatedAt()
-		saqc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := saqc.mutation.ActiveFrom(); !ok {
+	if _, ok := _c.mutation.ActiveFrom(); !ok {
 		v := subscriptionaddonquantity.DefaultActiveFrom()
-		saqc.mutation.SetActiveFrom(v)
+		_c.mutation.SetActiveFrom(v)
 	}
-	if _, ok := saqc.mutation.Quantity(); !ok {
+	if _, ok := _c.mutation.Quantity(); !ok {
 		v := subscriptionaddonquantity.DefaultQuantity
-		saqc.mutation.SetQuantity(v)
+		_c.mutation.SetQuantity(v)
 	}
-	if _, ok := saqc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := subscriptionaddonquantity.DefaultID()
-		saqc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (saqc *SubscriptionAddonQuantityCreate) check() error {
-	if _, ok := saqc.mutation.Namespace(); !ok {
+func (_c *SubscriptionAddonQuantityCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "SubscriptionAddonQuantity.namespace"`)}
 	}
-	if v, ok := saqc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := subscriptionaddonquantity.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "SubscriptionAddonQuantity.namespace": %w`, err)}
 		}
 	}
-	if _, ok := saqc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "SubscriptionAddonQuantity.created_at"`)}
 	}
-	if _, ok := saqc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "SubscriptionAddonQuantity.updated_at"`)}
 	}
-	if _, ok := saqc.mutation.ActiveFrom(); !ok {
+	if _, ok := _c.mutation.ActiveFrom(); !ok {
 		return &ValidationError{Name: "active_from", err: errors.New(`db: missing required field "SubscriptionAddonQuantity.active_from"`)}
 	}
-	if _, ok := saqc.mutation.Quantity(); !ok {
+	if _, ok := _c.mutation.Quantity(); !ok {
 		return &ValidationError{Name: "quantity", err: errors.New(`db: missing required field "SubscriptionAddonQuantity.quantity"`)}
 	}
-	if v, ok := saqc.mutation.Quantity(); ok {
+	if v, ok := _c.mutation.Quantity(); ok {
 		if err := subscriptionaddonquantity.QuantityValidator(v); err != nil {
 			return &ValidationError{Name: "quantity", err: fmt.Errorf(`db: validator failed for field "SubscriptionAddonQuantity.quantity": %w`, err)}
 		}
 	}
-	if _, ok := saqc.mutation.SubscriptionAddonID(); !ok {
+	if _, ok := _c.mutation.SubscriptionAddonID(); !ok {
 		return &ValidationError{Name: "subscription_addon_id", err: errors.New(`db: missing required field "SubscriptionAddonQuantity.subscription_addon_id"`)}
 	}
-	if v, ok := saqc.mutation.SubscriptionAddonID(); ok {
+	if v, ok := _c.mutation.SubscriptionAddonID(); ok {
 		if err := subscriptionaddonquantity.SubscriptionAddonIDValidator(v); err != nil {
 			return &ValidationError{Name: "subscription_addon_id", err: fmt.Errorf(`db: validator failed for field "SubscriptionAddonQuantity.subscription_addon_id": %w`, err)}
 		}
 	}
-	if len(saqc.mutation.SubscriptionAddonIDs()) == 0 {
+	if len(_c.mutation.SubscriptionAddonIDs()) == 0 {
 		return &ValidationError{Name: "subscription_addon", err: errors.New(`db: missing required edge "SubscriptionAddonQuantity.subscription_addon"`)}
 	}
 	return nil
 }
 
-func (saqc *SubscriptionAddonQuantityCreate) sqlSave(ctx context.Context) (*SubscriptionAddonQuantity, error) {
-	if err := saqc.check(); err != nil {
+func (_c *SubscriptionAddonQuantityCreate) sqlSave(ctx context.Context) (*SubscriptionAddonQuantity, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := saqc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, saqc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -241,46 +241,46 @@ func (saqc *SubscriptionAddonQuantityCreate) sqlSave(ctx context.Context) (*Subs
 			return nil, fmt.Errorf("unexpected SubscriptionAddonQuantity.ID type: %T", _spec.ID.Value)
 		}
 	}
-	saqc.mutation.id = &_node.ID
-	saqc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (saqc *SubscriptionAddonQuantityCreate) createSpec() (*SubscriptionAddonQuantity, *sqlgraph.CreateSpec) {
+func (_c *SubscriptionAddonQuantityCreate) createSpec() (*SubscriptionAddonQuantity, *sqlgraph.CreateSpec) {
 	var (
-		_node = &SubscriptionAddonQuantity{config: saqc.config}
+		_node = &SubscriptionAddonQuantity{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(subscriptionaddonquantity.Table, sqlgraph.NewFieldSpec(subscriptionaddonquantity.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = saqc.conflict
-	if id, ok := saqc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := saqc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(subscriptionaddonquantity.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := saqc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(subscriptionaddonquantity.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := saqc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionaddonquantity.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := saqc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(subscriptionaddonquantity.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := saqc.mutation.ActiveFrom(); ok {
+	if value, ok := _c.mutation.ActiveFrom(); ok {
 		_spec.SetField(subscriptionaddonquantity.FieldActiveFrom, field.TypeTime, value)
 		_node.ActiveFrom = value
 	}
-	if value, ok := saqc.mutation.Quantity(); ok {
+	if value, ok := _c.mutation.Quantity(); ok {
 		_spec.SetField(subscriptionaddonquantity.FieldQuantity, field.TypeInt, value)
 		_node.Quantity = value
 	}
-	if nodes := saqc.mutation.SubscriptionAddonIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.SubscriptionAddonIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -316,10 +316,10 @@ func (saqc *SubscriptionAddonQuantityCreate) createSpec() (*SubscriptionAddonQua
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (saqc *SubscriptionAddonQuantityCreate) OnConflict(opts ...sql.ConflictOption) *SubscriptionAddonQuantityUpsertOne {
-	saqc.conflict = opts
+func (_c *SubscriptionAddonQuantityCreate) OnConflict(opts ...sql.ConflictOption) *SubscriptionAddonQuantityUpsertOne {
+	_c.conflict = opts
 	return &SubscriptionAddonQuantityUpsertOne{
-		create: saqc,
+		create: _c,
 	}
 }
 
@@ -329,10 +329,10 @@ func (saqc *SubscriptionAddonQuantityCreate) OnConflict(opts ...sql.ConflictOpti
 //	client.SubscriptionAddonQuantity.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (saqc *SubscriptionAddonQuantityCreate) OnConflictColumns(columns ...string) *SubscriptionAddonQuantityUpsertOne {
-	saqc.conflict = append(saqc.conflict, sql.ConflictColumns(columns...))
+func (_c *SubscriptionAddonQuantityCreate) OnConflictColumns(columns ...string) *SubscriptionAddonQuantityUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &SubscriptionAddonQuantityUpsertOne{
-		create: saqc,
+		create: _c,
 	}
 }
 
@@ -524,16 +524,16 @@ type SubscriptionAddonQuantityCreateBulk struct {
 }
 
 // Save creates the SubscriptionAddonQuantity entities in the database.
-func (saqcb *SubscriptionAddonQuantityCreateBulk) Save(ctx context.Context) ([]*SubscriptionAddonQuantity, error) {
-	if saqcb.err != nil {
-		return nil, saqcb.err
+func (_c *SubscriptionAddonQuantityCreateBulk) Save(ctx context.Context) ([]*SubscriptionAddonQuantity, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(saqcb.builders))
-	nodes := make([]*SubscriptionAddonQuantity, len(saqcb.builders))
-	mutators := make([]Mutator, len(saqcb.builders))
-	for i := range saqcb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*SubscriptionAddonQuantity, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := saqcb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*SubscriptionAddonQuantityMutation)
@@ -547,12 +547,12 @@ func (saqcb *SubscriptionAddonQuantityCreateBulk) Save(ctx context.Context) ([]*
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, saqcb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = saqcb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, saqcb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -572,7 +572,7 @@ func (saqcb *SubscriptionAddonQuantityCreateBulk) Save(ctx context.Context) ([]*
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, saqcb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -580,8 +580,8 @@ func (saqcb *SubscriptionAddonQuantityCreateBulk) Save(ctx context.Context) ([]*
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (saqcb *SubscriptionAddonQuantityCreateBulk) SaveX(ctx context.Context) []*SubscriptionAddonQuantity {
-	v, err := saqcb.Save(ctx)
+func (_c *SubscriptionAddonQuantityCreateBulk) SaveX(ctx context.Context) []*SubscriptionAddonQuantity {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -589,14 +589,14 @@ func (saqcb *SubscriptionAddonQuantityCreateBulk) SaveX(ctx context.Context) []*
 }
 
 // Exec executes the query.
-func (saqcb *SubscriptionAddonQuantityCreateBulk) Exec(ctx context.Context) error {
-	_, err := saqcb.Save(ctx)
+func (_c *SubscriptionAddonQuantityCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (saqcb *SubscriptionAddonQuantityCreateBulk) ExecX(ctx context.Context) {
-	if err := saqcb.Exec(ctx); err != nil {
+func (_c *SubscriptionAddonQuantityCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -616,10 +616,10 @@ func (saqcb *SubscriptionAddonQuantityCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (saqcb *SubscriptionAddonQuantityCreateBulk) OnConflict(opts ...sql.ConflictOption) *SubscriptionAddonQuantityUpsertBulk {
-	saqcb.conflict = opts
+func (_c *SubscriptionAddonQuantityCreateBulk) OnConflict(opts ...sql.ConflictOption) *SubscriptionAddonQuantityUpsertBulk {
+	_c.conflict = opts
 	return &SubscriptionAddonQuantityUpsertBulk{
-		create: saqcb,
+		create: _c,
 	}
 }
 
@@ -629,10 +629,10 @@ func (saqcb *SubscriptionAddonQuantityCreateBulk) OnConflict(opts ...sql.Conflic
 //	client.SubscriptionAddonQuantity.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (saqcb *SubscriptionAddonQuantityCreateBulk) OnConflictColumns(columns ...string) *SubscriptionAddonQuantityUpsertBulk {
-	saqcb.conflict = append(saqcb.conflict, sql.ConflictColumns(columns...))
+func (_c *SubscriptionAddonQuantityCreateBulk) OnConflictColumns(columns ...string) *SubscriptionAddonQuantityUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &SubscriptionAddonQuantityUpsertBulk{
-		create: saqcb,
+		create: _c,
 	}
 }
 
