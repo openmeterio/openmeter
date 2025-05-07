@@ -381,7 +381,6 @@ model MeterQuery {
    * For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
    */
   @query(#{ explode: true, style: "deepObject" })
-  @example(#{ `model`: "gpt-4-turbo", type: "prompt" })
   filterGroupBy?: Record<string>;
 
   /**
@@ -446,8 +445,8 @@ model MeterQueryRequest {
   /**
    * Simple filter for group bys with exact match.
    */
-  @example(#{ `model`: "gpt-4-turbo", type: "prompt" })
-  filterGroupBy?: Record<string>;
+  @example(#{ `model`: #["gpt-4-turbo", "gpt-4o"], type: #["prompt"] })
+  filterGroupBy?: Record<string[]>;
 
   /**
    * If not specified a single aggregate will be returned for each subject and time window.

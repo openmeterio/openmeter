@@ -8999,7 +8999,7 @@ export const queryMeterPostBody = zod
       .optional()
       .describe('Client ID\nUseful to track progress of a query.'),
     filterGroupBy: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.array(zod.string()))
       .optional()
       .describe('Simple filter for group bys with exact match.'),
     from: zod

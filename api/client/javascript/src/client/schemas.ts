@@ -6704,12 +6704,17 @@ export interface components {
       /**
        * @description Simple filter for group bys with exact match.
        * @example {
-       *       "model": "gpt-4-turbo",
-       *       "type": "prompt"
+       *       "model": [
+       *         "gpt-4-turbo",
+       *         "gpt-4o"
+       *       ],
+       *       "type": [
+       *         "prompt"
+       *       ]
        *     }
        */
       filterGroupBy?: {
-        [key: string]: string
+        [key: string]: string[]
       }
       /**
        * @description If not specified a single aggregate will be returned for each subject and time window.
