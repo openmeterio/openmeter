@@ -1,8 +1,8 @@
 module github.com/openmeterio/openmeter
 
-go 1.23.4
+go 1.24.1
 
-toolchain go1.24.1
+toolchain go1.24.2
 
 // ee: https://github.com/oklog/run/pull/35
 replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527-c72029d4b634
@@ -91,7 +91,6 @@ require (
 	k8s.io/api v0.32.3
 	k8s.io/apimachinery v0.32.3
 	k8s.io/client-go v0.32.3
-	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	sigs.k8s.io/controller-runtime v0.20.4
 )
 
@@ -157,6 +156,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
+	k8s.io/utils v0.0.0-20241210054802-24370beab758 // indirect
 	modernc.org/gc/v3 v3.0.0-20241213165251-3bc300f6d0c9 // indirect
 )
 
