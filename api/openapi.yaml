@@ -17832,11 +17832,16 @@ components:
         filterGroupBy:
           type: object
           additionalProperties:
-            type: string
+            type: array
+            items:
+              type: string
           description: Simple filter for group bys with exact match.
           example:
-            model: gpt-4-turbo
-            type: prompt
+            model:
+              - gpt-4-turbo
+              - gpt-4o
+            type:
+              - prompt
         groupBy:
           type: array
           items:

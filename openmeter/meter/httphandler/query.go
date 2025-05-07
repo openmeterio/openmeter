@@ -105,7 +105,7 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			params, err := ToQueryMeterParams(meter, request.params)
+			params, err := ToQueryParamsFromAPIParams(meter, request.params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
@@ -120,7 +120,7 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return nil, fmt.Errorf("failed to query meter: %w", err)
 			}
 
-			response := ToAPIMeterQueryResult(request.params, rows)
+			response := ToAPIMeterQueryResult(request.params.From, request.params.To, request.params.WindowSize, rows)
 
 			return &response, nil
 		},
@@ -163,7 +163,7 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			params, err := ToQueryMeterParams(meter, request.params)
+			params, err := ToQueryParamsFromAPIParams(meter, request.params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
@@ -251,9 +251,14 @@ func (a *queryMeterCSVResult) FileName() string {
 	return fmt.Sprintf("%s.csv", a.meterSlug)
 }
 
+type QueryMeterPostRequest struct {
+	namespace string
+	idOrSlug  string
+	params    api.QueryMeterPostJSONRequestBody
+}
+
 type (
 	QueryMeterPostParams   = string // meterIdOrSlug
-	QueryMeterPostRequest  = QueryMeterRequest
 	QueryMeterPostResponse = QueryMeterResponse
 	QueryMeterPostHandler  httptransport.HandlerWithArgs[QueryMeterPostRequest, QueryMeterPostResponse, QueryMeterPostParams]
 )
@@ -272,21 +277,10 @@ func (h *handler) QueryMeterPost() QueryMeterPostHandler {
 				return QueryMeterPostRequest{}, fmt.Errorf("failed to decode request body: %w", err)
 			}
 
-			params := api.QueryMeterParams{
-				ClientId:       request.ClientId,
-				From:           request.From,
-				To:             request.To,
-				Subject:        request.Subject,
-				GroupBy:        request.GroupBy,
-				WindowSize:     request.WindowSize,
-				WindowTimeZone: request.WindowTimeZone,
-				FilterGroupBy:  (*api.MeterQueryFilterGroupBy)(request.FilterGroupBy),
-			}
-
 			return QueryMeterPostRequest{
 				namespace: ns,
 				idOrSlug:  meterIdOrSlug,
-				params:    params,
+				params:    request,
 			}, nil
 		},
 		func(ctx context.Context, request QueryMeterPostRequest) (QueryMeterPostResponse, error) {
@@ -298,7 +292,7 @@ func (h *handler) QueryMeterPost() QueryMeterPostHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			params, err := ToQueryMeterParams(meter, request.params)
+			params, err := ToQueryParamsFromRequest(meter, request.params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
@@ -311,7 +305,7 @@ func (h *handler) QueryMeterPost() QueryMeterPostHandler {
 				return nil, fmt.Errorf("failed to query meter: %w", err)
 			}
 
-			response := ToAPIMeterQueryResult(request.params, rows)
+			response := ToAPIMeterQueryResult(request.params.From, request.params.To, request.params.WindowSize, rows)
 
 			return &response, nil
 		},
