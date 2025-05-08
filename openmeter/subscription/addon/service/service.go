@@ -207,13 +207,7 @@ func (s *service) ChangeQuantity(ctx context.Context, id models.NamespacedID, in
 		return nil, fmt.Errorf("failed to get plan add-on: %w", err)
 	}
 
-	inst, ok := subAdd.GetInstanceAt(input.ActiveFrom)
-	quant := 0
-	if ok {
-		quant = inst.Quantity
-	}
-
-	if compatibility.MaxQuantity != nil && quant+input.Quantity > *compatibility.MaxQuantity {
+	if compatibility.MaxQuantity != nil && input.Quantity > *compatibility.MaxQuantity {
 		return nil, models.NewGenericValidationError(fmt.Errorf("addon %s@%d can be added a maximum of %d times", add.Key, add.Version, *compatibility.MaxQuantity))
 	}
 
