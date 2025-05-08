@@ -10,7 +10,6 @@ import "..";
 import "./channel.tsp";
 import "./rule.tsp";
 import "./event.tsp";
-import "./svix.tsp";
 import "./entitlements.tsp";
 import "./invoice.tsp";
 
