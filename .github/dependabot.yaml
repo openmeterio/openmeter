@@ -5,9 +5,7 @@ updates:
     directory: /
     open-pull-requests-limit: 10
     schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
+      interval: daily
     labels:
       - area/dependencies
       - dependency/go
@@ -42,6 +40,16 @@ updates:
       prometheus:
         patterns:
           - "github.com/prometheus/*"
+      redis:
+        patterns:
+          - "github.com/redis/go-redis/*"
+      benthos:
+        patterns:
+          - "github.com/redpanda-data/benthos/*"
+          - "github.com/redpanda-data/connect/*"
+      oapi-codegen:
+        patterns:
+          - "github.com/oapi-codegen/*"
 
   - package-ecosystem: github-actions
     directory: /
