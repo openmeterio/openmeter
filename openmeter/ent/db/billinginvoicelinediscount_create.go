@@ -27,214 +27,214 @@ type BillingInvoiceLineDiscountCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNamespace(s string) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetNamespace(s)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetNamespace(v string) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetCreatedAt(t time.Time) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetCreatedAt(t)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetCreatedAt(v time.Time) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableCreatedAt(t *time.Time) *BillingInvoiceLineDiscountCreate {
-	if t != nil {
-		bildc.SetCreatedAt(*t)
+func (_c *BillingInvoiceLineDiscountCreate) SetNillableCreatedAt(v *time.Time) *BillingInvoiceLineDiscountCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return bildc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetUpdatedAt(t time.Time) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetUpdatedAt(t)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetUpdatedAt(v time.Time) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableUpdatedAt(t *time.Time) *BillingInvoiceLineDiscountCreate {
-	if t != nil {
-		bildc.SetUpdatedAt(*t)
+func (_c *BillingInvoiceLineDiscountCreate) SetNillableUpdatedAt(v *time.Time) *BillingInvoiceLineDiscountCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return bildc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetDeletedAt(t time.Time) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetDeletedAt(t)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetDeletedAt(v time.Time) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableDeletedAt(t *time.Time) *BillingInvoiceLineDiscountCreate {
-	if t != nil {
-		bildc.SetDeletedAt(*t)
+func (_c *BillingInvoiceLineDiscountCreate) SetNillableDeletedAt(v *time.Time) *BillingInvoiceLineDiscountCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return bildc
+	return _c
 }
 
 // SetLineID sets the "line_id" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetLineID(s string) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetLineID(s)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetLineID(v string) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetLineID(v)
+	return _c
 }
 
 // SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetChildUniqueReferenceID(s string) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetChildUniqueReferenceID(s)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetChildUniqueReferenceID(v string) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetChildUniqueReferenceID(v)
+	return _c
 }
 
 // SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineDiscountCreate {
-	if s != nil {
-		bildc.SetChildUniqueReferenceID(*s)
+func (_c *BillingInvoiceLineDiscountCreate) SetNillableChildUniqueReferenceID(v *string) *BillingInvoiceLineDiscountCreate {
+	if v != nil {
+		_c.SetChildUniqueReferenceID(*v)
 	}
-	return bildc
+	return _c
 }
 
 // SetDescription sets the "description" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetDescription(s string) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetDescription(s)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetDescription(v string) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetDescription(v)
+	return _c
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableDescription(s *string) *BillingInvoiceLineDiscountCreate {
-	if s != nil {
-		bildc.SetDescription(*s)
+func (_c *BillingInvoiceLineDiscountCreate) SetNillableDescription(v *string) *BillingInvoiceLineDiscountCreate {
+	if v != nil {
+		_c.SetDescription(*v)
 	}
-	return bildc
+	return _c
 }
 
 // SetReason sets the "reason" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetReason(brt billing.DiscountReasonType) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetReason(brt)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetReason(v billing.DiscountReasonType) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetReason(v)
+	return _c
 }
 
 // SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetInvoicingAppExternalID(s string) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetInvoicingAppExternalID(s)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetInvoicingAppExternalID(v string) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetInvoicingAppExternalID(v)
+	return _c
 }
 
 // SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineDiscountCreate {
-	if s != nil {
-		bildc.SetInvoicingAppExternalID(*s)
+func (_c *BillingInvoiceLineDiscountCreate) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceLineDiscountCreate {
+	if v != nil {
+		_c.SetInvoicingAppExternalID(*v)
 	}
-	return bildc
+	return _c
 }
 
 // SetAmount sets the "amount" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetAmount(a)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetAmount(v)
+	return _c
 }
 
 // SetRoundingAmount sets the "rounding_amount" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetRoundingAmount(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetRoundingAmount(a)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetRoundingAmount(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetRoundingAmount(v)
+	return _c
 }
 
 // SetNillableRoundingAmount sets the "rounding_amount" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableRoundingAmount(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	if a != nil {
-		bildc.SetRoundingAmount(*a)
+func (_c *BillingInvoiceLineDiscountCreate) SetNillableRoundingAmount(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
+	if v != nil {
+		_c.SetRoundingAmount(*v)
 	}
-	return bildc
+	return _c
 }
 
 // SetSourceDiscount sets the "source_discount" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetSourceDiscount(br *billing.DiscountReason) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetSourceDiscount(br)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetSourceDiscount(v *billing.DiscountReason) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetSourceDiscount(v)
+	return _c
 }
 
 // SetType sets the "type" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetType(s string) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetType(s)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetType(v string) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetType(v)
+	return _c
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableType(s *string) *BillingInvoiceLineDiscountCreate {
-	if s != nil {
-		bildc.SetType(*s)
+func (_c *BillingInvoiceLineDiscountCreate) SetNillableType(v *string) *BillingInvoiceLineDiscountCreate {
+	if v != nil {
+		_c.SetType(*v)
 	}
-	return bildc
+	return _c
 }
 
 // SetQuantity sets the "quantity" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetQuantity(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetQuantity(a)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetQuantity(v)
+	return _c
 }
 
 // SetNillableQuantity sets the "quantity" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableQuantity(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	if a != nil {
-		bildc.SetQuantity(*a)
+func (_c *BillingInvoiceLineDiscountCreate) SetNillableQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
+	if v != nil {
+		_c.SetQuantity(*v)
 	}
-	return bildc
+	return _c
 }
 
 // SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetPreLinePeriodQuantity(a)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetPreLinePeriodQuantity(v)
+	return _c
 }
 
 // SetNillablePreLinePeriodQuantity sets the "pre_line_period_quantity" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillablePreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	if a != nil {
-		bildc.SetPreLinePeriodQuantity(*a)
+func (_c *BillingInvoiceLineDiscountCreate) SetNillablePreLinePeriodQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
+	if v != nil {
+		_c.SetPreLinePeriodQuantity(*v)
 	}
-	return bildc
+	return _c
 }
 
 // SetID sets the "id" field.
-func (bildc *BillingInvoiceLineDiscountCreate) SetID(s string) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetID(s)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetID(v string) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (bildc *BillingInvoiceLineDiscountCreate) SetNillableID(s *string) *BillingInvoiceLineDiscountCreate {
-	if s != nil {
-		bildc.SetID(*s)
+func (_c *BillingInvoiceLineDiscountCreate) SetNillableID(v *string) *BillingInvoiceLineDiscountCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return bildc
+	return _c
 }
 
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
-func (bildc *BillingInvoiceLineDiscountCreate) SetBillingInvoiceLineID(id string) *BillingInvoiceLineDiscountCreate {
-	bildc.mutation.SetBillingInvoiceLineID(id)
-	return bildc
+func (_c *BillingInvoiceLineDiscountCreate) SetBillingInvoiceLineID(id string) *BillingInvoiceLineDiscountCreate {
+	_c.mutation.SetBillingInvoiceLineID(id)
+	return _c
 }
 
 // SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
-func (bildc *BillingInvoiceLineDiscountCreate) SetBillingInvoiceLine(b *BillingInvoiceLine) *BillingInvoiceLineDiscountCreate {
-	return bildc.SetBillingInvoiceLineID(b.ID)
+func (_c *BillingInvoiceLineDiscountCreate) SetBillingInvoiceLine(v *BillingInvoiceLine) *BillingInvoiceLineDiscountCreate {
+	return _c.SetBillingInvoiceLineID(v.ID)
 }
 
 // Mutation returns the BillingInvoiceLineDiscountMutation object of the builder.
-func (bildc *BillingInvoiceLineDiscountCreate) Mutation() *BillingInvoiceLineDiscountMutation {
-	return bildc.mutation
+func (_c *BillingInvoiceLineDiscountCreate) Mutation() *BillingInvoiceLineDiscountMutation {
+	return _c.mutation
 }
 
 // Save creates the BillingInvoiceLineDiscount in the database.
-func (bildc *BillingInvoiceLineDiscountCreate) Save(ctx context.Context) (*BillingInvoiceLineDiscount, error) {
-	bildc.defaults()
-	return withHooks(ctx, bildc.sqlSave, bildc.mutation, bildc.hooks)
+func (_c *BillingInvoiceLineDiscountCreate) Save(ctx context.Context) (*BillingInvoiceLineDiscount, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (bildc *BillingInvoiceLineDiscountCreate) SaveX(ctx context.Context) *BillingInvoiceLineDiscount {
-	v, err := bildc.Save(ctx)
+func (_c *BillingInvoiceLineDiscountCreate) SaveX(ctx context.Context) *BillingInvoiceLineDiscount {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -242,84 +242,84 @@ func (bildc *BillingInvoiceLineDiscountCreate) SaveX(ctx context.Context) *Billi
 }
 
 // Exec executes the query.
-func (bildc *BillingInvoiceLineDiscountCreate) Exec(ctx context.Context) error {
-	_, err := bildc.Save(ctx)
+func (_c *BillingInvoiceLineDiscountCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bildc *BillingInvoiceLineDiscountCreate) ExecX(ctx context.Context) {
-	if err := bildc.Exec(ctx); err != nil {
+func (_c *BillingInvoiceLineDiscountCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bildc *BillingInvoiceLineDiscountCreate) defaults() {
-	if _, ok := bildc.mutation.CreatedAt(); !ok {
+func (_c *BillingInvoiceLineDiscountCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := billinginvoicelinediscount.DefaultCreatedAt()
-		bildc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := bildc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := billinginvoicelinediscount.DefaultUpdatedAt()
-		bildc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := bildc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := billinginvoicelinediscount.DefaultID()
-		bildc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bildc *BillingInvoiceLineDiscountCreate) check() error {
-	if _, ok := bildc.mutation.Namespace(); !ok {
+func (_c *BillingInvoiceLineDiscountCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.namespace"`)}
 	}
-	if v, ok := bildc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := billinginvoicelinediscount.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.namespace": %w`, err)}
 		}
 	}
-	if _, ok := bildc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.created_at"`)}
 	}
-	if _, ok := bildc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.updated_at"`)}
 	}
-	if _, ok := bildc.mutation.LineID(); !ok {
+	if _, ok := _c.mutation.LineID(); !ok {
 		return &ValidationError{Name: "line_id", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.line_id"`)}
 	}
-	if _, ok := bildc.mutation.Reason(); !ok {
+	if _, ok := _c.mutation.Reason(); !ok {
 		return &ValidationError{Name: "reason", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.reason"`)}
 	}
-	if v, ok := bildc.mutation.Reason(); ok {
+	if v, ok := _c.mutation.Reason(); ok {
 		if err := billinginvoicelinediscount.ReasonValidator(v); err != nil {
 			return &ValidationError{Name: "reason", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.reason": %w`, err)}
 		}
 	}
-	if _, ok := bildc.mutation.Amount(); !ok {
+	if _, ok := _c.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingInvoiceLineDiscount.amount"`)}
 	}
-	if v, ok := bildc.mutation.SourceDiscount(); ok {
+	if v, ok := _c.mutation.SourceDiscount(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "source_discount", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.source_discount": %w`, err)}
 		}
 	}
-	if len(bildc.mutation.BillingInvoiceLineIDs()) == 0 {
+	if len(_c.mutation.BillingInvoiceLineIDs()) == 0 {
 		return &ValidationError{Name: "billing_invoice_line", err: errors.New(`db: missing required edge "BillingInvoiceLineDiscount.billing_invoice_line"`)}
 	}
 	return nil
 }
 
-func (bildc *BillingInvoiceLineDiscountCreate) sqlSave(ctx context.Context) (*BillingInvoiceLineDiscount, error) {
-	if err := bildc.check(); err != nil {
+func (_c *BillingInvoiceLineDiscountCreate) sqlSave(ctx context.Context) (*BillingInvoiceLineDiscount, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec, err := bildc.createSpec()
+	_node, _spec, err := _c.createSpec()
 	if err != nil {
 		return nil, err
 	}
-	if err := sqlgraph.CreateNode(ctx, bildc.driver, _spec); err != nil {
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -332,62 +332,62 @@ func (bildc *BillingInvoiceLineDiscountCreate) sqlSave(ctx context.Context) (*Bi
 			return nil, fmt.Errorf("unexpected BillingInvoiceLineDiscount.ID type: %T", _spec.ID.Value)
 		}
 	}
-	bildc.mutation.id = &_node.ID
-	bildc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (bildc *BillingInvoiceLineDiscountCreate) createSpec() (*BillingInvoiceLineDiscount, *sqlgraph.CreateSpec, error) {
+func (_c *BillingInvoiceLineDiscountCreate) createSpec() (*BillingInvoiceLineDiscount, *sqlgraph.CreateSpec, error) {
 	var (
-		_node = &BillingInvoiceLineDiscount{config: bildc.config}
+		_node = &BillingInvoiceLineDiscount{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(billinginvoicelinediscount.Table, sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = bildc.conflict
-	if id, ok := bildc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := bildc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := bildc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := bildc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := bildc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := bildc.mutation.ChildUniqueReferenceID(); ok {
+	if value, ok := _c.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString, value)
 		_node.ChildUniqueReferenceID = &value
 	}
-	if value, ok := bildc.mutation.Description(); ok {
+	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := bildc.mutation.Reason(); ok {
+	if value, ok := _c.mutation.Reason(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldReason, field.TypeEnum, value)
 		_node.Reason = value
 	}
-	if value, ok := bildc.mutation.InvoicingAppExternalID(); ok {
+	if value, ok := _c.mutation.InvoicingAppExternalID(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldInvoicingAppExternalID, field.TypeString, value)
 		_node.InvoicingAppExternalID = &value
 	}
-	if value, ok := bildc.mutation.Amount(); ok {
+	if value, ok := _c.mutation.Amount(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldAmount, field.TypeOther, value)
 		_node.Amount = value
 	}
-	if value, ok := bildc.mutation.RoundingAmount(); ok {
+	if value, ok := _c.mutation.RoundingAmount(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldRoundingAmount, field.TypeOther, value)
 		_node.RoundingAmount = &value
 	}
-	if value, ok := bildc.mutation.SourceDiscount(); ok {
+	if value, ok := _c.mutation.SourceDiscount(); ok {
 		vv, err := billinginvoicelinediscount.ValueScanner.SourceDiscount.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -395,19 +395,19 @@ func (bildc *BillingInvoiceLineDiscountCreate) createSpec() (*BillingInvoiceLine
 		_spec.SetField(billinginvoicelinediscount.FieldSourceDiscount, field.TypeString, vv)
 		_node.SourceDiscount = value
 	}
-	if value, ok := bildc.mutation.GetType(); ok {
+	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldType, field.TypeString, value)
 		_node.Type = &value
 	}
-	if value, ok := bildc.mutation.Quantity(); ok {
+	if value, ok := _c.mutation.Quantity(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldQuantity, field.TypeOther, value)
 		_node.Quantity = &value
 	}
-	if value, ok := bildc.mutation.PreLinePeriodQuantity(); ok {
+	if value, ok := _c.mutation.PreLinePeriodQuantity(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldPreLinePeriodQuantity, field.TypeOther, value)
 		_node.PreLinePeriodQuantity = &value
 	}
-	if nodes := bildc.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -443,10 +443,10 @@ func (bildc *BillingInvoiceLineDiscountCreate) createSpec() (*BillingInvoiceLine
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bildc *BillingInvoiceLineDiscountCreate) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceLineDiscountUpsertOne {
-	bildc.conflict = opts
+func (_c *BillingInvoiceLineDiscountCreate) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceLineDiscountUpsertOne {
+	_c.conflict = opts
 	return &BillingInvoiceLineDiscountUpsertOne{
-		create: bildc,
+		create: _c,
 	}
 }
 
@@ -456,10 +456,10 @@ func (bildc *BillingInvoiceLineDiscountCreate) OnConflict(opts ...sql.ConflictOp
 //	client.BillingInvoiceLineDiscount.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bildc *BillingInvoiceLineDiscountCreate) OnConflictColumns(columns ...string) *BillingInvoiceLineDiscountUpsertOne {
-	bildc.conflict = append(bildc.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingInvoiceLineDiscountCreate) OnConflictColumns(columns ...string) *BillingInvoiceLineDiscountUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingInvoiceLineDiscountUpsertOne{
-		create: bildc,
+		create: _c,
 	}
 }
 
@@ -1032,16 +1032,16 @@ type BillingInvoiceLineDiscountCreateBulk struct {
 }
 
 // Save creates the BillingInvoiceLineDiscount entities in the database.
-func (bildcb *BillingInvoiceLineDiscountCreateBulk) Save(ctx context.Context) ([]*BillingInvoiceLineDiscount, error) {
-	if bildcb.err != nil {
-		return nil, bildcb.err
+func (_c *BillingInvoiceLineDiscountCreateBulk) Save(ctx context.Context) ([]*BillingInvoiceLineDiscount, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(bildcb.builders))
-	nodes := make([]*BillingInvoiceLineDiscount, len(bildcb.builders))
-	mutators := make([]Mutator, len(bildcb.builders))
-	for i := range bildcb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*BillingInvoiceLineDiscount, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := bildcb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*BillingInvoiceLineDiscountMutation)
@@ -1058,12 +1058,12 @@ func (bildcb *BillingInvoiceLineDiscountCreateBulk) Save(ctx context.Context) ([
 					return nil, err
 				}
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, bildcb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = bildcb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, bildcb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -1083,7 +1083,7 @@ func (bildcb *BillingInvoiceLineDiscountCreateBulk) Save(ctx context.Context) ([
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, bildcb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -1091,8 +1091,8 @@ func (bildcb *BillingInvoiceLineDiscountCreateBulk) Save(ctx context.Context) ([
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bildcb *BillingInvoiceLineDiscountCreateBulk) SaveX(ctx context.Context) []*BillingInvoiceLineDiscount {
-	v, err := bildcb.Save(ctx)
+func (_c *BillingInvoiceLineDiscountCreateBulk) SaveX(ctx context.Context) []*BillingInvoiceLineDiscount {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1100,14 +1100,14 @@ func (bildcb *BillingInvoiceLineDiscountCreateBulk) SaveX(ctx context.Context) [
 }
 
 // Exec executes the query.
-func (bildcb *BillingInvoiceLineDiscountCreateBulk) Exec(ctx context.Context) error {
-	_, err := bildcb.Save(ctx)
+func (_c *BillingInvoiceLineDiscountCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bildcb *BillingInvoiceLineDiscountCreateBulk) ExecX(ctx context.Context) {
-	if err := bildcb.Exec(ctx); err != nil {
+func (_c *BillingInvoiceLineDiscountCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -1127,10 +1127,10 @@ func (bildcb *BillingInvoiceLineDiscountCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bildcb *BillingInvoiceLineDiscountCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceLineDiscountUpsertBulk {
-	bildcb.conflict = opts
+func (_c *BillingInvoiceLineDiscountCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceLineDiscountUpsertBulk {
+	_c.conflict = opts
 	return &BillingInvoiceLineDiscountUpsertBulk{
-		create: bildcb,
+		create: _c,
 	}
 }
 
@@ -1140,10 +1140,10 @@ func (bildcb *BillingInvoiceLineDiscountCreateBulk) OnConflict(opts ...sql.Confl
 //	client.BillingInvoiceLineDiscount.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bildcb *BillingInvoiceLineDiscountCreateBulk) OnConflictColumns(columns ...string) *BillingInvoiceLineDiscountUpsertBulk {
-	bildcb.conflict = append(bildcb.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingInvoiceLineDiscountCreateBulk) OnConflictColumns(columns ...string) *BillingInvoiceLineDiscountUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingInvoiceLineDiscountUpsertBulk{
-		create: bildcb,
+		create: _c,
 	}
 }
 

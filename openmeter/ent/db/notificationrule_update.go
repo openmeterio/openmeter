@@ -26,171 +26,171 @@ type NotificationRuleUpdate struct {
 }
 
 // Where appends a list predicates to the NotificationRuleUpdate builder.
-func (nru *NotificationRuleUpdate) Where(ps ...predicate.NotificationRule) *NotificationRuleUpdate {
-	nru.mutation.Where(ps...)
-	return nru
+func (_u *NotificationRuleUpdate) Where(ps ...predicate.NotificationRule) *NotificationRuleUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (nru *NotificationRuleUpdate) SetUpdatedAt(t time.Time) *NotificationRuleUpdate {
-	nru.mutation.SetUpdatedAt(t)
-	return nru
+func (_u *NotificationRuleUpdate) SetUpdatedAt(v time.Time) *NotificationRuleUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (nru *NotificationRuleUpdate) SetDeletedAt(t time.Time) *NotificationRuleUpdate {
-	nru.mutation.SetDeletedAt(t)
-	return nru
+func (_u *NotificationRuleUpdate) SetDeletedAt(v time.Time) *NotificationRuleUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (nru *NotificationRuleUpdate) SetNillableDeletedAt(t *time.Time) *NotificationRuleUpdate {
-	if t != nil {
-		nru.SetDeletedAt(*t)
+func (_u *NotificationRuleUpdate) SetNillableDeletedAt(v *time.Time) *NotificationRuleUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return nru
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (nru *NotificationRuleUpdate) ClearDeletedAt() *NotificationRuleUpdate {
-	nru.mutation.ClearDeletedAt()
-	return nru
+func (_u *NotificationRuleUpdate) ClearDeletedAt() *NotificationRuleUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (nru *NotificationRuleUpdate) SetName(s string) *NotificationRuleUpdate {
-	nru.mutation.SetName(s)
-	return nru
+func (_u *NotificationRuleUpdate) SetName(v string) *NotificationRuleUpdate {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (nru *NotificationRuleUpdate) SetNillableName(s *string) *NotificationRuleUpdate {
-	if s != nil {
-		nru.SetName(*s)
+func (_u *NotificationRuleUpdate) SetNillableName(v *string) *NotificationRuleUpdate {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return nru
+	return _u
 }
 
 // SetDisabled sets the "disabled" field.
-func (nru *NotificationRuleUpdate) SetDisabled(b bool) *NotificationRuleUpdate {
-	nru.mutation.SetDisabled(b)
-	return nru
+func (_u *NotificationRuleUpdate) SetDisabled(v bool) *NotificationRuleUpdate {
+	_u.mutation.SetDisabled(v)
+	return _u
 }
 
 // SetNillableDisabled sets the "disabled" field if the given value is not nil.
-func (nru *NotificationRuleUpdate) SetNillableDisabled(b *bool) *NotificationRuleUpdate {
-	if b != nil {
-		nru.SetDisabled(*b)
+func (_u *NotificationRuleUpdate) SetNillableDisabled(v *bool) *NotificationRuleUpdate {
+	if v != nil {
+		_u.SetDisabled(*v)
 	}
-	return nru
+	return _u
 }
 
 // ClearDisabled clears the value of the "disabled" field.
-func (nru *NotificationRuleUpdate) ClearDisabled() *NotificationRuleUpdate {
-	nru.mutation.ClearDisabled()
-	return nru
+func (_u *NotificationRuleUpdate) ClearDisabled() *NotificationRuleUpdate {
+	_u.mutation.ClearDisabled()
+	return _u
 }
 
 // SetConfig sets the "config" field.
-func (nru *NotificationRuleUpdate) SetConfig(nc notification.RuleConfig) *NotificationRuleUpdate {
-	nru.mutation.SetConfig(nc)
-	return nru
+func (_u *NotificationRuleUpdate) SetConfig(v notification.RuleConfig) *NotificationRuleUpdate {
+	_u.mutation.SetConfig(v)
+	return _u
 }
 
 // SetNillableConfig sets the "config" field if the given value is not nil.
-func (nru *NotificationRuleUpdate) SetNillableConfig(nc *notification.RuleConfig) *NotificationRuleUpdate {
-	if nc != nil {
-		nru.SetConfig(*nc)
+func (_u *NotificationRuleUpdate) SetNillableConfig(v *notification.RuleConfig) *NotificationRuleUpdate {
+	if v != nil {
+		_u.SetConfig(*v)
 	}
-	return nru
+	return _u
 }
 
 // AddChannelIDs adds the "channels" edge to the NotificationChannel entity by IDs.
-func (nru *NotificationRuleUpdate) AddChannelIDs(ids ...string) *NotificationRuleUpdate {
-	nru.mutation.AddChannelIDs(ids...)
-	return nru
+func (_u *NotificationRuleUpdate) AddChannelIDs(ids ...string) *NotificationRuleUpdate {
+	_u.mutation.AddChannelIDs(ids...)
+	return _u
 }
 
 // AddChannels adds the "channels" edges to the NotificationChannel entity.
-func (nru *NotificationRuleUpdate) AddChannels(n ...*NotificationChannel) *NotificationRuleUpdate {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_u *NotificationRuleUpdate) AddChannels(v ...*NotificationChannel) *NotificationRuleUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nru.AddChannelIDs(ids...)
+	return _u.AddChannelIDs(ids...)
 }
 
 // AddEventIDs adds the "events" edge to the NotificationEvent entity by IDs.
-func (nru *NotificationRuleUpdate) AddEventIDs(ids ...string) *NotificationRuleUpdate {
-	nru.mutation.AddEventIDs(ids...)
-	return nru
+func (_u *NotificationRuleUpdate) AddEventIDs(ids ...string) *NotificationRuleUpdate {
+	_u.mutation.AddEventIDs(ids...)
+	return _u
 }
 
 // AddEvents adds the "events" edges to the NotificationEvent entity.
-func (nru *NotificationRuleUpdate) AddEvents(n ...*NotificationEvent) *NotificationRuleUpdate {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_u *NotificationRuleUpdate) AddEvents(v ...*NotificationEvent) *NotificationRuleUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nru.AddEventIDs(ids...)
+	return _u.AddEventIDs(ids...)
 }
 
 // Mutation returns the NotificationRuleMutation object of the builder.
-func (nru *NotificationRuleUpdate) Mutation() *NotificationRuleMutation {
-	return nru.mutation
+func (_u *NotificationRuleUpdate) Mutation() *NotificationRuleMutation {
+	return _u.mutation
 }
 
 // ClearChannels clears all "channels" edges to the NotificationChannel entity.
-func (nru *NotificationRuleUpdate) ClearChannels() *NotificationRuleUpdate {
-	nru.mutation.ClearChannels()
-	return nru
+func (_u *NotificationRuleUpdate) ClearChannels() *NotificationRuleUpdate {
+	_u.mutation.ClearChannels()
+	return _u
 }
 
 // RemoveChannelIDs removes the "channels" edge to NotificationChannel entities by IDs.
-func (nru *NotificationRuleUpdate) RemoveChannelIDs(ids ...string) *NotificationRuleUpdate {
-	nru.mutation.RemoveChannelIDs(ids...)
-	return nru
+func (_u *NotificationRuleUpdate) RemoveChannelIDs(ids ...string) *NotificationRuleUpdate {
+	_u.mutation.RemoveChannelIDs(ids...)
+	return _u
 }
 
 // RemoveChannels removes "channels" edges to NotificationChannel entities.
-func (nru *NotificationRuleUpdate) RemoveChannels(n ...*NotificationChannel) *NotificationRuleUpdate {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_u *NotificationRuleUpdate) RemoveChannels(v ...*NotificationChannel) *NotificationRuleUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nru.RemoveChannelIDs(ids...)
+	return _u.RemoveChannelIDs(ids...)
 }
 
 // ClearEvents clears all "events" edges to the NotificationEvent entity.
-func (nru *NotificationRuleUpdate) ClearEvents() *NotificationRuleUpdate {
-	nru.mutation.ClearEvents()
-	return nru
+func (_u *NotificationRuleUpdate) ClearEvents() *NotificationRuleUpdate {
+	_u.mutation.ClearEvents()
+	return _u
 }
 
 // RemoveEventIDs removes the "events" edge to NotificationEvent entities by IDs.
-func (nru *NotificationRuleUpdate) RemoveEventIDs(ids ...string) *NotificationRuleUpdate {
-	nru.mutation.RemoveEventIDs(ids...)
-	return nru
+func (_u *NotificationRuleUpdate) RemoveEventIDs(ids ...string) *NotificationRuleUpdate {
+	_u.mutation.RemoveEventIDs(ids...)
+	return _u
 }
 
 // RemoveEvents removes "events" edges to NotificationEvent entities.
-func (nru *NotificationRuleUpdate) RemoveEvents(n ...*NotificationEvent) *NotificationRuleUpdate {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_u *NotificationRuleUpdate) RemoveEvents(v ...*NotificationEvent) *NotificationRuleUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nru.RemoveEventIDs(ids...)
+	return _u.RemoveEventIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (nru *NotificationRuleUpdate) Save(ctx context.Context) (int, error) {
-	nru.defaults()
-	return withHooks(ctx, nru.sqlSave, nru.mutation, nru.hooks)
+func (_u *NotificationRuleUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (nru *NotificationRuleUpdate) SaveX(ctx context.Context) int {
-	affected, err := nru.Save(ctx)
+func (_u *NotificationRuleUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -198,29 +198,29 @@ func (nru *NotificationRuleUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (nru *NotificationRuleUpdate) Exec(ctx context.Context) error {
-	_, err := nru.Save(ctx)
+func (_u *NotificationRuleUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nru *NotificationRuleUpdate) ExecX(ctx context.Context) {
-	if err := nru.Exec(ctx); err != nil {
+func (_u *NotificationRuleUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (nru *NotificationRuleUpdate) defaults() {
-	if _, ok := nru.mutation.UpdatedAt(); !ok {
+func (_u *NotificationRuleUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := notificationrule.UpdateDefaultUpdatedAt()
-		nru.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (nru *NotificationRuleUpdate) check() error {
-	if v, ok := nru.mutation.Name(); ok {
+func (_u *NotificationRuleUpdate) check() error {
+	if v, ok := _u.mutation.Name(); ok {
 		if err := notificationrule.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationRule.name": %w`, err)}
 		}
@@ -228,44 +228,44 @@ func (nru *NotificationRuleUpdate) check() error {
 	return nil
 }
 
-func (nru *NotificationRuleUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := nru.check(); err != nil {
-		return n, err
+func (_u *NotificationRuleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(notificationrule.Table, notificationrule.Columns, sqlgraph.NewFieldSpec(notificationrule.FieldID, field.TypeString))
-	if ps := nru.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := nru.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(notificationrule.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := nru.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(notificationrule.FieldDeletedAt, field.TypeTime, value)
 	}
-	if nru.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(notificationrule.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := nru.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(notificationrule.FieldName, field.TypeString, value)
 	}
-	if value, ok := nru.mutation.Disabled(); ok {
+	if value, ok := _u.mutation.Disabled(); ok {
 		_spec.SetField(notificationrule.FieldDisabled, field.TypeBool, value)
 	}
-	if nru.mutation.DisabledCleared() {
+	if _u.mutation.DisabledCleared() {
 		_spec.ClearField(notificationrule.FieldDisabled, field.TypeBool)
 	}
-	if value, ok := nru.mutation.Config(); ok {
+	if value, ok := _u.mutation.Config(); ok {
 		vv, err := notificationrule.ValueScanner.Config.Value(value)
 		if err != nil {
 			return 0, err
 		}
 		_spec.SetField(notificationrule.FieldConfig, field.TypeString, vv)
 	}
-	if nru.mutation.ChannelsCleared() {
+	if _u.mutation.ChannelsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
@@ -278,7 +278,7 @@ func (nru *NotificationRuleUpdate) sqlSave(ctx context.Context) (n int, err erro
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nru.mutation.RemovedChannelsIDs(); len(nodes) > 0 && !nru.mutation.ChannelsCleared() {
+	if nodes := _u.mutation.RemovedChannelsIDs(); len(nodes) > 0 && !_u.mutation.ChannelsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
@@ -294,7 +294,7 @@ func (nru *NotificationRuleUpdate) sqlSave(ctx context.Context) (n int, err erro
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nru.mutation.ChannelsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChannelsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
@@ -310,7 +310,7 @@ func (nru *NotificationRuleUpdate) sqlSave(ctx context.Context) (n int, err erro
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if nru.mutation.EventsCleared() {
+	if _u.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -323,7 +323,7 @@ func (nru *NotificationRuleUpdate) sqlSave(ctx context.Context) (n int, err erro
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nru.mutation.RemovedEventsIDs(); len(nodes) > 0 && !nru.mutation.EventsCleared() {
+	if nodes := _u.mutation.RemovedEventsIDs(); len(nodes) > 0 && !_u.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -339,7 +339,7 @@ func (nru *NotificationRuleUpdate) sqlSave(ctx context.Context) (n int, err erro
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nru.mutation.EventsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.EventsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -355,7 +355,7 @@ func (nru *NotificationRuleUpdate) sqlSave(ctx context.Context) (n int, err erro
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, nru.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{notificationrule.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -363,8 +363,8 @@ func (nru *NotificationRuleUpdate) sqlSave(ctx context.Context) (n int, err erro
 		}
 		return 0, err
 	}
-	nru.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // NotificationRuleUpdateOne is the builder for updating a single NotificationRule entity.
@@ -376,178 +376,178 @@ type NotificationRuleUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (nruo *NotificationRuleUpdateOne) SetUpdatedAt(t time.Time) *NotificationRuleUpdateOne {
-	nruo.mutation.SetUpdatedAt(t)
-	return nruo
+func (_u *NotificationRuleUpdateOne) SetUpdatedAt(v time.Time) *NotificationRuleUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (nruo *NotificationRuleUpdateOne) SetDeletedAt(t time.Time) *NotificationRuleUpdateOne {
-	nruo.mutation.SetDeletedAt(t)
-	return nruo
+func (_u *NotificationRuleUpdateOne) SetDeletedAt(v time.Time) *NotificationRuleUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (nruo *NotificationRuleUpdateOne) SetNillableDeletedAt(t *time.Time) *NotificationRuleUpdateOne {
-	if t != nil {
-		nruo.SetDeletedAt(*t)
+func (_u *NotificationRuleUpdateOne) SetNillableDeletedAt(v *time.Time) *NotificationRuleUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return nruo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (nruo *NotificationRuleUpdateOne) ClearDeletedAt() *NotificationRuleUpdateOne {
-	nruo.mutation.ClearDeletedAt()
-	return nruo
+func (_u *NotificationRuleUpdateOne) ClearDeletedAt() *NotificationRuleUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (nruo *NotificationRuleUpdateOne) SetName(s string) *NotificationRuleUpdateOne {
-	nruo.mutation.SetName(s)
-	return nruo
+func (_u *NotificationRuleUpdateOne) SetName(v string) *NotificationRuleUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (nruo *NotificationRuleUpdateOne) SetNillableName(s *string) *NotificationRuleUpdateOne {
-	if s != nil {
-		nruo.SetName(*s)
+func (_u *NotificationRuleUpdateOne) SetNillableName(v *string) *NotificationRuleUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return nruo
+	return _u
 }
 
 // SetDisabled sets the "disabled" field.
-func (nruo *NotificationRuleUpdateOne) SetDisabled(b bool) *NotificationRuleUpdateOne {
-	nruo.mutation.SetDisabled(b)
-	return nruo
+func (_u *NotificationRuleUpdateOne) SetDisabled(v bool) *NotificationRuleUpdateOne {
+	_u.mutation.SetDisabled(v)
+	return _u
 }
 
 // SetNillableDisabled sets the "disabled" field if the given value is not nil.
-func (nruo *NotificationRuleUpdateOne) SetNillableDisabled(b *bool) *NotificationRuleUpdateOne {
-	if b != nil {
-		nruo.SetDisabled(*b)
+func (_u *NotificationRuleUpdateOne) SetNillableDisabled(v *bool) *NotificationRuleUpdateOne {
+	if v != nil {
+		_u.SetDisabled(*v)
 	}
-	return nruo
+	return _u
 }
 
 // ClearDisabled clears the value of the "disabled" field.
-func (nruo *NotificationRuleUpdateOne) ClearDisabled() *NotificationRuleUpdateOne {
-	nruo.mutation.ClearDisabled()
-	return nruo
+func (_u *NotificationRuleUpdateOne) ClearDisabled() *NotificationRuleUpdateOne {
+	_u.mutation.ClearDisabled()
+	return _u
 }
 
 // SetConfig sets the "config" field.
-func (nruo *NotificationRuleUpdateOne) SetConfig(nc notification.RuleConfig) *NotificationRuleUpdateOne {
-	nruo.mutation.SetConfig(nc)
-	return nruo
+func (_u *NotificationRuleUpdateOne) SetConfig(v notification.RuleConfig) *NotificationRuleUpdateOne {
+	_u.mutation.SetConfig(v)
+	return _u
 }
 
 // SetNillableConfig sets the "config" field if the given value is not nil.
-func (nruo *NotificationRuleUpdateOne) SetNillableConfig(nc *notification.RuleConfig) *NotificationRuleUpdateOne {
-	if nc != nil {
-		nruo.SetConfig(*nc)
+func (_u *NotificationRuleUpdateOne) SetNillableConfig(v *notification.RuleConfig) *NotificationRuleUpdateOne {
+	if v != nil {
+		_u.SetConfig(*v)
 	}
-	return nruo
+	return _u
 }
 
 // AddChannelIDs adds the "channels" edge to the NotificationChannel entity by IDs.
-func (nruo *NotificationRuleUpdateOne) AddChannelIDs(ids ...string) *NotificationRuleUpdateOne {
-	nruo.mutation.AddChannelIDs(ids...)
-	return nruo
+func (_u *NotificationRuleUpdateOne) AddChannelIDs(ids ...string) *NotificationRuleUpdateOne {
+	_u.mutation.AddChannelIDs(ids...)
+	return _u
 }
 
 // AddChannels adds the "channels" edges to the NotificationChannel entity.
-func (nruo *NotificationRuleUpdateOne) AddChannels(n ...*NotificationChannel) *NotificationRuleUpdateOne {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_u *NotificationRuleUpdateOne) AddChannels(v ...*NotificationChannel) *NotificationRuleUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nruo.AddChannelIDs(ids...)
+	return _u.AddChannelIDs(ids...)
 }
 
 // AddEventIDs adds the "events" edge to the NotificationEvent entity by IDs.
-func (nruo *NotificationRuleUpdateOne) AddEventIDs(ids ...string) *NotificationRuleUpdateOne {
-	nruo.mutation.AddEventIDs(ids...)
-	return nruo
+func (_u *NotificationRuleUpdateOne) AddEventIDs(ids ...string) *NotificationRuleUpdateOne {
+	_u.mutation.AddEventIDs(ids...)
+	return _u
 }
 
 // AddEvents adds the "events" edges to the NotificationEvent entity.
-func (nruo *NotificationRuleUpdateOne) AddEvents(n ...*NotificationEvent) *NotificationRuleUpdateOne {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_u *NotificationRuleUpdateOne) AddEvents(v ...*NotificationEvent) *NotificationRuleUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nruo.AddEventIDs(ids...)
+	return _u.AddEventIDs(ids...)
 }
 
 // Mutation returns the NotificationRuleMutation object of the builder.
-func (nruo *NotificationRuleUpdateOne) Mutation() *NotificationRuleMutation {
-	return nruo.mutation
+func (_u *NotificationRuleUpdateOne) Mutation() *NotificationRuleMutation {
+	return _u.mutation
 }
 
 // ClearChannels clears all "channels" edges to the NotificationChannel entity.
-func (nruo *NotificationRuleUpdateOne) ClearChannels() *NotificationRuleUpdateOne {
-	nruo.mutation.ClearChannels()
-	return nruo
+func (_u *NotificationRuleUpdateOne) ClearChannels() *NotificationRuleUpdateOne {
+	_u.mutation.ClearChannels()
+	return _u
 }
 
 // RemoveChannelIDs removes the "channels" edge to NotificationChannel entities by IDs.
-func (nruo *NotificationRuleUpdateOne) RemoveChannelIDs(ids ...string) *NotificationRuleUpdateOne {
-	nruo.mutation.RemoveChannelIDs(ids...)
-	return nruo
+func (_u *NotificationRuleUpdateOne) RemoveChannelIDs(ids ...string) *NotificationRuleUpdateOne {
+	_u.mutation.RemoveChannelIDs(ids...)
+	return _u
 }
 
 // RemoveChannels removes "channels" edges to NotificationChannel entities.
-func (nruo *NotificationRuleUpdateOne) RemoveChannels(n ...*NotificationChannel) *NotificationRuleUpdateOne {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_u *NotificationRuleUpdateOne) RemoveChannels(v ...*NotificationChannel) *NotificationRuleUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nruo.RemoveChannelIDs(ids...)
+	return _u.RemoveChannelIDs(ids...)
 }
 
 // ClearEvents clears all "events" edges to the NotificationEvent entity.
-func (nruo *NotificationRuleUpdateOne) ClearEvents() *NotificationRuleUpdateOne {
-	nruo.mutation.ClearEvents()
-	return nruo
+func (_u *NotificationRuleUpdateOne) ClearEvents() *NotificationRuleUpdateOne {
+	_u.mutation.ClearEvents()
+	return _u
 }
 
 // RemoveEventIDs removes the "events" edge to NotificationEvent entities by IDs.
-func (nruo *NotificationRuleUpdateOne) RemoveEventIDs(ids ...string) *NotificationRuleUpdateOne {
-	nruo.mutation.RemoveEventIDs(ids...)
-	return nruo
+func (_u *NotificationRuleUpdateOne) RemoveEventIDs(ids ...string) *NotificationRuleUpdateOne {
+	_u.mutation.RemoveEventIDs(ids...)
+	return _u
 }
 
 // RemoveEvents removes "events" edges to NotificationEvent entities.
-func (nruo *NotificationRuleUpdateOne) RemoveEvents(n ...*NotificationEvent) *NotificationRuleUpdateOne {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_u *NotificationRuleUpdateOne) RemoveEvents(v ...*NotificationEvent) *NotificationRuleUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nruo.RemoveEventIDs(ids...)
+	return _u.RemoveEventIDs(ids...)
 }
 
 // Where appends a list predicates to the NotificationRuleUpdate builder.
-func (nruo *NotificationRuleUpdateOne) Where(ps ...predicate.NotificationRule) *NotificationRuleUpdateOne {
-	nruo.mutation.Where(ps...)
-	return nruo
+func (_u *NotificationRuleUpdateOne) Where(ps ...predicate.NotificationRule) *NotificationRuleUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (nruo *NotificationRuleUpdateOne) Select(field string, fields ...string) *NotificationRuleUpdateOne {
-	nruo.fields = append([]string{field}, fields...)
-	return nruo
+func (_u *NotificationRuleUpdateOne) Select(field string, fields ...string) *NotificationRuleUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated NotificationRule entity.
-func (nruo *NotificationRuleUpdateOne) Save(ctx context.Context) (*NotificationRule, error) {
-	nruo.defaults()
-	return withHooks(ctx, nruo.sqlSave, nruo.mutation, nruo.hooks)
+func (_u *NotificationRuleUpdateOne) Save(ctx context.Context) (*NotificationRule, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (nruo *NotificationRuleUpdateOne) SaveX(ctx context.Context) *NotificationRule {
-	node, err := nruo.Save(ctx)
+func (_u *NotificationRuleUpdateOne) SaveX(ctx context.Context) *NotificationRule {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -555,29 +555,29 @@ func (nruo *NotificationRuleUpdateOne) SaveX(ctx context.Context) *NotificationR
 }
 
 // Exec executes the query on the entity.
-func (nruo *NotificationRuleUpdateOne) Exec(ctx context.Context) error {
-	_, err := nruo.Save(ctx)
+func (_u *NotificationRuleUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nruo *NotificationRuleUpdateOne) ExecX(ctx context.Context) {
-	if err := nruo.Exec(ctx); err != nil {
+func (_u *NotificationRuleUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (nruo *NotificationRuleUpdateOne) defaults() {
-	if _, ok := nruo.mutation.UpdatedAt(); !ok {
+func (_u *NotificationRuleUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := notificationrule.UpdateDefaultUpdatedAt()
-		nruo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (nruo *NotificationRuleUpdateOne) check() error {
-	if v, ok := nruo.mutation.Name(); ok {
+func (_u *NotificationRuleUpdateOne) check() error {
+	if v, ok := _u.mutation.Name(); ok {
 		if err := notificationrule.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationRule.name": %w`, err)}
 		}
@@ -585,17 +585,17 @@ func (nruo *NotificationRuleUpdateOne) check() error {
 	return nil
 }
 
-func (nruo *NotificationRuleUpdateOne) sqlSave(ctx context.Context) (_node *NotificationRule, err error) {
-	if err := nruo.check(); err != nil {
+func (_u *NotificationRuleUpdateOne) sqlSave(ctx context.Context) (_node *NotificationRule, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(notificationrule.Table, notificationrule.Columns, sqlgraph.NewFieldSpec(notificationrule.FieldID, field.TypeString))
-	id, ok := nruo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "NotificationRule.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := nruo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, notificationrule.FieldID)
 		for _, f := range fields {
@@ -607,39 +607,39 @@ func (nruo *NotificationRuleUpdateOne) sqlSave(ctx context.Context) (_node *Noti
 			}
 		}
 	}
-	if ps := nruo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := nruo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(notificationrule.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := nruo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(notificationrule.FieldDeletedAt, field.TypeTime, value)
 	}
-	if nruo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(notificationrule.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := nruo.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(notificationrule.FieldName, field.TypeString, value)
 	}
-	if value, ok := nruo.mutation.Disabled(); ok {
+	if value, ok := _u.mutation.Disabled(); ok {
 		_spec.SetField(notificationrule.FieldDisabled, field.TypeBool, value)
 	}
-	if nruo.mutation.DisabledCleared() {
+	if _u.mutation.DisabledCleared() {
 		_spec.ClearField(notificationrule.FieldDisabled, field.TypeBool)
 	}
-	if value, ok := nruo.mutation.Config(); ok {
+	if value, ok := _u.mutation.Config(); ok {
 		vv, err := notificationrule.ValueScanner.Config.Value(value)
 		if err != nil {
 			return nil, err
 		}
 		_spec.SetField(notificationrule.FieldConfig, field.TypeString, vv)
 	}
-	if nruo.mutation.ChannelsCleared() {
+	if _u.mutation.ChannelsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
@@ -652,7 +652,7 @@ func (nruo *NotificationRuleUpdateOne) sqlSave(ctx context.Context) (_node *Noti
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nruo.mutation.RemovedChannelsIDs(); len(nodes) > 0 && !nruo.mutation.ChannelsCleared() {
+	if nodes := _u.mutation.RemovedChannelsIDs(); len(nodes) > 0 && !_u.mutation.ChannelsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
@@ -668,7 +668,7 @@ func (nruo *NotificationRuleUpdateOne) sqlSave(ctx context.Context) (_node *Noti
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nruo.mutation.ChannelsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChannelsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
@@ -684,7 +684,7 @@ func (nruo *NotificationRuleUpdateOne) sqlSave(ctx context.Context) (_node *Noti
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if nruo.mutation.EventsCleared() {
+	if _u.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -697,7 +697,7 @@ func (nruo *NotificationRuleUpdateOne) sqlSave(ctx context.Context) (_node *Noti
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nruo.mutation.RemovedEventsIDs(); len(nodes) > 0 && !nruo.mutation.EventsCleared() {
+	if nodes := _u.mutation.RemovedEventsIDs(); len(nodes) > 0 && !_u.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -713,7 +713,7 @@ func (nruo *NotificationRuleUpdateOne) sqlSave(ctx context.Context) (_node *Noti
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nruo.mutation.EventsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.EventsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -729,10 +729,10 @@ func (nruo *NotificationRuleUpdateOne) sqlSave(ctx context.Context) (_node *Noti
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &NotificationRule{config: nruo.config}
+	_node = &NotificationRule{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, nruo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{notificationrule.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -740,6 +740,6 @@ func (nruo *NotificationRuleUpdateOne) sqlSave(ctx context.Context) (_node *Noti
 		}
 		return nil, err
 	}
-	nruo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

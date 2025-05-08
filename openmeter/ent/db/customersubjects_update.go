@@ -23,44 +23,44 @@ type CustomerSubjectsUpdate struct {
 }
 
 // Where appends a list predicates to the CustomerSubjectsUpdate builder.
-func (csu *CustomerSubjectsUpdate) Where(ps ...predicate.CustomerSubjects) *CustomerSubjectsUpdate {
-	csu.mutation.Where(ps...)
-	return csu
+func (_u *CustomerSubjectsUpdate) Where(ps ...predicate.CustomerSubjects) *CustomerSubjectsUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (csu *CustomerSubjectsUpdate) SetDeletedAt(t time.Time) *CustomerSubjectsUpdate {
-	csu.mutation.SetDeletedAt(t)
-	return csu
+func (_u *CustomerSubjectsUpdate) SetDeletedAt(v time.Time) *CustomerSubjectsUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (csu *CustomerSubjectsUpdate) SetNillableDeletedAt(t *time.Time) *CustomerSubjectsUpdate {
-	if t != nil {
-		csu.SetDeletedAt(*t)
+func (_u *CustomerSubjectsUpdate) SetNillableDeletedAt(v *time.Time) *CustomerSubjectsUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return csu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (csu *CustomerSubjectsUpdate) ClearDeletedAt() *CustomerSubjectsUpdate {
-	csu.mutation.ClearDeletedAt()
-	return csu
+func (_u *CustomerSubjectsUpdate) ClearDeletedAt() *CustomerSubjectsUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // Mutation returns the CustomerSubjectsMutation object of the builder.
-func (csu *CustomerSubjectsUpdate) Mutation() *CustomerSubjectsMutation {
-	return csu.mutation
+func (_u *CustomerSubjectsUpdate) Mutation() *CustomerSubjectsMutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (csu *CustomerSubjectsUpdate) Save(ctx context.Context) (int, error) {
-	return withHooks(ctx, csu.sqlSave, csu.mutation, csu.hooks)
+func (_u *CustomerSubjectsUpdate) Save(ctx context.Context) (int, error) {
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (csu *CustomerSubjectsUpdate) SaveX(ctx context.Context) int {
-	affected, err := csu.Save(ctx)
+func (_u *CustomerSubjectsUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -68,45 +68,45 @@ func (csu *CustomerSubjectsUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (csu *CustomerSubjectsUpdate) Exec(ctx context.Context) error {
-	_, err := csu.Save(ctx)
+func (_u *CustomerSubjectsUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (csu *CustomerSubjectsUpdate) ExecX(ctx context.Context) {
-	if err := csu.Exec(ctx); err != nil {
+func (_u *CustomerSubjectsUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (csu *CustomerSubjectsUpdate) check() error {
-	if csu.mutation.CustomerCleared() && len(csu.mutation.CustomerIDs()) > 0 {
+func (_u *CustomerSubjectsUpdate) check() error {
+	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "CustomerSubjects.customer"`)
 	}
 	return nil
 }
 
-func (csu *CustomerSubjectsUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := csu.check(); err != nil {
-		return n, err
+func (_u *CustomerSubjectsUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(customersubjects.Table, customersubjects.Columns, sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt))
-	if ps := csu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := csu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(customersubjects.FieldDeletedAt, field.TypeTime, value)
 	}
-	if csu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(customersubjects.FieldDeletedAt, field.TypeTime)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, csu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{customersubjects.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -114,8 +114,8 @@ func (csu *CustomerSubjectsUpdate) sqlSave(ctx context.Context) (n int, err erro
 		}
 		return 0, err
 	}
-	csu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // CustomerSubjectsUpdateOne is the builder for updating a single CustomerSubjects entity.
@@ -127,51 +127,51 @@ type CustomerSubjectsUpdateOne struct {
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (csuo *CustomerSubjectsUpdateOne) SetDeletedAt(t time.Time) *CustomerSubjectsUpdateOne {
-	csuo.mutation.SetDeletedAt(t)
-	return csuo
+func (_u *CustomerSubjectsUpdateOne) SetDeletedAt(v time.Time) *CustomerSubjectsUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (csuo *CustomerSubjectsUpdateOne) SetNillableDeletedAt(t *time.Time) *CustomerSubjectsUpdateOne {
-	if t != nil {
-		csuo.SetDeletedAt(*t)
+func (_u *CustomerSubjectsUpdateOne) SetNillableDeletedAt(v *time.Time) *CustomerSubjectsUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return csuo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (csuo *CustomerSubjectsUpdateOne) ClearDeletedAt() *CustomerSubjectsUpdateOne {
-	csuo.mutation.ClearDeletedAt()
-	return csuo
+func (_u *CustomerSubjectsUpdateOne) ClearDeletedAt() *CustomerSubjectsUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // Mutation returns the CustomerSubjectsMutation object of the builder.
-func (csuo *CustomerSubjectsUpdateOne) Mutation() *CustomerSubjectsMutation {
-	return csuo.mutation
+func (_u *CustomerSubjectsUpdateOne) Mutation() *CustomerSubjectsMutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the CustomerSubjectsUpdate builder.
-func (csuo *CustomerSubjectsUpdateOne) Where(ps ...predicate.CustomerSubjects) *CustomerSubjectsUpdateOne {
-	csuo.mutation.Where(ps...)
-	return csuo
+func (_u *CustomerSubjectsUpdateOne) Where(ps ...predicate.CustomerSubjects) *CustomerSubjectsUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (csuo *CustomerSubjectsUpdateOne) Select(field string, fields ...string) *CustomerSubjectsUpdateOne {
-	csuo.fields = append([]string{field}, fields...)
-	return csuo
+func (_u *CustomerSubjectsUpdateOne) Select(field string, fields ...string) *CustomerSubjectsUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated CustomerSubjects entity.
-func (csuo *CustomerSubjectsUpdateOne) Save(ctx context.Context) (*CustomerSubjects, error) {
-	return withHooks(ctx, csuo.sqlSave, csuo.mutation, csuo.hooks)
+func (_u *CustomerSubjectsUpdateOne) Save(ctx context.Context) (*CustomerSubjects, error) {
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (csuo *CustomerSubjectsUpdateOne) SaveX(ctx context.Context) *CustomerSubjects {
-	node, err := csuo.Save(ctx)
+func (_u *CustomerSubjectsUpdateOne) SaveX(ctx context.Context) *CustomerSubjects {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -179,37 +179,37 @@ func (csuo *CustomerSubjectsUpdateOne) SaveX(ctx context.Context) *CustomerSubje
 }
 
 // Exec executes the query on the entity.
-func (csuo *CustomerSubjectsUpdateOne) Exec(ctx context.Context) error {
-	_, err := csuo.Save(ctx)
+func (_u *CustomerSubjectsUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (csuo *CustomerSubjectsUpdateOne) ExecX(ctx context.Context) {
-	if err := csuo.Exec(ctx); err != nil {
+func (_u *CustomerSubjectsUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (csuo *CustomerSubjectsUpdateOne) check() error {
-	if csuo.mutation.CustomerCleared() && len(csuo.mutation.CustomerIDs()) > 0 {
+func (_u *CustomerSubjectsUpdateOne) check() error {
+	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "CustomerSubjects.customer"`)
 	}
 	return nil
 }
 
-func (csuo *CustomerSubjectsUpdateOne) sqlSave(ctx context.Context) (_node *CustomerSubjects, err error) {
-	if err := csuo.check(); err != nil {
+func (_u *CustomerSubjectsUpdateOne) sqlSave(ctx context.Context) (_node *CustomerSubjects, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(customersubjects.Table, customersubjects.Columns, sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt))
-	id, ok := csuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "CustomerSubjects.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := csuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, customersubjects.FieldID)
 		for _, f := range fields {
@@ -221,23 +221,23 @@ func (csuo *CustomerSubjectsUpdateOne) sqlSave(ctx context.Context) (_node *Cust
 			}
 		}
 	}
-	if ps := csuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := csuo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(customersubjects.FieldDeletedAt, field.TypeTime, value)
 	}
-	if csuo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(customersubjects.FieldDeletedAt, field.TypeTime)
 	}
-	_node = &CustomerSubjects{config: csuo.config}
+	_node = &CustomerSubjects{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, csuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{customersubjects.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -245,6 +245,6 @@ func (csuo *CustomerSubjectsUpdateOne) sqlSave(ctx context.Context) (_node *Cust
 		}
 		return nil, err
 	}
-	csuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

@@ -20,56 +20,56 @@ type SubscriptionItemDelete struct {
 }
 
 // Where appends a list predicates to the SubscriptionItemDelete builder.
-func (sid *SubscriptionItemDelete) Where(ps ...predicate.SubscriptionItem) *SubscriptionItemDelete {
-	sid.mutation.Where(ps...)
-	return sid
+func (_d *SubscriptionItemDelete) Where(ps ...predicate.SubscriptionItem) *SubscriptionItemDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (sid *SubscriptionItemDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, sid.sqlExec, sid.mutation, sid.hooks)
+func (_d *SubscriptionItemDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (sid *SubscriptionItemDelete) ExecX(ctx context.Context) int {
-	n, err := sid.Exec(ctx)
+func (_d *SubscriptionItemDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (sid *SubscriptionItemDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *SubscriptionItemDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(subscriptionitem.Table, sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString))
-	if ps := sid.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, sid.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	sid.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // SubscriptionItemDeleteOne is the builder for deleting a single SubscriptionItem entity.
 type SubscriptionItemDeleteOne struct {
-	sid *SubscriptionItemDelete
+	_d *SubscriptionItemDelete
 }
 
 // Where appends a list predicates to the SubscriptionItemDelete builder.
-func (sido *SubscriptionItemDeleteOne) Where(ps ...predicate.SubscriptionItem) *SubscriptionItemDeleteOne {
-	sido.sid.mutation.Where(ps...)
-	return sido
+func (_d *SubscriptionItemDeleteOne) Where(ps ...predicate.SubscriptionItem) *SubscriptionItemDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (sido *SubscriptionItemDeleteOne) Exec(ctx context.Context) error {
-	n, err := sido.sid.Exec(ctx)
+func (_d *SubscriptionItemDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (sido *SubscriptionItemDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (sido *SubscriptionItemDeleteOne) ExecX(ctx context.Context) {
-	if err := sido.Exec(ctx); err != nil {
+func (_d *SubscriptionItemDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

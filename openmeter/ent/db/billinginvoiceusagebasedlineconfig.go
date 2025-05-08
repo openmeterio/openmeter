@@ -55,7 +55,7 @@ func (*BillingInvoiceUsageBasedLineConfig) scanValues(columns []string) ([]any, 
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the BillingInvoiceUsageBasedLineConfig fields.
-func (biublc *BillingInvoiceUsageBasedLineConfig) assignValues(columns []string, values []any) error {
+func (_m *BillingInvoiceUsageBasedLineConfig) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -65,55 +65,55 @@ func (biublc *BillingInvoiceUsageBasedLineConfig) assignValues(columns []string,
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				biublc.ID = value.String
+				_m.ID = value.String
 			}
 		case billinginvoiceusagebasedlineconfig.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				biublc.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case billinginvoiceusagebasedlineconfig.FieldPriceType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field price_type", values[i])
 			} else if value.Valid {
-				biublc.PriceType = productcatalog.PriceType(value.String)
+				_m.PriceType = productcatalog.PriceType(value.String)
 			}
 		case billinginvoiceusagebasedlineconfig.FieldFeatureKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_key", values[i])
 			} else if value.Valid {
-				biublc.FeatureKey = value.String
+				_m.FeatureKey = value.String
 			}
 		case billinginvoiceusagebasedlineconfig.FieldPrice:
 			if value, err := billinginvoiceusagebasedlineconfig.ValueScanner.Price.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				biublc.Price = value
+				_m.Price = value
 			}
 		case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field pre_line_period_quantity", values[i])
 			} else if value.Valid {
-				biublc.PreLinePeriodQuantity = new(alpacadecimal.Decimal)
-				*biublc.PreLinePeriodQuantity = *value.S.(*alpacadecimal.Decimal)
+				_m.PreLinePeriodQuantity = new(alpacadecimal.Decimal)
+				*_m.PreLinePeriodQuantity = *value.S.(*alpacadecimal.Decimal)
 			}
 		case billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field metered_pre_line_period_quantity", values[i])
 			} else if value.Valid {
-				biublc.MeteredPreLinePeriodQuantity = new(alpacadecimal.Decimal)
-				*biublc.MeteredPreLinePeriodQuantity = *value.S.(*alpacadecimal.Decimal)
+				_m.MeteredPreLinePeriodQuantity = new(alpacadecimal.Decimal)
+				*_m.MeteredPreLinePeriodQuantity = *value.S.(*alpacadecimal.Decimal)
 			}
 		case billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field metered_quantity", values[i])
 			} else if value.Valid {
-				biublc.MeteredQuantity = new(alpacadecimal.Decimal)
-				*biublc.MeteredQuantity = *value.S.(*alpacadecimal.Decimal)
+				_m.MeteredQuantity = new(alpacadecimal.Decimal)
+				*_m.MeteredQuantity = *value.S.(*alpacadecimal.Decimal)
 			}
 		default:
-			biublc.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -121,56 +121,56 @@ func (biublc *BillingInvoiceUsageBasedLineConfig) assignValues(columns []string,
 
 // Value returns the ent.Value that was dynamically selected and assigned to the BillingInvoiceUsageBasedLineConfig.
 // This includes values selected through modifiers, order, etc.
-func (biublc *BillingInvoiceUsageBasedLineConfig) Value(name string) (ent.Value, error) {
-	return biublc.selectValues.Get(name)
+func (_m *BillingInvoiceUsageBasedLineConfig) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // Update returns a builder for updating this BillingInvoiceUsageBasedLineConfig.
 // Note that you need to call BillingInvoiceUsageBasedLineConfig.Unwrap() before calling this method if this BillingInvoiceUsageBasedLineConfig
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (biublc *BillingInvoiceUsageBasedLineConfig) Update() *BillingInvoiceUsageBasedLineConfigUpdateOne {
-	return NewBillingInvoiceUsageBasedLineConfigClient(biublc.config).UpdateOne(biublc)
+func (_m *BillingInvoiceUsageBasedLineConfig) Update() *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	return NewBillingInvoiceUsageBasedLineConfigClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the BillingInvoiceUsageBasedLineConfig entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (biublc *BillingInvoiceUsageBasedLineConfig) Unwrap() *BillingInvoiceUsageBasedLineConfig {
-	_tx, ok := biublc.config.driver.(*txDriver)
+func (_m *BillingInvoiceUsageBasedLineConfig) Unwrap() *BillingInvoiceUsageBasedLineConfig {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: BillingInvoiceUsageBasedLineConfig is not a transactional entity")
 	}
-	biublc.config.driver = _tx.drv
-	return biublc
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (biublc *BillingInvoiceUsageBasedLineConfig) String() string {
+func (_m *BillingInvoiceUsageBasedLineConfig) String() string {
 	var builder strings.Builder
 	builder.WriteString("BillingInvoiceUsageBasedLineConfig(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", biublc.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(biublc.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("price_type=")
-	builder.WriteString(fmt.Sprintf("%v", biublc.PriceType))
+	builder.WriteString(fmt.Sprintf("%v", _m.PriceType))
 	builder.WriteString(", ")
 	builder.WriteString("feature_key=")
-	builder.WriteString(biublc.FeatureKey)
+	builder.WriteString(_m.FeatureKey)
 	builder.WriteString(", ")
 	builder.WriteString("price=")
-	builder.WriteString(fmt.Sprintf("%v", biublc.Price))
+	builder.WriteString(fmt.Sprintf("%v", _m.Price))
 	builder.WriteString(", ")
-	if v := biublc.PreLinePeriodQuantity; v != nil {
+	if v := _m.PreLinePeriodQuantity; v != nil {
 		builder.WriteString("pre_line_period_quantity=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := biublc.MeteredPreLinePeriodQuantity; v != nil {
+	if v := _m.MeteredPreLinePeriodQuantity; v != nil {
 		builder.WriteString("metered_pre_line_period_quantity=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := biublc.MeteredQuantity; v != nil {
+	if v := _m.MeteredQuantity; v != nil {
 		builder.WriteString("metered_quantity=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}

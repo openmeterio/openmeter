@@ -25,115 +25,115 @@ type AppStripeCustomerCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (ascc *AppStripeCustomerCreate) SetNamespace(s string) *AppStripeCustomerCreate {
-	ascc.mutation.SetNamespace(s)
-	return ascc
+func (_c *AppStripeCustomerCreate) SetNamespace(v string) *AppStripeCustomerCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (ascc *AppStripeCustomerCreate) SetCreatedAt(t time.Time) *AppStripeCustomerCreate {
-	ascc.mutation.SetCreatedAt(t)
-	return ascc
+func (_c *AppStripeCustomerCreate) SetCreatedAt(v time.Time) *AppStripeCustomerCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (ascc *AppStripeCustomerCreate) SetNillableCreatedAt(t *time.Time) *AppStripeCustomerCreate {
-	if t != nil {
-		ascc.SetCreatedAt(*t)
+func (_c *AppStripeCustomerCreate) SetNillableCreatedAt(v *time.Time) *AppStripeCustomerCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return ascc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (ascc *AppStripeCustomerCreate) SetUpdatedAt(t time.Time) *AppStripeCustomerCreate {
-	ascc.mutation.SetUpdatedAt(t)
-	return ascc
+func (_c *AppStripeCustomerCreate) SetUpdatedAt(v time.Time) *AppStripeCustomerCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (ascc *AppStripeCustomerCreate) SetNillableUpdatedAt(t *time.Time) *AppStripeCustomerCreate {
-	if t != nil {
-		ascc.SetUpdatedAt(*t)
+func (_c *AppStripeCustomerCreate) SetNillableUpdatedAt(v *time.Time) *AppStripeCustomerCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return ascc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (ascc *AppStripeCustomerCreate) SetDeletedAt(t time.Time) *AppStripeCustomerCreate {
-	ascc.mutation.SetDeletedAt(t)
-	return ascc
+func (_c *AppStripeCustomerCreate) SetDeletedAt(v time.Time) *AppStripeCustomerCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (ascc *AppStripeCustomerCreate) SetNillableDeletedAt(t *time.Time) *AppStripeCustomerCreate {
-	if t != nil {
-		ascc.SetDeletedAt(*t)
+func (_c *AppStripeCustomerCreate) SetNillableDeletedAt(v *time.Time) *AppStripeCustomerCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return ascc
+	return _c
 }
 
 // SetAppID sets the "app_id" field.
-func (ascc *AppStripeCustomerCreate) SetAppID(s string) *AppStripeCustomerCreate {
-	ascc.mutation.SetAppID(s)
-	return ascc
+func (_c *AppStripeCustomerCreate) SetAppID(v string) *AppStripeCustomerCreate {
+	_c.mutation.SetAppID(v)
+	return _c
 }
 
 // SetCustomerID sets the "customer_id" field.
-func (ascc *AppStripeCustomerCreate) SetCustomerID(s string) *AppStripeCustomerCreate {
-	ascc.mutation.SetCustomerID(s)
-	return ascc
+func (_c *AppStripeCustomerCreate) SetCustomerID(v string) *AppStripeCustomerCreate {
+	_c.mutation.SetCustomerID(v)
+	return _c
 }
 
 // SetStripeCustomerID sets the "stripe_customer_id" field.
-func (ascc *AppStripeCustomerCreate) SetStripeCustomerID(s string) *AppStripeCustomerCreate {
-	ascc.mutation.SetStripeCustomerID(s)
-	return ascc
+func (_c *AppStripeCustomerCreate) SetStripeCustomerID(v string) *AppStripeCustomerCreate {
+	_c.mutation.SetStripeCustomerID(v)
+	return _c
 }
 
 // SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
-func (ascc *AppStripeCustomerCreate) SetStripeDefaultPaymentMethodID(s string) *AppStripeCustomerCreate {
-	ascc.mutation.SetStripeDefaultPaymentMethodID(s)
-	return ascc
+func (_c *AppStripeCustomerCreate) SetStripeDefaultPaymentMethodID(v string) *AppStripeCustomerCreate {
+	_c.mutation.SetStripeDefaultPaymentMethodID(v)
+	return _c
 }
 
 // SetNillableStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field if the given value is not nil.
-func (ascc *AppStripeCustomerCreate) SetNillableStripeDefaultPaymentMethodID(s *string) *AppStripeCustomerCreate {
-	if s != nil {
-		ascc.SetStripeDefaultPaymentMethodID(*s)
+func (_c *AppStripeCustomerCreate) SetNillableStripeDefaultPaymentMethodID(v *string) *AppStripeCustomerCreate {
+	if v != nil {
+		_c.SetStripeDefaultPaymentMethodID(*v)
 	}
-	return ascc
+	return _c
 }
 
 // SetStripeAppID sets the "stripe_app" edge to the AppStripe entity by ID.
-func (ascc *AppStripeCustomerCreate) SetStripeAppID(id string) *AppStripeCustomerCreate {
-	ascc.mutation.SetStripeAppID(id)
-	return ascc
+func (_c *AppStripeCustomerCreate) SetStripeAppID(id string) *AppStripeCustomerCreate {
+	_c.mutation.SetStripeAppID(id)
+	return _c
 }
 
 // SetStripeApp sets the "stripe_app" edge to the AppStripe entity.
-func (ascc *AppStripeCustomerCreate) SetStripeApp(a *AppStripe) *AppStripeCustomerCreate {
-	return ascc.SetStripeAppID(a.ID)
+func (_c *AppStripeCustomerCreate) SetStripeApp(v *AppStripe) *AppStripeCustomerCreate {
+	return _c.SetStripeAppID(v.ID)
 }
 
 // SetCustomer sets the "customer" edge to the Customer entity.
-func (ascc *AppStripeCustomerCreate) SetCustomer(c *Customer) *AppStripeCustomerCreate {
-	return ascc.SetCustomerID(c.ID)
+func (_c *AppStripeCustomerCreate) SetCustomer(v *Customer) *AppStripeCustomerCreate {
+	return _c.SetCustomerID(v.ID)
 }
 
 // Mutation returns the AppStripeCustomerMutation object of the builder.
-func (ascc *AppStripeCustomerCreate) Mutation() *AppStripeCustomerMutation {
-	return ascc.mutation
+func (_c *AppStripeCustomerCreate) Mutation() *AppStripeCustomerMutation {
+	return _c.mutation
 }
 
 // Save creates the AppStripeCustomer in the database.
-func (ascc *AppStripeCustomerCreate) Save(ctx context.Context) (*AppStripeCustomer, error) {
-	ascc.defaults()
-	return withHooks(ctx, ascc.sqlSave, ascc.mutation, ascc.hooks)
+func (_c *AppStripeCustomerCreate) Save(ctx context.Context) (*AppStripeCustomer, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (ascc *AppStripeCustomerCreate) SaveX(ctx context.Context) *AppStripeCustomer {
-	v, err := ascc.Save(ctx)
+func (_c *AppStripeCustomerCreate) SaveX(ctx context.Context) *AppStripeCustomer {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -141,85 +141,85 @@ func (ascc *AppStripeCustomerCreate) SaveX(ctx context.Context) *AppStripeCustom
 }
 
 // Exec executes the query.
-func (ascc *AppStripeCustomerCreate) Exec(ctx context.Context) error {
-	_, err := ascc.Save(ctx)
+func (_c *AppStripeCustomerCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ascc *AppStripeCustomerCreate) ExecX(ctx context.Context) {
-	if err := ascc.Exec(ctx); err != nil {
+func (_c *AppStripeCustomerCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (ascc *AppStripeCustomerCreate) defaults() {
-	if _, ok := ascc.mutation.CreatedAt(); !ok {
+func (_c *AppStripeCustomerCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := appstripecustomer.DefaultCreatedAt()
-		ascc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := ascc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := appstripecustomer.DefaultUpdatedAt()
-		ascc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (ascc *AppStripeCustomerCreate) check() error {
-	if _, ok := ascc.mutation.Namespace(); !ok {
+func (_c *AppStripeCustomerCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "AppStripeCustomer.namespace"`)}
 	}
-	if v, ok := ascc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := appstripecustomer.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "AppStripeCustomer.namespace": %w`, err)}
 		}
 	}
-	if _, ok := ascc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "AppStripeCustomer.created_at"`)}
 	}
-	if _, ok := ascc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "AppStripeCustomer.updated_at"`)}
 	}
-	if _, ok := ascc.mutation.AppID(); !ok {
+	if _, ok := _c.mutation.AppID(); !ok {
 		return &ValidationError{Name: "app_id", err: errors.New(`db: missing required field "AppStripeCustomer.app_id"`)}
 	}
-	if v, ok := ascc.mutation.AppID(); ok {
+	if v, ok := _c.mutation.AppID(); ok {
 		if err := appstripecustomer.AppIDValidator(v); err != nil {
 			return &ValidationError{Name: "app_id", err: fmt.Errorf(`db: validator failed for field "AppStripeCustomer.app_id": %w`, err)}
 		}
 	}
-	if _, ok := ascc.mutation.CustomerID(); !ok {
+	if _, ok := _c.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "AppStripeCustomer.customer_id"`)}
 	}
-	if v, ok := ascc.mutation.CustomerID(); ok {
+	if v, ok := _c.mutation.CustomerID(); ok {
 		if err := appstripecustomer.CustomerIDValidator(v); err != nil {
 			return &ValidationError{Name: "customer_id", err: fmt.Errorf(`db: validator failed for field "AppStripeCustomer.customer_id": %w`, err)}
 		}
 	}
-	if _, ok := ascc.mutation.StripeCustomerID(); !ok {
+	if _, ok := _c.mutation.StripeCustomerID(); !ok {
 		return &ValidationError{Name: "stripe_customer_id", err: errors.New(`db: missing required field "AppStripeCustomer.stripe_customer_id"`)}
 	}
-	if v, ok := ascc.mutation.StripeCustomerID(); ok {
+	if v, ok := _c.mutation.StripeCustomerID(); ok {
 		if err := appstripecustomer.StripeCustomerIDValidator(v); err != nil {
 			return &ValidationError{Name: "stripe_customer_id", err: fmt.Errorf(`db: validator failed for field "AppStripeCustomer.stripe_customer_id": %w`, err)}
 		}
 	}
-	if len(ascc.mutation.StripeAppIDs()) == 0 {
+	if len(_c.mutation.StripeAppIDs()) == 0 {
 		return &ValidationError{Name: "stripe_app", err: errors.New(`db: missing required edge "AppStripeCustomer.stripe_app"`)}
 	}
-	if len(ascc.mutation.CustomerIDs()) == 0 {
+	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "AppStripeCustomer.customer"`)}
 	}
 	return nil
 }
 
-func (ascc *AppStripeCustomerCreate) sqlSave(ctx context.Context) (*AppStripeCustomer, error) {
-	if err := ascc.check(); err != nil {
+func (_c *AppStripeCustomerCreate) sqlSave(ctx context.Context) (*AppStripeCustomer, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := ascc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, ascc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -227,42 +227,42 @@ func (ascc *AppStripeCustomerCreate) sqlSave(ctx context.Context) (*AppStripeCus
 	}
 	id := _spec.ID.Value.(int64)
 	_node.ID = int(id)
-	ascc.mutation.id = &_node.ID
-	ascc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (ascc *AppStripeCustomerCreate) createSpec() (*AppStripeCustomer, *sqlgraph.CreateSpec) {
+func (_c *AppStripeCustomerCreate) createSpec() (*AppStripeCustomer, *sqlgraph.CreateSpec) {
 	var (
-		_node = &AppStripeCustomer{config: ascc.config}
+		_node = &AppStripeCustomer{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(appstripecustomer.Table, sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt))
 	)
-	_spec.OnConflict = ascc.conflict
-	if value, ok := ascc.mutation.Namespace(); ok {
+	_spec.OnConflict = _c.conflict
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(appstripecustomer.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := ascc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(appstripecustomer.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := ascc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(appstripecustomer.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := ascc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(appstripecustomer.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := ascc.mutation.StripeCustomerID(); ok {
+	if value, ok := _c.mutation.StripeCustomerID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeCustomerID, field.TypeString, value)
 		_node.StripeCustomerID = value
 	}
-	if value, ok := ascc.mutation.StripeDefaultPaymentMethodID(); ok {
+	if value, ok := _c.mutation.StripeDefaultPaymentMethodID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString, value)
 		_node.StripeDefaultPaymentMethodID = &value
 	}
-	if nodes := ascc.mutation.StripeAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.StripeAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -279,7 +279,7 @@ func (ascc *AppStripeCustomerCreate) createSpec() (*AppStripeCustomer, *sqlgraph
 		_node.AppID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ascc.mutation.CustomerIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
@@ -315,10 +315,10 @@ func (ascc *AppStripeCustomerCreate) createSpec() (*AppStripeCustomer, *sqlgraph
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (ascc *AppStripeCustomerCreate) OnConflict(opts ...sql.ConflictOption) *AppStripeCustomerUpsertOne {
-	ascc.conflict = opts
+func (_c *AppStripeCustomerCreate) OnConflict(opts ...sql.ConflictOption) *AppStripeCustomerUpsertOne {
+	_c.conflict = opts
 	return &AppStripeCustomerUpsertOne{
-		create: ascc,
+		create: _c,
 	}
 }
 
@@ -328,10 +328,10 @@ func (ascc *AppStripeCustomerCreate) OnConflict(opts ...sql.ConflictOption) *App
 //	client.AppStripeCustomer.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (ascc *AppStripeCustomerCreate) OnConflictColumns(columns ...string) *AppStripeCustomerUpsertOne {
-	ascc.conflict = append(ascc.conflict, sql.ConflictColumns(columns...))
+func (_c *AppStripeCustomerCreate) OnConflictColumns(columns ...string) *AppStripeCustomerUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &AppStripeCustomerUpsertOne{
-		create: ascc,
+		create: _c,
 	}
 }
 
@@ -574,16 +574,16 @@ type AppStripeCustomerCreateBulk struct {
 }
 
 // Save creates the AppStripeCustomer entities in the database.
-func (asccb *AppStripeCustomerCreateBulk) Save(ctx context.Context) ([]*AppStripeCustomer, error) {
-	if asccb.err != nil {
-		return nil, asccb.err
+func (_c *AppStripeCustomerCreateBulk) Save(ctx context.Context) ([]*AppStripeCustomer, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(asccb.builders))
-	nodes := make([]*AppStripeCustomer, len(asccb.builders))
-	mutators := make([]Mutator, len(asccb.builders))
-	for i := range asccb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*AppStripeCustomer, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := asccb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*AppStripeCustomerMutation)
@@ -597,12 +597,12 @@ func (asccb *AppStripeCustomerCreateBulk) Save(ctx context.Context) ([]*AppStrip
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, asccb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = asccb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, asccb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -626,7 +626,7 @@ func (asccb *AppStripeCustomerCreateBulk) Save(ctx context.Context) ([]*AppStrip
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, asccb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -634,8 +634,8 @@ func (asccb *AppStripeCustomerCreateBulk) Save(ctx context.Context) ([]*AppStrip
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (asccb *AppStripeCustomerCreateBulk) SaveX(ctx context.Context) []*AppStripeCustomer {
-	v, err := asccb.Save(ctx)
+func (_c *AppStripeCustomerCreateBulk) SaveX(ctx context.Context) []*AppStripeCustomer {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -643,14 +643,14 @@ func (asccb *AppStripeCustomerCreateBulk) SaveX(ctx context.Context) []*AppStrip
 }
 
 // Exec executes the query.
-func (asccb *AppStripeCustomerCreateBulk) Exec(ctx context.Context) error {
-	_, err := asccb.Save(ctx)
+func (_c *AppStripeCustomerCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (asccb *AppStripeCustomerCreateBulk) ExecX(ctx context.Context) {
-	if err := asccb.Exec(ctx); err != nil {
+func (_c *AppStripeCustomerCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -670,10 +670,10 @@ func (asccb *AppStripeCustomerCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (asccb *AppStripeCustomerCreateBulk) OnConflict(opts ...sql.ConflictOption) *AppStripeCustomerUpsertBulk {
-	asccb.conflict = opts
+func (_c *AppStripeCustomerCreateBulk) OnConflict(opts ...sql.ConflictOption) *AppStripeCustomerUpsertBulk {
+	_c.conflict = opts
 	return &AppStripeCustomerUpsertBulk{
-		create: asccb,
+		create: _c,
 	}
 }
 
@@ -683,10 +683,10 @@ func (asccb *AppStripeCustomerCreateBulk) OnConflict(opts ...sql.ConflictOption)
 //	client.AppStripeCustomer.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (asccb *AppStripeCustomerCreateBulk) OnConflictColumns(columns ...string) *AppStripeCustomerUpsertBulk {
-	asccb.conflict = append(asccb.conflict, sql.ConflictColumns(columns...))
+func (_c *AppStripeCustomerCreateBulk) OnConflictColumns(columns ...string) *AppStripeCustomerUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &AppStripeCustomerUpsertBulk{
-		create: asccb,
+		create: _c,
 	}
 }
 

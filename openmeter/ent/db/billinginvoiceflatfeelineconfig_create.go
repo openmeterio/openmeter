@@ -26,73 +26,73 @@ type BillingInvoiceFlatFeeLineConfigCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetNamespace(s string) *BillingInvoiceFlatFeeLineConfigCreate {
-	bifflcc.mutation.SetNamespace(s)
-	return bifflcc
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetNamespace(v string) *BillingInvoiceFlatFeeLineConfigCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetPerUnitAmount sets the "per_unit_amount" field.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetPerUnitAmount(a alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigCreate {
-	bifflcc.mutation.SetPerUnitAmount(a)
-	return bifflcc
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetPerUnitAmount(v alpacadecimal.Decimal) *BillingInvoiceFlatFeeLineConfigCreate {
+	_c.mutation.SetPerUnitAmount(v)
+	return _c
 }
 
 // SetCategory sets the "category" field.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetCategory(bfc billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigCreate {
-	bifflcc.mutation.SetCategory(bfc)
-	return bifflcc
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetCategory(v billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigCreate {
+	_c.mutation.SetCategory(v)
+	return _c
 }
 
 // SetNillableCategory sets the "category" field if the given value is not nil.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetNillableCategory(bfc *billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigCreate {
-	if bfc != nil {
-		bifflcc.SetCategory(*bfc)
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetNillableCategory(v *billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigCreate {
+	if v != nil {
+		_c.SetCategory(*v)
 	}
-	return bifflcc
+	return _c
 }
 
 // SetPaymentTerm sets the "payment_term" field.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetPaymentTerm(ptt productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigCreate {
-	bifflcc.mutation.SetPaymentTerm(ptt)
-	return bifflcc
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigCreate {
+	_c.mutation.SetPaymentTerm(v)
+	return _c
 }
 
 // SetNillablePaymentTerm sets the "payment_term" field if the given value is not nil.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetNillablePaymentTerm(ptt *productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigCreate {
-	if ptt != nil {
-		bifflcc.SetPaymentTerm(*ptt)
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetNillablePaymentTerm(v *productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigCreate {
+	if v != nil {
+		_c.SetPaymentTerm(*v)
 	}
-	return bifflcc
+	return _c
 }
 
 // SetID sets the "id" field.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetID(s string) *BillingInvoiceFlatFeeLineConfigCreate {
-	bifflcc.mutation.SetID(s)
-	return bifflcc
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetID(v string) *BillingInvoiceFlatFeeLineConfigCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetNillableID(s *string) *BillingInvoiceFlatFeeLineConfigCreate {
-	if s != nil {
-		bifflcc.SetID(*s)
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetNillableID(v *string) *BillingInvoiceFlatFeeLineConfigCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return bifflcc
+	return _c
 }
 
 // Mutation returns the BillingInvoiceFlatFeeLineConfigMutation object of the builder.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) Mutation() *BillingInvoiceFlatFeeLineConfigMutation {
-	return bifflcc.mutation
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) Mutation() *BillingInvoiceFlatFeeLineConfigMutation {
+	return _c.mutation
 }
 
 // Save creates the BillingInvoiceFlatFeeLineConfig in the database.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) Save(ctx context.Context) (*BillingInvoiceFlatFeeLineConfig, error) {
-	bifflcc.defaults()
-	return withHooks(ctx, bifflcc.sqlSave, bifflcc.mutation, bifflcc.hooks)
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) Save(ctx context.Context) (*BillingInvoiceFlatFeeLineConfig, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SaveX(ctx context.Context) *BillingInvoiceFlatFeeLineConfig {
-	v, err := bifflcc.Save(ctx)
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SaveX(ctx context.Context) *BillingInvoiceFlatFeeLineConfig {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -100,59 +100,59 @@ func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SaveX(ctx context.Context)
 }
 
 // Exec executes the query.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) Exec(ctx context.Context) error {
-	_, err := bifflcc.Save(ctx)
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) ExecX(ctx context.Context) {
-	if err := bifflcc.Exec(ctx); err != nil {
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) defaults() {
-	if _, ok := bifflcc.mutation.Category(); !ok {
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) defaults() {
+	if _, ok := _c.mutation.Category(); !ok {
 		v := billinginvoiceflatfeelineconfig.DefaultCategory
-		bifflcc.mutation.SetCategory(v)
+		_c.mutation.SetCategory(v)
 	}
-	if _, ok := bifflcc.mutation.PaymentTerm(); !ok {
+	if _, ok := _c.mutation.PaymentTerm(); !ok {
 		v := billinginvoiceflatfeelineconfig.DefaultPaymentTerm
-		bifflcc.mutation.SetPaymentTerm(v)
+		_c.mutation.SetPaymentTerm(v)
 	}
-	if _, ok := bifflcc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := billinginvoiceflatfeelineconfig.DefaultID()
-		bifflcc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) check() error {
-	if _, ok := bifflcc.mutation.Namespace(); !ok {
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BillingInvoiceFlatFeeLineConfig.namespace"`)}
 	}
-	if v, ok := bifflcc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := billinginvoiceflatfeelineconfig.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceFlatFeeLineConfig.namespace": %w`, err)}
 		}
 	}
-	if _, ok := bifflcc.mutation.PerUnitAmount(); !ok {
+	if _, ok := _c.mutation.PerUnitAmount(); !ok {
 		return &ValidationError{Name: "per_unit_amount", err: errors.New(`db: missing required field "BillingInvoiceFlatFeeLineConfig.per_unit_amount"`)}
 	}
-	if _, ok := bifflcc.mutation.Category(); !ok {
+	if _, ok := _c.mutation.Category(); !ok {
 		return &ValidationError{Name: "category", err: errors.New(`db: missing required field "BillingInvoiceFlatFeeLineConfig.category"`)}
 	}
-	if v, ok := bifflcc.mutation.Category(); ok {
+	if v, ok := _c.mutation.Category(); ok {
 		if err := billinginvoiceflatfeelineconfig.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceFlatFeeLineConfig.category": %w`, err)}
 		}
 	}
-	if _, ok := bifflcc.mutation.PaymentTerm(); !ok {
+	if _, ok := _c.mutation.PaymentTerm(); !ok {
 		return &ValidationError{Name: "payment_term", err: errors.New(`db: missing required field "BillingInvoiceFlatFeeLineConfig.payment_term"`)}
 	}
-	if v, ok := bifflcc.mutation.PaymentTerm(); ok {
+	if v, ok := _c.mutation.PaymentTerm(); ok {
 		if err := billinginvoiceflatfeelineconfig.PaymentTermValidator(v); err != nil {
 			return &ValidationError{Name: "payment_term", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceFlatFeeLineConfig.payment_term": %w`, err)}
 		}
@@ -160,12 +160,12 @@ func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) check() error {
 	return nil
 }
 
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) sqlSave(ctx context.Context) (*BillingInvoiceFlatFeeLineConfig, error) {
-	if err := bifflcc.check(); err != nil {
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) sqlSave(ctx context.Context) (*BillingInvoiceFlatFeeLineConfig, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := bifflcc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, bifflcc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -178,34 +178,34 @@ func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) sqlSave(ctx context.Contex
 			return nil, fmt.Errorf("unexpected BillingInvoiceFlatFeeLineConfig.ID type: %T", _spec.ID.Value)
 		}
 	}
-	bifflcc.mutation.id = &_node.ID
-	bifflcc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) createSpec() (*BillingInvoiceFlatFeeLineConfig, *sqlgraph.CreateSpec) {
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) createSpec() (*BillingInvoiceFlatFeeLineConfig, *sqlgraph.CreateSpec) {
 	var (
-		_node = &BillingInvoiceFlatFeeLineConfig{config: bifflcc.config}
+		_node = &BillingInvoiceFlatFeeLineConfig{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(billinginvoiceflatfeelineconfig.Table, sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = bifflcc.conflict
-	if id, ok := bifflcc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := bifflcc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := bifflcc.mutation.PerUnitAmount(); ok {
+	if value, ok := _c.mutation.PerUnitAmount(); ok {
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPerUnitAmount, field.TypeOther, value)
 		_node.PerUnitAmount = value
 	}
-	if value, ok := bifflcc.mutation.Category(); ok {
+	if value, ok := _c.mutation.Category(); ok {
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldCategory, field.TypeEnum, value)
 		_node.Category = value
 	}
-	if value, ok := bifflcc.mutation.PaymentTerm(); ok {
+	if value, ok := _c.mutation.PaymentTerm(); ok {
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPaymentTerm, field.TypeEnum, value)
 		_node.PaymentTerm = value
 	}
@@ -228,10 +228,10 @@ func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) createSpec() (*BillingInvo
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceFlatFeeLineConfigUpsertOne {
-	bifflcc.conflict = opts
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceFlatFeeLineConfigUpsertOne {
+	_c.conflict = opts
 	return &BillingInvoiceFlatFeeLineConfigUpsertOne{
-		create: bifflcc,
+		create: _c,
 	}
 }
 
@@ -241,10 +241,10 @@ func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) OnConflict(opts ...sql.Con
 //	client.BillingInvoiceFlatFeeLineConfig.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) OnConflictColumns(columns ...string) *BillingInvoiceFlatFeeLineConfigUpsertOne {
-	bifflcc.conflict = append(bifflcc.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) OnConflictColumns(columns ...string) *BillingInvoiceFlatFeeLineConfigUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingInvoiceFlatFeeLineConfigUpsertOne{
-		create: bifflcc,
+		create: _c,
 	}
 }
 
@@ -437,16 +437,16 @@ type BillingInvoiceFlatFeeLineConfigCreateBulk struct {
 }
 
 // Save creates the BillingInvoiceFlatFeeLineConfig entities in the database.
-func (bifflccb *BillingInvoiceFlatFeeLineConfigCreateBulk) Save(ctx context.Context) ([]*BillingInvoiceFlatFeeLineConfig, error) {
-	if bifflccb.err != nil {
-		return nil, bifflccb.err
+func (_c *BillingInvoiceFlatFeeLineConfigCreateBulk) Save(ctx context.Context) ([]*BillingInvoiceFlatFeeLineConfig, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(bifflccb.builders))
-	nodes := make([]*BillingInvoiceFlatFeeLineConfig, len(bifflccb.builders))
-	mutators := make([]Mutator, len(bifflccb.builders))
-	for i := range bifflccb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*BillingInvoiceFlatFeeLineConfig, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := bifflccb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*BillingInvoiceFlatFeeLineConfigMutation)
@@ -460,12 +460,12 @@ func (bifflccb *BillingInvoiceFlatFeeLineConfigCreateBulk) Save(ctx context.Cont
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, bifflccb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = bifflccb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, bifflccb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -485,7 +485,7 @@ func (bifflccb *BillingInvoiceFlatFeeLineConfigCreateBulk) Save(ctx context.Cont
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, bifflccb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -493,8 +493,8 @@ func (bifflccb *BillingInvoiceFlatFeeLineConfigCreateBulk) Save(ctx context.Cont
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bifflccb *BillingInvoiceFlatFeeLineConfigCreateBulk) SaveX(ctx context.Context) []*BillingInvoiceFlatFeeLineConfig {
-	v, err := bifflccb.Save(ctx)
+func (_c *BillingInvoiceFlatFeeLineConfigCreateBulk) SaveX(ctx context.Context) []*BillingInvoiceFlatFeeLineConfig {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -502,14 +502,14 @@ func (bifflccb *BillingInvoiceFlatFeeLineConfigCreateBulk) SaveX(ctx context.Con
 }
 
 // Exec executes the query.
-func (bifflccb *BillingInvoiceFlatFeeLineConfigCreateBulk) Exec(ctx context.Context) error {
-	_, err := bifflccb.Save(ctx)
+func (_c *BillingInvoiceFlatFeeLineConfigCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bifflccb *BillingInvoiceFlatFeeLineConfigCreateBulk) ExecX(ctx context.Context) {
-	if err := bifflccb.Exec(ctx); err != nil {
+func (_c *BillingInvoiceFlatFeeLineConfigCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -529,10 +529,10 @@ func (bifflccb *BillingInvoiceFlatFeeLineConfigCreateBulk) ExecX(ctx context.Con
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bifflccb *BillingInvoiceFlatFeeLineConfigCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceFlatFeeLineConfigUpsertBulk {
-	bifflccb.conflict = opts
+func (_c *BillingInvoiceFlatFeeLineConfigCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceFlatFeeLineConfigUpsertBulk {
+	_c.conflict = opts
 	return &BillingInvoiceFlatFeeLineConfigUpsertBulk{
-		create: bifflccb,
+		create: _c,
 	}
 }
 
@@ -542,10 +542,10 @@ func (bifflccb *BillingInvoiceFlatFeeLineConfigCreateBulk) OnConflict(opts ...sq
 //	client.BillingInvoiceFlatFeeLineConfig.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bifflccb *BillingInvoiceFlatFeeLineConfigCreateBulk) OnConflictColumns(columns ...string) *BillingInvoiceFlatFeeLineConfigUpsertBulk {
-	bifflccb.conflict = append(bifflccb.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingInvoiceFlatFeeLineConfigCreateBulk) OnConflictColumns(columns ...string) *BillingInvoiceFlatFeeLineConfigUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingInvoiceFlatFeeLineConfigUpsertBulk{
-		create: bifflccb,
+		create: _c,
 	}
 }
 

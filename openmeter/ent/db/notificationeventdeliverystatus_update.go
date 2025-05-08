@@ -25,101 +25,101 @@ type NotificationEventDeliveryStatusUpdate struct {
 }
 
 // Where appends a list predicates to the NotificationEventDeliveryStatusUpdate builder.
-func (nedsu *NotificationEventDeliveryStatusUpdate) Where(ps ...predicate.NotificationEventDeliveryStatus) *NotificationEventDeliveryStatusUpdate {
-	nedsu.mutation.Where(ps...)
-	return nedsu
+func (_u *NotificationEventDeliveryStatusUpdate) Where(ps ...predicate.NotificationEventDeliveryStatus) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (nedsu *NotificationEventDeliveryStatusUpdate) SetUpdatedAt(t time.Time) *NotificationEventDeliveryStatusUpdate {
-	nedsu.mutation.SetUpdatedAt(t)
-	return nedsu
+func (_u *NotificationEventDeliveryStatusUpdate) SetUpdatedAt(v time.Time) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetState sets the "state" field.
-func (nedsu *NotificationEventDeliveryStatusUpdate) SetState(ndss notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdate {
-	nedsu.mutation.SetState(ndss)
-	return nedsu
+func (_u *NotificationEventDeliveryStatusUpdate) SetState(v notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.SetState(v)
+	return _u
 }
 
 // SetNillableState sets the "state" field if the given value is not nil.
-func (nedsu *NotificationEventDeliveryStatusUpdate) SetNillableState(ndss *notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdate {
-	if ndss != nil {
-		nedsu.SetState(*ndss)
+func (_u *NotificationEventDeliveryStatusUpdate) SetNillableState(v *notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdate {
+	if v != nil {
+		_u.SetState(*v)
 	}
-	return nedsu
+	return _u
 }
 
 // SetReason sets the "reason" field.
-func (nedsu *NotificationEventDeliveryStatusUpdate) SetReason(s string) *NotificationEventDeliveryStatusUpdate {
-	nedsu.mutation.SetReason(s)
-	return nedsu
+func (_u *NotificationEventDeliveryStatusUpdate) SetReason(v string) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.SetReason(v)
+	return _u
 }
 
 // SetNillableReason sets the "reason" field if the given value is not nil.
-func (nedsu *NotificationEventDeliveryStatusUpdate) SetNillableReason(s *string) *NotificationEventDeliveryStatusUpdate {
-	if s != nil {
-		nedsu.SetReason(*s)
+func (_u *NotificationEventDeliveryStatusUpdate) SetNillableReason(v *string) *NotificationEventDeliveryStatusUpdate {
+	if v != nil {
+		_u.SetReason(*v)
 	}
-	return nedsu
+	return _u
 }
 
 // ClearReason clears the value of the "reason" field.
-func (nedsu *NotificationEventDeliveryStatusUpdate) ClearReason() *NotificationEventDeliveryStatusUpdate {
-	nedsu.mutation.ClearReason()
-	return nedsu
+func (_u *NotificationEventDeliveryStatusUpdate) ClearReason() *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.ClearReason()
+	return _u
 }
 
 // AddEventIDs adds the "events" edge to the NotificationEvent entity by IDs.
-func (nedsu *NotificationEventDeliveryStatusUpdate) AddEventIDs(ids ...string) *NotificationEventDeliveryStatusUpdate {
-	nedsu.mutation.AddEventIDs(ids...)
-	return nedsu
+func (_u *NotificationEventDeliveryStatusUpdate) AddEventIDs(ids ...string) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.AddEventIDs(ids...)
+	return _u
 }
 
 // AddEvents adds the "events" edges to the NotificationEvent entity.
-func (nedsu *NotificationEventDeliveryStatusUpdate) AddEvents(n ...*NotificationEvent) *NotificationEventDeliveryStatusUpdate {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_u *NotificationEventDeliveryStatusUpdate) AddEvents(v ...*NotificationEvent) *NotificationEventDeliveryStatusUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nedsu.AddEventIDs(ids...)
+	return _u.AddEventIDs(ids...)
 }
 
 // Mutation returns the NotificationEventDeliveryStatusMutation object of the builder.
-func (nedsu *NotificationEventDeliveryStatusUpdate) Mutation() *NotificationEventDeliveryStatusMutation {
-	return nedsu.mutation
+func (_u *NotificationEventDeliveryStatusUpdate) Mutation() *NotificationEventDeliveryStatusMutation {
+	return _u.mutation
 }
 
 // ClearEvents clears all "events" edges to the NotificationEvent entity.
-func (nedsu *NotificationEventDeliveryStatusUpdate) ClearEvents() *NotificationEventDeliveryStatusUpdate {
-	nedsu.mutation.ClearEvents()
-	return nedsu
+func (_u *NotificationEventDeliveryStatusUpdate) ClearEvents() *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.ClearEvents()
+	return _u
 }
 
 // RemoveEventIDs removes the "events" edge to NotificationEvent entities by IDs.
-func (nedsu *NotificationEventDeliveryStatusUpdate) RemoveEventIDs(ids ...string) *NotificationEventDeliveryStatusUpdate {
-	nedsu.mutation.RemoveEventIDs(ids...)
-	return nedsu
+func (_u *NotificationEventDeliveryStatusUpdate) RemoveEventIDs(ids ...string) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.RemoveEventIDs(ids...)
+	return _u
 }
 
 // RemoveEvents removes "events" edges to NotificationEvent entities.
-func (nedsu *NotificationEventDeliveryStatusUpdate) RemoveEvents(n ...*NotificationEvent) *NotificationEventDeliveryStatusUpdate {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_u *NotificationEventDeliveryStatusUpdate) RemoveEvents(v ...*NotificationEvent) *NotificationEventDeliveryStatusUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nedsu.RemoveEventIDs(ids...)
+	return _u.RemoveEventIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (nedsu *NotificationEventDeliveryStatusUpdate) Save(ctx context.Context) (int, error) {
-	nedsu.defaults()
-	return withHooks(ctx, nedsu.sqlSave, nedsu.mutation, nedsu.hooks)
+func (_u *NotificationEventDeliveryStatusUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (nedsu *NotificationEventDeliveryStatusUpdate) SaveX(ctx context.Context) int {
-	affected, err := nedsu.Save(ctx)
+func (_u *NotificationEventDeliveryStatusUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -127,29 +127,29 @@ func (nedsu *NotificationEventDeliveryStatusUpdate) SaveX(ctx context.Context) i
 }
 
 // Exec executes the query.
-func (nedsu *NotificationEventDeliveryStatusUpdate) Exec(ctx context.Context) error {
-	_, err := nedsu.Save(ctx)
+func (_u *NotificationEventDeliveryStatusUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nedsu *NotificationEventDeliveryStatusUpdate) ExecX(ctx context.Context) {
-	if err := nedsu.Exec(ctx); err != nil {
+func (_u *NotificationEventDeliveryStatusUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (nedsu *NotificationEventDeliveryStatusUpdate) defaults() {
-	if _, ok := nedsu.mutation.UpdatedAt(); !ok {
+func (_u *NotificationEventDeliveryStatusUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := notificationeventdeliverystatus.UpdateDefaultUpdatedAt()
-		nedsu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (nedsu *NotificationEventDeliveryStatusUpdate) check() error {
-	if v, ok := nedsu.mutation.State(); ok {
+func (_u *NotificationEventDeliveryStatusUpdate) check() error {
+	if v, ok := _u.mutation.State(); ok {
 		if err := notificationeventdeliverystatus.StateValidator(v); err != nil {
 			return &ValidationError{Name: "state", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.state": %w`, err)}
 		}
@@ -157,31 +157,31 @@ func (nedsu *NotificationEventDeliveryStatusUpdate) check() error {
 	return nil
 }
 
-func (nedsu *NotificationEventDeliveryStatusUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := nedsu.check(); err != nil {
-		return n, err
+func (_u *NotificationEventDeliveryStatusUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(notificationeventdeliverystatus.Table, notificationeventdeliverystatus.Columns, sqlgraph.NewFieldSpec(notificationeventdeliverystatus.FieldID, field.TypeString))
-	if ps := nedsu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := nedsu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := nedsu.mutation.State(); ok {
+	if value, ok := _u.mutation.State(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeEnum, value)
 	}
-	if value, ok := nedsu.mutation.Reason(); ok {
+	if value, ok := _u.mutation.Reason(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldReason, field.TypeString, value)
 	}
-	if nedsu.mutation.ReasonCleared() {
+	if _u.mutation.ReasonCleared() {
 		_spec.ClearField(notificationeventdeliverystatus.FieldReason, field.TypeString)
 	}
-	if nedsu.mutation.EventsCleared() {
+	if _u.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: false,
@@ -194,7 +194,7 @@ func (nedsu *NotificationEventDeliveryStatusUpdate) sqlSave(ctx context.Context)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nedsu.mutation.RemovedEventsIDs(); len(nodes) > 0 && !nedsu.mutation.EventsCleared() {
+	if nodes := _u.mutation.RemovedEventsIDs(); len(nodes) > 0 && !_u.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: false,
@@ -210,7 +210,7 @@ func (nedsu *NotificationEventDeliveryStatusUpdate) sqlSave(ctx context.Context)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nedsu.mutation.EventsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.EventsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: false,
@@ -226,7 +226,7 @@ func (nedsu *NotificationEventDeliveryStatusUpdate) sqlSave(ctx context.Context)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, nedsu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{notificationeventdeliverystatus.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -234,8 +234,8 @@ func (nedsu *NotificationEventDeliveryStatusUpdate) sqlSave(ctx context.Context)
 		}
 		return 0, err
 	}
-	nedsu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // NotificationEventDeliveryStatusUpdateOne is the builder for updating a single NotificationEventDeliveryStatus entity.
@@ -247,108 +247,108 @@ type NotificationEventDeliveryStatusUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SetUpdatedAt(t time.Time) *NotificationEventDeliveryStatusUpdateOne {
-	nedsuo.mutation.SetUpdatedAt(t)
-	return nedsuo
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetUpdatedAt(v time.Time) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetState sets the "state" field.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SetState(ndss notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdateOne {
-	nedsuo.mutation.SetState(ndss)
-	return nedsuo
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetState(v notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.SetState(v)
+	return _u
 }
 
 // SetNillableState sets the "state" field if the given value is not nil.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SetNillableState(ndss *notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdateOne {
-	if ndss != nil {
-		nedsuo.SetState(*ndss)
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetNillableState(v *notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdateOne {
+	if v != nil {
+		_u.SetState(*v)
 	}
-	return nedsuo
+	return _u
 }
 
 // SetReason sets the "reason" field.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SetReason(s string) *NotificationEventDeliveryStatusUpdateOne {
-	nedsuo.mutation.SetReason(s)
-	return nedsuo
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetReason(v string) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.SetReason(v)
+	return _u
 }
 
 // SetNillableReason sets the "reason" field if the given value is not nil.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SetNillableReason(s *string) *NotificationEventDeliveryStatusUpdateOne {
-	if s != nil {
-		nedsuo.SetReason(*s)
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetNillableReason(v *string) *NotificationEventDeliveryStatusUpdateOne {
+	if v != nil {
+		_u.SetReason(*v)
 	}
-	return nedsuo
+	return _u
 }
 
 // ClearReason clears the value of the "reason" field.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) ClearReason() *NotificationEventDeliveryStatusUpdateOne {
-	nedsuo.mutation.ClearReason()
-	return nedsuo
+func (_u *NotificationEventDeliveryStatusUpdateOne) ClearReason() *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.ClearReason()
+	return _u
 }
 
 // AddEventIDs adds the "events" edge to the NotificationEvent entity by IDs.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) AddEventIDs(ids ...string) *NotificationEventDeliveryStatusUpdateOne {
-	nedsuo.mutation.AddEventIDs(ids...)
-	return nedsuo
+func (_u *NotificationEventDeliveryStatusUpdateOne) AddEventIDs(ids ...string) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.AddEventIDs(ids...)
+	return _u
 }
 
 // AddEvents adds the "events" edges to the NotificationEvent entity.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) AddEvents(n ...*NotificationEvent) *NotificationEventDeliveryStatusUpdateOne {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_u *NotificationEventDeliveryStatusUpdateOne) AddEvents(v ...*NotificationEvent) *NotificationEventDeliveryStatusUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nedsuo.AddEventIDs(ids...)
+	return _u.AddEventIDs(ids...)
 }
 
 // Mutation returns the NotificationEventDeliveryStatusMutation object of the builder.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) Mutation() *NotificationEventDeliveryStatusMutation {
-	return nedsuo.mutation
+func (_u *NotificationEventDeliveryStatusUpdateOne) Mutation() *NotificationEventDeliveryStatusMutation {
+	return _u.mutation
 }
 
 // ClearEvents clears all "events" edges to the NotificationEvent entity.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) ClearEvents() *NotificationEventDeliveryStatusUpdateOne {
-	nedsuo.mutation.ClearEvents()
-	return nedsuo
+func (_u *NotificationEventDeliveryStatusUpdateOne) ClearEvents() *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.ClearEvents()
+	return _u
 }
 
 // RemoveEventIDs removes the "events" edge to NotificationEvent entities by IDs.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) RemoveEventIDs(ids ...string) *NotificationEventDeliveryStatusUpdateOne {
-	nedsuo.mutation.RemoveEventIDs(ids...)
-	return nedsuo
+func (_u *NotificationEventDeliveryStatusUpdateOne) RemoveEventIDs(ids ...string) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.RemoveEventIDs(ids...)
+	return _u
 }
 
 // RemoveEvents removes "events" edges to NotificationEvent entities.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) RemoveEvents(n ...*NotificationEvent) *NotificationEventDeliveryStatusUpdateOne {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_u *NotificationEventDeliveryStatusUpdateOne) RemoveEvents(v ...*NotificationEvent) *NotificationEventDeliveryStatusUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nedsuo.RemoveEventIDs(ids...)
+	return _u.RemoveEventIDs(ids...)
 }
 
 // Where appends a list predicates to the NotificationEventDeliveryStatusUpdate builder.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) Where(ps ...predicate.NotificationEventDeliveryStatus) *NotificationEventDeliveryStatusUpdateOne {
-	nedsuo.mutation.Where(ps...)
-	return nedsuo
+func (_u *NotificationEventDeliveryStatusUpdateOne) Where(ps ...predicate.NotificationEventDeliveryStatus) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) Select(field string, fields ...string) *NotificationEventDeliveryStatusUpdateOne {
-	nedsuo.fields = append([]string{field}, fields...)
-	return nedsuo
+func (_u *NotificationEventDeliveryStatusUpdateOne) Select(field string, fields ...string) *NotificationEventDeliveryStatusUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated NotificationEventDeliveryStatus entity.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) Save(ctx context.Context) (*NotificationEventDeliveryStatus, error) {
-	nedsuo.defaults()
-	return withHooks(ctx, nedsuo.sqlSave, nedsuo.mutation, nedsuo.hooks)
+func (_u *NotificationEventDeliveryStatusUpdateOne) Save(ctx context.Context) (*NotificationEventDeliveryStatus, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SaveX(ctx context.Context) *NotificationEventDeliveryStatus {
-	node, err := nedsuo.Save(ctx)
+func (_u *NotificationEventDeliveryStatusUpdateOne) SaveX(ctx context.Context) *NotificationEventDeliveryStatus {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -356,29 +356,29 @@ func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SaveX(ctx context.Contex
 }
 
 // Exec executes the query on the entity.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) Exec(ctx context.Context) error {
-	_, err := nedsuo.Save(ctx)
+func (_u *NotificationEventDeliveryStatusUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) ExecX(ctx context.Context) {
-	if err := nedsuo.Exec(ctx); err != nil {
+func (_u *NotificationEventDeliveryStatusUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) defaults() {
-	if _, ok := nedsuo.mutation.UpdatedAt(); !ok {
+func (_u *NotificationEventDeliveryStatusUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := notificationeventdeliverystatus.UpdateDefaultUpdatedAt()
-		nedsuo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) check() error {
-	if v, ok := nedsuo.mutation.State(); ok {
+func (_u *NotificationEventDeliveryStatusUpdateOne) check() error {
+	if v, ok := _u.mutation.State(); ok {
 		if err := notificationeventdeliverystatus.StateValidator(v); err != nil {
 			return &ValidationError{Name: "state", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.state": %w`, err)}
 		}
@@ -386,17 +386,17 @@ func (nedsuo *NotificationEventDeliveryStatusUpdateOne) check() error {
 	return nil
 }
 
-func (nedsuo *NotificationEventDeliveryStatusUpdateOne) sqlSave(ctx context.Context) (_node *NotificationEventDeliveryStatus, err error) {
-	if err := nedsuo.check(); err != nil {
+func (_u *NotificationEventDeliveryStatusUpdateOne) sqlSave(ctx context.Context) (_node *NotificationEventDeliveryStatus, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(notificationeventdeliverystatus.Table, notificationeventdeliverystatus.Columns, sqlgraph.NewFieldSpec(notificationeventdeliverystatus.FieldID, field.TypeString))
-	id, ok := nedsuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "NotificationEventDeliveryStatus.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := nedsuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, notificationeventdeliverystatus.FieldID)
 		for _, f := range fields {
@@ -408,26 +408,26 @@ func (nedsuo *NotificationEventDeliveryStatusUpdateOne) sqlSave(ctx context.Cont
 			}
 		}
 	}
-	if ps := nedsuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := nedsuo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := nedsuo.mutation.State(); ok {
+	if value, ok := _u.mutation.State(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeEnum, value)
 	}
-	if value, ok := nedsuo.mutation.Reason(); ok {
+	if value, ok := _u.mutation.Reason(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldReason, field.TypeString, value)
 	}
-	if nedsuo.mutation.ReasonCleared() {
+	if _u.mutation.ReasonCleared() {
 		_spec.ClearField(notificationeventdeliverystatus.FieldReason, field.TypeString)
 	}
-	if nedsuo.mutation.EventsCleared() {
+	if _u.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: false,
@@ -440,7 +440,7 @@ func (nedsuo *NotificationEventDeliveryStatusUpdateOne) sqlSave(ctx context.Cont
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nedsuo.mutation.RemovedEventsIDs(); len(nodes) > 0 && !nedsuo.mutation.EventsCleared() {
+	if nodes := _u.mutation.RemovedEventsIDs(); len(nodes) > 0 && !_u.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: false,
@@ -456,7 +456,7 @@ func (nedsuo *NotificationEventDeliveryStatusUpdateOne) sqlSave(ctx context.Cont
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := nedsuo.mutation.EventsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.EventsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: false,
@@ -472,10 +472,10 @@ func (nedsuo *NotificationEventDeliveryStatusUpdateOne) sqlSave(ctx context.Cont
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &NotificationEventDeliveryStatus{config: nedsuo.config}
+	_node = &NotificationEventDeliveryStatus{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, nedsuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{notificationeventdeliverystatus.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -483,6 +483,6 @@ func (nedsuo *NotificationEventDeliveryStatusUpdateOne) sqlSave(ctx context.Cont
 		}
 		return nil, err
 	}
-	nedsuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

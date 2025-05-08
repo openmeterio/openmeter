@@ -27,377 +27,377 @@ type AppUpdate struct {
 }
 
 // Where appends a list predicates to the AppUpdate builder.
-func (au *AppUpdate) Where(ps ...predicate.App) *AppUpdate {
-	au.mutation.Where(ps...)
-	return au
+func (_u *AppUpdate) Where(ps ...predicate.App) *AppUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (au *AppUpdate) SetMetadata(m map[string]string) *AppUpdate {
-	au.mutation.SetMetadata(m)
-	return au
+func (_u *AppUpdate) SetMetadata(v map[string]string) *AppUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (au *AppUpdate) ClearMetadata() *AppUpdate {
-	au.mutation.ClearMetadata()
-	return au
+func (_u *AppUpdate) ClearMetadata() *AppUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (au *AppUpdate) SetUpdatedAt(t time.Time) *AppUpdate {
-	au.mutation.SetUpdatedAt(t)
-	return au
+func (_u *AppUpdate) SetUpdatedAt(v time.Time) *AppUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (au *AppUpdate) SetDeletedAt(t time.Time) *AppUpdate {
-	au.mutation.SetDeletedAt(t)
-	return au
+func (_u *AppUpdate) SetDeletedAt(v time.Time) *AppUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (au *AppUpdate) SetNillableDeletedAt(t *time.Time) *AppUpdate {
-	if t != nil {
-		au.SetDeletedAt(*t)
+func (_u *AppUpdate) SetNillableDeletedAt(v *time.Time) *AppUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return au
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (au *AppUpdate) ClearDeletedAt() *AppUpdate {
-	au.mutation.ClearDeletedAt()
-	return au
+func (_u *AppUpdate) ClearDeletedAt() *AppUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (au *AppUpdate) SetName(s string) *AppUpdate {
-	au.mutation.SetName(s)
-	return au
+func (_u *AppUpdate) SetName(v string) *AppUpdate {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (au *AppUpdate) SetNillableName(s *string) *AppUpdate {
-	if s != nil {
-		au.SetName(*s)
+func (_u *AppUpdate) SetNillableName(v *string) *AppUpdate {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return au
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (au *AppUpdate) SetDescription(s string) *AppUpdate {
-	au.mutation.SetDescription(s)
-	return au
+func (_u *AppUpdate) SetDescription(v string) *AppUpdate {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (au *AppUpdate) SetNillableDescription(s *string) *AppUpdate {
-	if s != nil {
-		au.SetDescription(*s)
+func (_u *AppUpdate) SetNillableDescription(v *string) *AppUpdate {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return au
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (au *AppUpdate) ClearDescription() *AppUpdate {
-	au.mutation.ClearDescription()
-	return au
+func (_u *AppUpdate) ClearDescription() *AppUpdate {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetStatus sets the "status" field.
-func (au *AppUpdate) SetStatus(as app.AppStatus) *AppUpdate {
-	au.mutation.SetStatus(as)
-	return au
+func (_u *AppUpdate) SetStatus(v app.AppStatus) *AppUpdate {
+	_u.mutation.SetStatus(v)
+	return _u
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (au *AppUpdate) SetNillableStatus(as *app.AppStatus) *AppUpdate {
-	if as != nil {
-		au.SetStatus(*as)
+func (_u *AppUpdate) SetNillableStatus(v *app.AppStatus) *AppUpdate {
+	if v != nil {
+		_u.SetStatus(*v)
 	}
-	return au
+	return _u
 }
 
 // SetIsDefault sets the "is_default" field.
-func (au *AppUpdate) SetIsDefault(b bool) *AppUpdate {
-	au.mutation.SetIsDefault(b)
-	return au
+func (_u *AppUpdate) SetIsDefault(v bool) *AppUpdate {
+	_u.mutation.SetIsDefault(v)
+	return _u
 }
 
 // SetNillableIsDefault sets the "is_default" field if the given value is not nil.
-func (au *AppUpdate) SetNillableIsDefault(b *bool) *AppUpdate {
-	if b != nil {
-		au.SetIsDefault(*b)
+func (_u *AppUpdate) SetNillableIsDefault(v *bool) *AppUpdate {
+	if v != nil {
+		_u.SetIsDefault(*v)
 	}
-	return au
+	return _u
 }
 
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppCustomer entity by IDs.
-func (au *AppUpdate) AddCustomerAppIDs(ids ...int) *AppUpdate {
-	au.mutation.AddCustomerAppIDs(ids...)
-	return au
+func (_u *AppUpdate) AddCustomerAppIDs(ids ...int) *AppUpdate {
+	_u.mutation.AddCustomerAppIDs(ids...)
+	return _u
 }
 
 // AddCustomerApps adds the "customer_apps" edges to the AppCustomer entity.
-func (au *AppUpdate) AddCustomerApps(a ...*AppCustomer) *AppUpdate {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_u *AppUpdate) AddCustomerApps(v ...*AppCustomer) *AppUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.AddCustomerAppIDs(ids...)
+	return _u.AddCustomerAppIDs(ids...)
 }
 
 // AddBillingProfileTaxAppIDs adds the "billing_profile_tax_app" edge to the BillingProfile entity by IDs.
-func (au *AppUpdate) AddBillingProfileTaxAppIDs(ids ...string) *AppUpdate {
-	au.mutation.AddBillingProfileTaxAppIDs(ids...)
-	return au
+func (_u *AppUpdate) AddBillingProfileTaxAppIDs(ids ...string) *AppUpdate {
+	_u.mutation.AddBillingProfileTaxAppIDs(ids...)
+	return _u
 }
 
 // AddBillingProfileTaxApp adds the "billing_profile_tax_app" edges to the BillingProfile entity.
-func (au *AppUpdate) AddBillingProfileTaxApp(b ...*BillingProfile) *AppUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdate) AddBillingProfileTaxApp(v ...*BillingProfile) *AppUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.AddBillingProfileTaxAppIDs(ids...)
+	return _u.AddBillingProfileTaxAppIDs(ids...)
 }
 
 // AddBillingProfileInvoicingAppIDs adds the "billing_profile_invoicing_app" edge to the BillingProfile entity by IDs.
-func (au *AppUpdate) AddBillingProfileInvoicingAppIDs(ids ...string) *AppUpdate {
-	au.mutation.AddBillingProfileInvoicingAppIDs(ids...)
-	return au
+func (_u *AppUpdate) AddBillingProfileInvoicingAppIDs(ids ...string) *AppUpdate {
+	_u.mutation.AddBillingProfileInvoicingAppIDs(ids...)
+	return _u
 }
 
 // AddBillingProfileInvoicingApp adds the "billing_profile_invoicing_app" edges to the BillingProfile entity.
-func (au *AppUpdate) AddBillingProfileInvoicingApp(b ...*BillingProfile) *AppUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdate) AddBillingProfileInvoicingApp(v ...*BillingProfile) *AppUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.AddBillingProfileInvoicingAppIDs(ids...)
+	return _u.AddBillingProfileInvoicingAppIDs(ids...)
 }
 
 // AddBillingProfilePaymentAppIDs adds the "billing_profile_payment_app" edge to the BillingProfile entity by IDs.
-func (au *AppUpdate) AddBillingProfilePaymentAppIDs(ids ...string) *AppUpdate {
-	au.mutation.AddBillingProfilePaymentAppIDs(ids...)
-	return au
+func (_u *AppUpdate) AddBillingProfilePaymentAppIDs(ids ...string) *AppUpdate {
+	_u.mutation.AddBillingProfilePaymentAppIDs(ids...)
+	return _u
 }
 
 // AddBillingProfilePaymentApp adds the "billing_profile_payment_app" edges to the BillingProfile entity.
-func (au *AppUpdate) AddBillingProfilePaymentApp(b ...*BillingProfile) *AppUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdate) AddBillingProfilePaymentApp(v ...*BillingProfile) *AppUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.AddBillingProfilePaymentAppIDs(ids...)
+	return _u.AddBillingProfilePaymentAppIDs(ids...)
 }
 
 // AddBillingInvoiceTaxAppIDs adds the "billing_invoice_tax_app" edge to the BillingInvoice entity by IDs.
-func (au *AppUpdate) AddBillingInvoiceTaxAppIDs(ids ...string) *AppUpdate {
-	au.mutation.AddBillingInvoiceTaxAppIDs(ids...)
-	return au
+func (_u *AppUpdate) AddBillingInvoiceTaxAppIDs(ids ...string) *AppUpdate {
+	_u.mutation.AddBillingInvoiceTaxAppIDs(ids...)
+	return _u
 }
 
 // AddBillingInvoiceTaxApp adds the "billing_invoice_tax_app" edges to the BillingInvoice entity.
-func (au *AppUpdate) AddBillingInvoiceTaxApp(b ...*BillingInvoice) *AppUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdate) AddBillingInvoiceTaxApp(v ...*BillingInvoice) *AppUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.AddBillingInvoiceTaxAppIDs(ids...)
+	return _u.AddBillingInvoiceTaxAppIDs(ids...)
 }
 
 // AddBillingInvoiceInvoicingAppIDs adds the "billing_invoice_invoicing_app" edge to the BillingInvoice entity by IDs.
-func (au *AppUpdate) AddBillingInvoiceInvoicingAppIDs(ids ...string) *AppUpdate {
-	au.mutation.AddBillingInvoiceInvoicingAppIDs(ids...)
-	return au
+func (_u *AppUpdate) AddBillingInvoiceInvoicingAppIDs(ids ...string) *AppUpdate {
+	_u.mutation.AddBillingInvoiceInvoicingAppIDs(ids...)
+	return _u
 }
 
 // AddBillingInvoiceInvoicingApp adds the "billing_invoice_invoicing_app" edges to the BillingInvoice entity.
-func (au *AppUpdate) AddBillingInvoiceInvoicingApp(b ...*BillingInvoice) *AppUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdate) AddBillingInvoiceInvoicingApp(v ...*BillingInvoice) *AppUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.AddBillingInvoiceInvoicingAppIDs(ids...)
+	return _u.AddBillingInvoiceInvoicingAppIDs(ids...)
 }
 
 // AddBillingInvoicePaymentAppIDs adds the "billing_invoice_payment_app" edge to the BillingInvoice entity by IDs.
-func (au *AppUpdate) AddBillingInvoicePaymentAppIDs(ids ...string) *AppUpdate {
-	au.mutation.AddBillingInvoicePaymentAppIDs(ids...)
-	return au
+func (_u *AppUpdate) AddBillingInvoicePaymentAppIDs(ids ...string) *AppUpdate {
+	_u.mutation.AddBillingInvoicePaymentAppIDs(ids...)
+	return _u
 }
 
 // AddBillingInvoicePaymentApp adds the "billing_invoice_payment_app" edges to the BillingInvoice entity.
-func (au *AppUpdate) AddBillingInvoicePaymentApp(b ...*BillingInvoice) *AppUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdate) AddBillingInvoicePaymentApp(v ...*BillingInvoice) *AppUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.AddBillingInvoicePaymentAppIDs(ids...)
+	return _u.AddBillingInvoicePaymentAppIDs(ids...)
 }
 
 // Mutation returns the AppMutation object of the builder.
-func (au *AppUpdate) Mutation() *AppMutation {
-	return au.mutation
+func (_u *AppUpdate) Mutation() *AppMutation {
+	return _u.mutation
 }
 
 // ClearCustomerApps clears all "customer_apps" edges to the AppCustomer entity.
-func (au *AppUpdate) ClearCustomerApps() *AppUpdate {
-	au.mutation.ClearCustomerApps()
-	return au
+func (_u *AppUpdate) ClearCustomerApps() *AppUpdate {
+	_u.mutation.ClearCustomerApps()
+	return _u
 }
 
 // RemoveCustomerAppIDs removes the "customer_apps" edge to AppCustomer entities by IDs.
-func (au *AppUpdate) RemoveCustomerAppIDs(ids ...int) *AppUpdate {
-	au.mutation.RemoveCustomerAppIDs(ids...)
-	return au
+func (_u *AppUpdate) RemoveCustomerAppIDs(ids ...int) *AppUpdate {
+	_u.mutation.RemoveCustomerAppIDs(ids...)
+	return _u
 }
 
 // RemoveCustomerApps removes "customer_apps" edges to AppCustomer entities.
-func (au *AppUpdate) RemoveCustomerApps(a ...*AppCustomer) *AppUpdate {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_u *AppUpdate) RemoveCustomerApps(v ...*AppCustomer) *AppUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.RemoveCustomerAppIDs(ids...)
+	return _u.RemoveCustomerAppIDs(ids...)
 }
 
 // ClearBillingProfileTaxApp clears all "billing_profile_tax_app" edges to the BillingProfile entity.
-func (au *AppUpdate) ClearBillingProfileTaxApp() *AppUpdate {
-	au.mutation.ClearBillingProfileTaxApp()
-	return au
+func (_u *AppUpdate) ClearBillingProfileTaxApp() *AppUpdate {
+	_u.mutation.ClearBillingProfileTaxApp()
+	return _u
 }
 
 // RemoveBillingProfileTaxAppIDs removes the "billing_profile_tax_app" edge to BillingProfile entities by IDs.
-func (au *AppUpdate) RemoveBillingProfileTaxAppIDs(ids ...string) *AppUpdate {
-	au.mutation.RemoveBillingProfileTaxAppIDs(ids...)
-	return au
+func (_u *AppUpdate) RemoveBillingProfileTaxAppIDs(ids ...string) *AppUpdate {
+	_u.mutation.RemoveBillingProfileTaxAppIDs(ids...)
+	return _u
 }
 
 // RemoveBillingProfileTaxApp removes "billing_profile_tax_app" edges to BillingProfile entities.
-func (au *AppUpdate) RemoveBillingProfileTaxApp(b ...*BillingProfile) *AppUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdate) RemoveBillingProfileTaxApp(v ...*BillingProfile) *AppUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.RemoveBillingProfileTaxAppIDs(ids...)
+	return _u.RemoveBillingProfileTaxAppIDs(ids...)
 }
 
 // ClearBillingProfileInvoicingApp clears all "billing_profile_invoicing_app" edges to the BillingProfile entity.
-func (au *AppUpdate) ClearBillingProfileInvoicingApp() *AppUpdate {
-	au.mutation.ClearBillingProfileInvoicingApp()
-	return au
+func (_u *AppUpdate) ClearBillingProfileInvoicingApp() *AppUpdate {
+	_u.mutation.ClearBillingProfileInvoicingApp()
+	return _u
 }
 
 // RemoveBillingProfileInvoicingAppIDs removes the "billing_profile_invoicing_app" edge to BillingProfile entities by IDs.
-func (au *AppUpdate) RemoveBillingProfileInvoicingAppIDs(ids ...string) *AppUpdate {
-	au.mutation.RemoveBillingProfileInvoicingAppIDs(ids...)
-	return au
+func (_u *AppUpdate) RemoveBillingProfileInvoicingAppIDs(ids ...string) *AppUpdate {
+	_u.mutation.RemoveBillingProfileInvoicingAppIDs(ids...)
+	return _u
 }
 
 // RemoveBillingProfileInvoicingApp removes "billing_profile_invoicing_app" edges to BillingProfile entities.
-func (au *AppUpdate) RemoveBillingProfileInvoicingApp(b ...*BillingProfile) *AppUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdate) RemoveBillingProfileInvoicingApp(v ...*BillingProfile) *AppUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.RemoveBillingProfileInvoicingAppIDs(ids...)
+	return _u.RemoveBillingProfileInvoicingAppIDs(ids...)
 }
 
 // ClearBillingProfilePaymentApp clears all "billing_profile_payment_app" edges to the BillingProfile entity.
-func (au *AppUpdate) ClearBillingProfilePaymentApp() *AppUpdate {
-	au.mutation.ClearBillingProfilePaymentApp()
-	return au
+func (_u *AppUpdate) ClearBillingProfilePaymentApp() *AppUpdate {
+	_u.mutation.ClearBillingProfilePaymentApp()
+	return _u
 }
 
 // RemoveBillingProfilePaymentAppIDs removes the "billing_profile_payment_app" edge to BillingProfile entities by IDs.
-func (au *AppUpdate) RemoveBillingProfilePaymentAppIDs(ids ...string) *AppUpdate {
-	au.mutation.RemoveBillingProfilePaymentAppIDs(ids...)
-	return au
+func (_u *AppUpdate) RemoveBillingProfilePaymentAppIDs(ids ...string) *AppUpdate {
+	_u.mutation.RemoveBillingProfilePaymentAppIDs(ids...)
+	return _u
 }
 
 // RemoveBillingProfilePaymentApp removes "billing_profile_payment_app" edges to BillingProfile entities.
-func (au *AppUpdate) RemoveBillingProfilePaymentApp(b ...*BillingProfile) *AppUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdate) RemoveBillingProfilePaymentApp(v ...*BillingProfile) *AppUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.RemoveBillingProfilePaymentAppIDs(ids...)
+	return _u.RemoveBillingProfilePaymentAppIDs(ids...)
 }
 
 // ClearBillingInvoiceTaxApp clears all "billing_invoice_tax_app" edges to the BillingInvoice entity.
-func (au *AppUpdate) ClearBillingInvoiceTaxApp() *AppUpdate {
-	au.mutation.ClearBillingInvoiceTaxApp()
-	return au
+func (_u *AppUpdate) ClearBillingInvoiceTaxApp() *AppUpdate {
+	_u.mutation.ClearBillingInvoiceTaxApp()
+	return _u
 }
 
 // RemoveBillingInvoiceTaxAppIDs removes the "billing_invoice_tax_app" edge to BillingInvoice entities by IDs.
-func (au *AppUpdate) RemoveBillingInvoiceTaxAppIDs(ids ...string) *AppUpdate {
-	au.mutation.RemoveBillingInvoiceTaxAppIDs(ids...)
-	return au
+func (_u *AppUpdate) RemoveBillingInvoiceTaxAppIDs(ids ...string) *AppUpdate {
+	_u.mutation.RemoveBillingInvoiceTaxAppIDs(ids...)
+	return _u
 }
 
 // RemoveBillingInvoiceTaxApp removes "billing_invoice_tax_app" edges to BillingInvoice entities.
-func (au *AppUpdate) RemoveBillingInvoiceTaxApp(b ...*BillingInvoice) *AppUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdate) RemoveBillingInvoiceTaxApp(v ...*BillingInvoice) *AppUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.RemoveBillingInvoiceTaxAppIDs(ids...)
+	return _u.RemoveBillingInvoiceTaxAppIDs(ids...)
 }
 
 // ClearBillingInvoiceInvoicingApp clears all "billing_invoice_invoicing_app" edges to the BillingInvoice entity.
-func (au *AppUpdate) ClearBillingInvoiceInvoicingApp() *AppUpdate {
-	au.mutation.ClearBillingInvoiceInvoicingApp()
-	return au
+func (_u *AppUpdate) ClearBillingInvoiceInvoicingApp() *AppUpdate {
+	_u.mutation.ClearBillingInvoiceInvoicingApp()
+	return _u
 }
 
 // RemoveBillingInvoiceInvoicingAppIDs removes the "billing_invoice_invoicing_app" edge to BillingInvoice entities by IDs.
-func (au *AppUpdate) RemoveBillingInvoiceInvoicingAppIDs(ids ...string) *AppUpdate {
-	au.mutation.RemoveBillingInvoiceInvoicingAppIDs(ids...)
-	return au
+func (_u *AppUpdate) RemoveBillingInvoiceInvoicingAppIDs(ids ...string) *AppUpdate {
+	_u.mutation.RemoveBillingInvoiceInvoicingAppIDs(ids...)
+	return _u
 }
 
 // RemoveBillingInvoiceInvoicingApp removes "billing_invoice_invoicing_app" edges to BillingInvoice entities.
-func (au *AppUpdate) RemoveBillingInvoiceInvoicingApp(b ...*BillingInvoice) *AppUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdate) RemoveBillingInvoiceInvoicingApp(v ...*BillingInvoice) *AppUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.RemoveBillingInvoiceInvoicingAppIDs(ids...)
+	return _u.RemoveBillingInvoiceInvoicingAppIDs(ids...)
 }
 
 // ClearBillingInvoicePaymentApp clears all "billing_invoice_payment_app" edges to the BillingInvoice entity.
-func (au *AppUpdate) ClearBillingInvoicePaymentApp() *AppUpdate {
-	au.mutation.ClearBillingInvoicePaymentApp()
-	return au
+func (_u *AppUpdate) ClearBillingInvoicePaymentApp() *AppUpdate {
+	_u.mutation.ClearBillingInvoicePaymentApp()
+	return _u
 }
 
 // RemoveBillingInvoicePaymentAppIDs removes the "billing_invoice_payment_app" edge to BillingInvoice entities by IDs.
-func (au *AppUpdate) RemoveBillingInvoicePaymentAppIDs(ids ...string) *AppUpdate {
-	au.mutation.RemoveBillingInvoicePaymentAppIDs(ids...)
-	return au
+func (_u *AppUpdate) RemoveBillingInvoicePaymentAppIDs(ids ...string) *AppUpdate {
+	_u.mutation.RemoveBillingInvoicePaymentAppIDs(ids...)
+	return _u
 }
 
 // RemoveBillingInvoicePaymentApp removes "billing_invoice_payment_app" edges to BillingInvoice entities.
-func (au *AppUpdate) RemoveBillingInvoicePaymentApp(b ...*BillingInvoice) *AppUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdate) RemoveBillingInvoicePaymentApp(v ...*BillingInvoice) *AppUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return au.RemoveBillingInvoicePaymentAppIDs(ids...)
+	return _u.RemoveBillingInvoicePaymentAppIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (au *AppUpdate) Save(ctx context.Context) (int, error) {
-	au.defaults()
-	return withHooks(ctx, au.sqlSave, au.mutation, au.hooks)
+func (_u *AppUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (au *AppUpdate) SaveX(ctx context.Context) int {
-	affected, err := au.Save(ctx)
+func (_u *AppUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -405,66 +405,66 @@ func (au *AppUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (au *AppUpdate) Exec(ctx context.Context) error {
-	_, err := au.Save(ctx)
+func (_u *AppUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (au *AppUpdate) ExecX(ctx context.Context) {
-	if err := au.Exec(ctx); err != nil {
+func (_u *AppUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (au *AppUpdate) defaults() {
-	if _, ok := au.mutation.UpdatedAt(); !ok {
+func (_u *AppUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := dbapp.UpdateDefaultUpdatedAt()
-		au.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
-func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
+func (_u *AppUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	_spec := sqlgraph.NewUpdateSpec(dbapp.Table, dbapp.Columns, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
-	if ps := au.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := au.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(dbapp.FieldMetadata, field.TypeJSON, value)
 	}
-	if au.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(dbapp.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := au.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbapp.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := au.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(dbapp.FieldDeletedAt, field.TypeTime, value)
 	}
-	if au.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(dbapp.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := au.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(dbapp.FieldName, field.TypeString, value)
 	}
-	if value, ok := au.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(dbapp.FieldDescription, field.TypeString, value)
 	}
-	if au.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(dbapp.FieldDescription, field.TypeString)
 	}
-	if value, ok := au.mutation.Status(); ok {
+	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
 	}
-	if value, ok := au.mutation.IsDefault(); ok {
+	if value, ok := _u.mutation.IsDefault(); ok {
 		_spec.SetField(dbapp.FieldIsDefault, field.TypeBool, value)
 	}
-	if au.mutation.CustomerAppsCleared() {
+	if _u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -477,23 +477,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.RemovedCustomerAppsIDs(); len(nodes) > 0 && !au.mutation.CustomerAppsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbapp.CustomerAppsTable,
-			Columns: []string{dbapp.CustomerAppsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := au.mutation.CustomerAppsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.RemovedCustomerAppsIDs(); len(nodes) > 0 && !_u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -507,9 +491,25 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CustomerAppsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbapp.CustomerAppsTable,
+			Columns: []string{dbapp.CustomerAppsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if au.mutation.BillingProfileTaxAppCleared() {
+	if _u.mutation.BillingProfileTaxAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -522,7 +522,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.RemovedBillingProfileTaxAppIDs(); len(nodes) > 0 && !au.mutation.BillingProfileTaxAppCleared() {
+	if nodes := _u.mutation.RemovedBillingProfileTaxAppIDs(); len(nodes) > 0 && !_u.mutation.BillingProfileTaxAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -538,7 +538,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.BillingProfileTaxAppIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingProfileTaxAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -554,7 +554,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if au.mutation.BillingProfileInvoicingAppCleared() {
+	if _u.mutation.BillingProfileInvoicingAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -567,23 +567,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.RemovedBillingProfileInvoicingAppIDs(); len(nodes) > 0 && !au.mutation.BillingProfileInvoicingAppCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbapp.BillingProfileInvoicingAppTable,
-			Columns: []string{dbapp.BillingProfileInvoicingAppColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := au.mutation.BillingProfileInvoicingAppIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.RemovedBillingProfileInvoicingAppIDs(); len(nodes) > 0 && !_u.mutation.BillingProfileInvoicingAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -597,9 +581,25 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingProfileInvoicingAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbapp.BillingProfileInvoicingAppTable,
+			Columns: []string{dbapp.BillingProfileInvoicingAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if au.mutation.BillingProfilePaymentAppCleared() {
+	if _u.mutation.BillingProfilePaymentAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -612,7 +612,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.RemovedBillingProfilePaymentAppIDs(); len(nodes) > 0 && !au.mutation.BillingProfilePaymentAppCleared() {
+	if nodes := _u.mutation.RemovedBillingProfilePaymentAppIDs(); len(nodes) > 0 && !_u.mutation.BillingProfilePaymentAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -628,7 +628,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.BillingProfilePaymentAppIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingProfilePaymentAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -644,7 +644,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if au.mutation.BillingInvoiceTaxAppCleared() {
+	if _u.mutation.BillingInvoiceTaxAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -657,7 +657,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.RemovedBillingInvoiceTaxAppIDs(); len(nodes) > 0 && !au.mutation.BillingInvoiceTaxAppCleared() {
+	if nodes := _u.mutation.RemovedBillingInvoiceTaxAppIDs(); len(nodes) > 0 && !_u.mutation.BillingInvoiceTaxAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -673,7 +673,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.BillingInvoiceTaxAppIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoiceTaxAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -689,7 +689,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if au.mutation.BillingInvoiceInvoicingAppCleared() {
+	if _u.mutation.BillingInvoiceInvoicingAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -702,7 +702,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.RemovedBillingInvoiceInvoicingAppIDs(); len(nodes) > 0 && !au.mutation.BillingInvoiceInvoicingAppCleared() {
+	if nodes := _u.mutation.RemovedBillingInvoiceInvoicingAppIDs(); len(nodes) > 0 && !_u.mutation.BillingInvoiceInvoicingAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -718,7 +718,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.BillingInvoiceInvoicingAppIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoiceInvoicingAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -734,7 +734,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if au.mutation.BillingInvoicePaymentAppCleared() {
+	if _u.mutation.BillingInvoicePaymentAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -747,7 +747,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.RemovedBillingInvoicePaymentAppIDs(); len(nodes) > 0 && !au.mutation.BillingInvoicePaymentAppCleared() {
+	if nodes := _u.mutation.RemovedBillingInvoicePaymentAppIDs(); len(nodes) > 0 && !_u.mutation.BillingInvoicePaymentAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -763,7 +763,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.BillingInvoicePaymentAppIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoicePaymentAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -779,7 +779,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, au.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{dbapp.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -787,8 +787,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
-	au.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // AppUpdateOne is the builder for updating a single App entity.
@@ -800,384 +800,384 @@ type AppUpdateOne struct {
 }
 
 // SetMetadata sets the "metadata" field.
-func (auo *AppUpdateOne) SetMetadata(m map[string]string) *AppUpdateOne {
-	auo.mutation.SetMetadata(m)
-	return auo
+func (_u *AppUpdateOne) SetMetadata(v map[string]string) *AppUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (auo *AppUpdateOne) ClearMetadata() *AppUpdateOne {
-	auo.mutation.ClearMetadata()
-	return auo
+func (_u *AppUpdateOne) ClearMetadata() *AppUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (auo *AppUpdateOne) SetUpdatedAt(t time.Time) *AppUpdateOne {
-	auo.mutation.SetUpdatedAt(t)
-	return auo
+func (_u *AppUpdateOne) SetUpdatedAt(v time.Time) *AppUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (auo *AppUpdateOne) SetDeletedAt(t time.Time) *AppUpdateOne {
-	auo.mutation.SetDeletedAt(t)
-	return auo
+func (_u *AppUpdateOne) SetDeletedAt(v time.Time) *AppUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (auo *AppUpdateOne) SetNillableDeletedAt(t *time.Time) *AppUpdateOne {
-	if t != nil {
-		auo.SetDeletedAt(*t)
+func (_u *AppUpdateOne) SetNillableDeletedAt(v *time.Time) *AppUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return auo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (auo *AppUpdateOne) ClearDeletedAt() *AppUpdateOne {
-	auo.mutation.ClearDeletedAt()
-	return auo
+func (_u *AppUpdateOne) ClearDeletedAt() *AppUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (auo *AppUpdateOne) SetName(s string) *AppUpdateOne {
-	auo.mutation.SetName(s)
-	return auo
+func (_u *AppUpdateOne) SetName(v string) *AppUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (auo *AppUpdateOne) SetNillableName(s *string) *AppUpdateOne {
-	if s != nil {
-		auo.SetName(*s)
+func (_u *AppUpdateOne) SetNillableName(v *string) *AppUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return auo
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (auo *AppUpdateOne) SetDescription(s string) *AppUpdateOne {
-	auo.mutation.SetDescription(s)
-	return auo
+func (_u *AppUpdateOne) SetDescription(v string) *AppUpdateOne {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (auo *AppUpdateOne) SetNillableDescription(s *string) *AppUpdateOne {
-	if s != nil {
-		auo.SetDescription(*s)
+func (_u *AppUpdateOne) SetNillableDescription(v *string) *AppUpdateOne {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return auo
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (auo *AppUpdateOne) ClearDescription() *AppUpdateOne {
-	auo.mutation.ClearDescription()
-	return auo
+func (_u *AppUpdateOne) ClearDescription() *AppUpdateOne {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetStatus sets the "status" field.
-func (auo *AppUpdateOne) SetStatus(as app.AppStatus) *AppUpdateOne {
-	auo.mutation.SetStatus(as)
-	return auo
+func (_u *AppUpdateOne) SetStatus(v app.AppStatus) *AppUpdateOne {
+	_u.mutation.SetStatus(v)
+	return _u
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (auo *AppUpdateOne) SetNillableStatus(as *app.AppStatus) *AppUpdateOne {
-	if as != nil {
-		auo.SetStatus(*as)
+func (_u *AppUpdateOne) SetNillableStatus(v *app.AppStatus) *AppUpdateOne {
+	if v != nil {
+		_u.SetStatus(*v)
 	}
-	return auo
+	return _u
 }
 
 // SetIsDefault sets the "is_default" field.
-func (auo *AppUpdateOne) SetIsDefault(b bool) *AppUpdateOne {
-	auo.mutation.SetIsDefault(b)
-	return auo
+func (_u *AppUpdateOne) SetIsDefault(v bool) *AppUpdateOne {
+	_u.mutation.SetIsDefault(v)
+	return _u
 }
 
 // SetNillableIsDefault sets the "is_default" field if the given value is not nil.
-func (auo *AppUpdateOne) SetNillableIsDefault(b *bool) *AppUpdateOne {
-	if b != nil {
-		auo.SetIsDefault(*b)
+func (_u *AppUpdateOne) SetNillableIsDefault(v *bool) *AppUpdateOne {
+	if v != nil {
+		_u.SetIsDefault(*v)
 	}
-	return auo
+	return _u
 }
 
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppCustomer entity by IDs.
-func (auo *AppUpdateOne) AddCustomerAppIDs(ids ...int) *AppUpdateOne {
-	auo.mutation.AddCustomerAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) AddCustomerAppIDs(ids ...int) *AppUpdateOne {
+	_u.mutation.AddCustomerAppIDs(ids...)
+	return _u
 }
 
 // AddCustomerApps adds the "customer_apps" edges to the AppCustomer entity.
-func (auo *AppUpdateOne) AddCustomerApps(a ...*AppCustomer) *AppUpdateOne {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_u *AppUpdateOne) AddCustomerApps(v ...*AppCustomer) *AppUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.AddCustomerAppIDs(ids...)
+	return _u.AddCustomerAppIDs(ids...)
 }
 
 // AddBillingProfileTaxAppIDs adds the "billing_profile_tax_app" edge to the BillingProfile entity by IDs.
-func (auo *AppUpdateOne) AddBillingProfileTaxAppIDs(ids ...string) *AppUpdateOne {
-	auo.mutation.AddBillingProfileTaxAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) AddBillingProfileTaxAppIDs(ids ...string) *AppUpdateOne {
+	_u.mutation.AddBillingProfileTaxAppIDs(ids...)
+	return _u
 }
 
 // AddBillingProfileTaxApp adds the "billing_profile_tax_app" edges to the BillingProfile entity.
-func (auo *AppUpdateOne) AddBillingProfileTaxApp(b ...*BillingProfile) *AppUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdateOne) AddBillingProfileTaxApp(v ...*BillingProfile) *AppUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.AddBillingProfileTaxAppIDs(ids...)
+	return _u.AddBillingProfileTaxAppIDs(ids...)
 }
 
 // AddBillingProfileInvoicingAppIDs adds the "billing_profile_invoicing_app" edge to the BillingProfile entity by IDs.
-func (auo *AppUpdateOne) AddBillingProfileInvoicingAppIDs(ids ...string) *AppUpdateOne {
-	auo.mutation.AddBillingProfileInvoicingAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) AddBillingProfileInvoicingAppIDs(ids ...string) *AppUpdateOne {
+	_u.mutation.AddBillingProfileInvoicingAppIDs(ids...)
+	return _u
 }
 
 // AddBillingProfileInvoicingApp adds the "billing_profile_invoicing_app" edges to the BillingProfile entity.
-func (auo *AppUpdateOne) AddBillingProfileInvoicingApp(b ...*BillingProfile) *AppUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdateOne) AddBillingProfileInvoicingApp(v ...*BillingProfile) *AppUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.AddBillingProfileInvoicingAppIDs(ids...)
+	return _u.AddBillingProfileInvoicingAppIDs(ids...)
 }
 
 // AddBillingProfilePaymentAppIDs adds the "billing_profile_payment_app" edge to the BillingProfile entity by IDs.
-func (auo *AppUpdateOne) AddBillingProfilePaymentAppIDs(ids ...string) *AppUpdateOne {
-	auo.mutation.AddBillingProfilePaymentAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) AddBillingProfilePaymentAppIDs(ids ...string) *AppUpdateOne {
+	_u.mutation.AddBillingProfilePaymentAppIDs(ids...)
+	return _u
 }
 
 // AddBillingProfilePaymentApp adds the "billing_profile_payment_app" edges to the BillingProfile entity.
-func (auo *AppUpdateOne) AddBillingProfilePaymentApp(b ...*BillingProfile) *AppUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdateOne) AddBillingProfilePaymentApp(v ...*BillingProfile) *AppUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.AddBillingProfilePaymentAppIDs(ids...)
+	return _u.AddBillingProfilePaymentAppIDs(ids...)
 }
 
 // AddBillingInvoiceTaxAppIDs adds the "billing_invoice_tax_app" edge to the BillingInvoice entity by IDs.
-func (auo *AppUpdateOne) AddBillingInvoiceTaxAppIDs(ids ...string) *AppUpdateOne {
-	auo.mutation.AddBillingInvoiceTaxAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) AddBillingInvoiceTaxAppIDs(ids ...string) *AppUpdateOne {
+	_u.mutation.AddBillingInvoiceTaxAppIDs(ids...)
+	return _u
 }
 
 // AddBillingInvoiceTaxApp adds the "billing_invoice_tax_app" edges to the BillingInvoice entity.
-func (auo *AppUpdateOne) AddBillingInvoiceTaxApp(b ...*BillingInvoice) *AppUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdateOne) AddBillingInvoiceTaxApp(v ...*BillingInvoice) *AppUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.AddBillingInvoiceTaxAppIDs(ids...)
+	return _u.AddBillingInvoiceTaxAppIDs(ids...)
 }
 
 // AddBillingInvoiceInvoicingAppIDs adds the "billing_invoice_invoicing_app" edge to the BillingInvoice entity by IDs.
-func (auo *AppUpdateOne) AddBillingInvoiceInvoicingAppIDs(ids ...string) *AppUpdateOne {
-	auo.mutation.AddBillingInvoiceInvoicingAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) AddBillingInvoiceInvoicingAppIDs(ids ...string) *AppUpdateOne {
+	_u.mutation.AddBillingInvoiceInvoicingAppIDs(ids...)
+	return _u
 }
 
 // AddBillingInvoiceInvoicingApp adds the "billing_invoice_invoicing_app" edges to the BillingInvoice entity.
-func (auo *AppUpdateOne) AddBillingInvoiceInvoicingApp(b ...*BillingInvoice) *AppUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdateOne) AddBillingInvoiceInvoicingApp(v ...*BillingInvoice) *AppUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.AddBillingInvoiceInvoicingAppIDs(ids...)
+	return _u.AddBillingInvoiceInvoicingAppIDs(ids...)
 }
 
 // AddBillingInvoicePaymentAppIDs adds the "billing_invoice_payment_app" edge to the BillingInvoice entity by IDs.
-func (auo *AppUpdateOne) AddBillingInvoicePaymentAppIDs(ids ...string) *AppUpdateOne {
-	auo.mutation.AddBillingInvoicePaymentAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) AddBillingInvoicePaymentAppIDs(ids ...string) *AppUpdateOne {
+	_u.mutation.AddBillingInvoicePaymentAppIDs(ids...)
+	return _u
 }
 
 // AddBillingInvoicePaymentApp adds the "billing_invoice_payment_app" edges to the BillingInvoice entity.
-func (auo *AppUpdateOne) AddBillingInvoicePaymentApp(b ...*BillingInvoice) *AppUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdateOne) AddBillingInvoicePaymentApp(v ...*BillingInvoice) *AppUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.AddBillingInvoicePaymentAppIDs(ids...)
+	return _u.AddBillingInvoicePaymentAppIDs(ids...)
 }
 
 // Mutation returns the AppMutation object of the builder.
-func (auo *AppUpdateOne) Mutation() *AppMutation {
-	return auo.mutation
+func (_u *AppUpdateOne) Mutation() *AppMutation {
+	return _u.mutation
 }
 
 // ClearCustomerApps clears all "customer_apps" edges to the AppCustomer entity.
-func (auo *AppUpdateOne) ClearCustomerApps() *AppUpdateOne {
-	auo.mutation.ClearCustomerApps()
-	return auo
+func (_u *AppUpdateOne) ClearCustomerApps() *AppUpdateOne {
+	_u.mutation.ClearCustomerApps()
+	return _u
 }
 
 // RemoveCustomerAppIDs removes the "customer_apps" edge to AppCustomer entities by IDs.
-func (auo *AppUpdateOne) RemoveCustomerAppIDs(ids ...int) *AppUpdateOne {
-	auo.mutation.RemoveCustomerAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) RemoveCustomerAppIDs(ids ...int) *AppUpdateOne {
+	_u.mutation.RemoveCustomerAppIDs(ids...)
+	return _u
 }
 
 // RemoveCustomerApps removes "customer_apps" edges to AppCustomer entities.
-func (auo *AppUpdateOne) RemoveCustomerApps(a ...*AppCustomer) *AppUpdateOne {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_u *AppUpdateOne) RemoveCustomerApps(v ...*AppCustomer) *AppUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.RemoveCustomerAppIDs(ids...)
+	return _u.RemoveCustomerAppIDs(ids...)
 }
 
 // ClearBillingProfileTaxApp clears all "billing_profile_tax_app" edges to the BillingProfile entity.
-func (auo *AppUpdateOne) ClearBillingProfileTaxApp() *AppUpdateOne {
-	auo.mutation.ClearBillingProfileTaxApp()
-	return auo
+func (_u *AppUpdateOne) ClearBillingProfileTaxApp() *AppUpdateOne {
+	_u.mutation.ClearBillingProfileTaxApp()
+	return _u
 }
 
 // RemoveBillingProfileTaxAppIDs removes the "billing_profile_tax_app" edge to BillingProfile entities by IDs.
-func (auo *AppUpdateOne) RemoveBillingProfileTaxAppIDs(ids ...string) *AppUpdateOne {
-	auo.mutation.RemoveBillingProfileTaxAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) RemoveBillingProfileTaxAppIDs(ids ...string) *AppUpdateOne {
+	_u.mutation.RemoveBillingProfileTaxAppIDs(ids...)
+	return _u
 }
 
 // RemoveBillingProfileTaxApp removes "billing_profile_tax_app" edges to BillingProfile entities.
-func (auo *AppUpdateOne) RemoveBillingProfileTaxApp(b ...*BillingProfile) *AppUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdateOne) RemoveBillingProfileTaxApp(v ...*BillingProfile) *AppUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.RemoveBillingProfileTaxAppIDs(ids...)
+	return _u.RemoveBillingProfileTaxAppIDs(ids...)
 }
 
 // ClearBillingProfileInvoicingApp clears all "billing_profile_invoicing_app" edges to the BillingProfile entity.
-func (auo *AppUpdateOne) ClearBillingProfileInvoicingApp() *AppUpdateOne {
-	auo.mutation.ClearBillingProfileInvoicingApp()
-	return auo
+func (_u *AppUpdateOne) ClearBillingProfileInvoicingApp() *AppUpdateOne {
+	_u.mutation.ClearBillingProfileInvoicingApp()
+	return _u
 }
 
 // RemoveBillingProfileInvoicingAppIDs removes the "billing_profile_invoicing_app" edge to BillingProfile entities by IDs.
-func (auo *AppUpdateOne) RemoveBillingProfileInvoicingAppIDs(ids ...string) *AppUpdateOne {
-	auo.mutation.RemoveBillingProfileInvoicingAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) RemoveBillingProfileInvoicingAppIDs(ids ...string) *AppUpdateOne {
+	_u.mutation.RemoveBillingProfileInvoicingAppIDs(ids...)
+	return _u
 }
 
 // RemoveBillingProfileInvoicingApp removes "billing_profile_invoicing_app" edges to BillingProfile entities.
-func (auo *AppUpdateOne) RemoveBillingProfileInvoicingApp(b ...*BillingProfile) *AppUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdateOne) RemoveBillingProfileInvoicingApp(v ...*BillingProfile) *AppUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.RemoveBillingProfileInvoicingAppIDs(ids...)
+	return _u.RemoveBillingProfileInvoicingAppIDs(ids...)
 }
 
 // ClearBillingProfilePaymentApp clears all "billing_profile_payment_app" edges to the BillingProfile entity.
-func (auo *AppUpdateOne) ClearBillingProfilePaymentApp() *AppUpdateOne {
-	auo.mutation.ClearBillingProfilePaymentApp()
-	return auo
+func (_u *AppUpdateOne) ClearBillingProfilePaymentApp() *AppUpdateOne {
+	_u.mutation.ClearBillingProfilePaymentApp()
+	return _u
 }
 
 // RemoveBillingProfilePaymentAppIDs removes the "billing_profile_payment_app" edge to BillingProfile entities by IDs.
-func (auo *AppUpdateOne) RemoveBillingProfilePaymentAppIDs(ids ...string) *AppUpdateOne {
-	auo.mutation.RemoveBillingProfilePaymentAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) RemoveBillingProfilePaymentAppIDs(ids ...string) *AppUpdateOne {
+	_u.mutation.RemoveBillingProfilePaymentAppIDs(ids...)
+	return _u
 }
 
 // RemoveBillingProfilePaymentApp removes "billing_profile_payment_app" edges to BillingProfile entities.
-func (auo *AppUpdateOne) RemoveBillingProfilePaymentApp(b ...*BillingProfile) *AppUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdateOne) RemoveBillingProfilePaymentApp(v ...*BillingProfile) *AppUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.RemoveBillingProfilePaymentAppIDs(ids...)
+	return _u.RemoveBillingProfilePaymentAppIDs(ids...)
 }
 
 // ClearBillingInvoiceTaxApp clears all "billing_invoice_tax_app" edges to the BillingInvoice entity.
-func (auo *AppUpdateOne) ClearBillingInvoiceTaxApp() *AppUpdateOne {
-	auo.mutation.ClearBillingInvoiceTaxApp()
-	return auo
+func (_u *AppUpdateOne) ClearBillingInvoiceTaxApp() *AppUpdateOne {
+	_u.mutation.ClearBillingInvoiceTaxApp()
+	return _u
 }
 
 // RemoveBillingInvoiceTaxAppIDs removes the "billing_invoice_tax_app" edge to BillingInvoice entities by IDs.
-func (auo *AppUpdateOne) RemoveBillingInvoiceTaxAppIDs(ids ...string) *AppUpdateOne {
-	auo.mutation.RemoveBillingInvoiceTaxAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) RemoveBillingInvoiceTaxAppIDs(ids ...string) *AppUpdateOne {
+	_u.mutation.RemoveBillingInvoiceTaxAppIDs(ids...)
+	return _u
 }
 
 // RemoveBillingInvoiceTaxApp removes "billing_invoice_tax_app" edges to BillingInvoice entities.
-func (auo *AppUpdateOne) RemoveBillingInvoiceTaxApp(b ...*BillingInvoice) *AppUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdateOne) RemoveBillingInvoiceTaxApp(v ...*BillingInvoice) *AppUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.RemoveBillingInvoiceTaxAppIDs(ids...)
+	return _u.RemoveBillingInvoiceTaxAppIDs(ids...)
 }
 
 // ClearBillingInvoiceInvoicingApp clears all "billing_invoice_invoicing_app" edges to the BillingInvoice entity.
-func (auo *AppUpdateOne) ClearBillingInvoiceInvoicingApp() *AppUpdateOne {
-	auo.mutation.ClearBillingInvoiceInvoicingApp()
-	return auo
+func (_u *AppUpdateOne) ClearBillingInvoiceInvoicingApp() *AppUpdateOne {
+	_u.mutation.ClearBillingInvoiceInvoicingApp()
+	return _u
 }
 
 // RemoveBillingInvoiceInvoicingAppIDs removes the "billing_invoice_invoicing_app" edge to BillingInvoice entities by IDs.
-func (auo *AppUpdateOne) RemoveBillingInvoiceInvoicingAppIDs(ids ...string) *AppUpdateOne {
-	auo.mutation.RemoveBillingInvoiceInvoicingAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) RemoveBillingInvoiceInvoicingAppIDs(ids ...string) *AppUpdateOne {
+	_u.mutation.RemoveBillingInvoiceInvoicingAppIDs(ids...)
+	return _u
 }
 
 // RemoveBillingInvoiceInvoicingApp removes "billing_invoice_invoicing_app" edges to BillingInvoice entities.
-func (auo *AppUpdateOne) RemoveBillingInvoiceInvoicingApp(b ...*BillingInvoice) *AppUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdateOne) RemoveBillingInvoiceInvoicingApp(v ...*BillingInvoice) *AppUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.RemoveBillingInvoiceInvoicingAppIDs(ids...)
+	return _u.RemoveBillingInvoiceInvoicingAppIDs(ids...)
 }
 
 // ClearBillingInvoicePaymentApp clears all "billing_invoice_payment_app" edges to the BillingInvoice entity.
-func (auo *AppUpdateOne) ClearBillingInvoicePaymentApp() *AppUpdateOne {
-	auo.mutation.ClearBillingInvoicePaymentApp()
-	return auo
+func (_u *AppUpdateOne) ClearBillingInvoicePaymentApp() *AppUpdateOne {
+	_u.mutation.ClearBillingInvoicePaymentApp()
+	return _u
 }
 
 // RemoveBillingInvoicePaymentAppIDs removes the "billing_invoice_payment_app" edge to BillingInvoice entities by IDs.
-func (auo *AppUpdateOne) RemoveBillingInvoicePaymentAppIDs(ids ...string) *AppUpdateOne {
-	auo.mutation.RemoveBillingInvoicePaymentAppIDs(ids...)
-	return auo
+func (_u *AppUpdateOne) RemoveBillingInvoicePaymentAppIDs(ids ...string) *AppUpdateOne {
+	_u.mutation.RemoveBillingInvoicePaymentAppIDs(ids...)
+	return _u
 }
 
 // RemoveBillingInvoicePaymentApp removes "billing_invoice_payment_app" edges to BillingInvoice entities.
-func (auo *AppUpdateOne) RemoveBillingInvoicePaymentApp(b ...*BillingInvoice) *AppUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *AppUpdateOne) RemoveBillingInvoicePaymentApp(v ...*BillingInvoice) *AppUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return auo.RemoveBillingInvoicePaymentAppIDs(ids...)
+	return _u.RemoveBillingInvoicePaymentAppIDs(ids...)
 }
 
 // Where appends a list predicates to the AppUpdate builder.
-func (auo *AppUpdateOne) Where(ps ...predicate.App) *AppUpdateOne {
-	auo.mutation.Where(ps...)
-	return auo
+func (_u *AppUpdateOne) Where(ps ...predicate.App) *AppUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (auo *AppUpdateOne) Select(field string, fields ...string) *AppUpdateOne {
-	auo.fields = append([]string{field}, fields...)
-	return auo
+func (_u *AppUpdateOne) Select(field string, fields ...string) *AppUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated App entity.
-func (auo *AppUpdateOne) Save(ctx context.Context) (*App, error) {
-	auo.defaults()
-	return withHooks(ctx, auo.sqlSave, auo.mutation, auo.hooks)
+func (_u *AppUpdateOne) Save(ctx context.Context) (*App, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (auo *AppUpdateOne) SaveX(ctx context.Context) *App {
-	node, err := auo.Save(ctx)
+func (_u *AppUpdateOne) SaveX(ctx context.Context) *App {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1185,34 +1185,34 @@ func (auo *AppUpdateOne) SaveX(ctx context.Context) *App {
 }
 
 // Exec executes the query on the entity.
-func (auo *AppUpdateOne) Exec(ctx context.Context) error {
-	_, err := auo.Save(ctx)
+func (_u *AppUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (auo *AppUpdateOne) ExecX(ctx context.Context) {
-	if err := auo.Exec(ctx); err != nil {
+func (_u *AppUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (auo *AppUpdateOne) defaults() {
-	if _, ok := auo.mutation.UpdatedAt(); !ok {
+func (_u *AppUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := dbapp.UpdateDefaultUpdatedAt()
-		auo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
-func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
+func (_u *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 	_spec := sqlgraph.NewUpdateSpec(dbapp.Table, dbapp.Columns, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
-	id, ok := auo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "App.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := auo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, dbapp.FieldID)
 		for _, f := range fields {
@@ -1224,44 +1224,44 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 			}
 		}
 	}
-	if ps := auo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := auo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(dbapp.FieldMetadata, field.TypeJSON, value)
 	}
-	if auo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(dbapp.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := auo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbapp.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := auo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(dbapp.FieldDeletedAt, field.TypeTime, value)
 	}
-	if auo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(dbapp.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := auo.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(dbapp.FieldName, field.TypeString, value)
 	}
-	if value, ok := auo.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(dbapp.FieldDescription, field.TypeString, value)
 	}
-	if auo.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(dbapp.FieldDescription, field.TypeString)
 	}
-	if value, ok := auo.mutation.Status(); ok {
+	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
 	}
-	if value, ok := auo.mutation.IsDefault(); ok {
+	if value, ok := _u.mutation.IsDefault(); ok {
 		_spec.SetField(dbapp.FieldIsDefault, field.TypeBool, value)
 	}
-	if auo.mutation.CustomerAppsCleared() {
+	if _u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1274,23 +1274,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.RemovedCustomerAppsIDs(); len(nodes) > 0 && !auo.mutation.CustomerAppsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbapp.CustomerAppsTable,
-			Columns: []string{dbapp.CustomerAppsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := auo.mutation.CustomerAppsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.RemovedCustomerAppsIDs(); len(nodes) > 0 && !_u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1304,9 +1288,25 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CustomerAppsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbapp.CustomerAppsTable,
+			Columns: []string{dbapp.CustomerAppsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if auo.mutation.BillingProfileTaxAppCleared() {
+	if _u.mutation.BillingProfileTaxAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1319,7 +1319,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.RemovedBillingProfileTaxAppIDs(); len(nodes) > 0 && !auo.mutation.BillingProfileTaxAppCleared() {
+	if nodes := _u.mutation.RemovedBillingProfileTaxAppIDs(); len(nodes) > 0 && !_u.mutation.BillingProfileTaxAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1335,7 +1335,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.BillingProfileTaxAppIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingProfileTaxAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1351,7 +1351,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if auo.mutation.BillingProfileInvoicingAppCleared() {
+	if _u.mutation.BillingProfileInvoicingAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1364,23 +1364,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.RemovedBillingProfileInvoicingAppIDs(); len(nodes) > 0 && !auo.mutation.BillingProfileInvoicingAppCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbapp.BillingProfileInvoicingAppTable,
-			Columns: []string{dbapp.BillingProfileInvoicingAppColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := auo.mutation.BillingProfileInvoicingAppIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.RemovedBillingProfileInvoicingAppIDs(); len(nodes) > 0 && !_u.mutation.BillingProfileInvoicingAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1394,9 +1378,25 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingProfileInvoicingAppIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbapp.BillingProfileInvoicingAppTable,
+			Columns: []string{dbapp.BillingProfileInvoicingAppColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if auo.mutation.BillingProfilePaymentAppCleared() {
+	if _u.mutation.BillingProfilePaymentAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1409,7 +1409,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.RemovedBillingProfilePaymentAppIDs(); len(nodes) > 0 && !auo.mutation.BillingProfilePaymentAppCleared() {
+	if nodes := _u.mutation.RemovedBillingProfilePaymentAppIDs(); len(nodes) > 0 && !_u.mutation.BillingProfilePaymentAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1425,7 +1425,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.BillingProfilePaymentAppIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingProfilePaymentAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1441,7 +1441,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if auo.mutation.BillingInvoiceTaxAppCleared() {
+	if _u.mutation.BillingInvoiceTaxAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1454,7 +1454,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.RemovedBillingInvoiceTaxAppIDs(); len(nodes) > 0 && !auo.mutation.BillingInvoiceTaxAppCleared() {
+	if nodes := _u.mutation.RemovedBillingInvoiceTaxAppIDs(); len(nodes) > 0 && !_u.mutation.BillingInvoiceTaxAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1470,7 +1470,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.BillingInvoiceTaxAppIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoiceTaxAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1486,7 +1486,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if auo.mutation.BillingInvoiceInvoicingAppCleared() {
+	if _u.mutation.BillingInvoiceInvoicingAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1499,7 +1499,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.RemovedBillingInvoiceInvoicingAppIDs(); len(nodes) > 0 && !auo.mutation.BillingInvoiceInvoicingAppCleared() {
+	if nodes := _u.mutation.RemovedBillingInvoiceInvoicingAppIDs(); len(nodes) > 0 && !_u.mutation.BillingInvoiceInvoicingAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1515,7 +1515,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.BillingInvoiceInvoicingAppIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoiceInvoicingAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1531,7 +1531,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if auo.mutation.BillingInvoicePaymentAppCleared() {
+	if _u.mutation.BillingInvoicePaymentAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1544,7 +1544,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.RemovedBillingInvoicePaymentAppIDs(); len(nodes) > 0 && !auo.mutation.BillingInvoicePaymentAppCleared() {
+	if nodes := _u.mutation.RemovedBillingInvoicePaymentAppIDs(); len(nodes) > 0 && !_u.mutation.BillingInvoicePaymentAppCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1560,7 +1560,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.BillingInvoicePaymentAppIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoicePaymentAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1576,10 +1576,10 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &App{config: auo.config}
+	_node = &App{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, auo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{dbapp.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -1587,6 +1587,6 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 		return nil, err
 	}
-	auo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

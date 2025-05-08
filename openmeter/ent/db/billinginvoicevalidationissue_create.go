@@ -26,150 +26,150 @@ type BillingInvoiceValidationIssueCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetNamespace(s string) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetNamespace(s)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetNamespace(v string) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetCreatedAt(t time.Time) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetCreatedAt(t)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetCreatedAt(v time.Time) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (bivic *BillingInvoiceValidationIssueCreate) SetNillableCreatedAt(t *time.Time) *BillingInvoiceValidationIssueCreate {
-	if t != nil {
-		bivic.SetCreatedAt(*t)
+func (_c *BillingInvoiceValidationIssueCreate) SetNillableCreatedAt(v *time.Time) *BillingInvoiceValidationIssueCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return bivic
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetUpdatedAt(t time.Time) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetUpdatedAt(t)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetUpdatedAt(v time.Time) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (bivic *BillingInvoiceValidationIssueCreate) SetNillableUpdatedAt(t *time.Time) *BillingInvoiceValidationIssueCreate {
-	if t != nil {
-		bivic.SetUpdatedAt(*t)
+func (_c *BillingInvoiceValidationIssueCreate) SetNillableUpdatedAt(v *time.Time) *BillingInvoiceValidationIssueCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return bivic
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetDeletedAt(t time.Time) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetDeletedAt(t)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetDeletedAt(v time.Time) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bivic *BillingInvoiceValidationIssueCreate) SetNillableDeletedAt(t *time.Time) *BillingInvoiceValidationIssueCreate {
-	if t != nil {
-		bivic.SetDeletedAt(*t)
+func (_c *BillingInvoiceValidationIssueCreate) SetNillableDeletedAt(v *time.Time) *BillingInvoiceValidationIssueCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return bivic
+	return _c
 }
 
 // SetInvoiceID sets the "invoice_id" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetInvoiceID(s string) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetInvoiceID(s)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetInvoiceID(v string) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetInvoiceID(v)
+	return _c
 }
 
 // SetSeverity sets the "severity" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetSeverity(bis billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetSeverity(bis)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetSeverity(v billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetSeverity(v)
+	return _c
 }
 
 // SetCode sets the "code" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetCode(s string) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetCode(s)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetCode(v string) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetCode(v)
+	return _c
 }
 
 // SetNillableCode sets the "code" field if the given value is not nil.
-func (bivic *BillingInvoiceValidationIssueCreate) SetNillableCode(s *string) *BillingInvoiceValidationIssueCreate {
-	if s != nil {
-		bivic.SetCode(*s)
+func (_c *BillingInvoiceValidationIssueCreate) SetNillableCode(v *string) *BillingInvoiceValidationIssueCreate {
+	if v != nil {
+		_c.SetCode(*v)
 	}
-	return bivic
+	return _c
 }
 
 // SetMessage sets the "message" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetMessage(s string) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetMessage(s)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetMessage(v string) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetMessage(v)
+	return _c
 }
 
 // SetPath sets the "path" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetPath(s string) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetPath(s)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetPath(v string) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetPath(v)
+	return _c
 }
 
 // SetNillablePath sets the "path" field if the given value is not nil.
-func (bivic *BillingInvoiceValidationIssueCreate) SetNillablePath(s *string) *BillingInvoiceValidationIssueCreate {
-	if s != nil {
-		bivic.SetPath(*s)
+func (_c *BillingInvoiceValidationIssueCreate) SetNillablePath(v *string) *BillingInvoiceValidationIssueCreate {
+	if v != nil {
+		_c.SetPath(*v)
 	}
-	return bivic
+	return _c
 }
 
 // SetComponent sets the "component" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetComponent(s string) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetComponent(s)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetComponent(v string) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetComponent(v)
+	return _c
 }
 
 // SetDedupeHash sets the "dedupe_hash" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetDedupeHash(b []byte) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetDedupeHash(b)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetDedupeHash(v []byte) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetDedupeHash(v)
+	return _c
 }
 
 // SetID sets the "id" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetID(s string) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetID(s)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetID(v string) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (bivic *BillingInvoiceValidationIssueCreate) SetNillableID(s *string) *BillingInvoiceValidationIssueCreate {
-	if s != nil {
-		bivic.SetID(*s)
+func (_c *BillingInvoiceValidationIssueCreate) SetNillableID(v *string) *BillingInvoiceValidationIssueCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return bivic
+	return _c
 }
 
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
-func (bivic *BillingInvoiceValidationIssueCreate) SetBillingInvoiceID(id string) *BillingInvoiceValidationIssueCreate {
-	bivic.mutation.SetBillingInvoiceID(id)
-	return bivic
+func (_c *BillingInvoiceValidationIssueCreate) SetBillingInvoiceID(id string) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetBillingInvoiceID(id)
+	return _c
 }
 
 // SetBillingInvoice sets the "billing_invoice" edge to the BillingInvoice entity.
-func (bivic *BillingInvoiceValidationIssueCreate) SetBillingInvoice(b *BillingInvoice) *BillingInvoiceValidationIssueCreate {
-	return bivic.SetBillingInvoiceID(b.ID)
+func (_c *BillingInvoiceValidationIssueCreate) SetBillingInvoice(v *BillingInvoice) *BillingInvoiceValidationIssueCreate {
+	return _c.SetBillingInvoiceID(v.ID)
 }
 
 // Mutation returns the BillingInvoiceValidationIssueMutation object of the builder.
-func (bivic *BillingInvoiceValidationIssueCreate) Mutation() *BillingInvoiceValidationIssueMutation {
-	return bivic.mutation
+func (_c *BillingInvoiceValidationIssueCreate) Mutation() *BillingInvoiceValidationIssueMutation {
+	return _c.mutation
 }
 
 // Save creates the BillingInvoiceValidationIssue in the database.
-func (bivic *BillingInvoiceValidationIssueCreate) Save(ctx context.Context) (*BillingInvoiceValidationIssue, error) {
-	bivic.defaults()
-	return withHooks(ctx, bivic.sqlSave, bivic.mutation, bivic.hooks)
+func (_c *BillingInvoiceValidationIssueCreate) Save(ctx context.Context) (*BillingInvoiceValidationIssue, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (bivic *BillingInvoiceValidationIssueCreate) SaveX(ctx context.Context) *BillingInvoiceValidationIssue {
-	v, err := bivic.Save(ctx)
+func (_c *BillingInvoiceValidationIssueCreate) SaveX(ctx context.Context) *BillingInvoiceValidationIssue {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -177,97 +177,97 @@ func (bivic *BillingInvoiceValidationIssueCreate) SaveX(ctx context.Context) *Bi
 }
 
 // Exec executes the query.
-func (bivic *BillingInvoiceValidationIssueCreate) Exec(ctx context.Context) error {
-	_, err := bivic.Save(ctx)
+func (_c *BillingInvoiceValidationIssueCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bivic *BillingInvoiceValidationIssueCreate) ExecX(ctx context.Context) {
-	if err := bivic.Exec(ctx); err != nil {
+func (_c *BillingInvoiceValidationIssueCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bivic *BillingInvoiceValidationIssueCreate) defaults() {
-	if _, ok := bivic.mutation.CreatedAt(); !ok {
+func (_c *BillingInvoiceValidationIssueCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := billinginvoicevalidationissue.DefaultCreatedAt()
-		bivic.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := bivic.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := billinginvoicevalidationissue.DefaultUpdatedAt()
-		bivic.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := bivic.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := billinginvoicevalidationissue.DefaultID()
-		bivic.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bivic *BillingInvoiceValidationIssueCreate) check() error {
-	if _, ok := bivic.mutation.Namespace(); !ok {
+func (_c *BillingInvoiceValidationIssueCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BillingInvoiceValidationIssue.namespace"`)}
 	}
-	if v, ok := bivic.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := billinginvoicevalidationissue.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.namespace": %w`, err)}
 		}
 	}
-	if _, ok := bivic.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "BillingInvoiceValidationIssue.created_at"`)}
 	}
-	if _, ok := bivic.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingInvoiceValidationIssue.updated_at"`)}
 	}
-	if _, ok := bivic.mutation.InvoiceID(); !ok {
+	if _, ok := _c.mutation.InvoiceID(); !ok {
 		return &ValidationError{Name: "invoice_id", err: errors.New(`db: missing required field "BillingInvoiceValidationIssue.invoice_id"`)}
 	}
-	if v, ok := bivic.mutation.InvoiceID(); ok {
+	if v, ok := _c.mutation.InvoiceID(); ok {
 		if err := billinginvoicevalidationissue.InvoiceIDValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.invoice_id": %w`, err)}
 		}
 	}
-	if _, ok := bivic.mutation.Severity(); !ok {
+	if _, ok := _c.mutation.Severity(); !ok {
 		return &ValidationError{Name: "severity", err: errors.New(`db: missing required field "BillingInvoiceValidationIssue.severity"`)}
 	}
-	if v, ok := bivic.mutation.Severity(); ok {
+	if v, ok := _c.mutation.Severity(); ok {
 		if err := billinginvoicevalidationissue.SeverityValidator(v); err != nil {
 			return &ValidationError{Name: "severity", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.severity": %w`, err)}
 		}
 	}
-	if _, ok := bivic.mutation.Message(); !ok {
+	if _, ok := _c.mutation.Message(); !ok {
 		return &ValidationError{Name: "message", err: errors.New(`db: missing required field "BillingInvoiceValidationIssue.message"`)}
 	}
-	if v, ok := bivic.mutation.Message(); ok {
+	if v, ok := _c.mutation.Message(); ok {
 		if err := billinginvoicevalidationissue.MessageValidator(v); err != nil {
 			return &ValidationError{Name: "message", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.message": %w`, err)}
 		}
 	}
-	if _, ok := bivic.mutation.Component(); !ok {
+	if _, ok := _c.mutation.Component(); !ok {
 		return &ValidationError{Name: "component", err: errors.New(`db: missing required field "BillingInvoiceValidationIssue.component"`)}
 	}
-	if _, ok := bivic.mutation.DedupeHash(); !ok {
+	if _, ok := _c.mutation.DedupeHash(); !ok {
 		return &ValidationError{Name: "dedupe_hash", err: errors.New(`db: missing required field "BillingInvoiceValidationIssue.dedupe_hash"`)}
 	}
-	if v, ok := bivic.mutation.DedupeHash(); ok {
+	if v, ok := _c.mutation.DedupeHash(); ok {
 		if err := billinginvoicevalidationissue.DedupeHashValidator(v); err != nil {
 			return &ValidationError{Name: "dedupe_hash", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.dedupe_hash": %w`, err)}
 		}
 	}
-	if len(bivic.mutation.BillingInvoiceIDs()) == 0 {
+	if len(_c.mutation.BillingInvoiceIDs()) == 0 {
 		return &ValidationError{Name: "billing_invoice", err: errors.New(`db: missing required edge "BillingInvoiceValidationIssue.billing_invoice"`)}
 	}
 	return nil
 }
 
-func (bivic *BillingInvoiceValidationIssueCreate) sqlSave(ctx context.Context) (*BillingInvoiceValidationIssue, error) {
-	if err := bivic.check(); err != nil {
+func (_c *BillingInvoiceValidationIssueCreate) sqlSave(ctx context.Context) (*BillingInvoiceValidationIssue, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := bivic.createSpec()
-	if err := sqlgraph.CreateNode(ctx, bivic.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -280,62 +280,62 @@ func (bivic *BillingInvoiceValidationIssueCreate) sqlSave(ctx context.Context) (
 			return nil, fmt.Errorf("unexpected BillingInvoiceValidationIssue.ID type: %T", _spec.ID.Value)
 		}
 	}
-	bivic.mutation.id = &_node.ID
-	bivic.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (bivic *BillingInvoiceValidationIssueCreate) createSpec() (*BillingInvoiceValidationIssue, *sqlgraph.CreateSpec) {
+func (_c *BillingInvoiceValidationIssueCreate) createSpec() (*BillingInvoiceValidationIssue, *sqlgraph.CreateSpec) {
 	var (
-		_node = &BillingInvoiceValidationIssue{config: bivic.config}
+		_node = &BillingInvoiceValidationIssue{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(billinginvoicevalidationissue.Table, sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = bivic.conflict
-	if id, ok := bivic.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := bivic.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := bivic.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := bivic.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := bivic.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := bivic.mutation.Severity(); ok {
+	if value, ok := _c.mutation.Severity(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldSeverity, field.TypeEnum, value)
 		_node.Severity = value
 	}
-	if value, ok := bivic.mutation.Code(); ok {
+	if value, ok := _c.mutation.Code(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldCode, field.TypeString, value)
 		_node.Code = &value
 	}
-	if value, ok := bivic.mutation.Message(); ok {
+	if value, ok := _c.mutation.Message(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldMessage, field.TypeString, value)
 		_node.Message = value
 	}
-	if value, ok := bivic.mutation.Path(); ok {
+	if value, ok := _c.mutation.Path(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldPath, field.TypeString, value)
 		_node.Path = &value
 	}
-	if value, ok := bivic.mutation.Component(); ok {
+	if value, ok := _c.mutation.Component(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldComponent, field.TypeString, value)
 		_node.Component = value
 	}
-	if value, ok := bivic.mutation.DedupeHash(); ok {
+	if value, ok := _c.mutation.DedupeHash(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldDedupeHash, field.TypeBytes, value)
 		_node.DedupeHash = value
 	}
-	if nodes := bivic.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -371,10 +371,10 @@ func (bivic *BillingInvoiceValidationIssueCreate) createSpec() (*BillingInvoiceV
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bivic *BillingInvoiceValidationIssueCreate) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceValidationIssueUpsertOne {
-	bivic.conflict = opts
+func (_c *BillingInvoiceValidationIssueCreate) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceValidationIssueUpsertOne {
+	_c.conflict = opts
 	return &BillingInvoiceValidationIssueUpsertOne{
-		create: bivic,
+		create: _c,
 	}
 }
 
@@ -384,10 +384,10 @@ func (bivic *BillingInvoiceValidationIssueCreate) OnConflict(opts ...sql.Conflic
 //	client.BillingInvoiceValidationIssue.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bivic *BillingInvoiceValidationIssueCreate) OnConflictColumns(columns ...string) *BillingInvoiceValidationIssueUpsertOne {
-	bivic.conflict = append(bivic.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingInvoiceValidationIssueCreate) OnConflictColumns(columns ...string) *BillingInvoiceValidationIssueUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingInvoiceValidationIssueUpsertOne{
-		create: bivic,
+		create: _c,
 	}
 }
 
@@ -778,16 +778,16 @@ type BillingInvoiceValidationIssueCreateBulk struct {
 }
 
 // Save creates the BillingInvoiceValidationIssue entities in the database.
-func (bivicb *BillingInvoiceValidationIssueCreateBulk) Save(ctx context.Context) ([]*BillingInvoiceValidationIssue, error) {
-	if bivicb.err != nil {
-		return nil, bivicb.err
+func (_c *BillingInvoiceValidationIssueCreateBulk) Save(ctx context.Context) ([]*BillingInvoiceValidationIssue, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(bivicb.builders))
-	nodes := make([]*BillingInvoiceValidationIssue, len(bivicb.builders))
-	mutators := make([]Mutator, len(bivicb.builders))
-	for i := range bivicb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*BillingInvoiceValidationIssue, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := bivicb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*BillingInvoiceValidationIssueMutation)
@@ -801,12 +801,12 @@ func (bivicb *BillingInvoiceValidationIssueCreateBulk) Save(ctx context.Context)
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, bivicb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = bivicb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, bivicb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -826,7 +826,7 @@ func (bivicb *BillingInvoiceValidationIssueCreateBulk) Save(ctx context.Context)
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, bivicb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -834,8 +834,8 @@ func (bivicb *BillingInvoiceValidationIssueCreateBulk) Save(ctx context.Context)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bivicb *BillingInvoiceValidationIssueCreateBulk) SaveX(ctx context.Context) []*BillingInvoiceValidationIssue {
-	v, err := bivicb.Save(ctx)
+func (_c *BillingInvoiceValidationIssueCreateBulk) SaveX(ctx context.Context) []*BillingInvoiceValidationIssue {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -843,14 +843,14 @@ func (bivicb *BillingInvoiceValidationIssueCreateBulk) SaveX(ctx context.Context
 }
 
 // Exec executes the query.
-func (bivicb *BillingInvoiceValidationIssueCreateBulk) Exec(ctx context.Context) error {
-	_, err := bivicb.Save(ctx)
+func (_c *BillingInvoiceValidationIssueCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bivicb *BillingInvoiceValidationIssueCreateBulk) ExecX(ctx context.Context) {
-	if err := bivicb.Exec(ctx); err != nil {
+func (_c *BillingInvoiceValidationIssueCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -870,10 +870,10 @@ func (bivicb *BillingInvoiceValidationIssueCreateBulk) ExecX(ctx context.Context
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bivicb *BillingInvoiceValidationIssueCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceValidationIssueUpsertBulk {
-	bivicb.conflict = opts
+func (_c *BillingInvoiceValidationIssueCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceValidationIssueUpsertBulk {
+	_c.conflict = opts
 	return &BillingInvoiceValidationIssueUpsertBulk{
-		create: bivicb,
+		create: _c,
 	}
 }
 
@@ -883,10 +883,10 @@ func (bivicb *BillingInvoiceValidationIssueCreateBulk) OnConflict(opts ...sql.Co
 //	client.BillingInvoiceValidationIssue.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bivicb *BillingInvoiceValidationIssueCreateBulk) OnConflictColumns(columns ...string) *BillingInvoiceValidationIssueUpsertBulk {
-	bivicb.conflict = append(bivicb.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingInvoiceValidationIssueCreateBulk) OnConflictColumns(columns ...string) *BillingInvoiceValidationIssueUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingInvoiceValidationIssueUpsertBulk{
-		create: bivicb,
+		create: _c,
 	}
 }
 

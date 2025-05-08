@@ -101,7 +101,7 @@ func (*PlanAddon) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the PlanAddon fields.
-func (pa *PlanAddon) assignValues(columns []string, values []any) error {
+func (_m *PlanAddon) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -111,19 +111,19 @@ func (pa *PlanAddon) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				pa.ID = value.String
+				_m.ID = value.String
 			}
 		case planaddon.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				pa.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case planaddon.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &pa.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -131,7 +131,7 @@ func (pa *PlanAddon) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field annotations", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &pa.Annotations); err != nil {
+				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
 					return fmt.Errorf("unmarshal field annotations: %w", err)
 				}
 			}
@@ -139,48 +139,48 @@ func (pa *PlanAddon) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				pa.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case planaddon.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				pa.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case planaddon.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				pa.DeletedAt = new(time.Time)
-				*pa.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case planaddon.FieldPlanID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field plan_id", values[i])
 			} else if value.Valid {
-				pa.PlanID = value.String
+				_m.PlanID = value.String
 			}
 		case planaddon.FieldAddonID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field addon_id", values[i])
 			} else if value.Valid {
-				pa.AddonID = value.String
+				_m.AddonID = value.String
 			}
 		case planaddon.FieldFromPlanPhase:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field from_plan_phase", values[i])
 			} else if value.Valid {
-				pa.FromPlanPhase = value.String
+				_m.FromPlanPhase = value.String
 			}
 		case planaddon.FieldMaxQuantity:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field max_quantity", values[i])
 			} else if value.Valid {
-				pa.MaxQuantity = new(int)
-				*pa.MaxQuantity = int(value.Int64)
+				_m.MaxQuantity = new(int)
+				*_m.MaxQuantity = int(value.Int64)
 			}
 		default:
-			pa.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -188,73 +188,73 @@ func (pa *PlanAddon) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the PlanAddon.
 // This includes values selected through modifiers, order, etc.
-func (pa *PlanAddon) Value(name string) (ent.Value, error) {
-	return pa.selectValues.Get(name)
+func (_m *PlanAddon) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryPlan queries the "plan" edge of the PlanAddon entity.
-func (pa *PlanAddon) QueryPlan() *PlanQuery {
-	return NewPlanAddonClient(pa.config).QueryPlan(pa)
+func (_m *PlanAddon) QueryPlan() *PlanQuery {
+	return NewPlanAddonClient(_m.config).QueryPlan(_m)
 }
 
 // QueryAddon queries the "addon" edge of the PlanAddon entity.
-func (pa *PlanAddon) QueryAddon() *AddonQuery {
-	return NewPlanAddonClient(pa.config).QueryAddon(pa)
+func (_m *PlanAddon) QueryAddon() *AddonQuery {
+	return NewPlanAddonClient(_m.config).QueryAddon(_m)
 }
 
 // Update returns a builder for updating this PlanAddon.
 // Note that you need to call PlanAddon.Unwrap() before calling this method if this PlanAddon
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (pa *PlanAddon) Update() *PlanAddonUpdateOne {
-	return NewPlanAddonClient(pa.config).UpdateOne(pa)
+func (_m *PlanAddon) Update() *PlanAddonUpdateOne {
+	return NewPlanAddonClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the PlanAddon entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (pa *PlanAddon) Unwrap() *PlanAddon {
-	_tx, ok := pa.config.driver.(*txDriver)
+func (_m *PlanAddon) Unwrap() *PlanAddon {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: PlanAddon is not a transactional entity")
 	}
-	pa.config.driver = _tx.drv
-	return pa
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (pa *PlanAddon) String() string {
+func (_m *PlanAddon) String() string {
 	var builder strings.Builder
 	builder.WriteString("PlanAddon(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", pa.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(pa.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", pa.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")
-	builder.WriteString(fmt.Sprintf("%v", pa.Annotations))
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(pa.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(pa.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := pa.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("plan_id=")
-	builder.WriteString(pa.PlanID)
+	builder.WriteString(_m.PlanID)
 	builder.WriteString(", ")
 	builder.WriteString("addon_id=")
-	builder.WriteString(pa.AddonID)
+	builder.WriteString(_m.AddonID)
 	builder.WriteString(", ")
 	builder.WriteString("from_plan_phase=")
-	builder.WriteString(pa.FromPlanPhase)
+	builder.WriteString(_m.FromPlanPhase)
 	builder.WriteString(", ")
-	if v := pa.MaxQuantity; v != nil {
+	if v := _m.MaxQuantity; v != nil {
 		builder.WriteString("max_quantity=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}

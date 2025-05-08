@@ -95,7 +95,7 @@ func (*AppStripe) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the AppStripe fields.
-func (as *AppStripe) assignValues(columns []string, values []any) error {
+func (_m *AppStripe) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -105,71 +105,71 @@ func (as *AppStripe) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				as.ID = value.String
+				_m.ID = value.String
 			}
 		case appstripe.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				as.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case appstripe.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				as.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case appstripe.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				as.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case appstripe.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				as.DeletedAt = new(time.Time)
-				*as.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case appstripe.FieldStripeAccountID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field stripe_account_id", values[i])
 			} else if value.Valid {
-				as.StripeAccountID = value.String
+				_m.StripeAccountID = value.String
 			}
 		case appstripe.FieldStripeLivemode:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field stripe_livemode", values[i])
 			} else if value.Valid {
-				as.StripeLivemode = value.Bool
+				_m.StripeLivemode = value.Bool
 			}
 		case appstripe.FieldAPIKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field api_key", values[i])
 			} else if value.Valid {
-				as.APIKey = value.String
+				_m.APIKey = value.String
 			}
 		case appstripe.FieldMaskedAPIKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field masked_api_key", values[i])
 			} else if value.Valid {
-				as.MaskedAPIKey = value.String
+				_m.MaskedAPIKey = value.String
 			}
 		case appstripe.FieldStripeWebhookID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field stripe_webhook_id", values[i])
 			} else if value.Valid {
-				as.StripeWebhookID = value.String
+				_m.StripeWebhookID = value.String
 			}
 		case appstripe.FieldWebhookSecret:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field webhook_secret", values[i])
 			} else if value.Valid {
-				as.WebhookSecret = value.String
+				_m.WebhookSecret = value.String
 			}
 		default:
-			as.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -177,70 +177,70 @@ func (as *AppStripe) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the AppStripe.
 // This includes values selected through modifiers, order, etc.
-func (as *AppStripe) Value(name string) (ent.Value, error) {
-	return as.selectValues.Get(name)
+func (_m *AppStripe) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryCustomerApps queries the "customer_apps" edge of the AppStripe entity.
-func (as *AppStripe) QueryCustomerApps() *AppStripeCustomerQuery {
-	return NewAppStripeClient(as.config).QueryCustomerApps(as)
+func (_m *AppStripe) QueryCustomerApps() *AppStripeCustomerQuery {
+	return NewAppStripeClient(_m.config).QueryCustomerApps(_m)
 }
 
 // QueryApp queries the "app" edge of the AppStripe entity.
-func (as *AppStripe) QueryApp() *AppQuery {
-	return NewAppStripeClient(as.config).QueryApp(as)
+func (_m *AppStripe) QueryApp() *AppQuery {
+	return NewAppStripeClient(_m.config).QueryApp(_m)
 }
 
 // Update returns a builder for updating this AppStripe.
 // Note that you need to call AppStripe.Unwrap() before calling this method if this AppStripe
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (as *AppStripe) Update() *AppStripeUpdateOne {
-	return NewAppStripeClient(as.config).UpdateOne(as)
+func (_m *AppStripe) Update() *AppStripeUpdateOne {
+	return NewAppStripeClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the AppStripe entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (as *AppStripe) Unwrap() *AppStripe {
-	_tx, ok := as.config.driver.(*txDriver)
+func (_m *AppStripe) Unwrap() *AppStripe {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: AppStripe is not a transactional entity")
 	}
-	as.config.driver = _tx.drv
-	return as
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (as *AppStripe) String() string {
+func (_m *AppStripe) String() string {
 	var builder strings.Builder
 	builder.WriteString("AppStripe(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", as.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(as.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(as.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(as.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := as.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("stripe_account_id=")
-	builder.WriteString(as.StripeAccountID)
+	builder.WriteString(_m.StripeAccountID)
 	builder.WriteString(", ")
 	builder.WriteString("stripe_livemode=")
-	builder.WriteString(fmt.Sprintf("%v", as.StripeLivemode))
+	builder.WriteString(fmt.Sprintf("%v", _m.StripeLivemode))
 	builder.WriteString(", ")
 	builder.WriteString("api_key=<sensitive>")
 	builder.WriteString(", ")
 	builder.WriteString("masked_api_key=")
-	builder.WriteString(as.MaskedAPIKey)
+	builder.WriteString(_m.MaskedAPIKey)
 	builder.WriteString(", ")
 	builder.WriteString("stripe_webhook_id=")
-	builder.WriteString(as.StripeWebhookID)
+	builder.WriteString(_m.StripeWebhookID)
 	builder.WriteString(", ")
 	builder.WriteString("webhook_secret=<sensitive>")
 	builder.WriteByte(')')

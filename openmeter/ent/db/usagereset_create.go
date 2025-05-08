@@ -25,104 +25,104 @@ type UsageResetCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (urc *UsageResetCreate) SetNamespace(s string) *UsageResetCreate {
-	urc.mutation.SetNamespace(s)
-	return urc
+func (_c *UsageResetCreate) SetNamespace(v string) *UsageResetCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (urc *UsageResetCreate) SetCreatedAt(t time.Time) *UsageResetCreate {
-	urc.mutation.SetCreatedAt(t)
-	return urc
+func (_c *UsageResetCreate) SetCreatedAt(v time.Time) *UsageResetCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (urc *UsageResetCreate) SetNillableCreatedAt(t *time.Time) *UsageResetCreate {
-	if t != nil {
-		urc.SetCreatedAt(*t)
+func (_c *UsageResetCreate) SetNillableCreatedAt(v *time.Time) *UsageResetCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return urc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (urc *UsageResetCreate) SetUpdatedAt(t time.Time) *UsageResetCreate {
-	urc.mutation.SetUpdatedAt(t)
-	return urc
+func (_c *UsageResetCreate) SetUpdatedAt(v time.Time) *UsageResetCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (urc *UsageResetCreate) SetNillableUpdatedAt(t *time.Time) *UsageResetCreate {
-	if t != nil {
-		urc.SetUpdatedAt(*t)
+func (_c *UsageResetCreate) SetNillableUpdatedAt(v *time.Time) *UsageResetCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return urc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (urc *UsageResetCreate) SetDeletedAt(t time.Time) *UsageResetCreate {
-	urc.mutation.SetDeletedAt(t)
-	return urc
+func (_c *UsageResetCreate) SetDeletedAt(v time.Time) *UsageResetCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (urc *UsageResetCreate) SetNillableDeletedAt(t *time.Time) *UsageResetCreate {
-	if t != nil {
-		urc.SetDeletedAt(*t)
+func (_c *UsageResetCreate) SetNillableDeletedAt(v *time.Time) *UsageResetCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return urc
+	return _c
 }
 
 // SetEntitlementID sets the "entitlement_id" field.
-func (urc *UsageResetCreate) SetEntitlementID(s string) *UsageResetCreate {
-	urc.mutation.SetEntitlementID(s)
-	return urc
+func (_c *UsageResetCreate) SetEntitlementID(v string) *UsageResetCreate {
+	_c.mutation.SetEntitlementID(v)
+	return _c
 }
 
 // SetResetTime sets the "reset_time" field.
-func (urc *UsageResetCreate) SetResetTime(t time.Time) *UsageResetCreate {
-	urc.mutation.SetResetTime(t)
-	return urc
+func (_c *UsageResetCreate) SetResetTime(v time.Time) *UsageResetCreate {
+	_c.mutation.SetResetTime(v)
+	return _c
 }
 
 // SetAnchor sets the "anchor" field.
-func (urc *UsageResetCreate) SetAnchor(t time.Time) *UsageResetCreate {
-	urc.mutation.SetAnchor(t)
-	return urc
+func (_c *UsageResetCreate) SetAnchor(v time.Time) *UsageResetCreate {
+	_c.mutation.SetAnchor(v)
+	return _c
 }
 
 // SetID sets the "id" field.
-func (urc *UsageResetCreate) SetID(s string) *UsageResetCreate {
-	urc.mutation.SetID(s)
-	return urc
+func (_c *UsageResetCreate) SetID(v string) *UsageResetCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (urc *UsageResetCreate) SetNillableID(s *string) *UsageResetCreate {
-	if s != nil {
-		urc.SetID(*s)
+func (_c *UsageResetCreate) SetNillableID(v *string) *UsageResetCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return urc
+	return _c
 }
 
 // SetEntitlement sets the "entitlement" edge to the Entitlement entity.
-func (urc *UsageResetCreate) SetEntitlement(e *Entitlement) *UsageResetCreate {
-	return urc.SetEntitlementID(e.ID)
+func (_c *UsageResetCreate) SetEntitlement(v *Entitlement) *UsageResetCreate {
+	return _c.SetEntitlementID(v.ID)
 }
 
 // Mutation returns the UsageResetMutation object of the builder.
-func (urc *UsageResetCreate) Mutation() *UsageResetMutation {
-	return urc.mutation
+func (_c *UsageResetCreate) Mutation() *UsageResetMutation {
+	return _c.mutation
 }
 
 // Save creates the UsageReset in the database.
-func (urc *UsageResetCreate) Save(ctx context.Context) (*UsageReset, error) {
-	urc.defaults()
-	return withHooks(ctx, urc.sqlSave, urc.mutation, urc.hooks)
+func (_c *UsageResetCreate) Save(ctx context.Context) (*UsageReset, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (urc *UsageResetCreate) SaveX(ctx context.Context) *UsageReset {
-	v, err := urc.Save(ctx)
+func (_c *UsageResetCreate) SaveX(ctx context.Context) *UsageReset {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -130,71 +130,71 @@ func (urc *UsageResetCreate) SaveX(ctx context.Context) *UsageReset {
 }
 
 // Exec executes the query.
-func (urc *UsageResetCreate) Exec(ctx context.Context) error {
-	_, err := urc.Save(ctx)
+func (_c *UsageResetCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (urc *UsageResetCreate) ExecX(ctx context.Context) {
-	if err := urc.Exec(ctx); err != nil {
+func (_c *UsageResetCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (urc *UsageResetCreate) defaults() {
-	if _, ok := urc.mutation.CreatedAt(); !ok {
+func (_c *UsageResetCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := usagereset.DefaultCreatedAt()
-		urc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := urc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := usagereset.DefaultUpdatedAt()
-		urc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := urc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := usagereset.DefaultID()
-		urc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (urc *UsageResetCreate) check() error {
-	if _, ok := urc.mutation.Namespace(); !ok {
+func (_c *UsageResetCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "UsageReset.namespace"`)}
 	}
-	if v, ok := urc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := usagereset.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "UsageReset.namespace": %w`, err)}
 		}
 	}
-	if _, ok := urc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "UsageReset.created_at"`)}
 	}
-	if _, ok := urc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "UsageReset.updated_at"`)}
 	}
-	if _, ok := urc.mutation.EntitlementID(); !ok {
+	if _, ok := _c.mutation.EntitlementID(); !ok {
 		return &ValidationError{Name: "entitlement_id", err: errors.New(`db: missing required field "UsageReset.entitlement_id"`)}
 	}
-	if _, ok := urc.mutation.ResetTime(); !ok {
+	if _, ok := _c.mutation.ResetTime(); !ok {
 		return &ValidationError{Name: "reset_time", err: errors.New(`db: missing required field "UsageReset.reset_time"`)}
 	}
-	if _, ok := urc.mutation.Anchor(); !ok {
+	if _, ok := _c.mutation.Anchor(); !ok {
 		return &ValidationError{Name: "anchor", err: errors.New(`db: missing required field "UsageReset.anchor"`)}
 	}
-	if len(urc.mutation.EntitlementIDs()) == 0 {
+	if len(_c.mutation.EntitlementIDs()) == 0 {
 		return &ValidationError{Name: "entitlement", err: errors.New(`db: missing required edge "UsageReset.entitlement"`)}
 	}
 	return nil
 }
 
-func (urc *UsageResetCreate) sqlSave(ctx context.Context) (*UsageReset, error) {
-	if err := urc.check(); err != nil {
+func (_c *UsageResetCreate) sqlSave(ctx context.Context) (*UsageReset, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := urc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, urc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -207,46 +207,46 @@ func (urc *UsageResetCreate) sqlSave(ctx context.Context) (*UsageReset, error) {
 			return nil, fmt.Errorf("unexpected UsageReset.ID type: %T", _spec.ID.Value)
 		}
 	}
-	urc.mutation.id = &_node.ID
-	urc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (urc *UsageResetCreate) createSpec() (*UsageReset, *sqlgraph.CreateSpec) {
+func (_c *UsageResetCreate) createSpec() (*UsageReset, *sqlgraph.CreateSpec) {
 	var (
-		_node = &UsageReset{config: urc.config}
+		_node = &UsageReset{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(usagereset.Table, sqlgraph.NewFieldSpec(usagereset.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = urc.conflict
-	if id, ok := urc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := urc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(usagereset.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := urc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(usagereset.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := urc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(usagereset.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := urc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(usagereset.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := urc.mutation.ResetTime(); ok {
+	if value, ok := _c.mutation.ResetTime(); ok {
 		_spec.SetField(usagereset.FieldResetTime, field.TypeTime, value)
 		_node.ResetTime = value
 	}
-	if value, ok := urc.mutation.Anchor(); ok {
+	if value, ok := _c.mutation.Anchor(); ok {
 		_spec.SetField(usagereset.FieldAnchor, field.TypeTime, value)
 		_node.Anchor = value
 	}
-	if nodes := urc.mutation.EntitlementIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -282,10 +282,10 @@ func (urc *UsageResetCreate) createSpec() (*UsageReset, *sqlgraph.CreateSpec) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (urc *UsageResetCreate) OnConflict(opts ...sql.ConflictOption) *UsageResetUpsertOne {
-	urc.conflict = opts
+func (_c *UsageResetCreate) OnConflict(opts ...sql.ConflictOption) *UsageResetUpsertOne {
+	_c.conflict = opts
 	return &UsageResetUpsertOne{
-		create: urc,
+		create: _c,
 	}
 }
 
@@ -295,10 +295,10 @@ func (urc *UsageResetCreate) OnConflict(opts ...sql.ConflictOption) *UsageResetU
 //	client.UsageReset.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (urc *UsageResetCreate) OnConflictColumns(columns ...string) *UsageResetUpsertOne {
-	urc.conflict = append(urc.conflict, sql.ConflictColumns(columns...))
+func (_c *UsageResetCreate) OnConflictColumns(columns ...string) *UsageResetUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &UsageResetUpsertOne{
-		create: urc,
+		create: _c,
 	}
 }
 
@@ -490,16 +490,16 @@ type UsageResetCreateBulk struct {
 }
 
 // Save creates the UsageReset entities in the database.
-func (urcb *UsageResetCreateBulk) Save(ctx context.Context) ([]*UsageReset, error) {
-	if urcb.err != nil {
-		return nil, urcb.err
+func (_c *UsageResetCreateBulk) Save(ctx context.Context) ([]*UsageReset, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(urcb.builders))
-	nodes := make([]*UsageReset, len(urcb.builders))
-	mutators := make([]Mutator, len(urcb.builders))
-	for i := range urcb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*UsageReset, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := urcb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*UsageResetMutation)
@@ -513,12 +513,12 @@ func (urcb *UsageResetCreateBulk) Save(ctx context.Context) ([]*UsageReset, erro
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, urcb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = urcb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, urcb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -538,7 +538,7 @@ func (urcb *UsageResetCreateBulk) Save(ctx context.Context) ([]*UsageReset, erro
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, urcb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -546,8 +546,8 @@ func (urcb *UsageResetCreateBulk) Save(ctx context.Context) ([]*UsageReset, erro
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (urcb *UsageResetCreateBulk) SaveX(ctx context.Context) []*UsageReset {
-	v, err := urcb.Save(ctx)
+func (_c *UsageResetCreateBulk) SaveX(ctx context.Context) []*UsageReset {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -555,14 +555,14 @@ func (urcb *UsageResetCreateBulk) SaveX(ctx context.Context) []*UsageReset {
 }
 
 // Exec executes the query.
-func (urcb *UsageResetCreateBulk) Exec(ctx context.Context) error {
-	_, err := urcb.Save(ctx)
+func (_c *UsageResetCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (urcb *UsageResetCreateBulk) ExecX(ctx context.Context) {
-	if err := urcb.Exec(ctx); err != nil {
+func (_c *UsageResetCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -582,10 +582,10 @@ func (urcb *UsageResetCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (urcb *UsageResetCreateBulk) OnConflict(opts ...sql.ConflictOption) *UsageResetUpsertBulk {
-	urcb.conflict = opts
+func (_c *UsageResetCreateBulk) OnConflict(opts ...sql.ConflictOption) *UsageResetUpsertBulk {
+	_c.conflict = opts
 	return &UsageResetUpsertBulk{
-		create: urcb,
+		create: _c,
 	}
 }
 
@@ -595,10 +595,10 @@ func (urcb *UsageResetCreateBulk) OnConflict(opts ...sql.ConflictOption) *UsageR
 //	client.UsageReset.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (urcb *UsageResetCreateBulk) OnConflictColumns(columns ...string) *UsageResetUpsertBulk {
-	urcb.conflict = append(urcb.conflict, sql.ConflictColumns(columns...))
+func (_c *UsageResetCreateBulk) OnConflictColumns(columns ...string) *UsageResetUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &UsageResetUpsertBulk{
-		create: urcb,
+		create: _c,
 	}
 }
 

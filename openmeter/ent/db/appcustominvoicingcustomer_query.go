@@ -34,44 +34,44 @@ type AppCustomInvoicingCustomerQuery struct {
 }
 
 // Where adds a new predicate for the AppCustomInvoicingCustomerQuery builder.
-func (acicq *AppCustomInvoicingCustomerQuery) Where(ps ...predicate.AppCustomInvoicingCustomer) *AppCustomInvoicingCustomerQuery {
-	acicq.predicates = append(acicq.predicates, ps...)
-	return acicq
+func (_q *AppCustomInvoicingCustomerQuery) Where(ps ...predicate.AppCustomInvoicingCustomer) *AppCustomInvoicingCustomerQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (acicq *AppCustomInvoicingCustomerQuery) Limit(limit int) *AppCustomInvoicingCustomerQuery {
-	acicq.ctx.Limit = &limit
-	return acicq
+func (_q *AppCustomInvoicingCustomerQuery) Limit(limit int) *AppCustomInvoicingCustomerQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (acicq *AppCustomInvoicingCustomerQuery) Offset(offset int) *AppCustomInvoicingCustomerQuery {
-	acicq.ctx.Offset = &offset
-	return acicq
+func (_q *AppCustomInvoicingCustomerQuery) Offset(offset int) *AppCustomInvoicingCustomerQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (acicq *AppCustomInvoicingCustomerQuery) Unique(unique bool) *AppCustomInvoicingCustomerQuery {
-	acicq.ctx.Unique = &unique
-	return acicq
+func (_q *AppCustomInvoicingCustomerQuery) Unique(unique bool) *AppCustomInvoicingCustomerQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (acicq *AppCustomInvoicingCustomerQuery) Order(o ...appcustominvoicingcustomer.OrderOption) *AppCustomInvoicingCustomerQuery {
-	acicq.order = append(acicq.order, o...)
-	return acicq
+func (_q *AppCustomInvoicingCustomerQuery) Order(o ...appcustominvoicingcustomer.OrderOption) *AppCustomInvoicingCustomerQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryCustomInvoicingApp chains the current query on the "custom_invoicing_app" edge.
-func (acicq *AppCustomInvoicingCustomerQuery) QueryCustomInvoicingApp() *AppCustomInvoicingQuery {
-	query := (&AppCustomInvoicingClient{config: acicq.config}).Query()
+func (_q *AppCustomInvoicingCustomerQuery) QueryCustomInvoicingApp() *AppCustomInvoicingQuery {
+	query := (&AppCustomInvoicingClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := acicq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := acicq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -80,20 +80,20 @@ func (acicq *AppCustomInvoicingCustomerQuery) QueryCustomInvoicingApp() *AppCust
 			sqlgraph.To(appcustominvoicing.Table, appcustominvoicing.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, appcustominvoicingcustomer.CustomInvoicingAppTable, appcustominvoicingcustomer.CustomInvoicingAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(acicq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryCustomer chains the current query on the "customer" edge.
-func (acicq *AppCustomInvoicingCustomerQuery) QueryCustomer() *CustomerQuery {
-	query := (&CustomerClient{config: acicq.config}).Query()
+func (_q *AppCustomInvoicingCustomerQuery) QueryCustomer() *CustomerQuery {
+	query := (&CustomerClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := acicq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := acicq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func (acicq *AppCustomInvoicingCustomerQuery) QueryCustomer() *CustomerQuery {
 			sqlgraph.To(customer.Table, customer.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, appcustominvoicingcustomer.CustomerTable, appcustominvoicingcustomer.CustomerColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(acicq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -110,8 +110,8 @@ func (acicq *AppCustomInvoicingCustomerQuery) QueryCustomer() *CustomerQuery {
 
 // First returns the first AppCustomInvoicingCustomer entity from the query.
 // Returns a *NotFoundError when no AppCustomInvoicingCustomer was found.
-func (acicq *AppCustomInvoicingCustomerQuery) First(ctx context.Context) (*AppCustomInvoicingCustomer, error) {
-	nodes, err := acicq.Limit(1).All(setContextOp(ctx, acicq.ctx, ent.OpQueryFirst))
+func (_q *AppCustomInvoicingCustomerQuery) First(ctx context.Context) (*AppCustomInvoicingCustomer, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -122,8 +122,8 @@ func (acicq *AppCustomInvoicingCustomerQuery) First(ctx context.Context) (*AppCu
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (acicq *AppCustomInvoicingCustomerQuery) FirstX(ctx context.Context) *AppCustomInvoicingCustomer {
-	node, err := acicq.First(ctx)
+func (_q *AppCustomInvoicingCustomerQuery) FirstX(ctx context.Context) *AppCustomInvoicingCustomer {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -132,9 +132,9 @@ func (acicq *AppCustomInvoicingCustomerQuery) FirstX(ctx context.Context) *AppCu
 
 // FirstID returns the first AppCustomInvoicingCustomer ID from the query.
 // Returns a *NotFoundError when no AppCustomInvoicingCustomer ID was found.
-func (acicq *AppCustomInvoicingCustomerQuery) FirstID(ctx context.Context) (id int, err error) {
+func (_q *AppCustomInvoicingCustomerQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = acicq.Limit(1).IDs(setContextOp(ctx, acicq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -145,8 +145,8 @@ func (acicq *AppCustomInvoicingCustomerQuery) FirstID(ctx context.Context) (id i
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (acicq *AppCustomInvoicingCustomerQuery) FirstIDX(ctx context.Context) int {
-	id, err := acicq.FirstID(ctx)
+func (_q *AppCustomInvoicingCustomerQuery) FirstIDX(ctx context.Context) int {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -156,8 +156,8 @@ func (acicq *AppCustomInvoicingCustomerQuery) FirstIDX(ctx context.Context) int 
 // Only returns a single AppCustomInvoicingCustomer entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one AppCustomInvoicingCustomer entity is found.
 // Returns a *NotFoundError when no AppCustomInvoicingCustomer entities are found.
-func (acicq *AppCustomInvoicingCustomerQuery) Only(ctx context.Context) (*AppCustomInvoicingCustomer, error) {
-	nodes, err := acicq.Limit(2).All(setContextOp(ctx, acicq.ctx, ent.OpQueryOnly))
+func (_q *AppCustomInvoicingCustomerQuery) Only(ctx context.Context) (*AppCustomInvoicingCustomer, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -172,8 +172,8 @@ func (acicq *AppCustomInvoicingCustomerQuery) Only(ctx context.Context) (*AppCus
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (acicq *AppCustomInvoicingCustomerQuery) OnlyX(ctx context.Context) *AppCustomInvoicingCustomer {
-	node, err := acicq.Only(ctx)
+func (_q *AppCustomInvoicingCustomerQuery) OnlyX(ctx context.Context) *AppCustomInvoicingCustomer {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -183,9 +183,9 @@ func (acicq *AppCustomInvoicingCustomerQuery) OnlyX(ctx context.Context) *AppCus
 // OnlyID is like Only, but returns the only AppCustomInvoicingCustomer ID in the query.
 // Returns a *NotSingularError when more than one AppCustomInvoicingCustomer ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (acicq *AppCustomInvoicingCustomerQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *AppCustomInvoicingCustomerQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = acicq.Limit(2).IDs(setContextOp(ctx, acicq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -200,8 +200,8 @@ func (acicq *AppCustomInvoicingCustomerQuery) OnlyID(ctx context.Context) (id in
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (acicq *AppCustomInvoicingCustomerQuery) OnlyIDX(ctx context.Context) int {
-	id, err := acicq.OnlyID(ctx)
+func (_q *AppCustomInvoicingCustomerQuery) OnlyIDX(ctx context.Context) int {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -209,18 +209,18 @@ func (acicq *AppCustomInvoicingCustomerQuery) OnlyIDX(ctx context.Context) int {
 }
 
 // All executes the query and returns a list of AppCustomInvoicingCustomers.
-func (acicq *AppCustomInvoicingCustomerQuery) All(ctx context.Context) ([]*AppCustomInvoicingCustomer, error) {
-	ctx = setContextOp(ctx, acicq.ctx, ent.OpQueryAll)
-	if err := acicq.prepareQuery(ctx); err != nil {
+func (_q *AppCustomInvoicingCustomerQuery) All(ctx context.Context) ([]*AppCustomInvoicingCustomer, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*AppCustomInvoicingCustomer, *AppCustomInvoicingCustomerQuery]()
-	return withInterceptors[[]*AppCustomInvoicingCustomer](ctx, acicq, qr, acicq.inters)
+	return withInterceptors[[]*AppCustomInvoicingCustomer](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (acicq *AppCustomInvoicingCustomerQuery) AllX(ctx context.Context) []*AppCustomInvoicingCustomer {
-	nodes, err := acicq.All(ctx)
+func (_q *AppCustomInvoicingCustomerQuery) AllX(ctx context.Context) []*AppCustomInvoicingCustomer {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -228,20 +228,20 @@ func (acicq *AppCustomInvoicingCustomerQuery) AllX(ctx context.Context) []*AppCu
 }
 
 // IDs executes the query and returns a list of AppCustomInvoicingCustomer IDs.
-func (acicq *AppCustomInvoicingCustomerQuery) IDs(ctx context.Context) (ids []int, err error) {
-	if acicq.ctx.Unique == nil && acicq.path != nil {
-		acicq.Unique(true)
+func (_q *AppCustomInvoicingCustomerQuery) IDs(ctx context.Context) (ids []int, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, acicq.ctx, ent.OpQueryIDs)
-	if err = acicq.Select(appcustominvoicingcustomer.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(appcustominvoicingcustomer.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (acicq *AppCustomInvoicingCustomerQuery) IDsX(ctx context.Context) []int {
-	ids, err := acicq.IDs(ctx)
+func (_q *AppCustomInvoicingCustomerQuery) IDsX(ctx context.Context) []int {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -249,17 +249,17 @@ func (acicq *AppCustomInvoicingCustomerQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (acicq *AppCustomInvoicingCustomerQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, acicq.ctx, ent.OpQueryCount)
-	if err := acicq.prepareQuery(ctx); err != nil {
+func (_q *AppCustomInvoicingCustomerQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, acicq, querierCount[*AppCustomInvoicingCustomerQuery](), acicq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*AppCustomInvoicingCustomerQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (acicq *AppCustomInvoicingCustomerQuery) CountX(ctx context.Context) int {
-	count, err := acicq.Count(ctx)
+func (_q *AppCustomInvoicingCustomerQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -267,9 +267,9 @@ func (acicq *AppCustomInvoicingCustomerQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (acicq *AppCustomInvoicingCustomerQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, acicq.ctx, ent.OpQueryExist)
-	switch _, err := acicq.FirstID(ctx); {
+func (_q *AppCustomInvoicingCustomerQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -280,8 +280,8 @@ func (acicq *AppCustomInvoicingCustomerQuery) Exist(ctx context.Context) (bool, 
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (acicq *AppCustomInvoicingCustomerQuery) ExistX(ctx context.Context) bool {
-	exist, err := acicq.Exist(ctx)
+func (_q *AppCustomInvoicingCustomerQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -290,44 +290,44 @@ func (acicq *AppCustomInvoicingCustomerQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the AppCustomInvoicingCustomerQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (acicq *AppCustomInvoicingCustomerQuery) Clone() *AppCustomInvoicingCustomerQuery {
-	if acicq == nil {
+func (_q *AppCustomInvoicingCustomerQuery) Clone() *AppCustomInvoicingCustomerQuery {
+	if _q == nil {
 		return nil
 	}
 	return &AppCustomInvoicingCustomerQuery{
-		config:                 acicq.config,
-		ctx:                    acicq.ctx.Clone(),
-		order:                  append([]appcustominvoicingcustomer.OrderOption{}, acicq.order...),
-		inters:                 append([]Interceptor{}, acicq.inters...),
-		predicates:             append([]predicate.AppCustomInvoicingCustomer{}, acicq.predicates...),
-		withCustomInvoicingApp: acicq.withCustomInvoicingApp.Clone(),
-		withCustomer:           acicq.withCustomer.Clone(),
+		config:                 _q.config,
+		ctx:                    _q.ctx.Clone(),
+		order:                  append([]appcustominvoicingcustomer.OrderOption{}, _q.order...),
+		inters:                 append([]Interceptor{}, _q.inters...),
+		predicates:             append([]predicate.AppCustomInvoicingCustomer{}, _q.predicates...),
+		withCustomInvoicingApp: _q.withCustomInvoicingApp.Clone(),
+		withCustomer:           _q.withCustomer.Clone(),
 		// clone intermediate query.
-		sql:  acicq.sql.Clone(),
-		path: acicq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithCustomInvoicingApp tells the query-builder to eager-load the nodes that are connected to
 // the "custom_invoicing_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (acicq *AppCustomInvoicingCustomerQuery) WithCustomInvoicingApp(opts ...func(*AppCustomInvoicingQuery)) *AppCustomInvoicingCustomerQuery {
-	query := (&AppCustomInvoicingClient{config: acicq.config}).Query()
+func (_q *AppCustomInvoicingCustomerQuery) WithCustomInvoicingApp(opts ...func(*AppCustomInvoicingQuery)) *AppCustomInvoicingCustomerQuery {
+	query := (&AppCustomInvoicingClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	acicq.withCustomInvoicingApp = query
-	return acicq
+	_q.withCustomInvoicingApp = query
+	return _q
 }
 
 // WithCustomer tells the query-builder to eager-load the nodes that are connected to
 // the "customer" edge. The optional arguments are used to configure the query builder of the edge.
-func (acicq *AppCustomInvoicingCustomerQuery) WithCustomer(opts ...func(*CustomerQuery)) *AppCustomInvoicingCustomerQuery {
-	query := (&CustomerClient{config: acicq.config}).Query()
+func (_q *AppCustomInvoicingCustomerQuery) WithCustomer(opts ...func(*CustomerQuery)) *AppCustomInvoicingCustomerQuery {
+	query := (&CustomerClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	acicq.withCustomer = query
-	return acicq
+	_q.withCustomer = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -344,10 +344,10 @@ func (acicq *AppCustomInvoicingCustomerQuery) WithCustomer(opts ...func(*Custome
 //		GroupBy(appcustominvoicingcustomer.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (acicq *AppCustomInvoicingCustomerQuery) GroupBy(field string, fields ...string) *AppCustomInvoicingCustomerGroupBy {
-	acicq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &AppCustomInvoicingCustomerGroupBy{build: acicq}
-	grbuild.flds = &acicq.ctx.Fields
+func (_q *AppCustomInvoicingCustomerQuery) GroupBy(field string, fields ...string) *AppCustomInvoicingCustomerGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &AppCustomInvoicingCustomerGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = appcustominvoicingcustomer.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -365,83 +365,83 @@ func (acicq *AppCustomInvoicingCustomerQuery) GroupBy(field string, fields ...st
 //	client.AppCustomInvoicingCustomer.Query().
 //		Select(appcustominvoicingcustomer.FieldNamespace).
 //		Scan(ctx, &v)
-func (acicq *AppCustomInvoicingCustomerQuery) Select(fields ...string) *AppCustomInvoicingCustomerSelect {
-	acicq.ctx.Fields = append(acicq.ctx.Fields, fields...)
-	sbuild := &AppCustomInvoicingCustomerSelect{AppCustomInvoicingCustomerQuery: acicq}
+func (_q *AppCustomInvoicingCustomerQuery) Select(fields ...string) *AppCustomInvoicingCustomerSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &AppCustomInvoicingCustomerSelect{AppCustomInvoicingCustomerQuery: _q}
 	sbuild.label = appcustominvoicingcustomer.Label
-	sbuild.flds, sbuild.scan = &acicq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a AppCustomInvoicingCustomerSelect configured with the given aggregations.
-func (acicq *AppCustomInvoicingCustomerQuery) Aggregate(fns ...AggregateFunc) *AppCustomInvoicingCustomerSelect {
-	return acicq.Select().Aggregate(fns...)
+func (_q *AppCustomInvoicingCustomerQuery) Aggregate(fns ...AggregateFunc) *AppCustomInvoicingCustomerSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (acicq *AppCustomInvoicingCustomerQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range acicq.inters {
+func (_q *AppCustomInvoicingCustomerQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, acicq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range acicq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !appcustominvoicingcustomer.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if acicq.path != nil {
-		prev, err := acicq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		acicq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (acicq *AppCustomInvoicingCustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*AppCustomInvoicingCustomer, error) {
+func (_q *AppCustomInvoicingCustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*AppCustomInvoicingCustomer, error) {
 	var (
 		nodes       = []*AppCustomInvoicingCustomer{}
-		_spec       = acicq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			acicq.withCustomInvoicingApp != nil,
-			acicq.withCustomer != nil,
+			_q.withCustomInvoicingApp != nil,
+			_q.withCustomer != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*AppCustomInvoicingCustomer).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &AppCustomInvoicingCustomer{config: acicq.config}
+		node := &AppCustomInvoicingCustomer{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(acicq.modifiers) > 0 {
-		_spec.Modifiers = acicq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, acicq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := acicq.withCustomInvoicingApp; query != nil {
-		if err := acicq.loadCustomInvoicingApp(ctx, query, nodes, nil,
+	if query := _q.withCustomInvoicingApp; query != nil {
+		if err := _q.loadCustomInvoicingApp(ctx, query, nodes, nil,
 			func(n *AppCustomInvoicingCustomer, e *AppCustomInvoicing) { n.Edges.CustomInvoicingApp = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := acicq.withCustomer; query != nil {
-		if err := acicq.loadCustomer(ctx, query, nodes, nil,
+	if query := _q.withCustomer; query != nil {
+		if err := _q.loadCustomer(ctx, query, nodes, nil,
 			func(n *AppCustomInvoicingCustomer, e *Customer) { n.Edges.Customer = e }); err != nil {
 			return nil, err
 		}
@@ -449,7 +449,7 @@ func (acicq *AppCustomInvoicingCustomerQuery) sqlAll(ctx context.Context, hooks 
 	return nodes, nil
 }
 
-func (acicq *AppCustomInvoicingCustomerQuery) loadCustomInvoicingApp(ctx context.Context, query *AppCustomInvoicingQuery, nodes []*AppCustomInvoicingCustomer, init func(*AppCustomInvoicingCustomer), assign func(*AppCustomInvoicingCustomer, *AppCustomInvoicing)) error {
+func (_q *AppCustomInvoicingCustomerQuery) loadCustomInvoicingApp(ctx context.Context, query *AppCustomInvoicingQuery, nodes []*AppCustomInvoicingCustomer, init func(*AppCustomInvoicingCustomer), assign func(*AppCustomInvoicingCustomer, *AppCustomInvoicing)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*AppCustomInvoicingCustomer)
 	for i := range nodes {
@@ -478,7 +478,7 @@ func (acicq *AppCustomInvoicingCustomerQuery) loadCustomInvoicingApp(ctx context
 	}
 	return nil
 }
-func (acicq *AppCustomInvoicingCustomerQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*AppCustomInvoicingCustomer, init func(*AppCustomInvoicingCustomer), assign func(*AppCustomInvoicingCustomer, *Customer)) error {
+func (_q *AppCustomInvoicingCustomerQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*AppCustomInvoicingCustomer, init func(*AppCustomInvoicingCustomer), assign func(*AppCustomInvoicingCustomer, *Customer)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*AppCustomInvoicingCustomer)
 	for i := range nodes {
@@ -508,27 +508,27 @@ func (acicq *AppCustomInvoicingCustomerQuery) loadCustomer(ctx context.Context, 
 	return nil
 }
 
-func (acicq *AppCustomInvoicingCustomerQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := acicq.querySpec()
-	if len(acicq.modifiers) > 0 {
-		_spec.Modifiers = acicq.modifiers
+func (_q *AppCustomInvoicingCustomerQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = acicq.ctx.Fields
-	if len(acicq.ctx.Fields) > 0 {
-		_spec.Unique = acicq.ctx.Unique != nil && *acicq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, acicq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (acicq *AppCustomInvoicingCustomerQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *AppCustomInvoicingCustomerQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(appcustominvoicingcustomer.Table, appcustominvoicingcustomer.Columns, sqlgraph.NewFieldSpec(appcustominvoicingcustomer.FieldID, field.TypeInt))
-	_spec.From = acicq.sql
-	if unique := acicq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if acicq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := acicq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, appcustominvoicingcustomer.FieldID)
 		for i := range fields {
@@ -536,27 +536,27 @@ func (acicq *AppCustomInvoicingCustomerQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if acicq.withCustomInvoicingApp != nil {
+		if _q.withCustomInvoicingApp != nil {
 			_spec.Node.AddColumnOnce(appcustominvoicingcustomer.FieldAppID)
 		}
-		if acicq.withCustomer != nil {
+		if _q.withCustomer != nil {
 			_spec.Node.AddColumnOnce(appcustominvoicingcustomer.FieldCustomerID)
 		}
 	}
-	if ps := acicq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := acicq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := acicq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := acicq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -566,36 +566,36 @@ func (acicq *AppCustomInvoicingCustomerQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (acicq *AppCustomInvoicingCustomerQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(acicq.driver.Dialect())
+func (_q *AppCustomInvoicingCustomerQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(appcustominvoicingcustomer.Table)
-	columns := acicq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = appcustominvoicingcustomer.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if acicq.sql != nil {
-		selector = acicq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if acicq.ctx.Unique != nil && *acicq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range acicq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range acicq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range acicq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := acicq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := acicq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -604,27 +604,27 @@ func (acicq *AppCustomInvoicingCustomerQuery) sqlQuery(ctx context.Context) *sql
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (acicq *AppCustomInvoicingCustomerQuery) ForUpdate(opts ...sql.LockOption) *AppCustomInvoicingCustomerQuery {
-	if acicq.driver.Dialect() == dialect.Postgres {
-		acicq.Unique(false)
+func (_q *AppCustomInvoicingCustomerQuery) ForUpdate(opts ...sql.LockOption) *AppCustomInvoicingCustomerQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	acicq.modifiers = append(acicq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return acicq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (acicq *AppCustomInvoicingCustomerQuery) ForShare(opts ...sql.LockOption) *AppCustomInvoicingCustomerQuery {
-	if acicq.driver.Dialect() == dialect.Postgres {
-		acicq.Unique(false)
+func (_q *AppCustomInvoicingCustomerQuery) ForShare(opts ...sql.LockOption) *AppCustomInvoicingCustomerQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	acicq.modifiers = append(acicq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return acicq
+	return _q
 }
 
 // AppCustomInvoicingCustomerGroupBy is the group-by builder for AppCustomInvoicingCustomer entities.

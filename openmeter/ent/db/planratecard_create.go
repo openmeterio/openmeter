@@ -28,215 +28,215 @@ type PlanRateCardCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (prcc *PlanRateCardCreate) SetNamespace(s string) *PlanRateCardCreate {
-	prcc.mutation.SetNamespace(s)
-	return prcc
+func (_c *PlanRateCardCreate) SetNamespace(v string) *PlanRateCardCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetMetadata sets the "metadata" field.
-func (prcc *PlanRateCardCreate) SetMetadata(m map[string]string) *PlanRateCardCreate {
-	prcc.mutation.SetMetadata(m)
-	return prcc
+func (_c *PlanRateCardCreate) SetMetadata(v map[string]string) *PlanRateCardCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (prcc *PlanRateCardCreate) SetCreatedAt(t time.Time) *PlanRateCardCreate {
-	prcc.mutation.SetCreatedAt(t)
-	return prcc
+func (_c *PlanRateCardCreate) SetCreatedAt(v time.Time) *PlanRateCardCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (prcc *PlanRateCardCreate) SetNillableCreatedAt(t *time.Time) *PlanRateCardCreate {
-	if t != nil {
-		prcc.SetCreatedAt(*t)
+func (_c *PlanRateCardCreate) SetNillableCreatedAt(v *time.Time) *PlanRateCardCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return prcc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (prcc *PlanRateCardCreate) SetUpdatedAt(t time.Time) *PlanRateCardCreate {
-	prcc.mutation.SetUpdatedAt(t)
-	return prcc
+func (_c *PlanRateCardCreate) SetUpdatedAt(v time.Time) *PlanRateCardCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (prcc *PlanRateCardCreate) SetNillableUpdatedAt(t *time.Time) *PlanRateCardCreate {
-	if t != nil {
-		prcc.SetUpdatedAt(*t)
+func (_c *PlanRateCardCreate) SetNillableUpdatedAt(v *time.Time) *PlanRateCardCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return prcc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (prcc *PlanRateCardCreate) SetDeletedAt(t time.Time) *PlanRateCardCreate {
-	prcc.mutation.SetDeletedAt(t)
-	return prcc
+func (_c *PlanRateCardCreate) SetDeletedAt(v time.Time) *PlanRateCardCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (prcc *PlanRateCardCreate) SetNillableDeletedAt(t *time.Time) *PlanRateCardCreate {
-	if t != nil {
-		prcc.SetDeletedAt(*t)
+func (_c *PlanRateCardCreate) SetNillableDeletedAt(v *time.Time) *PlanRateCardCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return prcc
+	return _c
 }
 
 // SetName sets the "name" field.
-func (prcc *PlanRateCardCreate) SetName(s string) *PlanRateCardCreate {
-	prcc.mutation.SetName(s)
-	return prcc
+func (_c *PlanRateCardCreate) SetName(v string) *PlanRateCardCreate {
+	_c.mutation.SetName(v)
+	return _c
 }
 
 // SetDescription sets the "description" field.
-func (prcc *PlanRateCardCreate) SetDescription(s string) *PlanRateCardCreate {
-	prcc.mutation.SetDescription(s)
-	return prcc
+func (_c *PlanRateCardCreate) SetDescription(v string) *PlanRateCardCreate {
+	_c.mutation.SetDescription(v)
+	return _c
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (prcc *PlanRateCardCreate) SetNillableDescription(s *string) *PlanRateCardCreate {
-	if s != nil {
-		prcc.SetDescription(*s)
+func (_c *PlanRateCardCreate) SetNillableDescription(v *string) *PlanRateCardCreate {
+	if v != nil {
+		_c.SetDescription(*v)
 	}
-	return prcc
+	return _c
 }
 
 // SetKey sets the "key" field.
-func (prcc *PlanRateCardCreate) SetKey(s string) *PlanRateCardCreate {
-	prcc.mutation.SetKey(s)
-	return prcc
+func (_c *PlanRateCardCreate) SetKey(v string) *PlanRateCardCreate {
+	_c.mutation.SetKey(v)
+	return _c
 }
 
 // SetType sets the "type" field.
-func (prcc *PlanRateCardCreate) SetType(pct productcatalog.RateCardType) *PlanRateCardCreate {
-	prcc.mutation.SetType(pct)
-	return prcc
+func (_c *PlanRateCardCreate) SetType(v productcatalog.RateCardType) *PlanRateCardCreate {
+	_c.mutation.SetType(v)
+	return _c
 }
 
 // SetFeatureKey sets the "feature_key" field.
-func (prcc *PlanRateCardCreate) SetFeatureKey(s string) *PlanRateCardCreate {
-	prcc.mutation.SetFeatureKey(s)
-	return prcc
+func (_c *PlanRateCardCreate) SetFeatureKey(v string) *PlanRateCardCreate {
+	_c.mutation.SetFeatureKey(v)
+	return _c
 }
 
 // SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
-func (prcc *PlanRateCardCreate) SetNillableFeatureKey(s *string) *PlanRateCardCreate {
-	if s != nil {
-		prcc.SetFeatureKey(*s)
+func (_c *PlanRateCardCreate) SetNillableFeatureKey(v *string) *PlanRateCardCreate {
+	if v != nil {
+		_c.SetFeatureKey(*v)
 	}
-	return prcc
+	return _c
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (prcc *PlanRateCardCreate) SetEntitlementTemplate(pt *productcatalog.EntitlementTemplate) *PlanRateCardCreate {
-	prcc.mutation.SetEntitlementTemplate(pt)
-	return prcc
+func (_c *PlanRateCardCreate) SetEntitlementTemplate(v *productcatalog.EntitlementTemplate) *PlanRateCardCreate {
+	_c.mutation.SetEntitlementTemplate(v)
+	return _c
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (prcc *PlanRateCardCreate) SetTaxConfig(pc *productcatalog.TaxConfig) *PlanRateCardCreate {
-	prcc.mutation.SetTaxConfig(pc)
-	return prcc
+func (_c *PlanRateCardCreate) SetTaxConfig(v *productcatalog.TaxConfig) *PlanRateCardCreate {
+	_c.mutation.SetTaxConfig(v)
+	return _c
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (prcc *PlanRateCardCreate) SetBillingCadence(i isodate.String) *PlanRateCardCreate {
-	prcc.mutation.SetBillingCadence(i)
-	return prcc
+func (_c *PlanRateCardCreate) SetBillingCadence(v isodate.String) *PlanRateCardCreate {
+	_c.mutation.SetBillingCadence(v)
+	return _c
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (prcc *PlanRateCardCreate) SetNillableBillingCadence(i *isodate.String) *PlanRateCardCreate {
-	if i != nil {
-		prcc.SetBillingCadence(*i)
+func (_c *PlanRateCardCreate) SetNillableBillingCadence(v *isodate.String) *PlanRateCardCreate {
+	if v != nil {
+		_c.SetBillingCadence(*v)
 	}
-	return prcc
+	return _c
 }
 
 // SetPrice sets the "price" field.
-func (prcc *PlanRateCardCreate) SetPrice(pr *productcatalog.Price) *PlanRateCardCreate {
-	prcc.mutation.SetPrice(pr)
-	return prcc
+func (_c *PlanRateCardCreate) SetPrice(v *productcatalog.Price) *PlanRateCardCreate {
+	_c.mutation.SetPrice(v)
+	return _c
 }
 
 // SetDiscounts sets the "discounts" field.
-func (prcc *PlanRateCardCreate) SetDiscounts(pr *productcatalog.Discounts) *PlanRateCardCreate {
-	prcc.mutation.SetDiscounts(pr)
-	return prcc
+func (_c *PlanRateCardCreate) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardCreate {
+	_c.mutation.SetDiscounts(v)
+	return _c
 }
 
 // SetPhaseID sets the "phase_id" field.
-func (prcc *PlanRateCardCreate) SetPhaseID(s string) *PlanRateCardCreate {
-	prcc.mutation.SetPhaseID(s)
-	return prcc
+func (_c *PlanRateCardCreate) SetPhaseID(v string) *PlanRateCardCreate {
+	_c.mutation.SetPhaseID(v)
+	return _c
 }
 
 // SetFeatureID sets the "feature_id" field.
-func (prcc *PlanRateCardCreate) SetFeatureID(s string) *PlanRateCardCreate {
-	prcc.mutation.SetFeatureID(s)
-	return prcc
+func (_c *PlanRateCardCreate) SetFeatureID(v string) *PlanRateCardCreate {
+	_c.mutation.SetFeatureID(v)
+	return _c
 }
 
 // SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
-func (prcc *PlanRateCardCreate) SetNillableFeatureID(s *string) *PlanRateCardCreate {
-	if s != nil {
-		prcc.SetFeatureID(*s)
+func (_c *PlanRateCardCreate) SetNillableFeatureID(v *string) *PlanRateCardCreate {
+	if v != nil {
+		_c.SetFeatureID(*v)
 	}
-	return prcc
+	return _c
 }
 
 // SetID sets the "id" field.
-func (prcc *PlanRateCardCreate) SetID(s string) *PlanRateCardCreate {
-	prcc.mutation.SetID(s)
-	return prcc
+func (_c *PlanRateCardCreate) SetID(v string) *PlanRateCardCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (prcc *PlanRateCardCreate) SetNillableID(s *string) *PlanRateCardCreate {
-	if s != nil {
-		prcc.SetID(*s)
+func (_c *PlanRateCardCreate) SetNillableID(v *string) *PlanRateCardCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return prcc
+	return _c
 }
 
 // SetPhase sets the "phase" edge to the PlanPhase entity.
-func (prcc *PlanRateCardCreate) SetPhase(p *PlanPhase) *PlanRateCardCreate {
-	return prcc.SetPhaseID(p.ID)
+func (_c *PlanRateCardCreate) SetPhase(v *PlanPhase) *PlanRateCardCreate {
+	return _c.SetPhaseID(v.ID)
 }
 
 // SetFeaturesID sets the "features" edge to the Feature entity by ID.
-func (prcc *PlanRateCardCreate) SetFeaturesID(id string) *PlanRateCardCreate {
-	prcc.mutation.SetFeaturesID(id)
-	return prcc
+func (_c *PlanRateCardCreate) SetFeaturesID(id string) *PlanRateCardCreate {
+	_c.mutation.SetFeaturesID(id)
+	return _c
 }
 
 // SetNillableFeaturesID sets the "features" edge to the Feature entity by ID if the given value is not nil.
-func (prcc *PlanRateCardCreate) SetNillableFeaturesID(id *string) *PlanRateCardCreate {
+func (_c *PlanRateCardCreate) SetNillableFeaturesID(id *string) *PlanRateCardCreate {
 	if id != nil {
-		prcc = prcc.SetFeaturesID(*id)
+		_c = _c.SetFeaturesID(*id)
 	}
-	return prcc
+	return _c
 }
 
 // SetFeatures sets the "features" edge to the Feature entity.
-func (prcc *PlanRateCardCreate) SetFeatures(f *Feature) *PlanRateCardCreate {
-	return prcc.SetFeaturesID(f.ID)
+func (_c *PlanRateCardCreate) SetFeatures(v *Feature) *PlanRateCardCreate {
+	return _c.SetFeaturesID(v.ID)
 }
 
 // Mutation returns the PlanRateCardMutation object of the builder.
-func (prcc *PlanRateCardCreate) Mutation() *PlanRateCardMutation {
-	return prcc.mutation
+func (_c *PlanRateCardCreate) Mutation() *PlanRateCardMutation {
+	return _c.mutation
 }
 
 // Save creates the PlanRateCard in the database.
-func (prcc *PlanRateCardCreate) Save(ctx context.Context) (*PlanRateCard, error) {
-	prcc.defaults()
-	return withHooks(ctx, prcc.sqlSave, prcc.mutation, prcc.hooks)
+func (_c *PlanRateCardCreate) Save(ctx context.Context) (*PlanRateCard, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (prcc *PlanRateCardCreate) SaveX(ctx context.Context) *PlanRateCard {
-	v, err := prcc.Save(ctx)
+func (_c *PlanRateCardCreate) SaveX(ctx context.Context) *PlanRateCard {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -244,112 +244,112 @@ func (prcc *PlanRateCardCreate) SaveX(ctx context.Context) *PlanRateCard {
 }
 
 // Exec executes the query.
-func (prcc *PlanRateCardCreate) Exec(ctx context.Context) error {
-	_, err := prcc.Save(ctx)
+func (_c *PlanRateCardCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (prcc *PlanRateCardCreate) ExecX(ctx context.Context) {
-	if err := prcc.Exec(ctx); err != nil {
+func (_c *PlanRateCardCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (prcc *PlanRateCardCreate) defaults() {
-	if _, ok := prcc.mutation.CreatedAt(); !ok {
+func (_c *PlanRateCardCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := planratecard.DefaultCreatedAt()
-		prcc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := prcc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := planratecard.DefaultUpdatedAt()
-		prcc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := prcc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := planratecard.DefaultID()
-		prcc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (prcc *PlanRateCardCreate) check() error {
-	if _, ok := prcc.mutation.Namespace(); !ok {
+func (_c *PlanRateCardCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "PlanRateCard.namespace"`)}
 	}
-	if v, ok := prcc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := planratecard.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.namespace": %w`, err)}
 		}
 	}
-	if _, ok := prcc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "PlanRateCard.created_at"`)}
 	}
-	if _, ok := prcc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "PlanRateCard.updated_at"`)}
 	}
-	if _, ok := prcc.mutation.Name(); !ok {
+	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "PlanRateCard.name"`)}
 	}
-	if _, ok := prcc.mutation.Key(); !ok {
+	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "PlanRateCard.key"`)}
 	}
-	if v, ok := prcc.mutation.Key(); ok {
+	if v, ok := _c.mutation.Key(); ok {
 		if err := planratecard.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.key": %w`, err)}
 		}
 	}
-	if _, ok := prcc.mutation.GetType(); !ok {
+	if _, ok := _c.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "PlanRateCard.type"`)}
 	}
-	if v, ok := prcc.mutation.GetType(); ok {
+	if v, ok := _c.mutation.GetType(); ok {
 		if err := planratecard.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.type": %w`, err)}
 		}
 	}
-	if v, ok := prcc.mutation.EntitlementTemplate(); ok {
+	if v, ok := _c.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.entitlement_template": %w`, err)}
 		}
 	}
-	if v, ok := prcc.mutation.TaxConfig(); ok {
+	if v, ok := _c.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.tax_config": %w`, err)}
 		}
 	}
-	if v, ok := prcc.mutation.Price(); ok {
+	if v, ok := _c.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.price": %w`, err)}
 		}
 	}
-	if v, ok := prcc.mutation.Discounts(); ok {
+	if v, ok := _c.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.discounts": %w`, err)}
 		}
 	}
-	if _, ok := prcc.mutation.PhaseID(); !ok {
+	if _, ok := _c.mutation.PhaseID(); !ok {
 		return &ValidationError{Name: "phase_id", err: errors.New(`db: missing required field "PlanRateCard.phase_id"`)}
 	}
-	if v, ok := prcc.mutation.PhaseID(); ok {
+	if v, ok := _c.mutation.PhaseID(); ok {
 		if err := planratecard.PhaseIDValidator(v); err != nil {
 			return &ValidationError{Name: "phase_id", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.phase_id": %w`, err)}
 		}
 	}
-	if len(prcc.mutation.PhaseIDs()) == 0 {
+	if len(_c.mutation.PhaseIDs()) == 0 {
 		return &ValidationError{Name: "phase", err: errors.New(`db: missing required edge "PlanRateCard.phase"`)}
 	}
 	return nil
 }
 
-func (prcc *PlanRateCardCreate) sqlSave(ctx context.Context) (*PlanRateCard, error) {
-	if err := prcc.check(); err != nil {
+func (_c *PlanRateCardCreate) sqlSave(ctx context.Context) (*PlanRateCard, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec, err := prcc.createSpec()
+	_node, _spec, err := _c.createSpec()
 	if err != nil {
 		return nil, err
 	}
-	if err := sqlgraph.CreateNode(ctx, prcc.driver, _spec); err != nil {
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -362,62 +362,62 @@ func (prcc *PlanRateCardCreate) sqlSave(ctx context.Context) (*PlanRateCard, err
 			return nil, fmt.Errorf("unexpected PlanRateCard.ID type: %T", _spec.ID.Value)
 		}
 	}
-	prcc.mutation.id = &_node.ID
-	prcc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (prcc *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpec, error) {
+func (_c *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpec, error) {
 	var (
-		_node = &PlanRateCard{config: prcc.config}
+		_node = &PlanRateCard{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(planratecard.Table, sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = prcc.conflict
-	if id, ok := prcc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := prcc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(planratecard.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := prcc.mutation.Metadata(); ok {
+	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(planratecard.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := prcc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(planratecard.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := prcc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(planratecard.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := prcc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(planratecard.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := prcc.mutation.Name(); ok {
+	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(planratecard.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := prcc.mutation.Description(); ok {
+	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(planratecard.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := prcc.mutation.Key(); ok {
+	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(planratecard.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
-	if value, ok := prcc.mutation.GetType(); ok {
+	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(planratecard.FieldType, field.TypeEnum, value)
 		_node.Type = value
 	}
-	if value, ok := prcc.mutation.FeatureKey(); ok {
+	if value, ok := _c.mutation.FeatureKey(); ok {
 		_spec.SetField(planratecard.FieldFeatureKey, field.TypeString, value)
 		_node.FeatureKey = &value
 	}
-	if value, ok := prcc.mutation.EntitlementTemplate(); ok {
+	if value, ok := _c.mutation.EntitlementTemplate(); ok {
 		vv, err := planratecard.ValueScanner.EntitlementTemplate.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -425,7 +425,7 @@ func (prcc *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpe
 		_spec.SetField(planratecard.FieldEntitlementTemplate, field.TypeString, vv)
 		_node.EntitlementTemplate = value
 	}
-	if value, ok := prcc.mutation.TaxConfig(); ok {
+	if value, ok := _c.mutation.TaxConfig(); ok {
 		vv, err := planratecard.ValueScanner.TaxConfig.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -433,11 +433,11 @@ func (prcc *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpe
 		_spec.SetField(planratecard.FieldTaxConfig, field.TypeString, vv)
 		_node.TaxConfig = value
 	}
-	if value, ok := prcc.mutation.BillingCadence(); ok {
+	if value, ok := _c.mutation.BillingCadence(); ok {
 		_spec.SetField(planratecard.FieldBillingCadence, field.TypeString, value)
 		_node.BillingCadence = &value
 	}
-	if value, ok := prcc.mutation.Price(); ok {
+	if value, ok := _c.mutation.Price(); ok {
 		vv, err := planratecard.ValueScanner.Price.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -445,7 +445,7 @@ func (prcc *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpe
 		_spec.SetField(planratecard.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
-	if value, ok := prcc.mutation.Discounts(); ok {
+	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := planratecard.ValueScanner.Discounts.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -453,7 +453,7 @@ func (prcc *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpe
 		_spec.SetField(planratecard.FieldDiscounts, field.TypeString, vv)
 		_node.Discounts = value
 	}
-	if nodes := prcc.mutation.PhaseIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.PhaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -470,7 +470,7 @@ func (prcc *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpe
 		_node.PhaseID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := prcc.mutation.FeaturesIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.FeaturesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -506,10 +506,10 @@ func (prcc *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpe
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (prcc *PlanRateCardCreate) OnConflict(opts ...sql.ConflictOption) *PlanRateCardUpsertOne {
-	prcc.conflict = opts
+func (_c *PlanRateCardCreate) OnConflict(opts ...sql.ConflictOption) *PlanRateCardUpsertOne {
+	_c.conflict = opts
 	return &PlanRateCardUpsertOne{
-		create: prcc,
+		create: _c,
 	}
 }
 
@@ -519,10 +519,10 @@ func (prcc *PlanRateCardCreate) OnConflict(opts ...sql.ConflictOption) *PlanRate
 //	client.PlanRateCard.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (prcc *PlanRateCardCreate) OnConflictColumns(columns ...string) *PlanRateCardUpsertOne {
-	prcc.conflict = append(prcc.conflict, sql.ConflictColumns(columns...))
+func (_c *PlanRateCardCreate) OnConflictColumns(columns ...string) *PlanRateCardUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &PlanRateCardUpsertOne{
-		create: prcc,
+		create: _c,
 	}
 }
 
@@ -1114,16 +1114,16 @@ type PlanRateCardCreateBulk struct {
 }
 
 // Save creates the PlanRateCard entities in the database.
-func (prccb *PlanRateCardCreateBulk) Save(ctx context.Context) ([]*PlanRateCard, error) {
-	if prccb.err != nil {
-		return nil, prccb.err
+func (_c *PlanRateCardCreateBulk) Save(ctx context.Context) ([]*PlanRateCard, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(prccb.builders))
-	nodes := make([]*PlanRateCard, len(prccb.builders))
-	mutators := make([]Mutator, len(prccb.builders))
-	for i := range prccb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*PlanRateCard, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := prccb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*PlanRateCardMutation)
@@ -1140,12 +1140,12 @@ func (prccb *PlanRateCardCreateBulk) Save(ctx context.Context) ([]*PlanRateCard,
 					return nil, err
 				}
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, prccb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = prccb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, prccb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -1165,7 +1165,7 @@ func (prccb *PlanRateCardCreateBulk) Save(ctx context.Context) ([]*PlanRateCard,
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, prccb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -1173,8 +1173,8 @@ func (prccb *PlanRateCardCreateBulk) Save(ctx context.Context) ([]*PlanRateCard,
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (prccb *PlanRateCardCreateBulk) SaveX(ctx context.Context) []*PlanRateCard {
-	v, err := prccb.Save(ctx)
+func (_c *PlanRateCardCreateBulk) SaveX(ctx context.Context) []*PlanRateCard {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1182,14 +1182,14 @@ func (prccb *PlanRateCardCreateBulk) SaveX(ctx context.Context) []*PlanRateCard 
 }
 
 // Exec executes the query.
-func (prccb *PlanRateCardCreateBulk) Exec(ctx context.Context) error {
-	_, err := prccb.Save(ctx)
+func (_c *PlanRateCardCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (prccb *PlanRateCardCreateBulk) ExecX(ctx context.Context) {
-	if err := prccb.Exec(ctx); err != nil {
+func (_c *PlanRateCardCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -1209,10 +1209,10 @@ func (prccb *PlanRateCardCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (prccb *PlanRateCardCreateBulk) OnConflict(opts ...sql.ConflictOption) *PlanRateCardUpsertBulk {
-	prccb.conflict = opts
+func (_c *PlanRateCardCreateBulk) OnConflict(opts ...sql.ConflictOption) *PlanRateCardUpsertBulk {
+	_c.conflict = opts
 	return &PlanRateCardUpsertBulk{
-		create: prccb,
+		create: _c,
 	}
 }
 
@@ -1222,10 +1222,10 @@ func (prccb *PlanRateCardCreateBulk) OnConflict(opts ...sql.ConflictOption) *Pla
 //	client.PlanRateCard.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (prccb *PlanRateCardCreateBulk) OnConflictColumns(columns ...string) *PlanRateCardUpsertBulk {
-	prccb.conflict = append(prccb.conflict, sql.ConflictColumns(columns...))
+func (_c *PlanRateCardCreateBulk) OnConflictColumns(columns ...string) *PlanRateCardUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &PlanRateCardUpsertBulk{
-		create: prccb,
+		create: _c,
 	}
 }
 

@@ -20,56 +20,56 @@ type NotificationChannelDelete struct {
 }
 
 // Where appends a list predicates to the NotificationChannelDelete builder.
-func (ncd *NotificationChannelDelete) Where(ps ...predicate.NotificationChannel) *NotificationChannelDelete {
-	ncd.mutation.Where(ps...)
-	return ncd
+func (_d *NotificationChannelDelete) Where(ps ...predicate.NotificationChannel) *NotificationChannelDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (ncd *NotificationChannelDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, ncd.sqlExec, ncd.mutation, ncd.hooks)
+func (_d *NotificationChannelDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ncd *NotificationChannelDelete) ExecX(ctx context.Context) int {
-	n, err := ncd.Exec(ctx)
+func (_d *NotificationChannelDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (ncd *NotificationChannelDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *NotificationChannelDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(notificationchannel.Table, sqlgraph.NewFieldSpec(notificationchannel.FieldID, field.TypeString))
-	if ps := ncd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, ncd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	ncd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // NotificationChannelDeleteOne is the builder for deleting a single NotificationChannel entity.
 type NotificationChannelDeleteOne struct {
-	ncd *NotificationChannelDelete
+	_d *NotificationChannelDelete
 }
 
 // Where appends a list predicates to the NotificationChannelDelete builder.
-func (ncdo *NotificationChannelDeleteOne) Where(ps ...predicate.NotificationChannel) *NotificationChannelDeleteOne {
-	ncdo.ncd.mutation.Where(ps...)
-	return ncdo
+func (_d *NotificationChannelDeleteOne) Where(ps ...predicate.NotificationChannel) *NotificationChannelDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (ncdo *NotificationChannelDeleteOne) Exec(ctx context.Context) error {
-	n, err := ncdo.ncd.Exec(ctx)
+func (_d *NotificationChannelDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (ncdo *NotificationChannelDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ncdo *NotificationChannelDeleteOne) ExecX(ctx context.Context) {
-	if err := ncdo.Exec(ctx); err != nil {
+func (_d *NotificationChannelDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

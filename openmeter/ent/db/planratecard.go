@@ -123,7 +123,7 @@ func (*PlanRateCard) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the PlanRateCard fields.
-func (prc *PlanRateCard) assignValues(columns []string, values []any) error {
+func (_m *PlanRateCard) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -133,19 +133,19 @@ func (prc *PlanRateCard) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				prc.ID = value.String
+				_m.ID = value.String
 			}
 		case planratecard.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				prc.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case planratecard.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &prc.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -153,99 +153,99 @@ func (prc *PlanRateCard) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				prc.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case planratecard.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				prc.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case planratecard.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				prc.DeletedAt = new(time.Time)
-				*prc.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case planratecard.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				prc.Name = value.String
+				_m.Name = value.String
 			}
 		case planratecard.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				prc.Description = new(string)
-				*prc.Description = value.String
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case planratecard.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
-				prc.Key = value.String
+				_m.Key = value.String
 			}
 		case planratecard.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				prc.Type = productcatalog.RateCardType(value.String)
+				_m.Type = productcatalog.RateCardType(value.String)
 			}
 		case planratecard.FieldFeatureKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_key", values[i])
 			} else if value.Valid {
-				prc.FeatureKey = new(string)
-				*prc.FeatureKey = value.String
+				_m.FeatureKey = new(string)
+				*_m.FeatureKey = value.String
 			}
 		case planratecard.FieldEntitlementTemplate:
 			if value, err := planratecard.ValueScanner.EntitlementTemplate.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				prc.EntitlementTemplate = value
+				_m.EntitlementTemplate = value
 			}
 		case planratecard.FieldTaxConfig:
 			if value, err := planratecard.ValueScanner.TaxConfig.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				prc.TaxConfig = value
+				_m.TaxConfig = value
 			}
 		case planratecard.FieldBillingCadence:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_cadence", values[i])
 			} else if value.Valid {
-				prc.BillingCadence = new(isodate.String)
-				*prc.BillingCadence = isodate.String(value.String)
+				_m.BillingCadence = new(isodate.String)
+				*_m.BillingCadence = isodate.String(value.String)
 			}
 		case planratecard.FieldPrice:
 			if value, err := planratecard.ValueScanner.Price.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				prc.Price = value
+				_m.Price = value
 			}
 		case planratecard.FieldDiscounts:
 			if value, err := planratecard.ValueScanner.Discounts.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				prc.Discounts = value
+				_m.Discounts = value
 			}
 		case planratecard.FieldPhaseID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field phase_id", values[i])
 			} else if value.Valid {
-				prc.PhaseID = value.String
+				_m.PhaseID = value.String
 			}
 		case planratecard.FieldFeatureID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
 			} else if value.Valid {
-				prc.FeatureID = new(string)
-				*prc.FeatureID = value.String
+				_m.FeatureID = new(string)
+				*_m.FeatureID = value.String
 			}
 		default:
-			prc.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -253,108 +253,108 @@ func (prc *PlanRateCard) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the PlanRateCard.
 // This includes values selected through modifiers, order, etc.
-func (prc *PlanRateCard) Value(name string) (ent.Value, error) {
-	return prc.selectValues.Get(name)
+func (_m *PlanRateCard) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryPhase queries the "phase" edge of the PlanRateCard entity.
-func (prc *PlanRateCard) QueryPhase() *PlanPhaseQuery {
-	return NewPlanRateCardClient(prc.config).QueryPhase(prc)
+func (_m *PlanRateCard) QueryPhase() *PlanPhaseQuery {
+	return NewPlanRateCardClient(_m.config).QueryPhase(_m)
 }
 
 // QueryFeatures queries the "features" edge of the PlanRateCard entity.
-func (prc *PlanRateCard) QueryFeatures() *FeatureQuery {
-	return NewPlanRateCardClient(prc.config).QueryFeatures(prc)
+func (_m *PlanRateCard) QueryFeatures() *FeatureQuery {
+	return NewPlanRateCardClient(_m.config).QueryFeatures(_m)
 }
 
 // Update returns a builder for updating this PlanRateCard.
 // Note that you need to call PlanRateCard.Unwrap() before calling this method if this PlanRateCard
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (prc *PlanRateCard) Update() *PlanRateCardUpdateOne {
-	return NewPlanRateCardClient(prc.config).UpdateOne(prc)
+func (_m *PlanRateCard) Update() *PlanRateCardUpdateOne {
+	return NewPlanRateCardClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the PlanRateCard entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (prc *PlanRateCard) Unwrap() *PlanRateCard {
-	_tx, ok := prc.config.driver.(*txDriver)
+func (_m *PlanRateCard) Unwrap() *PlanRateCard {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: PlanRateCard is not a transactional entity")
 	}
-	prc.config.driver = _tx.drv
-	return prc
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (prc *PlanRateCard) String() string {
+func (_m *PlanRateCard) String() string {
 	var builder strings.Builder
 	builder.WriteString("PlanRateCard(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", prc.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(prc.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", prc.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(prc.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(prc.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := prc.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
-	builder.WriteString(prc.Name)
+	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
-	if v := prc.Description; v != nil {
+	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("key=")
-	builder.WriteString(prc.Key)
+	builder.WriteString(_m.Key)
 	builder.WriteString(", ")
 	builder.WriteString("type=")
-	builder.WriteString(fmt.Sprintf("%v", prc.Type))
+	builder.WriteString(fmt.Sprintf("%v", _m.Type))
 	builder.WriteString(", ")
-	if v := prc.FeatureKey; v != nil {
+	if v := _m.FeatureKey; v != nil {
 		builder.WriteString("feature_key=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := prc.EntitlementTemplate; v != nil {
+	if v := _m.EntitlementTemplate; v != nil {
 		builder.WriteString("entitlement_template=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := prc.TaxConfig; v != nil {
+	if v := _m.TaxConfig; v != nil {
 		builder.WriteString("tax_config=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := prc.BillingCadence; v != nil {
+	if v := _m.BillingCadence; v != nil {
 		builder.WriteString("billing_cadence=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := prc.Price; v != nil {
+	if v := _m.Price; v != nil {
 		builder.WriteString("price=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := prc.Discounts; v != nil {
+	if v := _m.Discounts; v != nil {
 		builder.WriteString("discounts=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("phase_id=")
-	builder.WriteString(prc.PhaseID)
+	builder.WriteString(_m.PhaseID)
 	builder.WriteString(", ")
-	if v := prc.FeatureID; v != nil {
+	if v := _m.FeatureID; v != nil {
 		builder.WriteString("feature_id=")
 		builder.WriteString(*v)
 	}

@@ -34,44 +34,44 @@ type AppStripeCustomerQuery struct {
 }
 
 // Where adds a new predicate for the AppStripeCustomerQuery builder.
-func (ascq *AppStripeCustomerQuery) Where(ps ...predicate.AppStripeCustomer) *AppStripeCustomerQuery {
-	ascq.predicates = append(ascq.predicates, ps...)
-	return ascq
+func (_q *AppStripeCustomerQuery) Where(ps ...predicate.AppStripeCustomer) *AppStripeCustomerQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (ascq *AppStripeCustomerQuery) Limit(limit int) *AppStripeCustomerQuery {
-	ascq.ctx.Limit = &limit
-	return ascq
+func (_q *AppStripeCustomerQuery) Limit(limit int) *AppStripeCustomerQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (ascq *AppStripeCustomerQuery) Offset(offset int) *AppStripeCustomerQuery {
-	ascq.ctx.Offset = &offset
-	return ascq
+func (_q *AppStripeCustomerQuery) Offset(offset int) *AppStripeCustomerQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (ascq *AppStripeCustomerQuery) Unique(unique bool) *AppStripeCustomerQuery {
-	ascq.ctx.Unique = &unique
-	return ascq
+func (_q *AppStripeCustomerQuery) Unique(unique bool) *AppStripeCustomerQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (ascq *AppStripeCustomerQuery) Order(o ...appstripecustomer.OrderOption) *AppStripeCustomerQuery {
-	ascq.order = append(ascq.order, o...)
-	return ascq
+func (_q *AppStripeCustomerQuery) Order(o ...appstripecustomer.OrderOption) *AppStripeCustomerQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryStripeApp chains the current query on the "stripe_app" edge.
-func (ascq *AppStripeCustomerQuery) QueryStripeApp() *AppStripeQuery {
-	query := (&AppStripeClient{config: ascq.config}).Query()
+func (_q *AppStripeCustomerQuery) QueryStripeApp() *AppStripeQuery {
+	query := (&AppStripeClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := ascq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := ascq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -80,20 +80,20 @@ func (ascq *AppStripeCustomerQuery) QueryStripeApp() *AppStripeQuery {
 			sqlgraph.To(appstripe.Table, appstripe.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, appstripecustomer.StripeAppTable, appstripecustomer.StripeAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(ascq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryCustomer chains the current query on the "customer" edge.
-func (ascq *AppStripeCustomerQuery) QueryCustomer() *CustomerQuery {
-	query := (&CustomerClient{config: ascq.config}).Query()
+func (_q *AppStripeCustomerQuery) QueryCustomer() *CustomerQuery {
+	query := (&CustomerClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := ascq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := ascq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func (ascq *AppStripeCustomerQuery) QueryCustomer() *CustomerQuery {
 			sqlgraph.To(customer.Table, customer.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, appstripecustomer.CustomerTable, appstripecustomer.CustomerColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(ascq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -110,8 +110,8 @@ func (ascq *AppStripeCustomerQuery) QueryCustomer() *CustomerQuery {
 
 // First returns the first AppStripeCustomer entity from the query.
 // Returns a *NotFoundError when no AppStripeCustomer was found.
-func (ascq *AppStripeCustomerQuery) First(ctx context.Context) (*AppStripeCustomer, error) {
-	nodes, err := ascq.Limit(1).All(setContextOp(ctx, ascq.ctx, ent.OpQueryFirst))
+func (_q *AppStripeCustomerQuery) First(ctx context.Context) (*AppStripeCustomer, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -122,8 +122,8 @@ func (ascq *AppStripeCustomerQuery) First(ctx context.Context) (*AppStripeCustom
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (ascq *AppStripeCustomerQuery) FirstX(ctx context.Context) *AppStripeCustomer {
-	node, err := ascq.First(ctx)
+func (_q *AppStripeCustomerQuery) FirstX(ctx context.Context) *AppStripeCustomer {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -132,9 +132,9 @@ func (ascq *AppStripeCustomerQuery) FirstX(ctx context.Context) *AppStripeCustom
 
 // FirstID returns the first AppStripeCustomer ID from the query.
 // Returns a *NotFoundError when no AppStripeCustomer ID was found.
-func (ascq *AppStripeCustomerQuery) FirstID(ctx context.Context) (id int, err error) {
+func (_q *AppStripeCustomerQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = ascq.Limit(1).IDs(setContextOp(ctx, ascq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -145,8 +145,8 @@ func (ascq *AppStripeCustomerQuery) FirstID(ctx context.Context) (id int, err er
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (ascq *AppStripeCustomerQuery) FirstIDX(ctx context.Context) int {
-	id, err := ascq.FirstID(ctx)
+func (_q *AppStripeCustomerQuery) FirstIDX(ctx context.Context) int {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -156,8 +156,8 @@ func (ascq *AppStripeCustomerQuery) FirstIDX(ctx context.Context) int {
 // Only returns a single AppStripeCustomer entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one AppStripeCustomer entity is found.
 // Returns a *NotFoundError when no AppStripeCustomer entities are found.
-func (ascq *AppStripeCustomerQuery) Only(ctx context.Context) (*AppStripeCustomer, error) {
-	nodes, err := ascq.Limit(2).All(setContextOp(ctx, ascq.ctx, ent.OpQueryOnly))
+func (_q *AppStripeCustomerQuery) Only(ctx context.Context) (*AppStripeCustomer, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -172,8 +172,8 @@ func (ascq *AppStripeCustomerQuery) Only(ctx context.Context) (*AppStripeCustome
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (ascq *AppStripeCustomerQuery) OnlyX(ctx context.Context) *AppStripeCustomer {
-	node, err := ascq.Only(ctx)
+func (_q *AppStripeCustomerQuery) OnlyX(ctx context.Context) *AppStripeCustomer {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -183,9 +183,9 @@ func (ascq *AppStripeCustomerQuery) OnlyX(ctx context.Context) *AppStripeCustome
 // OnlyID is like Only, but returns the only AppStripeCustomer ID in the query.
 // Returns a *NotSingularError when more than one AppStripeCustomer ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (ascq *AppStripeCustomerQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *AppStripeCustomerQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = ascq.Limit(2).IDs(setContextOp(ctx, ascq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -200,8 +200,8 @@ func (ascq *AppStripeCustomerQuery) OnlyID(ctx context.Context) (id int, err err
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (ascq *AppStripeCustomerQuery) OnlyIDX(ctx context.Context) int {
-	id, err := ascq.OnlyID(ctx)
+func (_q *AppStripeCustomerQuery) OnlyIDX(ctx context.Context) int {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -209,18 +209,18 @@ func (ascq *AppStripeCustomerQuery) OnlyIDX(ctx context.Context) int {
 }
 
 // All executes the query and returns a list of AppStripeCustomers.
-func (ascq *AppStripeCustomerQuery) All(ctx context.Context) ([]*AppStripeCustomer, error) {
-	ctx = setContextOp(ctx, ascq.ctx, ent.OpQueryAll)
-	if err := ascq.prepareQuery(ctx); err != nil {
+func (_q *AppStripeCustomerQuery) All(ctx context.Context) ([]*AppStripeCustomer, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*AppStripeCustomer, *AppStripeCustomerQuery]()
-	return withInterceptors[[]*AppStripeCustomer](ctx, ascq, qr, ascq.inters)
+	return withInterceptors[[]*AppStripeCustomer](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (ascq *AppStripeCustomerQuery) AllX(ctx context.Context) []*AppStripeCustomer {
-	nodes, err := ascq.All(ctx)
+func (_q *AppStripeCustomerQuery) AllX(ctx context.Context) []*AppStripeCustomer {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -228,20 +228,20 @@ func (ascq *AppStripeCustomerQuery) AllX(ctx context.Context) []*AppStripeCustom
 }
 
 // IDs executes the query and returns a list of AppStripeCustomer IDs.
-func (ascq *AppStripeCustomerQuery) IDs(ctx context.Context) (ids []int, err error) {
-	if ascq.ctx.Unique == nil && ascq.path != nil {
-		ascq.Unique(true)
+func (_q *AppStripeCustomerQuery) IDs(ctx context.Context) (ids []int, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, ascq.ctx, ent.OpQueryIDs)
-	if err = ascq.Select(appstripecustomer.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(appstripecustomer.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (ascq *AppStripeCustomerQuery) IDsX(ctx context.Context) []int {
-	ids, err := ascq.IDs(ctx)
+func (_q *AppStripeCustomerQuery) IDsX(ctx context.Context) []int {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -249,17 +249,17 @@ func (ascq *AppStripeCustomerQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (ascq *AppStripeCustomerQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, ascq.ctx, ent.OpQueryCount)
-	if err := ascq.prepareQuery(ctx); err != nil {
+func (_q *AppStripeCustomerQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, ascq, querierCount[*AppStripeCustomerQuery](), ascq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*AppStripeCustomerQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (ascq *AppStripeCustomerQuery) CountX(ctx context.Context) int {
-	count, err := ascq.Count(ctx)
+func (_q *AppStripeCustomerQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -267,9 +267,9 @@ func (ascq *AppStripeCustomerQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (ascq *AppStripeCustomerQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, ascq.ctx, ent.OpQueryExist)
-	switch _, err := ascq.FirstID(ctx); {
+func (_q *AppStripeCustomerQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -280,8 +280,8 @@ func (ascq *AppStripeCustomerQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (ascq *AppStripeCustomerQuery) ExistX(ctx context.Context) bool {
-	exist, err := ascq.Exist(ctx)
+func (_q *AppStripeCustomerQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -290,44 +290,44 @@ func (ascq *AppStripeCustomerQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the AppStripeCustomerQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (ascq *AppStripeCustomerQuery) Clone() *AppStripeCustomerQuery {
-	if ascq == nil {
+func (_q *AppStripeCustomerQuery) Clone() *AppStripeCustomerQuery {
+	if _q == nil {
 		return nil
 	}
 	return &AppStripeCustomerQuery{
-		config:        ascq.config,
-		ctx:           ascq.ctx.Clone(),
-		order:         append([]appstripecustomer.OrderOption{}, ascq.order...),
-		inters:        append([]Interceptor{}, ascq.inters...),
-		predicates:    append([]predicate.AppStripeCustomer{}, ascq.predicates...),
-		withStripeApp: ascq.withStripeApp.Clone(),
-		withCustomer:  ascq.withCustomer.Clone(),
+		config:        _q.config,
+		ctx:           _q.ctx.Clone(),
+		order:         append([]appstripecustomer.OrderOption{}, _q.order...),
+		inters:        append([]Interceptor{}, _q.inters...),
+		predicates:    append([]predicate.AppStripeCustomer{}, _q.predicates...),
+		withStripeApp: _q.withStripeApp.Clone(),
+		withCustomer:  _q.withCustomer.Clone(),
 		// clone intermediate query.
-		sql:  ascq.sql.Clone(),
-		path: ascq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithStripeApp tells the query-builder to eager-load the nodes that are connected to
 // the "stripe_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (ascq *AppStripeCustomerQuery) WithStripeApp(opts ...func(*AppStripeQuery)) *AppStripeCustomerQuery {
-	query := (&AppStripeClient{config: ascq.config}).Query()
+func (_q *AppStripeCustomerQuery) WithStripeApp(opts ...func(*AppStripeQuery)) *AppStripeCustomerQuery {
+	query := (&AppStripeClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	ascq.withStripeApp = query
-	return ascq
+	_q.withStripeApp = query
+	return _q
 }
 
 // WithCustomer tells the query-builder to eager-load the nodes that are connected to
 // the "customer" edge. The optional arguments are used to configure the query builder of the edge.
-func (ascq *AppStripeCustomerQuery) WithCustomer(opts ...func(*CustomerQuery)) *AppStripeCustomerQuery {
-	query := (&CustomerClient{config: ascq.config}).Query()
+func (_q *AppStripeCustomerQuery) WithCustomer(opts ...func(*CustomerQuery)) *AppStripeCustomerQuery {
+	query := (&CustomerClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	ascq.withCustomer = query
-	return ascq
+	_q.withCustomer = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -344,10 +344,10 @@ func (ascq *AppStripeCustomerQuery) WithCustomer(opts ...func(*CustomerQuery)) *
 //		GroupBy(appstripecustomer.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (ascq *AppStripeCustomerQuery) GroupBy(field string, fields ...string) *AppStripeCustomerGroupBy {
-	ascq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &AppStripeCustomerGroupBy{build: ascq}
-	grbuild.flds = &ascq.ctx.Fields
+func (_q *AppStripeCustomerQuery) GroupBy(field string, fields ...string) *AppStripeCustomerGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &AppStripeCustomerGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = appstripecustomer.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -365,83 +365,83 @@ func (ascq *AppStripeCustomerQuery) GroupBy(field string, fields ...string) *App
 //	client.AppStripeCustomer.Query().
 //		Select(appstripecustomer.FieldNamespace).
 //		Scan(ctx, &v)
-func (ascq *AppStripeCustomerQuery) Select(fields ...string) *AppStripeCustomerSelect {
-	ascq.ctx.Fields = append(ascq.ctx.Fields, fields...)
-	sbuild := &AppStripeCustomerSelect{AppStripeCustomerQuery: ascq}
+func (_q *AppStripeCustomerQuery) Select(fields ...string) *AppStripeCustomerSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &AppStripeCustomerSelect{AppStripeCustomerQuery: _q}
 	sbuild.label = appstripecustomer.Label
-	sbuild.flds, sbuild.scan = &ascq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a AppStripeCustomerSelect configured with the given aggregations.
-func (ascq *AppStripeCustomerQuery) Aggregate(fns ...AggregateFunc) *AppStripeCustomerSelect {
-	return ascq.Select().Aggregate(fns...)
+func (_q *AppStripeCustomerQuery) Aggregate(fns ...AggregateFunc) *AppStripeCustomerSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (ascq *AppStripeCustomerQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range ascq.inters {
+func (_q *AppStripeCustomerQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, ascq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range ascq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !appstripecustomer.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if ascq.path != nil {
-		prev, err := ascq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		ascq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (ascq *AppStripeCustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*AppStripeCustomer, error) {
+func (_q *AppStripeCustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*AppStripeCustomer, error) {
 	var (
 		nodes       = []*AppStripeCustomer{}
-		_spec       = ascq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			ascq.withStripeApp != nil,
-			ascq.withCustomer != nil,
+			_q.withStripeApp != nil,
+			_q.withCustomer != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*AppStripeCustomer).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &AppStripeCustomer{config: ascq.config}
+		node := &AppStripeCustomer{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(ascq.modifiers) > 0 {
-		_spec.Modifiers = ascq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, ascq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := ascq.withStripeApp; query != nil {
-		if err := ascq.loadStripeApp(ctx, query, nodes, nil,
+	if query := _q.withStripeApp; query != nil {
+		if err := _q.loadStripeApp(ctx, query, nodes, nil,
 			func(n *AppStripeCustomer, e *AppStripe) { n.Edges.StripeApp = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := ascq.withCustomer; query != nil {
-		if err := ascq.loadCustomer(ctx, query, nodes, nil,
+	if query := _q.withCustomer; query != nil {
+		if err := _q.loadCustomer(ctx, query, nodes, nil,
 			func(n *AppStripeCustomer, e *Customer) { n.Edges.Customer = e }); err != nil {
 			return nil, err
 		}
@@ -449,7 +449,7 @@ func (ascq *AppStripeCustomerQuery) sqlAll(ctx context.Context, hooks ...queryHo
 	return nodes, nil
 }
 
-func (ascq *AppStripeCustomerQuery) loadStripeApp(ctx context.Context, query *AppStripeQuery, nodes []*AppStripeCustomer, init func(*AppStripeCustomer), assign func(*AppStripeCustomer, *AppStripe)) error {
+func (_q *AppStripeCustomerQuery) loadStripeApp(ctx context.Context, query *AppStripeQuery, nodes []*AppStripeCustomer, init func(*AppStripeCustomer), assign func(*AppStripeCustomer, *AppStripe)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*AppStripeCustomer)
 	for i := range nodes {
@@ -478,7 +478,7 @@ func (ascq *AppStripeCustomerQuery) loadStripeApp(ctx context.Context, query *Ap
 	}
 	return nil
 }
-func (ascq *AppStripeCustomerQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*AppStripeCustomer, init func(*AppStripeCustomer), assign func(*AppStripeCustomer, *Customer)) error {
+func (_q *AppStripeCustomerQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*AppStripeCustomer, init func(*AppStripeCustomer), assign func(*AppStripeCustomer, *Customer)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*AppStripeCustomer)
 	for i := range nodes {
@@ -508,27 +508,27 @@ func (ascq *AppStripeCustomerQuery) loadCustomer(ctx context.Context, query *Cus
 	return nil
 }
 
-func (ascq *AppStripeCustomerQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := ascq.querySpec()
-	if len(ascq.modifiers) > 0 {
-		_spec.Modifiers = ascq.modifiers
+func (_q *AppStripeCustomerQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = ascq.ctx.Fields
-	if len(ascq.ctx.Fields) > 0 {
-		_spec.Unique = ascq.ctx.Unique != nil && *ascq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, ascq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (ascq *AppStripeCustomerQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *AppStripeCustomerQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(appstripecustomer.Table, appstripecustomer.Columns, sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt))
-	_spec.From = ascq.sql
-	if unique := ascq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if ascq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := ascq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, appstripecustomer.FieldID)
 		for i := range fields {
@@ -536,27 +536,27 @@ func (ascq *AppStripeCustomerQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if ascq.withStripeApp != nil {
+		if _q.withStripeApp != nil {
 			_spec.Node.AddColumnOnce(appstripecustomer.FieldAppID)
 		}
-		if ascq.withCustomer != nil {
+		if _q.withCustomer != nil {
 			_spec.Node.AddColumnOnce(appstripecustomer.FieldCustomerID)
 		}
 	}
-	if ps := ascq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := ascq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := ascq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := ascq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -566,36 +566,36 @@ func (ascq *AppStripeCustomerQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (ascq *AppStripeCustomerQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(ascq.driver.Dialect())
+func (_q *AppStripeCustomerQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(appstripecustomer.Table)
-	columns := ascq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = appstripecustomer.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if ascq.sql != nil {
-		selector = ascq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if ascq.ctx.Unique != nil && *ascq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range ascq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range ascq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range ascq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := ascq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := ascq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -604,27 +604,27 @@ func (ascq *AppStripeCustomerQuery) sqlQuery(ctx context.Context) *sql.Selector 
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (ascq *AppStripeCustomerQuery) ForUpdate(opts ...sql.LockOption) *AppStripeCustomerQuery {
-	if ascq.driver.Dialect() == dialect.Postgres {
-		ascq.Unique(false)
+func (_q *AppStripeCustomerQuery) ForUpdate(opts ...sql.LockOption) *AppStripeCustomerQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	ascq.modifiers = append(ascq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return ascq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (ascq *AppStripeCustomerQuery) ForShare(opts ...sql.LockOption) *AppStripeCustomerQuery {
-	if ascq.driver.Dialect() == dialect.Postgres {
-		ascq.Unique(false)
+func (_q *AppStripeCustomerQuery) ForShare(opts ...sql.LockOption) *AppStripeCustomerQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	ascq.modifiers = append(ascq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return ascq
+	return _q
 }
 
 // AppStripeCustomerGroupBy is the group-by builder for AppStripeCustomer entities.

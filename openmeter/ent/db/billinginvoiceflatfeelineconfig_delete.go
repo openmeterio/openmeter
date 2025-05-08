@@ -20,56 +20,56 @@ type BillingInvoiceFlatFeeLineConfigDelete struct {
 }
 
 // Where appends a list predicates to the BillingInvoiceFlatFeeLineConfigDelete builder.
-func (bifflcd *BillingInvoiceFlatFeeLineConfigDelete) Where(ps ...predicate.BillingInvoiceFlatFeeLineConfig) *BillingInvoiceFlatFeeLineConfigDelete {
-	bifflcd.mutation.Where(ps...)
-	return bifflcd
+func (_d *BillingInvoiceFlatFeeLineConfigDelete) Where(ps ...predicate.BillingInvoiceFlatFeeLineConfig) *BillingInvoiceFlatFeeLineConfigDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (bifflcd *BillingInvoiceFlatFeeLineConfigDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, bifflcd.sqlExec, bifflcd.mutation, bifflcd.hooks)
+func (_d *BillingInvoiceFlatFeeLineConfigDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bifflcd *BillingInvoiceFlatFeeLineConfigDelete) ExecX(ctx context.Context) int {
-	n, err := bifflcd.Exec(ctx)
+func (_d *BillingInvoiceFlatFeeLineConfigDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (bifflcd *BillingInvoiceFlatFeeLineConfigDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *BillingInvoiceFlatFeeLineConfigDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(billinginvoiceflatfeelineconfig.Table, sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString))
-	if ps := bifflcd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, bifflcd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	bifflcd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // BillingInvoiceFlatFeeLineConfigDeleteOne is the builder for deleting a single BillingInvoiceFlatFeeLineConfig entity.
 type BillingInvoiceFlatFeeLineConfigDeleteOne struct {
-	bifflcd *BillingInvoiceFlatFeeLineConfigDelete
+	_d *BillingInvoiceFlatFeeLineConfigDelete
 }
 
 // Where appends a list predicates to the BillingInvoiceFlatFeeLineConfigDelete builder.
-func (bifflcdo *BillingInvoiceFlatFeeLineConfigDeleteOne) Where(ps ...predicate.BillingInvoiceFlatFeeLineConfig) *BillingInvoiceFlatFeeLineConfigDeleteOne {
-	bifflcdo.bifflcd.mutation.Where(ps...)
-	return bifflcdo
+func (_d *BillingInvoiceFlatFeeLineConfigDeleteOne) Where(ps ...predicate.BillingInvoiceFlatFeeLineConfig) *BillingInvoiceFlatFeeLineConfigDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (bifflcdo *BillingInvoiceFlatFeeLineConfigDeleteOne) Exec(ctx context.Context) error {
-	n, err := bifflcdo.bifflcd.Exec(ctx)
+func (_d *BillingInvoiceFlatFeeLineConfigDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (bifflcdo *BillingInvoiceFlatFeeLineConfigDeleteOne) Exec(ctx context.Conte
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bifflcdo *BillingInvoiceFlatFeeLineConfigDeleteOne) ExecX(ctx context.Context) {
-	if err := bifflcdo.Exec(ctx); err != nil {
+func (_d *BillingInvoiceFlatFeeLineConfigDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

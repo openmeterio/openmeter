@@ -23,52 +23,52 @@ type BillingSequenceNumbersUpdate struct {
 }
 
 // Where appends a list predicates to the BillingSequenceNumbersUpdate builder.
-func (bsnu *BillingSequenceNumbersUpdate) Where(ps ...predicate.BillingSequenceNumbers) *BillingSequenceNumbersUpdate {
-	bsnu.mutation.Where(ps...)
-	return bsnu
+func (_u *BillingSequenceNumbersUpdate) Where(ps ...predicate.BillingSequenceNumbers) *BillingSequenceNumbersUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetScope sets the "scope" field.
-func (bsnu *BillingSequenceNumbersUpdate) SetScope(s string) *BillingSequenceNumbersUpdate {
-	bsnu.mutation.SetScope(s)
-	return bsnu
+func (_u *BillingSequenceNumbersUpdate) SetScope(v string) *BillingSequenceNumbersUpdate {
+	_u.mutation.SetScope(v)
+	return _u
 }
 
 // SetNillableScope sets the "scope" field if the given value is not nil.
-func (bsnu *BillingSequenceNumbersUpdate) SetNillableScope(s *string) *BillingSequenceNumbersUpdate {
-	if s != nil {
-		bsnu.SetScope(*s)
+func (_u *BillingSequenceNumbersUpdate) SetNillableScope(v *string) *BillingSequenceNumbersUpdate {
+	if v != nil {
+		_u.SetScope(*v)
 	}
-	return bsnu
+	return _u
 }
 
 // SetLast sets the "last" field.
-func (bsnu *BillingSequenceNumbersUpdate) SetLast(a alpacadecimal.Decimal) *BillingSequenceNumbersUpdate {
-	bsnu.mutation.SetLast(a)
-	return bsnu
+func (_u *BillingSequenceNumbersUpdate) SetLast(v alpacadecimal.Decimal) *BillingSequenceNumbersUpdate {
+	_u.mutation.SetLast(v)
+	return _u
 }
 
 // SetNillableLast sets the "last" field if the given value is not nil.
-func (bsnu *BillingSequenceNumbersUpdate) SetNillableLast(a *alpacadecimal.Decimal) *BillingSequenceNumbersUpdate {
-	if a != nil {
-		bsnu.SetLast(*a)
+func (_u *BillingSequenceNumbersUpdate) SetNillableLast(v *alpacadecimal.Decimal) *BillingSequenceNumbersUpdate {
+	if v != nil {
+		_u.SetLast(*v)
 	}
-	return bsnu
+	return _u
 }
 
 // Mutation returns the BillingSequenceNumbersMutation object of the builder.
-func (bsnu *BillingSequenceNumbersUpdate) Mutation() *BillingSequenceNumbersMutation {
-	return bsnu.mutation
+func (_u *BillingSequenceNumbersUpdate) Mutation() *BillingSequenceNumbersMutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (bsnu *BillingSequenceNumbersUpdate) Save(ctx context.Context) (int, error) {
-	return withHooks(ctx, bsnu.sqlSave, bsnu.mutation, bsnu.hooks)
+func (_u *BillingSequenceNumbersUpdate) Save(ctx context.Context) (int, error) {
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bsnu *BillingSequenceNumbersUpdate) SaveX(ctx context.Context) int {
-	affected, err := bsnu.Save(ctx)
+func (_u *BillingSequenceNumbersUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -76,34 +76,34 @@ func (bsnu *BillingSequenceNumbersUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (bsnu *BillingSequenceNumbersUpdate) Exec(ctx context.Context) error {
-	_, err := bsnu.Save(ctx)
+func (_u *BillingSequenceNumbersUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bsnu *BillingSequenceNumbersUpdate) ExecX(ctx context.Context) {
-	if err := bsnu.Exec(ctx); err != nil {
+func (_u *BillingSequenceNumbersUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
-func (bsnu *BillingSequenceNumbersUpdate) sqlSave(ctx context.Context) (n int, err error) {
+func (_u *BillingSequenceNumbersUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	_spec := sqlgraph.NewUpdateSpec(billingsequencenumbers.Table, billingsequencenumbers.Columns, sqlgraph.NewFieldSpec(billingsequencenumbers.FieldID, field.TypeInt))
-	if ps := bsnu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := bsnu.mutation.Scope(); ok {
+	if value, ok := _u.mutation.Scope(); ok {
 		_spec.SetField(billingsequencenumbers.FieldScope, field.TypeString, value)
 	}
-	if value, ok := bsnu.mutation.Last(); ok {
+	if value, ok := _u.mutation.Last(); ok {
 		_spec.SetField(billingsequencenumbers.FieldLast, field.TypeOther, value)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, bsnu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billingsequencenumbers.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -111,8 +111,8 @@ func (bsnu *BillingSequenceNumbersUpdate) sqlSave(ctx context.Context) (n int, e
 		}
 		return 0, err
 	}
-	bsnu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // BillingSequenceNumbersUpdateOne is the builder for updating a single BillingSequenceNumbers entity.
@@ -124,59 +124,59 @@ type BillingSequenceNumbersUpdateOne struct {
 }
 
 // SetScope sets the "scope" field.
-func (bsnuo *BillingSequenceNumbersUpdateOne) SetScope(s string) *BillingSequenceNumbersUpdateOne {
-	bsnuo.mutation.SetScope(s)
-	return bsnuo
+func (_u *BillingSequenceNumbersUpdateOne) SetScope(v string) *BillingSequenceNumbersUpdateOne {
+	_u.mutation.SetScope(v)
+	return _u
 }
 
 // SetNillableScope sets the "scope" field if the given value is not nil.
-func (bsnuo *BillingSequenceNumbersUpdateOne) SetNillableScope(s *string) *BillingSequenceNumbersUpdateOne {
-	if s != nil {
-		bsnuo.SetScope(*s)
+func (_u *BillingSequenceNumbersUpdateOne) SetNillableScope(v *string) *BillingSequenceNumbersUpdateOne {
+	if v != nil {
+		_u.SetScope(*v)
 	}
-	return bsnuo
+	return _u
 }
 
 // SetLast sets the "last" field.
-func (bsnuo *BillingSequenceNumbersUpdateOne) SetLast(a alpacadecimal.Decimal) *BillingSequenceNumbersUpdateOne {
-	bsnuo.mutation.SetLast(a)
-	return bsnuo
+func (_u *BillingSequenceNumbersUpdateOne) SetLast(v alpacadecimal.Decimal) *BillingSequenceNumbersUpdateOne {
+	_u.mutation.SetLast(v)
+	return _u
 }
 
 // SetNillableLast sets the "last" field if the given value is not nil.
-func (bsnuo *BillingSequenceNumbersUpdateOne) SetNillableLast(a *alpacadecimal.Decimal) *BillingSequenceNumbersUpdateOne {
-	if a != nil {
-		bsnuo.SetLast(*a)
+func (_u *BillingSequenceNumbersUpdateOne) SetNillableLast(v *alpacadecimal.Decimal) *BillingSequenceNumbersUpdateOne {
+	if v != nil {
+		_u.SetLast(*v)
 	}
-	return bsnuo
+	return _u
 }
 
 // Mutation returns the BillingSequenceNumbersMutation object of the builder.
-func (bsnuo *BillingSequenceNumbersUpdateOne) Mutation() *BillingSequenceNumbersMutation {
-	return bsnuo.mutation
+func (_u *BillingSequenceNumbersUpdateOne) Mutation() *BillingSequenceNumbersMutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the BillingSequenceNumbersUpdate builder.
-func (bsnuo *BillingSequenceNumbersUpdateOne) Where(ps ...predicate.BillingSequenceNumbers) *BillingSequenceNumbersUpdateOne {
-	bsnuo.mutation.Where(ps...)
-	return bsnuo
+func (_u *BillingSequenceNumbersUpdateOne) Where(ps ...predicate.BillingSequenceNumbers) *BillingSequenceNumbersUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (bsnuo *BillingSequenceNumbersUpdateOne) Select(field string, fields ...string) *BillingSequenceNumbersUpdateOne {
-	bsnuo.fields = append([]string{field}, fields...)
-	return bsnuo
+func (_u *BillingSequenceNumbersUpdateOne) Select(field string, fields ...string) *BillingSequenceNumbersUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated BillingSequenceNumbers entity.
-func (bsnuo *BillingSequenceNumbersUpdateOne) Save(ctx context.Context) (*BillingSequenceNumbers, error) {
-	return withHooks(ctx, bsnuo.sqlSave, bsnuo.mutation, bsnuo.hooks)
+func (_u *BillingSequenceNumbersUpdateOne) Save(ctx context.Context) (*BillingSequenceNumbers, error) {
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bsnuo *BillingSequenceNumbersUpdateOne) SaveX(ctx context.Context) *BillingSequenceNumbers {
-	node, err := bsnuo.Save(ctx)
+func (_u *BillingSequenceNumbersUpdateOne) SaveX(ctx context.Context) *BillingSequenceNumbers {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -184,26 +184,26 @@ func (bsnuo *BillingSequenceNumbersUpdateOne) SaveX(ctx context.Context) *Billin
 }
 
 // Exec executes the query on the entity.
-func (bsnuo *BillingSequenceNumbersUpdateOne) Exec(ctx context.Context) error {
-	_, err := bsnuo.Save(ctx)
+func (_u *BillingSequenceNumbersUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bsnuo *BillingSequenceNumbersUpdateOne) ExecX(ctx context.Context) {
-	if err := bsnuo.Exec(ctx); err != nil {
+func (_u *BillingSequenceNumbersUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
-func (bsnuo *BillingSequenceNumbersUpdateOne) sqlSave(ctx context.Context) (_node *BillingSequenceNumbers, err error) {
+func (_u *BillingSequenceNumbersUpdateOne) sqlSave(ctx context.Context) (_node *BillingSequenceNumbers, err error) {
 	_spec := sqlgraph.NewUpdateSpec(billingsequencenumbers.Table, billingsequencenumbers.Columns, sqlgraph.NewFieldSpec(billingsequencenumbers.FieldID, field.TypeInt))
-	id, ok := bsnuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "BillingSequenceNumbers.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := bsnuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billingsequencenumbers.FieldID)
 		for _, f := range fields {
@@ -215,23 +215,23 @@ func (bsnuo *BillingSequenceNumbersUpdateOne) sqlSave(ctx context.Context) (_nod
 			}
 		}
 	}
-	if ps := bsnuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := bsnuo.mutation.Scope(); ok {
+	if value, ok := _u.mutation.Scope(); ok {
 		_spec.SetField(billingsequencenumbers.FieldScope, field.TypeString, value)
 	}
-	if value, ok := bsnuo.mutation.Last(); ok {
+	if value, ok := _u.mutation.Last(); ok {
 		_spec.SetField(billingsequencenumbers.FieldLast, field.TypeOther, value)
 	}
-	_node = &BillingSequenceNumbers{config: bsnuo.config}
+	_node = &BillingSequenceNumbers{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, bsnuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billingsequencenumbers.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -239,6 +239,6 @@ func (bsnuo *BillingSequenceNumbersUpdateOne) sqlSave(ctx context.Context) (_nod
 		}
 		return nil, err
 	}
-	bsnuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

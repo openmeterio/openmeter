@@ -182,15 +182,19 @@
               };
               # nix hash convert --hash-algo sha256 --to sri SHA256SUM
               hashMappings = {
-                x86_64-linux = "sha256-gHiHN2OJY2+QjZdO5tcjUsEJe3NPbiYAFpdqJrnWlL8=";
-                x86_64-darwin = "sha256-Oj4MEFixx7kLr9dh+UP89j8bTU3T/8J7qtYld+CICZY=";
-                aarch64-darwin = "sha256-yLDu2M2oXSX9NbAivn8J/BGNbOeQ8wRZqtK4Ql1Ed8E=";
-                aarch64-linux = "sha256-1zgNXkcVh4xEEIq+ahORvDhzUxkpnwrzZYvVp4qgOxA=";
+                # nix hash convert --hash-algo sha256 --to sri "$(curl -sfL 'https://release.ariga.io/atlas/atlas-linux-amd64-v'"${VERSION}"'.sha256')"
+                x86_64-linux = "sha256-YzakYgbSjb3Zvzu7v8AgD/TH9Gwik6WyOLrK7qjX6N4=";
+                # nix hash convert --hash-algo sha256 --to sri "$(curl -sfL 'https://release.ariga.io/atlas/atlas-darwin-amd64-v'"${VERSION}"'.sha256')"
+                x86_64-darwin = "sha256-MMfjuxZygcNoFFRoFDsSihHn+l6CD/J2gaResqFnrvI=";
+                # nix hash convert --hash-algo sha256 --to sri "$(curl -sfL 'https://release.ariga.io/atlas/atlas-darwin-arm64-v'"${VERSION}"'.sha256')"
+                aarch64-darwin = "sha256-4a7apzaozkoF9SZnve18wQGXBdOAwdqB27TSrSS6n0Y=";
+                # nix hash convert --hash-algo sha256 --to sri "$(curl -sfL 'https://release.ariga.io/atlas/atlas-linux-arm64-v'"${VERSION}"'.sha256')"
+                aarch64-linux = "sha256-Xhq4s93xFzFBQSVtiKoTGYMldA/WFIE0icFahNp6wXU=";
               };
             in
             pkgs.stdenv.mkDerivation rec {
               pname = "atlasx";
-              version = "0.30.0";
+              version = "0.32.1";
 
               src = pkgs.fetchurl {
                 # License: https://ariga.io/legal/atlas/eula/eula-20240804.pdf

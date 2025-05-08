@@ -103,7 +103,7 @@ func (*Grant) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the Grant fields.
-func (gr *Grant) assignValues(columns []string, values []any) error {
+func (_m *Grant) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -113,19 +113,19 @@ func (gr *Grant) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				gr.ID = value.String
+				_m.ID = value.String
 			}
 		case dbgrant.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				gr.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case dbgrant.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &gr.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -133,50 +133,50 @@ func (gr *Grant) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				gr.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case dbgrant.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				gr.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case dbgrant.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				gr.DeletedAt = new(time.Time)
-				*gr.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case dbgrant.FieldOwnerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field owner_id", values[i])
 			} else if value.Valid {
-				gr.OwnerID = value.String
+				_m.OwnerID = value.String
 			}
 		case dbgrant.FieldAmount:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
 			} else if value.Valid {
-				gr.Amount = value.Float64
+				_m.Amount = value.Float64
 			}
 		case dbgrant.FieldPriority:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field priority", values[i])
 			} else if value.Valid {
-				gr.Priority = uint8(value.Int64)
+				_m.Priority = uint8(value.Int64)
 			}
 		case dbgrant.FieldEffectiveAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field effective_at", values[i])
 			} else if value.Valid {
-				gr.EffectiveAt = value.Time
+				_m.EffectiveAt = value.Time
 			}
 		case dbgrant.FieldExpiration:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field expiration", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &gr.Expiration); err != nil {
+				if err := json.Unmarshal(*value, &_m.Expiration); err != nil {
 					return fmt.Errorf("unmarshal field expiration: %w", err)
 				}
 			}
@@ -184,43 +184,43 @@ func (gr *Grant) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field expires_at", values[i])
 			} else if value.Valid {
-				gr.ExpiresAt = value.Time
+				_m.ExpiresAt = value.Time
 			}
 		case dbgrant.FieldVoidedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field voided_at", values[i])
 			} else if value.Valid {
-				gr.VoidedAt = new(time.Time)
-				*gr.VoidedAt = value.Time
+				_m.VoidedAt = new(time.Time)
+				*_m.VoidedAt = value.Time
 			}
 		case dbgrant.FieldResetMaxRollover:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field reset_max_rollover", values[i])
 			} else if value.Valid {
-				gr.ResetMaxRollover = value.Float64
+				_m.ResetMaxRollover = value.Float64
 			}
 		case dbgrant.FieldResetMinRollover:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field reset_min_rollover", values[i])
 			} else if value.Valid {
-				gr.ResetMinRollover = value.Float64
+				_m.ResetMinRollover = value.Float64
 			}
 		case dbgrant.FieldRecurrencePeriod:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field recurrence_period", values[i])
 			} else if value.Valid {
-				gr.RecurrencePeriod = new(isodate.String)
-				*gr.RecurrencePeriod = isodate.String(value.String)
+				_m.RecurrencePeriod = new(isodate.String)
+				*_m.RecurrencePeriod = isodate.String(value.String)
 			}
 		case dbgrant.FieldRecurrenceAnchor:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field recurrence_anchor", values[i])
 			} else if value.Valid {
-				gr.RecurrenceAnchor = new(time.Time)
-				*gr.RecurrenceAnchor = value.Time
+				_m.RecurrenceAnchor = new(time.Time)
+				*_m.RecurrenceAnchor = value.Time
 			}
 		default:
-			gr.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -228,90 +228,90 @@ func (gr *Grant) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the Grant.
 // This includes values selected through modifiers, order, etc.
-func (gr *Grant) Value(name string) (ent.Value, error) {
-	return gr.selectValues.Get(name)
+func (_m *Grant) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryEntitlement queries the "entitlement" edge of the Grant entity.
-func (gr *Grant) QueryEntitlement() *EntitlementQuery {
-	return NewGrantClient(gr.config).QueryEntitlement(gr)
+func (_m *Grant) QueryEntitlement() *EntitlementQuery {
+	return NewGrantClient(_m.config).QueryEntitlement(_m)
 }
 
 // Update returns a builder for updating this Grant.
 // Note that you need to call Grant.Unwrap() before calling this method if this Grant
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (gr *Grant) Update() *GrantUpdateOne {
-	return NewGrantClient(gr.config).UpdateOne(gr)
+func (_m *Grant) Update() *GrantUpdateOne {
+	return NewGrantClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the Grant entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (gr *Grant) Unwrap() *Grant {
-	_tx, ok := gr.config.driver.(*txDriver)
+func (_m *Grant) Unwrap() *Grant {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: Grant is not a transactional entity")
 	}
-	gr.config.driver = _tx.drv
-	return gr
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (gr *Grant) String() string {
+func (_m *Grant) String() string {
 	var builder strings.Builder
 	builder.WriteString("Grant(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", gr.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(gr.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", gr.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(gr.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(gr.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := gr.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("owner_id=")
-	builder.WriteString(gr.OwnerID)
+	builder.WriteString(_m.OwnerID)
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
-	builder.WriteString(fmt.Sprintf("%v", gr.Amount))
+	builder.WriteString(fmt.Sprintf("%v", _m.Amount))
 	builder.WriteString(", ")
 	builder.WriteString("priority=")
-	builder.WriteString(fmt.Sprintf("%v", gr.Priority))
+	builder.WriteString(fmt.Sprintf("%v", _m.Priority))
 	builder.WriteString(", ")
 	builder.WriteString("effective_at=")
-	builder.WriteString(gr.EffectiveAt.Format(time.ANSIC))
+	builder.WriteString(_m.EffectiveAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("expiration=")
-	builder.WriteString(fmt.Sprintf("%v", gr.Expiration))
+	builder.WriteString(fmt.Sprintf("%v", _m.Expiration))
 	builder.WriteString(", ")
 	builder.WriteString("expires_at=")
-	builder.WriteString(gr.ExpiresAt.Format(time.ANSIC))
+	builder.WriteString(_m.ExpiresAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := gr.VoidedAt; v != nil {
+	if v := _m.VoidedAt; v != nil {
 		builder.WriteString("voided_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("reset_max_rollover=")
-	builder.WriteString(fmt.Sprintf("%v", gr.ResetMaxRollover))
+	builder.WriteString(fmt.Sprintf("%v", _m.ResetMaxRollover))
 	builder.WriteString(", ")
 	builder.WriteString("reset_min_rollover=")
-	builder.WriteString(fmt.Sprintf("%v", gr.ResetMinRollover))
+	builder.WriteString(fmt.Sprintf("%v", _m.ResetMinRollover))
 	builder.WriteString(", ")
-	if v := gr.RecurrencePeriod; v != nil {
+	if v := _m.RecurrencePeriod; v != nil {
 		builder.WriteString("recurrence_period=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := gr.RecurrenceAnchor; v != nil {
+	if v := _m.RecurrenceAnchor; v != nil {
 		builder.WriteString("recurrence_anchor=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}

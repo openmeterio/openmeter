@@ -90,7 +90,7 @@ func (*BalanceSnapshot) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the BalanceSnapshot fields.
-func (bs *BalanceSnapshot) assignValues(columns []string, values []any) error {
+func (_m *BalanceSnapshot) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -101,43 +101,43 @@ func (bs *BalanceSnapshot) assignValues(columns []string, values []any) error {
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
-			bs.ID = int(value.Int64)
+			_m.ID = int(value.Int64)
 		case balancesnapshot.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				bs.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case balancesnapshot.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				bs.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case balancesnapshot.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				bs.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case balancesnapshot.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				bs.DeletedAt = new(time.Time)
-				*bs.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case balancesnapshot.FieldOwnerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field owner_id", values[i])
 			} else if value.Valid {
-				bs.OwnerID = value.String
+				_m.OwnerID = value.String
 			}
 		case balancesnapshot.FieldGrantBalances:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field grant_balances", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &bs.GrantBalances); err != nil {
+				if err := json.Unmarshal(*value, &_m.GrantBalances); err != nil {
 					return fmt.Errorf("unmarshal field grant_balances: %w", err)
 				}
 			}
@@ -145,7 +145,7 @@ func (bs *BalanceSnapshot) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field usage", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &bs.Usage); err != nil {
+				if err := json.Unmarshal(*value, &_m.Usage); err != nil {
 					return fmt.Errorf("unmarshal field usage: %w", err)
 				}
 			}
@@ -153,22 +153,22 @@ func (bs *BalanceSnapshot) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field balance", values[i])
 			} else if value.Valid {
-				bs.Balance = value.Float64
+				_m.Balance = value.Float64
 			}
 		case balancesnapshot.FieldOverage:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field overage", values[i])
 			} else if value.Valid {
-				bs.Overage = value.Float64
+				_m.Overage = value.Float64
 			}
 		case balancesnapshot.FieldAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field at", values[i])
 			} else if value.Valid {
-				bs.At = value.Time
+				_m.At = value.Time
 			}
 		default:
-			bs.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -176,69 +176,69 @@ func (bs *BalanceSnapshot) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the BalanceSnapshot.
 // This includes values selected through modifiers, order, etc.
-func (bs *BalanceSnapshot) Value(name string) (ent.Value, error) {
-	return bs.selectValues.Get(name)
+func (_m *BalanceSnapshot) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryEntitlement queries the "entitlement" edge of the BalanceSnapshot entity.
-func (bs *BalanceSnapshot) QueryEntitlement() *EntitlementQuery {
-	return NewBalanceSnapshotClient(bs.config).QueryEntitlement(bs)
+func (_m *BalanceSnapshot) QueryEntitlement() *EntitlementQuery {
+	return NewBalanceSnapshotClient(_m.config).QueryEntitlement(_m)
 }
 
 // Update returns a builder for updating this BalanceSnapshot.
 // Note that you need to call BalanceSnapshot.Unwrap() before calling this method if this BalanceSnapshot
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (bs *BalanceSnapshot) Update() *BalanceSnapshotUpdateOne {
-	return NewBalanceSnapshotClient(bs.config).UpdateOne(bs)
+func (_m *BalanceSnapshot) Update() *BalanceSnapshotUpdateOne {
+	return NewBalanceSnapshotClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the BalanceSnapshot entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (bs *BalanceSnapshot) Unwrap() *BalanceSnapshot {
-	_tx, ok := bs.config.driver.(*txDriver)
+func (_m *BalanceSnapshot) Unwrap() *BalanceSnapshot {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: BalanceSnapshot is not a transactional entity")
 	}
-	bs.config.driver = _tx.drv
-	return bs
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (bs *BalanceSnapshot) String() string {
+func (_m *BalanceSnapshot) String() string {
 	var builder strings.Builder
 	builder.WriteString("BalanceSnapshot(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", bs.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(bs.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(bs.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(bs.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := bs.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("owner_id=")
-	builder.WriteString(bs.OwnerID)
+	builder.WriteString(_m.OwnerID)
 	builder.WriteString(", ")
 	builder.WriteString("grant_balances=")
-	builder.WriteString(fmt.Sprintf("%v", bs.GrantBalances))
+	builder.WriteString(fmt.Sprintf("%v", _m.GrantBalances))
 	builder.WriteString(", ")
 	builder.WriteString("usage=")
-	builder.WriteString(fmt.Sprintf("%v", bs.Usage))
+	builder.WriteString(fmt.Sprintf("%v", _m.Usage))
 	builder.WriteString(", ")
 	builder.WriteString("balance=")
-	builder.WriteString(fmt.Sprintf("%v", bs.Balance))
+	builder.WriteString(fmt.Sprintf("%v", _m.Balance))
 	builder.WriteString(", ")
 	builder.WriteString("overage=")
-	builder.WriteString(fmt.Sprintf("%v", bs.Overage))
+	builder.WriteString(fmt.Sprintf("%v", _m.Overage))
 	builder.WriteString(", ")
 	builder.WriteString("at=")
-	builder.WriteString(bs.At.Format(time.ANSIC))
+	builder.WriteString(_m.At.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

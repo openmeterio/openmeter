@@ -24,73 +24,73 @@ type Example1Create struct {
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (e *Example1Create) SetCreatedAt(t time.Time) *Example1Create {
-	e.mutation.SetCreatedAt(t)
-	return e
+func (_c *Example1Create) SetCreatedAt(v time.Time) *Example1Create {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (e *Example1Create) SetNillableCreatedAt(t *time.Time) *Example1Create {
-	if t != nil {
-		e.SetCreatedAt(*t)
+func (_c *Example1Create) SetNillableCreatedAt(v *time.Time) *Example1Create {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return e
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (e *Example1Create) SetUpdatedAt(t time.Time) *Example1Create {
-	e.mutation.SetUpdatedAt(t)
-	return e
+func (_c *Example1Create) SetUpdatedAt(v time.Time) *Example1Create {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (e *Example1Create) SetNillableUpdatedAt(t *time.Time) *Example1Create {
-	if t != nil {
-		e.SetUpdatedAt(*t)
+func (_c *Example1Create) SetNillableUpdatedAt(v *time.Time) *Example1Create {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return e
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (e *Example1Create) SetDeletedAt(t time.Time) *Example1Create {
-	e.mutation.SetDeletedAt(t)
-	return e
+func (_c *Example1Create) SetDeletedAt(v time.Time) *Example1Create {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (e *Example1Create) SetNillableDeletedAt(t *time.Time) *Example1Create {
-	if t != nil {
-		e.SetDeletedAt(*t)
+func (_c *Example1Create) SetNillableDeletedAt(v *time.Time) *Example1Create {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return e
+	return _c
 }
 
 // SetExampleValue1 sets the "example_value_1" field.
-func (e *Example1Create) SetExampleValue1(s string) *Example1Create {
-	e.mutation.SetExampleValue1(s)
-	return e
+func (_c *Example1Create) SetExampleValue1(v string) *Example1Create {
+	_c.mutation.SetExampleValue1(v)
+	return _c
 }
 
 // SetID sets the "id" field.
-func (e *Example1Create) SetID(s string) *Example1Create {
-	e.mutation.SetID(s)
-	return e
+func (_c *Example1Create) SetID(v string) *Example1Create {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // Mutation returns the Example1Mutation object of the builder.
-func (e *Example1Create) Mutation() *Example1Mutation {
-	return e.mutation
+func (_c *Example1Create) Mutation() *Example1Mutation {
+	return _c.mutation
 }
 
 // Save creates the Example1 in the database.
-func (e *Example1Create) Save(ctx context.Context) (*Example1, error) {
-	e.defaults()
-	return withHooks(ctx, e.sqlSave, e.mutation, e.hooks)
+func (_c *Example1Create) Save(ctx context.Context) (*Example1, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (e *Example1Create) SaveX(ctx context.Context) *Example1 {
-	v, err := e.Save(ctx)
+func (_c *Example1Create) SaveX(ctx context.Context) *Example1 {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -98,50 +98,50 @@ func (e *Example1Create) SaveX(ctx context.Context) *Example1 {
 }
 
 // Exec executes the query.
-func (e *Example1Create) Exec(ctx context.Context) error {
-	_, err := e.Save(ctx)
+func (_c *Example1Create) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (e *Example1Create) ExecX(ctx context.Context) {
-	if err := e.Exec(ctx); err != nil {
+func (_c *Example1Create) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (e *Example1Create) defaults() {
-	if _, ok := e.mutation.CreatedAt(); !ok {
+func (_c *Example1Create) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := example1.DefaultCreatedAt()
-		e.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := e.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := example1.DefaultUpdatedAt()
-		e.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (e *Example1Create) check() error {
-	if _, ok := e.mutation.CreatedAt(); !ok {
+func (_c *Example1Create) check() error {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "Example1.created_at"`)}
 	}
-	if _, ok := e.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "Example1.updated_at"`)}
 	}
-	if _, ok := e.mutation.ExampleValue1(); !ok {
+	if _, ok := _c.mutation.ExampleValue1(); !ok {
 		return &ValidationError{Name: "example_value_1", err: errors.New(`db: missing required field "Example1.example_value_1"`)}
 	}
 	return nil
 }
 
-func (e *Example1Create) sqlSave(ctx context.Context) (*Example1, error) {
-	if err := e.check(); err != nil {
+func (_c *Example1Create) sqlSave(ctx context.Context) (*Example1, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := e.createSpec()
-	if err := sqlgraph.CreateNode(ctx, e.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -154,34 +154,34 @@ func (e *Example1Create) sqlSave(ctx context.Context) (*Example1, error) {
 			return nil, fmt.Errorf("unexpected Example1.ID type: %T", _spec.ID.Value)
 		}
 	}
-	e.mutation.id = &_node.ID
-	e.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (e *Example1Create) createSpec() (*Example1, *sqlgraph.CreateSpec) {
+func (_c *Example1Create) createSpec() (*Example1, *sqlgraph.CreateSpec) {
 	var (
-		_node = &Example1{config: e.config}
+		_node = &Example1{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(example1.Table, sqlgraph.NewFieldSpec(example1.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = e.conflict
-	if id, ok := e.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := e.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(example1.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := e.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(example1.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := e.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(example1.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := e.mutation.ExampleValue1(); ok {
+	if value, ok := _c.mutation.ExampleValue1(); ok {
 		_spec.SetField(example1.FieldExampleValue1, field.TypeString, value)
 		_node.ExampleValue1 = value
 	}
@@ -204,10 +204,10 @@ func (e *Example1Create) createSpec() (*Example1, *sqlgraph.CreateSpec) {
 //			SetCreatedAt(v+v).
 //		}).
 //		Exec(ctx)
-func (e *Example1Create) OnConflict(opts ...sql.ConflictOption) *Example1UpsertOne {
-	e.conflict = opts
+func (_c *Example1Create) OnConflict(opts ...sql.ConflictOption) *Example1UpsertOne {
+	_c.conflict = opts
 	return &Example1UpsertOne{
-		create: e,
+		create: _c,
 	}
 }
 
@@ -217,10 +217,10 @@ func (e *Example1Create) OnConflict(opts ...sql.ConflictOption) *Example1UpsertO
 //	client.Example1.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (e *Example1Create) OnConflictColumns(columns ...string) *Example1UpsertOne {
-	e.conflict = append(e.conflict, sql.ConflictColumns(columns...))
+func (_c *Example1Create) OnConflictColumns(columns ...string) *Example1UpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &Example1UpsertOne{
-		create: e,
+		create: _c,
 	}
 }
 
@@ -426,16 +426,16 @@ type Example1CreateBulk struct {
 }
 
 // Save creates the Example1 entities in the database.
-func (eb *Example1CreateBulk) Save(ctx context.Context) ([]*Example1, error) {
-	if eb.err != nil {
-		return nil, eb.err
+func (_c *Example1CreateBulk) Save(ctx context.Context) ([]*Example1, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(eb.builders))
-	nodes := make([]*Example1, len(eb.builders))
-	mutators := make([]Mutator, len(eb.builders))
-	for i := range eb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*Example1, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := eb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*Example1Mutation)
@@ -449,12 +449,12 @@ func (eb *Example1CreateBulk) Save(ctx context.Context) ([]*Example1, error) {
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, eb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = eb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, eb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -474,7 +474,7 @@ func (eb *Example1CreateBulk) Save(ctx context.Context) ([]*Example1, error) {
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, eb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -482,8 +482,8 @@ func (eb *Example1CreateBulk) Save(ctx context.Context) ([]*Example1, error) {
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (eb *Example1CreateBulk) SaveX(ctx context.Context) []*Example1 {
-	v, err := eb.Save(ctx)
+func (_c *Example1CreateBulk) SaveX(ctx context.Context) []*Example1 {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -491,14 +491,14 @@ func (eb *Example1CreateBulk) SaveX(ctx context.Context) []*Example1 {
 }
 
 // Exec executes the query.
-func (eb *Example1CreateBulk) Exec(ctx context.Context) error {
-	_, err := eb.Save(ctx)
+func (_c *Example1CreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (eb *Example1CreateBulk) ExecX(ctx context.Context) {
-	if err := eb.Exec(ctx); err != nil {
+func (_c *Example1CreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -518,10 +518,10 @@ func (eb *Example1CreateBulk) ExecX(ctx context.Context) {
 //			SetCreatedAt(v+v).
 //		}).
 //		Exec(ctx)
-func (eb *Example1CreateBulk) OnConflict(opts ...sql.ConflictOption) *Example1UpsertBulk {
-	eb.conflict = opts
+func (_c *Example1CreateBulk) OnConflict(opts ...sql.ConflictOption) *Example1UpsertBulk {
+	_c.conflict = opts
 	return &Example1UpsertBulk{
-		create: eb,
+		create: _c,
 	}
 }
 
@@ -531,10 +531,10 @@ func (eb *Example1CreateBulk) OnConflict(opts ...sql.ConflictOption) *Example1Up
 //	client.Example1.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (eb *Example1CreateBulk) OnConflictColumns(columns ...string) *Example1UpsertBulk {
-	eb.conflict = append(eb.conflict, sql.ConflictColumns(columns...))
+func (_c *Example1CreateBulk) OnConflictColumns(columns ...string) *Example1UpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &Example1UpsertBulk{
-		create: eb,
+		create: _c,
 	}
 }
 

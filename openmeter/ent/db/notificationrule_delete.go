@@ -20,56 +20,56 @@ type NotificationRuleDelete struct {
 }
 
 // Where appends a list predicates to the NotificationRuleDelete builder.
-func (nrd *NotificationRuleDelete) Where(ps ...predicate.NotificationRule) *NotificationRuleDelete {
-	nrd.mutation.Where(ps...)
-	return nrd
+func (_d *NotificationRuleDelete) Where(ps ...predicate.NotificationRule) *NotificationRuleDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (nrd *NotificationRuleDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, nrd.sqlExec, nrd.mutation, nrd.hooks)
+func (_d *NotificationRuleDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nrd *NotificationRuleDelete) ExecX(ctx context.Context) int {
-	n, err := nrd.Exec(ctx)
+func (_d *NotificationRuleDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (nrd *NotificationRuleDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *NotificationRuleDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(notificationrule.Table, sqlgraph.NewFieldSpec(notificationrule.FieldID, field.TypeString))
-	if ps := nrd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, nrd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	nrd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // NotificationRuleDeleteOne is the builder for deleting a single NotificationRule entity.
 type NotificationRuleDeleteOne struct {
-	nrd *NotificationRuleDelete
+	_d *NotificationRuleDelete
 }
 
 // Where appends a list predicates to the NotificationRuleDelete builder.
-func (nrdo *NotificationRuleDeleteOne) Where(ps ...predicate.NotificationRule) *NotificationRuleDeleteOne {
-	nrdo.nrd.mutation.Where(ps...)
-	return nrdo
+func (_d *NotificationRuleDeleteOne) Where(ps ...predicate.NotificationRule) *NotificationRuleDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (nrdo *NotificationRuleDeleteOne) Exec(ctx context.Context) error {
-	n, err := nrdo.nrd.Exec(ctx)
+func (_d *NotificationRuleDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (nrdo *NotificationRuleDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nrdo *NotificationRuleDeleteOne) ExecX(ctx context.Context) {
-	if err := nrdo.Exec(ctx); err != nil {
+func (_d *NotificationRuleDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

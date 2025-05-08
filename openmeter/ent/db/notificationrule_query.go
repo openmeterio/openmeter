@@ -35,44 +35,44 @@ type NotificationRuleQuery struct {
 }
 
 // Where adds a new predicate for the NotificationRuleQuery builder.
-func (nrq *NotificationRuleQuery) Where(ps ...predicate.NotificationRule) *NotificationRuleQuery {
-	nrq.predicates = append(nrq.predicates, ps...)
-	return nrq
+func (_q *NotificationRuleQuery) Where(ps ...predicate.NotificationRule) *NotificationRuleQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (nrq *NotificationRuleQuery) Limit(limit int) *NotificationRuleQuery {
-	nrq.ctx.Limit = &limit
-	return nrq
+func (_q *NotificationRuleQuery) Limit(limit int) *NotificationRuleQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (nrq *NotificationRuleQuery) Offset(offset int) *NotificationRuleQuery {
-	nrq.ctx.Offset = &offset
-	return nrq
+func (_q *NotificationRuleQuery) Offset(offset int) *NotificationRuleQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (nrq *NotificationRuleQuery) Unique(unique bool) *NotificationRuleQuery {
-	nrq.ctx.Unique = &unique
-	return nrq
+func (_q *NotificationRuleQuery) Unique(unique bool) *NotificationRuleQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (nrq *NotificationRuleQuery) Order(o ...notificationrule.OrderOption) *NotificationRuleQuery {
-	nrq.order = append(nrq.order, o...)
-	return nrq
+func (_q *NotificationRuleQuery) Order(o ...notificationrule.OrderOption) *NotificationRuleQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryChannels chains the current query on the "channels" edge.
-func (nrq *NotificationRuleQuery) QueryChannels() *NotificationChannelQuery {
-	query := (&NotificationChannelClient{config: nrq.config}).Query()
+func (_q *NotificationRuleQuery) QueryChannels() *NotificationChannelQuery {
+	query := (&NotificationChannelClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := nrq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := nrq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -81,20 +81,20 @@ func (nrq *NotificationRuleQuery) QueryChannels() *NotificationChannelQuery {
 			sqlgraph.To(notificationchannel.Table, notificationchannel.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, true, notificationrule.ChannelsTable, notificationrule.ChannelsPrimaryKey...),
 		)
-		fromU = sqlgraph.SetNeighbors(nrq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryEvents chains the current query on the "events" edge.
-func (nrq *NotificationRuleQuery) QueryEvents() *NotificationEventQuery {
-	query := (&NotificationEventClient{config: nrq.config}).Query()
+func (_q *NotificationRuleQuery) QueryEvents() *NotificationEventQuery {
+	query := (&NotificationEventClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := nrq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := nrq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func (nrq *NotificationRuleQuery) QueryEvents() *NotificationEventQuery {
 			sqlgraph.To(notificationevent.Table, notificationevent.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, notificationrule.EventsTable, notificationrule.EventsColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(nrq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -111,8 +111,8 @@ func (nrq *NotificationRuleQuery) QueryEvents() *NotificationEventQuery {
 
 // First returns the first NotificationRule entity from the query.
 // Returns a *NotFoundError when no NotificationRule was found.
-func (nrq *NotificationRuleQuery) First(ctx context.Context) (*NotificationRule, error) {
-	nodes, err := nrq.Limit(1).All(setContextOp(ctx, nrq.ctx, ent.OpQueryFirst))
+func (_q *NotificationRuleQuery) First(ctx context.Context) (*NotificationRule, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +123,8 @@ func (nrq *NotificationRuleQuery) First(ctx context.Context) (*NotificationRule,
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (nrq *NotificationRuleQuery) FirstX(ctx context.Context) *NotificationRule {
-	node, err := nrq.First(ctx)
+func (_q *NotificationRuleQuery) FirstX(ctx context.Context) *NotificationRule {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -133,9 +133,9 @@ func (nrq *NotificationRuleQuery) FirstX(ctx context.Context) *NotificationRule 
 
 // FirstID returns the first NotificationRule ID from the query.
 // Returns a *NotFoundError when no NotificationRule ID was found.
-func (nrq *NotificationRuleQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *NotificationRuleQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = nrq.Limit(1).IDs(setContextOp(ctx, nrq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -146,8 +146,8 @@ func (nrq *NotificationRuleQuery) FirstID(ctx context.Context) (id string, err e
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (nrq *NotificationRuleQuery) FirstIDX(ctx context.Context) string {
-	id, err := nrq.FirstID(ctx)
+func (_q *NotificationRuleQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -157,8 +157,8 @@ func (nrq *NotificationRuleQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single NotificationRule entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one NotificationRule entity is found.
 // Returns a *NotFoundError when no NotificationRule entities are found.
-func (nrq *NotificationRuleQuery) Only(ctx context.Context) (*NotificationRule, error) {
-	nodes, err := nrq.Limit(2).All(setContextOp(ctx, nrq.ctx, ent.OpQueryOnly))
+func (_q *NotificationRuleQuery) Only(ctx context.Context) (*NotificationRule, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -173,8 +173,8 @@ func (nrq *NotificationRuleQuery) Only(ctx context.Context) (*NotificationRule, 
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (nrq *NotificationRuleQuery) OnlyX(ctx context.Context) *NotificationRule {
-	node, err := nrq.Only(ctx)
+func (_q *NotificationRuleQuery) OnlyX(ctx context.Context) *NotificationRule {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -184,9 +184,9 @@ func (nrq *NotificationRuleQuery) OnlyX(ctx context.Context) *NotificationRule {
 // OnlyID is like Only, but returns the only NotificationRule ID in the query.
 // Returns a *NotSingularError when more than one NotificationRule ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (nrq *NotificationRuleQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *NotificationRuleQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = nrq.Limit(2).IDs(setContextOp(ctx, nrq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -201,8 +201,8 @@ func (nrq *NotificationRuleQuery) OnlyID(ctx context.Context) (id string, err er
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (nrq *NotificationRuleQuery) OnlyIDX(ctx context.Context) string {
-	id, err := nrq.OnlyID(ctx)
+func (_q *NotificationRuleQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -210,18 +210,18 @@ func (nrq *NotificationRuleQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of NotificationRules.
-func (nrq *NotificationRuleQuery) All(ctx context.Context) ([]*NotificationRule, error) {
-	ctx = setContextOp(ctx, nrq.ctx, ent.OpQueryAll)
-	if err := nrq.prepareQuery(ctx); err != nil {
+func (_q *NotificationRuleQuery) All(ctx context.Context) ([]*NotificationRule, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*NotificationRule, *NotificationRuleQuery]()
-	return withInterceptors[[]*NotificationRule](ctx, nrq, qr, nrq.inters)
+	return withInterceptors[[]*NotificationRule](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (nrq *NotificationRuleQuery) AllX(ctx context.Context) []*NotificationRule {
-	nodes, err := nrq.All(ctx)
+func (_q *NotificationRuleQuery) AllX(ctx context.Context) []*NotificationRule {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -229,20 +229,20 @@ func (nrq *NotificationRuleQuery) AllX(ctx context.Context) []*NotificationRule 
 }
 
 // IDs executes the query and returns a list of NotificationRule IDs.
-func (nrq *NotificationRuleQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if nrq.ctx.Unique == nil && nrq.path != nil {
-		nrq.Unique(true)
+func (_q *NotificationRuleQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, nrq.ctx, ent.OpQueryIDs)
-	if err = nrq.Select(notificationrule.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(notificationrule.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (nrq *NotificationRuleQuery) IDsX(ctx context.Context) []string {
-	ids, err := nrq.IDs(ctx)
+func (_q *NotificationRuleQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -250,17 +250,17 @@ func (nrq *NotificationRuleQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (nrq *NotificationRuleQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, nrq.ctx, ent.OpQueryCount)
-	if err := nrq.prepareQuery(ctx); err != nil {
+func (_q *NotificationRuleQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, nrq, querierCount[*NotificationRuleQuery](), nrq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*NotificationRuleQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (nrq *NotificationRuleQuery) CountX(ctx context.Context) int {
-	count, err := nrq.Count(ctx)
+func (_q *NotificationRuleQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -268,9 +268,9 @@ func (nrq *NotificationRuleQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (nrq *NotificationRuleQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, nrq.ctx, ent.OpQueryExist)
-	switch _, err := nrq.FirstID(ctx); {
+func (_q *NotificationRuleQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -281,8 +281,8 @@ func (nrq *NotificationRuleQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (nrq *NotificationRuleQuery) ExistX(ctx context.Context) bool {
-	exist, err := nrq.Exist(ctx)
+func (_q *NotificationRuleQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -291,44 +291,44 @@ func (nrq *NotificationRuleQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the NotificationRuleQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (nrq *NotificationRuleQuery) Clone() *NotificationRuleQuery {
-	if nrq == nil {
+func (_q *NotificationRuleQuery) Clone() *NotificationRuleQuery {
+	if _q == nil {
 		return nil
 	}
 	return &NotificationRuleQuery{
-		config:       nrq.config,
-		ctx:          nrq.ctx.Clone(),
-		order:        append([]notificationrule.OrderOption{}, nrq.order...),
-		inters:       append([]Interceptor{}, nrq.inters...),
-		predicates:   append([]predicate.NotificationRule{}, nrq.predicates...),
-		withChannels: nrq.withChannels.Clone(),
-		withEvents:   nrq.withEvents.Clone(),
+		config:       _q.config,
+		ctx:          _q.ctx.Clone(),
+		order:        append([]notificationrule.OrderOption{}, _q.order...),
+		inters:       append([]Interceptor{}, _q.inters...),
+		predicates:   append([]predicate.NotificationRule{}, _q.predicates...),
+		withChannels: _q.withChannels.Clone(),
+		withEvents:   _q.withEvents.Clone(),
 		// clone intermediate query.
-		sql:  nrq.sql.Clone(),
-		path: nrq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithChannels tells the query-builder to eager-load the nodes that are connected to
 // the "channels" edge. The optional arguments are used to configure the query builder of the edge.
-func (nrq *NotificationRuleQuery) WithChannels(opts ...func(*NotificationChannelQuery)) *NotificationRuleQuery {
-	query := (&NotificationChannelClient{config: nrq.config}).Query()
+func (_q *NotificationRuleQuery) WithChannels(opts ...func(*NotificationChannelQuery)) *NotificationRuleQuery {
+	query := (&NotificationChannelClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	nrq.withChannels = query
-	return nrq
+	_q.withChannels = query
+	return _q
 }
 
 // WithEvents tells the query-builder to eager-load the nodes that are connected to
 // the "events" edge. The optional arguments are used to configure the query builder of the edge.
-func (nrq *NotificationRuleQuery) WithEvents(opts ...func(*NotificationEventQuery)) *NotificationRuleQuery {
-	query := (&NotificationEventClient{config: nrq.config}).Query()
+func (_q *NotificationRuleQuery) WithEvents(opts ...func(*NotificationEventQuery)) *NotificationRuleQuery {
+	query := (&NotificationEventClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	nrq.withEvents = query
-	return nrq
+	_q.withEvents = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -345,10 +345,10 @@ func (nrq *NotificationRuleQuery) WithEvents(opts ...func(*NotificationEventQuer
 //		GroupBy(notificationrule.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (nrq *NotificationRuleQuery) GroupBy(field string, fields ...string) *NotificationRuleGroupBy {
-	nrq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &NotificationRuleGroupBy{build: nrq}
-	grbuild.flds = &nrq.ctx.Fields
+func (_q *NotificationRuleQuery) GroupBy(field string, fields ...string) *NotificationRuleGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &NotificationRuleGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = notificationrule.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -366,84 +366,84 @@ func (nrq *NotificationRuleQuery) GroupBy(field string, fields ...string) *Notif
 //	client.NotificationRule.Query().
 //		Select(notificationrule.FieldNamespace).
 //		Scan(ctx, &v)
-func (nrq *NotificationRuleQuery) Select(fields ...string) *NotificationRuleSelect {
-	nrq.ctx.Fields = append(nrq.ctx.Fields, fields...)
-	sbuild := &NotificationRuleSelect{NotificationRuleQuery: nrq}
+func (_q *NotificationRuleQuery) Select(fields ...string) *NotificationRuleSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &NotificationRuleSelect{NotificationRuleQuery: _q}
 	sbuild.label = notificationrule.Label
-	sbuild.flds, sbuild.scan = &nrq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a NotificationRuleSelect configured with the given aggregations.
-func (nrq *NotificationRuleQuery) Aggregate(fns ...AggregateFunc) *NotificationRuleSelect {
-	return nrq.Select().Aggregate(fns...)
+func (_q *NotificationRuleQuery) Aggregate(fns ...AggregateFunc) *NotificationRuleSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (nrq *NotificationRuleQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range nrq.inters {
+func (_q *NotificationRuleQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, nrq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range nrq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !notificationrule.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if nrq.path != nil {
-		prev, err := nrq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		nrq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (nrq *NotificationRuleQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*NotificationRule, error) {
+func (_q *NotificationRuleQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*NotificationRule, error) {
 	var (
 		nodes       = []*NotificationRule{}
-		_spec       = nrq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			nrq.withChannels != nil,
-			nrq.withEvents != nil,
+			_q.withChannels != nil,
+			_q.withEvents != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*NotificationRule).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &NotificationRule{config: nrq.config}
+		node := &NotificationRule{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(nrq.modifiers) > 0 {
-		_spec.Modifiers = nrq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, nrq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := nrq.withChannels; query != nil {
-		if err := nrq.loadChannels(ctx, query, nodes,
+	if query := _q.withChannels; query != nil {
+		if err := _q.loadChannels(ctx, query, nodes,
 			func(n *NotificationRule) { n.Edges.Channels = []*NotificationChannel{} },
 			func(n *NotificationRule, e *NotificationChannel) { n.Edges.Channels = append(n.Edges.Channels, e) }); err != nil {
 			return nil, err
 		}
 	}
-	if query := nrq.withEvents; query != nil {
-		if err := nrq.loadEvents(ctx, query, nodes,
+	if query := _q.withEvents; query != nil {
+		if err := _q.loadEvents(ctx, query, nodes,
 			func(n *NotificationRule) { n.Edges.Events = []*NotificationEvent{} },
 			func(n *NotificationRule, e *NotificationEvent) { n.Edges.Events = append(n.Edges.Events, e) }); err != nil {
 			return nil, err
@@ -452,7 +452,7 @@ func (nrq *NotificationRuleQuery) sqlAll(ctx context.Context, hooks ...queryHook
 	return nodes, nil
 }
 
-func (nrq *NotificationRuleQuery) loadChannels(ctx context.Context, query *NotificationChannelQuery, nodes []*NotificationRule, init func(*NotificationRule), assign func(*NotificationRule, *NotificationChannel)) error {
+func (_q *NotificationRuleQuery) loadChannels(ctx context.Context, query *NotificationChannelQuery, nodes []*NotificationRule, init func(*NotificationRule), assign func(*NotificationRule, *NotificationChannel)) error {
 	edgeIDs := make([]driver.Value, len(nodes))
 	byID := make(map[string]*NotificationRule)
 	nids := make(map[string]map[*NotificationRule]struct{})
@@ -513,7 +513,7 @@ func (nrq *NotificationRuleQuery) loadChannels(ctx context.Context, query *Notif
 	}
 	return nil
 }
-func (nrq *NotificationRuleQuery) loadEvents(ctx context.Context, query *NotificationEventQuery, nodes []*NotificationRule, init func(*NotificationRule), assign func(*NotificationRule, *NotificationEvent)) error {
+func (_q *NotificationRuleQuery) loadEvents(ctx context.Context, query *NotificationEventQuery, nodes []*NotificationRule, init func(*NotificationRule), assign func(*NotificationRule, *NotificationEvent)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*NotificationRule)
 	for i := range nodes {
@@ -544,27 +544,27 @@ func (nrq *NotificationRuleQuery) loadEvents(ctx context.Context, query *Notific
 	return nil
 }
 
-func (nrq *NotificationRuleQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := nrq.querySpec()
-	if len(nrq.modifiers) > 0 {
-		_spec.Modifiers = nrq.modifiers
+func (_q *NotificationRuleQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = nrq.ctx.Fields
-	if len(nrq.ctx.Fields) > 0 {
-		_spec.Unique = nrq.ctx.Unique != nil && *nrq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, nrq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (nrq *NotificationRuleQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *NotificationRuleQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(notificationrule.Table, notificationrule.Columns, sqlgraph.NewFieldSpec(notificationrule.FieldID, field.TypeString))
-	_spec.From = nrq.sql
-	if unique := nrq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if nrq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := nrq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, notificationrule.FieldID)
 		for i := range fields {
@@ -573,20 +573,20 @@ func (nrq *NotificationRuleQuery) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 	}
-	if ps := nrq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := nrq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := nrq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := nrq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -596,36 +596,36 @@ func (nrq *NotificationRuleQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (nrq *NotificationRuleQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(nrq.driver.Dialect())
+func (_q *NotificationRuleQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(notificationrule.Table)
-	columns := nrq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = notificationrule.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if nrq.sql != nil {
-		selector = nrq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if nrq.ctx.Unique != nil && *nrq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range nrq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range nrq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range nrq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := nrq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := nrq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -634,27 +634,27 @@ func (nrq *NotificationRuleQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (nrq *NotificationRuleQuery) ForUpdate(opts ...sql.LockOption) *NotificationRuleQuery {
-	if nrq.driver.Dialect() == dialect.Postgres {
-		nrq.Unique(false)
+func (_q *NotificationRuleQuery) ForUpdate(opts ...sql.LockOption) *NotificationRuleQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	nrq.modifiers = append(nrq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return nrq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (nrq *NotificationRuleQuery) ForShare(opts ...sql.LockOption) *NotificationRuleQuery {
-	if nrq.driver.Dialect() == dialect.Postgres {
-		nrq.Unique(false)
+func (_q *NotificationRuleQuery) ForShare(opts ...sql.LockOption) *NotificationRuleQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	nrq.modifiers = append(nrq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return nrq
+	return _q
 }
 
 // NotificationRuleGroupBy is the group-by builder for NotificationRule entities.

@@ -90,7 +90,7 @@ func (*AppCustomer) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the AppCustomer fields.
-func (ac *AppCustomer) assignValues(columns []string, values []any) error {
+func (_m *AppCustomer) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -101,46 +101,46 @@ func (ac *AppCustomer) assignValues(columns []string, values []any) error {
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
-			ac.ID = int(value.Int64)
+			_m.ID = int(value.Int64)
 		case appcustomer.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				ac.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case appcustomer.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				ac.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case appcustomer.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				ac.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case appcustomer.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				ac.DeletedAt = new(time.Time)
-				*ac.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case appcustomer.FieldAppID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field app_id", values[i])
 			} else if value.Valid {
-				ac.AppID = value.String
+				_m.AppID = value.String
 			}
 		case appcustomer.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
 			} else if value.Valid {
-				ac.CustomerID = value.String
+				_m.CustomerID = value.String
 			}
 		default:
-			ac.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -148,62 +148,62 @@ func (ac *AppCustomer) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the AppCustomer.
 // This includes values selected through modifiers, order, etc.
-func (ac *AppCustomer) Value(name string) (ent.Value, error) {
-	return ac.selectValues.Get(name)
+func (_m *AppCustomer) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryApp queries the "app" edge of the AppCustomer entity.
-func (ac *AppCustomer) QueryApp() *AppQuery {
-	return NewAppCustomerClient(ac.config).QueryApp(ac)
+func (_m *AppCustomer) QueryApp() *AppQuery {
+	return NewAppCustomerClient(_m.config).QueryApp(_m)
 }
 
 // QueryCustomer queries the "customer" edge of the AppCustomer entity.
-func (ac *AppCustomer) QueryCustomer() *CustomerQuery {
-	return NewAppCustomerClient(ac.config).QueryCustomer(ac)
+func (_m *AppCustomer) QueryCustomer() *CustomerQuery {
+	return NewAppCustomerClient(_m.config).QueryCustomer(_m)
 }
 
 // Update returns a builder for updating this AppCustomer.
 // Note that you need to call AppCustomer.Unwrap() before calling this method if this AppCustomer
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (ac *AppCustomer) Update() *AppCustomerUpdateOne {
-	return NewAppCustomerClient(ac.config).UpdateOne(ac)
+func (_m *AppCustomer) Update() *AppCustomerUpdateOne {
+	return NewAppCustomerClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the AppCustomer entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (ac *AppCustomer) Unwrap() *AppCustomer {
-	_tx, ok := ac.config.driver.(*txDriver)
+func (_m *AppCustomer) Unwrap() *AppCustomer {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: AppCustomer is not a transactional entity")
 	}
-	ac.config.driver = _tx.drv
-	return ac
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (ac *AppCustomer) String() string {
+func (_m *AppCustomer) String() string {
 	var builder strings.Builder
 	builder.WriteString("AppCustomer(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", ac.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(ac.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(ac.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(ac.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := ac.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("app_id=")
-	builder.WriteString(ac.AppID)
+	builder.WriteString(_m.AppID)
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
-	builder.WriteString(ac.CustomerID)
+	builder.WriteString(_m.CustomerID)
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -34,44 +34,44 @@ type AppCustomerQuery struct {
 }
 
 // Where adds a new predicate for the AppCustomerQuery builder.
-func (acq *AppCustomerQuery) Where(ps ...predicate.AppCustomer) *AppCustomerQuery {
-	acq.predicates = append(acq.predicates, ps...)
-	return acq
+func (_q *AppCustomerQuery) Where(ps ...predicate.AppCustomer) *AppCustomerQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (acq *AppCustomerQuery) Limit(limit int) *AppCustomerQuery {
-	acq.ctx.Limit = &limit
-	return acq
+func (_q *AppCustomerQuery) Limit(limit int) *AppCustomerQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (acq *AppCustomerQuery) Offset(offset int) *AppCustomerQuery {
-	acq.ctx.Offset = &offset
-	return acq
+func (_q *AppCustomerQuery) Offset(offset int) *AppCustomerQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (acq *AppCustomerQuery) Unique(unique bool) *AppCustomerQuery {
-	acq.ctx.Unique = &unique
-	return acq
+func (_q *AppCustomerQuery) Unique(unique bool) *AppCustomerQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (acq *AppCustomerQuery) Order(o ...appcustomer.OrderOption) *AppCustomerQuery {
-	acq.order = append(acq.order, o...)
-	return acq
+func (_q *AppCustomerQuery) Order(o ...appcustomer.OrderOption) *AppCustomerQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryApp chains the current query on the "app" edge.
-func (acq *AppCustomerQuery) QueryApp() *AppQuery {
-	query := (&AppClient{config: acq.config}).Query()
+func (_q *AppCustomerQuery) QueryApp() *AppQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := acq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := acq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -80,20 +80,20 @@ func (acq *AppCustomerQuery) QueryApp() *AppQuery {
 			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, appcustomer.AppTable, appcustomer.AppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(acq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryCustomer chains the current query on the "customer" edge.
-func (acq *AppCustomerQuery) QueryCustomer() *CustomerQuery {
-	query := (&CustomerClient{config: acq.config}).Query()
+func (_q *AppCustomerQuery) QueryCustomer() *CustomerQuery {
+	query := (&CustomerClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := acq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := acq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func (acq *AppCustomerQuery) QueryCustomer() *CustomerQuery {
 			sqlgraph.To(customer.Table, customer.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, appcustomer.CustomerTable, appcustomer.CustomerColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(acq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -110,8 +110,8 @@ func (acq *AppCustomerQuery) QueryCustomer() *CustomerQuery {
 
 // First returns the first AppCustomer entity from the query.
 // Returns a *NotFoundError when no AppCustomer was found.
-func (acq *AppCustomerQuery) First(ctx context.Context) (*AppCustomer, error) {
-	nodes, err := acq.Limit(1).All(setContextOp(ctx, acq.ctx, ent.OpQueryFirst))
+func (_q *AppCustomerQuery) First(ctx context.Context) (*AppCustomer, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -122,8 +122,8 @@ func (acq *AppCustomerQuery) First(ctx context.Context) (*AppCustomer, error) {
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (acq *AppCustomerQuery) FirstX(ctx context.Context) *AppCustomer {
-	node, err := acq.First(ctx)
+func (_q *AppCustomerQuery) FirstX(ctx context.Context) *AppCustomer {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -132,9 +132,9 @@ func (acq *AppCustomerQuery) FirstX(ctx context.Context) *AppCustomer {
 
 // FirstID returns the first AppCustomer ID from the query.
 // Returns a *NotFoundError when no AppCustomer ID was found.
-func (acq *AppCustomerQuery) FirstID(ctx context.Context) (id int, err error) {
+func (_q *AppCustomerQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = acq.Limit(1).IDs(setContextOp(ctx, acq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -145,8 +145,8 @@ func (acq *AppCustomerQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (acq *AppCustomerQuery) FirstIDX(ctx context.Context) int {
-	id, err := acq.FirstID(ctx)
+func (_q *AppCustomerQuery) FirstIDX(ctx context.Context) int {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -156,8 +156,8 @@ func (acq *AppCustomerQuery) FirstIDX(ctx context.Context) int {
 // Only returns a single AppCustomer entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one AppCustomer entity is found.
 // Returns a *NotFoundError when no AppCustomer entities are found.
-func (acq *AppCustomerQuery) Only(ctx context.Context) (*AppCustomer, error) {
-	nodes, err := acq.Limit(2).All(setContextOp(ctx, acq.ctx, ent.OpQueryOnly))
+func (_q *AppCustomerQuery) Only(ctx context.Context) (*AppCustomer, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -172,8 +172,8 @@ func (acq *AppCustomerQuery) Only(ctx context.Context) (*AppCustomer, error) {
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (acq *AppCustomerQuery) OnlyX(ctx context.Context) *AppCustomer {
-	node, err := acq.Only(ctx)
+func (_q *AppCustomerQuery) OnlyX(ctx context.Context) *AppCustomer {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -183,9 +183,9 @@ func (acq *AppCustomerQuery) OnlyX(ctx context.Context) *AppCustomer {
 // OnlyID is like Only, but returns the only AppCustomer ID in the query.
 // Returns a *NotSingularError when more than one AppCustomer ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (acq *AppCustomerQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *AppCustomerQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = acq.Limit(2).IDs(setContextOp(ctx, acq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -200,8 +200,8 @@ func (acq *AppCustomerQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (acq *AppCustomerQuery) OnlyIDX(ctx context.Context) int {
-	id, err := acq.OnlyID(ctx)
+func (_q *AppCustomerQuery) OnlyIDX(ctx context.Context) int {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -209,18 +209,18 @@ func (acq *AppCustomerQuery) OnlyIDX(ctx context.Context) int {
 }
 
 // All executes the query and returns a list of AppCustomers.
-func (acq *AppCustomerQuery) All(ctx context.Context) ([]*AppCustomer, error) {
-	ctx = setContextOp(ctx, acq.ctx, ent.OpQueryAll)
-	if err := acq.prepareQuery(ctx); err != nil {
+func (_q *AppCustomerQuery) All(ctx context.Context) ([]*AppCustomer, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*AppCustomer, *AppCustomerQuery]()
-	return withInterceptors[[]*AppCustomer](ctx, acq, qr, acq.inters)
+	return withInterceptors[[]*AppCustomer](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (acq *AppCustomerQuery) AllX(ctx context.Context) []*AppCustomer {
-	nodes, err := acq.All(ctx)
+func (_q *AppCustomerQuery) AllX(ctx context.Context) []*AppCustomer {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -228,20 +228,20 @@ func (acq *AppCustomerQuery) AllX(ctx context.Context) []*AppCustomer {
 }
 
 // IDs executes the query and returns a list of AppCustomer IDs.
-func (acq *AppCustomerQuery) IDs(ctx context.Context) (ids []int, err error) {
-	if acq.ctx.Unique == nil && acq.path != nil {
-		acq.Unique(true)
+func (_q *AppCustomerQuery) IDs(ctx context.Context) (ids []int, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, acq.ctx, ent.OpQueryIDs)
-	if err = acq.Select(appcustomer.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(appcustomer.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (acq *AppCustomerQuery) IDsX(ctx context.Context) []int {
-	ids, err := acq.IDs(ctx)
+func (_q *AppCustomerQuery) IDsX(ctx context.Context) []int {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -249,17 +249,17 @@ func (acq *AppCustomerQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (acq *AppCustomerQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, acq.ctx, ent.OpQueryCount)
-	if err := acq.prepareQuery(ctx); err != nil {
+func (_q *AppCustomerQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, acq, querierCount[*AppCustomerQuery](), acq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*AppCustomerQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (acq *AppCustomerQuery) CountX(ctx context.Context) int {
-	count, err := acq.Count(ctx)
+func (_q *AppCustomerQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -267,9 +267,9 @@ func (acq *AppCustomerQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (acq *AppCustomerQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, acq.ctx, ent.OpQueryExist)
-	switch _, err := acq.FirstID(ctx); {
+func (_q *AppCustomerQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -280,8 +280,8 @@ func (acq *AppCustomerQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (acq *AppCustomerQuery) ExistX(ctx context.Context) bool {
-	exist, err := acq.Exist(ctx)
+func (_q *AppCustomerQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -290,44 +290,44 @@ func (acq *AppCustomerQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the AppCustomerQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (acq *AppCustomerQuery) Clone() *AppCustomerQuery {
-	if acq == nil {
+func (_q *AppCustomerQuery) Clone() *AppCustomerQuery {
+	if _q == nil {
 		return nil
 	}
 	return &AppCustomerQuery{
-		config:       acq.config,
-		ctx:          acq.ctx.Clone(),
-		order:        append([]appcustomer.OrderOption{}, acq.order...),
-		inters:       append([]Interceptor{}, acq.inters...),
-		predicates:   append([]predicate.AppCustomer{}, acq.predicates...),
-		withApp:      acq.withApp.Clone(),
-		withCustomer: acq.withCustomer.Clone(),
+		config:       _q.config,
+		ctx:          _q.ctx.Clone(),
+		order:        append([]appcustomer.OrderOption{}, _q.order...),
+		inters:       append([]Interceptor{}, _q.inters...),
+		predicates:   append([]predicate.AppCustomer{}, _q.predicates...),
+		withApp:      _q.withApp.Clone(),
+		withCustomer: _q.withCustomer.Clone(),
 		// clone intermediate query.
-		sql:  acq.sql.Clone(),
-		path: acq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithApp tells the query-builder to eager-load the nodes that are connected to
 // the "app" edge. The optional arguments are used to configure the query builder of the edge.
-func (acq *AppCustomerQuery) WithApp(opts ...func(*AppQuery)) *AppCustomerQuery {
-	query := (&AppClient{config: acq.config}).Query()
+func (_q *AppCustomerQuery) WithApp(opts ...func(*AppQuery)) *AppCustomerQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	acq.withApp = query
-	return acq
+	_q.withApp = query
+	return _q
 }
 
 // WithCustomer tells the query-builder to eager-load the nodes that are connected to
 // the "customer" edge. The optional arguments are used to configure the query builder of the edge.
-func (acq *AppCustomerQuery) WithCustomer(opts ...func(*CustomerQuery)) *AppCustomerQuery {
-	query := (&CustomerClient{config: acq.config}).Query()
+func (_q *AppCustomerQuery) WithCustomer(opts ...func(*CustomerQuery)) *AppCustomerQuery {
+	query := (&CustomerClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	acq.withCustomer = query
-	return acq
+	_q.withCustomer = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -344,10 +344,10 @@ func (acq *AppCustomerQuery) WithCustomer(opts ...func(*CustomerQuery)) *AppCust
 //		GroupBy(appcustomer.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (acq *AppCustomerQuery) GroupBy(field string, fields ...string) *AppCustomerGroupBy {
-	acq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &AppCustomerGroupBy{build: acq}
-	grbuild.flds = &acq.ctx.Fields
+func (_q *AppCustomerQuery) GroupBy(field string, fields ...string) *AppCustomerGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &AppCustomerGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = appcustomer.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -365,83 +365,83 @@ func (acq *AppCustomerQuery) GroupBy(field string, fields ...string) *AppCustome
 //	client.AppCustomer.Query().
 //		Select(appcustomer.FieldNamespace).
 //		Scan(ctx, &v)
-func (acq *AppCustomerQuery) Select(fields ...string) *AppCustomerSelect {
-	acq.ctx.Fields = append(acq.ctx.Fields, fields...)
-	sbuild := &AppCustomerSelect{AppCustomerQuery: acq}
+func (_q *AppCustomerQuery) Select(fields ...string) *AppCustomerSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &AppCustomerSelect{AppCustomerQuery: _q}
 	sbuild.label = appcustomer.Label
-	sbuild.flds, sbuild.scan = &acq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a AppCustomerSelect configured with the given aggregations.
-func (acq *AppCustomerQuery) Aggregate(fns ...AggregateFunc) *AppCustomerSelect {
-	return acq.Select().Aggregate(fns...)
+func (_q *AppCustomerQuery) Aggregate(fns ...AggregateFunc) *AppCustomerSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (acq *AppCustomerQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range acq.inters {
+func (_q *AppCustomerQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, acq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range acq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !appcustomer.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if acq.path != nil {
-		prev, err := acq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		acq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (acq *AppCustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*AppCustomer, error) {
+func (_q *AppCustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*AppCustomer, error) {
 	var (
 		nodes       = []*AppCustomer{}
-		_spec       = acq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			acq.withApp != nil,
-			acq.withCustomer != nil,
+			_q.withApp != nil,
+			_q.withCustomer != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*AppCustomer).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &AppCustomer{config: acq.config}
+		node := &AppCustomer{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(acq.modifiers) > 0 {
-		_spec.Modifiers = acq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, acq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := acq.withApp; query != nil {
-		if err := acq.loadApp(ctx, query, nodes, nil,
+	if query := _q.withApp; query != nil {
+		if err := _q.loadApp(ctx, query, nodes, nil,
 			func(n *AppCustomer, e *App) { n.Edges.App = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := acq.withCustomer; query != nil {
-		if err := acq.loadCustomer(ctx, query, nodes, nil,
+	if query := _q.withCustomer; query != nil {
+		if err := _q.loadCustomer(ctx, query, nodes, nil,
 			func(n *AppCustomer, e *Customer) { n.Edges.Customer = e }); err != nil {
 			return nil, err
 		}
@@ -449,7 +449,7 @@ func (acq *AppCustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	return nodes, nil
 }
 
-func (acq *AppCustomerQuery) loadApp(ctx context.Context, query *AppQuery, nodes []*AppCustomer, init func(*AppCustomer), assign func(*AppCustomer, *App)) error {
+func (_q *AppCustomerQuery) loadApp(ctx context.Context, query *AppQuery, nodes []*AppCustomer, init func(*AppCustomer), assign func(*AppCustomer, *App)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*AppCustomer)
 	for i := range nodes {
@@ -478,7 +478,7 @@ func (acq *AppCustomerQuery) loadApp(ctx context.Context, query *AppQuery, nodes
 	}
 	return nil
 }
-func (acq *AppCustomerQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*AppCustomer, init func(*AppCustomer), assign func(*AppCustomer, *Customer)) error {
+func (_q *AppCustomerQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*AppCustomer, init func(*AppCustomer), assign func(*AppCustomer, *Customer)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*AppCustomer)
 	for i := range nodes {
@@ -508,27 +508,27 @@ func (acq *AppCustomerQuery) loadCustomer(ctx context.Context, query *CustomerQu
 	return nil
 }
 
-func (acq *AppCustomerQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := acq.querySpec()
-	if len(acq.modifiers) > 0 {
-		_spec.Modifiers = acq.modifiers
+func (_q *AppCustomerQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = acq.ctx.Fields
-	if len(acq.ctx.Fields) > 0 {
-		_spec.Unique = acq.ctx.Unique != nil && *acq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, acq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (acq *AppCustomerQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *AppCustomerQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(appcustomer.Table, appcustomer.Columns, sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt))
-	_spec.From = acq.sql
-	if unique := acq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if acq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := acq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, appcustomer.FieldID)
 		for i := range fields {
@@ -536,27 +536,27 @@ func (acq *AppCustomerQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if acq.withApp != nil {
+		if _q.withApp != nil {
 			_spec.Node.AddColumnOnce(appcustomer.FieldAppID)
 		}
-		if acq.withCustomer != nil {
+		if _q.withCustomer != nil {
 			_spec.Node.AddColumnOnce(appcustomer.FieldCustomerID)
 		}
 	}
-	if ps := acq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := acq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := acq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := acq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -566,36 +566,36 @@ func (acq *AppCustomerQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (acq *AppCustomerQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(acq.driver.Dialect())
+func (_q *AppCustomerQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(appcustomer.Table)
-	columns := acq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = appcustomer.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if acq.sql != nil {
-		selector = acq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if acq.ctx.Unique != nil && *acq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range acq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range acq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range acq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := acq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := acq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -604,27 +604,27 @@ func (acq *AppCustomerQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (acq *AppCustomerQuery) ForUpdate(opts ...sql.LockOption) *AppCustomerQuery {
-	if acq.driver.Dialect() == dialect.Postgres {
-		acq.Unique(false)
+func (_q *AppCustomerQuery) ForUpdate(opts ...sql.LockOption) *AppCustomerQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	acq.modifiers = append(acq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return acq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (acq *AppCustomerQuery) ForShare(opts ...sql.LockOption) *AppCustomerQuery {
-	if acq.driver.Dialect() == dialect.Postgres {
-		acq.Unique(false)
+func (_q *AppCustomerQuery) ForShare(opts ...sql.LockOption) *AppCustomerQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	acq.modifiers = append(acq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return acq
+	return _q
 }
 
 // AppCustomerGroupBy is the group-by builder for AppCustomer entities.

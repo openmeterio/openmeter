@@ -25,159 +25,159 @@ type MeterCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (mc *MeterCreate) SetNamespace(s string) *MeterCreate {
-	mc.mutation.SetNamespace(s)
-	return mc
+func (_c *MeterCreate) SetNamespace(v string) *MeterCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetMetadata sets the "metadata" field.
-func (mc *MeterCreate) SetMetadata(m map[string]string) *MeterCreate {
-	mc.mutation.SetMetadata(m)
-	return mc
+func (_c *MeterCreate) SetMetadata(v map[string]string) *MeterCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (mc *MeterCreate) SetCreatedAt(t time.Time) *MeterCreate {
-	mc.mutation.SetCreatedAt(t)
-	return mc
+func (_c *MeterCreate) SetCreatedAt(v time.Time) *MeterCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (mc *MeterCreate) SetNillableCreatedAt(t *time.Time) *MeterCreate {
-	if t != nil {
-		mc.SetCreatedAt(*t)
+func (_c *MeterCreate) SetNillableCreatedAt(v *time.Time) *MeterCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return mc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (mc *MeterCreate) SetUpdatedAt(t time.Time) *MeterCreate {
-	mc.mutation.SetUpdatedAt(t)
-	return mc
+func (_c *MeterCreate) SetUpdatedAt(v time.Time) *MeterCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (mc *MeterCreate) SetNillableUpdatedAt(t *time.Time) *MeterCreate {
-	if t != nil {
-		mc.SetUpdatedAt(*t)
+func (_c *MeterCreate) SetNillableUpdatedAt(v *time.Time) *MeterCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return mc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (mc *MeterCreate) SetDeletedAt(t time.Time) *MeterCreate {
-	mc.mutation.SetDeletedAt(t)
-	return mc
+func (_c *MeterCreate) SetDeletedAt(v time.Time) *MeterCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (mc *MeterCreate) SetNillableDeletedAt(t *time.Time) *MeterCreate {
-	if t != nil {
-		mc.SetDeletedAt(*t)
+func (_c *MeterCreate) SetNillableDeletedAt(v *time.Time) *MeterCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return mc
+	return _c
 }
 
 // SetName sets the "name" field.
-func (mc *MeterCreate) SetName(s string) *MeterCreate {
-	mc.mutation.SetName(s)
-	return mc
+func (_c *MeterCreate) SetName(v string) *MeterCreate {
+	_c.mutation.SetName(v)
+	return _c
 }
 
 // SetDescription sets the "description" field.
-func (mc *MeterCreate) SetDescription(s string) *MeterCreate {
-	mc.mutation.SetDescription(s)
-	return mc
+func (_c *MeterCreate) SetDescription(v string) *MeterCreate {
+	_c.mutation.SetDescription(v)
+	return _c
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (mc *MeterCreate) SetNillableDescription(s *string) *MeterCreate {
-	if s != nil {
-		mc.SetDescription(*s)
+func (_c *MeterCreate) SetNillableDescription(v *string) *MeterCreate {
+	if v != nil {
+		_c.SetDescription(*v)
 	}
-	return mc
+	return _c
 }
 
 // SetKey sets the "key" field.
-func (mc *MeterCreate) SetKey(s string) *MeterCreate {
-	mc.mutation.SetKey(s)
-	return mc
+func (_c *MeterCreate) SetKey(v string) *MeterCreate {
+	_c.mutation.SetKey(v)
+	return _c
 }
 
 // SetEventType sets the "event_type" field.
-func (mc *MeterCreate) SetEventType(s string) *MeterCreate {
-	mc.mutation.SetEventType(s)
-	return mc
+func (_c *MeterCreate) SetEventType(v string) *MeterCreate {
+	_c.mutation.SetEventType(v)
+	return _c
 }
 
 // SetValueProperty sets the "value_property" field.
-func (mc *MeterCreate) SetValueProperty(s string) *MeterCreate {
-	mc.mutation.SetValueProperty(s)
-	return mc
+func (_c *MeterCreate) SetValueProperty(v string) *MeterCreate {
+	_c.mutation.SetValueProperty(v)
+	return _c
 }
 
 // SetNillableValueProperty sets the "value_property" field if the given value is not nil.
-func (mc *MeterCreate) SetNillableValueProperty(s *string) *MeterCreate {
-	if s != nil {
-		mc.SetValueProperty(*s)
+func (_c *MeterCreate) SetNillableValueProperty(v *string) *MeterCreate {
+	if v != nil {
+		_c.SetValueProperty(*v)
 	}
-	return mc
+	return _c
 }
 
 // SetGroupBy sets the "group_by" field.
-func (mc *MeterCreate) SetGroupBy(m map[string]string) *MeterCreate {
-	mc.mutation.SetGroupBy(m)
-	return mc
+func (_c *MeterCreate) SetGroupBy(v map[string]string) *MeterCreate {
+	_c.mutation.SetGroupBy(v)
+	return _c
 }
 
 // SetAggregation sets the "aggregation" field.
-func (mc *MeterCreate) SetAggregation(ma meter.MeterAggregation) *MeterCreate {
-	mc.mutation.SetAggregation(ma)
-	return mc
+func (_c *MeterCreate) SetAggregation(v meter.MeterAggregation) *MeterCreate {
+	_c.mutation.SetAggregation(v)
+	return _c
 }
 
 // SetEventFrom sets the "event_from" field.
-func (mc *MeterCreate) SetEventFrom(t time.Time) *MeterCreate {
-	mc.mutation.SetEventFrom(t)
-	return mc
+func (_c *MeterCreate) SetEventFrom(v time.Time) *MeterCreate {
+	_c.mutation.SetEventFrom(v)
+	return _c
 }
 
 // SetNillableEventFrom sets the "event_from" field if the given value is not nil.
-func (mc *MeterCreate) SetNillableEventFrom(t *time.Time) *MeterCreate {
-	if t != nil {
-		mc.SetEventFrom(*t)
+func (_c *MeterCreate) SetNillableEventFrom(v *time.Time) *MeterCreate {
+	if v != nil {
+		_c.SetEventFrom(*v)
 	}
-	return mc
+	return _c
 }
 
 // SetID sets the "id" field.
-func (mc *MeterCreate) SetID(s string) *MeterCreate {
-	mc.mutation.SetID(s)
-	return mc
+func (_c *MeterCreate) SetID(v string) *MeterCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (mc *MeterCreate) SetNillableID(s *string) *MeterCreate {
-	if s != nil {
-		mc.SetID(*s)
+func (_c *MeterCreate) SetNillableID(v *string) *MeterCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return mc
+	return _c
 }
 
 // Mutation returns the MeterMutation object of the builder.
-func (mc *MeterCreate) Mutation() *MeterMutation {
-	return mc.mutation
+func (_c *MeterCreate) Mutation() *MeterMutation {
+	return _c.mutation
 }
 
 // Save creates the Meter in the database.
-func (mc *MeterCreate) Save(ctx context.Context) (*Meter, error) {
-	mc.defaults()
-	return withHooks(ctx, mc.sqlSave, mc.mutation, mc.hooks)
+func (_c *MeterCreate) Save(ctx context.Context) (*Meter, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (mc *MeterCreate) SaveX(ctx context.Context) *Meter {
-	v, err := mc.Save(ctx)
+func (_c *MeterCreate) SaveX(ctx context.Context) *Meter {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -185,73 +185,73 @@ func (mc *MeterCreate) SaveX(ctx context.Context) *Meter {
 }
 
 // Exec executes the query.
-func (mc *MeterCreate) Exec(ctx context.Context) error {
-	_, err := mc.Save(ctx)
+func (_c *MeterCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (mc *MeterCreate) ExecX(ctx context.Context) {
-	if err := mc.Exec(ctx); err != nil {
+func (_c *MeterCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (mc *MeterCreate) defaults() {
-	if _, ok := mc.mutation.CreatedAt(); !ok {
+func (_c *MeterCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := dbmeter.DefaultCreatedAt()
-		mc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := mc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := dbmeter.DefaultUpdatedAt()
-		mc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := mc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := dbmeter.DefaultID()
-		mc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (mc *MeterCreate) check() error {
-	if _, ok := mc.mutation.Namespace(); !ok {
+func (_c *MeterCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "Meter.namespace"`)}
 	}
-	if v, ok := mc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := dbmeter.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "Meter.namespace": %w`, err)}
 		}
 	}
-	if _, ok := mc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "Meter.created_at"`)}
 	}
-	if _, ok := mc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "Meter.updated_at"`)}
 	}
-	if _, ok := mc.mutation.Name(); !ok {
+	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "Meter.name"`)}
 	}
-	if _, ok := mc.mutation.Key(); !ok {
+	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "Meter.key"`)}
 	}
-	if v, ok := mc.mutation.Key(); ok {
+	if v, ok := _c.mutation.Key(); ok {
 		if err := dbmeter.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "Meter.key": %w`, err)}
 		}
 	}
-	if _, ok := mc.mutation.EventType(); !ok {
+	if _, ok := _c.mutation.EventType(); !ok {
 		return &ValidationError{Name: "event_type", err: errors.New(`db: missing required field "Meter.event_type"`)}
 	}
-	if v, ok := mc.mutation.EventType(); ok {
+	if v, ok := _c.mutation.EventType(); ok {
 		if err := dbmeter.EventTypeValidator(v); err != nil {
 			return &ValidationError{Name: "event_type", err: fmt.Errorf(`db: validator failed for field "Meter.event_type": %w`, err)}
 		}
 	}
-	if _, ok := mc.mutation.Aggregation(); !ok {
+	if _, ok := _c.mutation.Aggregation(); !ok {
 		return &ValidationError{Name: "aggregation", err: errors.New(`db: missing required field "Meter.aggregation"`)}
 	}
-	if v, ok := mc.mutation.Aggregation(); ok {
+	if v, ok := _c.mutation.Aggregation(); ok {
 		if err := dbmeter.AggregationValidator(v); err != nil {
 			return &ValidationError{Name: "aggregation", err: fmt.Errorf(`db: validator failed for field "Meter.aggregation": %w`, err)}
 		}
@@ -259,12 +259,12 @@ func (mc *MeterCreate) check() error {
 	return nil
 }
 
-func (mc *MeterCreate) sqlSave(ctx context.Context) (*Meter, error) {
-	if err := mc.check(); err != nil {
+func (_c *MeterCreate) sqlSave(ctx context.Context) (*Meter, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := mc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, mc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -277,70 +277,70 @@ func (mc *MeterCreate) sqlSave(ctx context.Context) (*Meter, error) {
 			return nil, fmt.Errorf("unexpected Meter.ID type: %T", _spec.ID.Value)
 		}
 	}
-	mc.mutation.id = &_node.ID
-	mc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (mc *MeterCreate) createSpec() (*Meter, *sqlgraph.CreateSpec) {
+func (_c *MeterCreate) createSpec() (*Meter, *sqlgraph.CreateSpec) {
 	var (
-		_node = &Meter{config: mc.config}
+		_node = &Meter{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(dbmeter.Table, sqlgraph.NewFieldSpec(dbmeter.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = mc.conflict
-	if id, ok := mc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := mc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(dbmeter.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := mc.mutation.Metadata(); ok {
+	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(dbmeter.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := mc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(dbmeter.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := mc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbmeter.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := mc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(dbmeter.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := mc.mutation.Name(); ok {
+	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(dbmeter.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := mc.mutation.Description(); ok {
+	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(dbmeter.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := mc.mutation.Key(); ok {
+	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(dbmeter.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
-	if value, ok := mc.mutation.EventType(); ok {
+	if value, ok := _c.mutation.EventType(); ok {
 		_spec.SetField(dbmeter.FieldEventType, field.TypeString, value)
 		_node.EventType = value
 	}
-	if value, ok := mc.mutation.ValueProperty(); ok {
+	if value, ok := _c.mutation.ValueProperty(); ok {
 		_spec.SetField(dbmeter.FieldValueProperty, field.TypeString, value)
 		_node.ValueProperty = &value
 	}
-	if value, ok := mc.mutation.GroupBy(); ok {
+	if value, ok := _c.mutation.GroupBy(); ok {
 		_spec.SetField(dbmeter.FieldGroupBy, field.TypeJSON, value)
 		_node.GroupBy = value
 	}
-	if value, ok := mc.mutation.Aggregation(); ok {
+	if value, ok := _c.mutation.Aggregation(); ok {
 		_spec.SetField(dbmeter.FieldAggregation, field.TypeEnum, value)
 		_node.Aggregation = value
 	}
-	if value, ok := mc.mutation.EventFrom(); ok {
+	if value, ok := _c.mutation.EventFrom(); ok {
 		_spec.SetField(dbmeter.FieldEventFrom, field.TypeTime, value)
 		_node.EventFrom = &value
 	}
@@ -363,10 +363,10 @@ func (mc *MeterCreate) createSpec() (*Meter, *sqlgraph.CreateSpec) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (mc *MeterCreate) OnConflict(opts ...sql.ConflictOption) *MeterUpsertOne {
-	mc.conflict = opts
+func (_c *MeterCreate) OnConflict(opts ...sql.ConflictOption) *MeterUpsertOne {
+	_c.conflict = opts
 	return &MeterUpsertOne{
-		create: mc,
+		create: _c,
 	}
 }
 
@@ -376,10 +376,10 @@ func (mc *MeterCreate) OnConflict(opts ...sql.ConflictOption) *MeterUpsertOne {
 //	client.Meter.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (mc *MeterCreate) OnConflictColumns(columns ...string) *MeterUpsertOne {
-	mc.conflict = append(mc.conflict, sql.ConflictColumns(columns...))
+func (_c *MeterCreate) OnConflictColumns(columns ...string) *MeterUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &MeterUpsertOne{
-		create: mc,
+		create: _c,
 	}
 }
 
@@ -792,16 +792,16 @@ type MeterCreateBulk struct {
 }
 
 // Save creates the Meter entities in the database.
-func (mcb *MeterCreateBulk) Save(ctx context.Context) ([]*Meter, error) {
-	if mcb.err != nil {
-		return nil, mcb.err
+func (_c *MeterCreateBulk) Save(ctx context.Context) ([]*Meter, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(mcb.builders))
-	nodes := make([]*Meter, len(mcb.builders))
-	mutators := make([]Mutator, len(mcb.builders))
-	for i := range mcb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*Meter, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := mcb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*MeterMutation)
@@ -815,12 +815,12 @@ func (mcb *MeterCreateBulk) Save(ctx context.Context) ([]*Meter, error) {
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, mcb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = mcb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, mcb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -840,7 +840,7 @@ func (mcb *MeterCreateBulk) Save(ctx context.Context) ([]*Meter, error) {
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, mcb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -848,8 +848,8 @@ func (mcb *MeterCreateBulk) Save(ctx context.Context) ([]*Meter, error) {
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (mcb *MeterCreateBulk) SaveX(ctx context.Context) []*Meter {
-	v, err := mcb.Save(ctx)
+func (_c *MeterCreateBulk) SaveX(ctx context.Context) []*Meter {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -857,14 +857,14 @@ func (mcb *MeterCreateBulk) SaveX(ctx context.Context) []*Meter {
 }
 
 // Exec executes the query.
-func (mcb *MeterCreateBulk) Exec(ctx context.Context) error {
-	_, err := mcb.Save(ctx)
+func (_c *MeterCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (mcb *MeterCreateBulk) ExecX(ctx context.Context) {
-	if err := mcb.Exec(ctx); err != nil {
+func (_c *MeterCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -884,10 +884,10 @@ func (mcb *MeterCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (mcb *MeterCreateBulk) OnConflict(opts ...sql.ConflictOption) *MeterUpsertBulk {
-	mcb.conflict = opts
+func (_c *MeterCreateBulk) OnConflict(opts ...sql.ConflictOption) *MeterUpsertBulk {
+	_c.conflict = opts
 	return &MeterUpsertBulk{
-		create: mcb,
+		create: _c,
 	}
 }
 
@@ -897,10 +897,10 @@ func (mcb *MeterCreateBulk) OnConflict(opts ...sql.ConflictOption) *MeterUpsertB
 //	client.Meter.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (mcb *MeterCreateBulk) OnConflictColumns(columns ...string) *MeterUpsertBulk {
-	mcb.conflict = append(mcb.conflict, sql.ConflictColumns(columns...))
+func (_c *MeterCreateBulk) OnConflictColumns(columns ...string) *MeterUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &MeterUpsertBulk{
-		create: mcb,
+		create: _c,
 	}
 }
 

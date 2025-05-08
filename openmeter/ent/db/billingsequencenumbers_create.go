@@ -23,36 +23,36 @@ type BillingSequenceNumbersCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (bsnc *BillingSequenceNumbersCreate) SetNamespace(s string) *BillingSequenceNumbersCreate {
-	bsnc.mutation.SetNamespace(s)
-	return bsnc
+func (_c *BillingSequenceNumbersCreate) SetNamespace(v string) *BillingSequenceNumbersCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetScope sets the "scope" field.
-func (bsnc *BillingSequenceNumbersCreate) SetScope(s string) *BillingSequenceNumbersCreate {
-	bsnc.mutation.SetScope(s)
-	return bsnc
+func (_c *BillingSequenceNumbersCreate) SetScope(v string) *BillingSequenceNumbersCreate {
+	_c.mutation.SetScope(v)
+	return _c
 }
 
 // SetLast sets the "last" field.
-func (bsnc *BillingSequenceNumbersCreate) SetLast(a alpacadecimal.Decimal) *BillingSequenceNumbersCreate {
-	bsnc.mutation.SetLast(a)
-	return bsnc
+func (_c *BillingSequenceNumbersCreate) SetLast(v alpacadecimal.Decimal) *BillingSequenceNumbersCreate {
+	_c.mutation.SetLast(v)
+	return _c
 }
 
 // Mutation returns the BillingSequenceNumbersMutation object of the builder.
-func (bsnc *BillingSequenceNumbersCreate) Mutation() *BillingSequenceNumbersMutation {
-	return bsnc.mutation
+func (_c *BillingSequenceNumbersCreate) Mutation() *BillingSequenceNumbersMutation {
+	return _c.mutation
 }
 
 // Save creates the BillingSequenceNumbers in the database.
-func (bsnc *BillingSequenceNumbersCreate) Save(ctx context.Context) (*BillingSequenceNumbers, error) {
-	return withHooks(ctx, bsnc.sqlSave, bsnc.mutation, bsnc.hooks)
+func (_c *BillingSequenceNumbersCreate) Save(ctx context.Context) (*BillingSequenceNumbers, error) {
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (bsnc *BillingSequenceNumbersCreate) SaveX(ctx context.Context) *BillingSequenceNumbers {
-	v, err := bsnc.Save(ctx)
+func (_c *BillingSequenceNumbersCreate) SaveX(ctx context.Context) *BillingSequenceNumbers {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -60,43 +60,43 @@ func (bsnc *BillingSequenceNumbersCreate) SaveX(ctx context.Context) *BillingSeq
 }
 
 // Exec executes the query.
-func (bsnc *BillingSequenceNumbersCreate) Exec(ctx context.Context) error {
-	_, err := bsnc.Save(ctx)
+func (_c *BillingSequenceNumbersCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bsnc *BillingSequenceNumbersCreate) ExecX(ctx context.Context) {
-	if err := bsnc.Exec(ctx); err != nil {
+func (_c *BillingSequenceNumbersCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bsnc *BillingSequenceNumbersCreate) check() error {
-	if _, ok := bsnc.mutation.Namespace(); !ok {
+func (_c *BillingSequenceNumbersCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BillingSequenceNumbers.namespace"`)}
 	}
-	if v, ok := bsnc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := billingsequencenumbers.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BillingSequenceNumbers.namespace": %w`, err)}
 		}
 	}
-	if _, ok := bsnc.mutation.Scope(); !ok {
+	if _, ok := _c.mutation.Scope(); !ok {
 		return &ValidationError{Name: "scope", err: errors.New(`db: missing required field "BillingSequenceNumbers.scope"`)}
 	}
-	if _, ok := bsnc.mutation.Last(); !ok {
+	if _, ok := _c.mutation.Last(); !ok {
 		return &ValidationError{Name: "last", err: errors.New(`db: missing required field "BillingSequenceNumbers.last"`)}
 	}
 	return nil
 }
 
-func (bsnc *BillingSequenceNumbersCreate) sqlSave(ctx context.Context) (*BillingSequenceNumbers, error) {
-	if err := bsnc.check(); err != nil {
+func (_c *BillingSequenceNumbersCreate) sqlSave(ctx context.Context) (*BillingSequenceNumbers, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := bsnc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, bsnc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -104,26 +104,26 @@ func (bsnc *BillingSequenceNumbersCreate) sqlSave(ctx context.Context) (*Billing
 	}
 	id := _spec.ID.Value.(int64)
 	_node.ID = int(id)
-	bsnc.mutation.id = &_node.ID
-	bsnc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (bsnc *BillingSequenceNumbersCreate) createSpec() (*BillingSequenceNumbers, *sqlgraph.CreateSpec) {
+func (_c *BillingSequenceNumbersCreate) createSpec() (*BillingSequenceNumbers, *sqlgraph.CreateSpec) {
 	var (
-		_node = &BillingSequenceNumbers{config: bsnc.config}
+		_node = &BillingSequenceNumbers{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(billingsequencenumbers.Table, sqlgraph.NewFieldSpec(billingsequencenumbers.FieldID, field.TypeInt))
 	)
-	_spec.OnConflict = bsnc.conflict
-	if value, ok := bsnc.mutation.Namespace(); ok {
+	_spec.OnConflict = _c.conflict
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(billingsequencenumbers.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := bsnc.mutation.Scope(); ok {
+	if value, ok := _c.mutation.Scope(); ok {
 		_spec.SetField(billingsequencenumbers.FieldScope, field.TypeString, value)
 		_node.Scope = value
 	}
-	if value, ok := bsnc.mutation.Last(); ok {
+	if value, ok := _c.mutation.Last(); ok {
 		_spec.SetField(billingsequencenumbers.FieldLast, field.TypeOther, value)
 		_node.Last = value
 	}
@@ -146,10 +146,10 @@ func (bsnc *BillingSequenceNumbersCreate) createSpec() (*BillingSequenceNumbers,
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bsnc *BillingSequenceNumbersCreate) OnConflict(opts ...sql.ConflictOption) *BillingSequenceNumbersUpsertOne {
-	bsnc.conflict = opts
+func (_c *BillingSequenceNumbersCreate) OnConflict(opts ...sql.ConflictOption) *BillingSequenceNumbersUpsertOne {
+	_c.conflict = opts
 	return &BillingSequenceNumbersUpsertOne{
-		create: bsnc,
+		create: _c,
 	}
 }
 
@@ -159,10 +159,10 @@ func (bsnc *BillingSequenceNumbersCreate) OnConflict(opts ...sql.ConflictOption)
 //	client.BillingSequenceNumbers.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bsnc *BillingSequenceNumbersCreate) OnConflictColumns(columns ...string) *BillingSequenceNumbersUpsertOne {
-	bsnc.conflict = append(bsnc.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingSequenceNumbersCreate) OnConflictColumns(columns ...string) *BillingSequenceNumbersUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingSequenceNumbersUpsertOne{
-		create: bsnc,
+		create: _c,
 	}
 }
 
@@ -318,16 +318,16 @@ type BillingSequenceNumbersCreateBulk struct {
 }
 
 // Save creates the BillingSequenceNumbers entities in the database.
-func (bsncb *BillingSequenceNumbersCreateBulk) Save(ctx context.Context) ([]*BillingSequenceNumbers, error) {
-	if bsncb.err != nil {
-		return nil, bsncb.err
+func (_c *BillingSequenceNumbersCreateBulk) Save(ctx context.Context) ([]*BillingSequenceNumbers, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(bsncb.builders))
-	nodes := make([]*BillingSequenceNumbers, len(bsncb.builders))
-	mutators := make([]Mutator, len(bsncb.builders))
-	for i := range bsncb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*BillingSequenceNumbers, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := bsncb.builders[i]
+			builder := _c.builders[i]
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*BillingSequenceNumbersMutation)
 				if !ok {
@@ -340,12 +340,12 @@ func (bsncb *BillingSequenceNumbersCreateBulk) Save(ctx context.Context) ([]*Bil
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, bsncb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = bsncb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, bsncb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -369,7 +369,7 @@ func (bsncb *BillingSequenceNumbersCreateBulk) Save(ctx context.Context) ([]*Bil
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, bsncb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -377,8 +377,8 @@ func (bsncb *BillingSequenceNumbersCreateBulk) Save(ctx context.Context) ([]*Bil
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bsncb *BillingSequenceNumbersCreateBulk) SaveX(ctx context.Context) []*BillingSequenceNumbers {
-	v, err := bsncb.Save(ctx)
+func (_c *BillingSequenceNumbersCreateBulk) SaveX(ctx context.Context) []*BillingSequenceNumbers {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -386,14 +386,14 @@ func (bsncb *BillingSequenceNumbersCreateBulk) SaveX(ctx context.Context) []*Bil
 }
 
 // Exec executes the query.
-func (bsncb *BillingSequenceNumbersCreateBulk) Exec(ctx context.Context) error {
-	_, err := bsncb.Save(ctx)
+func (_c *BillingSequenceNumbersCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bsncb *BillingSequenceNumbersCreateBulk) ExecX(ctx context.Context) {
-	if err := bsncb.Exec(ctx); err != nil {
+func (_c *BillingSequenceNumbersCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -413,10 +413,10 @@ func (bsncb *BillingSequenceNumbersCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bsncb *BillingSequenceNumbersCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingSequenceNumbersUpsertBulk {
-	bsncb.conflict = opts
+func (_c *BillingSequenceNumbersCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingSequenceNumbersUpsertBulk {
+	_c.conflict = opts
 	return &BillingSequenceNumbersUpsertBulk{
-		create: bsncb,
+		create: _c,
 	}
 }
 
@@ -426,10 +426,10 @@ func (bsncb *BillingSequenceNumbersCreateBulk) OnConflict(opts ...sql.ConflictOp
 //	client.BillingSequenceNumbers.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bsncb *BillingSequenceNumbersCreateBulk) OnConflictColumns(columns ...string) *BillingSequenceNumbersUpsertBulk {
-	bsncb.conflict = append(bsncb.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingSequenceNumbersCreateBulk) OnConflictColumns(columns ...string) *BillingSequenceNumbersUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingSequenceNumbersUpsertBulk{
-		create: bsncb,
+		create: _c,
 	}
 }
 

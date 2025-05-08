@@ -20,56 +20,56 @@ type Example1Delete struct {
 }
 
 // Where appends a list predicates to the Example1Delete builder.
-func (e *Example1Delete) Where(ps ...predicate.Example1) *Example1Delete {
-	e.mutation.Where(ps...)
-	return e
+func (_d *Example1Delete) Where(ps ...predicate.Example1) *Example1Delete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (e *Example1Delete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, e.sqlExec, e.mutation, e.hooks)
+func (_d *Example1Delete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (e *Example1Delete) ExecX(ctx context.Context) int {
-	n, err := e.Exec(ctx)
+func (_d *Example1Delete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (e *Example1Delete) sqlExec(ctx context.Context) (int, error) {
+func (_d *Example1Delete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(example1.Table, sqlgraph.NewFieldSpec(example1.FieldID, field.TypeString))
-	if ps := e.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, e.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	e.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // Example1DeleteOne is the builder for deleting a single Example1 entity.
 type Example1DeleteOne struct {
-	e *Example1Delete
+	_d *Example1Delete
 }
 
 // Where appends a list predicates to the Example1Delete builder.
-func (eo *Example1DeleteOne) Where(ps ...predicate.Example1) *Example1DeleteOne {
-	eo.e.mutation.Where(ps...)
-	return eo
+func (_d *Example1DeleteOne) Where(ps ...predicate.Example1) *Example1DeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (eo *Example1DeleteOne) Exec(ctx context.Context) error {
-	n, err := eo.e.Exec(ctx)
+func (_d *Example1DeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (eo *Example1DeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (eo *Example1DeleteOne) ExecX(ctx context.Context) {
-	if err := eo.Exec(ctx); err != nil {
+func (_d *Example1DeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

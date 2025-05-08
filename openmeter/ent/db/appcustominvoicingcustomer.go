@@ -95,7 +95,7 @@ func (*AppCustomInvoicingCustomer) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the AppCustomInvoicingCustomer fields.
-func (acic *AppCustomInvoicingCustomer) assignValues(columns []string, values []any) error {
+func (_m *AppCustomInvoicingCustomer) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -106,37 +106,37 @@ func (acic *AppCustomInvoicingCustomer) assignValues(columns []string, values []
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
-			acic.ID = int(value.Int64)
+			_m.ID = int(value.Int64)
 		case appcustominvoicingcustomer.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				acic.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case appcustominvoicingcustomer.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				acic.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case appcustominvoicingcustomer.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				acic.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case appcustominvoicingcustomer.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				acic.DeletedAt = new(time.Time)
-				*acic.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case appcustominvoicingcustomer.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &acic.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -144,16 +144,16 @@ func (acic *AppCustomInvoicingCustomer) assignValues(columns []string, values []
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field app_id", values[i])
 			} else if value.Valid {
-				acic.AppID = value.String
+				_m.AppID = value.String
 			}
 		case appcustominvoicingcustomer.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
 			} else if value.Valid {
-				acic.CustomerID = value.String
+				_m.CustomerID = value.String
 			}
 		default:
-			acic.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -161,65 +161,65 @@ func (acic *AppCustomInvoicingCustomer) assignValues(columns []string, values []
 
 // Value returns the ent.Value that was dynamically selected and assigned to the AppCustomInvoicingCustomer.
 // This includes values selected through modifiers, order, etc.
-func (acic *AppCustomInvoicingCustomer) Value(name string) (ent.Value, error) {
-	return acic.selectValues.Get(name)
+func (_m *AppCustomInvoicingCustomer) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryCustomInvoicingApp queries the "custom_invoicing_app" edge of the AppCustomInvoicingCustomer entity.
-func (acic *AppCustomInvoicingCustomer) QueryCustomInvoicingApp() *AppCustomInvoicingQuery {
-	return NewAppCustomInvoicingCustomerClient(acic.config).QueryCustomInvoicingApp(acic)
+func (_m *AppCustomInvoicingCustomer) QueryCustomInvoicingApp() *AppCustomInvoicingQuery {
+	return NewAppCustomInvoicingCustomerClient(_m.config).QueryCustomInvoicingApp(_m)
 }
 
 // QueryCustomer queries the "customer" edge of the AppCustomInvoicingCustomer entity.
-func (acic *AppCustomInvoicingCustomer) QueryCustomer() *CustomerQuery {
-	return NewAppCustomInvoicingCustomerClient(acic.config).QueryCustomer(acic)
+func (_m *AppCustomInvoicingCustomer) QueryCustomer() *CustomerQuery {
+	return NewAppCustomInvoicingCustomerClient(_m.config).QueryCustomer(_m)
 }
 
 // Update returns a builder for updating this AppCustomInvoicingCustomer.
 // Note that you need to call AppCustomInvoicingCustomer.Unwrap() before calling this method if this AppCustomInvoicingCustomer
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (acic *AppCustomInvoicingCustomer) Update() *AppCustomInvoicingCustomerUpdateOne {
-	return NewAppCustomInvoicingCustomerClient(acic.config).UpdateOne(acic)
+func (_m *AppCustomInvoicingCustomer) Update() *AppCustomInvoicingCustomerUpdateOne {
+	return NewAppCustomInvoicingCustomerClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the AppCustomInvoicingCustomer entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (acic *AppCustomInvoicingCustomer) Unwrap() *AppCustomInvoicingCustomer {
-	_tx, ok := acic.config.driver.(*txDriver)
+func (_m *AppCustomInvoicingCustomer) Unwrap() *AppCustomInvoicingCustomer {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: AppCustomInvoicingCustomer is not a transactional entity")
 	}
-	acic.config.driver = _tx.drv
-	return acic
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (acic *AppCustomInvoicingCustomer) String() string {
+func (_m *AppCustomInvoicingCustomer) String() string {
 	var builder strings.Builder
 	builder.WriteString("AppCustomInvoicingCustomer(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", acic.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(acic.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(acic.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(acic.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := acic.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", acic.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("app_id=")
-	builder.WriteString(acic.AppID)
+	builder.WriteString(_m.AppID)
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
-	builder.WriteString(acic.CustomerID)
+	builder.WriteString(_m.CustomerID)
 	builder.WriteByte(')')
 	return builder.String()
 }

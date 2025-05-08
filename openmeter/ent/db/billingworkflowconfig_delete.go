@@ -20,56 +20,56 @@ type BillingWorkflowConfigDelete struct {
 }
 
 // Where appends a list predicates to the BillingWorkflowConfigDelete builder.
-func (bwcd *BillingWorkflowConfigDelete) Where(ps ...predicate.BillingWorkflowConfig) *BillingWorkflowConfigDelete {
-	bwcd.mutation.Where(ps...)
-	return bwcd
+func (_d *BillingWorkflowConfigDelete) Where(ps ...predicate.BillingWorkflowConfig) *BillingWorkflowConfigDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (bwcd *BillingWorkflowConfigDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, bwcd.sqlExec, bwcd.mutation, bwcd.hooks)
+func (_d *BillingWorkflowConfigDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bwcd *BillingWorkflowConfigDelete) ExecX(ctx context.Context) int {
-	n, err := bwcd.Exec(ctx)
+func (_d *BillingWorkflowConfigDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (bwcd *BillingWorkflowConfigDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *BillingWorkflowConfigDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(billingworkflowconfig.Table, sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString))
-	if ps := bwcd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, bwcd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	bwcd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // BillingWorkflowConfigDeleteOne is the builder for deleting a single BillingWorkflowConfig entity.
 type BillingWorkflowConfigDeleteOne struct {
-	bwcd *BillingWorkflowConfigDelete
+	_d *BillingWorkflowConfigDelete
 }
 
 // Where appends a list predicates to the BillingWorkflowConfigDelete builder.
-func (bwcdo *BillingWorkflowConfigDeleteOne) Where(ps ...predicate.BillingWorkflowConfig) *BillingWorkflowConfigDeleteOne {
-	bwcdo.bwcd.mutation.Where(ps...)
-	return bwcdo
+func (_d *BillingWorkflowConfigDeleteOne) Where(ps ...predicate.BillingWorkflowConfig) *BillingWorkflowConfigDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (bwcdo *BillingWorkflowConfigDeleteOne) Exec(ctx context.Context) error {
-	n, err := bwcdo.bwcd.Exec(ctx)
+func (_d *BillingWorkflowConfigDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (bwcdo *BillingWorkflowConfigDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bwcdo *BillingWorkflowConfigDeleteOne) ExecX(ctx context.Context) {
-	if err := bwcdo.Exec(ctx); err != nil {
+func (_d *BillingWorkflowConfigDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

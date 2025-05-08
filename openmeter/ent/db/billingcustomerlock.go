@@ -39,7 +39,7 @@ func (*BillingCustomerLock) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the BillingCustomerLock fields.
-func (bcl *BillingCustomerLock) assignValues(columns []string, values []any) error {
+func (_m *BillingCustomerLock) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -49,22 +49,22 @@ func (bcl *BillingCustomerLock) assignValues(columns []string, values []any) err
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				bcl.ID = value.String
+				_m.ID = value.String
 			}
 		case billingcustomerlock.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				bcl.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case billingcustomerlock.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
 			} else if value.Valid {
-				bcl.CustomerID = value.String
+				_m.CustomerID = value.String
 			}
 		default:
-			bcl.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -72,38 +72,38 @@ func (bcl *BillingCustomerLock) assignValues(columns []string, values []any) err
 
 // Value returns the ent.Value that was dynamically selected and assigned to the BillingCustomerLock.
 // This includes values selected through modifiers, order, etc.
-func (bcl *BillingCustomerLock) Value(name string) (ent.Value, error) {
-	return bcl.selectValues.Get(name)
+func (_m *BillingCustomerLock) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // Update returns a builder for updating this BillingCustomerLock.
 // Note that you need to call BillingCustomerLock.Unwrap() before calling this method if this BillingCustomerLock
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (bcl *BillingCustomerLock) Update() *BillingCustomerLockUpdateOne {
-	return NewBillingCustomerLockClient(bcl.config).UpdateOne(bcl)
+func (_m *BillingCustomerLock) Update() *BillingCustomerLockUpdateOne {
+	return NewBillingCustomerLockClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the BillingCustomerLock entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (bcl *BillingCustomerLock) Unwrap() *BillingCustomerLock {
-	_tx, ok := bcl.config.driver.(*txDriver)
+func (_m *BillingCustomerLock) Unwrap() *BillingCustomerLock {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: BillingCustomerLock is not a transactional entity")
 	}
-	bcl.config.driver = _tx.drv
-	return bcl
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (bcl *BillingCustomerLock) String() string {
+func (_m *BillingCustomerLock) String() string {
 	var builder strings.Builder
 	builder.WriteString("BillingCustomerLock(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", bcl.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(bcl.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
-	builder.WriteString(bcl.CustomerID)
+	builder.WriteString(_m.CustomerID)
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -29,313 +29,313 @@ type BillingProfileCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (bpc *BillingProfileCreate) SetNamespace(s string) *BillingProfileCreate {
-	bpc.mutation.SetNamespace(s)
-	return bpc
+func (_c *BillingProfileCreate) SetNamespace(v string) *BillingProfileCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetMetadata sets the "metadata" field.
-func (bpc *BillingProfileCreate) SetMetadata(m map[string]string) *BillingProfileCreate {
-	bpc.mutation.SetMetadata(m)
-	return bpc
+func (_c *BillingProfileCreate) SetMetadata(v map[string]string) *BillingProfileCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (bpc *BillingProfileCreate) SetCreatedAt(t time.Time) *BillingProfileCreate {
-	bpc.mutation.SetCreatedAt(t)
-	return bpc
+func (_c *BillingProfileCreate) SetCreatedAt(v time.Time) *BillingProfileCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableCreatedAt(t *time.Time) *BillingProfileCreate {
-	if t != nil {
-		bpc.SetCreatedAt(*t)
+func (_c *BillingProfileCreate) SetNillableCreatedAt(v *time.Time) *BillingProfileCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (bpc *BillingProfileCreate) SetUpdatedAt(t time.Time) *BillingProfileCreate {
-	bpc.mutation.SetUpdatedAt(t)
-	return bpc
+func (_c *BillingProfileCreate) SetUpdatedAt(v time.Time) *BillingProfileCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableUpdatedAt(t *time.Time) *BillingProfileCreate {
-	if t != nil {
-		bpc.SetUpdatedAt(*t)
+func (_c *BillingProfileCreate) SetNillableUpdatedAt(v *time.Time) *BillingProfileCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (bpc *BillingProfileCreate) SetDeletedAt(t time.Time) *BillingProfileCreate {
-	bpc.mutation.SetDeletedAt(t)
-	return bpc
+func (_c *BillingProfileCreate) SetDeletedAt(v time.Time) *BillingProfileCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableDeletedAt(t *time.Time) *BillingProfileCreate {
-	if t != nil {
-		bpc.SetDeletedAt(*t)
+func (_c *BillingProfileCreate) SetNillableDeletedAt(v *time.Time) *BillingProfileCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetName sets the "name" field.
-func (bpc *BillingProfileCreate) SetName(s string) *BillingProfileCreate {
-	bpc.mutation.SetName(s)
-	return bpc
+func (_c *BillingProfileCreate) SetName(v string) *BillingProfileCreate {
+	_c.mutation.SetName(v)
+	return _c
 }
 
 // SetDescription sets the "description" field.
-func (bpc *BillingProfileCreate) SetDescription(s string) *BillingProfileCreate {
-	bpc.mutation.SetDescription(s)
-	return bpc
+func (_c *BillingProfileCreate) SetDescription(v string) *BillingProfileCreate {
+	_c.mutation.SetDescription(v)
+	return _c
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableDescription(s *string) *BillingProfileCreate {
-	if s != nil {
-		bpc.SetDescription(*s)
+func (_c *BillingProfileCreate) SetNillableDescription(v *string) *BillingProfileCreate {
+	if v != nil {
+		_c.SetDescription(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetSupplierAddressCountry sets the "supplier_address_country" field.
-func (bpc *BillingProfileCreate) SetSupplierAddressCountry(mc models.CountryCode) *BillingProfileCreate {
-	bpc.mutation.SetSupplierAddressCountry(mc)
-	return bpc
+func (_c *BillingProfileCreate) SetSupplierAddressCountry(v models.CountryCode) *BillingProfileCreate {
+	_c.mutation.SetSupplierAddressCountry(v)
+	return _c
 }
 
 // SetNillableSupplierAddressCountry sets the "supplier_address_country" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableSupplierAddressCountry(mc *models.CountryCode) *BillingProfileCreate {
-	if mc != nil {
-		bpc.SetSupplierAddressCountry(*mc)
+func (_c *BillingProfileCreate) SetNillableSupplierAddressCountry(v *models.CountryCode) *BillingProfileCreate {
+	if v != nil {
+		_c.SetSupplierAddressCountry(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetSupplierAddressPostalCode sets the "supplier_address_postal_code" field.
-func (bpc *BillingProfileCreate) SetSupplierAddressPostalCode(s string) *BillingProfileCreate {
-	bpc.mutation.SetSupplierAddressPostalCode(s)
-	return bpc
+func (_c *BillingProfileCreate) SetSupplierAddressPostalCode(v string) *BillingProfileCreate {
+	_c.mutation.SetSupplierAddressPostalCode(v)
+	return _c
 }
 
 // SetNillableSupplierAddressPostalCode sets the "supplier_address_postal_code" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableSupplierAddressPostalCode(s *string) *BillingProfileCreate {
-	if s != nil {
-		bpc.SetSupplierAddressPostalCode(*s)
+func (_c *BillingProfileCreate) SetNillableSupplierAddressPostalCode(v *string) *BillingProfileCreate {
+	if v != nil {
+		_c.SetSupplierAddressPostalCode(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetSupplierAddressState sets the "supplier_address_state" field.
-func (bpc *BillingProfileCreate) SetSupplierAddressState(s string) *BillingProfileCreate {
-	bpc.mutation.SetSupplierAddressState(s)
-	return bpc
+func (_c *BillingProfileCreate) SetSupplierAddressState(v string) *BillingProfileCreate {
+	_c.mutation.SetSupplierAddressState(v)
+	return _c
 }
 
 // SetNillableSupplierAddressState sets the "supplier_address_state" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableSupplierAddressState(s *string) *BillingProfileCreate {
-	if s != nil {
-		bpc.SetSupplierAddressState(*s)
+func (_c *BillingProfileCreate) SetNillableSupplierAddressState(v *string) *BillingProfileCreate {
+	if v != nil {
+		_c.SetSupplierAddressState(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetSupplierAddressCity sets the "supplier_address_city" field.
-func (bpc *BillingProfileCreate) SetSupplierAddressCity(s string) *BillingProfileCreate {
-	bpc.mutation.SetSupplierAddressCity(s)
-	return bpc
+func (_c *BillingProfileCreate) SetSupplierAddressCity(v string) *BillingProfileCreate {
+	_c.mutation.SetSupplierAddressCity(v)
+	return _c
 }
 
 // SetNillableSupplierAddressCity sets the "supplier_address_city" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableSupplierAddressCity(s *string) *BillingProfileCreate {
-	if s != nil {
-		bpc.SetSupplierAddressCity(*s)
+func (_c *BillingProfileCreate) SetNillableSupplierAddressCity(v *string) *BillingProfileCreate {
+	if v != nil {
+		_c.SetSupplierAddressCity(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetSupplierAddressLine1 sets the "supplier_address_line1" field.
-func (bpc *BillingProfileCreate) SetSupplierAddressLine1(s string) *BillingProfileCreate {
-	bpc.mutation.SetSupplierAddressLine1(s)
-	return bpc
+func (_c *BillingProfileCreate) SetSupplierAddressLine1(v string) *BillingProfileCreate {
+	_c.mutation.SetSupplierAddressLine1(v)
+	return _c
 }
 
 // SetNillableSupplierAddressLine1 sets the "supplier_address_line1" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableSupplierAddressLine1(s *string) *BillingProfileCreate {
-	if s != nil {
-		bpc.SetSupplierAddressLine1(*s)
+func (_c *BillingProfileCreate) SetNillableSupplierAddressLine1(v *string) *BillingProfileCreate {
+	if v != nil {
+		_c.SetSupplierAddressLine1(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetSupplierAddressLine2 sets the "supplier_address_line2" field.
-func (bpc *BillingProfileCreate) SetSupplierAddressLine2(s string) *BillingProfileCreate {
-	bpc.mutation.SetSupplierAddressLine2(s)
-	return bpc
+func (_c *BillingProfileCreate) SetSupplierAddressLine2(v string) *BillingProfileCreate {
+	_c.mutation.SetSupplierAddressLine2(v)
+	return _c
 }
 
 // SetNillableSupplierAddressLine2 sets the "supplier_address_line2" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableSupplierAddressLine2(s *string) *BillingProfileCreate {
-	if s != nil {
-		bpc.SetSupplierAddressLine2(*s)
+func (_c *BillingProfileCreate) SetNillableSupplierAddressLine2(v *string) *BillingProfileCreate {
+	if v != nil {
+		_c.SetSupplierAddressLine2(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field.
-func (bpc *BillingProfileCreate) SetSupplierAddressPhoneNumber(s string) *BillingProfileCreate {
-	bpc.mutation.SetSupplierAddressPhoneNumber(s)
-	return bpc
+func (_c *BillingProfileCreate) SetSupplierAddressPhoneNumber(v string) *BillingProfileCreate {
+	_c.mutation.SetSupplierAddressPhoneNumber(v)
+	return _c
 }
 
 // SetNillableSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableSupplierAddressPhoneNumber(s *string) *BillingProfileCreate {
-	if s != nil {
-		bpc.SetSupplierAddressPhoneNumber(*s)
+func (_c *BillingProfileCreate) SetNillableSupplierAddressPhoneNumber(v *string) *BillingProfileCreate {
+	if v != nil {
+		_c.SetSupplierAddressPhoneNumber(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetTaxAppID sets the "tax_app_id" field.
-func (bpc *BillingProfileCreate) SetTaxAppID(s string) *BillingProfileCreate {
-	bpc.mutation.SetTaxAppID(s)
-	return bpc
+func (_c *BillingProfileCreate) SetTaxAppID(v string) *BillingProfileCreate {
+	_c.mutation.SetTaxAppID(v)
+	return _c
 }
 
 // SetInvoicingAppID sets the "invoicing_app_id" field.
-func (bpc *BillingProfileCreate) SetInvoicingAppID(s string) *BillingProfileCreate {
-	bpc.mutation.SetInvoicingAppID(s)
-	return bpc
+func (_c *BillingProfileCreate) SetInvoicingAppID(v string) *BillingProfileCreate {
+	_c.mutation.SetInvoicingAppID(v)
+	return _c
 }
 
 // SetPaymentAppID sets the "payment_app_id" field.
-func (bpc *BillingProfileCreate) SetPaymentAppID(s string) *BillingProfileCreate {
-	bpc.mutation.SetPaymentAppID(s)
-	return bpc
+func (_c *BillingProfileCreate) SetPaymentAppID(v string) *BillingProfileCreate {
+	_c.mutation.SetPaymentAppID(v)
+	return _c
 }
 
 // SetWorkflowConfigID sets the "workflow_config_id" field.
-func (bpc *BillingProfileCreate) SetWorkflowConfigID(s string) *BillingProfileCreate {
-	bpc.mutation.SetWorkflowConfigID(s)
-	return bpc
+func (_c *BillingProfileCreate) SetWorkflowConfigID(v string) *BillingProfileCreate {
+	_c.mutation.SetWorkflowConfigID(v)
+	return _c
 }
 
 // SetDefault sets the "default" field.
-func (bpc *BillingProfileCreate) SetDefault(b bool) *BillingProfileCreate {
-	bpc.mutation.SetDefault(b)
-	return bpc
+func (_c *BillingProfileCreate) SetDefault(v bool) *BillingProfileCreate {
+	_c.mutation.SetDefault(v)
+	return _c
 }
 
 // SetNillableDefault sets the "default" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableDefault(b *bool) *BillingProfileCreate {
-	if b != nil {
-		bpc.SetDefault(*b)
+func (_c *BillingProfileCreate) SetNillableDefault(v *bool) *BillingProfileCreate {
+	if v != nil {
+		_c.SetDefault(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetSupplierName sets the "supplier_name" field.
-func (bpc *BillingProfileCreate) SetSupplierName(s string) *BillingProfileCreate {
-	bpc.mutation.SetSupplierName(s)
-	return bpc
+func (_c *BillingProfileCreate) SetSupplierName(v string) *BillingProfileCreate {
+	_c.mutation.SetSupplierName(v)
+	return _c
 }
 
 // SetSupplierTaxCode sets the "supplier_tax_code" field.
-func (bpc *BillingProfileCreate) SetSupplierTaxCode(s string) *BillingProfileCreate {
-	bpc.mutation.SetSupplierTaxCode(s)
-	return bpc
+func (_c *BillingProfileCreate) SetSupplierTaxCode(v string) *BillingProfileCreate {
+	_c.mutation.SetSupplierTaxCode(v)
+	return _c
 }
 
 // SetNillableSupplierTaxCode sets the "supplier_tax_code" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableSupplierTaxCode(s *string) *BillingProfileCreate {
-	if s != nil {
-		bpc.SetSupplierTaxCode(*s)
+func (_c *BillingProfileCreate) SetNillableSupplierTaxCode(v *string) *BillingProfileCreate {
+	if v != nil {
+		_c.SetSupplierTaxCode(*v)
 	}
-	return bpc
+	return _c
 }
 
 // SetID sets the "id" field.
-func (bpc *BillingProfileCreate) SetID(s string) *BillingProfileCreate {
-	bpc.mutation.SetID(s)
-	return bpc
+func (_c *BillingProfileCreate) SetID(v string) *BillingProfileCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (bpc *BillingProfileCreate) SetNillableID(s *string) *BillingProfileCreate {
-	if s != nil {
-		bpc.SetID(*s)
+func (_c *BillingProfileCreate) SetNillableID(v *string) *BillingProfileCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return bpc
+	return _c
 }
 
 // AddBillingInvoiceIDs adds the "billing_invoices" edge to the BillingInvoice entity by IDs.
-func (bpc *BillingProfileCreate) AddBillingInvoiceIDs(ids ...string) *BillingProfileCreate {
-	bpc.mutation.AddBillingInvoiceIDs(ids...)
-	return bpc
+func (_c *BillingProfileCreate) AddBillingInvoiceIDs(ids ...string) *BillingProfileCreate {
+	_c.mutation.AddBillingInvoiceIDs(ids...)
+	return _c
 }
 
 // AddBillingInvoices adds the "billing_invoices" edges to the BillingInvoice entity.
-func (bpc *BillingProfileCreate) AddBillingInvoices(b ...*BillingInvoice) *BillingProfileCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_c *BillingProfileCreate) AddBillingInvoices(v ...*BillingInvoice) *BillingProfileCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return bpc.AddBillingInvoiceIDs(ids...)
+	return _c.AddBillingInvoiceIDs(ids...)
 }
 
 // AddBillingCustomerOverrideIDs adds the "billing_customer_override" edge to the BillingCustomerOverride entity by IDs.
-func (bpc *BillingProfileCreate) AddBillingCustomerOverrideIDs(ids ...string) *BillingProfileCreate {
-	bpc.mutation.AddBillingCustomerOverrideIDs(ids...)
-	return bpc
+func (_c *BillingProfileCreate) AddBillingCustomerOverrideIDs(ids ...string) *BillingProfileCreate {
+	_c.mutation.AddBillingCustomerOverrideIDs(ids...)
+	return _c
 }
 
 // AddBillingCustomerOverride adds the "billing_customer_override" edges to the BillingCustomerOverride entity.
-func (bpc *BillingProfileCreate) AddBillingCustomerOverride(b ...*BillingCustomerOverride) *BillingProfileCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_c *BillingProfileCreate) AddBillingCustomerOverride(v ...*BillingCustomerOverride) *BillingProfileCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return bpc.AddBillingCustomerOverrideIDs(ids...)
+	return _c.AddBillingCustomerOverrideIDs(ids...)
 }
 
 // SetWorkflowConfig sets the "workflow_config" edge to the BillingWorkflowConfig entity.
-func (bpc *BillingProfileCreate) SetWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileCreate {
-	return bpc.SetWorkflowConfigID(b.ID)
+func (_c *BillingProfileCreate) SetWorkflowConfig(v *BillingWorkflowConfig) *BillingProfileCreate {
+	return _c.SetWorkflowConfigID(v.ID)
 }
 
 // SetTaxApp sets the "tax_app" edge to the App entity.
-func (bpc *BillingProfileCreate) SetTaxApp(a *App) *BillingProfileCreate {
-	return bpc.SetTaxAppID(a.ID)
+func (_c *BillingProfileCreate) SetTaxApp(v *App) *BillingProfileCreate {
+	return _c.SetTaxAppID(v.ID)
 }
 
 // SetInvoicingApp sets the "invoicing_app" edge to the App entity.
-func (bpc *BillingProfileCreate) SetInvoicingApp(a *App) *BillingProfileCreate {
-	return bpc.SetInvoicingAppID(a.ID)
+func (_c *BillingProfileCreate) SetInvoicingApp(v *App) *BillingProfileCreate {
+	return _c.SetInvoicingAppID(v.ID)
 }
 
 // SetPaymentApp sets the "payment_app" edge to the App entity.
-func (bpc *BillingProfileCreate) SetPaymentApp(a *App) *BillingProfileCreate {
-	return bpc.SetPaymentAppID(a.ID)
+func (_c *BillingProfileCreate) SetPaymentApp(v *App) *BillingProfileCreate {
+	return _c.SetPaymentAppID(v.ID)
 }
 
 // Mutation returns the BillingProfileMutation object of the builder.
-func (bpc *BillingProfileCreate) Mutation() *BillingProfileMutation {
-	return bpc.mutation
+func (_c *BillingProfileCreate) Mutation() *BillingProfileMutation {
+	return _c.mutation
 }
 
 // Save creates the BillingProfile in the database.
-func (bpc *BillingProfileCreate) Save(ctx context.Context) (*BillingProfile, error) {
-	bpc.defaults()
-	return withHooks(ctx, bpc.sqlSave, bpc.mutation, bpc.hooks)
+func (_c *BillingProfileCreate) Save(ctx context.Context) (*BillingProfile, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (bpc *BillingProfileCreate) SaveX(ctx context.Context) *BillingProfile {
-	v, err := bpc.Save(ctx)
+func (_c *BillingProfileCreate) SaveX(ctx context.Context) *BillingProfile {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -343,111 +343,111 @@ func (bpc *BillingProfileCreate) SaveX(ctx context.Context) *BillingProfile {
 }
 
 // Exec executes the query.
-func (bpc *BillingProfileCreate) Exec(ctx context.Context) error {
-	_, err := bpc.Save(ctx)
+func (_c *BillingProfileCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bpc *BillingProfileCreate) ExecX(ctx context.Context) {
-	if err := bpc.Exec(ctx); err != nil {
+func (_c *BillingProfileCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bpc *BillingProfileCreate) defaults() {
-	if _, ok := bpc.mutation.CreatedAt(); !ok {
+func (_c *BillingProfileCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := billingprofile.DefaultCreatedAt()
-		bpc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := bpc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := billingprofile.DefaultUpdatedAt()
-		bpc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := bpc.mutation.Default(); !ok {
+	if _, ok := _c.mutation.Default(); !ok {
 		v := billingprofile.DefaultDefault
-		bpc.mutation.SetDefault(v)
+		_c.mutation.SetDefault(v)
 	}
-	if _, ok := bpc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := billingprofile.DefaultID()
-		bpc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bpc *BillingProfileCreate) check() error {
-	if _, ok := bpc.mutation.Namespace(); !ok {
+func (_c *BillingProfileCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BillingProfile.namespace"`)}
 	}
-	if v, ok := bpc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := billingprofile.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BillingProfile.namespace": %w`, err)}
 		}
 	}
-	if _, ok := bpc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "BillingProfile.created_at"`)}
 	}
-	if _, ok := bpc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingProfile.updated_at"`)}
 	}
-	if _, ok := bpc.mutation.Name(); !ok {
+	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "BillingProfile.name"`)}
 	}
-	if v, ok := bpc.mutation.SupplierAddressCountry(); ok {
+	if v, ok := _c.mutation.SupplierAddressCountry(); ok {
 		if err := billingprofile.SupplierAddressCountryValidator(string(v)); err != nil {
 			return &ValidationError{Name: "supplier_address_country", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_address_country": %w`, err)}
 		}
 	}
-	if _, ok := bpc.mutation.TaxAppID(); !ok {
+	if _, ok := _c.mutation.TaxAppID(); !ok {
 		return &ValidationError{Name: "tax_app_id", err: errors.New(`db: missing required field "BillingProfile.tax_app_id"`)}
 	}
-	if _, ok := bpc.mutation.InvoicingAppID(); !ok {
+	if _, ok := _c.mutation.InvoicingAppID(); !ok {
 		return &ValidationError{Name: "invoicing_app_id", err: errors.New(`db: missing required field "BillingProfile.invoicing_app_id"`)}
 	}
-	if _, ok := bpc.mutation.PaymentAppID(); !ok {
+	if _, ok := _c.mutation.PaymentAppID(); !ok {
 		return &ValidationError{Name: "payment_app_id", err: errors.New(`db: missing required field "BillingProfile.payment_app_id"`)}
 	}
-	if _, ok := bpc.mutation.WorkflowConfigID(); !ok {
+	if _, ok := _c.mutation.WorkflowConfigID(); !ok {
 		return &ValidationError{Name: "workflow_config_id", err: errors.New(`db: missing required field "BillingProfile.workflow_config_id"`)}
 	}
-	if v, ok := bpc.mutation.WorkflowConfigID(); ok {
+	if v, ok := _c.mutation.WorkflowConfigID(); ok {
 		if err := billingprofile.WorkflowConfigIDValidator(v); err != nil {
 			return &ValidationError{Name: "workflow_config_id", err: fmt.Errorf(`db: validator failed for field "BillingProfile.workflow_config_id": %w`, err)}
 		}
 	}
-	if _, ok := bpc.mutation.Default(); !ok {
+	if _, ok := _c.mutation.Default(); !ok {
 		return &ValidationError{Name: "default", err: errors.New(`db: missing required field "BillingProfile.default"`)}
 	}
-	if _, ok := bpc.mutation.SupplierName(); !ok {
+	if _, ok := _c.mutation.SupplierName(); !ok {
 		return &ValidationError{Name: "supplier_name", err: errors.New(`db: missing required field "BillingProfile.supplier_name"`)}
 	}
-	if v, ok := bpc.mutation.SupplierName(); ok {
+	if v, ok := _c.mutation.SupplierName(); ok {
 		if err := billingprofile.SupplierNameValidator(v); err != nil {
 			return &ValidationError{Name: "supplier_name", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_name": %w`, err)}
 		}
 	}
-	if len(bpc.mutation.WorkflowConfigIDs()) == 0 {
+	if len(_c.mutation.WorkflowConfigIDs()) == 0 {
 		return &ValidationError{Name: "workflow_config", err: errors.New(`db: missing required edge "BillingProfile.workflow_config"`)}
 	}
-	if len(bpc.mutation.TaxAppIDs()) == 0 {
+	if len(_c.mutation.TaxAppIDs()) == 0 {
 		return &ValidationError{Name: "tax_app", err: errors.New(`db: missing required edge "BillingProfile.tax_app"`)}
 	}
-	if len(bpc.mutation.InvoicingAppIDs()) == 0 {
+	if len(_c.mutation.InvoicingAppIDs()) == 0 {
 		return &ValidationError{Name: "invoicing_app", err: errors.New(`db: missing required edge "BillingProfile.invoicing_app"`)}
 	}
-	if len(bpc.mutation.PaymentAppIDs()) == 0 {
+	if len(_c.mutation.PaymentAppIDs()) == 0 {
 		return &ValidationError{Name: "payment_app", err: errors.New(`db: missing required edge "BillingProfile.payment_app"`)}
 	}
 	return nil
 }
 
-func (bpc *BillingProfileCreate) sqlSave(ctx context.Context) (*BillingProfile, error) {
-	if err := bpc.check(); err != nil {
+func (_c *BillingProfileCreate) sqlSave(ctx context.Context) (*BillingProfile, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := bpc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, bpc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -460,90 +460,90 @@ func (bpc *BillingProfileCreate) sqlSave(ctx context.Context) (*BillingProfile, 
 			return nil, fmt.Errorf("unexpected BillingProfile.ID type: %T", _spec.ID.Value)
 		}
 	}
-	bpc.mutation.id = &_node.ID
-	bpc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.CreateSpec) {
+func (_c *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.CreateSpec) {
 	var (
-		_node = &BillingProfile{config: bpc.config}
+		_node = &BillingProfile{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(billingprofile.Table, sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = bpc.conflict
-	if id, ok := bpc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := bpc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(billingprofile.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := bpc.mutation.Metadata(); ok {
+	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(billingprofile.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := bpc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(billingprofile.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := bpc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(billingprofile.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := bpc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(billingprofile.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := bpc.mutation.Name(); ok {
+	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(billingprofile.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := bpc.mutation.Description(); ok {
+	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(billingprofile.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := bpc.mutation.SupplierAddressCountry(); ok {
+	if value, ok := _c.mutation.SupplierAddressCountry(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressCountry, field.TypeString, value)
 		_node.SupplierAddressCountry = &value
 	}
-	if value, ok := bpc.mutation.SupplierAddressPostalCode(); ok {
+	if value, ok := _c.mutation.SupplierAddressPostalCode(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressPostalCode, field.TypeString, value)
 		_node.SupplierAddressPostalCode = &value
 	}
-	if value, ok := bpc.mutation.SupplierAddressState(); ok {
+	if value, ok := _c.mutation.SupplierAddressState(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressState, field.TypeString, value)
 		_node.SupplierAddressState = &value
 	}
-	if value, ok := bpc.mutation.SupplierAddressCity(); ok {
+	if value, ok := _c.mutation.SupplierAddressCity(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressCity, field.TypeString, value)
 		_node.SupplierAddressCity = &value
 	}
-	if value, ok := bpc.mutation.SupplierAddressLine1(); ok {
+	if value, ok := _c.mutation.SupplierAddressLine1(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressLine1, field.TypeString, value)
 		_node.SupplierAddressLine1 = &value
 	}
-	if value, ok := bpc.mutation.SupplierAddressLine2(); ok {
+	if value, ok := _c.mutation.SupplierAddressLine2(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressLine2, field.TypeString, value)
 		_node.SupplierAddressLine2 = &value
 	}
-	if value, ok := bpc.mutation.SupplierAddressPhoneNumber(); ok {
+	if value, ok := _c.mutation.SupplierAddressPhoneNumber(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressPhoneNumber, field.TypeString, value)
 		_node.SupplierAddressPhoneNumber = &value
 	}
-	if value, ok := bpc.mutation.Default(); ok {
+	if value, ok := _c.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
 		_node.Default = value
 	}
-	if value, ok := bpc.mutation.SupplierName(); ok {
+	if value, ok := _c.mutation.SupplierName(); ok {
 		_spec.SetField(billingprofile.FieldSupplierName, field.TypeString, value)
 		_node.SupplierName = value
 	}
-	if value, ok := bpc.mutation.SupplierTaxCode(); ok {
+	if value, ok := _c.mutation.SupplierTaxCode(); ok {
 		_spec.SetField(billingprofile.FieldSupplierTaxCode, field.TypeString, value)
 		_node.SupplierTaxCode = &value
 	}
-	if nodes := bpc.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -559,7 +559,7 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bpc.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -575,7 +575,7 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bpc.mutation.WorkflowConfigIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.WorkflowConfigIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
@@ -592,7 +592,7 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		_node.WorkflowConfigID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bpc.mutation.TaxAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.TaxAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -609,7 +609,7 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		_node.TaxAppID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bpc.mutation.InvoicingAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.InvoicingAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -626,7 +626,7 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		_node.InvoicingAppID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bpc.mutation.PaymentAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.PaymentAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -662,10 +662,10 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bpc *BillingProfileCreate) OnConflict(opts ...sql.ConflictOption) *BillingProfileUpsertOne {
-	bpc.conflict = opts
+func (_c *BillingProfileCreate) OnConflict(opts ...sql.ConflictOption) *BillingProfileUpsertOne {
+	_c.conflict = opts
 	return &BillingProfileUpsertOne{
-		create: bpc,
+		create: _c,
 	}
 }
 
@@ -675,10 +675,10 @@ func (bpc *BillingProfileCreate) OnConflict(opts ...sql.ConflictOption) *Billing
 //	client.BillingProfile.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bpc *BillingProfileCreate) OnConflictColumns(columns ...string) *BillingProfileUpsertOne {
-	bpc.conflict = append(bpc.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingProfileCreate) OnConflictColumns(columns ...string) *BillingProfileUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingProfileUpsertOne{
-		create: bpc,
+		create: _c,
 	}
 }
 
@@ -1364,16 +1364,16 @@ type BillingProfileCreateBulk struct {
 }
 
 // Save creates the BillingProfile entities in the database.
-func (bpcb *BillingProfileCreateBulk) Save(ctx context.Context) ([]*BillingProfile, error) {
-	if bpcb.err != nil {
-		return nil, bpcb.err
+func (_c *BillingProfileCreateBulk) Save(ctx context.Context) ([]*BillingProfile, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(bpcb.builders))
-	nodes := make([]*BillingProfile, len(bpcb.builders))
-	mutators := make([]Mutator, len(bpcb.builders))
-	for i := range bpcb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*BillingProfile, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := bpcb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*BillingProfileMutation)
@@ -1387,12 +1387,12 @@ func (bpcb *BillingProfileCreateBulk) Save(ctx context.Context) ([]*BillingProfi
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, bpcb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = bpcb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, bpcb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -1412,7 +1412,7 @@ func (bpcb *BillingProfileCreateBulk) Save(ctx context.Context) ([]*BillingProfi
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, bpcb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -1420,8 +1420,8 @@ func (bpcb *BillingProfileCreateBulk) Save(ctx context.Context) ([]*BillingProfi
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bpcb *BillingProfileCreateBulk) SaveX(ctx context.Context) []*BillingProfile {
-	v, err := bpcb.Save(ctx)
+func (_c *BillingProfileCreateBulk) SaveX(ctx context.Context) []*BillingProfile {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1429,14 +1429,14 @@ func (bpcb *BillingProfileCreateBulk) SaveX(ctx context.Context) []*BillingProfi
 }
 
 // Exec executes the query.
-func (bpcb *BillingProfileCreateBulk) Exec(ctx context.Context) error {
-	_, err := bpcb.Save(ctx)
+func (_c *BillingProfileCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bpcb *BillingProfileCreateBulk) ExecX(ctx context.Context) {
-	if err := bpcb.Exec(ctx); err != nil {
+func (_c *BillingProfileCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -1456,10 +1456,10 @@ func (bpcb *BillingProfileCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bpcb *BillingProfileCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingProfileUpsertBulk {
-	bpcb.conflict = opts
+func (_c *BillingProfileCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingProfileUpsertBulk {
+	_c.conflict = opts
 	return &BillingProfileUpsertBulk{
-		create: bpcb,
+		create: _c,
 	}
 }
 
@@ -1469,10 +1469,10 @@ func (bpcb *BillingProfileCreateBulk) OnConflict(opts ...sql.ConflictOption) *Bi
 //	client.BillingProfile.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bpcb *BillingProfileCreateBulk) OnConflictColumns(columns ...string) *BillingProfileUpsertBulk {
-	bpcb.conflict = append(bpcb.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingProfileCreateBulk) OnConflictColumns(columns ...string) *BillingProfileUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingProfileUpsertBulk{
-		create: bpcb,
+		create: _c,
 	}
 }
 

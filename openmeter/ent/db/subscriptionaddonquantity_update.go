@@ -23,51 +23,51 @@ type SubscriptionAddonQuantityUpdate struct {
 }
 
 // Where appends a list predicates to the SubscriptionAddonQuantityUpdate builder.
-func (saqu *SubscriptionAddonQuantityUpdate) Where(ps ...predicate.SubscriptionAddonQuantity) *SubscriptionAddonQuantityUpdate {
-	saqu.mutation.Where(ps...)
-	return saqu
+func (_u *SubscriptionAddonQuantityUpdate) Where(ps ...predicate.SubscriptionAddonQuantity) *SubscriptionAddonQuantityUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (saqu *SubscriptionAddonQuantityUpdate) SetUpdatedAt(t time.Time) *SubscriptionAddonQuantityUpdate {
-	saqu.mutation.SetUpdatedAt(t)
-	return saqu
+func (_u *SubscriptionAddonQuantityUpdate) SetUpdatedAt(v time.Time) *SubscriptionAddonQuantityUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (saqu *SubscriptionAddonQuantityUpdate) SetDeletedAt(t time.Time) *SubscriptionAddonQuantityUpdate {
-	saqu.mutation.SetDeletedAt(t)
-	return saqu
+func (_u *SubscriptionAddonQuantityUpdate) SetDeletedAt(v time.Time) *SubscriptionAddonQuantityUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (saqu *SubscriptionAddonQuantityUpdate) SetNillableDeletedAt(t *time.Time) *SubscriptionAddonQuantityUpdate {
-	if t != nil {
-		saqu.SetDeletedAt(*t)
+func (_u *SubscriptionAddonQuantityUpdate) SetNillableDeletedAt(v *time.Time) *SubscriptionAddonQuantityUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return saqu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (saqu *SubscriptionAddonQuantityUpdate) ClearDeletedAt() *SubscriptionAddonQuantityUpdate {
-	saqu.mutation.ClearDeletedAt()
-	return saqu
+func (_u *SubscriptionAddonQuantityUpdate) ClearDeletedAt() *SubscriptionAddonQuantityUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // Mutation returns the SubscriptionAddonQuantityMutation object of the builder.
-func (saqu *SubscriptionAddonQuantityUpdate) Mutation() *SubscriptionAddonQuantityMutation {
-	return saqu.mutation
+func (_u *SubscriptionAddonQuantityUpdate) Mutation() *SubscriptionAddonQuantityMutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (saqu *SubscriptionAddonQuantityUpdate) Save(ctx context.Context) (int, error) {
-	saqu.defaults()
-	return withHooks(ctx, saqu.sqlSave, saqu.mutation, saqu.hooks)
+func (_u *SubscriptionAddonQuantityUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (saqu *SubscriptionAddonQuantityUpdate) SaveX(ctx context.Context) int {
-	affected, err := saqu.Save(ctx)
+func (_u *SubscriptionAddonQuantityUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -75,56 +75,56 @@ func (saqu *SubscriptionAddonQuantityUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (saqu *SubscriptionAddonQuantityUpdate) Exec(ctx context.Context) error {
-	_, err := saqu.Save(ctx)
+func (_u *SubscriptionAddonQuantityUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (saqu *SubscriptionAddonQuantityUpdate) ExecX(ctx context.Context) {
-	if err := saqu.Exec(ctx); err != nil {
+func (_u *SubscriptionAddonQuantityUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (saqu *SubscriptionAddonQuantityUpdate) defaults() {
-	if _, ok := saqu.mutation.UpdatedAt(); !ok {
+func (_u *SubscriptionAddonQuantityUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := subscriptionaddonquantity.UpdateDefaultUpdatedAt()
-		saqu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (saqu *SubscriptionAddonQuantityUpdate) check() error {
-	if saqu.mutation.SubscriptionAddonCleared() && len(saqu.mutation.SubscriptionAddonIDs()) > 0 {
+func (_u *SubscriptionAddonQuantityUpdate) check() error {
+	if _u.mutation.SubscriptionAddonCleared() && len(_u.mutation.SubscriptionAddonIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionAddonQuantity.subscription_addon"`)
 	}
 	return nil
 }
 
-func (saqu *SubscriptionAddonQuantityUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := saqu.check(); err != nil {
-		return n, err
+func (_u *SubscriptionAddonQuantityUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(subscriptionaddonquantity.Table, subscriptionaddonquantity.Columns, sqlgraph.NewFieldSpec(subscriptionaddonquantity.FieldID, field.TypeString))
-	if ps := saqu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := saqu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionaddonquantity.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := saqu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(subscriptionaddonquantity.FieldDeletedAt, field.TypeTime, value)
 	}
-	if saqu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(subscriptionaddonquantity.FieldDeletedAt, field.TypeTime)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, saqu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscriptionaddonquantity.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -132,8 +132,8 @@ func (saqu *SubscriptionAddonQuantityUpdate) sqlSave(ctx context.Context) (n int
 		}
 		return 0, err
 	}
-	saqu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // SubscriptionAddonQuantityUpdateOne is the builder for updating a single SubscriptionAddonQuantity entity.
@@ -145,58 +145,58 @@ type SubscriptionAddonQuantityUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (saquo *SubscriptionAddonQuantityUpdateOne) SetUpdatedAt(t time.Time) *SubscriptionAddonQuantityUpdateOne {
-	saquo.mutation.SetUpdatedAt(t)
-	return saquo
+func (_u *SubscriptionAddonQuantityUpdateOne) SetUpdatedAt(v time.Time) *SubscriptionAddonQuantityUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (saquo *SubscriptionAddonQuantityUpdateOne) SetDeletedAt(t time.Time) *SubscriptionAddonQuantityUpdateOne {
-	saquo.mutation.SetDeletedAt(t)
-	return saquo
+func (_u *SubscriptionAddonQuantityUpdateOne) SetDeletedAt(v time.Time) *SubscriptionAddonQuantityUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (saquo *SubscriptionAddonQuantityUpdateOne) SetNillableDeletedAt(t *time.Time) *SubscriptionAddonQuantityUpdateOne {
-	if t != nil {
-		saquo.SetDeletedAt(*t)
+func (_u *SubscriptionAddonQuantityUpdateOne) SetNillableDeletedAt(v *time.Time) *SubscriptionAddonQuantityUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return saquo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (saquo *SubscriptionAddonQuantityUpdateOne) ClearDeletedAt() *SubscriptionAddonQuantityUpdateOne {
-	saquo.mutation.ClearDeletedAt()
-	return saquo
+func (_u *SubscriptionAddonQuantityUpdateOne) ClearDeletedAt() *SubscriptionAddonQuantityUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // Mutation returns the SubscriptionAddonQuantityMutation object of the builder.
-func (saquo *SubscriptionAddonQuantityUpdateOne) Mutation() *SubscriptionAddonQuantityMutation {
-	return saquo.mutation
+func (_u *SubscriptionAddonQuantityUpdateOne) Mutation() *SubscriptionAddonQuantityMutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the SubscriptionAddonQuantityUpdate builder.
-func (saquo *SubscriptionAddonQuantityUpdateOne) Where(ps ...predicate.SubscriptionAddonQuantity) *SubscriptionAddonQuantityUpdateOne {
-	saquo.mutation.Where(ps...)
-	return saquo
+func (_u *SubscriptionAddonQuantityUpdateOne) Where(ps ...predicate.SubscriptionAddonQuantity) *SubscriptionAddonQuantityUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (saquo *SubscriptionAddonQuantityUpdateOne) Select(field string, fields ...string) *SubscriptionAddonQuantityUpdateOne {
-	saquo.fields = append([]string{field}, fields...)
-	return saquo
+func (_u *SubscriptionAddonQuantityUpdateOne) Select(field string, fields ...string) *SubscriptionAddonQuantityUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated SubscriptionAddonQuantity entity.
-func (saquo *SubscriptionAddonQuantityUpdateOne) Save(ctx context.Context) (*SubscriptionAddonQuantity, error) {
-	saquo.defaults()
-	return withHooks(ctx, saquo.sqlSave, saquo.mutation, saquo.hooks)
+func (_u *SubscriptionAddonQuantityUpdateOne) Save(ctx context.Context) (*SubscriptionAddonQuantity, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (saquo *SubscriptionAddonQuantityUpdateOne) SaveX(ctx context.Context) *SubscriptionAddonQuantity {
-	node, err := saquo.Save(ctx)
+func (_u *SubscriptionAddonQuantityUpdateOne) SaveX(ctx context.Context) *SubscriptionAddonQuantity {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -204,45 +204,45 @@ func (saquo *SubscriptionAddonQuantityUpdateOne) SaveX(ctx context.Context) *Sub
 }
 
 // Exec executes the query on the entity.
-func (saquo *SubscriptionAddonQuantityUpdateOne) Exec(ctx context.Context) error {
-	_, err := saquo.Save(ctx)
+func (_u *SubscriptionAddonQuantityUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (saquo *SubscriptionAddonQuantityUpdateOne) ExecX(ctx context.Context) {
-	if err := saquo.Exec(ctx); err != nil {
+func (_u *SubscriptionAddonQuantityUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (saquo *SubscriptionAddonQuantityUpdateOne) defaults() {
-	if _, ok := saquo.mutation.UpdatedAt(); !ok {
+func (_u *SubscriptionAddonQuantityUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := subscriptionaddonquantity.UpdateDefaultUpdatedAt()
-		saquo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (saquo *SubscriptionAddonQuantityUpdateOne) check() error {
-	if saquo.mutation.SubscriptionAddonCleared() && len(saquo.mutation.SubscriptionAddonIDs()) > 0 {
+func (_u *SubscriptionAddonQuantityUpdateOne) check() error {
+	if _u.mutation.SubscriptionAddonCleared() && len(_u.mutation.SubscriptionAddonIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionAddonQuantity.subscription_addon"`)
 	}
 	return nil
 }
 
-func (saquo *SubscriptionAddonQuantityUpdateOne) sqlSave(ctx context.Context) (_node *SubscriptionAddonQuantity, err error) {
-	if err := saquo.check(); err != nil {
+func (_u *SubscriptionAddonQuantityUpdateOne) sqlSave(ctx context.Context) (_node *SubscriptionAddonQuantity, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(subscriptionaddonquantity.Table, subscriptionaddonquantity.Columns, sqlgraph.NewFieldSpec(subscriptionaddonquantity.FieldID, field.TypeString))
-	id, ok := saquo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "SubscriptionAddonQuantity.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := saquo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, subscriptionaddonquantity.FieldID)
 		for _, f := range fields {
@@ -254,26 +254,26 @@ func (saquo *SubscriptionAddonQuantityUpdateOne) sqlSave(ctx context.Context) (_
 			}
 		}
 	}
-	if ps := saquo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := saquo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionaddonquantity.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := saquo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(subscriptionaddonquantity.FieldDeletedAt, field.TypeTime, value)
 	}
-	if saquo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(subscriptionaddonquantity.FieldDeletedAt, field.TypeTime)
 	}
-	_node = &SubscriptionAddonQuantity{config: saquo.config}
+	_node = &SubscriptionAddonQuantity{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, saquo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscriptionaddonquantity.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -281,6 +281,6 @@ func (saquo *SubscriptionAddonQuantityUpdateOne) sqlSave(ctx context.Context) (_
 		}
 		return nil, err
 	}
-	saquo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

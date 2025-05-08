@@ -35,44 +35,44 @@ type BillingWorkflowConfigQuery struct {
 }
 
 // Where adds a new predicate for the BillingWorkflowConfigQuery builder.
-func (bwcq *BillingWorkflowConfigQuery) Where(ps ...predicate.BillingWorkflowConfig) *BillingWorkflowConfigQuery {
-	bwcq.predicates = append(bwcq.predicates, ps...)
-	return bwcq
+func (_q *BillingWorkflowConfigQuery) Where(ps ...predicate.BillingWorkflowConfig) *BillingWorkflowConfigQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (bwcq *BillingWorkflowConfigQuery) Limit(limit int) *BillingWorkflowConfigQuery {
-	bwcq.ctx.Limit = &limit
-	return bwcq
+func (_q *BillingWorkflowConfigQuery) Limit(limit int) *BillingWorkflowConfigQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (bwcq *BillingWorkflowConfigQuery) Offset(offset int) *BillingWorkflowConfigQuery {
-	bwcq.ctx.Offset = &offset
-	return bwcq
+func (_q *BillingWorkflowConfigQuery) Offset(offset int) *BillingWorkflowConfigQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (bwcq *BillingWorkflowConfigQuery) Unique(unique bool) *BillingWorkflowConfigQuery {
-	bwcq.ctx.Unique = &unique
-	return bwcq
+func (_q *BillingWorkflowConfigQuery) Unique(unique bool) *BillingWorkflowConfigQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (bwcq *BillingWorkflowConfigQuery) Order(o ...billingworkflowconfig.OrderOption) *BillingWorkflowConfigQuery {
-	bwcq.order = append(bwcq.order, o...)
-	return bwcq
+func (_q *BillingWorkflowConfigQuery) Order(o ...billingworkflowconfig.OrderOption) *BillingWorkflowConfigQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryBillingInvoices chains the current query on the "billing_invoices" edge.
-func (bwcq *BillingWorkflowConfigQuery) QueryBillingInvoices() *BillingInvoiceQuery {
-	query := (&BillingInvoiceClient{config: bwcq.config}).Query()
+func (_q *BillingWorkflowConfigQuery) QueryBillingInvoices() *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bwcq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := bwcq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -81,20 +81,20 @@ func (bwcq *BillingWorkflowConfigQuery) QueryBillingInvoices() *BillingInvoiceQu
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, billingworkflowconfig.BillingInvoicesTable, billingworkflowconfig.BillingInvoicesColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(bwcq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingProfile chains the current query on the "billing_profile" edge.
-func (bwcq *BillingWorkflowConfigQuery) QueryBillingProfile() *BillingProfileQuery {
-	query := (&BillingProfileClient{config: bwcq.config}).Query()
+func (_q *BillingWorkflowConfigQuery) QueryBillingProfile() *BillingProfileQuery {
+	query := (&BillingProfileClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bwcq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := bwcq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func (bwcq *BillingWorkflowConfigQuery) QueryBillingProfile() *BillingProfileQue
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, billingworkflowconfig.BillingProfileTable, billingworkflowconfig.BillingProfileColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(bwcq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -111,8 +111,8 @@ func (bwcq *BillingWorkflowConfigQuery) QueryBillingProfile() *BillingProfileQue
 
 // First returns the first BillingWorkflowConfig entity from the query.
 // Returns a *NotFoundError when no BillingWorkflowConfig was found.
-func (bwcq *BillingWorkflowConfigQuery) First(ctx context.Context) (*BillingWorkflowConfig, error) {
-	nodes, err := bwcq.Limit(1).All(setContextOp(ctx, bwcq.ctx, ent.OpQueryFirst))
+func (_q *BillingWorkflowConfigQuery) First(ctx context.Context) (*BillingWorkflowConfig, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +123,8 @@ func (bwcq *BillingWorkflowConfigQuery) First(ctx context.Context) (*BillingWork
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (bwcq *BillingWorkflowConfigQuery) FirstX(ctx context.Context) *BillingWorkflowConfig {
-	node, err := bwcq.First(ctx)
+func (_q *BillingWorkflowConfigQuery) FirstX(ctx context.Context) *BillingWorkflowConfig {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -133,9 +133,9 @@ func (bwcq *BillingWorkflowConfigQuery) FirstX(ctx context.Context) *BillingWork
 
 // FirstID returns the first BillingWorkflowConfig ID from the query.
 // Returns a *NotFoundError when no BillingWorkflowConfig ID was found.
-func (bwcq *BillingWorkflowConfigQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *BillingWorkflowConfigQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = bwcq.Limit(1).IDs(setContextOp(ctx, bwcq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -146,8 +146,8 @@ func (bwcq *BillingWorkflowConfigQuery) FirstID(ctx context.Context) (id string,
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (bwcq *BillingWorkflowConfigQuery) FirstIDX(ctx context.Context) string {
-	id, err := bwcq.FirstID(ctx)
+func (_q *BillingWorkflowConfigQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -157,8 +157,8 @@ func (bwcq *BillingWorkflowConfigQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single BillingWorkflowConfig entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one BillingWorkflowConfig entity is found.
 // Returns a *NotFoundError when no BillingWorkflowConfig entities are found.
-func (bwcq *BillingWorkflowConfigQuery) Only(ctx context.Context) (*BillingWorkflowConfig, error) {
-	nodes, err := bwcq.Limit(2).All(setContextOp(ctx, bwcq.ctx, ent.OpQueryOnly))
+func (_q *BillingWorkflowConfigQuery) Only(ctx context.Context) (*BillingWorkflowConfig, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -173,8 +173,8 @@ func (bwcq *BillingWorkflowConfigQuery) Only(ctx context.Context) (*BillingWorkf
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (bwcq *BillingWorkflowConfigQuery) OnlyX(ctx context.Context) *BillingWorkflowConfig {
-	node, err := bwcq.Only(ctx)
+func (_q *BillingWorkflowConfigQuery) OnlyX(ctx context.Context) *BillingWorkflowConfig {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -184,9 +184,9 @@ func (bwcq *BillingWorkflowConfigQuery) OnlyX(ctx context.Context) *BillingWorkf
 // OnlyID is like Only, but returns the only BillingWorkflowConfig ID in the query.
 // Returns a *NotSingularError when more than one BillingWorkflowConfig ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (bwcq *BillingWorkflowConfigQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *BillingWorkflowConfigQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = bwcq.Limit(2).IDs(setContextOp(ctx, bwcq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -201,8 +201,8 @@ func (bwcq *BillingWorkflowConfigQuery) OnlyID(ctx context.Context) (id string, 
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (bwcq *BillingWorkflowConfigQuery) OnlyIDX(ctx context.Context) string {
-	id, err := bwcq.OnlyID(ctx)
+func (_q *BillingWorkflowConfigQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -210,18 +210,18 @@ func (bwcq *BillingWorkflowConfigQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of BillingWorkflowConfigs.
-func (bwcq *BillingWorkflowConfigQuery) All(ctx context.Context) ([]*BillingWorkflowConfig, error) {
-	ctx = setContextOp(ctx, bwcq.ctx, ent.OpQueryAll)
-	if err := bwcq.prepareQuery(ctx); err != nil {
+func (_q *BillingWorkflowConfigQuery) All(ctx context.Context) ([]*BillingWorkflowConfig, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*BillingWorkflowConfig, *BillingWorkflowConfigQuery]()
-	return withInterceptors[[]*BillingWorkflowConfig](ctx, bwcq, qr, bwcq.inters)
+	return withInterceptors[[]*BillingWorkflowConfig](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (bwcq *BillingWorkflowConfigQuery) AllX(ctx context.Context) []*BillingWorkflowConfig {
-	nodes, err := bwcq.All(ctx)
+func (_q *BillingWorkflowConfigQuery) AllX(ctx context.Context) []*BillingWorkflowConfig {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -229,20 +229,20 @@ func (bwcq *BillingWorkflowConfigQuery) AllX(ctx context.Context) []*BillingWork
 }
 
 // IDs executes the query and returns a list of BillingWorkflowConfig IDs.
-func (bwcq *BillingWorkflowConfigQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if bwcq.ctx.Unique == nil && bwcq.path != nil {
-		bwcq.Unique(true)
+func (_q *BillingWorkflowConfigQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, bwcq.ctx, ent.OpQueryIDs)
-	if err = bwcq.Select(billingworkflowconfig.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(billingworkflowconfig.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (bwcq *BillingWorkflowConfigQuery) IDsX(ctx context.Context) []string {
-	ids, err := bwcq.IDs(ctx)
+func (_q *BillingWorkflowConfigQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -250,17 +250,17 @@ func (bwcq *BillingWorkflowConfigQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (bwcq *BillingWorkflowConfigQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, bwcq.ctx, ent.OpQueryCount)
-	if err := bwcq.prepareQuery(ctx); err != nil {
+func (_q *BillingWorkflowConfigQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, bwcq, querierCount[*BillingWorkflowConfigQuery](), bwcq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BillingWorkflowConfigQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (bwcq *BillingWorkflowConfigQuery) CountX(ctx context.Context) int {
-	count, err := bwcq.Count(ctx)
+func (_q *BillingWorkflowConfigQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -268,9 +268,9 @@ func (bwcq *BillingWorkflowConfigQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (bwcq *BillingWorkflowConfigQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, bwcq.ctx, ent.OpQueryExist)
-	switch _, err := bwcq.FirstID(ctx); {
+func (_q *BillingWorkflowConfigQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -281,8 +281,8 @@ func (bwcq *BillingWorkflowConfigQuery) Exist(ctx context.Context) (bool, error)
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (bwcq *BillingWorkflowConfigQuery) ExistX(ctx context.Context) bool {
-	exist, err := bwcq.Exist(ctx)
+func (_q *BillingWorkflowConfigQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -291,44 +291,44 @@ func (bwcq *BillingWorkflowConfigQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the BillingWorkflowConfigQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (bwcq *BillingWorkflowConfigQuery) Clone() *BillingWorkflowConfigQuery {
-	if bwcq == nil {
+func (_q *BillingWorkflowConfigQuery) Clone() *BillingWorkflowConfigQuery {
+	if _q == nil {
 		return nil
 	}
 	return &BillingWorkflowConfigQuery{
-		config:              bwcq.config,
-		ctx:                 bwcq.ctx.Clone(),
-		order:               append([]billingworkflowconfig.OrderOption{}, bwcq.order...),
-		inters:              append([]Interceptor{}, bwcq.inters...),
-		predicates:          append([]predicate.BillingWorkflowConfig{}, bwcq.predicates...),
-		withBillingInvoices: bwcq.withBillingInvoices.Clone(),
-		withBillingProfile:  bwcq.withBillingProfile.Clone(),
+		config:              _q.config,
+		ctx:                 _q.ctx.Clone(),
+		order:               append([]billingworkflowconfig.OrderOption{}, _q.order...),
+		inters:              append([]Interceptor{}, _q.inters...),
+		predicates:          append([]predicate.BillingWorkflowConfig{}, _q.predicates...),
+		withBillingInvoices: _q.withBillingInvoices.Clone(),
+		withBillingProfile:  _q.withBillingProfile.Clone(),
 		// clone intermediate query.
-		sql:  bwcq.sql.Clone(),
-		path: bwcq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithBillingInvoices tells the query-builder to eager-load the nodes that are connected to
 // the "billing_invoices" edge. The optional arguments are used to configure the query builder of the edge.
-func (bwcq *BillingWorkflowConfigQuery) WithBillingInvoices(opts ...func(*BillingInvoiceQuery)) *BillingWorkflowConfigQuery {
-	query := (&BillingInvoiceClient{config: bwcq.config}).Query()
+func (_q *BillingWorkflowConfigQuery) WithBillingInvoices(opts ...func(*BillingInvoiceQuery)) *BillingWorkflowConfigQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bwcq.withBillingInvoices = query
-	return bwcq
+	_q.withBillingInvoices = query
+	return _q
 }
 
 // WithBillingProfile tells the query-builder to eager-load the nodes that are connected to
 // the "billing_profile" edge. The optional arguments are used to configure the query builder of the edge.
-func (bwcq *BillingWorkflowConfigQuery) WithBillingProfile(opts ...func(*BillingProfileQuery)) *BillingWorkflowConfigQuery {
-	query := (&BillingProfileClient{config: bwcq.config}).Query()
+func (_q *BillingWorkflowConfigQuery) WithBillingProfile(opts ...func(*BillingProfileQuery)) *BillingWorkflowConfigQuery {
+	query := (&BillingProfileClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bwcq.withBillingProfile = query
-	return bwcq
+	_q.withBillingProfile = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -345,10 +345,10 @@ func (bwcq *BillingWorkflowConfigQuery) WithBillingProfile(opts ...func(*Billing
 //		GroupBy(billingworkflowconfig.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (bwcq *BillingWorkflowConfigQuery) GroupBy(field string, fields ...string) *BillingWorkflowConfigGroupBy {
-	bwcq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &BillingWorkflowConfigGroupBy{build: bwcq}
-	grbuild.flds = &bwcq.ctx.Fields
+func (_q *BillingWorkflowConfigQuery) GroupBy(field string, fields ...string) *BillingWorkflowConfigGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &BillingWorkflowConfigGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = billingworkflowconfig.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -366,83 +366,83 @@ func (bwcq *BillingWorkflowConfigQuery) GroupBy(field string, fields ...string) 
 //	client.BillingWorkflowConfig.Query().
 //		Select(billingworkflowconfig.FieldNamespace).
 //		Scan(ctx, &v)
-func (bwcq *BillingWorkflowConfigQuery) Select(fields ...string) *BillingWorkflowConfigSelect {
-	bwcq.ctx.Fields = append(bwcq.ctx.Fields, fields...)
-	sbuild := &BillingWorkflowConfigSelect{BillingWorkflowConfigQuery: bwcq}
+func (_q *BillingWorkflowConfigQuery) Select(fields ...string) *BillingWorkflowConfigSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &BillingWorkflowConfigSelect{BillingWorkflowConfigQuery: _q}
 	sbuild.label = billingworkflowconfig.Label
-	sbuild.flds, sbuild.scan = &bwcq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a BillingWorkflowConfigSelect configured with the given aggregations.
-func (bwcq *BillingWorkflowConfigQuery) Aggregate(fns ...AggregateFunc) *BillingWorkflowConfigSelect {
-	return bwcq.Select().Aggregate(fns...)
+func (_q *BillingWorkflowConfigQuery) Aggregate(fns ...AggregateFunc) *BillingWorkflowConfigSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (bwcq *BillingWorkflowConfigQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range bwcq.inters {
+func (_q *BillingWorkflowConfigQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, bwcq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range bwcq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !billingworkflowconfig.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if bwcq.path != nil {
-		prev, err := bwcq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		bwcq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (bwcq *BillingWorkflowConfigQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingWorkflowConfig, error) {
+func (_q *BillingWorkflowConfigQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingWorkflowConfig, error) {
 	var (
 		nodes       = []*BillingWorkflowConfig{}
-		_spec       = bwcq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			bwcq.withBillingInvoices != nil,
-			bwcq.withBillingProfile != nil,
+			_q.withBillingInvoices != nil,
+			_q.withBillingProfile != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingWorkflowConfig).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &BillingWorkflowConfig{config: bwcq.config}
+		node := &BillingWorkflowConfig{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(bwcq.modifiers) > 0 {
-		_spec.Modifiers = bwcq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, bwcq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := bwcq.withBillingInvoices; query != nil {
-		if err := bwcq.loadBillingInvoices(ctx, query, nodes, nil,
+	if query := _q.withBillingInvoices; query != nil {
+		if err := _q.loadBillingInvoices(ctx, query, nodes, nil,
 			func(n *BillingWorkflowConfig, e *BillingInvoice) { n.Edges.BillingInvoices = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := bwcq.withBillingProfile; query != nil {
-		if err := bwcq.loadBillingProfile(ctx, query, nodes, nil,
+	if query := _q.withBillingProfile; query != nil {
+		if err := _q.loadBillingProfile(ctx, query, nodes, nil,
 			func(n *BillingWorkflowConfig, e *BillingProfile) { n.Edges.BillingProfile = e }); err != nil {
 			return nil, err
 		}
@@ -450,7 +450,7 @@ func (bwcq *BillingWorkflowConfigQuery) sqlAll(ctx context.Context, hooks ...que
 	return nodes, nil
 }
 
-func (bwcq *BillingWorkflowConfigQuery) loadBillingInvoices(ctx context.Context, query *BillingInvoiceQuery, nodes []*BillingWorkflowConfig, init func(*BillingWorkflowConfig), assign func(*BillingWorkflowConfig, *BillingInvoice)) error {
+func (_q *BillingWorkflowConfigQuery) loadBillingInvoices(ctx context.Context, query *BillingInvoiceQuery, nodes []*BillingWorkflowConfig, init func(*BillingWorkflowConfig), assign func(*BillingWorkflowConfig, *BillingInvoice)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*BillingWorkflowConfig)
 	for i := range nodes {
@@ -477,7 +477,7 @@ func (bwcq *BillingWorkflowConfigQuery) loadBillingInvoices(ctx context.Context,
 	}
 	return nil
 }
-func (bwcq *BillingWorkflowConfigQuery) loadBillingProfile(ctx context.Context, query *BillingProfileQuery, nodes []*BillingWorkflowConfig, init func(*BillingWorkflowConfig), assign func(*BillingWorkflowConfig, *BillingProfile)) error {
+func (_q *BillingWorkflowConfigQuery) loadBillingProfile(ctx context.Context, query *BillingProfileQuery, nodes []*BillingWorkflowConfig, init func(*BillingWorkflowConfig), assign func(*BillingWorkflowConfig, *BillingProfile)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*BillingWorkflowConfig)
 	for i := range nodes {
@@ -505,27 +505,27 @@ func (bwcq *BillingWorkflowConfigQuery) loadBillingProfile(ctx context.Context, 
 	return nil
 }
 
-func (bwcq *BillingWorkflowConfigQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := bwcq.querySpec()
-	if len(bwcq.modifiers) > 0 {
-		_spec.Modifiers = bwcq.modifiers
+func (_q *BillingWorkflowConfigQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = bwcq.ctx.Fields
-	if len(bwcq.ctx.Fields) > 0 {
-		_spec.Unique = bwcq.ctx.Unique != nil && *bwcq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, bwcq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (bwcq *BillingWorkflowConfigQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *BillingWorkflowConfigQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(billingworkflowconfig.Table, billingworkflowconfig.Columns, sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString))
-	_spec.From = bwcq.sql
-	if unique := bwcq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if bwcq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := bwcq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billingworkflowconfig.FieldID)
 		for i := range fields {
@@ -534,20 +534,20 @@ func (bwcq *BillingWorkflowConfigQuery) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 	}
-	if ps := bwcq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := bwcq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := bwcq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := bwcq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -557,36 +557,36 @@ func (bwcq *BillingWorkflowConfigQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (bwcq *BillingWorkflowConfigQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(bwcq.driver.Dialect())
+func (_q *BillingWorkflowConfigQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(billingworkflowconfig.Table)
-	columns := bwcq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = billingworkflowconfig.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if bwcq.sql != nil {
-		selector = bwcq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if bwcq.ctx.Unique != nil && *bwcq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range bwcq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range bwcq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range bwcq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := bwcq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := bwcq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -595,27 +595,27 @@ func (bwcq *BillingWorkflowConfigQuery) sqlQuery(ctx context.Context) *sql.Selec
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (bwcq *BillingWorkflowConfigQuery) ForUpdate(opts ...sql.LockOption) *BillingWorkflowConfigQuery {
-	if bwcq.driver.Dialect() == dialect.Postgres {
-		bwcq.Unique(false)
+func (_q *BillingWorkflowConfigQuery) ForUpdate(opts ...sql.LockOption) *BillingWorkflowConfigQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bwcq.modifiers = append(bwcq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return bwcq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (bwcq *BillingWorkflowConfigQuery) ForShare(opts ...sql.LockOption) *BillingWorkflowConfigQuery {
-	if bwcq.driver.Dialect() == dialect.Postgres {
-		bwcq.Unique(false)
+func (_q *BillingWorkflowConfigQuery) ForShare(opts ...sql.LockOption) *BillingWorkflowConfigQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bwcq.modifiers = append(bwcq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return bwcq
+	return _q
 }
 
 // BillingWorkflowConfigGroupBy is the group-by builder for BillingWorkflowConfig entities.

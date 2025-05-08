@@ -23,65 +23,65 @@ type Example1Update struct {
 }
 
 // Where appends a list predicates to the Example1Update builder.
-func (e *Example1Update) Where(ps ...predicate.Example1) *Example1Update {
-	e.mutation.Where(ps...)
-	return e
+func (_u *Example1Update) Where(ps ...predicate.Example1) *Example1Update {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (e *Example1Update) SetUpdatedAt(t time.Time) *Example1Update {
-	e.mutation.SetUpdatedAt(t)
-	return e
+func (_u *Example1Update) SetUpdatedAt(v time.Time) *Example1Update {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (e *Example1Update) SetDeletedAt(t time.Time) *Example1Update {
-	e.mutation.SetDeletedAt(t)
-	return e
+func (_u *Example1Update) SetDeletedAt(v time.Time) *Example1Update {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (e *Example1Update) SetNillableDeletedAt(t *time.Time) *Example1Update {
-	if t != nil {
-		e.SetDeletedAt(*t)
+func (_u *Example1Update) SetNillableDeletedAt(v *time.Time) *Example1Update {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return e
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (e *Example1Update) ClearDeletedAt() *Example1Update {
-	e.mutation.ClearDeletedAt()
-	return e
+func (_u *Example1Update) ClearDeletedAt() *Example1Update {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetExampleValue1 sets the "example_value_1" field.
-func (e *Example1Update) SetExampleValue1(s string) *Example1Update {
-	e.mutation.SetExampleValue1(s)
-	return e
+func (_u *Example1Update) SetExampleValue1(v string) *Example1Update {
+	_u.mutation.SetExampleValue1(v)
+	return _u
 }
 
 // SetNillableExampleValue1 sets the "example_value_1" field if the given value is not nil.
-func (e *Example1Update) SetNillableExampleValue1(s *string) *Example1Update {
-	if s != nil {
-		e.SetExampleValue1(*s)
+func (_u *Example1Update) SetNillableExampleValue1(v *string) *Example1Update {
+	if v != nil {
+		_u.SetExampleValue1(*v)
 	}
-	return e
+	return _u
 }
 
 // Mutation returns the Example1Mutation object of the builder.
-func (e *Example1Update) Mutation() *Example1Mutation {
-	return e.mutation
+func (_u *Example1Update) Mutation() *Example1Mutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (e *Example1Update) Save(ctx context.Context) (int, error) {
-	e.defaults()
-	return withHooks(ctx, e.sqlSave, e.mutation, e.hooks)
+func (_u *Example1Update) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (e *Example1Update) SaveX(ctx context.Context) int {
-	affected, err := e.Save(ctx)
+func (_u *Example1Update) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -89,48 +89,48 @@ func (e *Example1Update) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (e *Example1Update) Exec(ctx context.Context) error {
-	_, err := e.Save(ctx)
+func (_u *Example1Update) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (e *Example1Update) ExecX(ctx context.Context) {
-	if err := e.Exec(ctx); err != nil {
+func (_u *Example1Update) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (e *Example1Update) defaults() {
-	if _, ok := e.mutation.UpdatedAt(); !ok {
+func (_u *Example1Update) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := example1.UpdateDefaultUpdatedAt()
-		e.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
-func (e *Example1Update) sqlSave(ctx context.Context) (n int, err error) {
+func (_u *Example1Update) sqlSave(ctx context.Context) (_node int, err error) {
 	_spec := sqlgraph.NewUpdateSpec(example1.Table, example1.Columns, sqlgraph.NewFieldSpec(example1.FieldID, field.TypeString))
-	if ps := e.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := e.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(example1.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := e.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(example1.FieldDeletedAt, field.TypeTime, value)
 	}
-	if e.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(example1.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := e.mutation.ExampleValue1(); ok {
+	if value, ok := _u.mutation.ExampleValue1(); ok {
 		_spec.SetField(example1.FieldExampleValue1, field.TypeString, value)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, e.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{example1.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -138,8 +138,8 @@ func (e *Example1Update) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
-	e.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // Example1UpdateOne is the builder for updating a single Example1 entity.
@@ -151,72 +151,72 @@ type Example1UpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (eo *Example1UpdateOne) SetUpdatedAt(t time.Time) *Example1UpdateOne {
-	eo.mutation.SetUpdatedAt(t)
-	return eo
+func (_u *Example1UpdateOne) SetUpdatedAt(v time.Time) *Example1UpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (eo *Example1UpdateOne) SetDeletedAt(t time.Time) *Example1UpdateOne {
-	eo.mutation.SetDeletedAt(t)
-	return eo
+func (_u *Example1UpdateOne) SetDeletedAt(v time.Time) *Example1UpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (eo *Example1UpdateOne) SetNillableDeletedAt(t *time.Time) *Example1UpdateOne {
-	if t != nil {
-		eo.SetDeletedAt(*t)
+func (_u *Example1UpdateOne) SetNillableDeletedAt(v *time.Time) *Example1UpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return eo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (eo *Example1UpdateOne) ClearDeletedAt() *Example1UpdateOne {
-	eo.mutation.ClearDeletedAt()
-	return eo
+func (_u *Example1UpdateOne) ClearDeletedAt() *Example1UpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetExampleValue1 sets the "example_value_1" field.
-func (eo *Example1UpdateOne) SetExampleValue1(s string) *Example1UpdateOne {
-	eo.mutation.SetExampleValue1(s)
-	return eo
+func (_u *Example1UpdateOne) SetExampleValue1(v string) *Example1UpdateOne {
+	_u.mutation.SetExampleValue1(v)
+	return _u
 }
 
 // SetNillableExampleValue1 sets the "example_value_1" field if the given value is not nil.
-func (eo *Example1UpdateOne) SetNillableExampleValue1(s *string) *Example1UpdateOne {
-	if s != nil {
-		eo.SetExampleValue1(*s)
+func (_u *Example1UpdateOne) SetNillableExampleValue1(v *string) *Example1UpdateOne {
+	if v != nil {
+		_u.SetExampleValue1(*v)
 	}
-	return eo
+	return _u
 }
 
 // Mutation returns the Example1Mutation object of the builder.
-func (eo *Example1UpdateOne) Mutation() *Example1Mutation {
-	return eo.mutation
+func (_u *Example1UpdateOne) Mutation() *Example1Mutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the Example1Update builder.
-func (eo *Example1UpdateOne) Where(ps ...predicate.Example1) *Example1UpdateOne {
-	eo.mutation.Where(ps...)
-	return eo
+func (_u *Example1UpdateOne) Where(ps ...predicate.Example1) *Example1UpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (eo *Example1UpdateOne) Select(field string, fields ...string) *Example1UpdateOne {
-	eo.fields = append([]string{field}, fields...)
-	return eo
+func (_u *Example1UpdateOne) Select(field string, fields ...string) *Example1UpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated Example1 entity.
-func (eo *Example1UpdateOne) Save(ctx context.Context) (*Example1, error) {
-	eo.defaults()
-	return withHooks(ctx, eo.sqlSave, eo.mutation, eo.hooks)
+func (_u *Example1UpdateOne) Save(ctx context.Context) (*Example1, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (eo *Example1UpdateOne) SaveX(ctx context.Context) *Example1 {
-	node, err := eo.Save(ctx)
+func (_u *Example1UpdateOne) SaveX(ctx context.Context) *Example1 {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -224,34 +224,34 @@ func (eo *Example1UpdateOne) SaveX(ctx context.Context) *Example1 {
 }
 
 // Exec executes the query on the entity.
-func (eo *Example1UpdateOne) Exec(ctx context.Context) error {
-	_, err := eo.Save(ctx)
+func (_u *Example1UpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (eo *Example1UpdateOne) ExecX(ctx context.Context) {
-	if err := eo.Exec(ctx); err != nil {
+func (_u *Example1UpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (eo *Example1UpdateOne) defaults() {
-	if _, ok := eo.mutation.UpdatedAt(); !ok {
+func (_u *Example1UpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := example1.UpdateDefaultUpdatedAt()
-		eo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
-func (eo *Example1UpdateOne) sqlSave(ctx context.Context) (_node *Example1, err error) {
+func (_u *Example1UpdateOne) sqlSave(ctx context.Context) (_node *Example1, err error) {
 	_spec := sqlgraph.NewUpdateSpec(example1.Table, example1.Columns, sqlgraph.NewFieldSpec(example1.FieldID, field.TypeString))
-	id, ok := eo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "Example1.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := eo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, example1.FieldID)
 		for _, f := range fields {
@@ -263,29 +263,29 @@ func (eo *Example1UpdateOne) sqlSave(ctx context.Context) (_node *Example1, err 
 			}
 		}
 	}
-	if ps := eo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := eo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(example1.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := eo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(example1.FieldDeletedAt, field.TypeTime, value)
 	}
-	if eo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(example1.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := eo.mutation.ExampleValue1(); ok {
+	if value, ok := _u.mutation.ExampleValue1(); ok {
 		_spec.SetField(example1.FieldExampleValue1, field.TypeString, value)
 	}
-	_node = &Example1{config: eo.config}
+	_node = &Example1{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, eo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{example1.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -293,6 +293,6 @@ func (eo *Example1UpdateOne) sqlSave(ctx context.Context) (_node *Example1, err 
 		}
 		return nil, err
 	}
-	eo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

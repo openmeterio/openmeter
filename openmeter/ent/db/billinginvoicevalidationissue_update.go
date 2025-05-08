@@ -25,170 +25,170 @@ type BillingInvoiceValidationIssueUpdate struct {
 }
 
 // Where appends a list predicates to the BillingInvoiceValidationIssueUpdate builder.
-func (biviu *BillingInvoiceValidationIssueUpdate) Where(ps ...predicate.BillingInvoiceValidationIssue) *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.Where(ps...)
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) Where(ps ...predicate.BillingInvoiceValidationIssue) *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetUpdatedAt(t time.Time) *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.SetUpdatedAt(t)
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) SetUpdatedAt(v time.Time) *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetDeletedAt(t time.Time) *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.SetDeletedAt(t)
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) SetDeletedAt(v time.Time) *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetNillableDeletedAt(t *time.Time) *BillingInvoiceValidationIssueUpdate {
-	if t != nil {
-		biviu.SetDeletedAt(*t)
+func (_u *BillingInvoiceValidationIssueUpdate) SetNillableDeletedAt(v *time.Time) *BillingInvoiceValidationIssueUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return biviu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) ClearDeletedAt() *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.ClearDeletedAt()
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) ClearDeletedAt() *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetInvoiceID sets the "invoice_id" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetInvoiceID(s string) *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.SetInvoiceID(s)
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) SetInvoiceID(v string) *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.SetInvoiceID(v)
+	return _u
 }
 
 // SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetNillableInvoiceID(s *string) *BillingInvoiceValidationIssueUpdate {
-	if s != nil {
-		biviu.SetInvoiceID(*s)
+func (_u *BillingInvoiceValidationIssueUpdate) SetNillableInvoiceID(v *string) *BillingInvoiceValidationIssueUpdate {
+	if v != nil {
+		_u.SetInvoiceID(*v)
 	}
-	return biviu
+	return _u
 }
 
 // SetSeverity sets the "severity" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetSeverity(bis billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.SetSeverity(bis)
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) SetSeverity(v billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.SetSeverity(v)
+	return _u
 }
 
 // SetNillableSeverity sets the "severity" field if the given value is not nil.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetNillableSeverity(bis *billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdate {
-	if bis != nil {
-		biviu.SetSeverity(*bis)
+func (_u *BillingInvoiceValidationIssueUpdate) SetNillableSeverity(v *billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdate {
+	if v != nil {
+		_u.SetSeverity(*v)
 	}
-	return biviu
+	return _u
 }
 
 // SetCode sets the "code" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetCode(s string) *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.SetCode(s)
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) SetCode(v string) *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.SetCode(v)
+	return _u
 }
 
 // SetNillableCode sets the "code" field if the given value is not nil.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetNillableCode(s *string) *BillingInvoiceValidationIssueUpdate {
-	if s != nil {
-		biviu.SetCode(*s)
+func (_u *BillingInvoiceValidationIssueUpdate) SetNillableCode(v *string) *BillingInvoiceValidationIssueUpdate {
+	if v != nil {
+		_u.SetCode(*v)
 	}
-	return biviu
+	return _u
 }
 
 // ClearCode clears the value of the "code" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) ClearCode() *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.ClearCode()
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) ClearCode() *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.ClearCode()
+	return _u
 }
 
 // SetMessage sets the "message" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetMessage(s string) *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.SetMessage(s)
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) SetMessage(v string) *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.SetMessage(v)
+	return _u
 }
 
 // SetNillableMessage sets the "message" field if the given value is not nil.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetNillableMessage(s *string) *BillingInvoiceValidationIssueUpdate {
-	if s != nil {
-		biviu.SetMessage(*s)
+func (_u *BillingInvoiceValidationIssueUpdate) SetNillableMessage(v *string) *BillingInvoiceValidationIssueUpdate {
+	if v != nil {
+		_u.SetMessage(*v)
 	}
-	return biviu
+	return _u
 }
 
 // SetPath sets the "path" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetPath(s string) *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.SetPath(s)
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) SetPath(v string) *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.SetPath(v)
+	return _u
 }
 
 // SetNillablePath sets the "path" field if the given value is not nil.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetNillablePath(s *string) *BillingInvoiceValidationIssueUpdate {
-	if s != nil {
-		biviu.SetPath(*s)
+func (_u *BillingInvoiceValidationIssueUpdate) SetNillablePath(v *string) *BillingInvoiceValidationIssueUpdate {
+	if v != nil {
+		_u.SetPath(*v)
 	}
-	return biviu
+	return _u
 }
 
 // ClearPath clears the value of the "path" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) ClearPath() *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.ClearPath()
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) ClearPath() *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.ClearPath()
+	return _u
 }
 
 // SetComponent sets the "component" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetComponent(s string) *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.SetComponent(s)
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) SetComponent(v string) *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.SetComponent(v)
+	return _u
 }
 
 // SetNillableComponent sets the "component" field if the given value is not nil.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetNillableComponent(s *string) *BillingInvoiceValidationIssueUpdate {
-	if s != nil {
-		biviu.SetComponent(*s)
+func (_u *BillingInvoiceValidationIssueUpdate) SetNillableComponent(v *string) *BillingInvoiceValidationIssueUpdate {
+	if v != nil {
+		_u.SetComponent(*v)
 	}
-	return biviu
+	return _u
 }
 
 // SetDedupeHash sets the "dedupe_hash" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetDedupeHash(b []byte) *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.SetDedupeHash(b)
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) SetDedupeHash(v []byte) *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.SetDedupeHash(v)
+	return _u
 }
 
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetBillingInvoiceID(id string) *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.SetBillingInvoiceID(id)
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) SetBillingInvoiceID(id string) *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.SetBillingInvoiceID(id)
+	return _u
 }
 
 // SetBillingInvoice sets the "billing_invoice" edge to the BillingInvoice entity.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetBillingInvoice(b *BillingInvoice) *BillingInvoiceValidationIssueUpdate {
-	return biviu.SetBillingInvoiceID(b.ID)
+func (_u *BillingInvoiceValidationIssueUpdate) SetBillingInvoice(v *BillingInvoice) *BillingInvoiceValidationIssueUpdate {
+	return _u.SetBillingInvoiceID(v.ID)
 }
 
 // Mutation returns the BillingInvoiceValidationIssueMutation object of the builder.
-func (biviu *BillingInvoiceValidationIssueUpdate) Mutation() *BillingInvoiceValidationIssueMutation {
-	return biviu.mutation
+func (_u *BillingInvoiceValidationIssueUpdate) Mutation() *BillingInvoiceValidationIssueMutation {
+	return _u.mutation
 }
 
 // ClearBillingInvoice clears the "billing_invoice" edge to the BillingInvoice entity.
-func (biviu *BillingInvoiceValidationIssueUpdate) ClearBillingInvoice() *BillingInvoiceValidationIssueUpdate {
-	biviu.mutation.ClearBillingInvoice()
-	return biviu
+func (_u *BillingInvoiceValidationIssueUpdate) ClearBillingInvoice() *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.ClearBillingInvoice()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (biviu *BillingInvoiceValidationIssueUpdate) Save(ctx context.Context) (int, error) {
-	biviu.defaults()
-	return withHooks(ctx, biviu.sqlSave, biviu.mutation, biviu.hooks)
+func (_u *BillingInvoiceValidationIssueUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (biviu *BillingInvoiceValidationIssueUpdate) SaveX(ctx context.Context) int {
-	affected, err := biviu.Save(ctx)
+func (_u *BillingInvoiceValidationIssueUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -196,100 +196,100 @@ func (biviu *BillingInvoiceValidationIssueUpdate) SaveX(ctx context.Context) int
 }
 
 // Exec executes the query.
-func (biviu *BillingInvoiceValidationIssueUpdate) Exec(ctx context.Context) error {
-	_, err := biviu.Save(ctx)
+func (_u *BillingInvoiceValidationIssueUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (biviu *BillingInvoiceValidationIssueUpdate) ExecX(ctx context.Context) {
-	if err := biviu.Exec(ctx); err != nil {
+func (_u *BillingInvoiceValidationIssueUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (biviu *BillingInvoiceValidationIssueUpdate) defaults() {
-	if _, ok := biviu.mutation.UpdatedAt(); !ok {
+func (_u *BillingInvoiceValidationIssueUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := billinginvoicevalidationissue.UpdateDefaultUpdatedAt()
-		biviu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (biviu *BillingInvoiceValidationIssueUpdate) check() error {
-	if v, ok := biviu.mutation.InvoiceID(); ok {
+func (_u *BillingInvoiceValidationIssueUpdate) check() error {
+	if v, ok := _u.mutation.InvoiceID(); ok {
 		if err := billinginvoicevalidationissue.InvoiceIDValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.invoice_id": %w`, err)}
 		}
 	}
-	if v, ok := biviu.mutation.Severity(); ok {
+	if v, ok := _u.mutation.Severity(); ok {
 		if err := billinginvoicevalidationissue.SeverityValidator(v); err != nil {
 			return &ValidationError{Name: "severity", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.severity": %w`, err)}
 		}
 	}
-	if v, ok := biviu.mutation.Message(); ok {
+	if v, ok := _u.mutation.Message(); ok {
 		if err := billinginvoicevalidationissue.MessageValidator(v); err != nil {
 			return &ValidationError{Name: "message", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.message": %w`, err)}
 		}
 	}
-	if v, ok := biviu.mutation.DedupeHash(); ok {
+	if v, ok := _u.mutation.DedupeHash(); ok {
 		if err := billinginvoicevalidationissue.DedupeHashValidator(v); err != nil {
 			return &ValidationError{Name: "dedupe_hash", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.dedupe_hash": %w`, err)}
 		}
 	}
-	if biviu.mutation.BillingInvoiceCleared() && len(biviu.mutation.BillingInvoiceIDs()) > 0 {
+	if _u.mutation.BillingInvoiceCleared() && len(_u.mutation.BillingInvoiceIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceValidationIssue.billing_invoice"`)
 	}
 	return nil
 }
 
-func (biviu *BillingInvoiceValidationIssueUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := biviu.check(); err != nil {
-		return n, err
+func (_u *BillingInvoiceValidationIssueUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoicevalidationissue.Table, billinginvoicevalidationissue.Columns, sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString))
-	if ps := biviu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := biviu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := biviu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldDeletedAt, field.TypeTime, value)
 	}
-	if biviu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billinginvoicevalidationissue.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := biviu.mutation.Severity(); ok {
+	if value, ok := _u.mutation.Severity(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldSeverity, field.TypeEnum, value)
 	}
-	if value, ok := biviu.mutation.Code(); ok {
+	if value, ok := _u.mutation.Code(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldCode, field.TypeString, value)
 	}
-	if biviu.mutation.CodeCleared() {
+	if _u.mutation.CodeCleared() {
 		_spec.ClearField(billinginvoicevalidationissue.FieldCode, field.TypeString)
 	}
-	if value, ok := biviu.mutation.Message(); ok {
+	if value, ok := _u.mutation.Message(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldMessage, field.TypeString, value)
 	}
-	if value, ok := biviu.mutation.Path(); ok {
+	if value, ok := _u.mutation.Path(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldPath, field.TypeString, value)
 	}
-	if biviu.mutation.PathCleared() {
+	if _u.mutation.PathCleared() {
 		_spec.ClearField(billinginvoicevalidationissue.FieldPath, field.TypeString)
 	}
-	if value, ok := biviu.mutation.Component(); ok {
+	if value, ok := _u.mutation.Component(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldComponent, field.TypeString, value)
 	}
-	if value, ok := biviu.mutation.DedupeHash(); ok {
+	if value, ok := _u.mutation.DedupeHash(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldDedupeHash, field.TypeBytes, value)
 	}
-	if biviu.mutation.BillingInvoiceCleared() {
+	if _u.mutation.BillingInvoiceCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -302,7 +302,7 @@ func (biviu *BillingInvoiceValidationIssueUpdate) sqlSave(ctx context.Context) (
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := biviu.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -318,7 +318,7 @@ func (biviu *BillingInvoiceValidationIssueUpdate) sqlSave(ctx context.Context) (
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, biviu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billinginvoicevalidationissue.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -326,8 +326,8 @@ func (biviu *BillingInvoiceValidationIssueUpdate) sqlSave(ctx context.Context) (
 		}
 		return 0, err
 	}
-	biviu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // BillingInvoiceValidationIssueUpdateOne is the builder for updating a single BillingInvoiceValidationIssue entity.
@@ -339,177 +339,177 @@ type BillingInvoiceValidationIssueUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetUpdatedAt(t time.Time) *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.SetUpdatedAt(t)
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetUpdatedAt(v time.Time) *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetDeletedAt(t time.Time) *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.SetDeletedAt(t)
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetDeletedAt(v time.Time) *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetNillableDeletedAt(t *time.Time) *BillingInvoiceValidationIssueUpdateOne {
-	if t != nil {
-		biviuo.SetDeletedAt(*t)
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetNillableDeletedAt(v *time.Time) *BillingInvoiceValidationIssueUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return biviuo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) ClearDeletedAt() *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.ClearDeletedAt()
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) ClearDeletedAt() *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetInvoiceID sets the "invoice_id" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetInvoiceID(s string) *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.SetInvoiceID(s)
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetInvoiceID(v string) *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.SetInvoiceID(v)
+	return _u
 }
 
 // SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetNillableInvoiceID(s *string) *BillingInvoiceValidationIssueUpdateOne {
-	if s != nil {
-		biviuo.SetInvoiceID(*s)
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetNillableInvoiceID(v *string) *BillingInvoiceValidationIssueUpdateOne {
+	if v != nil {
+		_u.SetInvoiceID(*v)
 	}
-	return biviuo
+	return _u
 }
 
 // SetSeverity sets the "severity" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetSeverity(bis billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.SetSeverity(bis)
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetSeverity(v billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.SetSeverity(v)
+	return _u
 }
 
 // SetNillableSeverity sets the "severity" field if the given value is not nil.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetNillableSeverity(bis *billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdateOne {
-	if bis != nil {
-		biviuo.SetSeverity(*bis)
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetNillableSeverity(v *billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdateOne {
+	if v != nil {
+		_u.SetSeverity(*v)
 	}
-	return biviuo
+	return _u
 }
 
 // SetCode sets the "code" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetCode(s string) *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.SetCode(s)
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetCode(v string) *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.SetCode(v)
+	return _u
 }
 
 // SetNillableCode sets the "code" field if the given value is not nil.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetNillableCode(s *string) *BillingInvoiceValidationIssueUpdateOne {
-	if s != nil {
-		biviuo.SetCode(*s)
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetNillableCode(v *string) *BillingInvoiceValidationIssueUpdateOne {
+	if v != nil {
+		_u.SetCode(*v)
 	}
-	return biviuo
+	return _u
 }
 
 // ClearCode clears the value of the "code" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) ClearCode() *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.ClearCode()
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) ClearCode() *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.ClearCode()
+	return _u
 }
 
 // SetMessage sets the "message" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetMessage(s string) *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.SetMessage(s)
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetMessage(v string) *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.SetMessage(v)
+	return _u
 }
 
 // SetNillableMessage sets the "message" field if the given value is not nil.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetNillableMessage(s *string) *BillingInvoiceValidationIssueUpdateOne {
-	if s != nil {
-		biviuo.SetMessage(*s)
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetNillableMessage(v *string) *BillingInvoiceValidationIssueUpdateOne {
+	if v != nil {
+		_u.SetMessage(*v)
 	}
-	return biviuo
+	return _u
 }
 
 // SetPath sets the "path" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetPath(s string) *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.SetPath(s)
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetPath(v string) *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.SetPath(v)
+	return _u
 }
 
 // SetNillablePath sets the "path" field if the given value is not nil.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetNillablePath(s *string) *BillingInvoiceValidationIssueUpdateOne {
-	if s != nil {
-		biviuo.SetPath(*s)
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetNillablePath(v *string) *BillingInvoiceValidationIssueUpdateOne {
+	if v != nil {
+		_u.SetPath(*v)
 	}
-	return biviuo
+	return _u
 }
 
 // ClearPath clears the value of the "path" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) ClearPath() *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.ClearPath()
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) ClearPath() *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.ClearPath()
+	return _u
 }
 
 // SetComponent sets the "component" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetComponent(s string) *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.SetComponent(s)
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetComponent(v string) *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.SetComponent(v)
+	return _u
 }
 
 // SetNillableComponent sets the "component" field if the given value is not nil.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetNillableComponent(s *string) *BillingInvoiceValidationIssueUpdateOne {
-	if s != nil {
-		biviuo.SetComponent(*s)
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetNillableComponent(v *string) *BillingInvoiceValidationIssueUpdateOne {
+	if v != nil {
+		_u.SetComponent(*v)
 	}
-	return biviuo
+	return _u
 }
 
 // SetDedupeHash sets the "dedupe_hash" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetDedupeHash(b []byte) *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.SetDedupeHash(b)
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetDedupeHash(v []byte) *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.SetDedupeHash(v)
+	return _u
 }
 
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetBillingInvoiceID(id string) *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.SetBillingInvoiceID(id)
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetBillingInvoiceID(id string) *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.SetBillingInvoiceID(id)
+	return _u
 }
 
 // SetBillingInvoice sets the "billing_invoice" edge to the BillingInvoice entity.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetBillingInvoice(b *BillingInvoice) *BillingInvoiceValidationIssueUpdateOne {
-	return biviuo.SetBillingInvoiceID(b.ID)
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetBillingInvoice(v *BillingInvoice) *BillingInvoiceValidationIssueUpdateOne {
+	return _u.SetBillingInvoiceID(v.ID)
 }
 
 // Mutation returns the BillingInvoiceValidationIssueMutation object of the builder.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) Mutation() *BillingInvoiceValidationIssueMutation {
-	return biviuo.mutation
+func (_u *BillingInvoiceValidationIssueUpdateOne) Mutation() *BillingInvoiceValidationIssueMutation {
+	return _u.mutation
 }
 
 // ClearBillingInvoice clears the "billing_invoice" edge to the BillingInvoice entity.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) ClearBillingInvoice() *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.ClearBillingInvoice()
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) ClearBillingInvoice() *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.ClearBillingInvoice()
+	return _u
 }
 
 // Where appends a list predicates to the BillingInvoiceValidationIssueUpdate builder.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) Where(ps ...predicate.BillingInvoiceValidationIssue) *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.mutation.Where(ps...)
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) Where(ps ...predicate.BillingInvoiceValidationIssue) *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) Select(field string, fields ...string) *BillingInvoiceValidationIssueUpdateOne {
-	biviuo.fields = append([]string{field}, fields...)
-	return biviuo
+func (_u *BillingInvoiceValidationIssueUpdateOne) Select(field string, fields ...string) *BillingInvoiceValidationIssueUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated BillingInvoiceValidationIssue entity.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) Save(ctx context.Context) (*BillingInvoiceValidationIssue, error) {
-	biviuo.defaults()
-	return withHooks(ctx, biviuo.sqlSave, biviuo.mutation, biviuo.hooks)
+func (_u *BillingInvoiceValidationIssueUpdateOne) Save(ctx context.Context) (*BillingInvoiceValidationIssue, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SaveX(ctx context.Context) *BillingInvoiceValidationIssue {
-	node, err := biviuo.Save(ctx)
+func (_u *BillingInvoiceValidationIssueUpdateOne) SaveX(ctx context.Context) *BillingInvoiceValidationIssue {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -517,65 +517,65 @@ func (biviuo *BillingInvoiceValidationIssueUpdateOne) SaveX(ctx context.Context)
 }
 
 // Exec executes the query on the entity.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) Exec(ctx context.Context) error {
-	_, err := biviuo.Save(ctx)
+func (_u *BillingInvoiceValidationIssueUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) ExecX(ctx context.Context) {
-	if err := biviuo.Exec(ctx); err != nil {
+func (_u *BillingInvoiceValidationIssueUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) defaults() {
-	if _, ok := biviuo.mutation.UpdatedAt(); !ok {
+func (_u *BillingInvoiceValidationIssueUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := billinginvoicevalidationissue.UpdateDefaultUpdatedAt()
-		biviuo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) check() error {
-	if v, ok := biviuo.mutation.InvoiceID(); ok {
+func (_u *BillingInvoiceValidationIssueUpdateOne) check() error {
+	if v, ok := _u.mutation.InvoiceID(); ok {
 		if err := billinginvoicevalidationissue.InvoiceIDValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.invoice_id": %w`, err)}
 		}
 	}
-	if v, ok := biviuo.mutation.Severity(); ok {
+	if v, ok := _u.mutation.Severity(); ok {
 		if err := billinginvoicevalidationissue.SeverityValidator(v); err != nil {
 			return &ValidationError{Name: "severity", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.severity": %w`, err)}
 		}
 	}
-	if v, ok := biviuo.mutation.Message(); ok {
+	if v, ok := _u.mutation.Message(); ok {
 		if err := billinginvoicevalidationissue.MessageValidator(v); err != nil {
 			return &ValidationError{Name: "message", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.message": %w`, err)}
 		}
 	}
-	if v, ok := biviuo.mutation.DedupeHash(); ok {
+	if v, ok := _u.mutation.DedupeHash(); ok {
 		if err := billinginvoicevalidationissue.DedupeHashValidator(v); err != nil {
 			return &ValidationError{Name: "dedupe_hash", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceValidationIssue.dedupe_hash": %w`, err)}
 		}
 	}
-	if biviuo.mutation.BillingInvoiceCleared() && len(biviuo.mutation.BillingInvoiceIDs()) > 0 {
+	if _u.mutation.BillingInvoiceCleared() && len(_u.mutation.BillingInvoiceIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceValidationIssue.billing_invoice"`)
 	}
 	return nil
 }
 
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) sqlSave(ctx context.Context) (_node *BillingInvoiceValidationIssue, err error) {
-	if err := biviuo.check(); err != nil {
+func (_u *BillingInvoiceValidationIssueUpdateOne) sqlSave(ctx context.Context) (_node *BillingInvoiceValidationIssue, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoicevalidationissue.Table, billinginvoicevalidationissue.Columns, sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString))
-	id, ok := biviuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "BillingInvoiceValidationIssue.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := biviuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billinginvoicevalidationissue.FieldID)
 		for _, f := range fields {
@@ -587,47 +587,47 @@ func (biviuo *BillingInvoiceValidationIssueUpdateOne) sqlSave(ctx context.Contex
 			}
 		}
 	}
-	if ps := biviuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := biviuo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := biviuo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldDeletedAt, field.TypeTime, value)
 	}
-	if biviuo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billinginvoicevalidationissue.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := biviuo.mutation.Severity(); ok {
+	if value, ok := _u.mutation.Severity(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldSeverity, field.TypeEnum, value)
 	}
-	if value, ok := biviuo.mutation.Code(); ok {
+	if value, ok := _u.mutation.Code(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldCode, field.TypeString, value)
 	}
-	if biviuo.mutation.CodeCleared() {
+	if _u.mutation.CodeCleared() {
 		_spec.ClearField(billinginvoicevalidationissue.FieldCode, field.TypeString)
 	}
-	if value, ok := biviuo.mutation.Message(); ok {
+	if value, ok := _u.mutation.Message(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldMessage, field.TypeString, value)
 	}
-	if value, ok := biviuo.mutation.Path(); ok {
+	if value, ok := _u.mutation.Path(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldPath, field.TypeString, value)
 	}
-	if biviuo.mutation.PathCleared() {
+	if _u.mutation.PathCleared() {
 		_spec.ClearField(billinginvoicevalidationissue.FieldPath, field.TypeString)
 	}
-	if value, ok := biviuo.mutation.Component(); ok {
+	if value, ok := _u.mutation.Component(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldComponent, field.TypeString, value)
 	}
-	if value, ok := biviuo.mutation.DedupeHash(); ok {
+	if value, ok := _u.mutation.DedupeHash(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldDedupeHash, field.TypeBytes, value)
 	}
-	if biviuo.mutation.BillingInvoiceCleared() {
+	if _u.mutation.BillingInvoiceCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -640,7 +640,7 @@ func (biviuo *BillingInvoiceValidationIssueUpdateOne) sqlSave(ctx context.Contex
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := biviuo.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -656,10 +656,10 @@ func (biviuo *BillingInvoiceValidationIssueUpdateOne) sqlSave(ctx context.Contex
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &BillingInvoiceValidationIssue{config: biviuo.config}
+	_node = &BillingInvoiceValidationIssue{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, biviuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billinginvoicevalidationissue.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -667,6 +667,6 @@ func (biviuo *BillingInvoiceValidationIssueUpdateOne) sqlSave(ctx context.Contex
 		}
 		return nil, err
 	}
-	biviuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

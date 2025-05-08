@@ -20,56 +20,56 @@ type BillingInvoiceValidationIssueDelete struct {
 }
 
 // Where appends a list predicates to the BillingInvoiceValidationIssueDelete builder.
-func (bivid *BillingInvoiceValidationIssueDelete) Where(ps ...predicate.BillingInvoiceValidationIssue) *BillingInvoiceValidationIssueDelete {
-	bivid.mutation.Where(ps...)
-	return bivid
+func (_d *BillingInvoiceValidationIssueDelete) Where(ps ...predicate.BillingInvoiceValidationIssue) *BillingInvoiceValidationIssueDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (bivid *BillingInvoiceValidationIssueDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, bivid.sqlExec, bivid.mutation, bivid.hooks)
+func (_d *BillingInvoiceValidationIssueDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bivid *BillingInvoiceValidationIssueDelete) ExecX(ctx context.Context) int {
-	n, err := bivid.Exec(ctx)
+func (_d *BillingInvoiceValidationIssueDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (bivid *BillingInvoiceValidationIssueDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *BillingInvoiceValidationIssueDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(billinginvoicevalidationissue.Table, sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString))
-	if ps := bivid.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, bivid.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	bivid.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // BillingInvoiceValidationIssueDeleteOne is the builder for deleting a single BillingInvoiceValidationIssue entity.
 type BillingInvoiceValidationIssueDeleteOne struct {
-	bivid *BillingInvoiceValidationIssueDelete
+	_d *BillingInvoiceValidationIssueDelete
 }
 
 // Where appends a list predicates to the BillingInvoiceValidationIssueDelete builder.
-func (bivido *BillingInvoiceValidationIssueDeleteOne) Where(ps ...predicate.BillingInvoiceValidationIssue) *BillingInvoiceValidationIssueDeleteOne {
-	bivido.bivid.mutation.Where(ps...)
-	return bivido
+func (_d *BillingInvoiceValidationIssueDeleteOne) Where(ps ...predicate.BillingInvoiceValidationIssue) *BillingInvoiceValidationIssueDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (bivido *BillingInvoiceValidationIssueDeleteOne) Exec(ctx context.Context) error {
-	n, err := bivido.bivid.Exec(ctx)
+func (_d *BillingInvoiceValidationIssueDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (bivido *BillingInvoiceValidationIssueDeleteOne) Exec(ctx context.Context) 
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bivido *BillingInvoiceValidationIssueDeleteOne) ExecX(ctx context.Context) {
-	if err := bivido.Exec(ctx); err != nil {
+func (_d *BillingInvoiceValidationIssueDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

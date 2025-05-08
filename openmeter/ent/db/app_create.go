@@ -28,238 +28,238 @@ type AppCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (ac *AppCreate) SetNamespace(s string) *AppCreate {
-	ac.mutation.SetNamespace(s)
-	return ac
+func (_c *AppCreate) SetNamespace(v string) *AppCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetMetadata sets the "metadata" field.
-func (ac *AppCreate) SetMetadata(m map[string]string) *AppCreate {
-	ac.mutation.SetMetadata(m)
-	return ac
+func (_c *AppCreate) SetMetadata(v map[string]string) *AppCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (ac *AppCreate) SetCreatedAt(t time.Time) *AppCreate {
-	ac.mutation.SetCreatedAt(t)
-	return ac
+func (_c *AppCreate) SetCreatedAt(v time.Time) *AppCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (ac *AppCreate) SetNillableCreatedAt(t *time.Time) *AppCreate {
-	if t != nil {
-		ac.SetCreatedAt(*t)
+func (_c *AppCreate) SetNillableCreatedAt(v *time.Time) *AppCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (ac *AppCreate) SetUpdatedAt(t time.Time) *AppCreate {
-	ac.mutation.SetUpdatedAt(t)
-	return ac
+func (_c *AppCreate) SetUpdatedAt(v time.Time) *AppCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (ac *AppCreate) SetNillableUpdatedAt(t *time.Time) *AppCreate {
-	if t != nil {
-		ac.SetUpdatedAt(*t)
+func (_c *AppCreate) SetNillableUpdatedAt(v *time.Time) *AppCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (ac *AppCreate) SetDeletedAt(t time.Time) *AppCreate {
-	ac.mutation.SetDeletedAt(t)
-	return ac
+func (_c *AppCreate) SetDeletedAt(v time.Time) *AppCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (ac *AppCreate) SetNillableDeletedAt(t *time.Time) *AppCreate {
-	if t != nil {
-		ac.SetDeletedAt(*t)
+func (_c *AppCreate) SetNillableDeletedAt(v *time.Time) *AppCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetName sets the "name" field.
-func (ac *AppCreate) SetName(s string) *AppCreate {
-	ac.mutation.SetName(s)
-	return ac
+func (_c *AppCreate) SetName(v string) *AppCreate {
+	_c.mutation.SetName(v)
+	return _c
 }
 
 // SetDescription sets the "description" field.
-func (ac *AppCreate) SetDescription(s string) *AppCreate {
-	ac.mutation.SetDescription(s)
-	return ac
+func (_c *AppCreate) SetDescription(v string) *AppCreate {
+	_c.mutation.SetDescription(v)
+	return _c
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (ac *AppCreate) SetNillableDescription(s *string) *AppCreate {
-	if s != nil {
-		ac.SetDescription(*s)
+func (_c *AppCreate) SetNillableDescription(v *string) *AppCreate {
+	if v != nil {
+		_c.SetDescription(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetType sets the "type" field.
-func (ac *AppCreate) SetType(at app.AppType) *AppCreate {
-	ac.mutation.SetType(at)
-	return ac
+func (_c *AppCreate) SetType(v app.AppType) *AppCreate {
+	_c.mutation.SetType(v)
+	return _c
 }
 
 // SetStatus sets the "status" field.
-func (ac *AppCreate) SetStatus(as app.AppStatus) *AppCreate {
-	ac.mutation.SetStatus(as)
-	return ac
+func (_c *AppCreate) SetStatus(v app.AppStatus) *AppCreate {
+	_c.mutation.SetStatus(v)
+	return _c
 }
 
 // SetIsDefault sets the "is_default" field.
-func (ac *AppCreate) SetIsDefault(b bool) *AppCreate {
-	ac.mutation.SetIsDefault(b)
-	return ac
+func (_c *AppCreate) SetIsDefault(v bool) *AppCreate {
+	_c.mutation.SetIsDefault(v)
+	return _c
 }
 
 // SetNillableIsDefault sets the "is_default" field if the given value is not nil.
-func (ac *AppCreate) SetNillableIsDefault(b *bool) *AppCreate {
-	if b != nil {
-		ac.SetIsDefault(*b)
+func (_c *AppCreate) SetNillableIsDefault(v *bool) *AppCreate {
+	if v != nil {
+		_c.SetIsDefault(*v)
 	}
-	return ac
+	return _c
 }
 
 // SetID sets the "id" field.
-func (ac *AppCreate) SetID(s string) *AppCreate {
-	ac.mutation.SetID(s)
-	return ac
+func (_c *AppCreate) SetID(v string) *AppCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (ac *AppCreate) SetNillableID(s *string) *AppCreate {
-	if s != nil {
-		ac.SetID(*s)
+func (_c *AppCreate) SetNillableID(v *string) *AppCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return ac
+	return _c
 }
 
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppCustomer entity by IDs.
-func (ac *AppCreate) AddCustomerAppIDs(ids ...int) *AppCreate {
-	ac.mutation.AddCustomerAppIDs(ids...)
-	return ac
+func (_c *AppCreate) AddCustomerAppIDs(ids ...int) *AppCreate {
+	_c.mutation.AddCustomerAppIDs(ids...)
+	return _c
 }
 
 // AddCustomerApps adds the "customer_apps" edges to the AppCustomer entity.
-func (ac *AppCreate) AddCustomerApps(a ...*AppCustomer) *AppCreate {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_c *AppCreate) AddCustomerApps(v ...*AppCustomer) *AppCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ac.AddCustomerAppIDs(ids...)
+	return _c.AddCustomerAppIDs(ids...)
 }
 
 // AddBillingProfileTaxAppIDs adds the "billing_profile_tax_app" edge to the BillingProfile entity by IDs.
-func (ac *AppCreate) AddBillingProfileTaxAppIDs(ids ...string) *AppCreate {
-	ac.mutation.AddBillingProfileTaxAppIDs(ids...)
-	return ac
+func (_c *AppCreate) AddBillingProfileTaxAppIDs(ids ...string) *AppCreate {
+	_c.mutation.AddBillingProfileTaxAppIDs(ids...)
+	return _c
 }
 
 // AddBillingProfileTaxApp adds the "billing_profile_tax_app" edges to the BillingProfile entity.
-func (ac *AppCreate) AddBillingProfileTaxApp(b ...*BillingProfile) *AppCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_c *AppCreate) AddBillingProfileTaxApp(v ...*BillingProfile) *AppCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ac.AddBillingProfileTaxAppIDs(ids...)
+	return _c.AddBillingProfileTaxAppIDs(ids...)
 }
 
 // AddBillingProfileInvoicingAppIDs adds the "billing_profile_invoicing_app" edge to the BillingProfile entity by IDs.
-func (ac *AppCreate) AddBillingProfileInvoicingAppIDs(ids ...string) *AppCreate {
-	ac.mutation.AddBillingProfileInvoicingAppIDs(ids...)
-	return ac
+func (_c *AppCreate) AddBillingProfileInvoicingAppIDs(ids ...string) *AppCreate {
+	_c.mutation.AddBillingProfileInvoicingAppIDs(ids...)
+	return _c
 }
 
 // AddBillingProfileInvoicingApp adds the "billing_profile_invoicing_app" edges to the BillingProfile entity.
-func (ac *AppCreate) AddBillingProfileInvoicingApp(b ...*BillingProfile) *AppCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_c *AppCreate) AddBillingProfileInvoicingApp(v ...*BillingProfile) *AppCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ac.AddBillingProfileInvoicingAppIDs(ids...)
+	return _c.AddBillingProfileInvoicingAppIDs(ids...)
 }
 
 // AddBillingProfilePaymentAppIDs adds the "billing_profile_payment_app" edge to the BillingProfile entity by IDs.
-func (ac *AppCreate) AddBillingProfilePaymentAppIDs(ids ...string) *AppCreate {
-	ac.mutation.AddBillingProfilePaymentAppIDs(ids...)
-	return ac
+func (_c *AppCreate) AddBillingProfilePaymentAppIDs(ids ...string) *AppCreate {
+	_c.mutation.AddBillingProfilePaymentAppIDs(ids...)
+	return _c
 }
 
 // AddBillingProfilePaymentApp adds the "billing_profile_payment_app" edges to the BillingProfile entity.
-func (ac *AppCreate) AddBillingProfilePaymentApp(b ...*BillingProfile) *AppCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_c *AppCreate) AddBillingProfilePaymentApp(v ...*BillingProfile) *AppCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ac.AddBillingProfilePaymentAppIDs(ids...)
+	return _c.AddBillingProfilePaymentAppIDs(ids...)
 }
 
 // AddBillingInvoiceTaxAppIDs adds the "billing_invoice_tax_app" edge to the BillingInvoice entity by IDs.
-func (ac *AppCreate) AddBillingInvoiceTaxAppIDs(ids ...string) *AppCreate {
-	ac.mutation.AddBillingInvoiceTaxAppIDs(ids...)
-	return ac
+func (_c *AppCreate) AddBillingInvoiceTaxAppIDs(ids ...string) *AppCreate {
+	_c.mutation.AddBillingInvoiceTaxAppIDs(ids...)
+	return _c
 }
 
 // AddBillingInvoiceTaxApp adds the "billing_invoice_tax_app" edges to the BillingInvoice entity.
-func (ac *AppCreate) AddBillingInvoiceTaxApp(b ...*BillingInvoice) *AppCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_c *AppCreate) AddBillingInvoiceTaxApp(v ...*BillingInvoice) *AppCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ac.AddBillingInvoiceTaxAppIDs(ids...)
+	return _c.AddBillingInvoiceTaxAppIDs(ids...)
 }
 
 // AddBillingInvoiceInvoicingAppIDs adds the "billing_invoice_invoicing_app" edge to the BillingInvoice entity by IDs.
-func (ac *AppCreate) AddBillingInvoiceInvoicingAppIDs(ids ...string) *AppCreate {
-	ac.mutation.AddBillingInvoiceInvoicingAppIDs(ids...)
-	return ac
+func (_c *AppCreate) AddBillingInvoiceInvoicingAppIDs(ids ...string) *AppCreate {
+	_c.mutation.AddBillingInvoiceInvoicingAppIDs(ids...)
+	return _c
 }
 
 // AddBillingInvoiceInvoicingApp adds the "billing_invoice_invoicing_app" edges to the BillingInvoice entity.
-func (ac *AppCreate) AddBillingInvoiceInvoicingApp(b ...*BillingInvoice) *AppCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_c *AppCreate) AddBillingInvoiceInvoicingApp(v ...*BillingInvoice) *AppCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ac.AddBillingInvoiceInvoicingAppIDs(ids...)
+	return _c.AddBillingInvoiceInvoicingAppIDs(ids...)
 }
 
 // AddBillingInvoicePaymentAppIDs adds the "billing_invoice_payment_app" edge to the BillingInvoice entity by IDs.
-func (ac *AppCreate) AddBillingInvoicePaymentAppIDs(ids ...string) *AppCreate {
-	ac.mutation.AddBillingInvoicePaymentAppIDs(ids...)
-	return ac
+func (_c *AppCreate) AddBillingInvoicePaymentAppIDs(ids ...string) *AppCreate {
+	_c.mutation.AddBillingInvoicePaymentAppIDs(ids...)
+	return _c
 }
 
 // AddBillingInvoicePaymentApp adds the "billing_invoice_payment_app" edges to the BillingInvoice entity.
-func (ac *AppCreate) AddBillingInvoicePaymentApp(b ...*BillingInvoice) *AppCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_c *AppCreate) AddBillingInvoicePaymentApp(v ...*BillingInvoice) *AppCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return ac.AddBillingInvoicePaymentAppIDs(ids...)
+	return _c.AddBillingInvoicePaymentAppIDs(ids...)
 }
 
 // Mutation returns the AppMutation object of the builder.
-func (ac *AppCreate) Mutation() *AppMutation {
-	return ac.mutation
+func (_c *AppCreate) Mutation() *AppMutation {
+	return _c.mutation
 }
 
 // Save creates the App in the database.
-func (ac *AppCreate) Save(ctx context.Context) (*App, error) {
-	ac.defaults()
-	return withHooks(ctx, ac.sqlSave, ac.mutation, ac.hooks)
+func (_c *AppCreate) Save(ctx context.Context) (*App, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (ac *AppCreate) SaveX(ctx context.Context) *App {
-	v, err := ac.Save(ctx)
+func (_c *AppCreate) SaveX(ctx context.Context) *App {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -267,75 +267,75 @@ func (ac *AppCreate) SaveX(ctx context.Context) *App {
 }
 
 // Exec executes the query.
-func (ac *AppCreate) Exec(ctx context.Context) error {
-	_, err := ac.Save(ctx)
+func (_c *AppCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ac *AppCreate) ExecX(ctx context.Context) {
-	if err := ac.Exec(ctx); err != nil {
+func (_c *AppCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (ac *AppCreate) defaults() {
-	if _, ok := ac.mutation.CreatedAt(); !ok {
+func (_c *AppCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := dbapp.DefaultCreatedAt()
-		ac.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := ac.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := dbapp.DefaultUpdatedAt()
-		ac.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := ac.mutation.IsDefault(); !ok {
+	if _, ok := _c.mutation.IsDefault(); !ok {
 		v := dbapp.DefaultIsDefault
-		ac.mutation.SetIsDefault(v)
+		_c.mutation.SetIsDefault(v)
 	}
-	if _, ok := ac.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := dbapp.DefaultID()
-		ac.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (ac *AppCreate) check() error {
-	if _, ok := ac.mutation.Namespace(); !ok {
+func (_c *AppCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "App.namespace"`)}
 	}
-	if v, ok := ac.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := dbapp.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "App.namespace": %w`, err)}
 		}
 	}
-	if _, ok := ac.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "App.created_at"`)}
 	}
-	if _, ok := ac.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "App.updated_at"`)}
 	}
-	if _, ok := ac.mutation.Name(); !ok {
+	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "App.name"`)}
 	}
-	if _, ok := ac.mutation.GetType(); !ok {
+	if _, ok := _c.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "App.type"`)}
 	}
-	if _, ok := ac.mutation.Status(); !ok {
+	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "App.status"`)}
 	}
-	if _, ok := ac.mutation.IsDefault(); !ok {
+	if _, ok := _c.mutation.IsDefault(); !ok {
 		return &ValidationError{Name: "is_default", err: errors.New(`db: missing required field "App.is_default"`)}
 	}
 	return nil
 }
 
-func (ac *AppCreate) sqlSave(ctx context.Context) (*App, error) {
-	if err := ac.check(); err != nil {
+func (_c *AppCreate) sqlSave(ctx context.Context) (*App, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := ac.createSpec()
-	if err := sqlgraph.CreateNode(ctx, ac.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -348,62 +348,62 @@ func (ac *AppCreate) sqlSave(ctx context.Context) (*App, error) {
 			return nil, fmt.Errorf("unexpected App.ID type: %T", _spec.ID.Value)
 		}
 	}
-	ac.mutation.id = &_node.ID
-	ac.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
+func (_c *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 	var (
-		_node = &App{config: ac.config}
+		_node = &App{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(dbapp.Table, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = ac.conflict
-	if id, ok := ac.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := ac.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(dbapp.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := ac.mutation.Metadata(); ok {
+	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(dbapp.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := ac.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(dbapp.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := ac.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbapp.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := ac.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(dbapp.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := ac.mutation.Name(); ok {
+	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(dbapp.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := ac.mutation.Description(); ok {
+	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(dbapp.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := ac.mutation.GetType(); ok {
+	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(dbapp.FieldType, field.TypeString, value)
 		_node.Type = value
 	}
-	if value, ok := ac.mutation.Status(); ok {
+	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
 		_node.Status = value
 	}
-	if value, ok := ac.mutation.IsDefault(); ok {
+	if value, ok := _c.mutation.IsDefault(); ok {
 		_spec.SetField(dbapp.FieldIsDefault, field.TypeBool, value)
 		_node.IsDefault = value
 	}
-	if nodes := ac.mutation.CustomerAppsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.CustomerAppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -419,7 +419,7 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ac.mutation.BillingProfileTaxAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingProfileTaxAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -435,7 +435,7 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ac.mutation.BillingProfileInvoicingAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingProfileInvoicingAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -451,7 +451,7 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ac.mutation.BillingProfilePaymentAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingProfilePaymentAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -467,7 +467,7 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ac.mutation.BillingInvoiceTaxAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingInvoiceTaxAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -483,7 +483,7 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ac.mutation.BillingInvoiceInvoicingAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingInvoiceInvoicingAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -499,7 +499,7 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := ac.mutation.BillingInvoicePaymentAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingInvoicePaymentAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -534,10 +534,10 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (ac *AppCreate) OnConflict(opts ...sql.ConflictOption) *AppUpsertOne {
-	ac.conflict = opts
+func (_c *AppCreate) OnConflict(opts ...sql.ConflictOption) *AppUpsertOne {
+	_c.conflict = opts
 	return &AppUpsertOne{
-		create: ac,
+		create: _c,
 	}
 }
 
@@ -547,10 +547,10 @@ func (ac *AppCreate) OnConflict(opts ...sql.ConflictOption) *AppUpsertOne {
 //	client.App.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (ac *AppCreate) OnConflictColumns(columns ...string) *AppUpsertOne {
-	ac.conflict = append(ac.conflict, sql.ConflictColumns(columns...))
+func (_c *AppCreate) OnConflictColumns(columns ...string) *AppUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &AppUpsertOne{
-		create: ac,
+		create: _c,
 	}
 }
 
@@ -892,16 +892,16 @@ type AppCreateBulk struct {
 }
 
 // Save creates the App entities in the database.
-func (acb *AppCreateBulk) Save(ctx context.Context) ([]*App, error) {
-	if acb.err != nil {
-		return nil, acb.err
+func (_c *AppCreateBulk) Save(ctx context.Context) ([]*App, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(acb.builders))
-	nodes := make([]*App, len(acb.builders))
-	mutators := make([]Mutator, len(acb.builders))
-	for i := range acb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*App, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := acb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*AppMutation)
@@ -915,12 +915,12 @@ func (acb *AppCreateBulk) Save(ctx context.Context) ([]*App, error) {
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, acb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = acb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, acb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -940,7 +940,7 @@ func (acb *AppCreateBulk) Save(ctx context.Context) ([]*App, error) {
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, acb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -948,8 +948,8 @@ func (acb *AppCreateBulk) Save(ctx context.Context) ([]*App, error) {
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (acb *AppCreateBulk) SaveX(ctx context.Context) []*App {
-	v, err := acb.Save(ctx)
+func (_c *AppCreateBulk) SaveX(ctx context.Context) []*App {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -957,14 +957,14 @@ func (acb *AppCreateBulk) SaveX(ctx context.Context) []*App {
 }
 
 // Exec executes the query.
-func (acb *AppCreateBulk) Exec(ctx context.Context) error {
-	_, err := acb.Save(ctx)
+func (_c *AppCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (acb *AppCreateBulk) ExecX(ctx context.Context) {
-	if err := acb.Exec(ctx); err != nil {
+func (_c *AppCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -984,10 +984,10 @@ func (acb *AppCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (acb *AppCreateBulk) OnConflict(opts ...sql.ConflictOption) *AppUpsertBulk {
-	acb.conflict = opts
+func (_c *AppCreateBulk) OnConflict(opts ...sql.ConflictOption) *AppUpsertBulk {
+	_c.conflict = opts
 	return &AppUpsertBulk{
-		create: acb,
+		create: _c,
 	}
 }
 
@@ -997,10 +997,10 @@ func (acb *AppCreateBulk) OnConflict(opts ...sql.ConflictOption) *AppUpsertBulk 
 //	client.App.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (acb *AppCreateBulk) OnConflictColumns(columns ...string) *AppUpsertBulk {
-	acb.conflict = append(acb.conflict, sql.ConflictColumns(columns...))
+func (_c *AppCreateBulk) OnConflictColumns(columns ...string) *AppUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &AppUpsertBulk{
-		create: acb,
+		create: _c,
 	}
 }
 

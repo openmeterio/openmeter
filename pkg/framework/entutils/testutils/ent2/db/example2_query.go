@@ -30,40 +30,40 @@ type Example2Query struct {
 }
 
 // Where adds a new predicate for the Example2Query builder.
-func (e *Example2Query) Where(ps ...predicate.Example2) *Example2Query {
-	e.predicates = append(e.predicates, ps...)
-	return e
+func (_q *Example2Query) Where(ps ...predicate.Example2) *Example2Query {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (e *Example2Query) Limit(limit int) *Example2Query {
-	e.ctx.Limit = &limit
-	return e
+func (_q *Example2Query) Limit(limit int) *Example2Query {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (e *Example2Query) Offset(offset int) *Example2Query {
-	e.ctx.Offset = &offset
-	return e
+func (_q *Example2Query) Offset(offset int) *Example2Query {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (e *Example2Query) Unique(unique bool) *Example2Query {
-	e.ctx.Unique = &unique
-	return e
+func (_q *Example2Query) Unique(unique bool) *Example2Query {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (e *Example2Query) Order(o ...example2.OrderOption) *Example2Query {
-	e.order = append(e.order, o...)
-	return e
+func (_q *Example2Query) Order(o ...example2.OrderOption) *Example2Query {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // First returns the first Example2 entity from the query.
 // Returns a *NotFoundError when no Example2 was found.
-func (e *Example2Query) First(ctx context.Context) (*Example2, error) {
-	nodes, err := e.Limit(1).All(setContextOp(ctx, e.ctx, ent.OpQueryFirst))
+func (_q *Example2Query) First(ctx context.Context) (*Example2, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -74,8 +74,8 @@ func (e *Example2Query) First(ctx context.Context) (*Example2, error) {
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (e *Example2Query) FirstX(ctx context.Context) *Example2 {
-	node, err := e.First(ctx)
+func (_q *Example2Query) FirstX(ctx context.Context) *Example2 {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -84,9 +84,9 @@ func (e *Example2Query) FirstX(ctx context.Context) *Example2 {
 
 // FirstID returns the first Example2 ID from the query.
 // Returns a *NotFoundError when no Example2 ID was found.
-func (e *Example2Query) FirstID(ctx context.Context) (id string, err error) {
+func (_q *Example2Query) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = e.Limit(1).IDs(setContextOp(ctx, e.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -97,8 +97,8 @@ func (e *Example2Query) FirstID(ctx context.Context) (id string, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (e *Example2Query) FirstIDX(ctx context.Context) string {
-	id, err := e.FirstID(ctx)
+func (_q *Example2Query) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -108,8 +108,8 @@ func (e *Example2Query) FirstIDX(ctx context.Context) string {
 // Only returns a single Example2 entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one Example2 entity is found.
 // Returns a *NotFoundError when no Example2 entities are found.
-func (e *Example2Query) Only(ctx context.Context) (*Example2, error) {
-	nodes, err := e.Limit(2).All(setContextOp(ctx, e.ctx, ent.OpQueryOnly))
+func (_q *Example2Query) Only(ctx context.Context) (*Example2, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +124,8 @@ func (e *Example2Query) Only(ctx context.Context) (*Example2, error) {
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (e *Example2Query) OnlyX(ctx context.Context) *Example2 {
-	node, err := e.Only(ctx)
+func (_q *Example2Query) OnlyX(ctx context.Context) *Example2 {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -135,9 +135,9 @@ func (e *Example2Query) OnlyX(ctx context.Context) *Example2 {
 // OnlyID is like Only, but returns the only Example2 ID in the query.
 // Returns a *NotSingularError when more than one Example2 ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (e *Example2Query) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *Example2Query) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = e.Limit(2).IDs(setContextOp(ctx, e.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -152,8 +152,8 @@ func (e *Example2Query) OnlyID(ctx context.Context) (id string, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (e *Example2Query) OnlyIDX(ctx context.Context) string {
-	id, err := e.OnlyID(ctx)
+func (_q *Example2Query) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -161,18 +161,18 @@ func (e *Example2Query) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of Example2s.
-func (e *Example2Query) All(ctx context.Context) ([]*Example2, error) {
-	ctx = setContextOp(ctx, e.ctx, ent.OpQueryAll)
-	if err := e.prepareQuery(ctx); err != nil {
+func (_q *Example2Query) All(ctx context.Context) ([]*Example2, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*Example2, *Example2Query]()
-	return withInterceptors[[]*Example2](ctx, e, qr, e.inters)
+	return withInterceptors[[]*Example2](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (e *Example2Query) AllX(ctx context.Context) []*Example2 {
-	nodes, err := e.All(ctx)
+func (_q *Example2Query) AllX(ctx context.Context) []*Example2 {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -180,20 +180,20 @@ func (e *Example2Query) AllX(ctx context.Context) []*Example2 {
 }
 
 // IDs executes the query and returns a list of Example2 IDs.
-func (e *Example2Query) IDs(ctx context.Context) (ids []string, err error) {
-	if e.ctx.Unique == nil && e.path != nil {
-		e.Unique(true)
+func (_q *Example2Query) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, e.ctx, ent.OpQueryIDs)
-	if err = e.Select(example2.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(example2.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (e *Example2Query) IDsX(ctx context.Context) []string {
-	ids, err := e.IDs(ctx)
+func (_q *Example2Query) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -201,17 +201,17 @@ func (e *Example2Query) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (e *Example2Query) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, e.ctx, ent.OpQueryCount)
-	if err := e.prepareQuery(ctx); err != nil {
+func (_q *Example2Query) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, e, querierCount[*Example2Query](), e.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*Example2Query](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (e *Example2Query) CountX(ctx context.Context) int {
-	count, err := e.Count(ctx)
+func (_q *Example2Query) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -219,9 +219,9 @@ func (e *Example2Query) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (e *Example2Query) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, e.ctx, ent.OpQueryExist)
-	switch _, err := e.FirstID(ctx); {
+func (_q *Example2Query) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -232,8 +232,8 @@ func (e *Example2Query) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (e *Example2Query) ExistX(ctx context.Context) bool {
-	exist, err := e.Exist(ctx)
+func (_q *Example2Query) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -242,19 +242,19 @@ func (e *Example2Query) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the Example2Query builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (e *Example2Query) Clone() *Example2Query {
-	if e == nil {
+func (_q *Example2Query) Clone() *Example2Query {
+	if _q == nil {
 		return nil
 	}
 	return &Example2Query{
-		config:     e.config,
-		ctx:        e.ctx.Clone(),
-		order:      append([]example2.OrderOption{}, e.order...),
-		inters:     append([]Interceptor{}, e.inters...),
-		predicates: append([]predicate.Example2{}, e.predicates...),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]example2.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.Example2{}, _q.predicates...),
 		// clone intermediate query.
-		sql:  e.sql.Clone(),
-		path: e.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
@@ -272,10 +272,10 @@ func (e *Example2Query) Clone() *Example2Query {
 //		GroupBy(example2.FieldCreatedAt).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (e *Example2Query) GroupBy(field string, fields ...string) *Example2GroupBy {
-	e.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &Example2GroupBy{build: e}
-	grbuild.flds = &e.ctx.Fields
+func (_q *Example2Query) GroupBy(field string, fields ...string) *Example2GroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &Example2GroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = example2.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -293,65 +293,65 @@ func (e *Example2Query) GroupBy(field string, fields ...string) *Example2GroupBy
 //	client.Example2.Query().
 //		Select(example2.FieldCreatedAt).
 //		Scan(ctx, &v)
-func (e *Example2Query) Select(fields ...string) *Example2Select {
-	e.ctx.Fields = append(e.ctx.Fields, fields...)
-	sbuild := &Example2Select{Example2Query: e}
+func (_q *Example2Query) Select(fields ...string) *Example2Select {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &Example2Select{Example2Query: _q}
 	sbuild.label = example2.Label
-	sbuild.flds, sbuild.scan = &e.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a Example2Select configured with the given aggregations.
-func (e *Example2Query) Aggregate(fns ...AggregateFunc) *Example2Select {
-	return e.Select().Aggregate(fns...)
+func (_q *Example2Query) Aggregate(fns ...AggregateFunc) *Example2Select {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (e *Example2Query) prepareQuery(ctx context.Context) error {
-	for _, inter := range e.inters {
+func (_q *Example2Query) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, e); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range e.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !example2.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if e.path != nil {
-		prev, err := e.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		e.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (e *Example2Query) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Example2, error) {
+func (_q *Example2Query) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Example2, error) {
 	var (
 		nodes = []*Example2{}
-		_spec = e.querySpec()
+		_spec = _q.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Example2).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Example2{config: e.config}
+		node := &Example2{config: _q.config}
 		nodes = append(nodes, node)
 		return node.assignValues(columns, values)
 	}
-	if len(e.modifiers) > 0 {
-		_spec.Modifiers = e.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, e.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
@@ -360,27 +360,27 @@ func (e *Example2Query) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Exam
 	return nodes, nil
 }
 
-func (e *Example2Query) sqlCount(ctx context.Context) (int, error) {
-	_spec := e.querySpec()
-	if len(e.modifiers) > 0 {
-		_spec.Modifiers = e.modifiers
+func (_q *Example2Query) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = e.ctx.Fields
-	if len(e.ctx.Fields) > 0 {
-		_spec.Unique = e.ctx.Unique != nil && *e.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, e.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (e *Example2Query) querySpec() *sqlgraph.QuerySpec {
+func (_q *Example2Query) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(example2.Table, example2.Columns, sqlgraph.NewFieldSpec(example2.FieldID, field.TypeString))
-	_spec.From = e.sql
-	if unique := e.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if e.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := e.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, example2.FieldID)
 		for i := range fields {
@@ -389,20 +389,20 @@ func (e *Example2Query) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 	}
-	if ps := e.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := e.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := e.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := e.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -412,36 +412,36 @@ func (e *Example2Query) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (e *Example2Query) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(e.driver.Dialect())
+func (_q *Example2Query) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(example2.Table)
-	columns := e.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = example2.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if e.sql != nil {
-		selector = e.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if e.ctx.Unique != nil && *e.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range e.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range e.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range e.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := e.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := e.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -450,27 +450,27 @@ func (e *Example2Query) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (e *Example2Query) ForUpdate(opts ...sql.LockOption) *Example2Query {
-	if e.driver.Dialect() == dialect.Postgres {
-		e.Unique(false)
+func (_q *Example2Query) ForUpdate(opts ...sql.LockOption) *Example2Query {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	e.modifiers = append(e.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return e
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (e *Example2Query) ForShare(opts ...sql.LockOption) *Example2Query {
-	if e.driver.Dialect() == dialect.Postgres {
-		e.Unique(false)
+func (_q *Example2Query) ForShare(opts ...sql.LockOption) *Example2Query {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	e.modifiers = append(e.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return e
+	return _q
 }
 
 // Example2GroupBy is the group-by builder for Example2 entities.
