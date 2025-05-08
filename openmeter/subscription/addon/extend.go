@@ -14,25 +14,7 @@ import (
 
 // Apply applies the addon rate card to the target rate card
 func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard, annotations models.Annotations) error {
-	// Target has has to be implemented by a pointer otherwise we can't use it as a receiver. Let's check that
-	typ := reflect.TypeOf(target)
-	if typ == nil {
-		return fmt.Errorf("target must not be nil")
-	}
-
-	if typ.Kind() != reflect.Ptr {
-		return fmt.Errorf("target must be a pointer")
-	}
-
-	if annotations == nil {
-		return fmt.Errorf("annotations must not be nil")
-	}
-
-	if a.AddonRateCard.AsMeta().Price == nil && a.AddonRateCard.AsMeta().EntitlementTemplate == nil {
-		return nil
-	}
-
-	if err := validateRateCards(a.AddonRateCard.RateCard, target); err != nil {
+	if err := a.Validate(target, annotations); err != nil {
 		return err
 	}
 
@@ -86,31 +68,20 @@ func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard, annotat
 			}
 		}
 
+		// Let's update the discounts
+		if aMeta.Discounts.Usage != nil {
+			targetDiscount := lo.FromPtrOr(tMeta.Discounts.Usage, productcatalog.UsageDiscount{})
+			targetDiscount.Quantity = targetDiscount.Quantity.Add(aMeta.Discounts.Usage.Quantity)
+			m.Discounts.Usage = &targetDiscount
+		}
+
 		return m, nil
 	})
 }
 
 // Restore restores the addon rate card to the target rate card
 func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annotations models.Annotations) error {
-	// Target has has to be implemented by a pointer otherwise we can't use it as a receiver. Let's check that
-	typ := reflect.TypeOf(target)
-	if typ == nil {
-		return fmt.Errorf("target must not be nil")
-	}
-
-	if typ.Kind() != reflect.Ptr {
-		return fmt.Errorf("target must be a pointer")
-	}
-
-	if annotations == nil {
-		return fmt.Errorf("annotations must not be nil")
-	}
-
-	if a.AddonRateCard.AsMeta().Price == nil && a.AddonRateCard.AsMeta().EntitlementTemplate == nil {
-		return nil
-	}
-
-	if err := validateRateCards(a.AddonRateCard.RateCard, target); err != nil {
+	if err := a.Validate(target, annotations); err != nil {
 		return err
 	}
 
@@ -177,6 +148,51 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annot
 			}
 		}
 
+		// Let's update the discounts
+		if aMeta.Discounts.Usage != nil {
+			if target.AsMeta().Discounts.Usage == nil {
+				return m, fmt.Errorf("target doesn't have usage discount while addon has a usage discount template")
+			}
+
+			targetDiscount := target.AsMeta().Discounts.Usage.Clone()
+			if targetDiscount.Quantity.LessThan(aMeta.Discounts.Usage.Quantity) {
+				return m, fmt.Errorf("target has %.0f usage discount which is less than addon's %.0f", targetDiscount.Quantity.InexactFloat64(), aMeta.Discounts.Usage.Quantity.InexactFloat64())
+			}
+
+			targetDiscount.Quantity = targetDiscount.Quantity.Sub(aMeta.Discounts.Usage.Quantity)
+			m.Discounts.Usage = &targetDiscount
+		}
+
 		return m, nil
 	})
+}
+
+func (a SubscriptionAddonRateCard) Validate(target productcatalog.RateCard, annotations models.Annotations) error {
+	// Target has has to be implemented by a pointer otherwise we can't use it as a receiver. Let's check that
+	typ := reflect.TypeOf(target)
+	if typ == nil {
+		return fmt.Errorf("target must not be nil")
+	}
+
+	if typ.Kind() != reflect.Ptr {
+		return fmt.Errorf("target must be a pointer")
+	}
+
+	if annotations == nil {
+		return fmt.Errorf("annotations must not be nil")
+	}
+
+	if err := productcatalog.NewRateCardWithOverlay(a.AddonRateCard.RateCard, target).ValidateWith(
+		productcatalog.ValidateRateCardsShareSameKey,
+		productcatalog.ValidateRateCardsHaveCompatiblePrice,
+		productcatalog.ValidateRateCardsHaveCompatibleFeatureKey,
+		// productcatalog.ValidateRateCardsHaveCompatibleFeatureID, // FIXME(OM-1337): subscriptions handles feature ID incorrectly
+		productcatalog.ValidateRateCardsHaveCompatibleBillingCadence,
+		productcatalog.ValidateRateCardsHaveCompatibleEntitlementTemplate,
+		productcatalog.ValidateRateCardsHaveCompatibleDiscounts,
+	); err != nil {
+		return err
+	}
+
+	return nil
 }

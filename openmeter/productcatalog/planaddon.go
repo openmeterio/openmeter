@@ -143,7 +143,7 @@ func (c PlanAddon) validateRateCardsInPhase(phaseRateCards, addonRateCards RateC
 		}
 
 		// Finally, let's check that they are compatible
-		if err := rateCardsCompatible(phaseRateCard, affectingRateCards[0]); err != nil {
+		if err := NewRateCardWithOverlay(phaseRateCard, affectingRateCards[0]).Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("plan ratecard is not compatible with add-on ratecard [plan.ratecard.key=%s add-on.ratecard.key=%s]: %w", phaseRateCard.Key(), affectingRateCards[0].Key(), err))
 		}
 	}

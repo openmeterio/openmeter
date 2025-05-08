@@ -1,6 +1,7 @@
 package subscriptionaddon_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -103,7 +104,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card price types do not match")
+			require.ErrorContains(t, err, "incompatible price types")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -111,7 +112,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card price types do not match")
+			require.ErrorContains(t, err, "incompatible price types")
 		})
 	})
 
@@ -131,7 +132,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card entitlement types do not match")
+			require.ErrorContains(t, err, "incompatible entitlement template type")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -139,7 +140,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card entitlement types do not match")
+			require.ErrorContains(t, err, "incompatible entitlement template type")
 		})
 	})
 
@@ -156,7 +157,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card keys do not match")
+			require.ErrorContains(t, err, "incompatible rate card keys")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -164,7 +165,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card keys do not match")
+			require.ErrorContains(t, err, "incompatible rate card keys")
 		})
 	})
 
@@ -192,15 +193,35 @@ func TestValidations(t *testing.T) {
 			err := rc.Apply(target, models.Annotations{})
 
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card price payment terms do not match")
+			require.ErrorContains(t, err, "incompatible price payment terms")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(target, models.Annotations{})
 
 			require.Error(t, err)
-			require.ErrorContains(t, err, "target and addon rate card price payment terms do not match")
+			require.ErrorContains(t, err, "incompatible price payment terms")
 		})
+	})
+
+	t.Run("Should error on UsageBasedRateCards with different BillingCadence", func(t *testing.T) {
+		meta := someMeta.Clone()
+		meta.Price = nil
+
+		// The addon would do nothing (which is valid)
+		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: testutils.GetISODuration(t, "P2M"),
+		})
+
+		target := &productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: testutils.GetISODuration(t, "P1M"),
+		}
+
+		err := rc.Apply(target, models.Annotations{})
+		require.Error(t, err)
+		require.ErrorContains(t, err, "billing cadence must be equal")
 	})
 }
 
@@ -412,6 +433,36 @@ func TestExtendApply(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, me.IssueAfterReset)
 		require.Equal(t, 200.0, *me.IssueAfterReset)
+	})
+
+	t.Run("Should add Usage Discounts from UsageBasedRateCard to target with UnitPrice", func(t *testing.T) {
+		meta := someMeta.Clone()
+		meta.Price = nil
+		meta.Discounts = productcatalog.Discounts{
+			Usage: &productcatalog.UsageDiscount{
+				Quantity: alpacadecimal.NewFromInt(100),
+			},
+		}
+
+		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: testutils.GetISODuration(t, "P1M"),
+		})
+
+		meta.Discounts = productcatalog.Discounts{}
+		meta.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: alpacadecimal.NewFromInt(1),
+		})
+
+		target := &productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: testutils.GetISODuration(t, "P1M"),
+		}
+
+		err := rc.Apply(target, models.Annotations{})
+
+		require.NoError(t, err)
+		require.Equal(t, alpacadecimal.NewFromInt(100).InexactFloat64(), target.AsMeta().Discounts.Usage.Quantity.InexactFloat64())
 	})
 }
 
@@ -721,6 +772,104 @@ func TestExtendRestore(t *testing.T) {
 		me, err := target.AsMeta().EntitlementTemplate.AsMetered()
 		require.NoError(t, err)
 		require.Equal(t, 0.0, *me.IssueAfterReset)
+	})
+
+	t.Run("Should error if trying to restore Usage Discount when one is not present on target", func(t *testing.T) {
+		meta := someMeta.Clone()
+		meta.Price = nil
+		meta.Discounts = productcatalog.Discounts{
+			Usage: &productcatalog.UsageDiscount{
+				Quantity: alpacadecimal.NewFromInt(100),
+			},
+		}
+
+		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: testutils.GetISODuration(t, "P1M"),
+		})
+
+		meta.Discounts = productcatalog.Discounts{}
+		meta.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: alpacadecimal.NewFromInt(1),
+		})
+
+		target := &productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: testutils.GetISODuration(t, "P1M"),
+		}
+
+		err := rc.Restore(target, models.Annotations{})
+
+		require.Error(t, err)
+		require.ErrorContains(t, err, "target doesn't have usage discount while addon has a usage discount")
+	})
+
+	t.Run("Should error if trying to restore Usage Discount greater than target's discount", func(t *testing.T) {
+		meta := someMeta.Clone()
+		meta.Price = nil
+		meta.Discounts = productcatalog.Discounts{
+			Usage: &productcatalog.UsageDiscount{
+				Quantity: alpacadecimal.NewFromInt(100),
+			},
+		}
+
+		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: testutils.GetISODuration(t, "P1M"),
+		})
+
+		meta.Discounts = productcatalog.Discounts{
+			Usage: &productcatalog.UsageDiscount{
+				Quantity: alpacadecimal.NewFromInt(50),
+			},
+		}
+		meta.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: alpacadecimal.NewFromInt(1),
+		})
+
+		target := &productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: testutils.GetISODuration(t, "P1M"),
+		}
+
+		err := rc.Restore(target, models.Annotations{})
+
+		require.Error(t, err)
+		require.ErrorContains(t, err, fmt.Sprintf("target has %.0f usage discount which is less than addon's %.0f", 50.0, 100.0))
+	})
+
+	t.Run("Should restore Usage Discounts from UsageBasedRateCard to target with UnitPrice", func(t *testing.T) {
+		meta := someMeta.Clone()
+		meta.Price = nil
+		meta.Discounts = productcatalog.Discounts{
+			Usage: &productcatalog.UsageDiscount{
+				Quantity: alpacadecimal.NewFromInt(100),
+			},
+		}
+
+		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: testutils.GetISODuration(t, "P1M"),
+		})
+
+		meta.Discounts = productcatalog.Discounts{
+			Usage: &productcatalog.UsageDiscount{
+				Quantity: alpacadecimal.NewFromInt(150),
+			},
+		}
+		meta.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: alpacadecimal.NewFromInt(1),
+		})
+
+		target := &productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: testutils.GetISODuration(t, "P1M"),
+		}
+
+		err := rc.Restore(target, models.Annotations{})
+
+		require.NoError(t, err)
+		require.Equal(t, alpacadecimal.NewFromInt(50).InexactFloat64(), target.AsMeta().Discounts.Usage.Quantity.InexactFloat64())
 	})
 }
 
