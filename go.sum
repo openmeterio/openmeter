@@ -1714,8 +1714,8 @@ github.com/jinzhu/inflection v1.0.0 h1:K317FqzuhWc8YvSVlFMCCUb36O/S9MCKRDI7QkRKD
 github.com/jinzhu/inflection v1.0.0/go.mod h1:h+uFLlag+Qp1Va5pdKtLDYj+kHp5pxUVkryuEj+Srlc=
 github.com/jinzhu/now v1.1.5 h1:/o9tlHleP7gOFmsnYNz3RGnqzefHA47wQpKrrdTIwXQ=
 github.com/jinzhu/now v1.1.5/go.mod h1:d3SSVoowX0Lcu0IBviAWJpolVfI5UJVZZ7cO71lE/z8=
-github.com/jmattheis/goverter v1.8.2 h1:0DSkwhzGw85GNFW72KWybvfeOTJl3XHuFg3PKxbScD4=
-github.com/jmattheis/goverter v1.8.2/go.mod h1:c8TVzpum2NThy2eJ/Wz3tyqRxzpElP2xDfoHOIDrNSQ=
+github.com/jmattheis/goverter v1.8.3 h1:UdBIY0EREVIxJBGhpmGuGj4sfh4gRpLWtbCVrkOCvo8=
+github.com/jmattheis/goverter v1.8.3/go.mod h1:c8TVzpum2NThy2eJ/Wz3tyqRxzpElP2xDfoHOIDrNSQ=
 github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
 github.com/jmespath/go-jmespath v0.3.0/go.mod h1:9QtRXoHjLGCJ5IBSaohpXITPlowMeeYCZ7fLUTSywik=
 github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9YPoQUg=
