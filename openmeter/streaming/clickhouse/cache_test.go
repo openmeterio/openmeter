@@ -21,6 +21,9 @@ import (
 func TestCanQueryBeCached(t *testing.T) {
 	now := time.Now().UTC()
 
+	// Use a date before the minimum cacheable usage age
+	to := now.Add(-24 * time.Hour)
+
 	getConnector := func(opts ...MockConnectorOption) *Connector {
 		connector, _ := GetMockConnector(t, opts...)
 		return connector
@@ -42,8 +45,8 @@ func TestCanQueryBeCached(t *testing.T) {
 				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{
-				From: lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
-				To:   lo.ToPtr(now),
+				From: lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
+				To:   lo.ToPtr(to),
 			},
 			expectCachable: false,
 		},
@@ -56,8 +59,8 @@ func TestCanQueryBeCached(t *testing.T) {
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
-				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
-				To:       lo.ToPtr(now),
+				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
+				To:       lo.ToPtr(to),
 			},
 			expectCachable: false,
 		},
@@ -70,8 +73,8 @@ func TestCanQueryBeCached(t *testing.T) {
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
-				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
-				To:       lo.ToPtr(now),
+				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
+				To:       lo.ToPtr(to),
 			},
 			expectCachable: true,
 		},
@@ -84,6 +87,20 @@ func TestCanQueryBeCached(t *testing.T) {
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
+				To:       lo.ToPtr(to),
+			},
+			expectCachable: false,
+		},
+		{
+			name:      "to age is before minimum cacheable usage age",
+			connector: getConnector(),
+			namespace: "default",
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationSum,
+			},
+			queryParams: streaming.QueryParams{
+				Cachable: true,
+				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(now),
 			},
 			expectCachable: false,
@@ -97,8 +114,8 @@ func TestCanQueryBeCached(t *testing.T) {
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
-				From:     lo.ToPtr(now.Add(-2 * 24 * time.Hour)), // Only 2 days, less than minCachableDuration
-				To:       lo.ToPtr(now),
+				From:     lo.ToPtr(to.Add(-2 * 24 * time.Hour)), // Only 2 days, less than minCachableDuration
+				To:       lo.ToPtr(to),
 			},
 			expectCachable: false,
 		},
@@ -111,8 +128,8 @@ func TestCanQueryBeCached(t *testing.T) {
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
-				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
-				To:       lo.ToPtr(now),
+				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
+				To:       lo.ToPtr(to),
 			},
 			expectCachable: false,
 		},
@@ -125,8 +142,8 @@ func TestCanQueryBeCached(t *testing.T) {
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
-				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
-				To:       lo.ToPtr(now),
+				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
+				To:       lo.ToPtr(to),
 			},
 			expectCachable: true,
 		},
@@ -139,8 +156,8 @@ func TestCanQueryBeCached(t *testing.T) {
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
-				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
-				To:       lo.ToPtr(now),
+				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
+				To:       lo.ToPtr(to),
 			},
 			expectCachable: true,
 		},
@@ -153,8 +170,8 @@ func TestCanQueryBeCached(t *testing.T) {
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
-				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
-				To:       lo.ToPtr(now),
+				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
+				To:       lo.ToPtr(to),
 			},
 			expectCachable: true,
 		},
@@ -167,8 +184,8 @@ func TestCanQueryBeCached(t *testing.T) {
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
-				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
-				To:       lo.ToPtr(now),
+				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
+				To:       lo.ToPtr(to),
 			},
 			expectCachable: true,
 		},

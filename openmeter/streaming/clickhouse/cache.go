@@ -35,9 +35,17 @@ func (c *Connector) canQueryBeCached(namespace string, meterDef meterpkg.Meter, 
 
 	from := *queryParams.From
 	to := lo.FromPtrOr(queryParams.To, time.Now().UTC())
+
+	// We respect the minimum cacheable usage age
+	minFrom := time.Now().UTC().Add(-c.config.QueryCacheMinimumCacheableUsageAge)
+
+	if to.After(minFrom) {
+		return false
+	}
+
+	// We respect the minimum cacheable query period
 	duration := to.Sub(from)
 
-	// It must be at least 3 days of usage to be cachable
 	if duration < c.config.QueryCacheMinimumCacheableQueryPeriod {
 		return false
 	}
@@ -91,15 +99,21 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 
 		values = append(values, cachedValues...)
 
-		// We use the last cached window as the start of the new query period
-		lastCachedWindow := cachedValues[len(cachedValues)-1].WindowEnd
+		// We find the latest already cached window and use it as the start of the new query period
+		lastCachedWindowEnd := cachedValues[0].WindowEnd
+
+		for _, cachedValue := range cachedValues {
+			if cachedValue.WindowEnd.After(lastCachedWindowEnd) {
+				lastCachedWindowEnd = cachedValue.WindowEnd
+			}
+		}
 
 		// We query from the end of the last cached window exclusive
 		cacheableQueryMeter.From = nil
-		cacheableQueryMeter.FromExclusive = &lastCachedWindow
+		cacheableQueryMeter.FromExclusive = &lastCachedWindowEnd
 
 		// If we've covered the entire range with cached data, return early
-		if lastCachedWindow.Equal(*cacheableQueryMeter.To) {
+		if lastCachedWindowEnd.Equal(*cacheableQueryMeter.To) {
 			c.config.Logger.Debug("no new rows to query for cache period, returning cached data", "count", len(values))
 
 			return createRemainingQuery(cacheableQueryMeter), values, nil
@@ -107,6 +121,7 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	}
 
 	// Step 2: Query new rows for the uncached time period
+	// If there is no cached data found, we query the entire time period
 	newRows, err := c.queryMeter(ctx, cacheableQueryMeter)
 	if err != nil {
 		return originalQueryMeter, values, fmt.Errorf("query new meter rows: %w", err)
@@ -115,6 +130,8 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	values = append(values, newRows...)
 
 	// Step 3: Cache the new results
+	// Results can be double cached in the case of parallel queries to handle this,
+	// we deduplicate the results while retrieving them from the cache
 	if len(newRows) > 0 {
 		if err := c.storeCachedMeterRows(ctx, hash, cacheableQueryMeter, newRows); err != nil {
 			// Log the error but don't fail the query
@@ -189,7 +206,14 @@ func (c *Connector) fetchCachedMeterRows(ctx context.Context, hash string, query
 		return nil, fmt.Errorf("scan meter query hash rows: %w", err)
 	}
 
-	return cachedValues, nil
+	// Deduplicate cached values
+	// At insert time we can have duplicates for the same window due to parallel queries
+	deduplicatedValues, err := dedupeQueryRows(cachedValues, queryMeter.GroupBy)
+	if err != nil {
+		return nil, fmt.Errorf("deduplicate cached values: %w", err)
+	}
+
+	return deduplicatedValues, nil
 }
 
 // storeCachedMeterRows stores new meter query results in the meter_query_hash table
