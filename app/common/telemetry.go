@@ -291,6 +291,7 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 						span := trace.SpanFromContext(r.Context())
 						span.SetName(updatedRoutePattern)
 						span.SetAttributes(semconv.HTTPRoute(updatedRoutePattern))
+						span.SetAttributes(semconv.URLPath(r.URL.String()), semconv.HTTPRoute(updatedRoutePattern))
 
 						// Update metrics labels if available
 						labeler, ok := otelhttp.LabelerFromContext(r.Context())
