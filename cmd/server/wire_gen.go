@@ -397,6 +397,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	manageService := common.NewMeterManageService(ctx, adapter, entitlement, manager, connector, eventbusPublisher)
 	v4 := common.NewMeterConfigInitializer(logger, v3, manageService, manager)
 	metereventService := common.NewMeterEventService(connector, service)
+	repository, err := common.NewNotificationAdapter(logger, client)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	notificationConfiguration := conf.Notification
 	webhookConfiguration := notificationConfiguration.Webhook
 	v5 := conf.Svix
@@ -411,7 +422,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	notificationService, err := common.NewNotificationService(logger, client, handler, featureConnector)
+	notificationService, err := common.NewNotificationService(logger, repository, handler, featureConnector)
 	if err != nil {
 		cleanup7()
 		cleanup6()
