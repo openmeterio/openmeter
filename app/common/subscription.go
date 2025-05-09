@@ -77,6 +77,7 @@ func NewSubscriptionServices(
 	subAddSvc := subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
 		TxManager:        subAddRepo,
 		Logger:           logger,
+		Publisher:        eventPublisher,
 		AddonService:     addonService,
 		SubService:       subscriptionService,
 		SubAddRepo:       subAddRepo,
