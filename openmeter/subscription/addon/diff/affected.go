@@ -3,6 +3,7 @@ package addondiff
 import (
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 )
@@ -42,7 +43,9 @@ func GetAffectedItemIDs(view subscription.SubscriptionView, addon subscriptionad
 							affected[rcKey] = []string{}
 						}
 
-						affected[rcKey] = append(affected[rcKey], item.SubscriptionItem.ID)
+						if productcatalog.AddonRateCardMatcherForAGivenPlanRateCard(item.SubscriptionItem.RateCard)(rc.AddonRateCard.RateCard) {
+							affected[rcKey] = append(affected[rcKey], item.SubscriptionItem.ID)
+						}
 					}
 				}
 			}
