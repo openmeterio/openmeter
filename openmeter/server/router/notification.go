@@ -83,9 +83,3 @@ func (a *Router) UpdateNotificationRule(w http.ResponseWriter, r *http.Request, 
 func (a *Router) TestNotificationRule(w http.ResponseWriter, r *http.Request, ruleID string) {
 	a.notificationHandler.TestRule().With(ruleID).ServeHTTP(w, r)
 }
-
-// Receive Svix operational events
-// (POST /api/v1/notification/webhook/svix)
-func (a *Router) ReceiveSvixOperationalEvent(w http.ResponseWriter, r *http.Request) {
-	unimplemented.ReceiveSvixOperationalEvent(w, r)
-}

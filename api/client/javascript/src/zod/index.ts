@@ -9782,29 +9782,6 @@ export const testNotificationRuleParams = zod.object({
 })
 
 /**
- * Callback endpoint used by Svix to notify about operational events.
- * @summary Receive Svix operational events
- */
-export const receiveSvixOperationalEventBody = zod
-  .object({
-    data: zod
-      .record(zod.string(), zod.string())
-      .describe('The payload of the Svix operational webhook request.'),
-    type: zod
-      .enum([
-        'endpoint.created',
-        'endpoint.deleted',
-        'endpoint.disabled',
-        'endpoint.updated',
-        'message.attempt.exhausted',
-        'message.attempt.failing',
-        'message.attempt.recovered',
-      ])
-      .describe('The type of the Svix operational webhook request.'),
-  })
-  .describe('Operational webhook reqeuest sent by Svix.')
-
-/**
  * List all plans.
  * @summary List plans
  */
