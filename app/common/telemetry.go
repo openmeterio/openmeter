@@ -261,25 +261,45 @@ func NewTelemetryServer(conf config.TelemetryConfig, handler TelemetryHandler) (
 func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider trace.TracerProvider) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(func(h http.Handler) http.Handler {
-			return otelhttp.NewHandler(
-				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					h.ServeHTTP(w, r)
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Extract route pattern before handling the request
+				routePattern := chi.RouteContext(r.Context()).RoutePattern()
 
-					routePattern := chi.RouteContext(r.Context()).RoutePattern()
+				handler := otelhttp.NewHandler(
+					h,
+					routePattern, // Use route pattern as operation name
+					otelhttp.WithMeterProvider(meterProvider),
+					otelhttp.WithTracerProvider(tracerProvider),
+					otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
+						// If route pattern is empty (e.g., during routing), use a default name
+						// We'll update it after we get the actual route
+						if routePattern == "" {
+							return r.Method + " [routing]"
+						}
+						return routePattern
+					}),
+				)
 
-					span := trace.SpanFromContext(r.Context())
-					span.SetName(routePattern)
-					span.SetAttributes(semconv.URLPath(r.URL.String()), semconv.HTTPRoute(routePattern))
+				// Run the instrumented handler
+				handler.ServeHTTP(w, r)
 
-					labeler, ok := otelhttp.LabelerFromContext(r.Context())
-					if ok {
-						labeler.Add(semconv.HTTPRoute(routePattern))
+				// Check if route pattern was empty initially but now has a value (post-routing)
+				if routePattern == "" {
+					updatedRoutePattern := chi.RouteContext(r.Context()).RoutePattern()
+					if updatedRoutePattern != "" {
+						// Update the span with the correct route after it's been determined
+						span := trace.SpanFromContext(r.Context())
+						span.SetName(updatedRoutePattern)
+						span.SetAttributes(semconv.HTTPRoute(updatedRoutePattern))
+
+						// Update metrics labels if available
+						labeler, ok := otelhttp.LabelerFromContext(r.Context())
+						if ok {
+							labeler.Add(semconv.HTTPRoute(updatedRoutePattern))
+						}
 					}
-				}),
-				"",
-				otelhttp.WithMeterProvider(meterProvider),
-				otelhttp.WithTracerProvider(tracerProvider),
-			)
+				}
+			})
 		})
 	}
 }
