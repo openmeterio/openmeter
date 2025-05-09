@@ -29,10 +29,6 @@ type Service struct {
 	logger *slog.Logger
 }
 
-func (s Service) Close() error {
-	return s.eventHandler.Close()
-}
-
 type Config struct {
 	FeatureConnector feature.FeatureConnector
 

@@ -21,8 +21,6 @@ type Service interface {
 	ChannelService
 	RuleService
 	EventService
-
-	Close() error
 }
 
 type ChannelService interface {
