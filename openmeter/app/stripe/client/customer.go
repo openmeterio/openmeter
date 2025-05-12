@@ -12,7 +12,7 @@ func (c *stripeAppClient) GetCustomer(ctx context.Context, stripeCustomerID stri
 	stripeCustomer, err := c.client.Customers.Get(stripeCustomerID, &stripe.CustomerParams{
 		Expand: []*string{
 			lo.ToPtr("invoice_settings.default_payment_method"),
-			lo.ToPtr("tax.automatic_tax"),
+			lo.ToPtr("tax"),
 		},
 	})
 	if err != nil {
