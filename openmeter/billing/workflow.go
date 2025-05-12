@@ -66,10 +66,6 @@ type WorkflowTaxConfig struct {
 
 // Validate validates the tax config.
 func (c *WorkflowTaxConfig) Validate() error {
-	if !c.Enabled {
-		return nil
-	}
-
 	if c.Enforced && !c.Enabled {
 		return fmt.Errorf("tax is enforced but tax is not enabled")
 	}
