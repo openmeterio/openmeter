@@ -16,9 +16,11 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/stripe/stripe-go/v80"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -471,12 +473,17 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 	clock.FreezeTime(periodEnd.Add(time.Minute))
 
-	s.Run("upsert invoice", func() {
-		// Setup the app with the customer
-		app, err := s.Fixture.setupApp(ctx, namespace)
+	var app app.App
+	var customerData appstripeentity.CustomerData
+	var invoice billing.Invoice
+	var invoicingApp billing.InvoicingApp
+
+	// Setup the app with the customer
+	s.Run("setup app, customer and invoice", func() {
+		app, err = s.Fixture.setupApp(ctx, namespace)
 		s.NoError(err)
 
-		customerData, err := s.Fixture.setupAppCustomerData(ctx, app, customerEntity)
+		customerData, err = s.Fixture.setupAppCustomerData(ctx, app, customerEntity)
 		s.NoError(err)
 
 		// Covered case: most measurements are fractional
@@ -494,12 +501,14 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.NoError(err)
 		s.Len(invoices, 1)
 
-		invoice := invoices[0].RemoveCircularReferences()
+		invoice = invoices[0].RemoveCircularReferences()
 
 		// Create a new invoice for the customer.
-		invoicingApp, err := billing.GetApp(app)
+		invoicingApp, err = billing.GetApp(app)
 		s.NoError(err)
+	})
 
+	s.Run("upsert invoice", func() {
 		// Mock the stripe client to return the created invoice.
 		s.StripeAppClient.
 			On("CreateInvoice", stripeclient.CreateInvoiceInput{
@@ -872,6 +881,46 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		// Assert invoice is created in stripe.
 		s.StripeAppClient.AssertExpectations(s.T())
+	})
+
+	s.Run("finalize invoice", func() {
+		// Mock the stripe client to return the created invoice.
+		invoice.ExternalIDs.Invoicing = "stripe-invoice-id"
+
+		// Mock the stripe client for finalize invoice.
+		s.StripeAppClient.
+			On("FinalizeInvoice", stripeclient.FinalizeInvoiceInput{
+				AutoAdvance:     true,
+				StripeInvoiceID: invoice.ExternalIDs.Invoicing,
+			}).
+			Return(&stripe.Invoice{
+				ID: invoice.ExternalIDs.Invoicing,
+				Customer: &stripe.Customer{
+					ID: customerData.StripeCustomerID,
+				},
+				Number:   "INV-123",
+				Currency: "USD",
+				Lines: &stripe.InvoiceLineItemList{
+					Data: []*stripe.InvoiceLineItem{},
+				},
+				PaymentIntent: &stripe.PaymentIntent{
+					ID: "pmi_123",
+				},
+			}, nil)
+
+		// TODO: do not share env between tests
+		defer s.StripeAppClient.Restore()
+
+		// Create the invoice.
+		result, err := invoicingApp.FinalizeInvoice(ctx, invoice)
+		s.NoError(err, "failed to finalize invoice")
+
+		// Assert the result.
+		expectedResult := billing.NewFinalizeInvoiceResult()
+		expectedResult.SetInvoiceNumber("INV-123")
+		expectedResult.SetPaymentExternalID("pmi_123")
+
+		s.Equal(expectedResult, result)
 	})
 }
 
