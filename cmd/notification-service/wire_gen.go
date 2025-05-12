@@ -134,8 +134,29 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	service := common.NewMeterService(adapter)
 	featureConnector := common.NewFeatureConnector(logger, client, service, eventbusPublisher)
+	repository, err := common.NewNotificationAdapter(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	webhookConfiguration := notificationConfiguration.Webhook
 	v2 := conf.Svix
-	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v2, featureConnector)
+	handler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v2)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	notificationService, err := common.NewNotificationService(logger, repository, handler, featureConnector)
 	if err != nil {
 		cleanup6()
 		cleanup5()

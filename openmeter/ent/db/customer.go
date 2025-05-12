@@ -145,7 +145,7 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the Customer fields.
-func (c *Customer) assignValues(columns []string, values []any) error {
+func (_m *Customer) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -155,19 +155,19 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				c.ID = value.String
+				_m.ID = value.String
 			}
 		case customer.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				c.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case customer.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &c.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -175,105 +175,105 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				c.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case customer.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				c.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case customer.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				c.DeletedAt = new(time.Time)
-				*c.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case customer.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				c.Name = value.String
+				_m.Name = value.String
 			}
 		case customer.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				c.Description = new(string)
-				*c.Description = value.String
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case customer.FieldBillingAddressCountry:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_address_country", values[i])
 			} else if value.Valid {
-				c.BillingAddressCountry = new(models.CountryCode)
-				*c.BillingAddressCountry = models.CountryCode(value.String)
+				_m.BillingAddressCountry = new(models.CountryCode)
+				*_m.BillingAddressCountry = models.CountryCode(value.String)
 			}
 		case customer.FieldBillingAddressPostalCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_address_postal_code", values[i])
 			} else if value.Valid {
-				c.BillingAddressPostalCode = new(string)
-				*c.BillingAddressPostalCode = value.String
+				_m.BillingAddressPostalCode = new(string)
+				*_m.BillingAddressPostalCode = value.String
 			}
 		case customer.FieldBillingAddressState:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_address_state", values[i])
 			} else if value.Valid {
-				c.BillingAddressState = new(string)
-				*c.BillingAddressState = value.String
+				_m.BillingAddressState = new(string)
+				*_m.BillingAddressState = value.String
 			}
 		case customer.FieldBillingAddressCity:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_address_city", values[i])
 			} else if value.Valid {
-				c.BillingAddressCity = new(string)
-				*c.BillingAddressCity = value.String
+				_m.BillingAddressCity = new(string)
+				*_m.BillingAddressCity = value.String
 			}
 		case customer.FieldBillingAddressLine1:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_address_line1", values[i])
 			} else if value.Valid {
-				c.BillingAddressLine1 = new(string)
-				*c.BillingAddressLine1 = value.String
+				_m.BillingAddressLine1 = new(string)
+				*_m.BillingAddressLine1 = value.String
 			}
 		case customer.FieldBillingAddressLine2:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_address_line2", values[i])
 			} else if value.Valid {
-				c.BillingAddressLine2 = new(string)
-				*c.BillingAddressLine2 = value.String
+				_m.BillingAddressLine2 = new(string)
+				*_m.BillingAddressLine2 = value.String
 			}
 		case customer.FieldBillingAddressPhoneNumber:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_address_phone_number", values[i])
 			} else if value.Valid {
-				c.BillingAddressPhoneNumber = new(string)
-				*c.BillingAddressPhoneNumber = value.String
+				_m.BillingAddressPhoneNumber = new(string)
+				*_m.BillingAddressPhoneNumber = value.String
 			}
 		case customer.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
-				c.Key = value.String
+				_m.Key = value.String
 			}
 		case customer.FieldPrimaryEmail:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field primary_email", values[i])
 			} else if value.Valid {
-				c.PrimaryEmail = new(string)
-				*c.PrimaryEmail = value.String
+				_m.PrimaryEmail = new(string)
+				*_m.PrimaryEmail = value.String
 			}
 		case customer.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				c.Currency = new(currencyx.Code)
-				*c.Currency = currencyx.Code(value.String)
+				_m.Currency = new(currencyx.Code)
+				*_m.Currency = currencyx.Code(value.String)
 			}
 		default:
-			c.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -281,127 +281,127 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the Customer.
 // This includes values selected through modifiers, order, etc.
-func (c *Customer) Value(name string) (ent.Value, error) {
-	return c.selectValues.Get(name)
+func (_m *Customer) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryApps queries the "apps" edge of the Customer entity.
-func (c *Customer) QueryApps() *AppCustomerQuery {
-	return NewCustomerClient(c.config).QueryApps(c)
+func (_m *Customer) QueryApps() *AppCustomerQuery {
+	return NewCustomerClient(_m.config).QueryApps(_m)
 }
 
 // QuerySubjects queries the "subjects" edge of the Customer entity.
-func (c *Customer) QuerySubjects() *CustomerSubjectsQuery {
-	return NewCustomerClient(c.config).QuerySubjects(c)
+func (_m *Customer) QuerySubjects() *CustomerSubjectsQuery {
+	return NewCustomerClient(_m.config).QuerySubjects(_m)
 }
 
 // QueryBillingCustomerOverride queries the "billing_customer_override" edge of the Customer entity.
-func (c *Customer) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery {
-	return NewCustomerClient(c.config).QueryBillingCustomerOverride(c)
+func (_m *Customer) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery {
+	return NewCustomerClient(_m.config).QueryBillingCustomerOverride(_m)
 }
 
 // QueryBillingInvoice queries the "billing_invoice" edge of the Customer entity.
-func (c *Customer) QueryBillingInvoice() *BillingInvoiceQuery {
-	return NewCustomerClient(c.config).QueryBillingInvoice(c)
+func (_m *Customer) QueryBillingInvoice() *BillingInvoiceQuery {
+	return NewCustomerClient(_m.config).QueryBillingInvoice(_m)
 }
 
 // QuerySubscription queries the "subscription" edge of the Customer entity.
-func (c *Customer) QuerySubscription() *SubscriptionQuery {
-	return NewCustomerClient(c.config).QuerySubscription(c)
+func (_m *Customer) QuerySubscription() *SubscriptionQuery {
+	return NewCustomerClient(_m.config).QuerySubscription(_m)
 }
 
 // Update returns a builder for updating this Customer.
 // Note that you need to call Customer.Unwrap() before calling this method if this Customer
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (c *Customer) Update() *CustomerUpdateOne {
-	return NewCustomerClient(c.config).UpdateOne(c)
+func (_m *Customer) Update() *CustomerUpdateOne {
+	return NewCustomerClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the Customer entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (c *Customer) Unwrap() *Customer {
-	_tx, ok := c.config.driver.(*txDriver)
+func (_m *Customer) Unwrap() *Customer {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: Customer is not a transactional entity")
 	}
-	c.config.driver = _tx.drv
-	return c
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (c *Customer) String() string {
+func (_m *Customer) String() string {
 	var builder strings.Builder
 	builder.WriteString("Customer(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", c.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(c.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", c.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(c.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(c.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := c.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
-	builder.WriteString(c.Name)
+	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
-	if v := c.Description; v != nil {
+	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.BillingAddressCountry; v != nil {
+	if v := _m.BillingAddressCountry; v != nil {
 		builder.WriteString("billing_address_country=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := c.BillingAddressPostalCode; v != nil {
+	if v := _m.BillingAddressPostalCode; v != nil {
 		builder.WriteString("billing_address_postal_code=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.BillingAddressState; v != nil {
+	if v := _m.BillingAddressState; v != nil {
 		builder.WriteString("billing_address_state=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.BillingAddressCity; v != nil {
+	if v := _m.BillingAddressCity; v != nil {
 		builder.WriteString("billing_address_city=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.BillingAddressLine1; v != nil {
+	if v := _m.BillingAddressLine1; v != nil {
 		builder.WriteString("billing_address_line1=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.BillingAddressLine2; v != nil {
+	if v := _m.BillingAddressLine2; v != nil {
 		builder.WriteString("billing_address_line2=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.BillingAddressPhoneNumber; v != nil {
+	if v := _m.BillingAddressPhoneNumber; v != nil {
 		builder.WriteString("billing_address_phone_number=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("key=")
-	builder.WriteString(c.Key)
+	builder.WriteString(_m.Key)
 	builder.WriteString(", ")
-	if v := c.PrimaryEmail; v != nil {
+	if v := _m.PrimaryEmail; v != nil {
 		builder.WriteString("primary_email=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.Currency; v != nil {
+	if v := _m.Currency; v != nil {
 		builder.WriteString("currency=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}

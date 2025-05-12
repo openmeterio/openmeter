@@ -156,10 +156,10 @@ func NewEntitlementResetPayload() notification.EventPayload {
 	}
 }
 
-func NewCreateEventInput(t notification.EventType, ruleID string, payload notification.EventPayload) notification.CreateEventInput {
+func NewCreateEventInput(namespace string, t notification.EventType, ruleID string, payload notification.EventPayload) notification.CreateEventInput {
 	return notification.CreateEventInput{
 		NamespacedModel: models.NamespacedModel{
-			Namespace: TestNamespace,
+			Namespace: namespace,
 		},
 		Type:    t,
 		Payload: payload,
@@ -180,12 +180,12 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 	t.Helper()
 
 	m, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-		Namespace: TestNamespace,
+		Namespace: s.Env.Namespace(),
 		IDOrSlug:  TestMeterSlug,
 	})
 	require.NoError(t, err, "Getting meter must not return error")
 
-	feat, err := s.Env.Feature().GetFeature(ctx, TestNamespace, TestFeatureKey, false)
+	feat, err := s.Env.Feature().GetFeature(ctx, s.Env.Namespace(), TestFeatureKey, false)
 	if _, ok := lo.ErrorsAs[*feature.FeatureNotFoundError](err); !ok {
 		require.NoError(t, err, "Getting feature must not return error")
 	}
@@ -195,7 +195,7 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 		s.feature, err = s.Env.Feature().CreateFeature(ctx, feature.CreateFeatureInputs{
 			Name:                TestFeatureName,
 			Key:                 TestFeatureKey,
-			Namespace:           TestNamespace,
+			Namespace:           s.Env.Namespace(),
 			MeterSlug:           convert.ToPointer(m.Key),
 			MeterGroupByFilters: m.GroupBy,
 		})
@@ -206,7 +206,7 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 
 	service := s.Env.Notification()
 
-	channelIn := NewCreateChannelInput("NotificationEventTest")
+	channelIn := NewCreateChannelInput(s.Env.Namespace(), "NotificationEventTest")
 
 	channel, err := service.CreateChannel(ctx, channelIn)
 	require.NoError(t, err, "Creating channel must not return error")
@@ -214,7 +214,7 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 
 	s.channel = *channel
 
-	ruleIn := NewCreateRuleInput("NotificationEvent", s.channel.ID)
+	ruleIn := NewCreateRuleInput(s.Env.Namespace(), "NotificationEvent", s.channel.ID)
 
 	rule, err := service.CreateRule(ctx, ruleIn)
 	require.NoError(t, err, "Creating rule must not return error")
@@ -226,7 +226,7 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 func (s *EventTestSuite) TestCreateEvent(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := NewCreateEventInput(notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
+	input := NewCreateEventInput(s.Env.Namespace(), notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
 
 	event, err := service.CreateEvent(ctx, input)
 	require.NoError(t, err, "Creating rule must not return error")
@@ -238,7 +238,7 @@ func (s *EventTestSuite) TestCreateEvent(ctx context.Context, t *testing.T) {
 func (s *EventTestSuite) TestGetEvent(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := NewCreateEventInput(notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
+	input := NewCreateEventInput(s.Env.Namespace(), notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
 
 	event, err := service.CreateEvent(ctx, input)
 	require.NoError(t, err, "Creating rule must not return error")
@@ -257,7 +257,7 @@ func (s *EventTestSuite) TestGetEvent(ctx context.Context, t *testing.T) {
 func (s *EventTestSuite) TestListEvents(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn := NewCreateEventInput(notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
+	createIn := NewCreateEventInput(s.Env.Namespace(), notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
 
 	event, err := service.CreateEvent(ctx, createIn)
 	require.NoError(t, err, "Creating notification event must not return error")
@@ -293,7 +293,7 @@ func (s *EventTestSuite) TestListEvents(ctx context.Context, t *testing.T) {
 func (s *EventTestSuite) TestListDeliveryStatus(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn := NewCreateEventInput(notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
+	createIn := NewCreateEventInput(s.Env.Namespace(), notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
 
 	event, err := service.CreateEvent(ctx, createIn)
 	require.NoError(t, err, "Creating notification event must not return error")
@@ -330,7 +330,7 @@ func (s *EventTestSuite) TestListDeliveryStatus(ctx context.Context, t *testing.
 func (s *EventTestSuite) TestUpdateDeliveryStatus(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn := NewCreateEventInput(notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
+	createIn := NewCreateEventInput(s.Env.Namespace(), notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
 
 	event, err := service.CreateEvent(ctx, createIn)
 	require.NoError(t, err, "Creating notification event must not return error")

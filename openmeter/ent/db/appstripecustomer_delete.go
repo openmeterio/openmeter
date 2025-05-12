@@ -20,56 +20,56 @@ type AppStripeCustomerDelete struct {
 }
 
 // Where appends a list predicates to the AppStripeCustomerDelete builder.
-func (ascd *AppStripeCustomerDelete) Where(ps ...predicate.AppStripeCustomer) *AppStripeCustomerDelete {
-	ascd.mutation.Where(ps...)
-	return ascd
+func (_d *AppStripeCustomerDelete) Where(ps ...predicate.AppStripeCustomer) *AppStripeCustomerDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (ascd *AppStripeCustomerDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, ascd.sqlExec, ascd.mutation, ascd.hooks)
+func (_d *AppStripeCustomerDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ascd *AppStripeCustomerDelete) ExecX(ctx context.Context) int {
-	n, err := ascd.Exec(ctx)
+func (_d *AppStripeCustomerDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (ascd *AppStripeCustomerDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *AppStripeCustomerDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(appstripecustomer.Table, sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt))
-	if ps := ascd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, ascd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	ascd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // AppStripeCustomerDeleteOne is the builder for deleting a single AppStripeCustomer entity.
 type AppStripeCustomerDeleteOne struct {
-	ascd *AppStripeCustomerDelete
+	_d *AppStripeCustomerDelete
 }
 
 // Where appends a list predicates to the AppStripeCustomerDelete builder.
-func (ascdo *AppStripeCustomerDeleteOne) Where(ps ...predicate.AppStripeCustomer) *AppStripeCustomerDeleteOne {
-	ascdo.ascd.mutation.Where(ps...)
-	return ascdo
+func (_d *AppStripeCustomerDeleteOne) Where(ps ...predicate.AppStripeCustomer) *AppStripeCustomerDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (ascdo *AppStripeCustomerDeleteOne) Exec(ctx context.Context) error {
-	n, err := ascdo.ascd.Exec(ctx)
+func (_d *AppStripeCustomerDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (ascdo *AppStripeCustomerDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ascdo *AppStripeCustomerDeleteOne) ExecX(ctx context.Context) {
-	if err := ascdo.Exec(ctx); err != nil {
+func (_d *AppStripeCustomerDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

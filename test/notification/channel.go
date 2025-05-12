@@ -12,10 +12,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func NewCreateChannelInput(name string) notification.CreateChannelInput {
+func NewCreateChannelInput(namespace, name string) notification.CreateChannelInput {
 	return notification.CreateChannelInput{
 		NamespacedModel: models.NamespacedModel{
-			Namespace: TestNamespace,
+			Namespace: namespace,
 		},
 		Type:     notification.ChannelTypeWebhook,
 		Name:     name,
@@ -42,7 +42,7 @@ type ChannelTestSuite struct {
 func (s *ChannelTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn := NewCreateChannelInput("NotificationCreateChannel")
+	createIn := NewCreateChannelInput(s.Env.Namespace(), "NotificationCreateChannel")
 
 	channel, err := service.CreateChannel(ctx, createIn)
 	require.NoError(t, err, "Creating channel must not return error")
@@ -56,12 +56,12 @@ func (s *ChannelTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 func (s *ChannelTestSuite) TestList(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn1 := NewCreateChannelInput("NotificationListChannel1")
+	createIn1 := NewCreateChannelInput(s.Env.Namespace(), "NotificationListChannel1")
 	channel1, err := service.CreateChannel(ctx, createIn1)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel1, "Channel must not be nil")
 
-	createIn2 := NewCreateChannelInput("NotificationListChannel2")
+	createIn2 := NewCreateChannelInput(s.Env.Namespace(), "NotificationListChannel2")
 	channel2, err := service.CreateChannel(ctx, createIn2)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel2, "Channel must not be nil")
@@ -92,7 +92,7 @@ func (s *ChannelTestSuite) TestList(ctx context.Context, t *testing.T) {
 func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn := NewCreateChannelInput("NotificationUpdateChannel1")
+	createIn := NewCreateChannelInput(s.Env.Namespace(), "NotificationUpdateChannel1")
 
 	channel, err := service.CreateChannel(ctx, createIn)
 	require.NoError(t, err, "Creating channel must not return error")
@@ -131,7 +131,7 @@ func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 func (s *ChannelTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn := NewCreateChannelInput("NotificationDeleteChannel1")
+	createIn := NewCreateChannelInput(s.Env.Namespace(), "NotificationDeleteChannel1")
 
 	channel, err := service.CreateChannel(ctx, createIn)
 	require.NoError(t, err, "Creating channel must not return error")
@@ -147,7 +147,7 @@ func (s *ChannelTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 func (s *ChannelTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn := NewCreateChannelInput("NotificationGetChannel1")
+	createIn := NewCreateChannelInput(s.Env.Namespace(), "NotificationGetChannel1")
 
 	channel, err := service.CreateChannel(ctx, createIn)
 	require.NoError(t, err, "Creating channel must not return error")

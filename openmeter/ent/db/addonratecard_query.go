@@ -34,44 +34,44 @@ type AddonRateCardQuery struct {
 }
 
 // Where adds a new predicate for the AddonRateCardQuery builder.
-func (arcq *AddonRateCardQuery) Where(ps ...predicate.AddonRateCard) *AddonRateCardQuery {
-	arcq.predicates = append(arcq.predicates, ps...)
-	return arcq
+func (_q *AddonRateCardQuery) Where(ps ...predicate.AddonRateCard) *AddonRateCardQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (arcq *AddonRateCardQuery) Limit(limit int) *AddonRateCardQuery {
-	arcq.ctx.Limit = &limit
-	return arcq
+func (_q *AddonRateCardQuery) Limit(limit int) *AddonRateCardQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (arcq *AddonRateCardQuery) Offset(offset int) *AddonRateCardQuery {
-	arcq.ctx.Offset = &offset
-	return arcq
+func (_q *AddonRateCardQuery) Offset(offset int) *AddonRateCardQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (arcq *AddonRateCardQuery) Unique(unique bool) *AddonRateCardQuery {
-	arcq.ctx.Unique = &unique
-	return arcq
+func (_q *AddonRateCardQuery) Unique(unique bool) *AddonRateCardQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (arcq *AddonRateCardQuery) Order(o ...addonratecard.OrderOption) *AddonRateCardQuery {
-	arcq.order = append(arcq.order, o...)
-	return arcq
+func (_q *AddonRateCardQuery) Order(o ...addonratecard.OrderOption) *AddonRateCardQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryAddon chains the current query on the "addon" edge.
-func (arcq *AddonRateCardQuery) QueryAddon() *AddonQuery {
-	query := (&AddonClient{config: arcq.config}).Query()
+func (_q *AddonRateCardQuery) QueryAddon() *AddonQuery {
+	query := (&AddonClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := arcq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := arcq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -80,20 +80,20 @@ func (arcq *AddonRateCardQuery) QueryAddon() *AddonQuery {
 			sqlgraph.To(addon.Table, addon.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.AddonTable, addonratecard.AddonColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(arcq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryFeatures chains the current query on the "features" edge.
-func (arcq *AddonRateCardQuery) QueryFeatures() *FeatureQuery {
-	query := (&FeatureClient{config: arcq.config}).Query()
+func (_q *AddonRateCardQuery) QueryFeatures() *FeatureQuery {
+	query := (&FeatureClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := arcq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := arcq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func (arcq *AddonRateCardQuery) QueryFeatures() *FeatureQuery {
 			sqlgraph.To(feature.Table, feature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.FeaturesTable, addonratecard.FeaturesColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(arcq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -110,8 +110,8 @@ func (arcq *AddonRateCardQuery) QueryFeatures() *FeatureQuery {
 
 // First returns the first AddonRateCard entity from the query.
 // Returns a *NotFoundError when no AddonRateCard was found.
-func (arcq *AddonRateCardQuery) First(ctx context.Context) (*AddonRateCard, error) {
-	nodes, err := arcq.Limit(1).All(setContextOp(ctx, arcq.ctx, ent.OpQueryFirst))
+func (_q *AddonRateCardQuery) First(ctx context.Context) (*AddonRateCard, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -122,8 +122,8 @@ func (arcq *AddonRateCardQuery) First(ctx context.Context) (*AddonRateCard, erro
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (arcq *AddonRateCardQuery) FirstX(ctx context.Context) *AddonRateCard {
-	node, err := arcq.First(ctx)
+func (_q *AddonRateCardQuery) FirstX(ctx context.Context) *AddonRateCard {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -132,9 +132,9 @@ func (arcq *AddonRateCardQuery) FirstX(ctx context.Context) *AddonRateCard {
 
 // FirstID returns the first AddonRateCard ID from the query.
 // Returns a *NotFoundError when no AddonRateCard ID was found.
-func (arcq *AddonRateCardQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *AddonRateCardQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = arcq.Limit(1).IDs(setContextOp(ctx, arcq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -145,8 +145,8 @@ func (arcq *AddonRateCardQuery) FirstID(ctx context.Context) (id string, err err
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (arcq *AddonRateCardQuery) FirstIDX(ctx context.Context) string {
-	id, err := arcq.FirstID(ctx)
+func (_q *AddonRateCardQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -156,8 +156,8 @@ func (arcq *AddonRateCardQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single AddonRateCard entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one AddonRateCard entity is found.
 // Returns a *NotFoundError when no AddonRateCard entities are found.
-func (arcq *AddonRateCardQuery) Only(ctx context.Context) (*AddonRateCard, error) {
-	nodes, err := arcq.Limit(2).All(setContextOp(ctx, arcq.ctx, ent.OpQueryOnly))
+func (_q *AddonRateCardQuery) Only(ctx context.Context) (*AddonRateCard, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -172,8 +172,8 @@ func (arcq *AddonRateCardQuery) Only(ctx context.Context) (*AddonRateCard, error
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (arcq *AddonRateCardQuery) OnlyX(ctx context.Context) *AddonRateCard {
-	node, err := arcq.Only(ctx)
+func (_q *AddonRateCardQuery) OnlyX(ctx context.Context) *AddonRateCard {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -183,9 +183,9 @@ func (arcq *AddonRateCardQuery) OnlyX(ctx context.Context) *AddonRateCard {
 // OnlyID is like Only, but returns the only AddonRateCard ID in the query.
 // Returns a *NotSingularError when more than one AddonRateCard ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (arcq *AddonRateCardQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *AddonRateCardQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = arcq.Limit(2).IDs(setContextOp(ctx, arcq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -200,8 +200,8 @@ func (arcq *AddonRateCardQuery) OnlyID(ctx context.Context) (id string, err erro
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (arcq *AddonRateCardQuery) OnlyIDX(ctx context.Context) string {
-	id, err := arcq.OnlyID(ctx)
+func (_q *AddonRateCardQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -209,18 +209,18 @@ func (arcq *AddonRateCardQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of AddonRateCards.
-func (arcq *AddonRateCardQuery) All(ctx context.Context) ([]*AddonRateCard, error) {
-	ctx = setContextOp(ctx, arcq.ctx, ent.OpQueryAll)
-	if err := arcq.prepareQuery(ctx); err != nil {
+func (_q *AddonRateCardQuery) All(ctx context.Context) ([]*AddonRateCard, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*AddonRateCard, *AddonRateCardQuery]()
-	return withInterceptors[[]*AddonRateCard](ctx, arcq, qr, arcq.inters)
+	return withInterceptors[[]*AddonRateCard](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (arcq *AddonRateCardQuery) AllX(ctx context.Context) []*AddonRateCard {
-	nodes, err := arcq.All(ctx)
+func (_q *AddonRateCardQuery) AllX(ctx context.Context) []*AddonRateCard {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -228,20 +228,20 @@ func (arcq *AddonRateCardQuery) AllX(ctx context.Context) []*AddonRateCard {
 }
 
 // IDs executes the query and returns a list of AddonRateCard IDs.
-func (arcq *AddonRateCardQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if arcq.ctx.Unique == nil && arcq.path != nil {
-		arcq.Unique(true)
+func (_q *AddonRateCardQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, arcq.ctx, ent.OpQueryIDs)
-	if err = arcq.Select(addonratecard.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(addonratecard.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (arcq *AddonRateCardQuery) IDsX(ctx context.Context) []string {
-	ids, err := arcq.IDs(ctx)
+func (_q *AddonRateCardQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -249,17 +249,17 @@ func (arcq *AddonRateCardQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (arcq *AddonRateCardQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, arcq.ctx, ent.OpQueryCount)
-	if err := arcq.prepareQuery(ctx); err != nil {
+func (_q *AddonRateCardQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, arcq, querierCount[*AddonRateCardQuery](), arcq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*AddonRateCardQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (arcq *AddonRateCardQuery) CountX(ctx context.Context) int {
-	count, err := arcq.Count(ctx)
+func (_q *AddonRateCardQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -267,9 +267,9 @@ func (arcq *AddonRateCardQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (arcq *AddonRateCardQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, arcq.ctx, ent.OpQueryExist)
-	switch _, err := arcq.FirstID(ctx); {
+func (_q *AddonRateCardQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -280,8 +280,8 @@ func (arcq *AddonRateCardQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (arcq *AddonRateCardQuery) ExistX(ctx context.Context) bool {
-	exist, err := arcq.Exist(ctx)
+func (_q *AddonRateCardQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -290,44 +290,44 @@ func (arcq *AddonRateCardQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the AddonRateCardQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (arcq *AddonRateCardQuery) Clone() *AddonRateCardQuery {
-	if arcq == nil {
+func (_q *AddonRateCardQuery) Clone() *AddonRateCardQuery {
+	if _q == nil {
 		return nil
 	}
 	return &AddonRateCardQuery{
-		config:       arcq.config,
-		ctx:          arcq.ctx.Clone(),
-		order:        append([]addonratecard.OrderOption{}, arcq.order...),
-		inters:       append([]Interceptor{}, arcq.inters...),
-		predicates:   append([]predicate.AddonRateCard{}, arcq.predicates...),
-		withAddon:    arcq.withAddon.Clone(),
-		withFeatures: arcq.withFeatures.Clone(),
+		config:       _q.config,
+		ctx:          _q.ctx.Clone(),
+		order:        append([]addonratecard.OrderOption{}, _q.order...),
+		inters:       append([]Interceptor{}, _q.inters...),
+		predicates:   append([]predicate.AddonRateCard{}, _q.predicates...),
+		withAddon:    _q.withAddon.Clone(),
+		withFeatures: _q.withFeatures.Clone(),
 		// clone intermediate query.
-		sql:  arcq.sql.Clone(),
-		path: arcq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithAddon tells the query-builder to eager-load the nodes that are connected to
 // the "addon" edge. The optional arguments are used to configure the query builder of the edge.
-func (arcq *AddonRateCardQuery) WithAddon(opts ...func(*AddonQuery)) *AddonRateCardQuery {
-	query := (&AddonClient{config: arcq.config}).Query()
+func (_q *AddonRateCardQuery) WithAddon(opts ...func(*AddonQuery)) *AddonRateCardQuery {
+	query := (&AddonClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	arcq.withAddon = query
-	return arcq
+	_q.withAddon = query
+	return _q
 }
 
 // WithFeatures tells the query-builder to eager-load the nodes that are connected to
 // the "features" edge. The optional arguments are used to configure the query builder of the edge.
-func (arcq *AddonRateCardQuery) WithFeatures(opts ...func(*FeatureQuery)) *AddonRateCardQuery {
-	query := (&FeatureClient{config: arcq.config}).Query()
+func (_q *AddonRateCardQuery) WithFeatures(opts ...func(*FeatureQuery)) *AddonRateCardQuery {
+	query := (&FeatureClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	arcq.withFeatures = query
-	return arcq
+	_q.withFeatures = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -344,10 +344,10 @@ func (arcq *AddonRateCardQuery) WithFeatures(opts ...func(*FeatureQuery)) *Addon
 //		GroupBy(addonratecard.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (arcq *AddonRateCardQuery) GroupBy(field string, fields ...string) *AddonRateCardGroupBy {
-	arcq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &AddonRateCardGroupBy{build: arcq}
-	grbuild.flds = &arcq.ctx.Fields
+func (_q *AddonRateCardQuery) GroupBy(field string, fields ...string) *AddonRateCardGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &AddonRateCardGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = addonratecard.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -365,83 +365,83 @@ func (arcq *AddonRateCardQuery) GroupBy(field string, fields ...string) *AddonRa
 //	client.AddonRateCard.Query().
 //		Select(addonratecard.FieldNamespace).
 //		Scan(ctx, &v)
-func (arcq *AddonRateCardQuery) Select(fields ...string) *AddonRateCardSelect {
-	arcq.ctx.Fields = append(arcq.ctx.Fields, fields...)
-	sbuild := &AddonRateCardSelect{AddonRateCardQuery: arcq}
+func (_q *AddonRateCardQuery) Select(fields ...string) *AddonRateCardSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &AddonRateCardSelect{AddonRateCardQuery: _q}
 	sbuild.label = addonratecard.Label
-	sbuild.flds, sbuild.scan = &arcq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a AddonRateCardSelect configured with the given aggregations.
-func (arcq *AddonRateCardQuery) Aggregate(fns ...AggregateFunc) *AddonRateCardSelect {
-	return arcq.Select().Aggregate(fns...)
+func (_q *AddonRateCardQuery) Aggregate(fns ...AggregateFunc) *AddonRateCardSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (arcq *AddonRateCardQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range arcq.inters {
+func (_q *AddonRateCardQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, arcq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range arcq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !addonratecard.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if arcq.path != nil {
-		prev, err := arcq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		arcq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (arcq *AddonRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*AddonRateCard, error) {
+func (_q *AddonRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*AddonRateCard, error) {
 	var (
 		nodes       = []*AddonRateCard{}
-		_spec       = arcq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			arcq.withAddon != nil,
-			arcq.withFeatures != nil,
+			_q.withAddon != nil,
+			_q.withFeatures != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*AddonRateCard).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &AddonRateCard{config: arcq.config}
+		node := &AddonRateCard{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(arcq.modifiers) > 0 {
-		_spec.Modifiers = arcq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, arcq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := arcq.withAddon; query != nil {
-		if err := arcq.loadAddon(ctx, query, nodes, nil,
+	if query := _q.withAddon; query != nil {
+		if err := _q.loadAddon(ctx, query, nodes, nil,
 			func(n *AddonRateCard, e *Addon) { n.Edges.Addon = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := arcq.withFeatures; query != nil {
-		if err := arcq.loadFeatures(ctx, query, nodes, nil,
+	if query := _q.withFeatures; query != nil {
+		if err := _q.loadFeatures(ctx, query, nodes, nil,
 			func(n *AddonRateCard, e *Feature) { n.Edges.Features = e }); err != nil {
 			return nil, err
 		}
@@ -449,7 +449,7 @@ func (arcq *AddonRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	return nodes, nil
 }
 
-func (arcq *AddonRateCardQuery) loadAddon(ctx context.Context, query *AddonQuery, nodes []*AddonRateCard, init func(*AddonRateCard), assign func(*AddonRateCard, *Addon)) error {
+func (_q *AddonRateCardQuery) loadAddon(ctx context.Context, query *AddonQuery, nodes []*AddonRateCard, init func(*AddonRateCard), assign func(*AddonRateCard, *Addon)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*AddonRateCard)
 	for i := range nodes {
@@ -478,7 +478,7 @@ func (arcq *AddonRateCardQuery) loadAddon(ctx context.Context, query *AddonQuery
 	}
 	return nil
 }
-func (arcq *AddonRateCardQuery) loadFeatures(ctx context.Context, query *FeatureQuery, nodes []*AddonRateCard, init func(*AddonRateCard), assign func(*AddonRateCard, *Feature)) error {
+func (_q *AddonRateCardQuery) loadFeatures(ctx context.Context, query *FeatureQuery, nodes []*AddonRateCard, init func(*AddonRateCard), assign func(*AddonRateCard, *Feature)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*AddonRateCard)
 	for i := range nodes {
@@ -511,27 +511,27 @@ func (arcq *AddonRateCardQuery) loadFeatures(ctx context.Context, query *Feature
 	return nil
 }
 
-func (arcq *AddonRateCardQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := arcq.querySpec()
-	if len(arcq.modifiers) > 0 {
-		_spec.Modifiers = arcq.modifiers
+func (_q *AddonRateCardQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = arcq.ctx.Fields
-	if len(arcq.ctx.Fields) > 0 {
-		_spec.Unique = arcq.ctx.Unique != nil && *arcq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, arcq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (arcq *AddonRateCardQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *AddonRateCardQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(addonratecard.Table, addonratecard.Columns, sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString))
-	_spec.From = arcq.sql
-	if unique := arcq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if arcq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := arcq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, addonratecard.FieldID)
 		for i := range fields {
@@ -539,27 +539,27 @@ func (arcq *AddonRateCardQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if arcq.withAddon != nil {
+		if _q.withAddon != nil {
 			_spec.Node.AddColumnOnce(addonratecard.FieldAddonID)
 		}
-		if arcq.withFeatures != nil {
+		if _q.withFeatures != nil {
 			_spec.Node.AddColumnOnce(addonratecard.FieldFeatureID)
 		}
 	}
-	if ps := arcq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := arcq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := arcq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := arcq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -569,36 +569,36 @@ func (arcq *AddonRateCardQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (arcq *AddonRateCardQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(arcq.driver.Dialect())
+func (_q *AddonRateCardQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(addonratecard.Table)
-	columns := arcq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = addonratecard.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if arcq.sql != nil {
-		selector = arcq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if arcq.ctx.Unique != nil && *arcq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range arcq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range arcq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range arcq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := arcq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := arcq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -607,27 +607,27 @@ func (arcq *AddonRateCardQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (arcq *AddonRateCardQuery) ForUpdate(opts ...sql.LockOption) *AddonRateCardQuery {
-	if arcq.driver.Dialect() == dialect.Postgres {
-		arcq.Unique(false)
+func (_q *AddonRateCardQuery) ForUpdate(opts ...sql.LockOption) *AddonRateCardQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	arcq.modifiers = append(arcq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return arcq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (arcq *AddonRateCardQuery) ForShare(opts ...sql.LockOption) *AddonRateCardQuery {
-	if arcq.driver.Dialect() == dialect.Postgres {
-		arcq.Unique(false)
+func (_q *AddonRateCardQuery) ForShare(opts ...sql.LockOption) *AddonRateCardQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	arcq.modifiers = append(arcq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return arcq
+	return _q
 }
 
 // AddonRateCardGroupBy is the group-by builder for AddonRateCard entities.

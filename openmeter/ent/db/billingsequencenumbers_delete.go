@@ -20,56 +20,56 @@ type BillingSequenceNumbersDelete struct {
 }
 
 // Where appends a list predicates to the BillingSequenceNumbersDelete builder.
-func (bsnd *BillingSequenceNumbersDelete) Where(ps ...predicate.BillingSequenceNumbers) *BillingSequenceNumbersDelete {
-	bsnd.mutation.Where(ps...)
-	return bsnd
+func (_d *BillingSequenceNumbersDelete) Where(ps ...predicate.BillingSequenceNumbers) *BillingSequenceNumbersDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (bsnd *BillingSequenceNumbersDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, bsnd.sqlExec, bsnd.mutation, bsnd.hooks)
+func (_d *BillingSequenceNumbersDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bsnd *BillingSequenceNumbersDelete) ExecX(ctx context.Context) int {
-	n, err := bsnd.Exec(ctx)
+func (_d *BillingSequenceNumbersDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (bsnd *BillingSequenceNumbersDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *BillingSequenceNumbersDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(billingsequencenumbers.Table, sqlgraph.NewFieldSpec(billingsequencenumbers.FieldID, field.TypeInt))
-	if ps := bsnd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, bsnd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	bsnd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // BillingSequenceNumbersDeleteOne is the builder for deleting a single BillingSequenceNumbers entity.
 type BillingSequenceNumbersDeleteOne struct {
-	bsnd *BillingSequenceNumbersDelete
+	_d *BillingSequenceNumbersDelete
 }
 
 // Where appends a list predicates to the BillingSequenceNumbersDelete builder.
-func (bsndo *BillingSequenceNumbersDeleteOne) Where(ps ...predicate.BillingSequenceNumbers) *BillingSequenceNumbersDeleteOne {
-	bsndo.bsnd.mutation.Where(ps...)
-	return bsndo
+func (_d *BillingSequenceNumbersDeleteOne) Where(ps ...predicate.BillingSequenceNumbers) *BillingSequenceNumbersDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (bsndo *BillingSequenceNumbersDeleteOne) Exec(ctx context.Context) error {
-	n, err := bsndo.bsnd.Exec(ctx)
+func (_d *BillingSequenceNumbersDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (bsndo *BillingSequenceNumbersDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bsndo *BillingSequenceNumbersDeleteOne) ExecX(ctx context.Context) {
-	if err := bsndo.Exec(ctx); err != nil {
+func (_d *BillingSequenceNumbersDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

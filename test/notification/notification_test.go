@@ -11,7 +11,9 @@ func TestNotification(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	env, err := NewTestEnv(t, ctx, TestNamespace)
+	namespace := NewTestNamespace(t)
+
+	env, err := NewTestEnv(t, ctx, namespace)
 	require.NoError(t, err, "NotificationTestEnv() failed")
 	require.NotNil(t, env.Notification())
 	require.NotNil(t, env.NotificationRepo())

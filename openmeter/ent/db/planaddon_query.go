@@ -34,44 +34,44 @@ type PlanAddonQuery struct {
 }
 
 // Where adds a new predicate for the PlanAddonQuery builder.
-func (paq *PlanAddonQuery) Where(ps ...predicate.PlanAddon) *PlanAddonQuery {
-	paq.predicates = append(paq.predicates, ps...)
-	return paq
+func (_q *PlanAddonQuery) Where(ps ...predicate.PlanAddon) *PlanAddonQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (paq *PlanAddonQuery) Limit(limit int) *PlanAddonQuery {
-	paq.ctx.Limit = &limit
-	return paq
+func (_q *PlanAddonQuery) Limit(limit int) *PlanAddonQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (paq *PlanAddonQuery) Offset(offset int) *PlanAddonQuery {
-	paq.ctx.Offset = &offset
-	return paq
+func (_q *PlanAddonQuery) Offset(offset int) *PlanAddonQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (paq *PlanAddonQuery) Unique(unique bool) *PlanAddonQuery {
-	paq.ctx.Unique = &unique
-	return paq
+func (_q *PlanAddonQuery) Unique(unique bool) *PlanAddonQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (paq *PlanAddonQuery) Order(o ...planaddon.OrderOption) *PlanAddonQuery {
-	paq.order = append(paq.order, o...)
-	return paq
+func (_q *PlanAddonQuery) Order(o ...planaddon.OrderOption) *PlanAddonQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryPlan chains the current query on the "plan" edge.
-func (paq *PlanAddonQuery) QueryPlan() *PlanQuery {
-	query := (&PlanClient{config: paq.config}).Query()
+func (_q *PlanAddonQuery) QueryPlan() *PlanQuery {
+	query := (&PlanClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := paq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := paq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -80,20 +80,20 @@ func (paq *PlanAddonQuery) QueryPlan() *PlanQuery {
 			sqlgraph.To(plan.Table, plan.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, planaddon.PlanTable, planaddon.PlanColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(paq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryAddon chains the current query on the "addon" edge.
-func (paq *PlanAddonQuery) QueryAddon() *AddonQuery {
-	query := (&AddonClient{config: paq.config}).Query()
+func (_q *PlanAddonQuery) QueryAddon() *AddonQuery {
+	query := (&AddonClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := paq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := paq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func (paq *PlanAddonQuery) QueryAddon() *AddonQuery {
 			sqlgraph.To(addon.Table, addon.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, planaddon.AddonTable, planaddon.AddonColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(paq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -110,8 +110,8 @@ func (paq *PlanAddonQuery) QueryAddon() *AddonQuery {
 
 // First returns the first PlanAddon entity from the query.
 // Returns a *NotFoundError when no PlanAddon was found.
-func (paq *PlanAddonQuery) First(ctx context.Context) (*PlanAddon, error) {
-	nodes, err := paq.Limit(1).All(setContextOp(ctx, paq.ctx, ent.OpQueryFirst))
+func (_q *PlanAddonQuery) First(ctx context.Context) (*PlanAddon, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -122,8 +122,8 @@ func (paq *PlanAddonQuery) First(ctx context.Context) (*PlanAddon, error) {
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (paq *PlanAddonQuery) FirstX(ctx context.Context) *PlanAddon {
-	node, err := paq.First(ctx)
+func (_q *PlanAddonQuery) FirstX(ctx context.Context) *PlanAddon {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -132,9 +132,9 @@ func (paq *PlanAddonQuery) FirstX(ctx context.Context) *PlanAddon {
 
 // FirstID returns the first PlanAddon ID from the query.
 // Returns a *NotFoundError when no PlanAddon ID was found.
-func (paq *PlanAddonQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *PlanAddonQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = paq.Limit(1).IDs(setContextOp(ctx, paq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -145,8 +145,8 @@ func (paq *PlanAddonQuery) FirstID(ctx context.Context) (id string, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (paq *PlanAddonQuery) FirstIDX(ctx context.Context) string {
-	id, err := paq.FirstID(ctx)
+func (_q *PlanAddonQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -156,8 +156,8 @@ func (paq *PlanAddonQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single PlanAddon entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one PlanAddon entity is found.
 // Returns a *NotFoundError when no PlanAddon entities are found.
-func (paq *PlanAddonQuery) Only(ctx context.Context) (*PlanAddon, error) {
-	nodes, err := paq.Limit(2).All(setContextOp(ctx, paq.ctx, ent.OpQueryOnly))
+func (_q *PlanAddonQuery) Only(ctx context.Context) (*PlanAddon, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -172,8 +172,8 @@ func (paq *PlanAddonQuery) Only(ctx context.Context) (*PlanAddon, error) {
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (paq *PlanAddonQuery) OnlyX(ctx context.Context) *PlanAddon {
-	node, err := paq.Only(ctx)
+func (_q *PlanAddonQuery) OnlyX(ctx context.Context) *PlanAddon {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -183,9 +183,9 @@ func (paq *PlanAddonQuery) OnlyX(ctx context.Context) *PlanAddon {
 // OnlyID is like Only, but returns the only PlanAddon ID in the query.
 // Returns a *NotSingularError when more than one PlanAddon ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (paq *PlanAddonQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *PlanAddonQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = paq.Limit(2).IDs(setContextOp(ctx, paq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -200,8 +200,8 @@ func (paq *PlanAddonQuery) OnlyID(ctx context.Context) (id string, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (paq *PlanAddonQuery) OnlyIDX(ctx context.Context) string {
-	id, err := paq.OnlyID(ctx)
+func (_q *PlanAddonQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -209,18 +209,18 @@ func (paq *PlanAddonQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of PlanAddons.
-func (paq *PlanAddonQuery) All(ctx context.Context) ([]*PlanAddon, error) {
-	ctx = setContextOp(ctx, paq.ctx, ent.OpQueryAll)
-	if err := paq.prepareQuery(ctx); err != nil {
+func (_q *PlanAddonQuery) All(ctx context.Context) ([]*PlanAddon, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*PlanAddon, *PlanAddonQuery]()
-	return withInterceptors[[]*PlanAddon](ctx, paq, qr, paq.inters)
+	return withInterceptors[[]*PlanAddon](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (paq *PlanAddonQuery) AllX(ctx context.Context) []*PlanAddon {
-	nodes, err := paq.All(ctx)
+func (_q *PlanAddonQuery) AllX(ctx context.Context) []*PlanAddon {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -228,20 +228,20 @@ func (paq *PlanAddonQuery) AllX(ctx context.Context) []*PlanAddon {
 }
 
 // IDs executes the query and returns a list of PlanAddon IDs.
-func (paq *PlanAddonQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if paq.ctx.Unique == nil && paq.path != nil {
-		paq.Unique(true)
+func (_q *PlanAddonQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, paq.ctx, ent.OpQueryIDs)
-	if err = paq.Select(planaddon.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(planaddon.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (paq *PlanAddonQuery) IDsX(ctx context.Context) []string {
-	ids, err := paq.IDs(ctx)
+func (_q *PlanAddonQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -249,17 +249,17 @@ func (paq *PlanAddonQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (paq *PlanAddonQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, paq.ctx, ent.OpQueryCount)
-	if err := paq.prepareQuery(ctx); err != nil {
+func (_q *PlanAddonQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, paq, querierCount[*PlanAddonQuery](), paq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*PlanAddonQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (paq *PlanAddonQuery) CountX(ctx context.Context) int {
-	count, err := paq.Count(ctx)
+func (_q *PlanAddonQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -267,9 +267,9 @@ func (paq *PlanAddonQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (paq *PlanAddonQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, paq.ctx, ent.OpQueryExist)
-	switch _, err := paq.FirstID(ctx); {
+func (_q *PlanAddonQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -280,8 +280,8 @@ func (paq *PlanAddonQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (paq *PlanAddonQuery) ExistX(ctx context.Context) bool {
-	exist, err := paq.Exist(ctx)
+func (_q *PlanAddonQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -290,44 +290,44 @@ func (paq *PlanAddonQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the PlanAddonQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (paq *PlanAddonQuery) Clone() *PlanAddonQuery {
-	if paq == nil {
+func (_q *PlanAddonQuery) Clone() *PlanAddonQuery {
+	if _q == nil {
 		return nil
 	}
 	return &PlanAddonQuery{
-		config:     paq.config,
-		ctx:        paq.ctx.Clone(),
-		order:      append([]planaddon.OrderOption{}, paq.order...),
-		inters:     append([]Interceptor{}, paq.inters...),
-		predicates: append([]predicate.PlanAddon{}, paq.predicates...),
-		withPlan:   paq.withPlan.Clone(),
-		withAddon:  paq.withAddon.Clone(),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]planaddon.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.PlanAddon{}, _q.predicates...),
+		withPlan:   _q.withPlan.Clone(),
+		withAddon:  _q.withAddon.Clone(),
 		// clone intermediate query.
-		sql:  paq.sql.Clone(),
-		path: paq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithPlan tells the query-builder to eager-load the nodes that are connected to
 // the "plan" edge. The optional arguments are used to configure the query builder of the edge.
-func (paq *PlanAddonQuery) WithPlan(opts ...func(*PlanQuery)) *PlanAddonQuery {
-	query := (&PlanClient{config: paq.config}).Query()
+func (_q *PlanAddonQuery) WithPlan(opts ...func(*PlanQuery)) *PlanAddonQuery {
+	query := (&PlanClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	paq.withPlan = query
-	return paq
+	_q.withPlan = query
+	return _q
 }
 
 // WithAddon tells the query-builder to eager-load the nodes that are connected to
 // the "addon" edge. The optional arguments are used to configure the query builder of the edge.
-func (paq *PlanAddonQuery) WithAddon(opts ...func(*AddonQuery)) *PlanAddonQuery {
-	query := (&AddonClient{config: paq.config}).Query()
+func (_q *PlanAddonQuery) WithAddon(opts ...func(*AddonQuery)) *PlanAddonQuery {
+	query := (&AddonClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	paq.withAddon = query
-	return paq
+	_q.withAddon = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -344,10 +344,10 @@ func (paq *PlanAddonQuery) WithAddon(opts ...func(*AddonQuery)) *PlanAddonQuery 
 //		GroupBy(planaddon.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (paq *PlanAddonQuery) GroupBy(field string, fields ...string) *PlanAddonGroupBy {
-	paq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &PlanAddonGroupBy{build: paq}
-	grbuild.flds = &paq.ctx.Fields
+func (_q *PlanAddonQuery) GroupBy(field string, fields ...string) *PlanAddonGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &PlanAddonGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = planaddon.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -365,83 +365,83 @@ func (paq *PlanAddonQuery) GroupBy(field string, fields ...string) *PlanAddonGro
 //	client.PlanAddon.Query().
 //		Select(planaddon.FieldNamespace).
 //		Scan(ctx, &v)
-func (paq *PlanAddonQuery) Select(fields ...string) *PlanAddonSelect {
-	paq.ctx.Fields = append(paq.ctx.Fields, fields...)
-	sbuild := &PlanAddonSelect{PlanAddonQuery: paq}
+func (_q *PlanAddonQuery) Select(fields ...string) *PlanAddonSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &PlanAddonSelect{PlanAddonQuery: _q}
 	sbuild.label = planaddon.Label
-	sbuild.flds, sbuild.scan = &paq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a PlanAddonSelect configured with the given aggregations.
-func (paq *PlanAddonQuery) Aggregate(fns ...AggregateFunc) *PlanAddonSelect {
-	return paq.Select().Aggregate(fns...)
+func (_q *PlanAddonQuery) Aggregate(fns ...AggregateFunc) *PlanAddonSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (paq *PlanAddonQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range paq.inters {
+func (_q *PlanAddonQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, paq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range paq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !planaddon.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if paq.path != nil {
-		prev, err := paq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		paq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (paq *PlanAddonQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*PlanAddon, error) {
+func (_q *PlanAddonQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*PlanAddon, error) {
 	var (
 		nodes       = []*PlanAddon{}
-		_spec       = paq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			paq.withPlan != nil,
-			paq.withAddon != nil,
+			_q.withPlan != nil,
+			_q.withAddon != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*PlanAddon).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &PlanAddon{config: paq.config}
+		node := &PlanAddon{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(paq.modifiers) > 0 {
-		_spec.Modifiers = paq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, paq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := paq.withPlan; query != nil {
-		if err := paq.loadPlan(ctx, query, nodes, nil,
+	if query := _q.withPlan; query != nil {
+		if err := _q.loadPlan(ctx, query, nodes, nil,
 			func(n *PlanAddon, e *Plan) { n.Edges.Plan = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := paq.withAddon; query != nil {
-		if err := paq.loadAddon(ctx, query, nodes, nil,
+	if query := _q.withAddon; query != nil {
+		if err := _q.loadAddon(ctx, query, nodes, nil,
 			func(n *PlanAddon, e *Addon) { n.Edges.Addon = e }); err != nil {
 			return nil, err
 		}
@@ -449,7 +449,7 @@ func (paq *PlanAddonQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*P
 	return nodes, nil
 }
 
-func (paq *PlanAddonQuery) loadPlan(ctx context.Context, query *PlanQuery, nodes []*PlanAddon, init func(*PlanAddon), assign func(*PlanAddon, *Plan)) error {
+func (_q *PlanAddonQuery) loadPlan(ctx context.Context, query *PlanQuery, nodes []*PlanAddon, init func(*PlanAddon), assign func(*PlanAddon, *Plan)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*PlanAddon)
 	for i := range nodes {
@@ -478,7 +478,7 @@ func (paq *PlanAddonQuery) loadPlan(ctx context.Context, query *PlanQuery, nodes
 	}
 	return nil
 }
-func (paq *PlanAddonQuery) loadAddon(ctx context.Context, query *AddonQuery, nodes []*PlanAddon, init func(*PlanAddon), assign func(*PlanAddon, *Addon)) error {
+func (_q *PlanAddonQuery) loadAddon(ctx context.Context, query *AddonQuery, nodes []*PlanAddon, init func(*PlanAddon), assign func(*PlanAddon, *Addon)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*PlanAddon)
 	for i := range nodes {
@@ -508,27 +508,27 @@ func (paq *PlanAddonQuery) loadAddon(ctx context.Context, query *AddonQuery, nod
 	return nil
 }
 
-func (paq *PlanAddonQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := paq.querySpec()
-	if len(paq.modifiers) > 0 {
-		_spec.Modifiers = paq.modifiers
+func (_q *PlanAddonQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = paq.ctx.Fields
-	if len(paq.ctx.Fields) > 0 {
-		_spec.Unique = paq.ctx.Unique != nil && *paq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, paq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (paq *PlanAddonQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *PlanAddonQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(planaddon.Table, planaddon.Columns, sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString))
-	_spec.From = paq.sql
-	if unique := paq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if paq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := paq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, planaddon.FieldID)
 		for i := range fields {
@@ -536,27 +536,27 @@ func (paq *PlanAddonQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if paq.withPlan != nil {
+		if _q.withPlan != nil {
 			_spec.Node.AddColumnOnce(planaddon.FieldPlanID)
 		}
-		if paq.withAddon != nil {
+		if _q.withAddon != nil {
 			_spec.Node.AddColumnOnce(planaddon.FieldAddonID)
 		}
 	}
-	if ps := paq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := paq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := paq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := paq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -566,36 +566,36 @@ func (paq *PlanAddonQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (paq *PlanAddonQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(paq.driver.Dialect())
+func (_q *PlanAddonQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(planaddon.Table)
-	columns := paq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = planaddon.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if paq.sql != nil {
-		selector = paq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if paq.ctx.Unique != nil && *paq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range paq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range paq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range paq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := paq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := paq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -604,27 +604,27 @@ func (paq *PlanAddonQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (paq *PlanAddonQuery) ForUpdate(opts ...sql.LockOption) *PlanAddonQuery {
-	if paq.driver.Dialect() == dialect.Postgres {
-		paq.Unique(false)
+func (_q *PlanAddonQuery) ForUpdate(opts ...sql.LockOption) *PlanAddonQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	paq.modifiers = append(paq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return paq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (paq *PlanAddonQuery) ForShare(opts ...sql.LockOption) *PlanAddonQuery {
-	if paq.driver.Dialect() == dialect.Postgres {
-		paq.Unique(false)
+func (_q *PlanAddonQuery) ForShare(opts ...sql.LockOption) *PlanAddonQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	paq.modifiers = append(paq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return paq
+	return _q
 }
 
 // PlanAddonGroupBy is the group-by builder for PlanAddon entities.

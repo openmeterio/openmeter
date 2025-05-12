@@ -263,7 +263,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the BillingInvoiceLine fields.
-func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) error {
+func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -273,19 +273,19 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				bil.ID = value.String
+				_m.ID = value.String
 			}
 		case billinginvoiceline.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				bil.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case billinginvoiceline.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &bil.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -293,143 +293,143 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				bil.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case billinginvoiceline.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				bil.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case billinginvoiceline.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				bil.DeletedAt = new(time.Time)
-				*bil.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case billinginvoiceline.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				bil.Name = value.String
+				_m.Name = value.String
 			}
 		case billinginvoiceline.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				bil.Description = new(string)
-				*bil.Description = value.String
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case billinginvoiceline.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
 			} else if value != nil {
-				bil.Amount = *value
+				_m.Amount = *value
 			}
 		case billinginvoiceline.FieldTaxesTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field taxes_total", values[i])
 			} else if value != nil {
-				bil.TaxesTotal = *value
+				_m.TaxesTotal = *value
 			}
 		case billinginvoiceline.FieldTaxesInclusiveTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field taxes_inclusive_total", values[i])
 			} else if value != nil {
-				bil.TaxesInclusiveTotal = *value
+				_m.TaxesInclusiveTotal = *value
 			}
 		case billinginvoiceline.FieldTaxesExclusiveTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field taxes_exclusive_total", values[i])
 			} else if value != nil {
-				bil.TaxesExclusiveTotal = *value
+				_m.TaxesExclusiveTotal = *value
 			}
 		case billinginvoiceline.FieldChargesTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field charges_total", values[i])
 			} else if value != nil {
-				bil.ChargesTotal = *value
+				_m.ChargesTotal = *value
 			}
 		case billinginvoiceline.FieldDiscountsTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field discounts_total", values[i])
 			} else if value != nil {
-				bil.DiscountsTotal = *value
+				_m.DiscountsTotal = *value
 			}
 		case billinginvoiceline.FieldTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field total", values[i])
 			} else if value != nil {
-				bil.Total = *value
+				_m.Total = *value
 			}
 		case billinginvoiceline.FieldInvoiceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_id", values[i])
 			} else if value.Valid {
-				bil.InvoiceID = value.String
+				_m.InvoiceID = value.String
 			}
 		case billinginvoiceline.FieldManagedBy:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field managed_by", values[i])
 			} else if value.Valid {
-				bil.ManagedBy = billing.InvoiceLineManagedBy(value.String)
+				_m.ManagedBy = billing.InvoiceLineManagedBy(value.String)
 			}
 		case billinginvoiceline.FieldParentLineID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field parent_line_id", values[i])
 			} else if value.Valid {
-				bil.ParentLineID = new(string)
-				*bil.ParentLineID = value.String
+				_m.ParentLineID = new(string)
+				*_m.ParentLineID = value.String
 			}
 		case billinginvoiceline.FieldPeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field period_start", values[i])
 			} else if value.Valid {
-				bil.PeriodStart = value.Time
+				_m.PeriodStart = value.Time
 			}
 		case billinginvoiceline.FieldPeriodEnd:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field period_end", values[i])
 			} else if value.Valid {
-				bil.PeriodEnd = value.Time
+				_m.PeriodEnd = value.Time
 			}
 		case billinginvoiceline.FieldInvoiceAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_at", values[i])
 			} else if value.Valid {
-				bil.InvoiceAt = value.Time
+				_m.InvoiceAt = value.Time
 			}
 		case billinginvoiceline.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				bil.Type = billing.InvoiceLineType(value.String)
+				_m.Type = billing.InvoiceLineType(value.String)
 			}
 		case billinginvoiceline.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				bil.Status = billing.InvoiceLineStatus(value.String)
+				_m.Status = billing.InvoiceLineStatus(value.String)
 			}
 		case billinginvoiceline.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				bil.Currency = currencyx.Code(value.String)
+				_m.Currency = currencyx.Code(value.String)
 			}
 		case billinginvoiceline.FieldQuantity:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field quantity", values[i])
 			} else if value.Valid {
-				bil.Quantity = new(alpacadecimal.Decimal)
-				*bil.Quantity = *value.S.(*alpacadecimal.Decimal)
+				_m.Quantity = new(alpacadecimal.Decimal)
+				*_m.Quantity = *value.S.(*alpacadecimal.Decimal)
 			}
 		case billinginvoiceline.FieldTaxConfig:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field tax_config", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &bil.TaxConfig); err != nil {
+				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
 					return fmt.Errorf("unmarshal field tax_config: %w", err)
 				}
 			}
@@ -437,66 +437,66 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 			if value, err := billinginvoiceline.ValueScanner.RatecardDiscounts.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				bil.RatecardDiscounts = value
+				_m.RatecardDiscounts = value
 			}
 		case billinginvoiceline.FieldInvoicingAppExternalID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
 			} else if value.Valid {
-				bil.InvoicingAppExternalID = new(string)
-				*bil.InvoicingAppExternalID = value.String
+				_m.InvoicingAppExternalID = new(string)
+				*_m.InvoicingAppExternalID = value.String
 			}
 		case billinginvoiceline.FieldChildUniqueReferenceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field child_unique_reference_id", values[i])
 			} else if value.Valid {
-				bil.ChildUniqueReferenceID = new(string)
-				*bil.ChildUniqueReferenceID = value.String
+				_m.ChildUniqueReferenceID = new(string)
+				*_m.ChildUniqueReferenceID = value.String
 			}
 		case billinginvoiceline.FieldSubscriptionID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field subscription_id", values[i])
 			} else if value.Valid {
-				bil.SubscriptionID = new(string)
-				*bil.SubscriptionID = value.String
+				_m.SubscriptionID = new(string)
+				*_m.SubscriptionID = value.String
 			}
 		case billinginvoiceline.FieldSubscriptionPhaseID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field subscription_phase_id", values[i])
 			} else if value.Valid {
-				bil.SubscriptionPhaseID = new(string)
-				*bil.SubscriptionPhaseID = value.String
+				_m.SubscriptionPhaseID = new(string)
+				*_m.SubscriptionPhaseID = value.String
 			}
 		case billinginvoiceline.FieldSubscriptionItemID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field subscription_item_id", values[i])
 			} else if value.Valid {
-				bil.SubscriptionItemID = new(string)
-				*bil.SubscriptionItemID = value.String
+				_m.SubscriptionItemID = new(string)
+				*_m.SubscriptionItemID = value.String
 			}
 		case billinginvoiceline.FieldLineIds:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field line_ids", values[i])
 			} else if value.Valid {
-				bil.LineIds = new(string)
-				*bil.LineIds = value.String
+				_m.LineIds = new(string)
+				*_m.LineIds = value.String
 			}
 		case billinginvoiceline.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field fee_line_config_id", values[i])
 			} else if value.Valid {
-				bil.fee_line_config_id = new(string)
-				*bil.fee_line_config_id = value.String
+				_m.fee_line_config_id = new(string)
+				*_m.fee_line_config_id = value.String
 			}
 		case billinginvoiceline.ForeignKeys[1]:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field usage_based_line_config_id", values[i])
 			} else if value.Valid {
-				bil.usage_based_line_config_id = new(string)
-				*bil.usage_based_line_config_id = value.String
+				_m.usage_based_line_config_id = new(string)
+				*_m.usage_based_line_config_id = value.String
 			}
 		default:
-			bil.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -504,197 +504,197 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 
 // Value returns the ent.Value that was dynamically selected and assigned to the BillingInvoiceLine.
 // This includes values selected through modifiers, order, etc.
-func (bil *BillingInvoiceLine) Value(name string) (ent.Value, error) {
-	return bil.selectValues.Get(name)
+func (_m *BillingInvoiceLine) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryBillingInvoice queries the "billing_invoice" edge of the BillingInvoiceLine entity.
-func (bil *BillingInvoiceLine) QueryBillingInvoice() *BillingInvoiceQuery {
-	return NewBillingInvoiceLineClient(bil.config).QueryBillingInvoice(bil)
+func (_m *BillingInvoiceLine) QueryBillingInvoice() *BillingInvoiceQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryBillingInvoice(_m)
 }
 
 // QueryFlatFeeLine queries the "flat_fee_line" edge of the BillingInvoiceLine entity.
-func (bil *BillingInvoiceLine) QueryFlatFeeLine() *BillingInvoiceFlatFeeLineConfigQuery {
-	return NewBillingInvoiceLineClient(bil.config).QueryFlatFeeLine(bil)
+func (_m *BillingInvoiceLine) QueryFlatFeeLine() *BillingInvoiceFlatFeeLineConfigQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryFlatFeeLine(_m)
 }
 
 // QueryUsageBasedLine queries the "usage_based_line" edge of the BillingInvoiceLine entity.
-func (bil *BillingInvoiceLine) QueryUsageBasedLine() *BillingInvoiceUsageBasedLineConfigQuery {
-	return NewBillingInvoiceLineClient(bil.config).QueryUsageBasedLine(bil)
+func (_m *BillingInvoiceLine) QueryUsageBasedLine() *BillingInvoiceUsageBasedLineConfigQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryUsageBasedLine(_m)
 }
 
 // QueryParentLine queries the "parent_line" edge of the BillingInvoiceLine entity.
-func (bil *BillingInvoiceLine) QueryParentLine() *BillingInvoiceLineQuery {
-	return NewBillingInvoiceLineClient(bil.config).QueryParentLine(bil)
+func (_m *BillingInvoiceLine) QueryParentLine() *BillingInvoiceLineQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryParentLine(_m)
 }
 
 // QueryDetailedLines queries the "detailed_lines" edge of the BillingInvoiceLine entity.
-func (bil *BillingInvoiceLine) QueryDetailedLines() *BillingInvoiceLineQuery {
-	return NewBillingInvoiceLineClient(bil.config).QueryDetailedLines(bil)
+func (_m *BillingInvoiceLine) QueryDetailedLines() *BillingInvoiceLineQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryDetailedLines(_m)
 }
 
 // QueryLineUsageDiscounts queries the "line_usage_discounts" edge of the BillingInvoiceLine entity.
-func (bil *BillingInvoiceLine) QueryLineUsageDiscounts() *BillingInvoiceLineUsageDiscountQuery {
-	return NewBillingInvoiceLineClient(bil.config).QueryLineUsageDiscounts(bil)
+func (_m *BillingInvoiceLine) QueryLineUsageDiscounts() *BillingInvoiceLineUsageDiscountQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryLineUsageDiscounts(_m)
 }
 
 // QueryLineAmountDiscounts queries the "line_amount_discounts" edge of the BillingInvoiceLine entity.
-func (bil *BillingInvoiceLine) QueryLineAmountDiscounts() *BillingInvoiceLineDiscountQuery {
-	return NewBillingInvoiceLineClient(bil.config).QueryLineAmountDiscounts(bil)
+func (_m *BillingInvoiceLine) QueryLineAmountDiscounts() *BillingInvoiceLineDiscountQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryLineAmountDiscounts(_m)
 }
 
 // QuerySubscription queries the "subscription" edge of the BillingInvoiceLine entity.
-func (bil *BillingInvoiceLine) QuerySubscription() *SubscriptionQuery {
-	return NewBillingInvoiceLineClient(bil.config).QuerySubscription(bil)
+func (_m *BillingInvoiceLine) QuerySubscription() *SubscriptionQuery {
+	return NewBillingInvoiceLineClient(_m.config).QuerySubscription(_m)
 }
 
 // QuerySubscriptionPhase queries the "subscription_phase" edge of the BillingInvoiceLine entity.
-func (bil *BillingInvoiceLine) QuerySubscriptionPhase() *SubscriptionPhaseQuery {
-	return NewBillingInvoiceLineClient(bil.config).QuerySubscriptionPhase(bil)
+func (_m *BillingInvoiceLine) QuerySubscriptionPhase() *SubscriptionPhaseQuery {
+	return NewBillingInvoiceLineClient(_m.config).QuerySubscriptionPhase(_m)
 }
 
 // QuerySubscriptionItem queries the "subscription_item" edge of the BillingInvoiceLine entity.
-func (bil *BillingInvoiceLine) QuerySubscriptionItem() *SubscriptionItemQuery {
-	return NewBillingInvoiceLineClient(bil.config).QuerySubscriptionItem(bil)
+func (_m *BillingInvoiceLine) QuerySubscriptionItem() *SubscriptionItemQuery {
+	return NewBillingInvoiceLineClient(_m.config).QuerySubscriptionItem(_m)
 }
 
 // Update returns a builder for updating this BillingInvoiceLine.
 // Note that you need to call BillingInvoiceLine.Unwrap() before calling this method if this BillingInvoiceLine
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (bil *BillingInvoiceLine) Update() *BillingInvoiceLineUpdateOne {
-	return NewBillingInvoiceLineClient(bil.config).UpdateOne(bil)
+func (_m *BillingInvoiceLine) Update() *BillingInvoiceLineUpdateOne {
+	return NewBillingInvoiceLineClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the BillingInvoiceLine entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (bil *BillingInvoiceLine) Unwrap() *BillingInvoiceLine {
-	_tx, ok := bil.config.driver.(*txDriver)
+func (_m *BillingInvoiceLine) Unwrap() *BillingInvoiceLine {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: BillingInvoiceLine is not a transactional entity")
 	}
-	bil.config.driver = _tx.drv
-	return bil
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (bil *BillingInvoiceLine) String() string {
+func (_m *BillingInvoiceLine) String() string {
 	var builder strings.Builder
 	builder.WriteString("BillingInvoiceLine(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", bil.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(bil.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", bil.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(bil.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(bil.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := bil.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
-	builder.WriteString(bil.Name)
+	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
-	if v := bil.Description; v != nil {
+	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
-	builder.WriteString(fmt.Sprintf("%v", bil.Amount))
+	builder.WriteString(fmt.Sprintf("%v", _m.Amount))
 	builder.WriteString(", ")
 	builder.WriteString("taxes_total=")
-	builder.WriteString(fmt.Sprintf("%v", bil.TaxesTotal))
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxesTotal))
 	builder.WriteString(", ")
 	builder.WriteString("taxes_inclusive_total=")
-	builder.WriteString(fmt.Sprintf("%v", bil.TaxesInclusiveTotal))
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxesInclusiveTotal))
 	builder.WriteString(", ")
 	builder.WriteString("taxes_exclusive_total=")
-	builder.WriteString(fmt.Sprintf("%v", bil.TaxesExclusiveTotal))
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxesExclusiveTotal))
 	builder.WriteString(", ")
 	builder.WriteString("charges_total=")
-	builder.WriteString(fmt.Sprintf("%v", bil.ChargesTotal))
+	builder.WriteString(fmt.Sprintf("%v", _m.ChargesTotal))
 	builder.WriteString(", ")
 	builder.WriteString("discounts_total=")
-	builder.WriteString(fmt.Sprintf("%v", bil.DiscountsTotal))
+	builder.WriteString(fmt.Sprintf("%v", _m.DiscountsTotal))
 	builder.WriteString(", ")
 	builder.WriteString("total=")
-	builder.WriteString(fmt.Sprintf("%v", bil.Total))
+	builder.WriteString(fmt.Sprintf("%v", _m.Total))
 	builder.WriteString(", ")
 	builder.WriteString("invoice_id=")
-	builder.WriteString(bil.InvoiceID)
+	builder.WriteString(_m.InvoiceID)
 	builder.WriteString(", ")
 	builder.WriteString("managed_by=")
-	builder.WriteString(fmt.Sprintf("%v", bil.ManagedBy))
+	builder.WriteString(fmt.Sprintf("%v", _m.ManagedBy))
 	builder.WriteString(", ")
-	if v := bil.ParentLineID; v != nil {
+	if v := _m.ParentLineID; v != nil {
 		builder.WriteString("parent_line_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("period_start=")
-	builder.WriteString(bil.PeriodStart.Format(time.ANSIC))
+	builder.WriteString(_m.PeriodStart.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("period_end=")
-	builder.WriteString(bil.PeriodEnd.Format(time.ANSIC))
+	builder.WriteString(_m.PeriodEnd.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("invoice_at=")
-	builder.WriteString(bil.InvoiceAt.Format(time.ANSIC))
+	builder.WriteString(_m.InvoiceAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("type=")
-	builder.WriteString(fmt.Sprintf("%v", bil.Type))
+	builder.WriteString(fmt.Sprintf("%v", _m.Type))
 	builder.WriteString(", ")
 	builder.WriteString("status=")
-	builder.WriteString(fmt.Sprintf("%v", bil.Status))
+	builder.WriteString(fmt.Sprintf("%v", _m.Status))
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", bil.Currency))
+	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
 	builder.WriteString(", ")
-	if v := bil.Quantity; v != nil {
+	if v := _m.Quantity; v != nil {
 		builder.WriteString("quantity=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("tax_config=")
-	builder.WriteString(fmt.Sprintf("%v", bil.TaxConfig))
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxConfig))
 	builder.WriteString(", ")
-	if v := bil.RatecardDiscounts; v != nil {
+	if v := _m.RatecardDiscounts; v != nil {
 		builder.WriteString("ratecard_discounts=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bil.InvoicingAppExternalID; v != nil {
+	if v := _m.InvoicingAppExternalID; v != nil {
 		builder.WriteString("invoicing_app_external_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bil.ChildUniqueReferenceID; v != nil {
+	if v := _m.ChildUniqueReferenceID; v != nil {
 		builder.WriteString("child_unique_reference_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bil.SubscriptionID; v != nil {
+	if v := _m.SubscriptionID; v != nil {
 		builder.WriteString("subscription_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bil.SubscriptionPhaseID; v != nil {
+	if v := _m.SubscriptionPhaseID; v != nil {
 		builder.WriteString("subscription_phase_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bil.SubscriptionItemID; v != nil {
+	if v := _m.SubscriptionItemID; v != nil {
 		builder.WriteString("subscription_item_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bil.LineIds; v != nil {
+	if v := _m.LineIds; v != nil {
 		builder.WriteString("line_ids=")
 		builder.WriteString(*v)
 	}

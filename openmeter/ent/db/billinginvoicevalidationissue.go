@@ -87,7 +87,7 @@ func (*BillingInvoiceValidationIssue) scanValues(columns []string) ([]any, error
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the BillingInvoiceValidationIssue fields.
-func (bivi *BillingInvoiceValidationIssue) assignValues(columns []string, values []any) error {
+func (_m *BillingInvoiceValidationIssue) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -97,79 +97,79 @@ func (bivi *BillingInvoiceValidationIssue) assignValues(columns []string, values
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				bivi.ID = value.String
+				_m.ID = value.String
 			}
 		case billinginvoicevalidationissue.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				bivi.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case billinginvoicevalidationissue.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				bivi.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case billinginvoicevalidationissue.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				bivi.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case billinginvoicevalidationissue.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				bivi.DeletedAt = new(time.Time)
-				*bivi.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case billinginvoicevalidationissue.FieldInvoiceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_id", values[i])
 			} else if value.Valid {
-				bivi.InvoiceID = value.String
+				_m.InvoiceID = value.String
 			}
 		case billinginvoicevalidationissue.FieldSeverity:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field severity", values[i])
 			} else if value.Valid {
-				bivi.Severity = billing.ValidationIssueSeverity(value.String)
+				_m.Severity = billing.ValidationIssueSeverity(value.String)
 			}
 		case billinginvoicevalidationissue.FieldCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field code", values[i])
 			} else if value.Valid {
-				bivi.Code = new(string)
-				*bivi.Code = value.String
+				_m.Code = new(string)
+				*_m.Code = value.String
 			}
 		case billinginvoicevalidationissue.FieldMessage:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field message", values[i])
 			} else if value.Valid {
-				bivi.Message = value.String
+				_m.Message = value.String
 			}
 		case billinginvoicevalidationissue.FieldPath:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field path", values[i])
 			} else if value.Valid {
-				bivi.Path = new(string)
-				*bivi.Path = value.String
+				_m.Path = new(string)
+				*_m.Path = value.String
 			}
 		case billinginvoicevalidationissue.FieldComponent:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field component", values[i])
 			} else if value.Valid {
-				bivi.Component = value.String
+				_m.Component = value.String
 			}
 		case billinginvoicevalidationissue.FieldDedupeHash:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field dedupe_hash", values[i])
 			} else if value != nil {
-				bivi.DedupeHash = *value
+				_m.DedupeHash = *value
 			}
 		default:
-			bivi.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -177,76 +177,76 @@ func (bivi *BillingInvoiceValidationIssue) assignValues(columns []string, values
 
 // Value returns the ent.Value that was dynamically selected and assigned to the BillingInvoiceValidationIssue.
 // This includes values selected through modifiers, order, etc.
-func (bivi *BillingInvoiceValidationIssue) Value(name string) (ent.Value, error) {
-	return bivi.selectValues.Get(name)
+func (_m *BillingInvoiceValidationIssue) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryBillingInvoice queries the "billing_invoice" edge of the BillingInvoiceValidationIssue entity.
-func (bivi *BillingInvoiceValidationIssue) QueryBillingInvoice() *BillingInvoiceQuery {
-	return NewBillingInvoiceValidationIssueClient(bivi.config).QueryBillingInvoice(bivi)
+func (_m *BillingInvoiceValidationIssue) QueryBillingInvoice() *BillingInvoiceQuery {
+	return NewBillingInvoiceValidationIssueClient(_m.config).QueryBillingInvoice(_m)
 }
 
 // Update returns a builder for updating this BillingInvoiceValidationIssue.
 // Note that you need to call BillingInvoiceValidationIssue.Unwrap() before calling this method if this BillingInvoiceValidationIssue
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (bivi *BillingInvoiceValidationIssue) Update() *BillingInvoiceValidationIssueUpdateOne {
-	return NewBillingInvoiceValidationIssueClient(bivi.config).UpdateOne(bivi)
+func (_m *BillingInvoiceValidationIssue) Update() *BillingInvoiceValidationIssueUpdateOne {
+	return NewBillingInvoiceValidationIssueClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the BillingInvoiceValidationIssue entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (bivi *BillingInvoiceValidationIssue) Unwrap() *BillingInvoiceValidationIssue {
-	_tx, ok := bivi.config.driver.(*txDriver)
+func (_m *BillingInvoiceValidationIssue) Unwrap() *BillingInvoiceValidationIssue {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: BillingInvoiceValidationIssue is not a transactional entity")
 	}
-	bivi.config.driver = _tx.drv
-	return bivi
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (bivi *BillingInvoiceValidationIssue) String() string {
+func (_m *BillingInvoiceValidationIssue) String() string {
 	var builder strings.Builder
 	builder.WriteString("BillingInvoiceValidationIssue(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", bivi.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(bivi.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(bivi.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(bivi.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := bivi.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("invoice_id=")
-	builder.WriteString(bivi.InvoiceID)
+	builder.WriteString(_m.InvoiceID)
 	builder.WriteString(", ")
 	builder.WriteString("severity=")
-	builder.WriteString(fmt.Sprintf("%v", bivi.Severity))
+	builder.WriteString(fmt.Sprintf("%v", _m.Severity))
 	builder.WriteString(", ")
-	if v := bivi.Code; v != nil {
+	if v := _m.Code; v != nil {
 		builder.WriteString("code=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("message=")
-	builder.WriteString(bivi.Message)
+	builder.WriteString(_m.Message)
 	builder.WriteString(", ")
-	if v := bivi.Path; v != nil {
+	if v := _m.Path; v != nil {
 		builder.WriteString("path=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("component=")
-	builder.WriteString(bivi.Component)
+	builder.WriteString(_m.Component)
 	builder.WriteString(", ")
 	builder.WriteString("dedupe_hash=")
-	builder.WriteString(fmt.Sprintf("%v", bivi.DedupeHash))
+	builder.WriteString(fmt.Sprintf("%v", _m.DedupeHash))
 	builder.WriteByte(')')
 	return builder.String()
 }

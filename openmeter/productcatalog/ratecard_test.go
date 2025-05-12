@@ -1143,7 +1143,7 @@ func TestRateCardsCompatible(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			err := rateCardsCompatible(test.rCard, test.vCard)
+			err := NewRateCardWithOverlay(test.rCard, test.vCard).Validate()
 			if test.wantErr {
 				assert.Error(t, err)
 				t.Logf("Expected error: %v", err)

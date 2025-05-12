@@ -25,99 +25,99 @@ type BillingInvoiceUsageBasedLineConfigCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetNamespace(s string) *BillingInvoiceUsageBasedLineConfigCreate {
-	biublcc.mutation.SetNamespace(s)
-	return biublcc
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetNamespace(v string) *BillingInvoiceUsageBasedLineConfigCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetPriceType sets the "price_type" field.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetPriceType(pt productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigCreate {
-	biublcc.mutation.SetPriceType(pt)
-	return biublcc
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetPriceType(v productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigCreate {
+	_c.mutation.SetPriceType(v)
+	return _c
 }
 
 // SetFeatureKey sets the "feature_key" field.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetFeatureKey(s string) *BillingInvoiceUsageBasedLineConfigCreate {
-	biublcc.mutation.SetFeatureKey(s)
-	return biublcc
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetFeatureKey(v string) *BillingInvoiceUsageBasedLineConfigCreate {
+	_c.mutation.SetFeatureKey(v)
+	return _c
 }
 
 // SetPrice sets the "price" field.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetPrice(pr *productcatalog.Price) *BillingInvoiceUsageBasedLineConfigCreate {
-	biublcc.mutation.SetPrice(pr)
-	return biublcc
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetPrice(v *productcatalog.Price) *BillingInvoiceUsageBasedLineConfigCreate {
+	_c.mutation.SetPrice(v)
+	return _c
 }
 
 // SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
-	biublcc.mutation.SetPreLinePeriodQuantity(a)
-	return biublcc
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
+	_c.mutation.SetPreLinePeriodQuantity(v)
+	return _c
 }
 
 // SetNillablePreLinePeriodQuantity sets the "pre_line_period_quantity" field if the given value is not nil.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetNillablePreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
-	if a != nil {
-		biublcc.SetPreLinePeriodQuantity(*a)
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetNillablePreLinePeriodQuantity(v *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
+	if v != nil {
+		_c.SetPreLinePeriodQuantity(*v)
 	}
-	return biublcc
+	return _c
 }
 
 // SetMeteredPreLinePeriodQuantity sets the "metered_pre_line_period_quantity" field.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetMeteredPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
-	biublcc.mutation.SetMeteredPreLinePeriodQuantity(a)
-	return biublcc
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetMeteredPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
+	_c.mutation.SetMeteredPreLinePeriodQuantity(v)
+	return _c
 }
 
 // SetNillableMeteredPreLinePeriodQuantity sets the "metered_pre_line_period_quantity" field if the given value is not nil.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetNillableMeteredPreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
-	if a != nil {
-		biublcc.SetMeteredPreLinePeriodQuantity(*a)
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetNillableMeteredPreLinePeriodQuantity(v *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
+	if v != nil {
+		_c.SetMeteredPreLinePeriodQuantity(*v)
 	}
-	return biublcc
+	return _c
 }
 
 // SetMeteredQuantity sets the "metered_quantity" field.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetMeteredQuantity(a alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
-	biublcc.mutation.SetMeteredQuantity(a)
-	return biublcc
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetMeteredQuantity(v alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
+	_c.mutation.SetMeteredQuantity(v)
+	return _c
 }
 
 // SetNillableMeteredQuantity sets the "metered_quantity" field if the given value is not nil.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetNillableMeteredQuantity(a *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
-	if a != nil {
-		biublcc.SetMeteredQuantity(*a)
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetNillableMeteredQuantity(v *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigCreate {
+	if v != nil {
+		_c.SetMeteredQuantity(*v)
 	}
-	return biublcc
+	return _c
 }
 
 // SetID sets the "id" field.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetID(s string) *BillingInvoiceUsageBasedLineConfigCreate {
-	biublcc.mutation.SetID(s)
-	return biublcc
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetID(v string) *BillingInvoiceUsageBasedLineConfigCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetNillableID(s *string) *BillingInvoiceUsageBasedLineConfigCreate {
-	if s != nil {
-		biublcc.SetID(*s)
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetNillableID(v *string) *BillingInvoiceUsageBasedLineConfigCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return biublcc
+	return _c
 }
 
 // Mutation returns the BillingInvoiceUsageBasedLineConfigMutation object of the builder.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) Mutation() *BillingInvoiceUsageBasedLineConfigMutation {
-	return biublcc.mutation
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) Mutation() *BillingInvoiceUsageBasedLineConfigMutation {
+	return _c.mutation
 }
 
 // Save creates the BillingInvoiceUsageBasedLineConfig in the database.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) Save(ctx context.Context) (*BillingInvoiceUsageBasedLineConfig, error) {
-	biublcc.defaults()
-	return withHooks(ctx, biublcc.sqlSave, biublcc.mutation, biublcc.hooks)
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) Save(ctx context.Context) (*BillingInvoiceUsageBasedLineConfig, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SaveX(ctx context.Context) *BillingInvoiceUsageBasedLineConfig {
-	v, err := biublcc.Save(ctx)
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SaveX(ctx context.Context) *BillingInvoiceUsageBasedLineConfig {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -125,56 +125,56 @@ func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SaveX(ctx context.Conte
 }
 
 // Exec executes the query.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) Exec(ctx context.Context) error {
-	_, err := biublcc.Save(ctx)
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) ExecX(ctx context.Context) {
-	if err := biublcc.Exec(ctx); err != nil {
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) defaults() {
-	if _, ok := biublcc.mutation.ID(); !ok {
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) defaults() {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := billinginvoiceusagebasedlineconfig.DefaultID()
-		biublcc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) check() error {
-	if _, ok := biublcc.mutation.Namespace(); !ok {
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BillingInvoiceUsageBasedLineConfig.namespace"`)}
 	}
-	if v, ok := biublcc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := billinginvoiceusagebasedlineconfig.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.namespace": %w`, err)}
 		}
 	}
-	if _, ok := biublcc.mutation.PriceType(); !ok {
+	if _, ok := _c.mutation.PriceType(); !ok {
 		return &ValidationError{Name: "price_type", err: errors.New(`db: missing required field "BillingInvoiceUsageBasedLineConfig.price_type"`)}
 	}
-	if v, ok := biublcc.mutation.PriceType(); ok {
+	if v, ok := _c.mutation.PriceType(); ok {
 		if err := billinginvoiceusagebasedlineconfig.PriceTypeValidator(v); err != nil {
 			return &ValidationError{Name: "price_type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.price_type": %w`, err)}
 		}
 	}
-	if _, ok := biublcc.mutation.FeatureKey(); !ok {
+	if _, ok := _c.mutation.FeatureKey(); !ok {
 		return &ValidationError{Name: "feature_key", err: errors.New(`db: missing required field "BillingInvoiceUsageBasedLineConfig.feature_key"`)}
 	}
-	if v, ok := biublcc.mutation.FeatureKey(); ok {
+	if v, ok := _c.mutation.FeatureKey(); ok {
 		if err := billinginvoiceusagebasedlineconfig.FeatureKeyValidator(v); err != nil {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.feature_key": %w`, err)}
 		}
 	}
-	if _, ok := biublcc.mutation.Price(); !ok {
+	if _, ok := _c.mutation.Price(); !ok {
 		return &ValidationError{Name: "price", err: errors.New(`db: missing required field "BillingInvoiceUsageBasedLineConfig.price"`)}
 	}
-	if v, ok := biublcc.mutation.Price(); ok {
+	if v, ok := _c.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.price": %w`, err)}
 		}
@@ -182,15 +182,15 @@ func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) check() error {
 	return nil
 }
 
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) sqlSave(ctx context.Context) (*BillingInvoiceUsageBasedLineConfig, error) {
-	if err := biublcc.check(); err != nil {
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) sqlSave(ctx context.Context) (*BillingInvoiceUsageBasedLineConfig, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec, err := biublcc.createSpec()
+	_node, _spec, err := _c.createSpec()
 	if err != nil {
 		return nil, err
 	}
-	if err := sqlgraph.CreateNode(ctx, biublcc.driver, _spec); err != nil {
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -203,34 +203,34 @@ func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) sqlSave(ctx context.Con
 			return nil, fmt.Errorf("unexpected BillingInvoiceUsageBasedLineConfig.ID type: %T", _spec.ID.Value)
 		}
 	}
-	biublcc.mutation.id = &_node.ID
-	biublcc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) createSpec() (*BillingInvoiceUsageBasedLineConfig, *sqlgraph.CreateSpec, error) {
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) createSpec() (*BillingInvoiceUsageBasedLineConfig, *sqlgraph.CreateSpec, error) {
 	var (
-		_node = &BillingInvoiceUsageBasedLineConfig{config: biublcc.config}
+		_node = &BillingInvoiceUsageBasedLineConfig{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(billinginvoiceusagebasedlineconfig.Table, sqlgraph.NewFieldSpec(billinginvoiceusagebasedlineconfig.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = biublcc.conflict
-	if id, ok := biublcc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := biublcc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := biublcc.mutation.PriceType(); ok {
+	if value, ok := _c.mutation.PriceType(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPriceType, field.TypeEnum, value)
 		_node.PriceType = value
 	}
-	if value, ok := biublcc.mutation.FeatureKey(); ok {
+	if value, ok := _c.mutation.FeatureKey(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldFeatureKey, field.TypeString, value)
 		_node.FeatureKey = value
 	}
-	if value, ok := biublcc.mutation.Price(); ok {
+	if value, ok := _c.mutation.Price(); ok {
 		vv, err := billinginvoiceusagebasedlineconfig.ValueScanner.Price.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -238,15 +238,15 @@ func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) createSpec() (*BillingI
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
-	if value, ok := biublcc.mutation.PreLinePeriodQuantity(); ok {
+	if value, ok := _c.mutation.PreLinePeriodQuantity(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, field.TypeOther, value)
 		_node.PreLinePeriodQuantity = &value
 	}
-	if value, ok := biublcc.mutation.MeteredPreLinePeriodQuantity(); ok {
+	if value, ok := _c.mutation.MeteredPreLinePeriodQuantity(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity, field.TypeOther, value)
 		_node.MeteredPreLinePeriodQuantity = &value
 	}
-	if value, ok := biublcc.mutation.MeteredQuantity(); ok {
+	if value, ok := _c.mutation.MeteredQuantity(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther, value)
 		_node.MeteredQuantity = &value
 	}
@@ -269,10 +269,10 @@ func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) createSpec() (*BillingI
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceUsageBasedLineConfigUpsertOne {
-	biublcc.conflict = opts
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	_c.conflict = opts
 	return &BillingInvoiceUsageBasedLineConfigUpsertOne{
-		create: biublcc,
+		create: _c,
 	}
 }
 
@@ -282,10 +282,10 @@ func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) OnConflict(opts ...sql.
 //	client.BillingInvoiceUsageBasedLineConfig.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) OnConflictColumns(columns ...string) *BillingInvoiceUsageBasedLineConfigUpsertOne {
-	biublcc.conflict = append(biublcc.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) OnConflictColumns(columns ...string) *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingInvoiceUsageBasedLineConfigUpsertOne{
-		create: biublcc,
+		create: _c,
 	}
 }
 
@@ -572,16 +572,16 @@ type BillingInvoiceUsageBasedLineConfigCreateBulk struct {
 }
 
 // Save creates the BillingInvoiceUsageBasedLineConfig entities in the database.
-func (biublccb *BillingInvoiceUsageBasedLineConfigCreateBulk) Save(ctx context.Context) ([]*BillingInvoiceUsageBasedLineConfig, error) {
-	if biublccb.err != nil {
-		return nil, biublccb.err
+func (_c *BillingInvoiceUsageBasedLineConfigCreateBulk) Save(ctx context.Context) ([]*BillingInvoiceUsageBasedLineConfig, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(biublccb.builders))
-	nodes := make([]*BillingInvoiceUsageBasedLineConfig, len(biublccb.builders))
-	mutators := make([]Mutator, len(biublccb.builders))
-	for i := range biublccb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*BillingInvoiceUsageBasedLineConfig, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := biublccb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*BillingInvoiceUsageBasedLineConfigMutation)
@@ -598,12 +598,12 @@ func (biublccb *BillingInvoiceUsageBasedLineConfigCreateBulk) Save(ctx context.C
 					return nil, err
 				}
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, biublccb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = biublccb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, biublccb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -623,7 +623,7 @@ func (biublccb *BillingInvoiceUsageBasedLineConfigCreateBulk) Save(ctx context.C
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, biublccb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -631,8 +631,8 @@ func (biublccb *BillingInvoiceUsageBasedLineConfigCreateBulk) Save(ctx context.C
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (biublccb *BillingInvoiceUsageBasedLineConfigCreateBulk) SaveX(ctx context.Context) []*BillingInvoiceUsageBasedLineConfig {
-	v, err := biublccb.Save(ctx)
+func (_c *BillingInvoiceUsageBasedLineConfigCreateBulk) SaveX(ctx context.Context) []*BillingInvoiceUsageBasedLineConfig {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -640,14 +640,14 @@ func (biublccb *BillingInvoiceUsageBasedLineConfigCreateBulk) SaveX(ctx context.
 }
 
 // Exec executes the query.
-func (biublccb *BillingInvoiceUsageBasedLineConfigCreateBulk) Exec(ctx context.Context) error {
-	_, err := biublccb.Save(ctx)
+func (_c *BillingInvoiceUsageBasedLineConfigCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (biublccb *BillingInvoiceUsageBasedLineConfigCreateBulk) ExecX(ctx context.Context) {
-	if err := biublccb.Exec(ctx); err != nil {
+func (_c *BillingInvoiceUsageBasedLineConfigCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -667,10 +667,10 @@ func (biublccb *BillingInvoiceUsageBasedLineConfigCreateBulk) ExecX(ctx context.
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (biublccb *BillingInvoiceUsageBasedLineConfigCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
-	biublccb.conflict = opts
+func (_c *BillingInvoiceUsageBasedLineConfigCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	_c.conflict = opts
 	return &BillingInvoiceUsageBasedLineConfigUpsertBulk{
-		create: biublccb,
+		create: _c,
 	}
 }
 
@@ -680,10 +680,10 @@ func (biublccb *BillingInvoiceUsageBasedLineConfigCreateBulk) OnConflict(opts ..
 //	client.BillingInvoiceUsageBasedLineConfig.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (biublccb *BillingInvoiceUsageBasedLineConfigCreateBulk) OnConflictColumns(columns ...string) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
-	biublccb.conflict = append(biublccb.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingInvoiceUsageBasedLineConfigCreateBulk) OnConflictColumns(columns ...string) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingInvoiceUsageBasedLineConfigUpsertBulk{
-		create: biublccb,
+		create: _c,
 	}
 }
 

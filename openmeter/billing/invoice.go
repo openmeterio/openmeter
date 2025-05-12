@@ -648,6 +648,10 @@ type ListInvoicesInput struct {
 	IssuedAfter  *time.Time
 	IssuedBefore *time.Time
 
+	// Filter by invoice creation time
+	CreatedAfter  *time.Time
+	CreatedBefore *time.Time
+
 	IncludeDeleted bool
 
 	// DraftUtil allows to filter invoices which have their draft state expired based on the provided time.
@@ -669,6 +673,10 @@ type ListInvoicesInput struct {
 func (i ListInvoicesInput) Validate() error {
 	if i.IssuedAfter != nil && i.IssuedBefore != nil && i.IssuedAfter.After(*i.IssuedBefore) {
 		return errors.New("issuedAfter must be before issuedBefore")
+	}
+
+	if i.CreatedAfter != nil && i.CreatedBefore != nil && i.CreatedAfter.After(*i.CreatedBefore) {
+		return errors.New("createdAfter must be before createdBefore")
 	}
 
 	if err := i.Expand.Validate(); err != nil {

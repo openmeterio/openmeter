@@ -30,40 +30,40 @@ type MeterQuery struct {
 }
 
 // Where adds a new predicate for the MeterQuery builder.
-func (mq *MeterQuery) Where(ps ...predicate.Meter) *MeterQuery {
-	mq.predicates = append(mq.predicates, ps...)
-	return mq
+func (_q *MeterQuery) Where(ps ...predicate.Meter) *MeterQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (mq *MeterQuery) Limit(limit int) *MeterQuery {
-	mq.ctx.Limit = &limit
-	return mq
+func (_q *MeterQuery) Limit(limit int) *MeterQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (mq *MeterQuery) Offset(offset int) *MeterQuery {
-	mq.ctx.Offset = &offset
-	return mq
+func (_q *MeterQuery) Offset(offset int) *MeterQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (mq *MeterQuery) Unique(unique bool) *MeterQuery {
-	mq.ctx.Unique = &unique
-	return mq
+func (_q *MeterQuery) Unique(unique bool) *MeterQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (mq *MeterQuery) Order(o ...dbmeter.OrderOption) *MeterQuery {
-	mq.order = append(mq.order, o...)
-	return mq
+func (_q *MeterQuery) Order(o ...dbmeter.OrderOption) *MeterQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // First returns the first Meter entity from the query.
 // Returns a *NotFoundError when no Meter was found.
-func (mq *MeterQuery) First(ctx context.Context) (*Meter, error) {
-	nodes, err := mq.Limit(1).All(setContextOp(ctx, mq.ctx, ent.OpQueryFirst))
+func (_q *MeterQuery) First(ctx context.Context) (*Meter, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -74,8 +74,8 @@ func (mq *MeterQuery) First(ctx context.Context) (*Meter, error) {
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (mq *MeterQuery) FirstX(ctx context.Context) *Meter {
-	node, err := mq.First(ctx)
+func (_q *MeterQuery) FirstX(ctx context.Context) *Meter {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -84,9 +84,9 @@ func (mq *MeterQuery) FirstX(ctx context.Context) *Meter {
 
 // FirstID returns the first Meter ID from the query.
 // Returns a *NotFoundError when no Meter ID was found.
-func (mq *MeterQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *MeterQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = mq.Limit(1).IDs(setContextOp(ctx, mq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -97,8 +97,8 @@ func (mq *MeterQuery) FirstID(ctx context.Context) (id string, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (mq *MeterQuery) FirstIDX(ctx context.Context) string {
-	id, err := mq.FirstID(ctx)
+func (_q *MeterQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -108,8 +108,8 @@ func (mq *MeterQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single Meter entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one Meter entity is found.
 // Returns a *NotFoundError when no Meter entities are found.
-func (mq *MeterQuery) Only(ctx context.Context) (*Meter, error) {
-	nodes, err := mq.Limit(2).All(setContextOp(ctx, mq.ctx, ent.OpQueryOnly))
+func (_q *MeterQuery) Only(ctx context.Context) (*Meter, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +124,8 @@ func (mq *MeterQuery) Only(ctx context.Context) (*Meter, error) {
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (mq *MeterQuery) OnlyX(ctx context.Context) *Meter {
-	node, err := mq.Only(ctx)
+func (_q *MeterQuery) OnlyX(ctx context.Context) *Meter {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -135,9 +135,9 @@ func (mq *MeterQuery) OnlyX(ctx context.Context) *Meter {
 // OnlyID is like Only, but returns the only Meter ID in the query.
 // Returns a *NotSingularError when more than one Meter ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (mq *MeterQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *MeterQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = mq.Limit(2).IDs(setContextOp(ctx, mq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -152,8 +152,8 @@ func (mq *MeterQuery) OnlyID(ctx context.Context) (id string, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (mq *MeterQuery) OnlyIDX(ctx context.Context) string {
-	id, err := mq.OnlyID(ctx)
+func (_q *MeterQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -161,18 +161,18 @@ func (mq *MeterQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of Meters.
-func (mq *MeterQuery) All(ctx context.Context) ([]*Meter, error) {
-	ctx = setContextOp(ctx, mq.ctx, ent.OpQueryAll)
-	if err := mq.prepareQuery(ctx); err != nil {
+func (_q *MeterQuery) All(ctx context.Context) ([]*Meter, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*Meter, *MeterQuery]()
-	return withInterceptors[[]*Meter](ctx, mq, qr, mq.inters)
+	return withInterceptors[[]*Meter](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (mq *MeterQuery) AllX(ctx context.Context) []*Meter {
-	nodes, err := mq.All(ctx)
+func (_q *MeterQuery) AllX(ctx context.Context) []*Meter {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -180,20 +180,20 @@ func (mq *MeterQuery) AllX(ctx context.Context) []*Meter {
 }
 
 // IDs executes the query and returns a list of Meter IDs.
-func (mq *MeterQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if mq.ctx.Unique == nil && mq.path != nil {
-		mq.Unique(true)
+func (_q *MeterQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, mq.ctx, ent.OpQueryIDs)
-	if err = mq.Select(dbmeter.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(dbmeter.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (mq *MeterQuery) IDsX(ctx context.Context) []string {
-	ids, err := mq.IDs(ctx)
+func (_q *MeterQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -201,17 +201,17 @@ func (mq *MeterQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (mq *MeterQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, mq.ctx, ent.OpQueryCount)
-	if err := mq.prepareQuery(ctx); err != nil {
+func (_q *MeterQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, mq, querierCount[*MeterQuery](), mq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*MeterQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (mq *MeterQuery) CountX(ctx context.Context) int {
-	count, err := mq.Count(ctx)
+func (_q *MeterQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -219,9 +219,9 @@ func (mq *MeterQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (mq *MeterQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, mq.ctx, ent.OpQueryExist)
-	switch _, err := mq.FirstID(ctx); {
+func (_q *MeterQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -232,8 +232,8 @@ func (mq *MeterQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (mq *MeterQuery) ExistX(ctx context.Context) bool {
-	exist, err := mq.Exist(ctx)
+func (_q *MeterQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -242,19 +242,19 @@ func (mq *MeterQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the MeterQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (mq *MeterQuery) Clone() *MeterQuery {
-	if mq == nil {
+func (_q *MeterQuery) Clone() *MeterQuery {
+	if _q == nil {
 		return nil
 	}
 	return &MeterQuery{
-		config:     mq.config,
-		ctx:        mq.ctx.Clone(),
-		order:      append([]dbmeter.OrderOption{}, mq.order...),
-		inters:     append([]Interceptor{}, mq.inters...),
-		predicates: append([]predicate.Meter{}, mq.predicates...),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]dbmeter.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.Meter{}, _q.predicates...),
 		// clone intermediate query.
-		sql:  mq.sql.Clone(),
-		path: mq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
@@ -272,10 +272,10 @@ func (mq *MeterQuery) Clone() *MeterQuery {
 //		GroupBy(dbmeter.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (mq *MeterQuery) GroupBy(field string, fields ...string) *MeterGroupBy {
-	mq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &MeterGroupBy{build: mq}
-	grbuild.flds = &mq.ctx.Fields
+func (_q *MeterQuery) GroupBy(field string, fields ...string) *MeterGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &MeterGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = dbmeter.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -293,65 +293,65 @@ func (mq *MeterQuery) GroupBy(field string, fields ...string) *MeterGroupBy {
 //	client.Meter.Query().
 //		Select(dbmeter.FieldNamespace).
 //		Scan(ctx, &v)
-func (mq *MeterQuery) Select(fields ...string) *MeterSelect {
-	mq.ctx.Fields = append(mq.ctx.Fields, fields...)
-	sbuild := &MeterSelect{MeterQuery: mq}
+func (_q *MeterQuery) Select(fields ...string) *MeterSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &MeterSelect{MeterQuery: _q}
 	sbuild.label = dbmeter.Label
-	sbuild.flds, sbuild.scan = &mq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a MeterSelect configured with the given aggregations.
-func (mq *MeterQuery) Aggregate(fns ...AggregateFunc) *MeterSelect {
-	return mq.Select().Aggregate(fns...)
+func (_q *MeterQuery) Aggregate(fns ...AggregateFunc) *MeterSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (mq *MeterQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range mq.inters {
+func (_q *MeterQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, mq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range mq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !dbmeter.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if mq.path != nil {
-		prev, err := mq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		mq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (mq *MeterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Meter, error) {
+func (_q *MeterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Meter, error) {
 	var (
 		nodes = []*Meter{}
-		_spec = mq.querySpec()
+		_spec = _q.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Meter).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Meter{config: mq.config}
+		node := &Meter{config: _q.config}
 		nodes = append(nodes, node)
 		return node.assignValues(columns, values)
 	}
-	if len(mq.modifiers) > 0 {
-		_spec.Modifiers = mq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, mq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
@@ -360,27 +360,27 @@ func (mq *MeterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Meter,
 	return nodes, nil
 }
 
-func (mq *MeterQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := mq.querySpec()
-	if len(mq.modifiers) > 0 {
-		_spec.Modifiers = mq.modifiers
+func (_q *MeterQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = mq.ctx.Fields
-	if len(mq.ctx.Fields) > 0 {
-		_spec.Unique = mq.ctx.Unique != nil && *mq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, mq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (mq *MeterQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *MeterQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(dbmeter.Table, dbmeter.Columns, sqlgraph.NewFieldSpec(dbmeter.FieldID, field.TypeString))
-	_spec.From = mq.sql
-	if unique := mq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if mq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := mq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, dbmeter.FieldID)
 		for i := range fields {
@@ -389,20 +389,20 @@ func (mq *MeterQuery) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 	}
-	if ps := mq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := mq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := mq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := mq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -412,36 +412,36 @@ func (mq *MeterQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (mq *MeterQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(mq.driver.Dialect())
+func (_q *MeterQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(dbmeter.Table)
-	columns := mq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = dbmeter.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if mq.sql != nil {
-		selector = mq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if mq.ctx.Unique != nil && *mq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range mq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range mq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range mq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := mq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := mq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -450,27 +450,27 @@ func (mq *MeterQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (mq *MeterQuery) ForUpdate(opts ...sql.LockOption) *MeterQuery {
-	if mq.driver.Dialect() == dialect.Postgres {
-		mq.Unique(false)
+func (_q *MeterQuery) ForUpdate(opts ...sql.LockOption) *MeterQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	mq.modifiers = append(mq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return mq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (mq *MeterQuery) ForShare(opts ...sql.LockOption) *MeterQuery {
-	if mq.driver.Dialect() == dialect.Postgres {
-		mq.Unique(false)
+func (_q *MeterQuery) ForShare(opts ...sql.LockOption) *MeterQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	mq.modifiers = append(mq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return mq
+	return _q
 }
 
 // MeterGroupBy is the group-by builder for Meter entities.

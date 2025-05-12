@@ -101,7 +101,7 @@ func (*PlanPhase) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the PlanPhase fields.
-func (pp *PlanPhase) assignValues(columns []string, values []any) error {
+func (_m *PlanPhase) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -111,19 +111,19 @@ func (pp *PlanPhase) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				pp.ID = value.String
+				_m.ID = value.String
 			}
 		case planphase.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				pp.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case planphase.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &pp.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -131,61 +131,61 @@ func (pp *PlanPhase) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				pp.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case planphase.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				pp.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case planphase.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				pp.DeletedAt = new(time.Time)
-				*pp.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case planphase.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				pp.Name = value.String
+				_m.Name = value.String
 			}
 		case planphase.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				pp.Description = new(string)
-				*pp.Description = value.String
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case planphase.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
-				pp.Key = value.String
+				_m.Key = value.String
 			}
 		case planphase.FieldPlanID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field plan_id", values[i])
 			} else if value.Valid {
-				pp.PlanID = value.String
+				_m.PlanID = value.String
 			}
 		case planphase.FieldIndex:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field index", values[i])
 			} else if value.Valid {
-				pp.Index = uint8(value.Int64)
+				_m.Index = uint8(value.Int64)
 			}
 		case planphase.FieldDuration:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field duration", values[i])
 			} else if value.Valid {
-				pp.Duration = new(isodate.String)
-				*pp.Duration = isodate.String(value.String)
+				_m.Duration = new(isodate.String)
+				*_m.Duration = isodate.String(value.String)
 			}
 		default:
-			pp.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -193,78 +193,78 @@ func (pp *PlanPhase) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the PlanPhase.
 // This includes values selected through modifiers, order, etc.
-func (pp *PlanPhase) Value(name string) (ent.Value, error) {
-	return pp.selectValues.Get(name)
+func (_m *PlanPhase) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryPlan queries the "plan" edge of the PlanPhase entity.
-func (pp *PlanPhase) QueryPlan() *PlanQuery {
-	return NewPlanPhaseClient(pp.config).QueryPlan(pp)
+func (_m *PlanPhase) QueryPlan() *PlanQuery {
+	return NewPlanPhaseClient(_m.config).QueryPlan(_m)
 }
 
 // QueryRatecards queries the "ratecards" edge of the PlanPhase entity.
-func (pp *PlanPhase) QueryRatecards() *PlanRateCardQuery {
-	return NewPlanPhaseClient(pp.config).QueryRatecards(pp)
+func (_m *PlanPhase) QueryRatecards() *PlanRateCardQuery {
+	return NewPlanPhaseClient(_m.config).QueryRatecards(_m)
 }
 
 // Update returns a builder for updating this PlanPhase.
 // Note that you need to call PlanPhase.Unwrap() before calling this method if this PlanPhase
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (pp *PlanPhase) Update() *PlanPhaseUpdateOne {
-	return NewPlanPhaseClient(pp.config).UpdateOne(pp)
+func (_m *PlanPhase) Update() *PlanPhaseUpdateOne {
+	return NewPlanPhaseClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the PlanPhase entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (pp *PlanPhase) Unwrap() *PlanPhase {
-	_tx, ok := pp.config.driver.(*txDriver)
+func (_m *PlanPhase) Unwrap() *PlanPhase {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: PlanPhase is not a transactional entity")
 	}
-	pp.config.driver = _tx.drv
-	return pp
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (pp *PlanPhase) String() string {
+func (_m *PlanPhase) String() string {
 	var builder strings.Builder
 	builder.WriteString("PlanPhase(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", pp.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(pp.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", pp.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(pp.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(pp.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := pp.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
-	builder.WriteString(pp.Name)
+	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
-	if v := pp.Description; v != nil {
+	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("key=")
-	builder.WriteString(pp.Key)
+	builder.WriteString(_m.Key)
 	builder.WriteString(", ")
 	builder.WriteString("plan_id=")
-	builder.WriteString(pp.PlanID)
+	builder.WriteString(_m.PlanID)
 	builder.WriteString(", ")
 	builder.WriteString("index=")
-	builder.WriteString(fmt.Sprintf("%v", pp.Index))
+	builder.WriteString(fmt.Sprintf("%v", _m.Index))
 	builder.WriteString(", ")
-	if v := pp.Duration; v != nil {
+	if v := _m.Duration; v != nil {
 		builder.WriteString("duration=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}

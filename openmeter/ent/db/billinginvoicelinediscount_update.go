@@ -26,262 +26,262 @@ type BillingInvoiceLineDiscountUpdate struct {
 }
 
 // Where appends a list predicates to the BillingInvoiceLineDiscountUpdate builder.
-func (bildu *BillingInvoiceLineDiscountUpdate) Where(ps ...predicate.BillingInvoiceLineDiscount) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.Where(ps...)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) Where(ps ...predicate.BillingInvoiceLineDiscount) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetUpdatedAt(t time.Time) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetUpdatedAt(t)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetUpdatedAt(v time.Time) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetDeletedAt(t time.Time) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetDeletedAt(t)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetDeletedAt(v time.Time) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableDeletedAt(t *time.Time) *BillingInvoiceLineDiscountUpdate {
-	if t != nil {
-		bildu.SetDeletedAt(*t)
+func (_u *BillingInvoiceLineDiscountUpdate) SetNillableDeletedAt(v *time.Time) *BillingInvoiceLineDiscountUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return bildu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) ClearDeletedAt() *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.ClearDeletedAt()
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) ClearDeletedAt() *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetLineID sets the "line_id" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetLineID(s string) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetLineID(s)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetLineID(v string) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetLineID(v)
+	return _u
 }
 
 // SetNillableLineID sets the "line_id" field if the given value is not nil.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableLineID(s *string) *BillingInvoiceLineDiscountUpdate {
-	if s != nil {
-		bildu.SetLineID(*s)
+func (_u *BillingInvoiceLineDiscountUpdate) SetNillableLineID(v *string) *BillingInvoiceLineDiscountUpdate {
+	if v != nil {
+		_u.SetLineID(*v)
 	}
-	return bildu
+	return _u
 }
 
 // SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetChildUniqueReferenceID(s string) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetChildUniqueReferenceID(s)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetChildUniqueReferenceID(v string) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetChildUniqueReferenceID(v)
+	return _u
 }
 
 // SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineDiscountUpdate {
-	if s != nil {
-		bildu.SetChildUniqueReferenceID(*s)
+func (_u *BillingInvoiceLineDiscountUpdate) SetNillableChildUniqueReferenceID(v *string) *BillingInvoiceLineDiscountUpdate {
+	if v != nil {
+		_u.SetChildUniqueReferenceID(*v)
 	}
-	return bildu
+	return _u
 }
 
 // ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) ClearChildUniqueReferenceID() *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.ClearChildUniqueReferenceID()
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) ClearChildUniqueReferenceID() *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.ClearChildUniqueReferenceID()
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetDescription(s string) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetDescription(s)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetDescription(v string) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableDescription(s *string) *BillingInvoiceLineDiscountUpdate {
-	if s != nil {
-		bildu.SetDescription(*s)
+func (_u *BillingInvoiceLineDiscountUpdate) SetNillableDescription(v *string) *BillingInvoiceLineDiscountUpdate {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return bildu
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) ClearDescription() *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.ClearDescription()
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) ClearDescription() *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetReason sets the "reason" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetReason(brt billing.DiscountReasonType) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetReason(brt)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetReason(v billing.DiscountReasonType) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetReason(v)
+	return _u
 }
 
 // SetNillableReason sets the "reason" field if the given value is not nil.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableReason(brt *billing.DiscountReasonType) *BillingInvoiceLineDiscountUpdate {
-	if brt != nil {
-		bildu.SetReason(*brt)
+func (_u *BillingInvoiceLineDiscountUpdate) SetNillableReason(v *billing.DiscountReasonType) *BillingInvoiceLineDiscountUpdate {
+	if v != nil {
+		_u.SetReason(*v)
 	}
-	return bildu
+	return _u
 }
 
 // SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetInvoicingAppExternalID(s string) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetInvoicingAppExternalID(s)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetInvoicingAppExternalID(v string) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetInvoicingAppExternalID(v)
+	return _u
 }
 
 // SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineDiscountUpdate {
-	if s != nil {
-		bildu.SetInvoicingAppExternalID(*s)
+func (_u *BillingInvoiceLineDiscountUpdate) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceLineDiscountUpdate {
+	if v != nil {
+		_u.SetInvoicingAppExternalID(*v)
 	}
-	return bildu
+	return _u
 }
 
 // ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) ClearInvoicingAppExternalID() *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.ClearInvoicingAppExternalID()
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) ClearInvoicingAppExternalID() *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.ClearInvoicingAppExternalID()
+	return _u
 }
 
 // SetAmount sets the "amount" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetAmount(a)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetAmount(v)
+	return _u
 }
 
 // SetNillableAmount sets the "amount" field if the given value is not nil.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableAmount(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	if a != nil {
-		bildu.SetAmount(*a)
+func (_u *BillingInvoiceLineDiscountUpdate) SetNillableAmount(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
+	if v != nil {
+		_u.SetAmount(*v)
 	}
-	return bildu
+	return _u
 }
 
 // SetRoundingAmount sets the "rounding_amount" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetRoundingAmount(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetRoundingAmount(a)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetRoundingAmount(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetRoundingAmount(v)
+	return _u
 }
 
 // SetNillableRoundingAmount sets the "rounding_amount" field if the given value is not nil.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableRoundingAmount(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	if a != nil {
-		bildu.SetRoundingAmount(*a)
+func (_u *BillingInvoiceLineDiscountUpdate) SetNillableRoundingAmount(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
+	if v != nil {
+		_u.SetRoundingAmount(*v)
 	}
-	return bildu
+	return _u
 }
 
 // ClearRoundingAmount clears the value of the "rounding_amount" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) ClearRoundingAmount() *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.ClearRoundingAmount()
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) ClearRoundingAmount() *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.ClearRoundingAmount()
+	return _u
 }
 
 // SetSourceDiscount sets the "source_discount" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetSourceDiscount(br *billing.DiscountReason) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetSourceDiscount(br)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetSourceDiscount(v *billing.DiscountReason) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetSourceDiscount(v)
+	return _u
 }
 
 // ClearSourceDiscount clears the value of the "source_discount" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) ClearSourceDiscount() *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.ClearSourceDiscount()
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) ClearSourceDiscount() *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.ClearSourceDiscount()
+	return _u
 }
 
 // SetType sets the "type" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetType(s string) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetType(s)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetType(v string) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetType(v)
+	return _u
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableType(s *string) *BillingInvoiceLineDiscountUpdate {
-	if s != nil {
-		bildu.SetType(*s)
+func (_u *BillingInvoiceLineDiscountUpdate) SetNillableType(v *string) *BillingInvoiceLineDiscountUpdate {
+	if v != nil {
+		_u.SetType(*v)
 	}
-	return bildu
+	return _u
 }
 
 // ClearType clears the value of the "type" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) ClearType() *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.ClearType()
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) ClearType() *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.ClearType()
+	return _u
 }
 
 // SetQuantity sets the "quantity" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetQuantity(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetQuantity(a)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetQuantity(v)
+	return _u
 }
 
 // SetNillableQuantity sets the "quantity" field if the given value is not nil.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableQuantity(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	if a != nil {
-		bildu.SetQuantity(*a)
+func (_u *BillingInvoiceLineDiscountUpdate) SetNillableQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
+	if v != nil {
+		_u.SetQuantity(*v)
 	}
-	return bildu
+	return _u
 }
 
 // ClearQuantity clears the value of the "quantity" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) ClearQuantity() *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.ClearQuantity()
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) ClearQuantity() *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.ClearQuantity()
+	return _u
 }
 
 // SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetPreLinePeriodQuantity(a)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetPreLinePeriodQuantity(v)
+	return _u
 }
 
 // SetNillablePreLinePeriodQuantity sets the "pre_line_period_quantity" field if the given value is not nil.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetNillablePreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	if a != nil {
-		bildu.SetPreLinePeriodQuantity(*a)
+func (_u *BillingInvoiceLineDiscountUpdate) SetNillablePreLinePeriodQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
+	if v != nil {
+		_u.SetPreLinePeriodQuantity(*v)
 	}
-	return bildu
+	return _u
 }
 
 // ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
-func (bildu *BillingInvoiceLineDiscountUpdate) ClearPreLinePeriodQuantity() *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.ClearPreLinePeriodQuantity()
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) ClearPreLinePeriodQuantity() *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.ClearPreLinePeriodQuantity()
+	return _u
 }
 
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetBillingInvoiceLineID(id string) *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.SetBillingInvoiceLineID(id)
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) SetBillingInvoiceLineID(id string) *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.SetBillingInvoiceLineID(id)
+	return _u
 }
 
 // SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
-func (bildu *BillingInvoiceLineDiscountUpdate) SetBillingInvoiceLine(b *BillingInvoiceLine) *BillingInvoiceLineDiscountUpdate {
-	return bildu.SetBillingInvoiceLineID(b.ID)
+func (_u *BillingInvoiceLineDiscountUpdate) SetBillingInvoiceLine(v *BillingInvoiceLine) *BillingInvoiceLineDiscountUpdate {
+	return _u.SetBillingInvoiceLineID(v.ID)
 }
 
 // Mutation returns the BillingInvoiceLineDiscountMutation object of the builder.
-func (bildu *BillingInvoiceLineDiscountUpdate) Mutation() *BillingInvoiceLineDiscountMutation {
-	return bildu.mutation
+func (_u *BillingInvoiceLineDiscountUpdate) Mutation() *BillingInvoiceLineDiscountMutation {
+	return _u.mutation
 }
 
 // ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
-func (bildu *BillingInvoiceLineDiscountUpdate) ClearBillingInvoiceLine() *BillingInvoiceLineDiscountUpdate {
-	bildu.mutation.ClearBillingInvoiceLine()
-	return bildu
+func (_u *BillingInvoiceLineDiscountUpdate) ClearBillingInvoiceLine() *BillingInvoiceLineDiscountUpdate {
+	_u.mutation.ClearBillingInvoiceLine()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (bildu *BillingInvoiceLineDiscountUpdate) Save(ctx context.Context) (int, error) {
-	bildu.defaults()
-	return withHooks(ctx, bildu.sqlSave, bildu.mutation, bildu.hooks)
+func (_u *BillingInvoiceLineDiscountUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bildu *BillingInvoiceLineDiscountUpdate) SaveX(ctx context.Context) int {
-	affected, err := bildu.Save(ctx)
+func (_u *BillingInvoiceLineDiscountUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -289,124 +289,124 @@ func (bildu *BillingInvoiceLineDiscountUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (bildu *BillingInvoiceLineDiscountUpdate) Exec(ctx context.Context) error {
-	_, err := bildu.Save(ctx)
+func (_u *BillingInvoiceLineDiscountUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bildu *BillingInvoiceLineDiscountUpdate) ExecX(ctx context.Context) {
-	if err := bildu.Exec(ctx); err != nil {
+func (_u *BillingInvoiceLineDiscountUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bildu *BillingInvoiceLineDiscountUpdate) defaults() {
-	if _, ok := bildu.mutation.UpdatedAt(); !ok {
+func (_u *BillingInvoiceLineDiscountUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := billinginvoicelinediscount.UpdateDefaultUpdatedAt()
-		bildu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bildu *BillingInvoiceLineDiscountUpdate) check() error {
-	if v, ok := bildu.mutation.Reason(); ok {
+func (_u *BillingInvoiceLineDiscountUpdate) check() error {
+	if v, ok := _u.mutation.Reason(); ok {
 		if err := billinginvoicelinediscount.ReasonValidator(v); err != nil {
 			return &ValidationError{Name: "reason", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.reason": %w`, err)}
 		}
 	}
-	if v, ok := bildu.mutation.SourceDiscount(); ok {
+	if v, ok := _u.mutation.SourceDiscount(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "source_discount", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.source_discount": %w`, err)}
 		}
 	}
-	if bildu.mutation.BillingInvoiceLineCleared() && len(bildu.mutation.BillingInvoiceLineIDs()) > 0 {
+	if _u.mutation.BillingInvoiceLineCleared() && len(_u.mutation.BillingInvoiceLineIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceLineDiscount.billing_invoice_line"`)
 	}
 	return nil
 }
 
-func (bildu *BillingInvoiceLineDiscountUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := bildu.check(); err != nil {
-		return n, err
+func (_u *BillingInvoiceLineDiscountUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoicelinediscount.Table, billinginvoicelinediscount.Columns, sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString))
-	if ps := bildu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := bildu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := bildu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldDeletedAt, field.TypeTime, value)
 	}
-	if bildu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bildu.mutation.ChildUniqueReferenceID(); ok {
+	if value, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString, value)
 	}
-	if bildu.mutation.ChildUniqueReferenceIDCleared() {
+	if _u.mutation.ChildUniqueReferenceIDCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString)
 	}
-	if value, ok := bildu.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldDescription, field.TypeString, value)
 	}
-	if bildu.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldDescription, field.TypeString)
 	}
-	if value, ok := bildu.mutation.Reason(); ok {
+	if value, ok := _u.mutation.Reason(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldReason, field.TypeEnum, value)
 	}
-	if value, ok := bildu.mutation.InvoicingAppExternalID(); ok {
+	if value, ok := _u.mutation.InvoicingAppExternalID(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldInvoicingAppExternalID, field.TypeString, value)
 	}
-	if bildu.mutation.InvoicingAppExternalIDCleared() {
+	if _u.mutation.InvoicingAppExternalIDCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldInvoicingAppExternalID, field.TypeString)
 	}
-	if value, ok := bildu.mutation.Amount(); ok {
+	if value, ok := _u.mutation.Amount(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldAmount, field.TypeOther, value)
 	}
-	if value, ok := bildu.mutation.RoundingAmount(); ok {
+	if value, ok := _u.mutation.RoundingAmount(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldRoundingAmount, field.TypeOther, value)
 	}
-	if bildu.mutation.RoundingAmountCleared() {
+	if _u.mutation.RoundingAmountCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldRoundingAmount, field.TypeOther)
 	}
-	if value, ok := bildu.mutation.SourceDiscount(); ok {
+	if value, ok := _u.mutation.SourceDiscount(); ok {
 		vv, err := billinginvoicelinediscount.ValueScanner.SourceDiscount.Value(value)
 		if err != nil {
 			return 0, err
 		}
 		_spec.SetField(billinginvoicelinediscount.FieldSourceDiscount, field.TypeString, vv)
 	}
-	if bildu.mutation.SourceDiscountCleared() {
+	if _u.mutation.SourceDiscountCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldSourceDiscount, field.TypeString)
 	}
-	if value, ok := bildu.mutation.GetType(); ok {
+	if value, ok := _u.mutation.GetType(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldType, field.TypeString, value)
 	}
-	if bildu.mutation.TypeCleared() {
+	if _u.mutation.TypeCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldType, field.TypeString)
 	}
-	if value, ok := bildu.mutation.Quantity(); ok {
+	if value, ok := _u.mutation.Quantity(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldQuantity, field.TypeOther, value)
 	}
-	if bildu.mutation.QuantityCleared() {
+	if _u.mutation.QuantityCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldQuantity, field.TypeOther)
 	}
-	if value, ok := bildu.mutation.PreLinePeriodQuantity(); ok {
+	if value, ok := _u.mutation.PreLinePeriodQuantity(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldPreLinePeriodQuantity, field.TypeOther, value)
 	}
-	if bildu.mutation.PreLinePeriodQuantityCleared() {
+	if _u.mutation.PreLinePeriodQuantityCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldPreLinePeriodQuantity, field.TypeOther)
 	}
-	if bildu.mutation.BillingInvoiceLineCleared() {
+	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -419,7 +419,7 @@ func (bildu *BillingInvoiceLineDiscountUpdate) sqlSave(ctx context.Context) (n i
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bildu.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -435,7 +435,7 @@ func (bildu *BillingInvoiceLineDiscountUpdate) sqlSave(ctx context.Context) (n i
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, bildu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billinginvoicelinediscount.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -443,8 +443,8 @@ func (bildu *BillingInvoiceLineDiscountUpdate) sqlSave(ctx context.Context) (n i
 		}
 		return 0, err
 	}
-	bildu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // BillingInvoiceLineDiscountUpdateOne is the builder for updating a single BillingInvoiceLineDiscount entity.
@@ -456,269 +456,269 @@ type BillingInvoiceLineDiscountUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetUpdatedAt(t time.Time) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetUpdatedAt(t)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetUpdatedAt(v time.Time) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetDeletedAt(t time.Time) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetDeletedAt(t)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetDeletedAt(v time.Time) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableDeletedAt(t *time.Time) *BillingInvoiceLineDiscountUpdateOne {
-	if t != nil {
-		bilduo.SetDeletedAt(*t)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillableDeletedAt(v *time.Time) *BillingInvoiceLineDiscountUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return bilduo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearDeletedAt() *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.ClearDeletedAt()
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) ClearDeletedAt() *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetLineID sets the "line_id" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetLineID(s string) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetLineID(s)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetLineID(v string) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetLineID(v)
+	return _u
 }
 
 // SetNillableLineID sets the "line_id" field if the given value is not nil.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableLineID(s *string) *BillingInvoiceLineDiscountUpdateOne {
-	if s != nil {
-		bilduo.SetLineID(*s)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillableLineID(v *string) *BillingInvoiceLineDiscountUpdateOne {
+	if v != nil {
+		_u.SetLineID(*v)
 	}
-	return bilduo
+	return _u
 }
 
 // SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetChildUniqueReferenceID(s string) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetChildUniqueReferenceID(s)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetChildUniqueReferenceID(v string) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetChildUniqueReferenceID(v)
+	return _u
 }
 
 // SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableChildUniqueReferenceID(s *string) *BillingInvoiceLineDiscountUpdateOne {
-	if s != nil {
-		bilduo.SetChildUniqueReferenceID(*s)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillableChildUniqueReferenceID(v *string) *BillingInvoiceLineDiscountUpdateOne {
+	if v != nil {
+		_u.SetChildUniqueReferenceID(*v)
 	}
-	return bilduo
+	return _u
 }
 
 // ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearChildUniqueReferenceID() *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.ClearChildUniqueReferenceID()
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) ClearChildUniqueReferenceID() *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.ClearChildUniqueReferenceID()
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetDescription(s string) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetDescription(s)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetDescription(v string) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableDescription(s *string) *BillingInvoiceLineDiscountUpdateOne {
-	if s != nil {
-		bilduo.SetDescription(*s)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillableDescription(v *string) *BillingInvoiceLineDiscountUpdateOne {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return bilduo
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearDescription() *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.ClearDescription()
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) ClearDescription() *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetReason sets the "reason" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetReason(brt billing.DiscountReasonType) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetReason(brt)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetReason(v billing.DiscountReasonType) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetReason(v)
+	return _u
 }
 
 // SetNillableReason sets the "reason" field if the given value is not nil.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableReason(brt *billing.DiscountReasonType) *BillingInvoiceLineDiscountUpdateOne {
-	if brt != nil {
-		bilduo.SetReason(*brt)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillableReason(v *billing.DiscountReasonType) *BillingInvoiceLineDiscountUpdateOne {
+	if v != nil {
+		_u.SetReason(*v)
 	}
-	return bilduo
+	return _u
 }
 
 // SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetInvoicingAppExternalID(s string) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetInvoicingAppExternalID(s)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetInvoicingAppExternalID(v string) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetInvoicingAppExternalID(v)
+	return _u
 }
 
 // SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineDiscountUpdateOne {
-	if s != nil {
-		bilduo.SetInvoicingAppExternalID(*s)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceLineDiscountUpdateOne {
+	if v != nil {
+		_u.SetInvoicingAppExternalID(*v)
 	}
-	return bilduo
+	return _u
 }
 
 // ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearInvoicingAppExternalID() *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.ClearInvoicingAppExternalID()
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) ClearInvoicingAppExternalID() *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.ClearInvoicingAppExternalID()
+	return _u
 }
 
 // SetAmount sets the "amount" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetAmount(a)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetAmount(v)
+	return _u
 }
 
 // SetNillableAmount sets the "amount" field if the given value is not nil.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableAmount(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	if a != nil {
-		bilduo.SetAmount(*a)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillableAmount(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
+	if v != nil {
+		_u.SetAmount(*v)
 	}
-	return bilduo
+	return _u
 }
 
 // SetRoundingAmount sets the "rounding_amount" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetRoundingAmount(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetRoundingAmount(a)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetRoundingAmount(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetRoundingAmount(v)
+	return _u
 }
 
 // SetNillableRoundingAmount sets the "rounding_amount" field if the given value is not nil.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableRoundingAmount(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	if a != nil {
-		bilduo.SetRoundingAmount(*a)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillableRoundingAmount(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
+	if v != nil {
+		_u.SetRoundingAmount(*v)
 	}
-	return bilduo
+	return _u
 }
 
 // ClearRoundingAmount clears the value of the "rounding_amount" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearRoundingAmount() *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.ClearRoundingAmount()
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) ClearRoundingAmount() *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.ClearRoundingAmount()
+	return _u
 }
 
 // SetSourceDiscount sets the "source_discount" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetSourceDiscount(br *billing.DiscountReason) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetSourceDiscount(br)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetSourceDiscount(v *billing.DiscountReason) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetSourceDiscount(v)
+	return _u
 }
 
 // ClearSourceDiscount clears the value of the "source_discount" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearSourceDiscount() *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.ClearSourceDiscount()
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) ClearSourceDiscount() *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.ClearSourceDiscount()
+	return _u
 }
 
 // SetType sets the "type" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetType(s string) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetType(s)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetType(v string) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetType(v)
+	return _u
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableType(s *string) *BillingInvoiceLineDiscountUpdateOne {
-	if s != nil {
-		bilduo.SetType(*s)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillableType(v *string) *BillingInvoiceLineDiscountUpdateOne {
+	if v != nil {
+		_u.SetType(*v)
 	}
-	return bilduo
+	return _u
 }
 
 // ClearType clears the value of the "type" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearType() *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.ClearType()
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) ClearType() *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.ClearType()
+	return _u
 }
 
 // SetQuantity sets the "quantity" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetQuantity(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetQuantity(a)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetQuantity(v)
+	return _u
 }
 
 // SetNillableQuantity sets the "quantity" field if the given value is not nil.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableQuantity(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	if a != nil {
-		bilduo.SetQuantity(*a)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillableQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
+	if v != nil {
+		_u.SetQuantity(*v)
 	}
-	return bilduo
+	return _u
 }
 
 // ClearQuantity clears the value of the "quantity" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearQuantity() *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.ClearQuantity()
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) ClearQuantity() *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.ClearQuantity()
+	return _u
 }
 
 // SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetPreLinePeriodQuantity(a alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetPreLinePeriodQuantity(a)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetPreLinePeriodQuantity(v)
+	return _u
 }
 
 // SetNillablePreLinePeriodQuantity sets the "pre_line_period_quantity" field if the given value is not nil.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillablePreLinePeriodQuantity(a *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	if a != nil {
-		bilduo.SetPreLinePeriodQuantity(*a)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillablePreLinePeriodQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
+	if v != nil {
+		_u.SetPreLinePeriodQuantity(*v)
 	}
-	return bilduo
+	return _u
 }
 
 // ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearPreLinePeriodQuantity() *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.ClearPreLinePeriodQuantity()
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) ClearPreLinePeriodQuantity() *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.ClearPreLinePeriodQuantity()
+	return _u
 }
 
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetBillingInvoiceLineID(id string) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.SetBillingInvoiceLineID(id)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetBillingInvoiceLineID(id string) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.SetBillingInvoiceLineID(id)
+	return _u
 }
 
 // SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetBillingInvoiceLine(b *BillingInvoiceLine) *BillingInvoiceLineDiscountUpdateOne {
-	return bilduo.SetBillingInvoiceLineID(b.ID)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SetBillingInvoiceLine(v *BillingInvoiceLine) *BillingInvoiceLineDiscountUpdateOne {
+	return _u.SetBillingInvoiceLineID(v.ID)
 }
 
 // Mutation returns the BillingInvoiceLineDiscountMutation object of the builder.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) Mutation() *BillingInvoiceLineDiscountMutation {
-	return bilduo.mutation
+func (_u *BillingInvoiceLineDiscountUpdateOne) Mutation() *BillingInvoiceLineDiscountMutation {
+	return _u.mutation
 }
 
 // ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearBillingInvoiceLine() *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.ClearBillingInvoiceLine()
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) ClearBillingInvoiceLine() *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.ClearBillingInvoiceLine()
+	return _u
 }
 
 // Where appends a list predicates to the BillingInvoiceLineDiscountUpdate builder.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) Where(ps ...predicate.BillingInvoiceLineDiscount) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.mutation.Where(ps...)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) Where(ps ...predicate.BillingInvoiceLineDiscount) *BillingInvoiceLineDiscountUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) Select(field string, fields ...string) *BillingInvoiceLineDiscountUpdateOne {
-	bilduo.fields = append([]string{field}, fields...)
-	return bilduo
+func (_u *BillingInvoiceLineDiscountUpdateOne) Select(field string, fields ...string) *BillingInvoiceLineDiscountUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated BillingInvoiceLineDiscount entity.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) Save(ctx context.Context) (*BillingInvoiceLineDiscount, error) {
-	bilduo.defaults()
-	return withHooks(ctx, bilduo.sqlSave, bilduo.mutation, bilduo.hooks)
+func (_u *BillingInvoiceLineDiscountUpdateOne) Save(ctx context.Context) (*BillingInvoiceLineDiscount, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) SaveX(ctx context.Context) *BillingInvoiceLineDiscount {
-	node, err := bilduo.Save(ctx)
+func (_u *BillingInvoiceLineDiscountUpdateOne) SaveX(ctx context.Context) *BillingInvoiceLineDiscount {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -726,55 +726,55 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) SaveX(ctx context.Context) *B
 }
 
 // Exec executes the query on the entity.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) Exec(ctx context.Context) error {
-	_, err := bilduo.Save(ctx)
+func (_u *BillingInvoiceLineDiscountUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) ExecX(ctx context.Context) {
-	if err := bilduo.Exec(ctx); err != nil {
+func (_u *BillingInvoiceLineDiscountUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) defaults() {
-	if _, ok := bilduo.mutation.UpdatedAt(); !ok {
+func (_u *BillingInvoiceLineDiscountUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := billinginvoicelinediscount.UpdateDefaultUpdatedAt()
-		bilduo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) check() error {
-	if v, ok := bilduo.mutation.Reason(); ok {
+func (_u *BillingInvoiceLineDiscountUpdateOne) check() error {
+	if v, ok := _u.mutation.Reason(); ok {
 		if err := billinginvoicelinediscount.ReasonValidator(v); err != nil {
 			return &ValidationError{Name: "reason", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.reason": %w`, err)}
 		}
 	}
-	if v, ok := bilduo.mutation.SourceDiscount(); ok {
+	if v, ok := _u.mutation.SourceDiscount(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "source_discount", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLineDiscount.source_discount": %w`, err)}
 		}
 	}
-	if bilduo.mutation.BillingInvoiceLineCleared() && len(bilduo.mutation.BillingInvoiceLineIDs()) > 0 {
+	if _u.mutation.BillingInvoiceLineCleared() && len(_u.mutation.BillingInvoiceLineIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceLineDiscount.billing_invoice_line"`)
 	}
 	return nil
 }
 
-func (bilduo *BillingInvoiceLineDiscountUpdateOne) sqlSave(ctx context.Context) (_node *BillingInvoiceLineDiscount, err error) {
-	if err := bilduo.check(); err != nil {
+func (_u *BillingInvoiceLineDiscountUpdateOne) sqlSave(ctx context.Context) (_node *BillingInvoiceLineDiscount, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoicelinediscount.Table, billinginvoicelinediscount.Columns, sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString))
-	id, ok := bilduo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "BillingInvoiceLineDiscount.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := bilduo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billinginvoicelinediscount.FieldID)
 		for _, f := range fields {
@@ -786,81 +786,81 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) sqlSave(ctx context.Context) 
 			}
 		}
 	}
-	if ps := bilduo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := bilduo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := bilduo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldDeletedAt, field.TypeTime, value)
 	}
-	if bilduo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bilduo.mutation.ChildUniqueReferenceID(); ok {
+	if value, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString, value)
 	}
-	if bilduo.mutation.ChildUniqueReferenceIDCleared() {
+	if _u.mutation.ChildUniqueReferenceIDCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldChildUniqueReferenceID, field.TypeString)
 	}
-	if value, ok := bilduo.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldDescription, field.TypeString, value)
 	}
-	if bilduo.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldDescription, field.TypeString)
 	}
-	if value, ok := bilduo.mutation.Reason(); ok {
+	if value, ok := _u.mutation.Reason(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldReason, field.TypeEnum, value)
 	}
-	if value, ok := bilduo.mutation.InvoicingAppExternalID(); ok {
+	if value, ok := _u.mutation.InvoicingAppExternalID(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldInvoicingAppExternalID, field.TypeString, value)
 	}
-	if bilduo.mutation.InvoicingAppExternalIDCleared() {
+	if _u.mutation.InvoicingAppExternalIDCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldInvoicingAppExternalID, field.TypeString)
 	}
-	if value, ok := bilduo.mutation.Amount(); ok {
+	if value, ok := _u.mutation.Amount(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldAmount, field.TypeOther, value)
 	}
-	if value, ok := bilduo.mutation.RoundingAmount(); ok {
+	if value, ok := _u.mutation.RoundingAmount(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldRoundingAmount, field.TypeOther, value)
 	}
-	if bilduo.mutation.RoundingAmountCleared() {
+	if _u.mutation.RoundingAmountCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldRoundingAmount, field.TypeOther)
 	}
-	if value, ok := bilduo.mutation.SourceDiscount(); ok {
+	if value, ok := _u.mutation.SourceDiscount(); ok {
 		vv, err := billinginvoicelinediscount.ValueScanner.SourceDiscount.Value(value)
 		if err != nil {
 			return nil, err
 		}
 		_spec.SetField(billinginvoicelinediscount.FieldSourceDiscount, field.TypeString, vv)
 	}
-	if bilduo.mutation.SourceDiscountCleared() {
+	if _u.mutation.SourceDiscountCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldSourceDiscount, field.TypeString)
 	}
-	if value, ok := bilduo.mutation.GetType(); ok {
+	if value, ok := _u.mutation.GetType(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldType, field.TypeString, value)
 	}
-	if bilduo.mutation.TypeCleared() {
+	if _u.mutation.TypeCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldType, field.TypeString)
 	}
-	if value, ok := bilduo.mutation.Quantity(); ok {
+	if value, ok := _u.mutation.Quantity(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldQuantity, field.TypeOther, value)
 	}
-	if bilduo.mutation.QuantityCleared() {
+	if _u.mutation.QuantityCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldQuantity, field.TypeOther)
 	}
-	if value, ok := bilduo.mutation.PreLinePeriodQuantity(); ok {
+	if value, ok := _u.mutation.PreLinePeriodQuantity(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldPreLinePeriodQuantity, field.TypeOther, value)
 	}
-	if bilduo.mutation.PreLinePeriodQuantityCleared() {
+	if _u.mutation.PreLinePeriodQuantityCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldPreLinePeriodQuantity, field.TypeOther)
 	}
-	if bilduo.mutation.BillingInvoiceLineCleared() {
+	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -873,7 +873,7 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) sqlSave(ctx context.Context) 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bilduo.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -889,10 +889,10 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) sqlSave(ctx context.Context) 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &BillingInvoiceLineDiscount{config: bilduo.config}
+	_node = &BillingInvoiceLineDiscount{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, bilduo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billinginvoicelinediscount.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -900,6 +900,6 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) sqlSave(ctx context.Context) 
 		}
 		return nil, err
 	}
-	bilduo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

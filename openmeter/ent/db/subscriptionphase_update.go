@@ -25,169 +25,169 @@ type SubscriptionPhaseUpdate struct {
 }
 
 // Where appends a list predicates to the SubscriptionPhaseUpdate builder.
-func (spu *SubscriptionPhaseUpdate) Where(ps ...predicate.SubscriptionPhase) *SubscriptionPhaseUpdate {
-	spu.mutation.Where(ps...)
-	return spu
+func (_u *SubscriptionPhaseUpdate) Where(ps ...predicate.SubscriptionPhase) *SubscriptionPhaseUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (spu *SubscriptionPhaseUpdate) SetUpdatedAt(t time.Time) *SubscriptionPhaseUpdate {
-	spu.mutation.SetUpdatedAt(t)
-	return spu
+func (_u *SubscriptionPhaseUpdate) SetUpdatedAt(v time.Time) *SubscriptionPhaseUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (spu *SubscriptionPhaseUpdate) SetDeletedAt(t time.Time) *SubscriptionPhaseUpdate {
-	spu.mutation.SetDeletedAt(t)
-	return spu
+func (_u *SubscriptionPhaseUpdate) SetDeletedAt(v time.Time) *SubscriptionPhaseUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (spu *SubscriptionPhaseUpdate) SetNillableDeletedAt(t *time.Time) *SubscriptionPhaseUpdate {
-	if t != nil {
-		spu.SetDeletedAt(*t)
+func (_u *SubscriptionPhaseUpdate) SetNillableDeletedAt(v *time.Time) *SubscriptionPhaseUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return spu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (spu *SubscriptionPhaseUpdate) ClearDeletedAt() *SubscriptionPhaseUpdate {
-	spu.mutation.ClearDeletedAt()
-	return spu
+func (_u *SubscriptionPhaseUpdate) ClearDeletedAt() *SubscriptionPhaseUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (spu *SubscriptionPhaseUpdate) SetMetadata(m map[string]string) *SubscriptionPhaseUpdate {
-	spu.mutation.SetMetadata(m)
-	return spu
+func (_u *SubscriptionPhaseUpdate) SetMetadata(v map[string]string) *SubscriptionPhaseUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (spu *SubscriptionPhaseUpdate) ClearMetadata() *SubscriptionPhaseUpdate {
-	spu.mutation.ClearMetadata()
-	return spu
+func (_u *SubscriptionPhaseUpdate) ClearMetadata() *SubscriptionPhaseUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (spu *SubscriptionPhaseUpdate) SetName(s string) *SubscriptionPhaseUpdate {
-	spu.mutation.SetName(s)
-	return spu
+func (_u *SubscriptionPhaseUpdate) SetName(v string) *SubscriptionPhaseUpdate {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (spu *SubscriptionPhaseUpdate) SetNillableName(s *string) *SubscriptionPhaseUpdate {
-	if s != nil {
-		spu.SetName(*s)
+func (_u *SubscriptionPhaseUpdate) SetNillableName(v *string) *SubscriptionPhaseUpdate {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return spu
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (spu *SubscriptionPhaseUpdate) SetDescription(s string) *SubscriptionPhaseUpdate {
-	spu.mutation.SetDescription(s)
-	return spu
+func (_u *SubscriptionPhaseUpdate) SetDescription(v string) *SubscriptionPhaseUpdate {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (spu *SubscriptionPhaseUpdate) SetNillableDescription(s *string) *SubscriptionPhaseUpdate {
-	if s != nil {
-		spu.SetDescription(*s)
+func (_u *SubscriptionPhaseUpdate) SetNillableDescription(v *string) *SubscriptionPhaseUpdate {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return spu
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (spu *SubscriptionPhaseUpdate) ClearDescription() *SubscriptionPhaseUpdate {
-	spu.mutation.ClearDescription()
-	return spu
+func (_u *SubscriptionPhaseUpdate) ClearDescription() *SubscriptionPhaseUpdate {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // AddItemIDs adds the "items" edge to the SubscriptionItem entity by IDs.
-func (spu *SubscriptionPhaseUpdate) AddItemIDs(ids ...string) *SubscriptionPhaseUpdate {
-	spu.mutation.AddItemIDs(ids...)
-	return spu
+func (_u *SubscriptionPhaseUpdate) AddItemIDs(ids ...string) *SubscriptionPhaseUpdate {
+	_u.mutation.AddItemIDs(ids...)
+	return _u
 }
 
 // AddItems adds the "items" edges to the SubscriptionItem entity.
-func (spu *SubscriptionPhaseUpdate) AddItems(s ...*SubscriptionItem) *SubscriptionPhaseUpdate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_u *SubscriptionPhaseUpdate) AddItems(v ...*SubscriptionItem) *SubscriptionPhaseUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return spu.AddItemIDs(ids...)
+	return _u.AddItemIDs(ids...)
 }
 
 // AddBillingLineIDs adds the "billing_lines" edge to the BillingInvoiceLine entity by IDs.
-func (spu *SubscriptionPhaseUpdate) AddBillingLineIDs(ids ...string) *SubscriptionPhaseUpdate {
-	spu.mutation.AddBillingLineIDs(ids...)
-	return spu
+func (_u *SubscriptionPhaseUpdate) AddBillingLineIDs(ids ...string) *SubscriptionPhaseUpdate {
+	_u.mutation.AddBillingLineIDs(ids...)
+	return _u
 }
 
 // AddBillingLines adds the "billing_lines" edges to the BillingInvoiceLine entity.
-func (spu *SubscriptionPhaseUpdate) AddBillingLines(b ...*BillingInvoiceLine) *SubscriptionPhaseUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *SubscriptionPhaseUpdate) AddBillingLines(v ...*BillingInvoiceLine) *SubscriptionPhaseUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return spu.AddBillingLineIDs(ids...)
+	return _u.AddBillingLineIDs(ids...)
 }
 
 // Mutation returns the SubscriptionPhaseMutation object of the builder.
-func (spu *SubscriptionPhaseUpdate) Mutation() *SubscriptionPhaseMutation {
-	return spu.mutation
+func (_u *SubscriptionPhaseUpdate) Mutation() *SubscriptionPhaseMutation {
+	return _u.mutation
 }
 
 // ClearItems clears all "items" edges to the SubscriptionItem entity.
-func (spu *SubscriptionPhaseUpdate) ClearItems() *SubscriptionPhaseUpdate {
-	spu.mutation.ClearItems()
-	return spu
+func (_u *SubscriptionPhaseUpdate) ClearItems() *SubscriptionPhaseUpdate {
+	_u.mutation.ClearItems()
+	return _u
 }
 
 // RemoveItemIDs removes the "items" edge to SubscriptionItem entities by IDs.
-func (spu *SubscriptionPhaseUpdate) RemoveItemIDs(ids ...string) *SubscriptionPhaseUpdate {
-	spu.mutation.RemoveItemIDs(ids...)
-	return spu
+func (_u *SubscriptionPhaseUpdate) RemoveItemIDs(ids ...string) *SubscriptionPhaseUpdate {
+	_u.mutation.RemoveItemIDs(ids...)
+	return _u
 }
 
 // RemoveItems removes "items" edges to SubscriptionItem entities.
-func (spu *SubscriptionPhaseUpdate) RemoveItems(s ...*SubscriptionItem) *SubscriptionPhaseUpdate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_u *SubscriptionPhaseUpdate) RemoveItems(v ...*SubscriptionItem) *SubscriptionPhaseUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return spu.RemoveItemIDs(ids...)
+	return _u.RemoveItemIDs(ids...)
 }
 
 // ClearBillingLines clears all "billing_lines" edges to the BillingInvoiceLine entity.
-func (spu *SubscriptionPhaseUpdate) ClearBillingLines() *SubscriptionPhaseUpdate {
-	spu.mutation.ClearBillingLines()
-	return spu
+func (_u *SubscriptionPhaseUpdate) ClearBillingLines() *SubscriptionPhaseUpdate {
+	_u.mutation.ClearBillingLines()
+	return _u
 }
 
 // RemoveBillingLineIDs removes the "billing_lines" edge to BillingInvoiceLine entities by IDs.
-func (spu *SubscriptionPhaseUpdate) RemoveBillingLineIDs(ids ...string) *SubscriptionPhaseUpdate {
-	spu.mutation.RemoveBillingLineIDs(ids...)
-	return spu
+func (_u *SubscriptionPhaseUpdate) RemoveBillingLineIDs(ids ...string) *SubscriptionPhaseUpdate {
+	_u.mutation.RemoveBillingLineIDs(ids...)
+	return _u
 }
 
 // RemoveBillingLines removes "billing_lines" edges to BillingInvoiceLine entities.
-func (spu *SubscriptionPhaseUpdate) RemoveBillingLines(b ...*BillingInvoiceLine) *SubscriptionPhaseUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *SubscriptionPhaseUpdate) RemoveBillingLines(v ...*BillingInvoiceLine) *SubscriptionPhaseUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return spu.RemoveBillingLineIDs(ids...)
+	return _u.RemoveBillingLineIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (spu *SubscriptionPhaseUpdate) Save(ctx context.Context) (int, error) {
-	spu.defaults()
-	return withHooks(ctx, spu.sqlSave, spu.mutation, spu.hooks)
+func (_u *SubscriptionPhaseUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (spu *SubscriptionPhaseUpdate) SaveX(ctx context.Context) int {
-	affected, err := spu.Save(ctx)
+func (_u *SubscriptionPhaseUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -195,76 +195,76 @@ func (spu *SubscriptionPhaseUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (spu *SubscriptionPhaseUpdate) Exec(ctx context.Context) error {
-	_, err := spu.Save(ctx)
+func (_u *SubscriptionPhaseUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (spu *SubscriptionPhaseUpdate) ExecX(ctx context.Context) {
-	if err := spu.Exec(ctx); err != nil {
+func (_u *SubscriptionPhaseUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (spu *SubscriptionPhaseUpdate) defaults() {
-	if _, ok := spu.mutation.UpdatedAt(); !ok {
+func (_u *SubscriptionPhaseUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := subscriptionphase.UpdateDefaultUpdatedAt()
-		spu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (spu *SubscriptionPhaseUpdate) check() error {
-	if v, ok := spu.mutation.Name(); ok {
+func (_u *SubscriptionPhaseUpdate) check() error {
+	if v, ok := _u.mutation.Name(); ok {
 		if err := subscriptionphase.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "SubscriptionPhase.name": %w`, err)}
 		}
 	}
-	if spu.mutation.SubscriptionCleared() && len(spu.mutation.SubscriptionIDs()) > 0 {
+	if _u.mutation.SubscriptionCleared() && len(_u.mutation.SubscriptionIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionPhase.subscription"`)
 	}
 	return nil
 }
 
-func (spu *SubscriptionPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := spu.check(); err != nil {
-		return n, err
+func (_u *SubscriptionPhaseUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(subscriptionphase.Table, subscriptionphase.Columns, sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString))
-	if ps := spu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := spu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionphase.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := spu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(subscriptionphase.FieldDeletedAt, field.TypeTime, value)
 	}
-	if spu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(subscriptionphase.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := spu.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(subscriptionphase.FieldMetadata, field.TypeJSON, value)
 	}
-	if spu.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(subscriptionphase.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := spu.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(subscriptionphase.FieldName, field.TypeString, value)
 	}
-	if value, ok := spu.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(subscriptionphase.FieldDescription, field.TypeString, value)
 	}
-	if spu.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(subscriptionphase.FieldDescription, field.TypeString)
 	}
-	if spu.mutation.ItemsCleared() {
+	if _u.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -277,7 +277,7 @@ func (spu *SubscriptionPhaseUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := spu.mutation.RemovedItemsIDs(); len(nodes) > 0 && !spu.mutation.ItemsCleared() {
+	if nodes := _u.mutation.RemovedItemsIDs(); len(nodes) > 0 && !_u.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -293,7 +293,7 @@ func (spu *SubscriptionPhaseUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := spu.mutation.ItemsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ItemsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -309,7 +309,7 @@ func (spu *SubscriptionPhaseUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if spu.mutation.BillingLinesCleared() {
+	if _u.mutation.BillingLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -322,7 +322,7 @@ func (spu *SubscriptionPhaseUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := spu.mutation.RemovedBillingLinesIDs(); len(nodes) > 0 && !spu.mutation.BillingLinesCleared() {
+	if nodes := _u.mutation.RemovedBillingLinesIDs(); len(nodes) > 0 && !_u.mutation.BillingLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -338,7 +338,7 @@ func (spu *SubscriptionPhaseUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := spu.mutation.BillingLinesIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -354,7 +354,7 @@ func (spu *SubscriptionPhaseUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, spu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscriptionphase.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -362,8 +362,8 @@ func (spu *SubscriptionPhaseUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		return 0, err
 	}
-	spu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // SubscriptionPhaseUpdateOne is the builder for updating a single SubscriptionPhase entity.
@@ -375,176 +375,176 @@ type SubscriptionPhaseUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (spuo *SubscriptionPhaseUpdateOne) SetUpdatedAt(t time.Time) *SubscriptionPhaseUpdateOne {
-	spuo.mutation.SetUpdatedAt(t)
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) SetUpdatedAt(v time.Time) *SubscriptionPhaseUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (spuo *SubscriptionPhaseUpdateOne) SetDeletedAt(t time.Time) *SubscriptionPhaseUpdateOne {
-	spuo.mutation.SetDeletedAt(t)
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) SetDeletedAt(v time.Time) *SubscriptionPhaseUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (spuo *SubscriptionPhaseUpdateOne) SetNillableDeletedAt(t *time.Time) *SubscriptionPhaseUpdateOne {
-	if t != nil {
-		spuo.SetDeletedAt(*t)
+func (_u *SubscriptionPhaseUpdateOne) SetNillableDeletedAt(v *time.Time) *SubscriptionPhaseUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return spuo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (spuo *SubscriptionPhaseUpdateOne) ClearDeletedAt() *SubscriptionPhaseUpdateOne {
-	spuo.mutation.ClearDeletedAt()
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) ClearDeletedAt() *SubscriptionPhaseUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (spuo *SubscriptionPhaseUpdateOne) SetMetadata(m map[string]string) *SubscriptionPhaseUpdateOne {
-	spuo.mutation.SetMetadata(m)
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) SetMetadata(v map[string]string) *SubscriptionPhaseUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (spuo *SubscriptionPhaseUpdateOne) ClearMetadata() *SubscriptionPhaseUpdateOne {
-	spuo.mutation.ClearMetadata()
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) ClearMetadata() *SubscriptionPhaseUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (spuo *SubscriptionPhaseUpdateOne) SetName(s string) *SubscriptionPhaseUpdateOne {
-	spuo.mutation.SetName(s)
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) SetName(v string) *SubscriptionPhaseUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (spuo *SubscriptionPhaseUpdateOne) SetNillableName(s *string) *SubscriptionPhaseUpdateOne {
-	if s != nil {
-		spuo.SetName(*s)
+func (_u *SubscriptionPhaseUpdateOne) SetNillableName(v *string) *SubscriptionPhaseUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return spuo
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (spuo *SubscriptionPhaseUpdateOne) SetDescription(s string) *SubscriptionPhaseUpdateOne {
-	spuo.mutation.SetDescription(s)
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) SetDescription(v string) *SubscriptionPhaseUpdateOne {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (spuo *SubscriptionPhaseUpdateOne) SetNillableDescription(s *string) *SubscriptionPhaseUpdateOne {
-	if s != nil {
-		spuo.SetDescription(*s)
+func (_u *SubscriptionPhaseUpdateOne) SetNillableDescription(v *string) *SubscriptionPhaseUpdateOne {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return spuo
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (spuo *SubscriptionPhaseUpdateOne) ClearDescription() *SubscriptionPhaseUpdateOne {
-	spuo.mutation.ClearDescription()
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) ClearDescription() *SubscriptionPhaseUpdateOne {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // AddItemIDs adds the "items" edge to the SubscriptionItem entity by IDs.
-func (spuo *SubscriptionPhaseUpdateOne) AddItemIDs(ids ...string) *SubscriptionPhaseUpdateOne {
-	spuo.mutation.AddItemIDs(ids...)
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) AddItemIDs(ids ...string) *SubscriptionPhaseUpdateOne {
+	_u.mutation.AddItemIDs(ids...)
+	return _u
 }
 
 // AddItems adds the "items" edges to the SubscriptionItem entity.
-func (spuo *SubscriptionPhaseUpdateOne) AddItems(s ...*SubscriptionItem) *SubscriptionPhaseUpdateOne {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_u *SubscriptionPhaseUpdateOne) AddItems(v ...*SubscriptionItem) *SubscriptionPhaseUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return spuo.AddItemIDs(ids...)
+	return _u.AddItemIDs(ids...)
 }
 
 // AddBillingLineIDs adds the "billing_lines" edge to the BillingInvoiceLine entity by IDs.
-func (spuo *SubscriptionPhaseUpdateOne) AddBillingLineIDs(ids ...string) *SubscriptionPhaseUpdateOne {
-	spuo.mutation.AddBillingLineIDs(ids...)
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) AddBillingLineIDs(ids ...string) *SubscriptionPhaseUpdateOne {
+	_u.mutation.AddBillingLineIDs(ids...)
+	return _u
 }
 
 // AddBillingLines adds the "billing_lines" edges to the BillingInvoiceLine entity.
-func (spuo *SubscriptionPhaseUpdateOne) AddBillingLines(b ...*BillingInvoiceLine) *SubscriptionPhaseUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *SubscriptionPhaseUpdateOne) AddBillingLines(v ...*BillingInvoiceLine) *SubscriptionPhaseUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return spuo.AddBillingLineIDs(ids...)
+	return _u.AddBillingLineIDs(ids...)
 }
 
 // Mutation returns the SubscriptionPhaseMutation object of the builder.
-func (spuo *SubscriptionPhaseUpdateOne) Mutation() *SubscriptionPhaseMutation {
-	return spuo.mutation
+func (_u *SubscriptionPhaseUpdateOne) Mutation() *SubscriptionPhaseMutation {
+	return _u.mutation
 }
 
 // ClearItems clears all "items" edges to the SubscriptionItem entity.
-func (spuo *SubscriptionPhaseUpdateOne) ClearItems() *SubscriptionPhaseUpdateOne {
-	spuo.mutation.ClearItems()
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) ClearItems() *SubscriptionPhaseUpdateOne {
+	_u.mutation.ClearItems()
+	return _u
 }
 
 // RemoveItemIDs removes the "items" edge to SubscriptionItem entities by IDs.
-func (spuo *SubscriptionPhaseUpdateOne) RemoveItemIDs(ids ...string) *SubscriptionPhaseUpdateOne {
-	spuo.mutation.RemoveItemIDs(ids...)
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) RemoveItemIDs(ids ...string) *SubscriptionPhaseUpdateOne {
+	_u.mutation.RemoveItemIDs(ids...)
+	return _u
 }
 
 // RemoveItems removes "items" edges to SubscriptionItem entities.
-func (spuo *SubscriptionPhaseUpdateOne) RemoveItems(s ...*SubscriptionItem) *SubscriptionPhaseUpdateOne {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_u *SubscriptionPhaseUpdateOne) RemoveItems(v ...*SubscriptionItem) *SubscriptionPhaseUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return spuo.RemoveItemIDs(ids...)
+	return _u.RemoveItemIDs(ids...)
 }
 
 // ClearBillingLines clears all "billing_lines" edges to the BillingInvoiceLine entity.
-func (spuo *SubscriptionPhaseUpdateOne) ClearBillingLines() *SubscriptionPhaseUpdateOne {
-	spuo.mutation.ClearBillingLines()
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) ClearBillingLines() *SubscriptionPhaseUpdateOne {
+	_u.mutation.ClearBillingLines()
+	return _u
 }
 
 // RemoveBillingLineIDs removes the "billing_lines" edge to BillingInvoiceLine entities by IDs.
-func (spuo *SubscriptionPhaseUpdateOne) RemoveBillingLineIDs(ids ...string) *SubscriptionPhaseUpdateOne {
-	spuo.mutation.RemoveBillingLineIDs(ids...)
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) RemoveBillingLineIDs(ids ...string) *SubscriptionPhaseUpdateOne {
+	_u.mutation.RemoveBillingLineIDs(ids...)
+	return _u
 }
 
 // RemoveBillingLines removes "billing_lines" edges to BillingInvoiceLine entities.
-func (spuo *SubscriptionPhaseUpdateOne) RemoveBillingLines(b ...*BillingInvoiceLine) *SubscriptionPhaseUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *SubscriptionPhaseUpdateOne) RemoveBillingLines(v ...*BillingInvoiceLine) *SubscriptionPhaseUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return spuo.RemoveBillingLineIDs(ids...)
+	return _u.RemoveBillingLineIDs(ids...)
 }
 
 // Where appends a list predicates to the SubscriptionPhaseUpdate builder.
-func (spuo *SubscriptionPhaseUpdateOne) Where(ps ...predicate.SubscriptionPhase) *SubscriptionPhaseUpdateOne {
-	spuo.mutation.Where(ps...)
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) Where(ps ...predicate.SubscriptionPhase) *SubscriptionPhaseUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (spuo *SubscriptionPhaseUpdateOne) Select(field string, fields ...string) *SubscriptionPhaseUpdateOne {
-	spuo.fields = append([]string{field}, fields...)
-	return spuo
+func (_u *SubscriptionPhaseUpdateOne) Select(field string, fields ...string) *SubscriptionPhaseUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated SubscriptionPhase entity.
-func (spuo *SubscriptionPhaseUpdateOne) Save(ctx context.Context) (*SubscriptionPhase, error) {
-	spuo.defaults()
-	return withHooks(ctx, spuo.sqlSave, spuo.mutation, spuo.hooks)
+func (_u *SubscriptionPhaseUpdateOne) Save(ctx context.Context) (*SubscriptionPhase, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (spuo *SubscriptionPhaseUpdateOne) SaveX(ctx context.Context) *SubscriptionPhase {
-	node, err := spuo.Save(ctx)
+func (_u *SubscriptionPhaseUpdateOne) SaveX(ctx context.Context) *SubscriptionPhase {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -552,50 +552,50 @@ func (spuo *SubscriptionPhaseUpdateOne) SaveX(ctx context.Context) *Subscription
 }
 
 // Exec executes the query on the entity.
-func (spuo *SubscriptionPhaseUpdateOne) Exec(ctx context.Context) error {
-	_, err := spuo.Save(ctx)
+func (_u *SubscriptionPhaseUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (spuo *SubscriptionPhaseUpdateOne) ExecX(ctx context.Context) {
-	if err := spuo.Exec(ctx); err != nil {
+func (_u *SubscriptionPhaseUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (spuo *SubscriptionPhaseUpdateOne) defaults() {
-	if _, ok := spuo.mutation.UpdatedAt(); !ok {
+func (_u *SubscriptionPhaseUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := subscriptionphase.UpdateDefaultUpdatedAt()
-		spuo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (spuo *SubscriptionPhaseUpdateOne) check() error {
-	if v, ok := spuo.mutation.Name(); ok {
+func (_u *SubscriptionPhaseUpdateOne) check() error {
+	if v, ok := _u.mutation.Name(); ok {
 		if err := subscriptionphase.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "SubscriptionPhase.name": %w`, err)}
 		}
 	}
-	if spuo.mutation.SubscriptionCleared() && len(spuo.mutation.SubscriptionIDs()) > 0 {
+	if _u.mutation.SubscriptionCleared() && len(_u.mutation.SubscriptionIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionPhase.subscription"`)
 	}
 	return nil
 }
 
-func (spuo *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *SubscriptionPhase, err error) {
-	if err := spuo.check(); err != nil {
+func (_u *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *SubscriptionPhase, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(subscriptionphase.Table, subscriptionphase.Columns, sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString))
-	id, ok := spuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "SubscriptionPhase.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := spuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, subscriptionphase.FieldID)
 		for _, f := range fields {
@@ -607,38 +607,38 @@ func (spuo *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 			}
 		}
 	}
-	if ps := spuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := spuo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionphase.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := spuo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(subscriptionphase.FieldDeletedAt, field.TypeTime, value)
 	}
-	if spuo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(subscriptionphase.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := spuo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(subscriptionphase.FieldMetadata, field.TypeJSON, value)
 	}
-	if spuo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(subscriptionphase.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := spuo.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(subscriptionphase.FieldName, field.TypeString, value)
 	}
-	if value, ok := spuo.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(subscriptionphase.FieldDescription, field.TypeString, value)
 	}
-	if spuo.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(subscriptionphase.FieldDescription, field.TypeString)
 	}
-	if spuo.mutation.ItemsCleared() {
+	if _u.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -651,7 +651,7 @@ func (spuo *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := spuo.mutation.RemovedItemsIDs(); len(nodes) > 0 && !spuo.mutation.ItemsCleared() {
+	if nodes := _u.mutation.RemovedItemsIDs(); len(nodes) > 0 && !_u.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -667,7 +667,7 @@ func (spuo *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := spuo.mutation.ItemsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ItemsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -683,7 +683,7 @@ func (spuo *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if spuo.mutation.BillingLinesCleared() {
+	if _u.mutation.BillingLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -696,7 +696,7 @@ func (spuo *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := spuo.mutation.RemovedBillingLinesIDs(); len(nodes) > 0 && !spuo.mutation.BillingLinesCleared() {
+	if nodes := _u.mutation.RemovedBillingLinesIDs(); len(nodes) > 0 && !_u.mutation.BillingLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -712,7 +712,7 @@ func (spuo *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := spuo.mutation.BillingLinesIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -728,10 +728,10 @@ func (spuo *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &SubscriptionPhase{config: spuo.config}
+	_node = &SubscriptionPhase{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, spuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscriptionphase.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -739,6 +739,6 @@ func (spuo *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 		}
 		return nil, err
 	}
-	spuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

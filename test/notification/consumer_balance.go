@@ -139,8 +139,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 	})
 	require.NoError(t, err, "Creating feature must not return error")
 
-	input := NewCreateChannelInput("NotificationRuleTest")
-	input.Namespace = s.namespace
+	input := NewCreateChannelInput(s.namespace, "NotificationRuleTest")
 
 	channel, err := service.CreateChannel(ctx, input)
 	require.NoError(t, err, "Creating channel must not return error")
@@ -148,8 +147,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 
 	s.channel = *channel
 
-	ruleInput := NewCreateRuleInput("TestRuleForNotificationWorker", s.channel.ID)
-	ruleInput.Namespace = s.namespace
+	ruleInput := NewCreateRuleInput(s.namespace, "TestRuleForNotificationWorker", s.channel.ID)
 
 	rule, err := service.CreateRule(ctx, ruleInput)
 	require.NoError(t, err, "Creating rule must not return error")
@@ -460,8 +458,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 	rule1.CreatedAt = rule1.CreatedAt.Truncate(time.Microsecond)
 
 	// rule with feature filtering using feature key
-	ruleInput := NewCreateRuleInput("TestRule2ForNotificationWorker", s.channel.ID)
-	ruleInput.Namespace = s.namespace
+	ruleInput := NewCreateRuleInput(s.namespace, "TestRule2ForNotificationWorker", s.channel.ID)
 	ruleInput.Config.BalanceThreshold.Features = []string{feature2.Key}
 
 	rule2, err := service.CreateRule(ctx, ruleInput)
@@ -471,8 +468,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 	rule2.UpdatedAt = rule2.UpdatedAt.Truncate(time.Microsecond)
 
 	// rule with feature filtering using feature key
-	ruleInput = NewCreateRuleInput("TestRule3ForNotificationWorker", s.channel.ID)
-	ruleInput.Namespace = s.namespace
+	ruleInput = NewCreateRuleInput(s.namespace, "TestRule3ForNotificationWorker", s.channel.ID)
 	ruleInput.Config.BalanceThreshold.Features = []string{feature2.ID}
 
 	rule3, err := service.CreateRule(ctx, ruleInput)

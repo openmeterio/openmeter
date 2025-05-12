@@ -20,56 +20,56 @@ type BillingInvoiceUsageBasedLineConfigDelete struct {
 }
 
 // Where appends a list predicates to the BillingInvoiceUsageBasedLineConfigDelete builder.
-func (biublcd *BillingInvoiceUsageBasedLineConfigDelete) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) *BillingInvoiceUsageBasedLineConfigDelete {
-	biublcd.mutation.Where(ps...)
-	return biublcd
+func (_d *BillingInvoiceUsageBasedLineConfigDelete) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) *BillingInvoiceUsageBasedLineConfigDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (biublcd *BillingInvoiceUsageBasedLineConfigDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, biublcd.sqlExec, biublcd.mutation, biublcd.hooks)
+func (_d *BillingInvoiceUsageBasedLineConfigDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (biublcd *BillingInvoiceUsageBasedLineConfigDelete) ExecX(ctx context.Context) int {
-	n, err := biublcd.Exec(ctx)
+func (_d *BillingInvoiceUsageBasedLineConfigDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (biublcd *BillingInvoiceUsageBasedLineConfigDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *BillingInvoiceUsageBasedLineConfigDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(billinginvoiceusagebasedlineconfig.Table, sqlgraph.NewFieldSpec(billinginvoiceusagebasedlineconfig.FieldID, field.TypeString))
-	if ps := biublcd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, biublcd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	biublcd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // BillingInvoiceUsageBasedLineConfigDeleteOne is the builder for deleting a single BillingInvoiceUsageBasedLineConfig entity.
 type BillingInvoiceUsageBasedLineConfigDeleteOne struct {
-	biublcd *BillingInvoiceUsageBasedLineConfigDelete
+	_d *BillingInvoiceUsageBasedLineConfigDelete
 }
 
 // Where appends a list predicates to the BillingInvoiceUsageBasedLineConfigDelete builder.
-func (biublcdo *BillingInvoiceUsageBasedLineConfigDeleteOne) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) *BillingInvoiceUsageBasedLineConfigDeleteOne {
-	biublcdo.biublcd.mutation.Where(ps...)
-	return biublcdo
+func (_d *BillingInvoiceUsageBasedLineConfigDeleteOne) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) *BillingInvoiceUsageBasedLineConfigDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (biublcdo *BillingInvoiceUsageBasedLineConfigDeleteOne) Exec(ctx context.Context) error {
-	n, err := biublcdo.biublcd.Exec(ctx)
+func (_d *BillingInvoiceUsageBasedLineConfigDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (biublcdo *BillingInvoiceUsageBasedLineConfigDeleteOne) Exec(ctx context.Co
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (biublcdo *BillingInvoiceUsageBasedLineConfigDeleteOne) ExecX(ctx context.Context) {
-	if err := biublcdo.Exec(ctx); err != nil {
+func (_d *BillingInvoiceUsageBasedLineConfigDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

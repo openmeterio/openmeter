@@ -164,11 +164,6 @@ namespace OpenMeterCloud.Notification {
   @route("/api/v1/notification/events")
   @tag("Notifications")
   interface Events extends OpenMeter.Notification.Events {}
-
-  @route("/api/v1/notification/webhook/svix")
-  @tag("Notifications")
-  interface SvixOperationalWebhooks
-    extends OpenMeter.Notification.SvixOperationalWebhooks {}
 }
 
 namespace OpenMeterCloud.Entitlements {

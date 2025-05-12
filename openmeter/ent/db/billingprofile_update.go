@@ -27,382 +27,382 @@ type BillingProfileUpdate struct {
 }
 
 // Where appends a list predicates to the BillingProfileUpdate builder.
-func (bpu *BillingProfileUpdate) Where(ps ...predicate.BillingProfile) *BillingProfileUpdate {
-	bpu.mutation.Where(ps...)
-	return bpu
+func (_u *BillingProfileUpdate) Where(ps ...predicate.BillingProfile) *BillingProfileUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (bpu *BillingProfileUpdate) SetMetadata(m map[string]string) *BillingProfileUpdate {
-	bpu.mutation.SetMetadata(m)
-	return bpu
+func (_u *BillingProfileUpdate) SetMetadata(v map[string]string) *BillingProfileUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (bpu *BillingProfileUpdate) ClearMetadata() *BillingProfileUpdate {
-	bpu.mutation.ClearMetadata()
-	return bpu
+func (_u *BillingProfileUpdate) ClearMetadata() *BillingProfileUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (bpu *BillingProfileUpdate) SetUpdatedAt(t time.Time) *BillingProfileUpdate {
-	bpu.mutation.SetUpdatedAt(t)
-	return bpu
+func (_u *BillingProfileUpdate) SetUpdatedAt(v time.Time) *BillingProfileUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (bpu *BillingProfileUpdate) SetDeletedAt(t time.Time) *BillingProfileUpdate {
-	bpu.mutation.SetDeletedAt(t)
-	return bpu
+func (_u *BillingProfileUpdate) SetDeletedAt(v time.Time) *BillingProfileUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableDeletedAt(t *time.Time) *BillingProfileUpdate {
-	if t != nil {
-		bpu.SetDeletedAt(*t)
+func (_u *BillingProfileUpdate) SetNillableDeletedAt(v *time.Time) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return bpu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (bpu *BillingProfileUpdate) ClearDeletedAt() *BillingProfileUpdate {
-	bpu.mutation.ClearDeletedAt()
-	return bpu
+func (_u *BillingProfileUpdate) ClearDeletedAt() *BillingProfileUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (bpu *BillingProfileUpdate) SetName(s string) *BillingProfileUpdate {
-	bpu.mutation.SetName(s)
-	return bpu
+func (_u *BillingProfileUpdate) SetName(v string) *BillingProfileUpdate {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableName(s *string) *BillingProfileUpdate {
-	if s != nil {
-		bpu.SetName(*s)
+func (_u *BillingProfileUpdate) SetNillableName(v *string) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return bpu
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (bpu *BillingProfileUpdate) SetDescription(s string) *BillingProfileUpdate {
-	bpu.mutation.SetDescription(s)
-	return bpu
+func (_u *BillingProfileUpdate) SetDescription(v string) *BillingProfileUpdate {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableDescription(s *string) *BillingProfileUpdate {
-	if s != nil {
-		bpu.SetDescription(*s)
+func (_u *BillingProfileUpdate) SetNillableDescription(v *string) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return bpu
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (bpu *BillingProfileUpdate) ClearDescription() *BillingProfileUpdate {
-	bpu.mutation.ClearDescription()
-	return bpu
+func (_u *BillingProfileUpdate) ClearDescription() *BillingProfileUpdate {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetSupplierAddressCountry sets the "supplier_address_country" field.
-func (bpu *BillingProfileUpdate) SetSupplierAddressCountry(mc models.CountryCode) *BillingProfileUpdate {
-	bpu.mutation.SetSupplierAddressCountry(mc)
-	return bpu
+func (_u *BillingProfileUpdate) SetSupplierAddressCountry(v models.CountryCode) *BillingProfileUpdate {
+	_u.mutation.SetSupplierAddressCountry(v)
+	return _u
 }
 
 // SetNillableSupplierAddressCountry sets the "supplier_address_country" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableSupplierAddressCountry(mc *models.CountryCode) *BillingProfileUpdate {
-	if mc != nil {
-		bpu.SetSupplierAddressCountry(*mc)
+func (_u *BillingProfileUpdate) SetNillableSupplierAddressCountry(v *models.CountryCode) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetSupplierAddressCountry(*v)
 	}
-	return bpu
+	return _u
 }
 
 // ClearSupplierAddressCountry clears the value of the "supplier_address_country" field.
-func (bpu *BillingProfileUpdate) ClearSupplierAddressCountry() *BillingProfileUpdate {
-	bpu.mutation.ClearSupplierAddressCountry()
-	return bpu
+func (_u *BillingProfileUpdate) ClearSupplierAddressCountry() *BillingProfileUpdate {
+	_u.mutation.ClearSupplierAddressCountry()
+	return _u
 }
 
 // SetSupplierAddressPostalCode sets the "supplier_address_postal_code" field.
-func (bpu *BillingProfileUpdate) SetSupplierAddressPostalCode(s string) *BillingProfileUpdate {
-	bpu.mutation.SetSupplierAddressPostalCode(s)
-	return bpu
+func (_u *BillingProfileUpdate) SetSupplierAddressPostalCode(v string) *BillingProfileUpdate {
+	_u.mutation.SetSupplierAddressPostalCode(v)
+	return _u
 }
 
 // SetNillableSupplierAddressPostalCode sets the "supplier_address_postal_code" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableSupplierAddressPostalCode(s *string) *BillingProfileUpdate {
-	if s != nil {
-		bpu.SetSupplierAddressPostalCode(*s)
+func (_u *BillingProfileUpdate) SetNillableSupplierAddressPostalCode(v *string) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetSupplierAddressPostalCode(*v)
 	}
-	return bpu
+	return _u
 }
 
 // ClearSupplierAddressPostalCode clears the value of the "supplier_address_postal_code" field.
-func (bpu *BillingProfileUpdate) ClearSupplierAddressPostalCode() *BillingProfileUpdate {
-	bpu.mutation.ClearSupplierAddressPostalCode()
-	return bpu
+func (_u *BillingProfileUpdate) ClearSupplierAddressPostalCode() *BillingProfileUpdate {
+	_u.mutation.ClearSupplierAddressPostalCode()
+	return _u
 }
 
 // SetSupplierAddressState sets the "supplier_address_state" field.
-func (bpu *BillingProfileUpdate) SetSupplierAddressState(s string) *BillingProfileUpdate {
-	bpu.mutation.SetSupplierAddressState(s)
-	return bpu
+func (_u *BillingProfileUpdate) SetSupplierAddressState(v string) *BillingProfileUpdate {
+	_u.mutation.SetSupplierAddressState(v)
+	return _u
 }
 
 // SetNillableSupplierAddressState sets the "supplier_address_state" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableSupplierAddressState(s *string) *BillingProfileUpdate {
-	if s != nil {
-		bpu.SetSupplierAddressState(*s)
+func (_u *BillingProfileUpdate) SetNillableSupplierAddressState(v *string) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetSupplierAddressState(*v)
 	}
-	return bpu
+	return _u
 }
 
 // ClearSupplierAddressState clears the value of the "supplier_address_state" field.
-func (bpu *BillingProfileUpdate) ClearSupplierAddressState() *BillingProfileUpdate {
-	bpu.mutation.ClearSupplierAddressState()
-	return bpu
+func (_u *BillingProfileUpdate) ClearSupplierAddressState() *BillingProfileUpdate {
+	_u.mutation.ClearSupplierAddressState()
+	return _u
 }
 
 // SetSupplierAddressCity sets the "supplier_address_city" field.
-func (bpu *BillingProfileUpdate) SetSupplierAddressCity(s string) *BillingProfileUpdate {
-	bpu.mutation.SetSupplierAddressCity(s)
-	return bpu
+func (_u *BillingProfileUpdate) SetSupplierAddressCity(v string) *BillingProfileUpdate {
+	_u.mutation.SetSupplierAddressCity(v)
+	return _u
 }
 
 // SetNillableSupplierAddressCity sets the "supplier_address_city" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableSupplierAddressCity(s *string) *BillingProfileUpdate {
-	if s != nil {
-		bpu.SetSupplierAddressCity(*s)
+func (_u *BillingProfileUpdate) SetNillableSupplierAddressCity(v *string) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetSupplierAddressCity(*v)
 	}
-	return bpu
+	return _u
 }
 
 // ClearSupplierAddressCity clears the value of the "supplier_address_city" field.
-func (bpu *BillingProfileUpdate) ClearSupplierAddressCity() *BillingProfileUpdate {
-	bpu.mutation.ClearSupplierAddressCity()
-	return bpu
+func (_u *BillingProfileUpdate) ClearSupplierAddressCity() *BillingProfileUpdate {
+	_u.mutation.ClearSupplierAddressCity()
+	return _u
 }
 
 // SetSupplierAddressLine1 sets the "supplier_address_line1" field.
-func (bpu *BillingProfileUpdate) SetSupplierAddressLine1(s string) *BillingProfileUpdate {
-	bpu.mutation.SetSupplierAddressLine1(s)
-	return bpu
+func (_u *BillingProfileUpdate) SetSupplierAddressLine1(v string) *BillingProfileUpdate {
+	_u.mutation.SetSupplierAddressLine1(v)
+	return _u
 }
 
 // SetNillableSupplierAddressLine1 sets the "supplier_address_line1" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableSupplierAddressLine1(s *string) *BillingProfileUpdate {
-	if s != nil {
-		bpu.SetSupplierAddressLine1(*s)
+func (_u *BillingProfileUpdate) SetNillableSupplierAddressLine1(v *string) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetSupplierAddressLine1(*v)
 	}
-	return bpu
+	return _u
 }
 
 // ClearSupplierAddressLine1 clears the value of the "supplier_address_line1" field.
-func (bpu *BillingProfileUpdate) ClearSupplierAddressLine1() *BillingProfileUpdate {
-	bpu.mutation.ClearSupplierAddressLine1()
-	return bpu
+func (_u *BillingProfileUpdate) ClearSupplierAddressLine1() *BillingProfileUpdate {
+	_u.mutation.ClearSupplierAddressLine1()
+	return _u
 }
 
 // SetSupplierAddressLine2 sets the "supplier_address_line2" field.
-func (bpu *BillingProfileUpdate) SetSupplierAddressLine2(s string) *BillingProfileUpdate {
-	bpu.mutation.SetSupplierAddressLine2(s)
-	return bpu
+func (_u *BillingProfileUpdate) SetSupplierAddressLine2(v string) *BillingProfileUpdate {
+	_u.mutation.SetSupplierAddressLine2(v)
+	return _u
 }
 
 // SetNillableSupplierAddressLine2 sets the "supplier_address_line2" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableSupplierAddressLine2(s *string) *BillingProfileUpdate {
-	if s != nil {
-		bpu.SetSupplierAddressLine2(*s)
+func (_u *BillingProfileUpdate) SetNillableSupplierAddressLine2(v *string) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetSupplierAddressLine2(*v)
 	}
-	return bpu
+	return _u
 }
 
 // ClearSupplierAddressLine2 clears the value of the "supplier_address_line2" field.
-func (bpu *BillingProfileUpdate) ClearSupplierAddressLine2() *BillingProfileUpdate {
-	bpu.mutation.ClearSupplierAddressLine2()
-	return bpu
+func (_u *BillingProfileUpdate) ClearSupplierAddressLine2() *BillingProfileUpdate {
+	_u.mutation.ClearSupplierAddressLine2()
+	return _u
 }
 
 // SetSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field.
-func (bpu *BillingProfileUpdate) SetSupplierAddressPhoneNumber(s string) *BillingProfileUpdate {
-	bpu.mutation.SetSupplierAddressPhoneNumber(s)
-	return bpu
+func (_u *BillingProfileUpdate) SetSupplierAddressPhoneNumber(v string) *BillingProfileUpdate {
+	_u.mutation.SetSupplierAddressPhoneNumber(v)
+	return _u
 }
 
 // SetNillableSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableSupplierAddressPhoneNumber(s *string) *BillingProfileUpdate {
-	if s != nil {
-		bpu.SetSupplierAddressPhoneNumber(*s)
+func (_u *BillingProfileUpdate) SetNillableSupplierAddressPhoneNumber(v *string) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetSupplierAddressPhoneNumber(*v)
 	}
-	return bpu
+	return _u
 }
 
 // ClearSupplierAddressPhoneNumber clears the value of the "supplier_address_phone_number" field.
-func (bpu *BillingProfileUpdate) ClearSupplierAddressPhoneNumber() *BillingProfileUpdate {
-	bpu.mutation.ClearSupplierAddressPhoneNumber()
-	return bpu
+func (_u *BillingProfileUpdate) ClearSupplierAddressPhoneNumber() *BillingProfileUpdate {
+	_u.mutation.ClearSupplierAddressPhoneNumber()
+	return _u
 }
 
 // SetWorkflowConfigID sets the "workflow_config_id" field.
-func (bpu *BillingProfileUpdate) SetWorkflowConfigID(s string) *BillingProfileUpdate {
-	bpu.mutation.SetWorkflowConfigID(s)
-	return bpu
+func (_u *BillingProfileUpdate) SetWorkflowConfigID(v string) *BillingProfileUpdate {
+	_u.mutation.SetWorkflowConfigID(v)
+	return _u
 }
 
 // SetNillableWorkflowConfigID sets the "workflow_config_id" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableWorkflowConfigID(s *string) *BillingProfileUpdate {
-	if s != nil {
-		bpu.SetWorkflowConfigID(*s)
+func (_u *BillingProfileUpdate) SetNillableWorkflowConfigID(v *string) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetWorkflowConfigID(*v)
 	}
-	return bpu
+	return _u
 }
 
 // SetDefault sets the "default" field.
-func (bpu *BillingProfileUpdate) SetDefault(b bool) *BillingProfileUpdate {
-	bpu.mutation.SetDefault(b)
-	return bpu
+func (_u *BillingProfileUpdate) SetDefault(v bool) *BillingProfileUpdate {
+	_u.mutation.SetDefault(v)
+	return _u
 }
 
 // SetNillableDefault sets the "default" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableDefault(b *bool) *BillingProfileUpdate {
-	if b != nil {
-		bpu.SetDefault(*b)
+func (_u *BillingProfileUpdate) SetNillableDefault(v *bool) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetDefault(*v)
 	}
-	return bpu
+	return _u
 }
 
 // SetSupplierName sets the "supplier_name" field.
-func (bpu *BillingProfileUpdate) SetSupplierName(s string) *BillingProfileUpdate {
-	bpu.mutation.SetSupplierName(s)
-	return bpu
+func (_u *BillingProfileUpdate) SetSupplierName(v string) *BillingProfileUpdate {
+	_u.mutation.SetSupplierName(v)
+	return _u
 }
 
 // SetNillableSupplierName sets the "supplier_name" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableSupplierName(s *string) *BillingProfileUpdate {
-	if s != nil {
-		bpu.SetSupplierName(*s)
+func (_u *BillingProfileUpdate) SetNillableSupplierName(v *string) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetSupplierName(*v)
 	}
-	return bpu
+	return _u
 }
 
 // SetSupplierTaxCode sets the "supplier_tax_code" field.
-func (bpu *BillingProfileUpdate) SetSupplierTaxCode(s string) *BillingProfileUpdate {
-	bpu.mutation.SetSupplierTaxCode(s)
-	return bpu
+func (_u *BillingProfileUpdate) SetSupplierTaxCode(v string) *BillingProfileUpdate {
+	_u.mutation.SetSupplierTaxCode(v)
+	return _u
 }
 
 // SetNillableSupplierTaxCode sets the "supplier_tax_code" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableSupplierTaxCode(s *string) *BillingProfileUpdate {
-	if s != nil {
-		bpu.SetSupplierTaxCode(*s)
+func (_u *BillingProfileUpdate) SetNillableSupplierTaxCode(v *string) *BillingProfileUpdate {
+	if v != nil {
+		_u.SetSupplierTaxCode(*v)
 	}
-	return bpu
+	return _u
 }
 
 // ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
-func (bpu *BillingProfileUpdate) ClearSupplierTaxCode() *BillingProfileUpdate {
-	bpu.mutation.ClearSupplierTaxCode()
-	return bpu
+func (_u *BillingProfileUpdate) ClearSupplierTaxCode() *BillingProfileUpdate {
+	_u.mutation.ClearSupplierTaxCode()
+	return _u
 }
 
 // AddBillingInvoiceIDs adds the "billing_invoices" edge to the BillingInvoice entity by IDs.
-func (bpu *BillingProfileUpdate) AddBillingInvoiceIDs(ids ...string) *BillingProfileUpdate {
-	bpu.mutation.AddBillingInvoiceIDs(ids...)
-	return bpu
+func (_u *BillingProfileUpdate) AddBillingInvoiceIDs(ids ...string) *BillingProfileUpdate {
+	_u.mutation.AddBillingInvoiceIDs(ids...)
+	return _u
 }
 
 // AddBillingInvoices adds the "billing_invoices" edges to the BillingInvoice entity.
-func (bpu *BillingProfileUpdate) AddBillingInvoices(b ...*BillingInvoice) *BillingProfileUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *BillingProfileUpdate) AddBillingInvoices(v ...*BillingInvoice) *BillingProfileUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return bpu.AddBillingInvoiceIDs(ids...)
+	return _u.AddBillingInvoiceIDs(ids...)
 }
 
 // AddBillingCustomerOverrideIDs adds the "billing_customer_override" edge to the BillingCustomerOverride entity by IDs.
-func (bpu *BillingProfileUpdate) AddBillingCustomerOverrideIDs(ids ...string) *BillingProfileUpdate {
-	bpu.mutation.AddBillingCustomerOverrideIDs(ids...)
-	return bpu
+func (_u *BillingProfileUpdate) AddBillingCustomerOverrideIDs(ids ...string) *BillingProfileUpdate {
+	_u.mutation.AddBillingCustomerOverrideIDs(ids...)
+	return _u
 }
 
 // AddBillingCustomerOverride adds the "billing_customer_override" edges to the BillingCustomerOverride entity.
-func (bpu *BillingProfileUpdate) AddBillingCustomerOverride(b ...*BillingCustomerOverride) *BillingProfileUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *BillingProfileUpdate) AddBillingCustomerOverride(v ...*BillingCustomerOverride) *BillingProfileUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return bpu.AddBillingCustomerOverrideIDs(ids...)
+	return _u.AddBillingCustomerOverrideIDs(ids...)
 }
 
 // SetWorkflowConfig sets the "workflow_config" edge to the BillingWorkflowConfig entity.
-func (bpu *BillingProfileUpdate) SetWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileUpdate {
-	return bpu.SetWorkflowConfigID(b.ID)
+func (_u *BillingProfileUpdate) SetWorkflowConfig(v *BillingWorkflowConfig) *BillingProfileUpdate {
+	return _u.SetWorkflowConfigID(v.ID)
 }
 
 // Mutation returns the BillingProfileMutation object of the builder.
-func (bpu *BillingProfileUpdate) Mutation() *BillingProfileMutation {
-	return bpu.mutation
+func (_u *BillingProfileUpdate) Mutation() *BillingProfileMutation {
+	return _u.mutation
 }
 
 // ClearBillingInvoices clears all "billing_invoices" edges to the BillingInvoice entity.
-func (bpu *BillingProfileUpdate) ClearBillingInvoices() *BillingProfileUpdate {
-	bpu.mutation.ClearBillingInvoices()
-	return bpu
+func (_u *BillingProfileUpdate) ClearBillingInvoices() *BillingProfileUpdate {
+	_u.mutation.ClearBillingInvoices()
+	return _u
 }
 
 // RemoveBillingInvoiceIDs removes the "billing_invoices" edge to BillingInvoice entities by IDs.
-func (bpu *BillingProfileUpdate) RemoveBillingInvoiceIDs(ids ...string) *BillingProfileUpdate {
-	bpu.mutation.RemoveBillingInvoiceIDs(ids...)
-	return bpu
+func (_u *BillingProfileUpdate) RemoveBillingInvoiceIDs(ids ...string) *BillingProfileUpdate {
+	_u.mutation.RemoveBillingInvoiceIDs(ids...)
+	return _u
 }
 
 // RemoveBillingInvoices removes "billing_invoices" edges to BillingInvoice entities.
-func (bpu *BillingProfileUpdate) RemoveBillingInvoices(b ...*BillingInvoice) *BillingProfileUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *BillingProfileUpdate) RemoveBillingInvoices(v ...*BillingInvoice) *BillingProfileUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return bpu.RemoveBillingInvoiceIDs(ids...)
+	return _u.RemoveBillingInvoiceIDs(ids...)
 }
 
 // ClearBillingCustomerOverride clears all "billing_customer_override" edges to the BillingCustomerOverride entity.
-func (bpu *BillingProfileUpdate) ClearBillingCustomerOverride() *BillingProfileUpdate {
-	bpu.mutation.ClearBillingCustomerOverride()
-	return bpu
+func (_u *BillingProfileUpdate) ClearBillingCustomerOverride() *BillingProfileUpdate {
+	_u.mutation.ClearBillingCustomerOverride()
+	return _u
 }
 
 // RemoveBillingCustomerOverrideIDs removes the "billing_customer_override" edge to BillingCustomerOverride entities by IDs.
-func (bpu *BillingProfileUpdate) RemoveBillingCustomerOverrideIDs(ids ...string) *BillingProfileUpdate {
-	bpu.mutation.RemoveBillingCustomerOverrideIDs(ids...)
-	return bpu
+func (_u *BillingProfileUpdate) RemoveBillingCustomerOverrideIDs(ids ...string) *BillingProfileUpdate {
+	_u.mutation.RemoveBillingCustomerOverrideIDs(ids...)
+	return _u
 }
 
 // RemoveBillingCustomerOverride removes "billing_customer_override" edges to BillingCustomerOverride entities.
-func (bpu *BillingProfileUpdate) RemoveBillingCustomerOverride(b ...*BillingCustomerOverride) *BillingProfileUpdate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *BillingProfileUpdate) RemoveBillingCustomerOverride(v ...*BillingCustomerOverride) *BillingProfileUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return bpu.RemoveBillingCustomerOverrideIDs(ids...)
+	return _u.RemoveBillingCustomerOverrideIDs(ids...)
 }
 
 // ClearWorkflowConfig clears the "workflow_config" edge to the BillingWorkflowConfig entity.
-func (bpu *BillingProfileUpdate) ClearWorkflowConfig() *BillingProfileUpdate {
-	bpu.mutation.ClearWorkflowConfig()
-	return bpu
+func (_u *BillingProfileUpdate) ClearWorkflowConfig() *BillingProfileUpdate {
+	_u.mutation.ClearWorkflowConfig()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (bpu *BillingProfileUpdate) Save(ctx context.Context) (int, error) {
-	bpu.defaults()
-	return withHooks(ctx, bpu.sqlSave, bpu.mutation, bpu.hooks)
+func (_u *BillingProfileUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bpu *BillingProfileUpdate) SaveX(ctx context.Context) int {
-	affected, err := bpu.Save(ctx)
+func (_u *BillingProfileUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -410,149 +410,149 @@ func (bpu *BillingProfileUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (bpu *BillingProfileUpdate) Exec(ctx context.Context) error {
-	_, err := bpu.Save(ctx)
+func (_u *BillingProfileUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bpu *BillingProfileUpdate) ExecX(ctx context.Context) {
-	if err := bpu.Exec(ctx); err != nil {
+func (_u *BillingProfileUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bpu *BillingProfileUpdate) defaults() {
-	if _, ok := bpu.mutation.UpdatedAt(); !ok {
+func (_u *BillingProfileUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := billingprofile.UpdateDefaultUpdatedAt()
-		bpu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bpu *BillingProfileUpdate) check() error {
-	if v, ok := bpu.mutation.SupplierAddressCountry(); ok {
+func (_u *BillingProfileUpdate) check() error {
+	if v, ok := _u.mutation.SupplierAddressCountry(); ok {
 		if err := billingprofile.SupplierAddressCountryValidator(string(v)); err != nil {
 			return &ValidationError{Name: "supplier_address_country", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_address_country": %w`, err)}
 		}
 	}
-	if v, ok := bpu.mutation.WorkflowConfigID(); ok {
+	if v, ok := _u.mutation.WorkflowConfigID(); ok {
 		if err := billingprofile.WorkflowConfigIDValidator(v); err != nil {
 			return &ValidationError{Name: "workflow_config_id", err: fmt.Errorf(`db: validator failed for field "BillingProfile.workflow_config_id": %w`, err)}
 		}
 	}
-	if v, ok := bpu.mutation.SupplierName(); ok {
+	if v, ok := _u.mutation.SupplierName(); ok {
 		if err := billingprofile.SupplierNameValidator(v); err != nil {
 			return &ValidationError{Name: "supplier_name", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_name": %w`, err)}
 		}
 	}
-	if bpu.mutation.WorkflowConfigCleared() && len(bpu.mutation.WorkflowConfigIDs()) > 0 {
+	if _u.mutation.WorkflowConfigCleared() && len(_u.mutation.WorkflowConfigIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingProfile.workflow_config"`)
 	}
-	if bpu.mutation.TaxAppCleared() && len(bpu.mutation.TaxAppIDs()) > 0 {
+	if _u.mutation.TaxAppCleared() && len(_u.mutation.TaxAppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingProfile.tax_app"`)
 	}
-	if bpu.mutation.InvoicingAppCleared() && len(bpu.mutation.InvoicingAppIDs()) > 0 {
+	if _u.mutation.InvoicingAppCleared() && len(_u.mutation.InvoicingAppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingProfile.invoicing_app"`)
 	}
-	if bpu.mutation.PaymentAppCleared() && len(bpu.mutation.PaymentAppIDs()) > 0 {
+	if _u.mutation.PaymentAppCleared() && len(_u.mutation.PaymentAppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingProfile.payment_app"`)
 	}
 	return nil
 }
 
-func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := bpu.check(); err != nil {
-		return n, err
+func (_u *BillingProfileUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(billingprofile.Table, billingprofile.Columns, sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString))
-	if ps := bpu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := bpu.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(billingprofile.FieldMetadata, field.TypeJSON, value)
 	}
-	if bpu.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(billingprofile.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := bpu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(billingprofile.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := bpu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(billingprofile.FieldDeletedAt, field.TypeTime, value)
 	}
-	if bpu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingprofile.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bpu.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(billingprofile.FieldName, field.TypeString, value)
 	}
-	if value, ok := bpu.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(billingprofile.FieldDescription, field.TypeString, value)
 	}
-	if bpu.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(billingprofile.FieldDescription, field.TypeString)
 	}
-	if value, ok := bpu.mutation.SupplierAddressCountry(); ok {
+	if value, ok := _u.mutation.SupplierAddressCountry(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressCountry, field.TypeString, value)
 	}
-	if bpu.mutation.SupplierAddressCountryCleared() {
+	if _u.mutation.SupplierAddressCountryCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressCountry, field.TypeString)
 	}
-	if value, ok := bpu.mutation.SupplierAddressPostalCode(); ok {
+	if value, ok := _u.mutation.SupplierAddressPostalCode(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressPostalCode, field.TypeString, value)
 	}
-	if bpu.mutation.SupplierAddressPostalCodeCleared() {
+	if _u.mutation.SupplierAddressPostalCodeCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressPostalCode, field.TypeString)
 	}
-	if value, ok := bpu.mutation.SupplierAddressState(); ok {
+	if value, ok := _u.mutation.SupplierAddressState(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressState, field.TypeString, value)
 	}
-	if bpu.mutation.SupplierAddressStateCleared() {
+	if _u.mutation.SupplierAddressStateCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressState, field.TypeString)
 	}
-	if value, ok := bpu.mutation.SupplierAddressCity(); ok {
+	if value, ok := _u.mutation.SupplierAddressCity(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressCity, field.TypeString, value)
 	}
-	if bpu.mutation.SupplierAddressCityCleared() {
+	if _u.mutation.SupplierAddressCityCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressCity, field.TypeString)
 	}
-	if value, ok := bpu.mutation.SupplierAddressLine1(); ok {
+	if value, ok := _u.mutation.SupplierAddressLine1(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressLine1, field.TypeString, value)
 	}
-	if bpu.mutation.SupplierAddressLine1Cleared() {
+	if _u.mutation.SupplierAddressLine1Cleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressLine1, field.TypeString)
 	}
-	if value, ok := bpu.mutation.SupplierAddressLine2(); ok {
+	if value, ok := _u.mutation.SupplierAddressLine2(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressLine2, field.TypeString, value)
 	}
-	if bpu.mutation.SupplierAddressLine2Cleared() {
+	if _u.mutation.SupplierAddressLine2Cleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressLine2, field.TypeString)
 	}
-	if value, ok := bpu.mutation.SupplierAddressPhoneNumber(); ok {
+	if value, ok := _u.mutation.SupplierAddressPhoneNumber(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressPhoneNumber, field.TypeString, value)
 	}
-	if bpu.mutation.SupplierAddressPhoneNumberCleared() {
+	if _u.mutation.SupplierAddressPhoneNumberCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressPhoneNumber, field.TypeString)
 	}
-	if value, ok := bpu.mutation.Default(); ok {
+	if value, ok := _u.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
 	}
-	if value, ok := bpu.mutation.SupplierName(); ok {
+	if value, ok := _u.mutation.SupplierName(); ok {
 		_spec.SetField(billingprofile.FieldSupplierName, field.TypeString, value)
 	}
-	if value, ok := bpu.mutation.SupplierTaxCode(); ok {
+	if value, ok := _u.mutation.SupplierTaxCode(); ok {
 		_spec.SetField(billingprofile.FieldSupplierTaxCode, field.TypeString, value)
 	}
-	if bpu.mutation.SupplierTaxCodeCleared() {
+	if _u.mutation.SupplierTaxCodeCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierTaxCode, field.TypeString)
 	}
-	if bpu.mutation.BillingInvoicesCleared() {
+	if _u.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -565,7 +565,7 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bpu.mutation.RemovedBillingInvoicesIDs(); len(nodes) > 0 && !bpu.mutation.BillingInvoicesCleared() {
+	if nodes := _u.mutation.RemovedBillingInvoicesIDs(); len(nodes) > 0 && !_u.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -581,7 +581,7 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bpu.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -597,7 +597,7 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if bpu.mutation.BillingCustomerOverrideCleared() {
+	if _u.mutation.BillingCustomerOverrideCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -610,7 +610,7 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bpu.mutation.RemovedBillingCustomerOverrideIDs(); len(nodes) > 0 && !bpu.mutation.BillingCustomerOverrideCleared() {
+	if nodes := _u.mutation.RemovedBillingCustomerOverrideIDs(); len(nodes) > 0 && !_u.mutation.BillingCustomerOverrideCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -626,7 +626,7 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bpu.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -642,7 +642,7 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if bpu.mutation.WorkflowConfigCleared() {
+	if _u.mutation.WorkflowConfigCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
@@ -655,7 +655,7 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bpu.mutation.WorkflowConfigIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.WorkflowConfigIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
@@ -671,7 +671,7 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, bpu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billingprofile.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -679,8 +679,8 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		return 0, err
 	}
-	bpu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // BillingProfileUpdateOne is the builder for updating a single BillingProfile entity.
@@ -692,389 +692,389 @@ type BillingProfileUpdateOne struct {
 }
 
 // SetMetadata sets the "metadata" field.
-func (bpuo *BillingProfileUpdateOne) SetMetadata(m map[string]string) *BillingProfileUpdateOne {
-	bpuo.mutation.SetMetadata(m)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetMetadata(v map[string]string) *BillingProfileUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (bpuo *BillingProfileUpdateOne) ClearMetadata() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearMetadata()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearMetadata() *BillingProfileUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (bpuo *BillingProfileUpdateOne) SetUpdatedAt(t time.Time) *BillingProfileUpdateOne {
-	bpuo.mutation.SetUpdatedAt(t)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetUpdatedAt(v time.Time) *BillingProfileUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (bpuo *BillingProfileUpdateOne) SetDeletedAt(t time.Time) *BillingProfileUpdateOne {
-	bpuo.mutation.SetDeletedAt(t)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetDeletedAt(v time.Time) *BillingProfileUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableDeletedAt(t *time.Time) *BillingProfileUpdateOne {
-	if t != nil {
-		bpuo.SetDeletedAt(*t)
+func (_u *BillingProfileUpdateOne) SetNillableDeletedAt(v *time.Time) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (bpuo *BillingProfileUpdateOne) ClearDeletedAt() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearDeletedAt()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearDeletedAt() *BillingProfileUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (bpuo *BillingProfileUpdateOne) SetName(s string) *BillingProfileUpdateOne {
-	bpuo.mutation.SetName(s)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetName(v string) *BillingProfileUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableName(s *string) *BillingProfileUpdateOne {
-	if s != nil {
-		bpuo.SetName(*s)
+func (_u *BillingProfileUpdateOne) SetNillableName(v *string) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (bpuo *BillingProfileUpdateOne) SetDescription(s string) *BillingProfileUpdateOne {
-	bpuo.mutation.SetDescription(s)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetDescription(v string) *BillingProfileUpdateOne {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableDescription(s *string) *BillingProfileUpdateOne {
-	if s != nil {
-		bpuo.SetDescription(*s)
+func (_u *BillingProfileUpdateOne) SetNillableDescription(v *string) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (bpuo *BillingProfileUpdateOne) ClearDescription() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearDescription()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearDescription() *BillingProfileUpdateOne {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetSupplierAddressCountry sets the "supplier_address_country" field.
-func (bpuo *BillingProfileUpdateOne) SetSupplierAddressCountry(mc models.CountryCode) *BillingProfileUpdateOne {
-	bpuo.mutation.SetSupplierAddressCountry(mc)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetSupplierAddressCountry(v models.CountryCode) *BillingProfileUpdateOne {
+	_u.mutation.SetSupplierAddressCountry(v)
+	return _u
 }
 
 // SetNillableSupplierAddressCountry sets the "supplier_address_country" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableSupplierAddressCountry(mc *models.CountryCode) *BillingProfileUpdateOne {
-	if mc != nil {
-		bpuo.SetSupplierAddressCountry(*mc)
+func (_u *BillingProfileUpdateOne) SetNillableSupplierAddressCountry(v *models.CountryCode) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetSupplierAddressCountry(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // ClearSupplierAddressCountry clears the value of the "supplier_address_country" field.
-func (bpuo *BillingProfileUpdateOne) ClearSupplierAddressCountry() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearSupplierAddressCountry()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearSupplierAddressCountry() *BillingProfileUpdateOne {
+	_u.mutation.ClearSupplierAddressCountry()
+	return _u
 }
 
 // SetSupplierAddressPostalCode sets the "supplier_address_postal_code" field.
-func (bpuo *BillingProfileUpdateOne) SetSupplierAddressPostalCode(s string) *BillingProfileUpdateOne {
-	bpuo.mutation.SetSupplierAddressPostalCode(s)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetSupplierAddressPostalCode(v string) *BillingProfileUpdateOne {
+	_u.mutation.SetSupplierAddressPostalCode(v)
+	return _u
 }
 
 // SetNillableSupplierAddressPostalCode sets the "supplier_address_postal_code" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableSupplierAddressPostalCode(s *string) *BillingProfileUpdateOne {
-	if s != nil {
-		bpuo.SetSupplierAddressPostalCode(*s)
+func (_u *BillingProfileUpdateOne) SetNillableSupplierAddressPostalCode(v *string) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetSupplierAddressPostalCode(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // ClearSupplierAddressPostalCode clears the value of the "supplier_address_postal_code" field.
-func (bpuo *BillingProfileUpdateOne) ClearSupplierAddressPostalCode() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearSupplierAddressPostalCode()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearSupplierAddressPostalCode() *BillingProfileUpdateOne {
+	_u.mutation.ClearSupplierAddressPostalCode()
+	return _u
 }
 
 // SetSupplierAddressState sets the "supplier_address_state" field.
-func (bpuo *BillingProfileUpdateOne) SetSupplierAddressState(s string) *BillingProfileUpdateOne {
-	bpuo.mutation.SetSupplierAddressState(s)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetSupplierAddressState(v string) *BillingProfileUpdateOne {
+	_u.mutation.SetSupplierAddressState(v)
+	return _u
 }
 
 // SetNillableSupplierAddressState sets the "supplier_address_state" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableSupplierAddressState(s *string) *BillingProfileUpdateOne {
-	if s != nil {
-		bpuo.SetSupplierAddressState(*s)
+func (_u *BillingProfileUpdateOne) SetNillableSupplierAddressState(v *string) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetSupplierAddressState(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // ClearSupplierAddressState clears the value of the "supplier_address_state" field.
-func (bpuo *BillingProfileUpdateOne) ClearSupplierAddressState() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearSupplierAddressState()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearSupplierAddressState() *BillingProfileUpdateOne {
+	_u.mutation.ClearSupplierAddressState()
+	return _u
 }
 
 // SetSupplierAddressCity sets the "supplier_address_city" field.
-func (bpuo *BillingProfileUpdateOne) SetSupplierAddressCity(s string) *BillingProfileUpdateOne {
-	bpuo.mutation.SetSupplierAddressCity(s)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetSupplierAddressCity(v string) *BillingProfileUpdateOne {
+	_u.mutation.SetSupplierAddressCity(v)
+	return _u
 }
 
 // SetNillableSupplierAddressCity sets the "supplier_address_city" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableSupplierAddressCity(s *string) *BillingProfileUpdateOne {
-	if s != nil {
-		bpuo.SetSupplierAddressCity(*s)
+func (_u *BillingProfileUpdateOne) SetNillableSupplierAddressCity(v *string) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetSupplierAddressCity(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // ClearSupplierAddressCity clears the value of the "supplier_address_city" field.
-func (bpuo *BillingProfileUpdateOne) ClearSupplierAddressCity() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearSupplierAddressCity()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearSupplierAddressCity() *BillingProfileUpdateOne {
+	_u.mutation.ClearSupplierAddressCity()
+	return _u
 }
 
 // SetSupplierAddressLine1 sets the "supplier_address_line1" field.
-func (bpuo *BillingProfileUpdateOne) SetSupplierAddressLine1(s string) *BillingProfileUpdateOne {
-	bpuo.mutation.SetSupplierAddressLine1(s)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetSupplierAddressLine1(v string) *BillingProfileUpdateOne {
+	_u.mutation.SetSupplierAddressLine1(v)
+	return _u
 }
 
 // SetNillableSupplierAddressLine1 sets the "supplier_address_line1" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableSupplierAddressLine1(s *string) *BillingProfileUpdateOne {
-	if s != nil {
-		bpuo.SetSupplierAddressLine1(*s)
+func (_u *BillingProfileUpdateOne) SetNillableSupplierAddressLine1(v *string) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetSupplierAddressLine1(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // ClearSupplierAddressLine1 clears the value of the "supplier_address_line1" field.
-func (bpuo *BillingProfileUpdateOne) ClearSupplierAddressLine1() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearSupplierAddressLine1()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearSupplierAddressLine1() *BillingProfileUpdateOne {
+	_u.mutation.ClearSupplierAddressLine1()
+	return _u
 }
 
 // SetSupplierAddressLine2 sets the "supplier_address_line2" field.
-func (bpuo *BillingProfileUpdateOne) SetSupplierAddressLine2(s string) *BillingProfileUpdateOne {
-	bpuo.mutation.SetSupplierAddressLine2(s)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetSupplierAddressLine2(v string) *BillingProfileUpdateOne {
+	_u.mutation.SetSupplierAddressLine2(v)
+	return _u
 }
 
 // SetNillableSupplierAddressLine2 sets the "supplier_address_line2" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableSupplierAddressLine2(s *string) *BillingProfileUpdateOne {
-	if s != nil {
-		bpuo.SetSupplierAddressLine2(*s)
+func (_u *BillingProfileUpdateOne) SetNillableSupplierAddressLine2(v *string) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetSupplierAddressLine2(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // ClearSupplierAddressLine2 clears the value of the "supplier_address_line2" field.
-func (bpuo *BillingProfileUpdateOne) ClearSupplierAddressLine2() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearSupplierAddressLine2()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearSupplierAddressLine2() *BillingProfileUpdateOne {
+	_u.mutation.ClearSupplierAddressLine2()
+	return _u
 }
 
 // SetSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field.
-func (bpuo *BillingProfileUpdateOne) SetSupplierAddressPhoneNumber(s string) *BillingProfileUpdateOne {
-	bpuo.mutation.SetSupplierAddressPhoneNumber(s)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetSupplierAddressPhoneNumber(v string) *BillingProfileUpdateOne {
+	_u.mutation.SetSupplierAddressPhoneNumber(v)
+	return _u
 }
 
 // SetNillableSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableSupplierAddressPhoneNumber(s *string) *BillingProfileUpdateOne {
-	if s != nil {
-		bpuo.SetSupplierAddressPhoneNumber(*s)
+func (_u *BillingProfileUpdateOne) SetNillableSupplierAddressPhoneNumber(v *string) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetSupplierAddressPhoneNumber(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // ClearSupplierAddressPhoneNumber clears the value of the "supplier_address_phone_number" field.
-func (bpuo *BillingProfileUpdateOne) ClearSupplierAddressPhoneNumber() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearSupplierAddressPhoneNumber()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearSupplierAddressPhoneNumber() *BillingProfileUpdateOne {
+	_u.mutation.ClearSupplierAddressPhoneNumber()
+	return _u
 }
 
 // SetWorkflowConfigID sets the "workflow_config_id" field.
-func (bpuo *BillingProfileUpdateOne) SetWorkflowConfigID(s string) *BillingProfileUpdateOne {
-	bpuo.mutation.SetWorkflowConfigID(s)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetWorkflowConfigID(v string) *BillingProfileUpdateOne {
+	_u.mutation.SetWorkflowConfigID(v)
+	return _u
 }
 
 // SetNillableWorkflowConfigID sets the "workflow_config_id" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableWorkflowConfigID(s *string) *BillingProfileUpdateOne {
-	if s != nil {
-		bpuo.SetWorkflowConfigID(*s)
+func (_u *BillingProfileUpdateOne) SetNillableWorkflowConfigID(v *string) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetWorkflowConfigID(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // SetDefault sets the "default" field.
-func (bpuo *BillingProfileUpdateOne) SetDefault(b bool) *BillingProfileUpdateOne {
-	bpuo.mutation.SetDefault(b)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetDefault(v bool) *BillingProfileUpdateOne {
+	_u.mutation.SetDefault(v)
+	return _u
 }
 
 // SetNillableDefault sets the "default" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableDefault(b *bool) *BillingProfileUpdateOne {
-	if b != nil {
-		bpuo.SetDefault(*b)
+func (_u *BillingProfileUpdateOne) SetNillableDefault(v *bool) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetDefault(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // SetSupplierName sets the "supplier_name" field.
-func (bpuo *BillingProfileUpdateOne) SetSupplierName(s string) *BillingProfileUpdateOne {
-	bpuo.mutation.SetSupplierName(s)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetSupplierName(v string) *BillingProfileUpdateOne {
+	_u.mutation.SetSupplierName(v)
+	return _u
 }
 
 // SetNillableSupplierName sets the "supplier_name" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableSupplierName(s *string) *BillingProfileUpdateOne {
-	if s != nil {
-		bpuo.SetSupplierName(*s)
+func (_u *BillingProfileUpdateOne) SetNillableSupplierName(v *string) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetSupplierName(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // SetSupplierTaxCode sets the "supplier_tax_code" field.
-func (bpuo *BillingProfileUpdateOne) SetSupplierTaxCode(s string) *BillingProfileUpdateOne {
-	bpuo.mutation.SetSupplierTaxCode(s)
-	return bpuo
+func (_u *BillingProfileUpdateOne) SetSupplierTaxCode(v string) *BillingProfileUpdateOne {
+	_u.mutation.SetSupplierTaxCode(v)
+	return _u
 }
 
 // SetNillableSupplierTaxCode sets the "supplier_tax_code" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableSupplierTaxCode(s *string) *BillingProfileUpdateOne {
-	if s != nil {
-		bpuo.SetSupplierTaxCode(*s)
+func (_u *BillingProfileUpdateOne) SetNillableSupplierTaxCode(v *string) *BillingProfileUpdateOne {
+	if v != nil {
+		_u.SetSupplierTaxCode(*v)
 	}
-	return bpuo
+	return _u
 }
 
 // ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
-func (bpuo *BillingProfileUpdateOne) ClearSupplierTaxCode() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearSupplierTaxCode()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearSupplierTaxCode() *BillingProfileUpdateOne {
+	_u.mutation.ClearSupplierTaxCode()
+	return _u
 }
 
 // AddBillingInvoiceIDs adds the "billing_invoices" edge to the BillingInvoice entity by IDs.
-func (bpuo *BillingProfileUpdateOne) AddBillingInvoiceIDs(ids ...string) *BillingProfileUpdateOne {
-	bpuo.mutation.AddBillingInvoiceIDs(ids...)
-	return bpuo
+func (_u *BillingProfileUpdateOne) AddBillingInvoiceIDs(ids ...string) *BillingProfileUpdateOne {
+	_u.mutation.AddBillingInvoiceIDs(ids...)
+	return _u
 }
 
 // AddBillingInvoices adds the "billing_invoices" edges to the BillingInvoice entity.
-func (bpuo *BillingProfileUpdateOne) AddBillingInvoices(b ...*BillingInvoice) *BillingProfileUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *BillingProfileUpdateOne) AddBillingInvoices(v ...*BillingInvoice) *BillingProfileUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return bpuo.AddBillingInvoiceIDs(ids...)
+	return _u.AddBillingInvoiceIDs(ids...)
 }
 
 // AddBillingCustomerOverrideIDs adds the "billing_customer_override" edge to the BillingCustomerOverride entity by IDs.
-func (bpuo *BillingProfileUpdateOne) AddBillingCustomerOverrideIDs(ids ...string) *BillingProfileUpdateOne {
-	bpuo.mutation.AddBillingCustomerOverrideIDs(ids...)
-	return bpuo
+func (_u *BillingProfileUpdateOne) AddBillingCustomerOverrideIDs(ids ...string) *BillingProfileUpdateOne {
+	_u.mutation.AddBillingCustomerOverrideIDs(ids...)
+	return _u
 }
 
 // AddBillingCustomerOverride adds the "billing_customer_override" edges to the BillingCustomerOverride entity.
-func (bpuo *BillingProfileUpdateOne) AddBillingCustomerOverride(b ...*BillingCustomerOverride) *BillingProfileUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *BillingProfileUpdateOne) AddBillingCustomerOverride(v ...*BillingCustomerOverride) *BillingProfileUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return bpuo.AddBillingCustomerOverrideIDs(ids...)
+	return _u.AddBillingCustomerOverrideIDs(ids...)
 }
 
 // SetWorkflowConfig sets the "workflow_config" edge to the BillingWorkflowConfig entity.
-func (bpuo *BillingProfileUpdateOne) SetWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileUpdateOne {
-	return bpuo.SetWorkflowConfigID(b.ID)
+func (_u *BillingProfileUpdateOne) SetWorkflowConfig(v *BillingWorkflowConfig) *BillingProfileUpdateOne {
+	return _u.SetWorkflowConfigID(v.ID)
 }
 
 // Mutation returns the BillingProfileMutation object of the builder.
-func (bpuo *BillingProfileUpdateOne) Mutation() *BillingProfileMutation {
-	return bpuo.mutation
+func (_u *BillingProfileUpdateOne) Mutation() *BillingProfileMutation {
+	return _u.mutation
 }
 
 // ClearBillingInvoices clears all "billing_invoices" edges to the BillingInvoice entity.
-func (bpuo *BillingProfileUpdateOne) ClearBillingInvoices() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearBillingInvoices()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearBillingInvoices() *BillingProfileUpdateOne {
+	_u.mutation.ClearBillingInvoices()
+	return _u
 }
 
 // RemoveBillingInvoiceIDs removes the "billing_invoices" edge to BillingInvoice entities by IDs.
-func (bpuo *BillingProfileUpdateOne) RemoveBillingInvoiceIDs(ids ...string) *BillingProfileUpdateOne {
-	bpuo.mutation.RemoveBillingInvoiceIDs(ids...)
-	return bpuo
+func (_u *BillingProfileUpdateOne) RemoveBillingInvoiceIDs(ids ...string) *BillingProfileUpdateOne {
+	_u.mutation.RemoveBillingInvoiceIDs(ids...)
+	return _u
 }
 
 // RemoveBillingInvoices removes "billing_invoices" edges to BillingInvoice entities.
-func (bpuo *BillingProfileUpdateOne) RemoveBillingInvoices(b ...*BillingInvoice) *BillingProfileUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *BillingProfileUpdateOne) RemoveBillingInvoices(v ...*BillingInvoice) *BillingProfileUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return bpuo.RemoveBillingInvoiceIDs(ids...)
+	return _u.RemoveBillingInvoiceIDs(ids...)
 }
 
 // ClearBillingCustomerOverride clears all "billing_customer_override" edges to the BillingCustomerOverride entity.
-func (bpuo *BillingProfileUpdateOne) ClearBillingCustomerOverride() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearBillingCustomerOverride()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearBillingCustomerOverride() *BillingProfileUpdateOne {
+	_u.mutation.ClearBillingCustomerOverride()
+	return _u
 }
 
 // RemoveBillingCustomerOverrideIDs removes the "billing_customer_override" edge to BillingCustomerOverride entities by IDs.
-func (bpuo *BillingProfileUpdateOne) RemoveBillingCustomerOverrideIDs(ids ...string) *BillingProfileUpdateOne {
-	bpuo.mutation.RemoveBillingCustomerOverrideIDs(ids...)
-	return bpuo
+func (_u *BillingProfileUpdateOne) RemoveBillingCustomerOverrideIDs(ids ...string) *BillingProfileUpdateOne {
+	_u.mutation.RemoveBillingCustomerOverrideIDs(ids...)
+	return _u
 }
 
 // RemoveBillingCustomerOverride removes "billing_customer_override" edges to BillingCustomerOverride entities.
-func (bpuo *BillingProfileUpdateOne) RemoveBillingCustomerOverride(b ...*BillingCustomerOverride) *BillingProfileUpdateOne {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *BillingProfileUpdateOne) RemoveBillingCustomerOverride(v ...*BillingCustomerOverride) *BillingProfileUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return bpuo.RemoveBillingCustomerOverrideIDs(ids...)
+	return _u.RemoveBillingCustomerOverrideIDs(ids...)
 }
 
 // ClearWorkflowConfig clears the "workflow_config" edge to the BillingWorkflowConfig entity.
-func (bpuo *BillingProfileUpdateOne) ClearWorkflowConfig() *BillingProfileUpdateOne {
-	bpuo.mutation.ClearWorkflowConfig()
-	return bpuo
+func (_u *BillingProfileUpdateOne) ClearWorkflowConfig() *BillingProfileUpdateOne {
+	_u.mutation.ClearWorkflowConfig()
+	return _u
 }
 
 // Where appends a list predicates to the BillingProfileUpdate builder.
-func (bpuo *BillingProfileUpdateOne) Where(ps ...predicate.BillingProfile) *BillingProfileUpdateOne {
-	bpuo.mutation.Where(ps...)
-	return bpuo
+func (_u *BillingProfileUpdateOne) Where(ps ...predicate.BillingProfile) *BillingProfileUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (bpuo *BillingProfileUpdateOne) Select(field string, fields ...string) *BillingProfileUpdateOne {
-	bpuo.fields = append([]string{field}, fields...)
-	return bpuo
+func (_u *BillingProfileUpdateOne) Select(field string, fields ...string) *BillingProfileUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated BillingProfile entity.
-func (bpuo *BillingProfileUpdateOne) Save(ctx context.Context) (*BillingProfile, error) {
-	bpuo.defaults()
-	return withHooks(ctx, bpuo.sqlSave, bpuo.mutation, bpuo.hooks)
+func (_u *BillingProfileUpdateOne) Save(ctx context.Context) (*BillingProfile, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bpuo *BillingProfileUpdateOne) SaveX(ctx context.Context) *BillingProfile {
-	node, err := bpuo.Save(ctx)
+func (_u *BillingProfileUpdateOne) SaveX(ctx context.Context) *BillingProfile {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1082,69 +1082,69 @@ func (bpuo *BillingProfileUpdateOne) SaveX(ctx context.Context) *BillingProfile 
 }
 
 // Exec executes the query on the entity.
-func (bpuo *BillingProfileUpdateOne) Exec(ctx context.Context) error {
-	_, err := bpuo.Save(ctx)
+func (_u *BillingProfileUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bpuo *BillingProfileUpdateOne) ExecX(ctx context.Context) {
-	if err := bpuo.Exec(ctx); err != nil {
+func (_u *BillingProfileUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bpuo *BillingProfileUpdateOne) defaults() {
-	if _, ok := bpuo.mutation.UpdatedAt(); !ok {
+func (_u *BillingProfileUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := billingprofile.UpdateDefaultUpdatedAt()
-		bpuo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bpuo *BillingProfileUpdateOne) check() error {
-	if v, ok := bpuo.mutation.SupplierAddressCountry(); ok {
+func (_u *BillingProfileUpdateOne) check() error {
+	if v, ok := _u.mutation.SupplierAddressCountry(); ok {
 		if err := billingprofile.SupplierAddressCountryValidator(string(v)); err != nil {
 			return &ValidationError{Name: "supplier_address_country", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_address_country": %w`, err)}
 		}
 	}
-	if v, ok := bpuo.mutation.WorkflowConfigID(); ok {
+	if v, ok := _u.mutation.WorkflowConfigID(); ok {
 		if err := billingprofile.WorkflowConfigIDValidator(v); err != nil {
 			return &ValidationError{Name: "workflow_config_id", err: fmt.Errorf(`db: validator failed for field "BillingProfile.workflow_config_id": %w`, err)}
 		}
 	}
-	if v, ok := bpuo.mutation.SupplierName(); ok {
+	if v, ok := _u.mutation.SupplierName(); ok {
 		if err := billingprofile.SupplierNameValidator(v); err != nil {
 			return &ValidationError{Name: "supplier_name", err: fmt.Errorf(`db: validator failed for field "BillingProfile.supplier_name": %w`, err)}
 		}
 	}
-	if bpuo.mutation.WorkflowConfigCleared() && len(bpuo.mutation.WorkflowConfigIDs()) > 0 {
+	if _u.mutation.WorkflowConfigCleared() && len(_u.mutation.WorkflowConfigIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingProfile.workflow_config"`)
 	}
-	if bpuo.mutation.TaxAppCleared() && len(bpuo.mutation.TaxAppIDs()) > 0 {
+	if _u.mutation.TaxAppCleared() && len(_u.mutation.TaxAppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingProfile.tax_app"`)
 	}
-	if bpuo.mutation.InvoicingAppCleared() && len(bpuo.mutation.InvoicingAppIDs()) > 0 {
+	if _u.mutation.InvoicingAppCleared() && len(_u.mutation.InvoicingAppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingProfile.invoicing_app"`)
 	}
-	if bpuo.mutation.PaymentAppCleared() && len(bpuo.mutation.PaymentAppIDs()) > 0 {
+	if _u.mutation.PaymentAppCleared() && len(_u.mutation.PaymentAppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingProfile.payment_app"`)
 	}
 	return nil
 }
 
-func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *BillingProfile, err error) {
-	if err := bpuo.check(); err != nil {
+func (_u *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *BillingProfile, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(billingprofile.Table, billingprofile.Columns, sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString))
-	id, ok := bpuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "BillingProfile.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := bpuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billingprofile.FieldID)
 		for _, f := range fields {
@@ -1156,92 +1156,92 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 			}
 		}
 	}
-	if ps := bpuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := bpuo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(billingprofile.FieldMetadata, field.TypeJSON, value)
 	}
-	if bpuo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(billingprofile.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := bpuo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(billingprofile.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := bpuo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(billingprofile.FieldDeletedAt, field.TypeTime, value)
 	}
-	if bpuo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingprofile.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bpuo.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(billingprofile.FieldName, field.TypeString, value)
 	}
-	if value, ok := bpuo.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(billingprofile.FieldDescription, field.TypeString, value)
 	}
-	if bpuo.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(billingprofile.FieldDescription, field.TypeString)
 	}
-	if value, ok := bpuo.mutation.SupplierAddressCountry(); ok {
+	if value, ok := _u.mutation.SupplierAddressCountry(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressCountry, field.TypeString, value)
 	}
-	if bpuo.mutation.SupplierAddressCountryCleared() {
+	if _u.mutation.SupplierAddressCountryCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressCountry, field.TypeString)
 	}
-	if value, ok := bpuo.mutation.SupplierAddressPostalCode(); ok {
+	if value, ok := _u.mutation.SupplierAddressPostalCode(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressPostalCode, field.TypeString, value)
 	}
-	if bpuo.mutation.SupplierAddressPostalCodeCleared() {
+	if _u.mutation.SupplierAddressPostalCodeCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressPostalCode, field.TypeString)
 	}
-	if value, ok := bpuo.mutation.SupplierAddressState(); ok {
+	if value, ok := _u.mutation.SupplierAddressState(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressState, field.TypeString, value)
 	}
-	if bpuo.mutation.SupplierAddressStateCleared() {
+	if _u.mutation.SupplierAddressStateCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressState, field.TypeString)
 	}
-	if value, ok := bpuo.mutation.SupplierAddressCity(); ok {
+	if value, ok := _u.mutation.SupplierAddressCity(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressCity, field.TypeString, value)
 	}
-	if bpuo.mutation.SupplierAddressCityCleared() {
+	if _u.mutation.SupplierAddressCityCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressCity, field.TypeString)
 	}
-	if value, ok := bpuo.mutation.SupplierAddressLine1(); ok {
+	if value, ok := _u.mutation.SupplierAddressLine1(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressLine1, field.TypeString, value)
 	}
-	if bpuo.mutation.SupplierAddressLine1Cleared() {
+	if _u.mutation.SupplierAddressLine1Cleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressLine1, field.TypeString)
 	}
-	if value, ok := bpuo.mutation.SupplierAddressLine2(); ok {
+	if value, ok := _u.mutation.SupplierAddressLine2(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressLine2, field.TypeString, value)
 	}
-	if bpuo.mutation.SupplierAddressLine2Cleared() {
+	if _u.mutation.SupplierAddressLine2Cleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressLine2, field.TypeString)
 	}
-	if value, ok := bpuo.mutation.SupplierAddressPhoneNumber(); ok {
+	if value, ok := _u.mutation.SupplierAddressPhoneNumber(); ok {
 		_spec.SetField(billingprofile.FieldSupplierAddressPhoneNumber, field.TypeString, value)
 	}
-	if bpuo.mutation.SupplierAddressPhoneNumberCleared() {
+	if _u.mutation.SupplierAddressPhoneNumberCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierAddressPhoneNumber, field.TypeString)
 	}
-	if value, ok := bpuo.mutation.Default(); ok {
+	if value, ok := _u.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
 	}
-	if value, ok := bpuo.mutation.SupplierName(); ok {
+	if value, ok := _u.mutation.SupplierName(); ok {
 		_spec.SetField(billingprofile.FieldSupplierName, field.TypeString, value)
 	}
-	if value, ok := bpuo.mutation.SupplierTaxCode(); ok {
+	if value, ok := _u.mutation.SupplierTaxCode(); ok {
 		_spec.SetField(billingprofile.FieldSupplierTaxCode, field.TypeString, value)
 	}
-	if bpuo.mutation.SupplierTaxCodeCleared() {
+	if _u.mutation.SupplierTaxCodeCleared() {
 		_spec.ClearField(billingprofile.FieldSupplierTaxCode, field.TypeString)
 	}
-	if bpuo.mutation.BillingInvoicesCleared() {
+	if _u.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1254,7 +1254,7 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bpuo.mutation.RemovedBillingInvoicesIDs(); len(nodes) > 0 && !bpuo.mutation.BillingInvoicesCleared() {
+	if nodes := _u.mutation.RemovedBillingInvoicesIDs(); len(nodes) > 0 && !_u.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1270,7 +1270,7 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bpuo.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1286,7 +1286,7 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if bpuo.mutation.BillingCustomerOverrideCleared() {
+	if _u.mutation.BillingCustomerOverrideCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1299,7 +1299,7 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bpuo.mutation.RemovedBillingCustomerOverrideIDs(); len(nodes) > 0 && !bpuo.mutation.BillingCustomerOverrideCleared() {
+	if nodes := _u.mutation.RemovedBillingCustomerOverrideIDs(); len(nodes) > 0 && !_u.mutation.BillingCustomerOverrideCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1315,7 +1315,7 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bpuo.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingCustomerOverrideIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1331,7 +1331,7 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if bpuo.mutation.WorkflowConfigCleared() {
+	if _u.mutation.WorkflowConfigCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
@@ -1344,7 +1344,7 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bpuo.mutation.WorkflowConfigIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.WorkflowConfigIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
@@ -1360,10 +1360,10 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &BillingProfile{config: bpuo.config}
+	_node = &BillingProfile{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, bpuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billingprofile.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -1371,6 +1371,6 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 		}
 		return nil, err
 	}
-	bpuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

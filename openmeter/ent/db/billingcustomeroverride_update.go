@@ -27,242 +27,242 @@ type BillingCustomerOverrideUpdate struct {
 }
 
 // Where appends a list predicates to the BillingCustomerOverrideUpdate builder.
-func (bcou *BillingCustomerOverrideUpdate) Where(ps ...predicate.BillingCustomerOverride) *BillingCustomerOverrideUpdate {
-	bcou.mutation.Where(ps...)
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) Where(ps ...predicate.BillingCustomerOverride) *BillingCustomerOverrideUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (bcou *BillingCustomerOverrideUpdate) SetUpdatedAt(t time.Time) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetUpdatedAt(t)
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) SetUpdatedAt(v time.Time) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (bcou *BillingCustomerOverrideUpdate) SetDeletedAt(t time.Time) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetDeletedAt(t)
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) SetDeletedAt(v time.Time) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableDeletedAt(t *time.Time) *BillingCustomerOverrideUpdate {
-	if t != nil {
-		bcou.SetDeletedAt(*t)
+func (_u *BillingCustomerOverrideUpdate) SetNillableDeletedAt(v *time.Time) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return bcou
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearDeletedAt() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearDeletedAt()
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) ClearDeletedAt() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetBillingProfileID sets the "billing_profile_id" field.
-func (bcou *BillingCustomerOverrideUpdate) SetBillingProfileID(s string) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetBillingProfileID(s)
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) SetBillingProfileID(v string) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetBillingProfileID(v)
+	return _u
 }
 
 // SetNillableBillingProfileID sets the "billing_profile_id" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableBillingProfileID(s *string) *BillingCustomerOverrideUpdate {
-	if s != nil {
-		bcou.SetBillingProfileID(*s)
+func (_u *BillingCustomerOverrideUpdate) SetNillableBillingProfileID(v *string) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetBillingProfileID(*v)
 	}
-	return bcou
+	return _u
 }
 
 // ClearBillingProfileID clears the value of the "billing_profile_id" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearBillingProfileID() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearBillingProfileID()
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) ClearBillingProfileID() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearBillingProfileID()
+	return _u
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (bcou *BillingCustomerOverrideUpdate) SetCollectionAlignment(bk billing.AlignmentKind) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetCollectionAlignment(bk)
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) SetCollectionAlignment(v billing.AlignmentKind) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetCollectionAlignment(v)
+	return _u
 }
 
 // SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingCustomerOverrideUpdate {
-	if bk != nil {
-		bcou.SetCollectionAlignment(*bk)
+func (_u *BillingCustomerOverrideUpdate) SetNillableCollectionAlignment(v *billing.AlignmentKind) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetCollectionAlignment(*v)
 	}
-	return bcou
+	return _u
 }
 
 // ClearCollectionAlignment clears the value of the "collection_alignment" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearCollectionAlignment() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearCollectionAlignment()
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) ClearCollectionAlignment() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearCollectionAlignment()
+	return _u
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (bcou *BillingCustomerOverrideUpdate) SetLineCollectionPeriod(i isodate.String) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetLineCollectionPeriod(i)
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) SetLineCollectionPeriod(v isodate.String) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetLineCollectionPeriod(v)
+	return _u
 }
 
 // SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableLineCollectionPeriod(i *isodate.String) *BillingCustomerOverrideUpdate {
-	if i != nil {
-		bcou.SetLineCollectionPeriod(*i)
+func (_u *BillingCustomerOverrideUpdate) SetNillableLineCollectionPeriod(v *isodate.String) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetLineCollectionPeriod(*v)
 	}
-	return bcou
+	return _u
 }
 
 // ClearLineCollectionPeriod clears the value of the "line_collection_period" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearLineCollectionPeriod() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearLineCollectionPeriod()
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) ClearLineCollectionPeriod() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearLineCollectionPeriod()
+	return _u
 }
 
 // SetInvoiceAutoAdvance sets the "invoice_auto_advance" field.
-func (bcou *BillingCustomerOverrideUpdate) SetInvoiceAutoAdvance(b bool) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetInvoiceAutoAdvance(b)
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) SetInvoiceAutoAdvance(v bool) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetInvoiceAutoAdvance(v)
+	return _u
 }
 
 // SetNillableInvoiceAutoAdvance sets the "invoice_auto_advance" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceAutoAdvance(b *bool) *BillingCustomerOverrideUpdate {
-	if b != nil {
-		bcou.SetInvoiceAutoAdvance(*b)
+func (_u *BillingCustomerOverrideUpdate) SetNillableInvoiceAutoAdvance(v *bool) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetInvoiceAutoAdvance(*v)
 	}
-	return bcou
+	return _u
 }
 
 // ClearInvoiceAutoAdvance clears the value of the "invoice_auto_advance" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceAutoAdvance() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearInvoiceAutoAdvance()
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) ClearInvoiceAutoAdvance() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearInvoiceAutoAdvance()
+	return _u
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (bcou *BillingCustomerOverrideUpdate) SetInvoiceDraftPeriod(i isodate.String) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetInvoiceDraftPeriod(i)
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) SetInvoiceDraftPeriod(v isodate.String) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetInvoiceDraftPeriod(v)
+	return _u
 }
 
 // SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceDraftPeriod(i *isodate.String) *BillingCustomerOverrideUpdate {
-	if i != nil {
-		bcou.SetInvoiceDraftPeriod(*i)
+func (_u *BillingCustomerOverrideUpdate) SetNillableInvoiceDraftPeriod(v *isodate.String) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetInvoiceDraftPeriod(*v)
 	}
-	return bcou
+	return _u
 }
 
 // ClearInvoiceDraftPeriod clears the value of the "invoice_draft_period" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceDraftPeriod() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearInvoiceDraftPeriod()
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) ClearInvoiceDraftPeriod() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearInvoiceDraftPeriod()
+	return _u
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (bcou *BillingCustomerOverrideUpdate) SetInvoiceDueAfter(i isodate.String) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetInvoiceDueAfter(i)
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) SetInvoiceDueAfter(v isodate.String) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetInvoiceDueAfter(v)
+	return _u
 }
 
 // SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceDueAfter(i *isodate.String) *BillingCustomerOverrideUpdate {
-	if i != nil {
-		bcou.SetInvoiceDueAfter(*i)
+func (_u *BillingCustomerOverrideUpdate) SetNillableInvoiceDueAfter(v *isodate.String) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetInvoiceDueAfter(*v)
 	}
-	return bcou
+	return _u
 }
 
 // ClearInvoiceDueAfter clears the value of the "invoice_due_after" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceDueAfter() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearInvoiceDueAfter()
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) ClearInvoiceDueAfter() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearInvoiceDueAfter()
+	return _u
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (bcou *BillingCustomerOverrideUpdate) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetInvoiceCollectionMethod(bm)
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) SetInvoiceCollectionMethod(v billing.CollectionMethod) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetInvoiceCollectionMethod(v)
+	return _u
 }
 
 // SetNillableInvoiceCollectionMethod sets the "invoice_collection_method" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceCollectionMethod(bm *billing.CollectionMethod) *BillingCustomerOverrideUpdate {
-	if bm != nil {
-		bcou.SetInvoiceCollectionMethod(*bm)
+func (_u *BillingCustomerOverrideUpdate) SetNillableInvoiceCollectionMethod(v *billing.CollectionMethod) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetInvoiceCollectionMethod(*v)
 	}
-	return bcou
+	return _u
 }
 
 // ClearInvoiceCollectionMethod clears the value of the "invoice_collection_method" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceCollectionMethod() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearInvoiceCollectionMethod()
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) ClearInvoiceCollectionMethod() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearInvoiceCollectionMethod()
+	return _u
 }
 
 // SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
-func (bcou *BillingCustomerOverrideUpdate) SetInvoiceProgressiveBilling(b bool) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetInvoiceProgressiveBilling(b)
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) SetInvoiceProgressiveBilling(v bool) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetInvoiceProgressiveBilling(v)
+	return _u
 }
 
 // SetNillableInvoiceProgressiveBilling sets the "invoice_progressive_billing" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceProgressiveBilling(b *bool) *BillingCustomerOverrideUpdate {
-	if b != nil {
-		bcou.SetInvoiceProgressiveBilling(*b)
+func (_u *BillingCustomerOverrideUpdate) SetNillableInvoiceProgressiveBilling(v *bool) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetInvoiceProgressiveBilling(*v)
 	}
-	return bcou
+	return _u
 }
 
 // ClearInvoiceProgressiveBilling clears the value of the "invoice_progressive_billing" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceProgressiveBilling() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearInvoiceProgressiveBilling()
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) ClearInvoiceProgressiveBilling() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearInvoiceProgressiveBilling()
+	return _u
 }
 
 // SetInvoiceDefaultTaxConfig sets the "invoice_default_tax_config" field.
-func (bcou *BillingCustomerOverrideUpdate) SetInvoiceDefaultTaxConfig(pc productcatalog.TaxConfig) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetInvoiceDefaultTaxConfig(pc)
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) SetInvoiceDefaultTaxConfig(v productcatalog.TaxConfig) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetInvoiceDefaultTaxConfig(v)
+	return _u
 }
 
 // SetNillableInvoiceDefaultTaxConfig sets the "invoice_default_tax_config" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceDefaultTaxConfig(pc *productcatalog.TaxConfig) *BillingCustomerOverrideUpdate {
-	if pc != nil {
-		bcou.SetInvoiceDefaultTaxConfig(*pc)
+func (_u *BillingCustomerOverrideUpdate) SetNillableInvoiceDefaultTaxConfig(v *productcatalog.TaxConfig) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetInvoiceDefaultTaxConfig(*v)
 	}
-	return bcou
+	return _u
 }
 
 // ClearInvoiceDefaultTaxConfig clears the value of the "invoice_default_tax_config" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceDefaultTaxConfig() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearInvoiceDefaultTaxConfig()
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) ClearInvoiceDefaultTaxConfig() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearInvoiceDefaultTaxConfig()
+	return _u
 }
 
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
-func (bcou *BillingCustomerOverrideUpdate) SetBillingProfile(b *BillingProfile) *BillingCustomerOverrideUpdate {
-	return bcou.SetBillingProfileID(b.ID)
+func (_u *BillingCustomerOverrideUpdate) SetBillingProfile(v *BillingProfile) *BillingCustomerOverrideUpdate {
+	return _u.SetBillingProfileID(v.ID)
 }
 
 // Mutation returns the BillingCustomerOverrideMutation object of the builder.
-func (bcou *BillingCustomerOverrideUpdate) Mutation() *BillingCustomerOverrideMutation {
-	return bcou.mutation
+func (_u *BillingCustomerOverrideUpdate) Mutation() *BillingCustomerOverrideMutation {
+	return _u.mutation
 }
 
 // ClearBillingProfile clears the "billing_profile" edge to the BillingProfile entity.
-func (bcou *BillingCustomerOverrideUpdate) ClearBillingProfile() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearBillingProfile()
-	return bcou
+func (_u *BillingCustomerOverrideUpdate) ClearBillingProfile() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearBillingProfile()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (bcou *BillingCustomerOverrideUpdate) Save(ctx context.Context) (int, error) {
-	bcou.defaults()
-	return withHooks(ctx, bcou.sqlSave, bcou.mutation, bcou.hooks)
+func (_u *BillingCustomerOverrideUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bcou *BillingCustomerOverrideUpdate) SaveX(ctx context.Context) int {
-	affected, err := bcou.Save(ctx)
+func (_u *BillingCustomerOverrideUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -270,119 +270,119 @@ func (bcou *BillingCustomerOverrideUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (bcou *BillingCustomerOverrideUpdate) Exec(ctx context.Context) error {
-	_, err := bcou.Save(ctx)
+func (_u *BillingCustomerOverrideUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bcou *BillingCustomerOverrideUpdate) ExecX(ctx context.Context) {
-	if err := bcou.Exec(ctx); err != nil {
+func (_u *BillingCustomerOverrideUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bcou *BillingCustomerOverrideUpdate) defaults() {
-	if _, ok := bcou.mutation.UpdatedAt(); !ok {
+func (_u *BillingCustomerOverrideUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := billingcustomeroverride.UpdateDefaultUpdatedAt()
-		bcou.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bcou *BillingCustomerOverrideUpdate) check() error {
-	if v, ok := bcou.mutation.CollectionAlignment(); ok {
+func (_u *BillingCustomerOverrideUpdate) check() error {
+	if v, ok := _u.mutation.CollectionAlignment(); ok {
 		if err := billingcustomeroverride.CollectionAlignmentValidator(v); err != nil {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.collection_alignment": %w`, err)}
 		}
 	}
-	if v, ok := bcou.mutation.InvoiceCollectionMethod(); ok {
+	if v, ok := _u.mutation.InvoiceCollectionMethod(); ok {
 		if err := billingcustomeroverride.InvoiceCollectionMethodValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bcou.mutation.InvoiceDefaultTaxConfig(); ok {
+	if v, ok := _u.mutation.InvoiceDefaultTaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "invoice_default_tax_config", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_default_tax_config": %w`, err)}
 		}
 	}
-	if bcou.mutation.CustomerCleared() && len(bcou.mutation.CustomerIDs()) > 0 {
+	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingCustomerOverride.customer"`)
 	}
 	return nil
 }
 
-func (bcou *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := bcou.check(); err != nil {
-		return n, err
+func (_u *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(billingcustomeroverride.Table, billingcustomeroverride.Columns, sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString))
-	if ps := bcou.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := bcou.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(billingcustomeroverride.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := bcou.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(billingcustomeroverride.FieldDeletedAt, field.TypeTime, value)
 	}
-	if bcou.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bcou.mutation.CollectionAlignment(); ok {
+	if value, ok := _u.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum, value)
 	}
-	if bcou.mutation.CollectionAlignmentCleared() {
+	if _u.mutation.CollectionAlignmentCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum)
 	}
-	if value, ok := bcou.mutation.LineCollectionPeriod(); ok {
+	if value, ok := _u.mutation.LineCollectionPeriod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldLineCollectionPeriod, field.TypeString, value)
 	}
-	if bcou.mutation.LineCollectionPeriodCleared() {
+	if _u.mutation.LineCollectionPeriodCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldLineCollectionPeriod, field.TypeString)
 	}
-	if value, ok := bcou.mutation.InvoiceAutoAdvance(); ok {
+	if value, ok := _u.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool, value)
 	}
-	if bcou.mutation.InvoiceAutoAdvanceCleared() {
+	if _u.mutation.InvoiceAutoAdvanceCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool)
 	}
-	if value, ok := bcou.mutation.InvoiceDraftPeriod(); ok {
+	if value, ok := _u.mutation.InvoiceDraftPeriod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceDraftPeriod, field.TypeString, value)
 	}
-	if bcou.mutation.InvoiceDraftPeriodCleared() {
+	if _u.mutation.InvoiceDraftPeriodCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceDraftPeriod, field.TypeString)
 	}
-	if value, ok := bcou.mutation.InvoiceDueAfter(); ok {
+	if value, ok := _u.mutation.InvoiceDueAfter(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceDueAfter, field.TypeString, value)
 	}
-	if bcou.mutation.InvoiceDueAfterCleared() {
+	if _u.mutation.InvoiceDueAfterCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceDueAfter, field.TypeString)
 	}
-	if value, ok := bcou.mutation.InvoiceCollectionMethod(); ok {
+	if value, ok := _u.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceCollectionMethod, field.TypeEnum, value)
 	}
-	if bcou.mutation.InvoiceCollectionMethodCleared() {
+	if _u.mutation.InvoiceCollectionMethodCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceCollectionMethod, field.TypeEnum)
 	}
-	if value, ok := bcou.mutation.InvoiceProgressiveBilling(); ok {
+	if value, ok := _u.mutation.InvoiceProgressiveBilling(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool, value)
 	}
-	if bcou.mutation.InvoiceProgressiveBillingCleared() {
+	if _u.mutation.InvoiceProgressiveBillingCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool)
 	}
-	if value, ok := bcou.mutation.InvoiceDefaultTaxConfig(); ok {
+	if value, ok := _u.mutation.InvoiceDefaultTaxConfig(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON, value)
 	}
-	if bcou.mutation.InvoiceDefaultTaxConfigCleared() {
+	if _u.mutation.InvoiceDefaultTaxConfigCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON)
 	}
-	if bcou.mutation.BillingProfileCleared() {
+	if _u.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -395,7 +395,7 @@ func (bcou *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (n int, 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bcou.mutation.BillingProfileIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -411,7 +411,7 @@ func (bcou *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (n int, 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, bcou.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billingcustomeroverride.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -419,8 +419,8 @@ func (bcou *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (n int, 
 		}
 		return 0, err
 	}
-	bcou.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // BillingCustomerOverrideUpdateOne is the builder for updating a single BillingCustomerOverride entity.
@@ -432,249 +432,249 @@ type BillingCustomerOverrideUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetUpdatedAt(t time.Time) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetUpdatedAt(t)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) SetUpdatedAt(v time.Time) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetDeletedAt(t time.Time) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetDeletedAt(t)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) SetDeletedAt(v time.Time) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableDeletedAt(t *time.Time) *BillingCustomerOverrideUpdateOne {
-	if t != nil {
-		bcouo.SetDeletedAt(*t)
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableDeletedAt(v *time.Time) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return bcouo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearDeletedAt() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearDeletedAt()
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) ClearDeletedAt() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetBillingProfileID sets the "billing_profile_id" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetBillingProfileID(s string) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetBillingProfileID(s)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) SetBillingProfileID(v string) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetBillingProfileID(v)
+	return _u
 }
 
 // SetNillableBillingProfileID sets the "billing_profile_id" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableBillingProfileID(s *string) *BillingCustomerOverrideUpdateOne {
-	if s != nil {
-		bcouo.SetBillingProfileID(*s)
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableBillingProfileID(v *string) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetBillingProfileID(*v)
 	}
-	return bcouo
+	return _u
 }
 
 // ClearBillingProfileID clears the value of the "billing_profile_id" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearBillingProfileID() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearBillingProfileID()
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) ClearBillingProfileID() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearBillingProfileID()
+	return _u
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetCollectionAlignment(bk billing.AlignmentKind) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetCollectionAlignment(bk)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) SetCollectionAlignment(v billing.AlignmentKind) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetCollectionAlignment(v)
+	return _u
 }
 
 // SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingCustomerOverrideUpdateOne {
-	if bk != nil {
-		bcouo.SetCollectionAlignment(*bk)
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableCollectionAlignment(v *billing.AlignmentKind) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetCollectionAlignment(*v)
 	}
-	return bcouo
+	return _u
 }
 
 // ClearCollectionAlignment clears the value of the "collection_alignment" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearCollectionAlignment() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearCollectionAlignment()
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) ClearCollectionAlignment() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearCollectionAlignment()
+	return _u
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetLineCollectionPeriod(i isodate.String) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetLineCollectionPeriod(i)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) SetLineCollectionPeriod(v isodate.String) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetLineCollectionPeriod(v)
+	return _u
 }
 
 // SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableLineCollectionPeriod(i *isodate.String) *BillingCustomerOverrideUpdateOne {
-	if i != nil {
-		bcouo.SetLineCollectionPeriod(*i)
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableLineCollectionPeriod(v *isodate.String) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetLineCollectionPeriod(*v)
 	}
-	return bcouo
+	return _u
 }
 
 // ClearLineCollectionPeriod clears the value of the "line_collection_period" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearLineCollectionPeriod() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearLineCollectionPeriod()
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) ClearLineCollectionPeriod() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearLineCollectionPeriod()
+	return _u
 }
 
 // SetInvoiceAutoAdvance sets the "invoice_auto_advance" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceAutoAdvance(b bool) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetInvoiceAutoAdvance(b)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) SetInvoiceAutoAdvance(v bool) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetInvoiceAutoAdvance(v)
+	return _u
 }
 
 // SetNillableInvoiceAutoAdvance sets the "invoice_auto_advance" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceAutoAdvance(b *bool) *BillingCustomerOverrideUpdateOne {
-	if b != nil {
-		bcouo.SetInvoiceAutoAdvance(*b)
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableInvoiceAutoAdvance(v *bool) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetInvoiceAutoAdvance(*v)
 	}
-	return bcouo
+	return _u
 }
 
 // ClearInvoiceAutoAdvance clears the value of the "invoice_auto_advance" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceAutoAdvance() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearInvoiceAutoAdvance()
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) ClearInvoiceAutoAdvance() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearInvoiceAutoAdvance()
+	return _u
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceDraftPeriod(i isodate.String) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetInvoiceDraftPeriod(i)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) SetInvoiceDraftPeriod(v isodate.String) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetInvoiceDraftPeriod(v)
+	return _u
 }
 
 // SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDraftPeriod(i *isodate.String) *BillingCustomerOverrideUpdateOne {
-	if i != nil {
-		bcouo.SetInvoiceDraftPeriod(*i)
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDraftPeriod(v *isodate.String) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetInvoiceDraftPeriod(*v)
 	}
-	return bcouo
+	return _u
 }
 
 // ClearInvoiceDraftPeriod clears the value of the "invoice_draft_period" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceDraftPeriod() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearInvoiceDraftPeriod()
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) ClearInvoiceDraftPeriod() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearInvoiceDraftPeriod()
+	return _u
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceDueAfter(i isodate.String) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetInvoiceDueAfter(i)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) SetInvoiceDueAfter(v isodate.String) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetInvoiceDueAfter(v)
+	return _u
 }
 
 // SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDueAfter(i *isodate.String) *BillingCustomerOverrideUpdateOne {
-	if i != nil {
-		bcouo.SetInvoiceDueAfter(*i)
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDueAfter(v *isodate.String) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetInvoiceDueAfter(*v)
 	}
-	return bcouo
+	return _u
 }
 
 // ClearInvoiceDueAfter clears the value of the "invoice_due_after" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceDueAfter() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearInvoiceDueAfter()
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) ClearInvoiceDueAfter() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearInvoiceDueAfter()
+	return _u
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetInvoiceCollectionMethod(bm)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) SetInvoiceCollectionMethod(v billing.CollectionMethod) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetInvoiceCollectionMethod(v)
+	return _u
 }
 
 // SetNillableInvoiceCollectionMethod sets the "invoice_collection_method" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceCollectionMethod(bm *billing.CollectionMethod) *BillingCustomerOverrideUpdateOne {
-	if bm != nil {
-		bcouo.SetInvoiceCollectionMethod(*bm)
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableInvoiceCollectionMethod(v *billing.CollectionMethod) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetInvoiceCollectionMethod(*v)
 	}
-	return bcouo
+	return _u
 }
 
 // ClearInvoiceCollectionMethod clears the value of the "invoice_collection_method" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceCollectionMethod() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearInvoiceCollectionMethod()
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) ClearInvoiceCollectionMethod() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearInvoiceCollectionMethod()
+	return _u
 }
 
 // SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceProgressiveBilling(b bool) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetInvoiceProgressiveBilling(b)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) SetInvoiceProgressiveBilling(v bool) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetInvoiceProgressiveBilling(v)
+	return _u
 }
 
 // SetNillableInvoiceProgressiveBilling sets the "invoice_progressive_billing" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceProgressiveBilling(b *bool) *BillingCustomerOverrideUpdateOne {
-	if b != nil {
-		bcouo.SetInvoiceProgressiveBilling(*b)
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableInvoiceProgressiveBilling(v *bool) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetInvoiceProgressiveBilling(*v)
 	}
-	return bcouo
+	return _u
 }
 
 // ClearInvoiceProgressiveBilling clears the value of the "invoice_progressive_billing" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceProgressiveBilling() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearInvoiceProgressiveBilling()
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) ClearInvoiceProgressiveBilling() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearInvoiceProgressiveBilling()
+	return _u
 }
 
 // SetInvoiceDefaultTaxConfig sets the "invoice_default_tax_config" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceDefaultTaxConfig(pc productcatalog.TaxConfig) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetInvoiceDefaultTaxConfig(pc)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) SetInvoiceDefaultTaxConfig(v productcatalog.TaxConfig) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetInvoiceDefaultTaxConfig(v)
+	return _u
 }
 
 // SetNillableInvoiceDefaultTaxConfig sets the "invoice_default_tax_config" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDefaultTaxConfig(pc *productcatalog.TaxConfig) *BillingCustomerOverrideUpdateOne {
-	if pc != nil {
-		bcouo.SetInvoiceDefaultTaxConfig(*pc)
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDefaultTaxConfig(v *productcatalog.TaxConfig) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetInvoiceDefaultTaxConfig(*v)
 	}
-	return bcouo
+	return _u
 }
 
 // ClearInvoiceDefaultTaxConfig clears the value of the "invoice_default_tax_config" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceDefaultTaxConfig() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearInvoiceDefaultTaxConfig()
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) ClearInvoiceDefaultTaxConfig() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearInvoiceDefaultTaxConfig()
+	return _u
 }
 
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetBillingProfile(b *BillingProfile) *BillingCustomerOverrideUpdateOne {
-	return bcouo.SetBillingProfileID(b.ID)
+func (_u *BillingCustomerOverrideUpdateOne) SetBillingProfile(v *BillingProfile) *BillingCustomerOverrideUpdateOne {
+	return _u.SetBillingProfileID(v.ID)
 }
 
 // Mutation returns the BillingCustomerOverrideMutation object of the builder.
-func (bcouo *BillingCustomerOverrideUpdateOne) Mutation() *BillingCustomerOverrideMutation {
-	return bcouo.mutation
+func (_u *BillingCustomerOverrideUpdateOne) Mutation() *BillingCustomerOverrideMutation {
+	return _u.mutation
 }
 
 // ClearBillingProfile clears the "billing_profile" edge to the BillingProfile entity.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearBillingProfile() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearBillingProfile()
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) ClearBillingProfile() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearBillingProfile()
+	return _u
 }
 
 // Where appends a list predicates to the BillingCustomerOverrideUpdate builder.
-func (bcouo *BillingCustomerOverrideUpdateOne) Where(ps ...predicate.BillingCustomerOverride) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.Where(ps...)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) Where(ps ...predicate.BillingCustomerOverride) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (bcouo *BillingCustomerOverrideUpdateOne) Select(field string, fields ...string) *BillingCustomerOverrideUpdateOne {
-	bcouo.fields = append([]string{field}, fields...)
-	return bcouo
+func (_u *BillingCustomerOverrideUpdateOne) Select(field string, fields ...string) *BillingCustomerOverrideUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated BillingCustomerOverride entity.
-func (bcouo *BillingCustomerOverrideUpdateOne) Save(ctx context.Context) (*BillingCustomerOverride, error) {
-	bcouo.defaults()
-	return withHooks(ctx, bcouo.sqlSave, bcouo.mutation, bcouo.hooks)
+func (_u *BillingCustomerOverrideUpdateOne) Save(ctx context.Context) (*BillingCustomerOverride, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bcouo *BillingCustomerOverrideUpdateOne) SaveX(ctx context.Context) *BillingCustomerOverride {
-	node, err := bcouo.Save(ctx)
+func (_u *BillingCustomerOverrideUpdateOne) SaveX(ctx context.Context) *BillingCustomerOverride {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -682,60 +682,60 @@ func (bcouo *BillingCustomerOverrideUpdateOne) SaveX(ctx context.Context) *Billi
 }
 
 // Exec executes the query on the entity.
-func (bcouo *BillingCustomerOverrideUpdateOne) Exec(ctx context.Context) error {
-	_, err := bcouo.Save(ctx)
+func (_u *BillingCustomerOverrideUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bcouo *BillingCustomerOverrideUpdateOne) ExecX(ctx context.Context) {
-	if err := bcouo.Exec(ctx); err != nil {
+func (_u *BillingCustomerOverrideUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bcouo *BillingCustomerOverrideUpdateOne) defaults() {
-	if _, ok := bcouo.mutation.UpdatedAt(); !ok {
+func (_u *BillingCustomerOverrideUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := billingcustomeroverride.UpdateDefaultUpdatedAt()
-		bcouo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bcouo *BillingCustomerOverrideUpdateOne) check() error {
-	if v, ok := bcouo.mutation.CollectionAlignment(); ok {
+func (_u *BillingCustomerOverrideUpdateOne) check() error {
+	if v, ok := _u.mutation.CollectionAlignment(); ok {
 		if err := billingcustomeroverride.CollectionAlignmentValidator(v); err != nil {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.collection_alignment": %w`, err)}
 		}
 	}
-	if v, ok := bcouo.mutation.InvoiceCollectionMethod(); ok {
+	if v, ok := _u.mutation.InvoiceCollectionMethod(); ok {
 		if err := billingcustomeroverride.InvoiceCollectionMethodValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bcouo.mutation.InvoiceDefaultTaxConfig(); ok {
+	if v, ok := _u.mutation.InvoiceDefaultTaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "invoice_default_tax_config", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_default_tax_config": %w`, err)}
 		}
 	}
-	if bcouo.mutation.CustomerCleared() && len(bcouo.mutation.CustomerIDs()) > 0 {
+	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingCustomerOverride.customer"`)
 	}
 	return nil
 }
 
-func (bcouo *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_node *BillingCustomerOverride, err error) {
-	if err := bcouo.check(); err != nil {
+func (_u *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_node *BillingCustomerOverride, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(billingcustomeroverride.Table, billingcustomeroverride.Columns, sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString))
-	id, ok := bcouo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "BillingCustomerOverride.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := bcouo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billingcustomeroverride.FieldID)
 		for _, f := range fields {
@@ -747,71 +747,71 @@ func (bcouo *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_no
 			}
 		}
 	}
-	if ps := bcouo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := bcouo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(billingcustomeroverride.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := bcouo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(billingcustomeroverride.FieldDeletedAt, field.TypeTime, value)
 	}
-	if bcouo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := bcouo.mutation.CollectionAlignment(); ok {
+	if value, ok := _u.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum, value)
 	}
-	if bcouo.mutation.CollectionAlignmentCleared() {
+	if _u.mutation.CollectionAlignmentCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum)
 	}
-	if value, ok := bcouo.mutation.LineCollectionPeriod(); ok {
+	if value, ok := _u.mutation.LineCollectionPeriod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldLineCollectionPeriod, field.TypeString, value)
 	}
-	if bcouo.mutation.LineCollectionPeriodCleared() {
+	if _u.mutation.LineCollectionPeriodCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldLineCollectionPeriod, field.TypeString)
 	}
-	if value, ok := bcouo.mutation.InvoiceAutoAdvance(); ok {
+	if value, ok := _u.mutation.InvoiceAutoAdvance(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool, value)
 	}
-	if bcouo.mutation.InvoiceAutoAdvanceCleared() {
+	if _u.mutation.InvoiceAutoAdvanceCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceAutoAdvance, field.TypeBool)
 	}
-	if value, ok := bcouo.mutation.InvoiceDraftPeriod(); ok {
+	if value, ok := _u.mutation.InvoiceDraftPeriod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceDraftPeriod, field.TypeString, value)
 	}
-	if bcouo.mutation.InvoiceDraftPeriodCleared() {
+	if _u.mutation.InvoiceDraftPeriodCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceDraftPeriod, field.TypeString)
 	}
-	if value, ok := bcouo.mutation.InvoiceDueAfter(); ok {
+	if value, ok := _u.mutation.InvoiceDueAfter(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceDueAfter, field.TypeString, value)
 	}
-	if bcouo.mutation.InvoiceDueAfterCleared() {
+	if _u.mutation.InvoiceDueAfterCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceDueAfter, field.TypeString)
 	}
-	if value, ok := bcouo.mutation.InvoiceCollectionMethod(); ok {
+	if value, ok := _u.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceCollectionMethod, field.TypeEnum, value)
 	}
-	if bcouo.mutation.InvoiceCollectionMethodCleared() {
+	if _u.mutation.InvoiceCollectionMethodCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceCollectionMethod, field.TypeEnum)
 	}
-	if value, ok := bcouo.mutation.InvoiceProgressiveBilling(); ok {
+	if value, ok := _u.mutation.InvoiceProgressiveBilling(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool, value)
 	}
-	if bcouo.mutation.InvoiceProgressiveBillingCleared() {
+	if _u.mutation.InvoiceProgressiveBillingCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool)
 	}
-	if value, ok := bcouo.mutation.InvoiceDefaultTaxConfig(); ok {
+	if value, ok := _u.mutation.InvoiceDefaultTaxConfig(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON, value)
 	}
-	if bcouo.mutation.InvoiceDefaultTaxConfigCleared() {
+	if _u.mutation.InvoiceDefaultTaxConfigCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON)
 	}
-	if bcouo.mutation.BillingProfileCleared() {
+	if _u.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -824,7 +824,7 @@ func (bcouo *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_no
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := bcouo.mutation.BillingProfileIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -840,10 +840,10 @@ func (bcouo *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_no
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &BillingCustomerOverride{config: bcouo.config}
+	_node = &BillingCustomerOverride{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, bcouo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billingcustomeroverride.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -851,6 +851,6 @@ func (bcouo *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_no
 		}
 		return nil, err
 	}
-	bcouo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

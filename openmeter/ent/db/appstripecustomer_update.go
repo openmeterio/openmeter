@@ -23,85 +23,85 @@ type AppStripeCustomerUpdate struct {
 }
 
 // Where appends a list predicates to the AppStripeCustomerUpdate builder.
-func (ascu *AppStripeCustomerUpdate) Where(ps ...predicate.AppStripeCustomer) *AppStripeCustomerUpdate {
-	ascu.mutation.Where(ps...)
-	return ascu
+func (_u *AppStripeCustomerUpdate) Where(ps ...predicate.AppStripeCustomer) *AppStripeCustomerUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (ascu *AppStripeCustomerUpdate) SetUpdatedAt(t time.Time) *AppStripeCustomerUpdate {
-	ascu.mutation.SetUpdatedAt(t)
-	return ascu
+func (_u *AppStripeCustomerUpdate) SetUpdatedAt(v time.Time) *AppStripeCustomerUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (ascu *AppStripeCustomerUpdate) SetDeletedAt(t time.Time) *AppStripeCustomerUpdate {
-	ascu.mutation.SetDeletedAt(t)
-	return ascu
+func (_u *AppStripeCustomerUpdate) SetDeletedAt(v time.Time) *AppStripeCustomerUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (ascu *AppStripeCustomerUpdate) SetNillableDeletedAt(t *time.Time) *AppStripeCustomerUpdate {
-	if t != nil {
-		ascu.SetDeletedAt(*t)
+func (_u *AppStripeCustomerUpdate) SetNillableDeletedAt(v *time.Time) *AppStripeCustomerUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return ascu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (ascu *AppStripeCustomerUpdate) ClearDeletedAt() *AppStripeCustomerUpdate {
-	ascu.mutation.ClearDeletedAt()
-	return ascu
+func (_u *AppStripeCustomerUpdate) ClearDeletedAt() *AppStripeCustomerUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetStripeCustomerID sets the "stripe_customer_id" field.
-func (ascu *AppStripeCustomerUpdate) SetStripeCustomerID(s string) *AppStripeCustomerUpdate {
-	ascu.mutation.SetStripeCustomerID(s)
-	return ascu
+func (_u *AppStripeCustomerUpdate) SetStripeCustomerID(v string) *AppStripeCustomerUpdate {
+	_u.mutation.SetStripeCustomerID(v)
+	return _u
 }
 
 // SetNillableStripeCustomerID sets the "stripe_customer_id" field if the given value is not nil.
-func (ascu *AppStripeCustomerUpdate) SetNillableStripeCustomerID(s *string) *AppStripeCustomerUpdate {
-	if s != nil {
-		ascu.SetStripeCustomerID(*s)
+func (_u *AppStripeCustomerUpdate) SetNillableStripeCustomerID(v *string) *AppStripeCustomerUpdate {
+	if v != nil {
+		_u.SetStripeCustomerID(*v)
 	}
-	return ascu
+	return _u
 }
 
 // SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
-func (ascu *AppStripeCustomerUpdate) SetStripeDefaultPaymentMethodID(s string) *AppStripeCustomerUpdate {
-	ascu.mutation.SetStripeDefaultPaymentMethodID(s)
-	return ascu
+func (_u *AppStripeCustomerUpdate) SetStripeDefaultPaymentMethodID(v string) *AppStripeCustomerUpdate {
+	_u.mutation.SetStripeDefaultPaymentMethodID(v)
+	return _u
 }
 
 // SetNillableStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field if the given value is not nil.
-func (ascu *AppStripeCustomerUpdate) SetNillableStripeDefaultPaymentMethodID(s *string) *AppStripeCustomerUpdate {
-	if s != nil {
-		ascu.SetStripeDefaultPaymentMethodID(*s)
+func (_u *AppStripeCustomerUpdate) SetNillableStripeDefaultPaymentMethodID(v *string) *AppStripeCustomerUpdate {
+	if v != nil {
+		_u.SetStripeDefaultPaymentMethodID(*v)
 	}
-	return ascu
+	return _u
 }
 
 // ClearStripeDefaultPaymentMethodID clears the value of the "stripe_default_payment_method_id" field.
-func (ascu *AppStripeCustomerUpdate) ClearStripeDefaultPaymentMethodID() *AppStripeCustomerUpdate {
-	ascu.mutation.ClearStripeDefaultPaymentMethodID()
-	return ascu
+func (_u *AppStripeCustomerUpdate) ClearStripeDefaultPaymentMethodID() *AppStripeCustomerUpdate {
+	_u.mutation.ClearStripeDefaultPaymentMethodID()
+	return _u
 }
 
 // Mutation returns the AppStripeCustomerMutation object of the builder.
-func (ascu *AppStripeCustomerUpdate) Mutation() *AppStripeCustomerMutation {
-	return ascu.mutation
+func (_u *AppStripeCustomerUpdate) Mutation() *AppStripeCustomerMutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (ascu *AppStripeCustomerUpdate) Save(ctx context.Context) (int, error) {
-	ascu.defaults()
-	return withHooks(ctx, ascu.sqlSave, ascu.mutation, ascu.hooks)
+func (_u *AppStripeCustomerUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (ascu *AppStripeCustomerUpdate) SaveX(ctx context.Context) int {
-	affected, err := ascu.Save(ctx)
+func (_u *AppStripeCustomerUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -109,73 +109,73 @@ func (ascu *AppStripeCustomerUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (ascu *AppStripeCustomerUpdate) Exec(ctx context.Context) error {
-	_, err := ascu.Save(ctx)
+func (_u *AppStripeCustomerUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ascu *AppStripeCustomerUpdate) ExecX(ctx context.Context) {
-	if err := ascu.Exec(ctx); err != nil {
+func (_u *AppStripeCustomerUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (ascu *AppStripeCustomerUpdate) defaults() {
-	if _, ok := ascu.mutation.UpdatedAt(); !ok {
+func (_u *AppStripeCustomerUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := appstripecustomer.UpdateDefaultUpdatedAt()
-		ascu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (ascu *AppStripeCustomerUpdate) check() error {
-	if v, ok := ascu.mutation.StripeCustomerID(); ok {
+func (_u *AppStripeCustomerUpdate) check() error {
+	if v, ok := _u.mutation.StripeCustomerID(); ok {
 		if err := appstripecustomer.StripeCustomerIDValidator(v); err != nil {
 			return &ValidationError{Name: "stripe_customer_id", err: fmt.Errorf(`db: validator failed for field "AppStripeCustomer.stripe_customer_id": %w`, err)}
 		}
 	}
-	if ascu.mutation.StripeAppCleared() && len(ascu.mutation.StripeAppIDs()) > 0 {
+	if _u.mutation.StripeAppCleared() && len(_u.mutation.StripeAppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppStripeCustomer.stripe_app"`)
 	}
-	if ascu.mutation.CustomerCleared() && len(ascu.mutation.CustomerIDs()) > 0 {
+	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppStripeCustomer.customer"`)
 	}
 	return nil
 }
 
-func (ascu *AppStripeCustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := ascu.check(); err != nil {
-		return n, err
+func (_u *AppStripeCustomerUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(appstripecustomer.Table, appstripecustomer.Columns, sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt))
-	if ps := ascu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := ascu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(appstripecustomer.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := ascu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(appstripecustomer.FieldDeletedAt, field.TypeTime, value)
 	}
-	if ascu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(appstripecustomer.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := ascu.mutation.StripeCustomerID(); ok {
+	if value, ok := _u.mutation.StripeCustomerID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeCustomerID, field.TypeString, value)
 	}
-	if value, ok := ascu.mutation.StripeDefaultPaymentMethodID(); ok {
+	if value, ok := _u.mutation.StripeDefaultPaymentMethodID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString, value)
 	}
-	if ascu.mutation.StripeDefaultPaymentMethodIDCleared() {
+	if _u.mutation.StripeDefaultPaymentMethodIDCleared() {
 		_spec.ClearField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, ascu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{appstripecustomer.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -183,8 +183,8 @@ func (ascu *AppStripeCustomerUpdate) sqlSave(ctx context.Context) (n int, err er
 		}
 		return 0, err
 	}
-	ascu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // AppStripeCustomerUpdateOne is the builder for updating a single AppStripeCustomer entity.
@@ -196,92 +196,92 @@ type AppStripeCustomerUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (ascuo *AppStripeCustomerUpdateOne) SetUpdatedAt(t time.Time) *AppStripeCustomerUpdateOne {
-	ascuo.mutation.SetUpdatedAt(t)
-	return ascuo
+func (_u *AppStripeCustomerUpdateOne) SetUpdatedAt(v time.Time) *AppStripeCustomerUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (ascuo *AppStripeCustomerUpdateOne) SetDeletedAt(t time.Time) *AppStripeCustomerUpdateOne {
-	ascuo.mutation.SetDeletedAt(t)
-	return ascuo
+func (_u *AppStripeCustomerUpdateOne) SetDeletedAt(v time.Time) *AppStripeCustomerUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (ascuo *AppStripeCustomerUpdateOne) SetNillableDeletedAt(t *time.Time) *AppStripeCustomerUpdateOne {
-	if t != nil {
-		ascuo.SetDeletedAt(*t)
+func (_u *AppStripeCustomerUpdateOne) SetNillableDeletedAt(v *time.Time) *AppStripeCustomerUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return ascuo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (ascuo *AppStripeCustomerUpdateOne) ClearDeletedAt() *AppStripeCustomerUpdateOne {
-	ascuo.mutation.ClearDeletedAt()
-	return ascuo
+func (_u *AppStripeCustomerUpdateOne) ClearDeletedAt() *AppStripeCustomerUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetStripeCustomerID sets the "stripe_customer_id" field.
-func (ascuo *AppStripeCustomerUpdateOne) SetStripeCustomerID(s string) *AppStripeCustomerUpdateOne {
-	ascuo.mutation.SetStripeCustomerID(s)
-	return ascuo
+func (_u *AppStripeCustomerUpdateOne) SetStripeCustomerID(v string) *AppStripeCustomerUpdateOne {
+	_u.mutation.SetStripeCustomerID(v)
+	return _u
 }
 
 // SetNillableStripeCustomerID sets the "stripe_customer_id" field if the given value is not nil.
-func (ascuo *AppStripeCustomerUpdateOne) SetNillableStripeCustomerID(s *string) *AppStripeCustomerUpdateOne {
-	if s != nil {
-		ascuo.SetStripeCustomerID(*s)
+func (_u *AppStripeCustomerUpdateOne) SetNillableStripeCustomerID(v *string) *AppStripeCustomerUpdateOne {
+	if v != nil {
+		_u.SetStripeCustomerID(*v)
 	}
-	return ascuo
+	return _u
 }
 
 // SetStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field.
-func (ascuo *AppStripeCustomerUpdateOne) SetStripeDefaultPaymentMethodID(s string) *AppStripeCustomerUpdateOne {
-	ascuo.mutation.SetStripeDefaultPaymentMethodID(s)
-	return ascuo
+func (_u *AppStripeCustomerUpdateOne) SetStripeDefaultPaymentMethodID(v string) *AppStripeCustomerUpdateOne {
+	_u.mutation.SetStripeDefaultPaymentMethodID(v)
+	return _u
 }
 
 // SetNillableStripeDefaultPaymentMethodID sets the "stripe_default_payment_method_id" field if the given value is not nil.
-func (ascuo *AppStripeCustomerUpdateOne) SetNillableStripeDefaultPaymentMethodID(s *string) *AppStripeCustomerUpdateOne {
-	if s != nil {
-		ascuo.SetStripeDefaultPaymentMethodID(*s)
+func (_u *AppStripeCustomerUpdateOne) SetNillableStripeDefaultPaymentMethodID(v *string) *AppStripeCustomerUpdateOne {
+	if v != nil {
+		_u.SetStripeDefaultPaymentMethodID(*v)
 	}
-	return ascuo
+	return _u
 }
 
 // ClearStripeDefaultPaymentMethodID clears the value of the "stripe_default_payment_method_id" field.
-func (ascuo *AppStripeCustomerUpdateOne) ClearStripeDefaultPaymentMethodID() *AppStripeCustomerUpdateOne {
-	ascuo.mutation.ClearStripeDefaultPaymentMethodID()
-	return ascuo
+func (_u *AppStripeCustomerUpdateOne) ClearStripeDefaultPaymentMethodID() *AppStripeCustomerUpdateOne {
+	_u.mutation.ClearStripeDefaultPaymentMethodID()
+	return _u
 }
 
 // Mutation returns the AppStripeCustomerMutation object of the builder.
-func (ascuo *AppStripeCustomerUpdateOne) Mutation() *AppStripeCustomerMutation {
-	return ascuo.mutation
+func (_u *AppStripeCustomerUpdateOne) Mutation() *AppStripeCustomerMutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the AppStripeCustomerUpdate builder.
-func (ascuo *AppStripeCustomerUpdateOne) Where(ps ...predicate.AppStripeCustomer) *AppStripeCustomerUpdateOne {
-	ascuo.mutation.Where(ps...)
-	return ascuo
+func (_u *AppStripeCustomerUpdateOne) Where(ps ...predicate.AppStripeCustomer) *AppStripeCustomerUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (ascuo *AppStripeCustomerUpdateOne) Select(field string, fields ...string) *AppStripeCustomerUpdateOne {
-	ascuo.fields = append([]string{field}, fields...)
-	return ascuo
+func (_u *AppStripeCustomerUpdateOne) Select(field string, fields ...string) *AppStripeCustomerUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated AppStripeCustomer entity.
-func (ascuo *AppStripeCustomerUpdateOne) Save(ctx context.Context) (*AppStripeCustomer, error) {
-	ascuo.defaults()
-	return withHooks(ctx, ascuo.sqlSave, ascuo.mutation, ascuo.hooks)
+func (_u *AppStripeCustomerUpdateOne) Save(ctx context.Context) (*AppStripeCustomer, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (ascuo *AppStripeCustomerUpdateOne) SaveX(ctx context.Context) *AppStripeCustomer {
-	node, err := ascuo.Save(ctx)
+func (_u *AppStripeCustomerUpdateOne) SaveX(ctx context.Context) *AppStripeCustomer {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -289,53 +289,53 @@ func (ascuo *AppStripeCustomerUpdateOne) SaveX(ctx context.Context) *AppStripeCu
 }
 
 // Exec executes the query on the entity.
-func (ascuo *AppStripeCustomerUpdateOne) Exec(ctx context.Context) error {
-	_, err := ascuo.Save(ctx)
+func (_u *AppStripeCustomerUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ascuo *AppStripeCustomerUpdateOne) ExecX(ctx context.Context) {
-	if err := ascuo.Exec(ctx); err != nil {
+func (_u *AppStripeCustomerUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (ascuo *AppStripeCustomerUpdateOne) defaults() {
-	if _, ok := ascuo.mutation.UpdatedAt(); !ok {
+func (_u *AppStripeCustomerUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := appstripecustomer.UpdateDefaultUpdatedAt()
-		ascuo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (ascuo *AppStripeCustomerUpdateOne) check() error {
-	if v, ok := ascuo.mutation.StripeCustomerID(); ok {
+func (_u *AppStripeCustomerUpdateOne) check() error {
+	if v, ok := _u.mutation.StripeCustomerID(); ok {
 		if err := appstripecustomer.StripeCustomerIDValidator(v); err != nil {
 			return &ValidationError{Name: "stripe_customer_id", err: fmt.Errorf(`db: validator failed for field "AppStripeCustomer.stripe_customer_id": %w`, err)}
 		}
 	}
-	if ascuo.mutation.StripeAppCleared() && len(ascuo.mutation.StripeAppIDs()) > 0 {
+	if _u.mutation.StripeAppCleared() && len(_u.mutation.StripeAppIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppStripeCustomer.stripe_app"`)
 	}
-	if ascuo.mutation.CustomerCleared() && len(ascuo.mutation.CustomerIDs()) > 0 {
+	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AppStripeCustomer.customer"`)
 	}
 	return nil
 }
 
-func (ascuo *AppStripeCustomerUpdateOne) sqlSave(ctx context.Context) (_node *AppStripeCustomer, err error) {
-	if err := ascuo.check(); err != nil {
+func (_u *AppStripeCustomerUpdateOne) sqlSave(ctx context.Context) (_node *AppStripeCustomer, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(appstripecustomer.Table, appstripecustomer.Columns, sqlgraph.NewFieldSpec(appstripecustomer.FieldID, field.TypeInt))
-	id, ok := ascuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "AppStripeCustomer.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := ascuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, appstripecustomer.FieldID)
 		for _, f := range fields {
@@ -347,35 +347,35 @@ func (ascuo *AppStripeCustomerUpdateOne) sqlSave(ctx context.Context) (_node *Ap
 			}
 		}
 	}
-	if ps := ascuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := ascuo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(appstripecustomer.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := ascuo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(appstripecustomer.FieldDeletedAt, field.TypeTime, value)
 	}
-	if ascuo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(appstripecustomer.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := ascuo.mutation.StripeCustomerID(); ok {
+	if value, ok := _u.mutation.StripeCustomerID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeCustomerID, field.TypeString, value)
 	}
-	if value, ok := ascuo.mutation.StripeDefaultPaymentMethodID(); ok {
+	if value, ok := _u.mutation.StripeDefaultPaymentMethodID(); ok {
 		_spec.SetField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString, value)
 	}
-	if ascuo.mutation.StripeDefaultPaymentMethodIDCleared() {
+	if _u.mutation.StripeDefaultPaymentMethodIDCleared() {
 		_spec.ClearField(appstripecustomer.FieldStripeDefaultPaymentMethodID, field.TypeString)
 	}
-	_node = &AppStripeCustomer{config: ascuo.config}
+	_node = &AppStripeCustomer{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, ascuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{appstripecustomer.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -383,6 +383,6 @@ func (ascuo *AppStripeCustomerUpdateOne) sqlSave(ctx context.Context) (_node *Ap
 		}
 		return nil, err
 	}
-	ascuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

@@ -23,116 +23,116 @@ type PlanAddonUpdate struct {
 }
 
 // Where appends a list predicates to the PlanAddonUpdate builder.
-func (pau *PlanAddonUpdate) Where(ps ...predicate.PlanAddon) *PlanAddonUpdate {
-	pau.mutation.Where(ps...)
-	return pau
+func (_u *PlanAddonUpdate) Where(ps ...predicate.PlanAddon) *PlanAddonUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (pau *PlanAddonUpdate) SetMetadata(m map[string]string) *PlanAddonUpdate {
-	pau.mutation.SetMetadata(m)
-	return pau
+func (_u *PlanAddonUpdate) SetMetadata(v map[string]string) *PlanAddonUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (pau *PlanAddonUpdate) ClearMetadata() *PlanAddonUpdate {
-	pau.mutation.ClearMetadata()
-	return pau
+func (_u *PlanAddonUpdate) ClearMetadata() *PlanAddonUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetAnnotations sets the "annotations" field.
-func (pau *PlanAddonUpdate) SetAnnotations(m map[string]interface{}) *PlanAddonUpdate {
-	pau.mutation.SetAnnotations(m)
-	return pau
+func (_u *PlanAddonUpdate) SetAnnotations(v map[string]interface{}) *PlanAddonUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
 }
 
 // ClearAnnotations clears the value of the "annotations" field.
-func (pau *PlanAddonUpdate) ClearAnnotations() *PlanAddonUpdate {
-	pau.mutation.ClearAnnotations()
-	return pau
+func (_u *PlanAddonUpdate) ClearAnnotations() *PlanAddonUpdate {
+	_u.mutation.ClearAnnotations()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (pau *PlanAddonUpdate) SetUpdatedAt(t time.Time) *PlanAddonUpdate {
-	pau.mutation.SetUpdatedAt(t)
-	return pau
+func (_u *PlanAddonUpdate) SetUpdatedAt(v time.Time) *PlanAddonUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (pau *PlanAddonUpdate) SetDeletedAt(t time.Time) *PlanAddonUpdate {
-	pau.mutation.SetDeletedAt(t)
-	return pau
+func (_u *PlanAddonUpdate) SetDeletedAt(v time.Time) *PlanAddonUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (pau *PlanAddonUpdate) SetNillableDeletedAt(t *time.Time) *PlanAddonUpdate {
-	if t != nil {
-		pau.SetDeletedAt(*t)
+func (_u *PlanAddonUpdate) SetNillableDeletedAt(v *time.Time) *PlanAddonUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return pau
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (pau *PlanAddonUpdate) ClearDeletedAt() *PlanAddonUpdate {
-	pau.mutation.ClearDeletedAt()
-	return pau
+func (_u *PlanAddonUpdate) ClearDeletedAt() *PlanAddonUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetFromPlanPhase sets the "from_plan_phase" field.
-func (pau *PlanAddonUpdate) SetFromPlanPhase(s string) *PlanAddonUpdate {
-	pau.mutation.SetFromPlanPhase(s)
-	return pau
+func (_u *PlanAddonUpdate) SetFromPlanPhase(v string) *PlanAddonUpdate {
+	_u.mutation.SetFromPlanPhase(v)
+	return _u
 }
 
 // SetNillableFromPlanPhase sets the "from_plan_phase" field if the given value is not nil.
-func (pau *PlanAddonUpdate) SetNillableFromPlanPhase(s *string) *PlanAddonUpdate {
-	if s != nil {
-		pau.SetFromPlanPhase(*s)
+func (_u *PlanAddonUpdate) SetNillableFromPlanPhase(v *string) *PlanAddonUpdate {
+	if v != nil {
+		_u.SetFromPlanPhase(*v)
 	}
-	return pau
+	return _u
 }
 
 // SetMaxQuantity sets the "max_quantity" field.
-func (pau *PlanAddonUpdate) SetMaxQuantity(i int) *PlanAddonUpdate {
-	pau.mutation.ResetMaxQuantity()
-	pau.mutation.SetMaxQuantity(i)
-	return pau
+func (_u *PlanAddonUpdate) SetMaxQuantity(v int) *PlanAddonUpdate {
+	_u.mutation.ResetMaxQuantity()
+	_u.mutation.SetMaxQuantity(v)
+	return _u
 }
 
 // SetNillableMaxQuantity sets the "max_quantity" field if the given value is not nil.
-func (pau *PlanAddonUpdate) SetNillableMaxQuantity(i *int) *PlanAddonUpdate {
-	if i != nil {
-		pau.SetMaxQuantity(*i)
+func (_u *PlanAddonUpdate) SetNillableMaxQuantity(v *int) *PlanAddonUpdate {
+	if v != nil {
+		_u.SetMaxQuantity(*v)
 	}
-	return pau
+	return _u
 }
 
-// AddMaxQuantity adds i to the "max_quantity" field.
-func (pau *PlanAddonUpdate) AddMaxQuantity(i int) *PlanAddonUpdate {
-	pau.mutation.AddMaxQuantity(i)
-	return pau
+// AddMaxQuantity adds value to the "max_quantity" field.
+func (_u *PlanAddonUpdate) AddMaxQuantity(v int) *PlanAddonUpdate {
+	_u.mutation.AddMaxQuantity(v)
+	return _u
 }
 
 // ClearMaxQuantity clears the value of the "max_quantity" field.
-func (pau *PlanAddonUpdate) ClearMaxQuantity() *PlanAddonUpdate {
-	pau.mutation.ClearMaxQuantity()
-	return pau
+func (_u *PlanAddonUpdate) ClearMaxQuantity() *PlanAddonUpdate {
+	_u.mutation.ClearMaxQuantity()
+	return _u
 }
 
 // Mutation returns the PlanAddonMutation object of the builder.
-func (pau *PlanAddonUpdate) Mutation() *PlanAddonMutation {
-	return pau.mutation
+func (_u *PlanAddonUpdate) Mutation() *PlanAddonMutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (pau *PlanAddonUpdate) Save(ctx context.Context) (int, error) {
-	pau.defaults()
-	return withHooks(ctx, pau.sqlSave, pau.mutation, pau.hooks)
+func (_u *PlanAddonUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (pau *PlanAddonUpdate) SaveX(ctx context.Context) int {
-	affected, err := pau.Save(ctx)
+func (_u *PlanAddonUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -140,83 +140,83 @@ func (pau *PlanAddonUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (pau *PlanAddonUpdate) Exec(ctx context.Context) error {
-	_, err := pau.Save(ctx)
+func (_u *PlanAddonUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (pau *PlanAddonUpdate) ExecX(ctx context.Context) {
-	if err := pau.Exec(ctx); err != nil {
+func (_u *PlanAddonUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (pau *PlanAddonUpdate) defaults() {
-	if _, ok := pau.mutation.UpdatedAt(); !ok {
+func (_u *PlanAddonUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := planaddon.UpdateDefaultUpdatedAt()
-		pau.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (pau *PlanAddonUpdate) check() error {
-	if pau.mutation.PlanCleared() && len(pau.mutation.PlanIDs()) > 0 {
+func (_u *PlanAddonUpdate) check() error {
+	if _u.mutation.PlanCleared() && len(_u.mutation.PlanIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "PlanAddon.plan"`)
 	}
-	if pau.mutation.AddonCleared() && len(pau.mutation.AddonIDs()) > 0 {
+	if _u.mutation.AddonCleared() && len(_u.mutation.AddonIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "PlanAddon.addon"`)
 	}
 	return nil
 }
 
-func (pau *PlanAddonUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := pau.check(); err != nil {
-		return n, err
+func (_u *PlanAddonUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(planaddon.Table, planaddon.Columns, sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString))
-	if ps := pau.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := pau.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(planaddon.FieldMetadata, field.TypeJSON, value)
 	}
-	if pau.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(planaddon.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := pau.mutation.Annotations(); ok {
+	if value, ok := _u.mutation.Annotations(); ok {
 		_spec.SetField(planaddon.FieldAnnotations, field.TypeJSON, value)
 	}
-	if pau.mutation.AnnotationsCleared() {
+	if _u.mutation.AnnotationsCleared() {
 		_spec.ClearField(planaddon.FieldAnnotations, field.TypeJSON)
 	}
-	if value, ok := pau.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(planaddon.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := pau.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(planaddon.FieldDeletedAt, field.TypeTime, value)
 	}
-	if pau.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(planaddon.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := pau.mutation.FromPlanPhase(); ok {
+	if value, ok := _u.mutation.FromPlanPhase(); ok {
 		_spec.SetField(planaddon.FieldFromPlanPhase, field.TypeString, value)
 	}
-	if value, ok := pau.mutation.MaxQuantity(); ok {
+	if value, ok := _u.mutation.MaxQuantity(); ok {
 		_spec.SetField(planaddon.FieldMaxQuantity, field.TypeInt, value)
 	}
-	if value, ok := pau.mutation.AddedMaxQuantity(); ok {
+	if value, ok := _u.mutation.AddedMaxQuantity(); ok {
 		_spec.AddField(planaddon.FieldMaxQuantity, field.TypeInt, value)
 	}
-	if pau.mutation.MaxQuantityCleared() {
+	if _u.mutation.MaxQuantityCleared() {
 		_spec.ClearField(planaddon.FieldMaxQuantity, field.TypeInt)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, pau.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{planaddon.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -224,8 +224,8 @@ func (pau *PlanAddonUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
-	pau.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // PlanAddonUpdateOne is the builder for updating a single PlanAddon entity.
@@ -237,123 +237,123 @@ type PlanAddonUpdateOne struct {
 }
 
 // SetMetadata sets the "metadata" field.
-func (pauo *PlanAddonUpdateOne) SetMetadata(m map[string]string) *PlanAddonUpdateOne {
-	pauo.mutation.SetMetadata(m)
-	return pauo
+func (_u *PlanAddonUpdateOne) SetMetadata(v map[string]string) *PlanAddonUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (pauo *PlanAddonUpdateOne) ClearMetadata() *PlanAddonUpdateOne {
-	pauo.mutation.ClearMetadata()
-	return pauo
+func (_u *PlanAddonUpdateOne) ClearMetadata() *PlanAddonUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetAnnotations sets the "annotations" field.
-func (pauo *PlanAddonUpdateOne) SetAnnotations(m map[string]interface{}) *PlanAddonUpdateOne {
-	pauo.mutation.SetAnnotations(m)
-	return pauo
+func (_u *PlanAddonUpdateOne) SetAnnotations(v map[string]interface{}) *PlanAddonUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
 }
 
 // ClearAnnotations clears the value of the "annotations" field.
-func (pauo *PlanAddonUpdateOne) ClearAnnotations() *PlanAddonUpdateOne {
-	pauo.mutation.ClearAnnotations()
-	return pauo
+func (_u *PlanAddonUpdateOne) ClearAnnotations() *PlanAddonUpdateOne {
+	_u.mutation.ClearAnnotations()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (pauo *PlanAddonUpdateOne) SetUpdatedAt(t time.Time) *PlanAddonUpdateOne {
-	pauo.mutation.SetUpdatedAt(t)
-	return pauo
+func (_u *PlanAddonUpdateOne) SetUpdatedAt(v time.Time) *PlanAddonUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (pauo *PlanAddonUpdateOne) SetDeletedAt(t time.Time) *PlanAddonUpdateOne {
-	pauo.mutation.SetDeletedAt(t)
-	return pauo
+func (_u *PlanAddonUpdateOne) SetDeletedAt(v time.Time) *PlanAddonUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (pauo *PlanAddonUpdateOne) SetNillableDeletedAt(t *time.Time) *PlanAddonUpdateOne {
-	if t != nil {
-		pauo.SetDeletedAt(*t)
+func (_u *PlanAddonUpdateOne) SetNillableDeletedAt(v *time.Time) *PlanAddonUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return pauo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (pauo *PlanAddonUpdateOne) ClearDeletedAt() *PlanAddonUpdateOne {
-	pauo.mutation.ClearDeletedAt()
-	return pauo
+func (_u *PlanAddonUpdateOne) ClearDeletedAt() *PlanAddonUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetFromPlanPhase sets the "from_plan_phase" field.
-func (pauo *PlanAddonUpdateOne) SetFromPlanPhase(s string) *PlanAddonUpdateOne {
-	pauo.mutation.SetFromPlanPhase(s)
-	return pauo
+func (_u *PlanAddonUpdateOne) SetFromPlanPhase(v string) *PlanAddonUpdateOne {
+	_u.mutation.SetFromPlanPhase(v)
+	return _u
 }
 
 // SetNillableFromPlanPhase sets the "from_plan_phase" field if the given value is not nil.
-func (pauo *PlanAddonUpdateOne) SetNillableFromPlanPhase(s *string) *PlanAddonUpdateOne {
-	if s != nil {
-		pauo.SetFromPlanPhase(*s)
+func (_u *PlanAddonUpdateOne) SetNillableFromPlanPhase(v *string) *PlanAddonUpdateOne {
+	if v != nil {
+		_u.SetFromPlanPhase(*v)
 	}
-	return pauo
+	return _u
 }
 
 // SetMaxQuantity sets the "max_quantity" field.
-func (pauo *PlanAddonUpdateOne) SetMaxQuantity(i int) *PlanAddonUpdateOne {
-	pauo.mutation.ResetMaxQuantity()
-	pauo.mutation.SetMaxQuantity(i)
-	return pauo
+func (_u *PlanAddonUpdateOne) SetMaxQuantity(v int) *PlanAddonUpdateOne {
+	_u.mutation.ResetMaxQuantity()
+	_u.mutation.SetMaxQuantity(v)
+	return _u
 }
 
 // SetNillableMaxQuantity sets the "max_quantity" field if the given value is not nil.
-func (pauo *PlanAddonUpdateOne) SetNillableMaxQuantity(i *int) *PlanAddonUpdateOne {
-	if i != nil {
-		pauo.SetMaxQuantity(*i)
+func (_u *PlanAddonUpdateOne) SetNillableMaxQuantity(v *int) *PlanAddonUpdateOne {
+	if v != nil {
+		_u.SetMaxQuantity(*v)
 	}
-	return pauo
+	return _u
 }
 
-// AddMaxQuantity adds i to the "max_quantity" field.
-func (pauo *PlanAddonUpdateOne) AddMaxQuantity(i int) *PlanAddonUpdateOne {
-	pauo.mutation.AddMaxQuantity(i)
-	return pauo
+// AddMaxQuantity adds value to the "max_quantity" field.
+func (_u *PlanAddonUpdateOne) AddMaxQuantity(v int) *PlanAddonUpdateOne {
+	_u.mutation.AddMaxQuantity(v)
+	return _u
 }
 
 // ClearMaxQuantity clears the value of the "max_quantity" field.
-func (pauo *PlanAddonUpdateOne) ClearMaxQuantity() *PlanAddonUpdateOne {
-	pauo.mutation.ClearMaxQuantity()
-	return pauo
+func (_u *PlanAddonUpdateOne) ClearMaxQuantity() *PlanAddonUpdateOne {
+	_u.mutation.ClearMaxQuantity()
+	return _u
 }
 
 // Mutation returns the PlanAddonMutation object of the builder.
-func (pauo *PlanAddonUpdateOne) Mutation() *PlanAddonMutation {
-	return pauo.mutation
+func (_u *PlanAddonUpdateOne) Mutation() *PlanAddonMutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the PlanAddonUpdate builder.
-func (pauo *PlanAddonUpdateOne) Where(ps ...predicate.PlanAddon) *PlanAddonUpdateOne {
-	pauo.mutation.Where(ps...)
-	return pauo
+func (_u *PlanAddonUpdateOne) Where(ps ...predicate.PlanAddon) *PlanAddonUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (pauo *PlanAddonUpdateOne) Select(field string, fields ...string) *PlanAddonUpdateOne {
-	pauo.fields = append([]string{field}, fields...)
-	return pauo
+func (_u *PlanAddonUpdateOne) Select(field string, fields ...string) *PlanAddonUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated PlanAddon entity.
-func (pauo *PlanAddonUpdateOne) Save(ctx context.Context) (*PlanAddon, error) {
-	pauo.defaults()
-	return withHooks(ctx, pauo.sqlSave, pauo.mutation, pauo.hooks)
+func (_u *PlanAddonUpdateOne) Save(ctx context.Context) (*PlanAddon, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (pauo *PlanAddonUpdateOne) SaveX(ctx context.Context) *PlanAddon {
-	node, err := pauo.Save(ctx)
+func (_u *PlanAddonUpdateOne) SaveX(ctx context.Context) *PlanAddon {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -361,48 +361,48 @@ func (pauo *PlanAddonUpdateOne) SaveX(ctx context.Context) *PlanAddon {
 }
 
 // Exec executes the query on the entity.
-func (pauo *PlanAddonUpdateOne) Exec(ctx context.Context) error {
-	_, err := pauo.Save(ctx)
+func (_u *PlanAddonUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (pauo *PlanAddonUpdateOne) ExecX(ctx context.Context) {
-	if err := pauo.Exec(ctx); err != nil {
+func (_u *PlanAddonUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (pauo *PlanAddonUpdateOne) defaults() {
-	if _, ok := pauo.mutation.UpdatedAt(); !ok {
+func (_u *PlanAddonUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := planaddon.UpdateDefaultUpdatedAt()
-		pauo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (pauo *PlanAddonUpdateOne) check() error {
-	if pauo.mutation.PlanCleared() && len(pauo.mutation.PlanIDs()) > 0 {
+func (_u *PlanAddonUpdateOne) check() error {
+	if _u.mutation.PlanCleared() && len(_u.mutation.PlanIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "PlanAddon.plan"`)
 	}
-	if pauo.mutation.AddonCleared() && len(pauo.mutation.AddonIDs()) > 0 {
+	if _u.mutation.AddonCleared() && len(_u.mutation.AddonIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "PlanAddon.addon"`)
 	}
 	return nil
 }
 
-func (pauo *PlanAddonUpdateOne) sqlSave(ctx context.Context) (_node *PlanAddon, err error) {
-	if err := pauo.check(); err != nil {
+func (_u *PlanAddonUpdateOne) sqlSave(ctx context.Context) (_node *PlanAddon, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(planaddon.Table, planaddon.Columns, sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString))
-	id, ok := pauo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "PlanAddon.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := pauo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, planaddon.FieldID)
 		for _, f := range fields {
@@ -414,50 +414,50 @@ func (pauo *PlanAddonUpdateOne) sqlSave(ctx context.Context) (_node *PlanAddon, 
 			}
 		}
 	}
-	if ps := pauo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := pauo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(planaddon.FieldMetadata, field.TypeJSON, value)
 	}
-	if pauo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(planaddon.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := pauo.mutation.Annotations(); ok {
+	if value, ok := _u.mutation.Annotations(); ok {
 		_spec.SetField(planaddon.FieldAnnotations, field.TypeJSON, value)
 	}
-	if pauo.mutation.AnnotationsCleared() {
+	if _u.mutation.AnnotationsCleared() {
 		_spec.ClearField(planaddon.FieldAnnotations, field.TypeJSON)
 	}
-	if value, ok := pauo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(planaddon.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := pauo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(planaddon.FieldDeletedAt, field.TypeTime, value)
 	}
-	if pauo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(planaddon.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := pauo.mutation.FromPlanPhase(); ok {
+	if value, ok := _u.mutation.FromPlanPhase(); ok {
 		_spec.SetField(planaddon.FieldFromPlanPhase, field.TypeString, value)
 	}
-	if value, ok := pauo.mutation.MaxQuantity(); ok {
+	if value, ok := _u.mutation.MaxQuantity(); ok {
 		_spec.SetField(planaddon.FieldMaxQuantity, field.TypeInt, value)
 	}
-	if value, ok := pauo.mutation.AddedMaxQuantity(); ok {
+	if value, ok := _u.mutation.AddedMaxQuantity(); ok {
 		_spec.AddField(planaddon.FieldMaxQuantity, field.TypeInt, value)
 	}
-	if pauo.mutation.MaxQuantityCleared() {
+	if _u.mutation.MaxQuantityCleared() {
 		_spec.ClearField(planaddon.FieldMaxQuantity, field.TypeInt)
 	}
-	_node = &PlanAddon{config: pauo.config}
+	_node = &PlanAddon{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, pauo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{planaddon.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -465,6 +465,6 @@ func (pauo *PlanAddonUpdateOne) sqlSave(ctx context.Context) (_node *PlanAddon, 
 		}
 		return nil, err
 	}
-	pauo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

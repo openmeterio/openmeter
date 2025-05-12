@@ -30,40 +30,40 @@ type BillingCustomerLockQuery struct {
 }
 
 // Where adds a new predicate for the BillingCustomerLockQuery builder.
-func (bclq *BillingCustomerLockQuery) Where(ps ...predicate.BillingCustomerLock) *BillingCustomerLockQuery {
-	bclq.predicates = append(bclq.predicates, ps...)
-	return bclq
+func (_q *BillingCustomerLockQuery) Where(ps ...predicate.BillingCustomerLock) *BillingCustomerLockQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (bclq *BillingCustomerLockQuery) Limit(limit int) *BillingCustomerLockQuery {
-	bclq.ctx.Limit = &limit
-	return bclq
+func (_q *BillingCustomerLockQuery) Limit(limit int) *BillingCustomerLockQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (bclq *BillingCustomerLockQuery) Offset(offset int) *BillingCustomerLockQuery {
-	bclq.ctx.Offset = &offset
-	return bclq
+func (_q *BillingCustomerLockQuery) Offset(offset int) *BillingCustomerLockQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (bclq *BillingCustomerLockQuery) Unique(unique bool) *BillingCustomerLockQuery {
-	bclq.ctx.Unique = &unique
-	return bclq
+func (_q *BillingCustomerLockQuery) Unique(unique bool) *BillingCustomerLockQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (bclq *BillingCustomerLockQuery) Order(o ...billingcustomerlock.OrderOption) *BillingCustomerLockQuery {
-	bclq.order = append(bclq.order, o...)
-	return bclq
+func (_q *BillingCustomerLockQuery) Order(o ...billingcustomerlock.OrderOption) *BillingCustomerLockQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // First returns the first BillingCustomerLock entity from the query.
 // Returns a *NotFoundError when no BillingCustomerLock was found.
-func (bclq *BillingCustomerLockQuery) First(ctx context.Context) (*BillingCustomerLock, error) {
-	nodes, err := bclq.Limit(1).All(setContextOp(ctx, bclq.ctx, ent.OpQueryFirst))
+func (_q *BillingCustomerLockQuery) First(ctx context.Context) (*BillingCustomerLock, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -74,8 +74,8 @@ func (bclq *BillingCustomerLockQuery) First(ctx context.Context) (*BillingCustom
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (bclq *BillingCustomerLockQuery) FirstX(ctx context.Context) *BillingCustomerLock {
-	node, err := bclq.First(ctx)
+func (_q *BillingCustomerLockQuery) FirstX(ctx context.Context) *BillingCustomerLock {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -84,9 +84,9 @@ func (bclq *BillingCustomerLockQuery) FirstX(ctx context.Context) *BillingCustom
 
 // FirstID returns the first BillingCustomerLock ID from the query.
 // Returns a *NotFoundError when no BillingCustomerLock ID was found.
-func (bclq *BillingCustomerLockQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *BillingCustomerLockQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = bclq.Limit(1).IDs(setContextOp(ctx, bclq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -97,8 +97,8 @@ func (bclq *BillingCustomerLockQuery) FirstID(ctx context.Context) (id string, e
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (bclq *BillingCustomerLockQuery) FirstIDX(ctx context.Context) string {
-	id, err := bclq.FirstID(ctx)
+func (_q *BillingCustomerLockQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -108,8 +108,8 @@ func (bclq *BillingCustomerLockQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single BillingCustomerLock entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one BillingCustomerLock entity is found.
 // Returns a *NotFoundError when no BillingCustomerLock entities are found.
-func (bclq *BillingCustomerLockQuery) Only(ctx context.Context) (*BillingCustomerLock, error) {
-	nodes, err := bclq.Limit(2).All(setContextOp(ctx, bclq.ctx, ent.OpQueryOnly))
+func (_q *BillingCustomerLockQuery) Only(ctx context.Context) (*BillingCustomerLock, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +124,8 @@ func (bclq *BillingCustomerLockQuery) Only(ctx context.Context) (*BillingCustome
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (bclq *BillingCustomerLockQuery) OnlyX(ctx context.Context) *BillingCustomerLock {
-	node, err := bclq.Only(ctx)
+func (_q *BillingCustomerLockQuery) OnlyX(ctx context.Context) *BillingCustomerLock {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -135,9 +135,9 @@ func (bclq *BillingCustomerLockQuery) OnlyX(ctx context.Context) *BillingCustome
 // OnlyID is like Only, but returns the only BillingCustomerLock ID in the query.
 // Returns a *NotSingularError when more than one BillingCustomerLock ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (bclq *BillingCustomerLockQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *BillingCustomerLockQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = bclq.Limit(2).IDs(setContextOp(ctx, bclq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -152,8 +152,8 @@ func (bclq *BillingCustomerLockQuery) OnlyID(ctx context.Context) (id string, er
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (bclq *BillingCustomerLockQuery) OnlyIDX(ctx context.Context) string {
-	id, err := bclq.OnlyID(ctx)
+func (_q *BillingCustomerLockQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -161,18 +161,18 @@ func (bclq *BillingCustomerLockQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of BillingCustomerLocks.
-func (bclq *BillingCustomerLockQuery) All(ctx context.Context) ([]*BillingCustomerLock, error) {
-	ctx = setContextOp(ctx, bclq.ctx, ent.OpQueryAll)
-	if err := bclq.prepareQuery(ctx); err != nil {
+func (_q *BillingCustomerLockQuery) All(ctx context.Context) ([]*BillingCustomerLock, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*BillingCustomerLock, *BillingCustomerLockQuery]()
-	return withInterceptors[[]*BillingCustomerLock](ctx, bclq, qr, bclq.inters)
+	return withInterceptors[[]*BillingCustomerLock](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (bclq *BillingCustomerLockQuery) AllX(ctx context.Context) []*BillingCustomerLock {
-	nodes, err := bclq.All(ctx)
+func (_q *BillingCustomerLockQuery) AllX(ctx context.Context) []*BillingCustomerLock {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -180,20 +180,20 @@ func (bclq *BillingCustomerLockQuery) AllX(ctx context.Context) []*BillingCustom
 }
 
 // IDs executes the query and returns a list of BillingCustomerLock IDs.
-func (bclq *BillingCustomerLockQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if bclq.ctx.Unique == nil && bclq.path != nil {
-		bclq.Unique(true)
+func (_q *BillingCustomerLockQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, bclq.ctx, ent.OpQueryIDs)
-	if err = bclq.Select(billingcustomerlock.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(billingcustomerlock.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (bclq *BillingCustomerLockQuery) IDsX(ctx context.Context) []string {
-	ids, err := bclq.IDs(ctx)
+func (_q *BillingCustomerLockQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -201,17 +201,17 @@ func (bclq *BillingCustomerLockQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (bclq *BillingCustomerLockQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, bclq.ctx, ent.OpQueryCount)
-	if err := bclq.prepareQuery(ctx); err != nil {
+func (_q *BillingCustomerLockQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, bclq, querierCount[*BillingCustomerLockQuery](), bclq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BillingCustomerLockQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (bclq *BillingCustomerLockQuery) CountX(ctx context.Context) int {
-	count, err := bclq.Count(ctx)
+func (_q *BillingCustomerLockQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -219,9 +219,9 @@ func (bclq *BillingCustomerLockQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (bclq *BillingCustomerLockQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, bclq.ctx, ent.OpQueryExist)
-	switch _, err := bclq.FirstID(ctx); {
+func (_q *BillingCustomerLockQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -232,8 +232,8 @@ func (bclq *BillingCustomerLockQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (bclq *BillingCustomerLockQuery) ExistX(ctx context.Context) bool {
-	exist, err := bclq.Exist(ctx)
+func (_q *BillingCustomerLockQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -242,19 +242,19 @@ func (bclq *BillingCustomerLockQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the BillingCustomerLockQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (bclq *BillingCustomerLockQuery) Clone() *BillingCustomerLockQuery {
-	if bclq == nil {
+func (_q *BillingCustomerLockQuery) Clone() *BillingCustomerLockQuery {
+	if _q == nil {
 		return nil
 	}
 	return &BillingCustomerLockQuery{
-		config:     bclq.config,
-		ctx:        bclq.ctx.Clone(),
-		order:      append([]billingcustomerlock.OrderOption{}, bclq.order...),
-		inters:     append([]Interceptor{}, bclq.inters...),
-		predicates: append([]predicate.BillingCustomerLock{}, bclq.predicates...),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]billingcustomerlock.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.BillingCustomerLock{}, _q.predicates...),
 		// clone intermediate query.
-		sql:  bclq.sql.Clone(),
-		path: bclq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
@@ -272,10 +272,10 @@ func (bclq *BillingCustomerLockQuery) Clone() *BillingCustomerLockQuery {
 //		GroupBy(billingcustomerlock.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (bclq *BillingCustomerLockQuery) GroupBy(field string, fields ...string) *BillingCustomerLockGroupBy {
-	bclq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &BillingCustomerLockGroupBy{build: bclq}
-	grbuild.flds = &bclq.ctx.Fields
+func (_q *BillingCustomerLockQuery) GroupBy(field string, fields ...string) *BillingCustomerLockGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &BillingCustomerLockGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = billingcustomerlock.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -293,65 +293,65 @@ func (bclq *BillingCustomerLockQuery) GroupBy(field string, fields ...string) *B
 //	client.BillingCustomerLock.Query().
 //		Select(billingcustomerlock.FieldNamespace).
 //		Scan(ctx, &v)
-func (bclq *BillingCustomerLockQuery) Select(fields ...string) *BillingCustomerLockSelect {
-	bclq.ctx.Fields = append(bclq.ctx.Fields, fields...)
-	sbuild := &BillingCustomerLockSelect{BillingCustomerLockQuery: bclq}
+func (_q *BillingCustomerLockQuery) Select(fields ...string) *BillingCustomerLockSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &BillingCustomerLockSelect{BillingCustomerLockQuery: _q}
 	sbuild.label = billingcustomerlock.Label
-	sbuild.flds, sbuild.scan = &bclq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a BillingCustomerLockSelect configured with the given aggregations.
-func (bclq *BillingCustomerLockQuery) Aggregate(fns ...AggregateFunc) *BillingCustomerLockSelect {
-	return bclq.Select().Aggregate(fns...)
+func (_q *BillingCustomerLockQuery) Aggregate(fns ...AggregateFunc) *BillingCustomerLockSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (bclq *BillingCustomerLockQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range bclq.inters {
+func (_q *BillingCustomerLockQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, bclq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range bclq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !billingcustomerlock.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if bclq.path != nil {
-		prev, err := bclq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		bclq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (bclq *BillingCustomerLockQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingCustomerLock, error) {
+func (_q *BillingCustomerLockQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingCustomerLock, error) {
 	var (
 		nodes = []*BillingCustomerLock{}
-		_spec = bclq.querySpec()
+		_spec = _q.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingCustomerLock).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &BillingCustomerLock{config: bclq.config}
+		node := &BillingCustomerLock{config: _q.config}
 		nodes = append(nodes, node)
 		return node.assignValues(columns, values)
 	}
-	if len(bclq.modifiers) > 0 {
-		_spec.Modifiers = bclq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, bclq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
@@ -360,27 +360,27 @@ func (bclq *BillingCustomerLockQuery) sqlAll(ctx context.Context, hooks ...query
 	return nodes, nil
 }
 
-func (bclq *BillingCustomerLockQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := bclq.querySpec()
-	if len(bclq.modifiers) > 0 {
-		_spec.Modifiers = bclq.modifiers
+func (_q *BillingCustomerLockQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = bclq.ctx.Fields
-	if len(bclq.ctx.Fields) > 0 {
-		_spec.Unique = bclq.ctx.Unique != nil && *bclq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, bclq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (bclq *BillingCustomerLockQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *BillingCustomerLockQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(billingcustomerlock.Table, billingcustomerlock.Columns, sqlgraph.NewFieldSpec(billingcustomerlock.FieldID, field.TypeString))
-	_spec.From = bclq.sql
-	if unique := bclq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if bclq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := bclq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billingcustomerlock.FieldID)
 		for i := range fields {
@@ -389,20 +389,20 @@ func (bclq *BillingCustomerLockQuery) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 	}
-	if ps := bclq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := bclq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := bclq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := bclq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -412,36 +412,36 @@ func (bclq *BillingCustomerLockQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (bclq *BillingCustomerLockQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(bclq.driver.Dialect())
+func (_q *BillingCustomerLockQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(billingcustomerlock.Table)
-	columns := bclq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = billingcustomerlock.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if bclq.sql != nil {
-		selector = bclq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if bclq.ctx.Unique != nil && *bclq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range bclq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range bclq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range bclq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := bclq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := bclq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -450,27 +450,27 @@ func (bclq *BillingCustomerLockQuery) sqlQuery(ctx context.Context) *sql.Selecto
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (bclq *BillingCustomerLockQuery) ForUpdate(opts ...sql.LockOption) *BillingCustomerLockQuery {
-	if bclq.driver.Dialect() == dialect.Postgres {
-		bclq.Unique(false)
+func (_q *BillingCustomerLockQuery) ForUpdate(opts ...sql.LockOption) *BillingCustomerLockQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bclq.modifiers = append(bclq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return bclq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (bclq *BillingCustomerLockQuery) ForShare(opts ...sql.LockOption) *BillingCustomerLockQuery {
-	if bclq.driver.Dialect() == dialect.Postgres {
-		bclq.Unique(false)
+func (_q *BillingCustomerLockQuery) ForShare(opts ...sql.LockOption) *BillingCustomerLockQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bclq.modifiers = append(bclq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return bclq
+	return _q
 }
 
 // BillingCustomerLockGroupBy is the group-by builder for BillingCustomerLock entities.

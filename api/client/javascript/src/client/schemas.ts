@@ -1155,7 +1155,8 @@ export interface paths {
      */
     get: operations['queryMeter']
     put?: never
-    post?: never
+    /** Query meter */
+    post: operations['queryMeterPost']
     delete?: never
     options?: never
     head?: never
@@ -1344,26 +1345,6 @@ export interface paths {
      * @description Test a notification rule by sending a test event with random data.
      */
     post: operations['testNotificationRule']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/notification/webhook/svix': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Receive Svix operational events
-     * @description Callback endpoint used by Svix to notify about operational events.
-     */
-    post: operations['receiveSvixOperationalEvent']
     delete?: never
     options?: never
     head?: never
@@ -6656,6 +6637,75 @@ export interface components {
      * @enum {string}
      */
     MeterOrderBy: 'key' | 'name' | 'aggregation' | 'createdAt' | 'updatedAt'
+    /** @description A meter query request. */
+    MeterQueryRequest: {
+      /**
+       * @description Client ID
+       *     Useful to track progress of a query.
+       * @example f74e58ed-94ce-4041-ae06-cf45420451a3
+       */
+      clientId?: string
+      /**
+       * Format: date-time
+       * @description Start date-time in RFC 3339 format.
+       *
+       *     Inclusive.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      from?: Date
+      /**
+       * Format: date-time
+       * @description End date-time in RFC 3339 format.
+       *
+       *     Inclusive.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      to?: Date
+      /**
+       * @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+       * @example DAY
+       */
+      windowSize?: components['schemas']['WindowSize']
+      /**
+       * @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+       *     If not specified, the UTC timezone will be used.
+       * @default UTC
+       * @example UTC
+       */
+      windowTimeZone?: string
+      /**
+       * @description Filtering by multiple subjects.
+       * @example [
+       *       "customer-1",
+       *       "customer-2"
+       *     ]
+       */
+      subject?: string[]
+      /**
+       * @description Simple filter for group bys with exact match.
+       * @example {
+       *       "model": [
+       *         "gpt-4-turbo",
+       *         "gpt-4o"
+       *       ],
+       *       "type": [
+       *         "prompt"
+       *       ]
+       *     }
+       */
+      filterGroupBy?: {
+        [key: string]: string[]
+      }
+      /**
+       * @description If not specified a single aggregate will be returned for each subject and time window.
+       *     `subject` is a reserved group by value.
+       * @example [
+       *       "model",
+       *       "type"
+       *     ]
+       */
+      groupBy?: string[]
+    }
     /**
      * @description The result of a meter query.
      * @example {
@@ -9663,29 +9713,6 @@ export interface components {
      * @enum {string}
      */
     SubscriptionTimingEnum: 'immediate' | 'next_billing_cycle'
-    /** @description Operational webhook reqeuest sent by Svix. */
-    SvixOperationalWebhookRequest: {
-      /**
-       * Operational Webhook Type
-       * @description The type of the Svix operational webhook request.
-       * @enum {string}
-       */
-      type:
-        | 'endpoint.created'
-        | 'endpoint.deleted'
-        | 'endpoint.disabled'
-        | 'endpoint.updated'
-        | 'message.attempt.exhausted'
-        | 'message.attempt.failing'
-        | 'message.attempt.recovered'
-      /**
-       * Operational Webhook Payload
-       * @description The payload of the Svix operational webhook request.
-       */
-      data: {
-        [key: string]: string
-      }
-    }
     /**
      * @description Tax behavior.
      *
@@ -10022,6 +10049,12 @@ export interface components {
     'GrantOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'GrantOrderByOrdering.orderBy': components['schemas']['GrantOrderBy']
+    /** @description Filter by invoice created time.
+     *     Inclusive. */
+    'InvoiceListParams.createdAfter': Date | string
+    /** @description Filter by invoice created time.
+     *     Inclusive. */
+    'InvoiceListParams.createdBefore': Date | string
     /** @description Filter by customer ID */
     'InvoiceListParams.customers': string[]
     /** @description What parts of the list output to expand in listings */
@@ -10030,9 +10063,11 @@ export interface components {
     'InvoiceListParams.extendedStatuses': string[]
     /** @description Include deleted invoices */
     'InvoiceListParams.includeDeleted': boolean
-    /** @description Filter by invoice creation time */
+    /** @description Filter by invoice issued time.
+     *     Inclusive. */
     'InvoiceListParams.issuedAfter': Date | string
-    /** @description Filter by invoice creation time */
+    /** @description Filter by invoice issued time.
+     *     Inclusive. */
     'InvoiceListParams.issuedBefore': Date | string
     /** @description Filter by the invoice status. */
     'InvoiceListParams.statuses': components['schemas']['InvoiceStatus'][]
@@ -10517,6 +10552,7 @@ export type Meter = components['schemas']['Meter']
 export type MeterAggregation = components['schemas']['MeterAggregation']
 export type MeterCreate = components['schemas']['MeterCreate']
 export type MeterOrderBy = components['schemas']['MeterOrderBy']
+export type MeterQueryRequest = components['schemas']['MeterQueryRequest']
 export type MeterQueryResult = components['schemas']['MeterQueryResult']
 export type MeterQueryRow = components['schemas']['MeterQueryRow']
 export type MeterUpdate = components['schemas']['MeterUpdate']
@@ -10708,8 +10744,6 @@ export type SubscriptionStatus = components['schemas']['SubscriptionStatus']
 export type SubscriptionTiming = components['schemas']['SubscriptionTiming']
 export type SubscriptionTimingEnum =
   components['schemas']['SubscriptionTimingEnum']
-export type SvixOperationalWebhookRequest =
-  components['schemas']['SvixOperationalWebhookRequest']
 export type TaxBehavior = components['schemas']['TaxBehavior']
 export type TaxConfig = components['schemas']['TaxConfig']
 export type TieredPriceMode = components['schemas']['TieredPriceMode']
@@ -10792,6 +10826,10 @@ export type ParameterGrantOrderByOrderingOrder =
   components['parameters']['GrantOrderByOrdering.order']
 export type ParameterGrantOrderByOrderingOrderBy =
   components['parameters']['GrantOrderByOrdering.orderBy']
+export type ParameterInvoiceListParamsCreatedAfter =
+  components['parameters']['InvoiceListParams.createdAfter']
+export type ParameterInvoiceListParamsCreatedBefore =
+  components['parameters']['InvoiceListParams.createdBefore']
 export type ParameterInvoiceListParamsCustomers =
   components['parameters']['InvoiceListParams.customers']
 export type ParameterInvoiceListParamsExpand =
@@ -12894,10 +12932,18 @@ export interface operations {
         statuses?: components['parameters']['InvoiceListParams.statuses']
         /** @description Filter by invoice extended statuses */
         extendedStatuses?: components['parameters']['InvoiceListParams.extendedStatuses']
-        /** @description Filter by invoice creation time */
+        /** @description Filter by invoice issued time.
+         *     Inclusive. */
         issuedAfter?: components['parameters']['InvoiceListParams.issuedAfter']
-        /** @description Filter by invoice creation time */
+        /** @description Filter by invoice issued time.
+         *     Inclusive. */
         issuedBefore?: components['parameters']['InvoiceListParams.issuedBefore']
+        /** @description Filter by invoice created time.
+         *     Inclusive. */
+        createdAfter?: components['parameters']['InvoiceListParams.createdAfter']
+        /** @description Filter by invoice created time.
+         *     Inclusive. */
+        createdBefore?: components['parameters']['InvoiceListParams.createdBefore']
         /** @description What parts of the list output to expand in listings */
         expand?: components['parameters']['InvoiceListParams.expand']
         /** @description Filter by customer ID */
@@ -17894,6 +17940,104 @@ export interface operations {
       }
     }
   }
+  queryMeterPost: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        meterIdOrSlug: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MeterQueryRequest']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['MeterQueryResult']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
   listMeterSubjects: {
     parameters: {
       query?: never
@@ -19203,91 +19347,6 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
-        }
-      }
-      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
-      412: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  receiveSvixOperationalEvent: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SvixOperationalWebhookRequest']
-      }
-    }
-    responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */

@@ -310,6 +310,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 		})
 		s.NoError(err, "failed to handle payment trigger")
 		s.Equal(billing.InvoiceStatusPaid, invoice.Status, "invoice should be in paid state")
+		s.NotNil(invoice.IssuedAt, "invoice should have an issued at time")
 	})
 
 	// Payment status handling: we cannot transition the invoice to uncollectible state (full mesh transitions)

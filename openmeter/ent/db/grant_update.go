@@ -23,83 +23,83 @@ type GrantUpdate struct {
 }
 
 // Where appends a list predicates to the GrantUpdate builder.
-func (gu *GrantUpdate) Where(ps ...predicate.Grant) *GrantUpdate {
-	gu.mutation.Where(ps...)
-	return gu
+func (_u *GrantUpdate) Where(ps ...predicate.Grant) *GrantUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (gu *GrantUpdate) SetMetadata(m map[string]string) *GrantUpdate {
-	gu.mutation.SetMetadata(m)
-	return gu
+func (_u *GrantUpdate) SetMetadata(v map[string]string) *GrantUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (gu *GrantUpdate) ClearMetadata() *GrantUpdate {
-	gu.mutation.ClearMetadata()
-	return gu
+func (_u *GrantUpdate) ClearMetadata() *GrantUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (gu *GrantUpdate) SetUpdatedAt(t time.Time) *GrantUpdate {
-	gu.mutation.SetUpdatedAt(t)
-	return gu
+func (_u *GrantUpdate) SetUpdatedAt(v time.Time) *GrantUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (gu *GrantUpdate) SetDeletedAt(t time.Time) *GrantUpdate {
-	gu.mutation.SetDeletedAt(t)
-	return gu
+func (_u *GrantUpdate) SetDeletedAt(v time.Time) *GrantUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (gu *GrantUpdate) SetNillableDeletedAt(t *time.Time) *GrantUpdate {
-	if t != nil {
-		gu.SetDeletedAt(*t)
+func (_u *GrantUpdate) SetNillableDeletedAt(v *time.Time) *GrantUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return gu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (gu *GrantUpdate) ClearDeletedAt() *GrantUpdate {
-	gu.mutation.ClearDeletedAt()
-	return gu
+func (_u *GrantUpdate) ClearDeletedAt() *GrantUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetVoidedAt sets the "voided_at" field.
-func (gu *GrantUpdate) SetVoidedAt(t time.Time) *GrantUpdate {
-	gu.mutation.SetVoidedAt(t)
-	return gu
+func (_u *GrantUpdate) SetVoidedAt(v time.Time) *GrantUpdate {
+	_u.mutation.SetVoidedAt(v)
+	return _u
 }
 
 // SetNillableVoidedAt sets the "voided_at" field if the given value is not nil.
-func (gu *GrantUpdate) SetNillableVoidedAt(t *time.Time) *GrantUpdate {
-	if t != nil {
-		gu.SetVoidedAt(*t)
+func (_u *GrantUpdate) SetNillableVoidedAt(v *time.Time) *GrantUpdate {
+	if v != nil {
+		_u.SetVoidedAt(*v)
 	}
-	return gu
+	return _u
 }
 
 // ClearVoidedAt clears the value of the "voided_at" field.
-func (gu *GrantUpdate) ClearVoidedAt() *GrantUpdate {
-	gu.mutation.ClearVoidedAt()
-	return gu
+func (_u *GrantUpdate) ClearVoidedAt() *GrantUpdate {
+	_u.mutation.ClearVoidedAt()
+	return _u
 }
 
 // Mutation returns the GrantMutation object of the builder.
-func (gu *GrantUpdate) Mutation() *GrantMutation {
-	return gu.mutation
+func (_u *GrantUpdate) Mutation() *GrantMutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (gu *GrantUpdate) Save(ctx context.Context) (int, error) {
-	gu.defaults()
-	return withHooks(ctx, gu.sqlSave, gu.mutation, gu.hooks)
+func (_u *GrantUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (gu *GrantUpdate) SaveX(ctx context.Context) int {
-	affected, err := gu.Save(ctx)
+func (_u *GrantUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -107,74 +107,74 @@ func (gu *GrantUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (gu *GrantUpdate) Exec(ctx context.Context) error {
-	_, err := gu.Save(ctx)
+func (_u *GrantUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (gu *GrantUpdate) ExecX(ctx context.Context) {
-	if err := gu.Exec(ctx); err != nil {
+func (_u *GrantUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (gu *GrantUpdate) defaults() {
-	if _, ok := gu.mutation.UpdatedAt(); !ok {
+func (_u *GrantUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := dbgrant.UpdateDefaultUpdatedAt()
-		gu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (gu *GrantUpdate) check() error {
-	if gu.mutation.EntitlementCleared() && len(gu.mutation.EntitlementIDs()) > 0 {
+func (_u *GrantUpdate) check() error {
+	if _u.mutation.EntitlementCleared() && len(_u.mutation.EntitlementIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Grant.entitlement"`)
 	}
 	return nil
 }
 
-func (gu *GrantUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := gu.check(); err != nil {
-		return n, err
+func (_u *GrantUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(dbgrant.Table, dbgrant.Columns, sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString))
-	if ps := gu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := gu.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
 	}
-	if gu.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := gu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbgrant.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := gu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(dbgrant.FieldDeletedAt, field.TypeTime, value)
 	}
-	if gu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(dbgrant.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := gu.mutation.VoidedAt(); ok {
+	if value, ok := _u.mutation.VoidedAt(); ok {
 		_spec.SetField(dbgrant.FieldVoidedAt, field.TypeTime, value)
 	}
-	if gu.mutation.VoidedAtCleared() {
+	if _u.mutation.VoidedAtCleared() {
 		_spec.ClearField(dbgrant.FieldVoidedAt, field.TypeTime)
 	}
-	if gu.mutation.RecurrencePeriodCleared() {
+	if _u.mutation.RecurrencePeriodCleared() {
 		_spec.ClearField(dbgrant.FieldRecurrencePeriod, field.TypeString)
 	}
-	if gu.mutation.RecurrenceAnchorCleared() {
+	if _u.mutation.RecurrenceAnchorCleared() {
 		_spec.ClearField(dbgrant.FieldRecurrenceAnchor, field.TypeTime)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, gu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{dbgrant.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -182,8 +182,8 @@ func (gu *GrantUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
-	gu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // GrantUpdateOne is the builder for updating a single Grant entity.
@@ -195,90 +195,90 @@ type GrantUpdateOne struct {
 }
 
 // SetMetadata sets the "metadata" field.
-func (guo *GrantUpdateOne) SetMetadata(m map[string]string) *GrantUpdateOne {
-	guo.mutation.SetMetadata(m)
-	return guo
+func (_u *GrantUpdateOne) SetMetadata(v map[string]string) *GrantUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (guo *GrantUpdateOne) ClearMetadata() *GrantUpdateOne {
-	guo.mutation.ClearMetadata()
-	return guo
+func (_u *GrantUpdateOne) ClearMetadata() *GrantUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (guo *GrantUpdateOne) SetUpdatedAt(t time.Time) *GrantUpdateOne {
-	guo.mutation.SetUpdatedAt(t)
-	return guo
+func (_u *GrantUpdateOne) SetUpdatedAt(v time.Time) *GrantUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (guo *GrantUpdateOne) SetDeletedAt(t time.Time) *GrantUpdateOne {
-	guo.mutation.SetDeletedAt(t)
-	return guo
+func (_u *GrantUpdateOne) SetDeletedAt(v time.Time) *GrantUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (guo *GrantUpdateOne) SetNillableDeletedAt(t *time.Time) *GrantUpdateOne {
-	if t != nil {
-		guo.SetDeletedAt(*t)
+func (_u *GrantUpdateOne) SetNillableDeletedAt(v *time.Time) *GrantUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return guo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (guo *GrantUpdateOne) ClearDeletedAt() *GrantUpdateOne {
-	guo.mutation.ClearDeletedAt()
-	return guo
+func (_u *GrantUpdateOne) ClearDeletedAt() *GrantUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetVoidedAt sets the "voided_at" field.
-func (guo *GrantUpdateOne) SetVoidedAt(t time.Time) *GrantUpdateOne {
-	guo.mutation.SetVoidedAt(t)
-	return guo
+func (_u *GrantUpdateOne) SetVoidedAt(v time.Time) *GrantUpdateOne {
+	_u.mutation.SetVoidedAt(v)
+	return _u
 }
 
 // SetNillableVoidedAt sets the "voided_at" field if the given value is not nil.
-func (guo *GrantUpdateOne) SetNillableVoidedAt(t *time.Time) *GrantUpdateOne {
-	if t != nil {
-		guo.SetVoidedAt(*t)
+func (_u *GrantUpdateOne) SetNillableVoidedAt(v *time.Time) *GrantUpdateOne {
+	if v != nil {
+		_u.SetVoidedAt(*v)
 	}
-	return guo
+	return _u
 }
 
 // ClearVoidedAt clears the value of the "voided_at" field.
-func (guo *GrantUpdateOne) ClearVoidedAt() *GrantUpdateOne {
-	guo.mutation.ClearVoidedAt()
-	return guo
+func (_u *GrantUpdateOne) ClearVoidedAt() *GrantUpdateOne {
+	_u.mutation.ClearVoidedAt()
+	return _u
 }
 
 // Mutation returns the GrantMutation object of the builder.
-func (guo *GrantUpdateOne) Mutation() *GrantMutation {
-	return guo.mutation
+func (_u *GrantUpdateOne) Mutation() *GrantMutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the GrantUpdate builder.
-func (guo *GrantUpdateOne) Where(ps ...predicate.Grant) *GrantUpdateOne {
-	guo.mutation.Where(ps...)
-	return guo
+func (_u *GrantUpdateOne) Where(ps ...predicate.Grant) *GrantUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (guo *GrantUpdateOne) Select(field string, fields ...string) *GrantUpdateOne {
-	guo.fields = append([]string{field}, fields...)
-	return guo
+func (_u *GrantUpdateOne) Select(field string, fields ...string) *GrantUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated Grant entity.
-func (guo *GrantUpdateOne) Save(ctx context.Context) (*Grant, error) {
-	guo.defaults()
-	return withHooks(ctx, guo.sqlSave, guo.mutation, guo.hooks)
+func (_u *GrantUpdateOne) Save(ctx context.Context) (*Grant, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (guo *GrantUpdateOne) SaveX(ctx context.Context) *Grant {
-	node, err := guo.Save(ctx)
+func (_u *GrantUpdateOne) SaveX(ctx context.Context) *Grant {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -286,45 +286,45 @@ func (guo *GrantUpdateOne) SaveX(ctx context.Context) *Grant {
 }
 
 // Exec executes the query on the entity.
-func (guo *GrantUpdateOne) Exec(ctx context.Context) error {
-	_, err := guo.Save(ctx)
+func (_u *GrantUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (guo *GrantUpdateOne) ExecX(ctx context.Context) {
-	if err := guo.Exec(ctx); err != nil {
+func (_u *GrantUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (guo *GrantUpdateOne) defaults() {
-	if _, ok := guo.mutation.UpdatedAt(); !ok {
+func (_u *GrantUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := dbgrant.UpdateDefaultUpdatedAt()
-		guo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (guo *GrantUpdateOne) check() error {
-	if guo.mutation.EntitlementCleared() && len(guo.mutation.EntitlementIDs()) > 0 {
+func (_u *GrantUpdateOne) check() error {
+	if _u.mutation.EntitlementCleared() && len(_u.mutation.EntitlementIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Grant.entitlement"`)
 	}
 	return nil
 }
 
-func (guo *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error) {
-	if err := guo.check(); err != nil {
+func (_u *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(dbgrant.Table, dbgrant.Columns, sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString))
-	id, ok := guo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "Grant.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := guo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, dbgrant.FieldID)
 		for _, f := range fields {
@@ -336,44 +336,44 @@ func (guo *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error
 			}
 		}
 	}
-	if ps := guo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := guo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
 	}
-	if guo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := guo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbgrant.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := guo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(dbgrant.FieldDeletedAt, field.TypeTime, value)
 	}
-	if guo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(dbgrant.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := guo.mutation.VoidedAt(); ok {
+	if value, ok := _u.mutation.VoidedAt(); ok {
 		_spec.SetField(dbgrant.FieldVoidedAt, field.TypeTime, value)
 	}
-	if guo.mutation.VoidedAtCleared() {
+	if _u.mutation.VoidedAtCleared() {
 		_spec.ClearField(dbgrant.FieldVoidedAt, field.TypeTime)
 	}
-	if guo.mutation.RecurrencePeriodCleared() {
+	if _u.mutation.RecurrencePeriodCleared() {
 		_spec.ClearField(dbgrant.FieldRecurrencePeriod, field.TypeString)
 	}
-	if guo.mutation.RecurrenceAnchorCleared() {
+	if _u.mutation.RecurrenceAnchorCleared() {
 		_spec.ClearField(dbgrant.FieldRecurrenceAnchor, field.TypeTime)
 	}
-	_node = &Grant{config: guo.config}
+	_node = &Grant{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, guo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{dbgrant.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -381,6 +381,6 @@ func (guo *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error
 		}
 		return nil, err
 	}
-	guo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

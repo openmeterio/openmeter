@@ -24,99 +24,99 @@ type SubscriptionAddonUpdate struct {
 }
 
 // Where appends a list predicates to the SubscriptionAddonUpdate builder.
-func (sau *SubscriptionAddonUpdate) Where(ps ...predicate.SubscriptionAddon) *SubscriptionAddonUpdate {
-	sau.mutation.Where(ps...)
-	return sau
+func (_u *SubscriptionAddonUpdate) Where(ps ...predicate.SubscriptionAddon) *SubscriptionAddonUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (sau *SubscriptionAddonUpdate) SetMetadata(m map[string]string) *SubscriptionAddonUpdate {
-	sau.mutation.SetMetadata(m)
-	return sau
+func (_u *SubscriptionAddonUpdate) SetMetadata(v map[string]string) *SubscriptionAddonUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (sau *SubscriptionAddonUpdate) ClearMetadata() *SubscriptionAddonUpdate {
-	sau.mutation.ClearMetadata()
-	return sau
+func (_u *SubscriptionAddonUpdate) ClearMetadata() *SubscriptionAddonUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (sau *SubscriptionAddonUpdate) SetUpdatedAt(t time.Time) *SubscriptionAddonUpdate {
-	sau.mutation.SetUpdatedAt(t)
-	return sau
+func (_u *SubscriptionAddonUpdate) SetUpdatedAt(v time.Time) *SubscriptionAddonUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (sau *SubscriptionAddonUpdate) SetDeletedAt(t time.Time) *SubscriptionAddonUpdate {
-	sau.mutation.SetDeletedAt(t)
-	return sau
+func (_u *SubscriptionAddonUpdate) SetDeletedAt(v time.Time) *SubscriptionAddonUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (sau *SubscriptionAddonUpdate) SetNillableDeletedAt(t *time.Time) *SubscriptionAddonUpdate {
-	if t != nil {
-		sau.SetDeletedAt(*t)
+func (_u *SubscriptionAddonUpdate) SetNillableDeletedAt(v *time.Time) *SubscriptionAddonUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return sau
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (sau *SubscriptionAddonUpdate) ClearDeletedAt() *SubscriptionAddonUpdate {
-	sau.mutation.ClearDeletedAt()
-	return sau
+func (_u *SubscriptionAddonUpdate) ClearDeletedAt() *SubscriptionAddonUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // AddQuantityIDs adds the "quantities" edge to the SubscriptionAddonQuantity entity by IDs.
-func (sau *SubscriptionAddonUpdate) AddQuantityIDs(ids ...string) *SubscriptionAddonUpdate {
-	sau.mutation.AddQuantityIDs(ids...)
-	return sau
+func (_u *SubscriptionAddonUpdate) AddQuantityIDs(ids ...string) *SubscriptionAddonUpdate {
+	_u.mutation.AddQuantityIDs(ids...)
+	return _u
 }
 
 // AddQuantities adds the "quantities" edges to the SubscriptionAddonQuantity entity.
-func (sau *SubscriptionAddonUpdate) AddQuantities(s ...*SubscriptionAddonQuantity) *SubscriptionAddonUpdate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_u *SubscriptionAddonUpdate) AddQuantities(v ...*SubscriptionAddonQuantity) *SubscriptionAddonUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return sau.AddQuantityIDs(ids...)
+	return _u.AddQuantityIDs(ids...)
 }
 
 // Mutation returns the SubscriptionAddonMutation object of the builder.
-func (sau *SubscriptionAddonUpdate) Mutation() *SubscriptionAddonMutation {
-	return sau.mutation
+func (_u *SubscriptionAddonUpdate) Mutation() *SubscriptionAddonMutation {
+	return _u.mutation
 }
 
 // ClearQuantities clears all "quantities" edges to the SubscriptionAddonQuantity entity.
-func (sau *SubscriptionAddonUpdate) ClearQuantities() *SubscriptionAddonUpdate {
-	sau.mutation.ClearQuantities()
-	return sau
+func (_u *SubscriptionAddonUpdate) ClearQuantities() *SubscriptionAddonUpdate {
+	_u.mutation.ClearQuantities()
+	return _u
 }
 
 // RemoveQuantityIDs removes the "quantities" edge to SubscriptionAddonQuantity entities by IDs.
-func (sau *SubscriptionAddonUpdate) RemoveQuantityIDs(ids ...string) *SubscriptionAddonUpdate {
-	sau.mutation.RemoveQuantityIDs(ids...)
-	return sau
+func (_u *SubscriptionAddonUpdate) RemoveQuantityIDs(ids ...string) *SubscriptionAddonUpdate {
+	_u.mutation.RemoveQuantityIDs(ids...)
+	return _u
 }
 
 // RemoveQuantities removes "quantities" edges to SubscriptionAddonQuantity entities.
-func (sau *SubscriptionAddonUpdate) RemoveQuantities(s ...*SubscriptionAddonQuantity) *SubscriptionAddonUpdate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_u *SubscriptionAddonUpdate) RemoveQuantities(v ...*SubscriptionAddonQuantity) *SubscriptionAddonUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return sau.RemoveQuantityIDs(ids...)
+	return _u.RemoveQuantityIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (sau *SubscriptionAddonUpdate) Save(ctx context.Context) (int, error) {
-	sau.defaults()
-	return withHooks(ctx, sau.sqlSave, sau.mutation, sau.hooks)
+func (_u *SubscriptionAddonUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (sau *SubscriptionAddonUpdate) SaveX(ctx context.Context) int {
-	affected, err := sau.Save(ctx)
+func (_u *SubscriptionAddonUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -124,65 +124,65 @@ func (sau *SubscriptionAddonUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (sau *SubscriptionAddonUpdate) Exec(ctx context.Context) error {
-	_, err := sau.Save(ctx)
+func (_u *SubscriptionAddonUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (sau *SubscriptionAddonUpdate) ExecX(ctx context.Context) {
-	if err := sau.Exec(ctx); err != nil {
+func (_u *SubscriptionAddonUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (sau *SubscriptionAddonUpdate) defaults() {
-	if _, ok := sau.mutation.UpdatedAt(); !ok {
+func (_u *SubscriptionAddonUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := subscriptionaddon.UpdateDefaultUpdatedAt()
-		sau.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (sau *SubscriptionAddonUpdate) check() error {
-	if sau.mutation.SubscriptionCleared() && len(sau.mutation.SubscriptionIDs()) > 0 {
+func (_u *SubscriptionAddonUpdate) check() error {
+	if _u.mutation.SubscriptionCleared() && len(_u.mutation.SubscriptionIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionAddon.subscription"`)
 	}
-	if sau.mutation.AddonCleared() && len(sau.mutation.AddonIDs()) > 0 {
+	if _u.mutation.AddonCleared() && len(_u.mutation.AddonIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionAddon.addon"`)
 	}
 	return nil
 }
 
-func (sau *SubscriptionAddonUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := sau.check(); err != nil {
-		return n, err
+func (_u *SubscriptionAddonUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(subscriptionaddon.Table, subscriptionaddon.Columns, sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString))
-	if ps := sau.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := sau.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(subscriptionaddon.FieldMetadata, field.TypeJSON, value)
 	}
-	if sau.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(subscriptionaddon.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := sau.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionaddon.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := sau.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(subscriptionaddon.FieldDeletedAt, field.TypeTime, value)
 	}
-	if sau.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(subscriptionaddon.FieldDeletedAt, field.TypeTime)
 	}
-	if sau.mutation.QuantitiesCleared() {
+	if _u.mutation.QuantitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -195,7 +195,7 @@ func (sau *SubscriptionAddonUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := sau.mutation.RemovedQuantitiesIDs(); len(nodes) > 0 && !sau.mutation.QuantitiesCleared() {
+	if nodes := _u.mutation.RemovedQuantitiesIDs(); len(nodes) > 0 && !_u.mutation.QuantitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -211,7 +211,7 @@ func (sau *SubscriptionAddonUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := sau.mutation.QuantitiesIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.QuantitiesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -227,7 +227,7 @@ func (sau *SubscriptionAddonUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, sau.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscriptionaddon.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -235,8 +235,8 @@ func (sau *SubscriptionAddonUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		return 0, err
 	}
-	sau.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // SubscriptionAddonUpdateOne is the builder for updating a single SubscriptionAddon entity.
@@ -248,106 +248,106 @@ type SubscriptionAddonUpdateOne struct {
 }
 
 // SetMetadata sets the "metadata" field.
-func (sauo *SubscriptionAddonUpdateOne) SetMetadata(m map[string]string) *SubscriptionAddonUpdateOne {
-	sauo.mutation.SetMetadata(m)
-	return sauo
+func (_u *SubscriptionAddonUpdateOne) SetMetadata(v map[string]string) *SubscriptionAddonUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (sauo *SubscriptionAddonUpdateOne) ClearMetadata() *SubscriptionAddonUpdateOne {
-	sauo.mutation.ClearMetadata()
-	return sauo
+func (_u *SubscriptionAddonUpdateOne) ClearMetadata() *SubscriptionAddonUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (sauo *SubscriptionAddonUpdateOne) SetUpdatedAt(t time.Time) *SubscriptionAddonUpdateOne {
-	sauo.mutation.SetUpdatedAt(t)
-	return sauo
+func (_u *SubscriptionAddonUpdateOne) SetUpdatedAt(v time.Time) *SubscriptionAddonUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (sauo *SubscriptionAddonUpdateOne) SetDeletedAt(t time.Time) *SubscriptionAddonUpdateOne {
-	sauo.mutation.SetDeletedAt(t)
-	return sauo
+func (_u *SubscriptionAddonUpdateOne) SetDeletedAt(v time.Time) *SubscriptionAddonUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (sauo *SubscriptionAddonUpdateOne) SetNillableDeletedAt(t *time.Time) *SubscriptionAddonUpdateOne {
-	if t != nil {
-		sauo.SetDeletedAt(*t)
+func (_u *SubscriptionAddonUpdateOne) SetNillableDeletedAt(v *time.Time) *SubscriptionAddonUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return sauo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (sauo *SubscriptionAddonUpdateOne) ClearDeletedAt() *SubscriptionAddonUpdateOne {
-	sauo.mutation.ClearDeletedAt()
-	return sauo
+func (_u *SubscriptionAddonUpdateOne) ClearDeletedAt() *SubscriptionAddonUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // AddQuantityIDs adds the "quantities" edge to the SubscriptionAddonQuantity entity by IDs.
-func (sauo *SubscriptionAddonUpdateOne) AddQuantityIDs(ids ...string) *SubscriptionAddonUpdateOne {
-	sauo.mutation.AddQuantityIDs(ids...)
-	return sauo
+func (_u *SubscriptionAddonUpdateOne) AddQuantityIDs(ids ...string) *SubscriptionAddonUpdateOne {
+	_u.mutation.AddQuantityIDs(ids...)
+	return _u
 }
 
 // AddQuantities adds the "quantities" edges to the SubscriptionAddonQuantity entity.
-func (sauo *SubscriptionAddonUpdateOne) AddQuantities(s ...*SubscriptionAddonQuantity) *SubscriptionAddonUpdateOne {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_u *SubscriptionAddonUpdateOne) AddQuantities(v ...*SubscriptionAddonQuantity) *SubscriptionAddonUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return sauo.AddQuantityIDs(ids...)
+	return _u.AddQuantityIDs(ids...)
 }
 
 // Mutation returns the SubscriptionAddonMutation object of the builder.
-func (sauo *SubscriptionAddonUpdateOne) Mutation() *SubscriptionAddonMutation {
-	return sauo.mutation
+func (_u *SubscriptionAddonUpdateOne) Mutation() *SubscriptionAddonMutation {
+	return _u.mutation
 }
 
 // ClearQuantities clears all "quantities" edges to the SubscriptionAddonQuantity entity.
-func (sauo *SubscriptionAddonUpdateOne) ClearQuantities() *SubscriptionAddonUpdateOne {
-	sauo.mutation.ClearQuantities()
-	return sauo
+func (_u *SubscriptionAddonUpdateOne) ClearQuantities() *SubscriptionAddonUpdateOne {
+	_u.mutation.ClearQuantities()
+	return _u
 }
 
 // RemoveQuantityIDs removes the "quantities" edge to SubscriptionAddonQuantity entities by IDs.
-func (sauo *SubscriptionAddonUpdateOne) RemoveQuantityIDs(ids ...string) *SubscriptionAddonUpdateOne {
-	sauo.mutation.RemoveQuantityIDs(ids...)
-	return sauo
+func (_u *SubscriptionAddonUpdateOne) RemoveQuantityIDs(ids ...string) *SubscriptionAddonUpdateOne {
+	_u.mutation.RemoveQuantityIDs(ids...)
+	return _u
 }
 
 // RemoveQuantities removes "quantities" edges to SubscriptionAddonQuantity entities.
-func (sauo *SubscriptionAddonUpdateOne) RemoveQuantities(s ...*SubscriptionAddonQuantity) *SubscriptionAddonUpdateOne {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_u *SubscriptionAddonUpdateOne) RemoveQuantities(v ...*SubscriptionAddonQuantity) *SubscriptionAddonUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return sauo.RemoveQuantityIDs(ids...)
+	return _u.RemoveQuantityIDs(ids...)
 }
 
 // Where appends a list predicates to the SubscriptionAddonUpdate builder.
-func (sauo *SubscriptionAddonUpdateOne) Where(ps ...predicate.SubscriptionAddon) *SubscriptionAddonUpdateOne {
-	sauo.mutation.Where(ps...)
-	return sauo
+func (_u *SubscriptionAddonUpdateOne) Where(ps ...predicate.SubscriptionAddon) *SubscriptionAddonUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (sauo *SubscriptionAddonUpdateOne) Select(field string, fields ...string) *SubscriptionAddonUpdateOne {
-	sauo.fields = append([]string{field}, fields...)
-	return sauo
+func (_u *SubscriptionAddonUpdateOne) Select(field string, fields ...string) *SubscriptionAddonUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated SubscriptionAddon entity.
-func (sauo *SubscriptionAddonUpdateOne) Save(ctx context.Context) (*SubscriptionAddon, error) {
-	sauo.defaults()
-	return withHooks(ctx, sauo.sqlSave, sauo.mutation, sauo.hooks)
+func (_u *SubscriptionAddonUpdateOne) Save(ctx context.Context) (*SubscriptionAddon, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (sauo *SubscriptionAddonUpdateOne) SaveX(ctx context.Context) *SubscriptionAddon {
-	node, err := sauo.Save(ctx)
+func (_u *SubscriptionAddonUpdateOne) SaveX(ctx context.Context) *SubscriptionAddon {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -355,48 +355,48 @@ func (sauo *SubscriptionAddonUpdateOne) SaveX(ctx context.Context) *Subscription
 }
 
 // Exec executes the query on the entity.
-func (sauo *SubscriptionAddonUpdateOne) Exec(ctx context.Context) error {
-	_, err := sauo.Save(ctx)
+func (_u *SubscriptionAddonUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (sauo *SubscriptionAddonUpdateOne) ExecX(ctx context.Context) {
-	if err := sauo.Exec(ctx); err != nil {
+func (_u *SubscriptionAddonUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (sauo *SubscriptionAddonUpdateOne) defaults() {
-	if _, ok := sauo.mutation.UpdatedAt(); !ok {
+func (_u *SubscriptionAddonUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := subscriptionaddon.UpdateDefaultUpdatedAt()
-		sauo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (sauo *SubscriptionAddonUpdateOne) check() error {
-	if sauo.mutation.SubscriptionCleared() && len(sauo.mutation.SubscriptionIDs()) > 0 {
+func (_u *SubscriptionAddonUpdateOne) check() error {
+	if _u.mutation.SubscriptionCleared() && len(_u.mutation.SubscriptionIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionAddon.subscription"`)
 	}
-	if sauo.mutation.AddonCleared() && len(sauo.mutation.AddonIDs()) > 0 {
+	if _u.mutation.AddonCleared() && len(_u.mutation.AddonIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionAddon.addon"`)
 	}
 	return nil
 }
 
-func (sauo *SubscriptionAddonUpdateOne) sqlSave(ctx context.Context) (_node *SubscriptionAddon, err error) {
-	if err := sauo.check(); err != nil {
+func (_u *SubscriptionAddonUpdateOne) sqlSave(ctx context.Context) (_node *SubscriptionAddon, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(subscriptionaddon.Table, subscriptionaddon.Columns, sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString))
-	id, ok := sauo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "SubscriptionAddon.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := sauo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, subscriptionaddon.FieldID)
 		for _, f := range fields {
@@ -408,29 +408,29 @@ func (sauo *SubscriptionAddonUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 			}
 		}
 	}
-	if ps := sauo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := sauo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(subscriptionaddon.FieldMetadata, field.TypeJSON, value)
 	}
-	if sauo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(subscriptionaddon.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := sauo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionaddon.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := sauo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(subscriptionaddon.FieldDeletedAt, field.TypeTime, value)
 	}
-	if sauo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(subscriptionaddon.FieldDeletedAt, field.TypeTime)
 	}
-	if sauo.mutation.QuantitiesCleared() {
+	if _u.mutation.QuantitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -443,7 +443,7 @@ func (sauo *SubscriptionAddonUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := sauo.mutation.RemovedQuantitiesIDs(); len(nodes) > 0 && !sauo.mutation.QuantitiesCleared() {
+	if nodes := _u.mutation.RemovedQuantitiesIDs(); len(nodes) > 0 && !_u.mutation.QuantitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -459,7 +459,7 @@ func (sauo *SubscriptionAddonUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := sauo.mutation.QuantitiesIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.QuantitiesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -475,10 +475,10 @@ func (sauo *SubscriptionAddonUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &SubscriptionAddon{config: sauo.config}
+	_node = &SubscriptionAddon{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, sauo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscriptionaddon.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -486,6 +486,6 @@ func (sauo *SubscriptionAddonUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 		}
 		return nil, err
 	}
-	sauo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

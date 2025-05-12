@@ -20,56 +20,56 @@ type AppCustomInvoicingDelete struct {
 }
 
 // Where appends a list predicates to the AppCustomInvoicingDelete builder.
-func (acid *AppCustomInvoicingDelete) Where(ps ...predicate.AppCustomInvoicing) *AppCustomInvoicingDelete {
-	acid.mutation.Where(ps...)
-	return acid
+func (_d *AppCustomInvoicingDelete) Where(ps ...predicate.AppCustomInvoicing) *AppCustomInvoicingDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (acid *AppCustomInvoicingDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, acid.sqlExec, acid.mutation, acid.hooks)
+func (_d *AppCustomInvoicingDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (acid *AppCustomInvoicingDelete) ExecX(ctx context.Context) int {
-	n, err := acid.Exec(ctx)
+func (_d *AppCustomInvoicingDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (acid *AppCustomInvoicingDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *AppCustomInvoicingDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(appcustominvoicing.Table, sqlgraph.NewFieldSpec(appcustominvoicing.FieldID, field.TypeString))
-	if ps := acid.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, acid.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	acid.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // AppCustomInvoicingDeleteOne is the builder for deleting a single AppCustomInvoicing entity.
 type AppCustomInvoicingDeleteOne struct {
-	acid *AppCustomInvoicingDelete
+	_d *AppCustomInvoicingDelete
 }
 
 // Where appends a list predicates to the AppCustomInvoicingDelete builder.
-func (acido *AppCustomInvoicingDeleteOne) Where(ps ...predicate.AppCustomInvoicing) *AppCustomInvoicingDeleteOne {
-	acido.acid.mutation.Where(ps...)
-	return acido
+func (_d *AppCustomInvoicingDeleteOne) Where(ps ...predicate.AppCustomInvoicing) *AppCustomInvoicingDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (acido *AppCustomInvoicingDeleteOne) Exec(ctx context.Context) error {
-	n, err := acido.acid.Exec(ctx)
+func (_d *AppCustomInvoicingDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (acido *AppCustomInvoicingDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (acido *AppCustomInvoicingDeleteOne) ExecX(ctx context.Context) {
-	if err := acido.Exec(ctx); err != nil {
+func (_d *AppCustomInvoicingDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

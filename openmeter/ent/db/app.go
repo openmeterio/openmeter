@@ -151,7 +151,7 @@ func (*App) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the App fields.
-func (a *App) assignValues(columns []string, values []any) error {
+func (_m *App) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -161,19 +161,19 @@ func (a *App) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				a.ID = value.String
+				_m.ID = value.String
 			}
 		case dbapp.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				a.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case dbapp.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &a.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -181,54 +181,54 @@ func (a *App) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				a.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case dbapp.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				a.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case dbapp.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				a.DeletedAt = new(time.Time)
-				*a.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case dbapp.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				a.Name = value.String
+				_m.Name = value.String
 			}
 		case dbapp.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				a.Description = new(string)
-				*a.Description = value.String
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case dbapp.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				a.Type = app.AppType(value.String)
+				_m.Type = app.AppType(value.String)
 			}
 		case dbapp.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				a.Status = app.AppStatus(value.String)
+				_m.Status = app.AppStatus(value.String)
 			}
 		case dbapp.FieldIsDefault:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field is_default", values[i])
 			} else if value.Valid {
-				a.IsDefault = value.Bool
+				_m.IsDefault = value.Bool
 			}
 		default:
-			a.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -236,101 +236,101 @@ func (a *App) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the App.
 // This includes values selected through modifiers, order, etc.
-func (a *App) Value(name string) (ent.Value, error) {
-	return a.selectValues.Get(name)
+func (_m *App) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryCustomerApps queries the "customer_apps" edge of the App entity.
-func (a *App) QueryCustomerApps() *AppCustomerQuery {
-	return NewAppClient(a.config).QueryCustomerApps(a)
+func (_m *App) QueryCustomerApps() *AppCustomerQuery {
+	return NewAppClient(_m.config).QueryCustomerApps(_m)
 }
 
 // QueryBillingProfileTaxApp queries the "billing_profile_tax_app" edge of the App entity.
-func (a *App) QueryBillingProfileTaxApp() *BillingProfileQuery {
-	return NewAppClient(a.config).QueryBillingProfileTaxApp(a)
+func (_m *App) QueryBillingProfileTaxApp() *BillingProfileQuery {
+	return NewAppClient(_m.config).QueryBillingProfileTaxApp(_m)
 }
 
 // QueryBillingProfileInvoicingApp queries the "billing_profile_invoicing_app" edge of the App entity.
-func (a *App) QueryBillingProfileInvoicingApp() *BillingProfileQuery {
-	return NewAppClient(a.config).QueryBillingProfileInvoicingApp(a)
+func (_m *App) QueryBillingProfileInvoicingApp() *BillingProfileQuery {
+	return NewAppClient(_m.config).QueryBillingProfileInvoicingApp(_m)
 }
 
 // QueryBillingProfilePaymentApp queries the "billing_profile_payment_app" edge of the App entity.
-func (a *App) QueryBillingProfilePaymentApp() *BillingProfileQuery {
-	return NewAppClient(a.config).QueryBillingProfilePaymentApp(a)
+func (_m *App) QueryBillingProfilePaymentApp() *BillingProfileQuery {
+	return NewAppClient(_m.config).QueryBillingProfilePaymentApp(_m)
 }
 
 // QueryBillingInvoiceTaxApp queries the "billing_invoice_tax_app" edge of the App entity.
-func (a *App) QueryBillingInvoiceTaxApp() *BillingInvoiceQuery {
-	return NewAppClient(a.config).QueryBillingInvoiceTaxApp(a)
+func (_m *App) QueryBillingInvoiceTaxApp() *BillingInvoiceQuery {
+	return NewAppClient(_m.config).QueryBillingInvoiceTaxApp(_m)
 }
 
 // QueryBillingInvoiceInvoicingApp queries the "billing_invoice_invoicing_app" edge of the App entity.
-func (a *App) QueryBillingInvoiceInvoicingApp() *BillingInvoiceQuery {
-	return NewAppClient(a.config).QueryBillingInvoiceInvoicingApp(a)
+func (_m *App) QueryBillingInvoiceInvoicingApp() *BillingInvoiceQuery {
+	return NewAppClient(_m.config).QueryBillingInvoiceInvoicingApp(_m)
 }
 
 // QueryBillingInvoicePaymentApp queries the "billing_invoice_payment_app" edge of the App entity.
-func (a *App) QueryBillingInvoicePaymentApp() *BillingInvoiceQuery {
-	return NewAppClient(a.config).QueryBillingInvoicePaymentApp(a)
+func (_m *App) QueryBillingInvoicePaymentApp() *BillingInvoiceQuery {
+	return NewAppClient(_m.config).QueryBillingInvoicePaymentApp(_m)
 }
 
 // Update returns a builder for updating this App.
 // Note that you need to call App.Unwrap() before calling this method if this App
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (a *App) Update() *AppUpdateOne {
-	return NewAppClient(a.config).UpdateOne(a)
+func (_m *App) Update() *AppUpdateOne {
+	return NewAppClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the App entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (a *App) Unwrap() *App {
-	_tx, ok := a.config.driver.(*txDriver)
+func (_m *App) Unwrap() *App {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: App is not a transactional entity")
 	}
-	a.config.driver = _tx.drv
-	return a
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (a *App) String() string {
+func (_m *App) String() string {
 	var builder strings.Builder
 	builder.WriteString("App(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", a.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(a.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", a.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(a.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(a.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := a.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
-	builder.WriteString(a.Name)
+	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
-	if v := a.Description; v != nil {
+	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("type=")
-	builder.WriteString(fmt.Sprintf("%v", a.Type))
+	builder.WriteString(fmt.Sprintf("%v", _m.Type))
 	builder.WriteString(", ")
 	builder.WriteString("status=")
-	builder.WriteString(fmt.Sprintf("%v", a.Status))
+	builder.WriteString(fmt.Sprintf("%v", _m.Status))
 	builder.WriteString(", ")
 	builder.WriteString("is_default=")
-	builder.WriteString(fmt.Sprintf("%v", a.IsDefault))
+	builder.WriteString(fmt.Sprintf("%v", _m.IsDefault))
 	builder.WriteByte(')')
 	return builder.String()
 }

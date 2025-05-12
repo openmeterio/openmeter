@@ -30,40 +30,40 @@ type BillingInvoiceUsageBasedLineConfigQuery struct {
 }
 
 // Where adds a new predicate for the BillingInvoiceUsageBasedLineConfigQuery builder.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) *BillingInvoiceUsageBasedLineConfigQuery {
-	biublcq.predicates = append(biublcq.predicates, ps...)
-	return biublcq
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) *BillingInvoiceUsageBasedLineConfigQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Limit(limit int) *BillingInvoiceUsageBasedLineConfigQuery {
-	biublcq.ctx.Limit = &limit
-	return biublcq
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) Limit(limit int) *BillingInvoiceUsageBasedLineConfigQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Offset(offset int) *BillingInvoiceUsageBasedLineConfigQuery {
-	biublcq.ctx.Offset = &offset
-	return biublcq
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) Offset(offset int) *BillingInvoiceUsageBasedLineConfigQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Unique(unique bool) *BillingInvoiceUsageBasedLineConfigQuery {
-	biublcq.ctx.Unique = &unique
-	return biublcq
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) Unique(unique bool) *BillingInvoiceUsageBasedLineConfigQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Order(o ...billinginvoiceusagebasedlineconfig.OrderOption) *BillingInvoiceUsageBasedLineConfigQuery {
-	biublcq.order = append(biublcq.order, o...)
-	return biublcq
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) Order(o ...billinginvoiceusagebasedlineconfig.OrderOption) *BillingInvoiceUsageBasedLineConfigQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // First returns the first BillingInvoiceUsageBasedLineConfig entity from the query.
 // Returns a *NotFoundError when no BillingInvoiceUsageBasedLineConfig was found.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) First(ctx context.Context) (*BillingInvoiceUsageBasedLineConfig, error) {
-	nodes, err := biublcq.Limit(1).All(setContextOp(ctx, biublcq.ctx, ent.OpQueryFirst))
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) First(ctx context.Context) (*BillingInvoiceUsageBasedLineConfig, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -74,8 +74,8 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) First(ctx context.Contex
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) FirstX(ctx context.Context) *BillingInvoiceUsageBasedLineConfig {
-	node, err := biublcq.First(ctx)
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) FirstX(ctx context.Context) *BillingInvoiceUsageBasedLineConfig {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -84,9 +84,9 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) FirstX(ctx context.Conte
 
 // FirstID returns the first BillingInvoiceUsageBasedLineConfig ID from the query.
 // Returns a *NotFoundError when no BillingInvoiceUsageBasedLineConfig ID was found.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = biublcq.Limit(1).IDs(setContextOp(ctx, biublcq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -97,8 +97,8 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) FirstID(ctx context.Cont
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) FirstIDX(ctx context.Context) string {
-	id, err := biublcq.FirstID(ctx)
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -108,8 +108,8 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) FirstIDX(ctx context.Con
 // Only returns a single BillingInvoiceUsageBasedLineConfig entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one BillingInvoiceUsageBasedLineConfig entity is found.
 // Returns a *NotFoundError when no BillingInvoiceUsageBasedLineConfig entities are found.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Only(ctx context.Context) (*BillingInvoiceUsageBasedLineConfig, error) {
-	nodes, err := biublcq.Limit(2).All(setContextOp(ctx, biublcq.ctx, ent.OpQueryOnly))
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) Only(ctx context.Context) (*BillingInvoiceUsageBasedLineConfig, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +124,8 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Only(ctx context.Context
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) OnlyX(ctx context.Context) *BillingInvoiceUsageBasedLineConfig {
-	node, err := biublcq.Only(ctx)
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) OnlyX(ctx context.Context) *BillingInvoiceUsageBasedLineConfig {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -135,9 +135,9 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) OnlyX(ctx context.Contex
 // OnlyID is like Only, but returns the only BillingInvoiceUsageBasedLineConfig ID in the query.
 // Returns a *NotSingularError when more than one BillingInvoiceUsageBasedLineConfig ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = biublcq.Limit(2).IDs(setContextOp(ctx, biublcq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -152,8 +152,8 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) OnlyID(ctx context.Conte
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) OnlyIDX(ctx context.Context) string {
-	id, err := biublcq.OnlyID(ctx)
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -161,18 +161,18 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) OnlyIDX(ctx context.Cont
 }
 
 // All executes the query and returns a list of BillingInvoiceUsageBasedLineConfigs.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) All(ctx context.Context) ([]*BillingInvoiceUsageBasedLineConfig, error) {
-	ctx = setContextOp(ctx, biublcq.ctx, ent.OpQueryAll)
-	if err := biublcq.prepareQuery(ctx); err != nil {
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) All(ctx context.Context) ([]*BillingInvoiceUsageBasedLineConfig, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*BillingInvoiceUsageBasedLineConfig, *BillingInvoiceUsageBasedLineConfigQuery]()
-	return withInterceptors[[]*BillingInvoiceUsageBasedLineConfig](ctx, biublcq, qr, biublcq.inters)
+	return withInterceptors[[]*BillingInvoiceUsageBasedLineConfig](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) AllX(ctx context.Context) []*BillingInvoiceUsageBasedLineConfig {
-	nodes, err := biublcq.All(ctx)
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) AllX(ctx context.Context) []*BillingInvoiceUsageBasedLineConfig {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -180,20 +180,20 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) AllX(ctx context.Context
 }
 
 // IDs executes the query and returns a list of BillingInvoiceUsageBasedLineConfig IDs.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if biublcq.ctx.Unique == nil && biublcq.path != nil {
-		biublcq.Unique(true)
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, biublcq.ctx, ent.OpQueryIDs)
-	if err = biublcq.Select(billinginvoiceusagebasedlineconfig.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(billinginvoiceusagebasedlineconfig.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) IDsX(ctx context.Context) []string {
-	ids, err := biublcq.IDs(ctx)
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -201,17 +201,17 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) IDsX(ctx context.Context
 }
 
 // Count returns the count of the given query.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, biublcq.ctx, ent.OpQueryCount)
-	if err := biublcq.prepareQuery(ctx); err != nil {
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, biublcq, querierCount[*BillingInvoiceUsageBasedLineConfigQuery](), biublcq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BillingInvoiceUsageBasedLineConfigQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) CountX(ctx context.Context) int {
-	count, err := biublcq.Count(ctx)
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -219,9 +219,9 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) CountX(ctx context.Conte
 }
 
 // Exist returns true if the query has elements in the graph.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, biublcq.ctx, ent.OpQueryExist)
-	switch _, err := biublcq.FirstID(ctx); {
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -232,8 +232,8 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Exist(ctx context.Contex
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) ExistX(ctx context.Context) bool {
-	exist, err := biublcq.Exist(ctx)
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -242,19 +242,19 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) ExistX(ctx context.Conte
 
 // Clone returns a duplicate of the BillingInvoiceUsageBasedLineConfigQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Clone() *BillingInvoiceUsageBasedLineConfigQuery {
-	if biublcq == nil {
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) Clone() *BillingInvoiceUsageBasedLineConfigQuery {
+	if _q == nil {
 		return nil
 	}
 	return &BillingInvoiceUsageBasedLineConfigQuery{
-		config:     biublcq.config,
-		ctx:        biublcq.ctx.Clone(),
-		order:      append([]billinginvoiceusagebasedlineconfig.OrderOption{}, biublcq.order...),
-		inters:     append([]Interceptor{}, biublcq.inters...),
-		predicates: append([]predicate.BillingInvoiceUsageBasedLineConfig{}, biublcq.predicates...),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]billinginvoiceusagebasedlineconfig.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.BillingInvoiceUsageBasedLineConfig{}, _q.predicates...),
 		// clone intermediate query.
-		sql:  biublcq.sql.Clone(),
-		path: biublcq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
@@ -272,10 +272,10 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Clone() *BillingInvoiceU
 //		GroupBy(billinginvoiceusagebasedlineconfig.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) GroupBy(field string, fields ...string) *BillingInvoiceUsageBasedLineConfigGroupBy {
-	biublcq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &BillingInvoiceUsageBasedLineConfigGroupBy{build: biublcq}
-	grbuild.flds = &biublcq.ctx.Fields
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) GroupBy(field string, fields ...string) *BillingInvoiceUsageBasedLineConfigGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &BillingInvoiceUsageBasedLineConfigGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = billinginvoiceusagebasedlineconfig.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -293,65 +293,65 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) GroupBy(field string, fi
 //	client.BillingInvoiceUsageBasedLineConfig.Query().
 //		Select(billinginvoiceusagebasedlineconfig.FieldNamespace).
 //		Scan(ctx, &v)
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Select(fields ...string) *BillingInvoiceUsageBasedLineConfigSelect {
-	biublcq.ctx.Fields = append(biublcq.ctx.Fields, fields...)
-	sbuild := &BillingInvoiceUsageBasedLineConfigSelect{BillingInvoiceUsageBasedLineConfigQuery: biublcq}
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) Select(fields ...string) *BillingInvoiceUsageBasedLineConfigSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &BillingInvoiceUsageBasedLineConfigSelect{BillingInvoiceUsageBasedLineConfigQuery: _q}
 	sbuild.label = billinginvoiceusagebasedlineconfig.Label
-	sbuild.flds, sbuild.scan = &biublcq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a BillingInvoiceUsageBasedLineConfigSelect configured with the given aggregations.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) Aggregate(fns ...AggregateFunc) *BillingInvoiceUsageBasedLineConfigSelect {
-	return biublcq.Select().Aggregate(fns...)
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) Aggregate(fns ...AggregateFunc) *BillingInvoiceUsageBasedLineConfigSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range biublcq.inters {
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, biublcq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range biublcq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !billinginvoiceusagebasedlineconfig.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if biublcq.path != nil {
-		prev, err := biublcq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		biublcq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoiceUsageBasedLineConfig, error) {
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoiceUsageBasedLineConfig, error) {
 	var (
 		nodes = []*BillingInvoiceUsageBasedLineConfig{}
-		_spec = biublcq.querySpec()
+		_spec = _q.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingInvoiceUsageBasedLineConfig).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &BillingInvoiceUsageBasedLineConfig{config: biublcq.config}
+		node := &BillingInvoiceUsageBasedLineConfig{config: _q.config}
 		nodes = append(nodes, node)
 		return node.assignValues(columns, values)
 	}
-	if len(biublcq.modifiers) > 0 {
-		_spec.Modifiers = biublcq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, biublcq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
@@ -360,27 +360,27 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) sqlAll(ctx context.Conte
 	return nodes, nil
 }
 
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := biublcq.querySpec()
-	if len(biublcq.modifiers) > 0 {
-		_spec.Modifiers = biublcq.modifiers
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = biublcq.ctx.Fields
-	if len(biublcq.ctx.Fields) > 0 {
-		_spec.Unique = biublcq.ctx.Unique != nil && *biublcq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, biublcq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(billinginvoiceusagebasedlineconfig.Table, billinginvoiceusagebasedlineconfig.Columns, sqlgraph.NewFieldSpec(billinginvoiceusagebasedlineconfig.FieldID, field.TypeString))
-	_spec.From = biublcq.sql
-	if unique := biublcq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if biublcq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := biublcq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billinginvoiceusagebasedlineconfig.FieldID)
 		for i := range fields {
@@ -389,20 +389,20 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) querySpec() *sqlgraph.Qu
 			}
 		}
 	}
-	if ps := biublcq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := biublcq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := biublcq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := biublcq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -412,36 +412,36 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) querySpec() *sqlgraph.Qu
 	return _spec
 }
 
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(biublcq.driver.Dialect())
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(billinginvoiceusagebasedlineconfig.Table)
-	columns := biublcq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = billinginvoiceusagebasedlineconfig.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if biublcq.sql != nil {
-		selector = biublcq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if biublcq.ctx.Unique != nil && *biublcq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range biublcq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range biublcq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range biublcq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := biublcq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := biublcq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -450,27 +450,27 @@ func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) sqlQuery(ctx context.Con
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) ForUpdate(opts ...sql.LockOption) *BillingInvoiceUsageBasedLineConfigQuery {
-	if biublcq.driver.Dialect() == dialect.Postgres {
-		biublcq.Unique(false)
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) ForUpdate(opts ...sql.LockOption) *BillingInvoiceUsageBasedLineConfigQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	biublcq.modifiers = append(biublcq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return biublcq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (biublcq *BillingInvoiceUsageBasedLineConfigQuery) ForShare(opts ...sql.LockOption) *BillingInvoiceUsageBasedLineConfigQuery {
-	if biublcq.driver.Dialect() == dialect.Postgres {
-		biublcq.Unique(false)
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) ForShare(opts ...sql.LockOption) *BillingInvoiceUsageBasedLineConfigQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	biublcq.modifiers = append(biublcq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return biublcq
+	return _q
 }
 
 // BillingInvoiceUsageBasedLineConfigGroupBy is the group-by builder for BillingInvoiceUsageBasedLineConfig entities.

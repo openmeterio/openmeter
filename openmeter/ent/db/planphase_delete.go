@@ -20,56 +20,56 @@ type PlanPhaseDelete struct {
 }
 
 // Where appends a list predicates to the PlanPhaseDelete builder.
-func (ppd *PlanPhaseDelete) Where(ps ...predicate.PlanPhase) *PlanPhaseDelete {
-	ppd.mutation.Where(ps...)
-	return ppd
+func (_d *PlanPhaseDelete) Where(ps ...predicate.PlanPhase) *PlanPhaseDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (ppd *PlanPhaseDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, ppd.sqlExec, ppd.mutation, ppd.hooks)
+func (_d *PlanPhaseDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ppd *PlanPhaseDelete) ExecX(ctx context.Context) int {
-	n, err := ppd.Exec(ctx)
+func (_d *PlanPhaseDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (ppd *PlanPhaseDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *PlanPhaseDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(planphase.Table, sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString))
-	if ps := ppd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, ppd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	ppd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // PlanPhaseDeleteOne is the builder for deleting a single PlanPhase entity.
 type PlanPhaseDeleteOne struct {
-	ppd *PlanPhaseDelete
+	_d *PlanPhaseDelete
 }
 
 // Where appends a list predicates to the PlanPhaseDelete builder.
-func (ppdo *PlanPhaseDeleteOne) Where(ps ...predicate.PlanPhase) *PlanPhaseDeleteOne {
-	ppdo.ppd.mutation.Where(ps...)
-	return ppdo
+func (_d *PlanPhaseDeleteOne) Where(ps ...predicate.PlanPhase) *PlanPhaseDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (ppdo *PlanPhaseDeleteOne) Exec(ctx context.Context) error {
-	n, err := ppdo.ppd.Exec(ctx)
+func (_d *PlanPhaseDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (ppdo *PlanPhaseDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ppdo *PlanPhaseDeleteOne) ExecX(ctx context.Context) {
-	if err := ppdo.Exec(ctx); err != nil {
+func (_d *PlanPhaseDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

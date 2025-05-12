@@ -26,143 +26,143 @@ type AppCustomInvoicingCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (acic *AppCustomInvoicingCreate) SetNamespace(s string) *AppCustomInvoicingCreate {
-	acic.mutation.SetNamespace(s)
-	return acic
+func (_c *AppCustomInvoicingCreate) SetNamespace(v string) *AppCustomInvoicingCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (acic *AppCustomInvoicingCreate) SetCreatedAt(t time.Time) *AppCustomInvoicingCreate {
-	acic.mutation.SetCreatedAt(t)
-	return acic
+func (_c *AppCustomInvoicingCreate) SetCreatedAt(v time.Time) *AppCustomInvoicingCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (acic *AppCustomInvoicingCreate) SetNillableCreatedAt(t *time.Time) *AppCustomInvoicingCreate {
-	if t != nil {
-		acic.SetCreatedAt(*t)
+func (_c *AppCustomInvoicingCreate) SetNillableCreatedAt(v *time.Time) *AppCustomInvoicingCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return acic
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (acic *AppCustomInvoicingCreate) SetUpdatedAt(t time.Time) *AppCustomInvoicingCreate {
-	acic.mutation.SetUpdatedAt(t)
-	return acic
+func (_c *AppCustomInvoicingCreate) SetUpdatedAt(v time.Time) *AppCustomInvoicingCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (acic *AppCustomInvoicingCreate) SetNillableUpdatedAt(t *time.Time) *AppCustomInvoicingCreate {
-	if t != nil {
-		acic.SetUpdatedAt(*t)
+func (_c *AppCustomInvoicingCreate) SetNillableUpdatedAt(v *time.Time) *AppCustomInvoicingCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return acic
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (acic *AppCustomInvoicingCreate) SetDeletedAt(t time.Time) *AppCustomInvoicingCreate {
-	acic.mutation.SetDeletedAt(t)
-	return acic
+func (_c *AppCustomInvoicingCreate) SetDeletedAt(v time.Time) *AppCustomInvoicingCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (acic *AppCustomInvoicingCreate) SetNillableDeletedAt(t *time.Time) *AppCustomInvoicingCreate {
-	if t != nil {
-		acic.SetDeletedAt(*t)
+func (_c *AppCustomInvoicingCreate) SetNillableDeletedAt(v *time.Time) *AppCustomInvoicingCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return acic
+	return _c
 }
 
 // SetEnableDraftSyncHook sets the "enable_draft_sync_hook" field.
-func (acic *AppCustomInvoicingCreate) SetEnableDraftSyncHook(b bool) *AppCustomInvoicingCreate {
-	acic.mutation.SetEnableDraftSyncHook(b)
-	return acic
+func (_c *AppCustomInvoicingCreate) SetEnableDraftSyncHook(v bool) *AppCustomInvoicingCreate {
+	_c.mutation.SetEnableDraftSyncHook(v)
+	return _c
 }
 
 // SetNillableEnableDraftSyncHook sets the "enable_draft_sync_hook" field if the given value is not nil.
-func (acic *AppCustomInvoicingCreate) SetNillableEnableDraftSyncHook(b *bool) *AppCustomInvoicingCreate {
-	if b != nil {
-		acic.SetEnableDraftSyncHook(*b)
+func (_c *AppCustomInvoicingCreate) SetNillableEnableDraftSyncHook(v *bool) *AppCustomInvoicingCreate {
+	if v != nil {
+		_c.SetEnableDraftSyncHook(*v)
 	}
-	return acic
+	return _c
 }
 
 // SetEnableIssuingSyncHook sets the "enable_issuing_sync_hook" field.
-func (acic *AppCustomInvoicingCreate) SetEnableIssuingSyncHook(b bool) *AppCustomInvoicingCreate {
-	acic.mutation.SetEnableIssuingSyncHook(b)
-	return acic
+func (_c *AppCustomInvoicingCreate) SetEnableIssuingSyncHook(v bool) *AppCustomInvoicingCreate {
+	_c.mutation.SetEnableIssuingSyncHook(v)
+	return _c
 }
 
 // SetNillableEnableIssuingSyncHook sets the "enable_issuing_sync_hook" field if the given value is not nil.
-func (acic *AppCustomInvoicingCreate) SetNillableEnableIssuingSyncHook(b *bool) *AppCustomInvoicingCreate {
-	if b != nil {
-		acic.SetEnableIssuingSyncHook(*b)
+func (_c *AppCustomInvoicingCreate) SetNillableEnableIssuingSyncHook(v *bool) *AppCustomInvoicingCreate {
+	if v != nil {
+		_c.SetEnableIssuingSyncHook(*v)
 	}
-	return acic
+	return _c
 }
 
 // SetID sets the "id" field.
-func (acic *AppCustomInvoicingCreate) SetID(s string) *AppCustomInvoicingCreate {
-	acic.mutation.SetID(s)
-	return acic
+func (_c *AppCustomInvoicingCreate) SetID(v string) *AppCustomInvoicingCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (acic *AppCustomInvoicingCreate) SetNillableID(s *string) *AppCustomInvoicingCreate {
-	if s != nil {
-		acic.SetID(*s)
+func (_c *AppCustomInvoicingCreate) SetNillableID(v *string) *AppCustomInvoicingCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return acic
+	return _c
 }
 
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppCustomInvoicingCustomer entity by IDs.
-func (acic *AppCustomInvoicingCreate) AddCustomerAppIDs(ids ...int) *AppCustomInvoicingCreate {
-	acic.mutation.AddCustomerAppIDs(ids...)
-	return acic
+func (_c *AppCustomInvoicingCreate) AddCustomerAppIDs(ids ...int) *AppCustomInvoicingCreate {
+	_c.mutation.AddCustomerAppIDs(ids...)
+	return _c
 }
 
 // AddCustomerApps adds the "customer_apps" edges to the AppCustomInvoicingCustomer entity.
-func (acic *AppCustomInvoicingCreate) AddCustomerApps(a ...*AppCustomInvoicingCustomer) *AppCustomInvoicingCreate {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_c *AppCustomInvoicingCreate) AddCustomerApps(v ...*AppCustomInvoicingCustomer) *AppCustomInvoicingCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return acic.AddCustomerAppIDs(ids...)
+	return _c.AddCustomerAppIDs(ids...)
 }
 
 // SetAppID sets the "app" edge to the App entity by ID.
-func (acic *AppCustomInvoicingCreate) SetAppID(id string) *AppCustomInvoicingCreate {
-	acic.mutation.SetAppID(id)
-	return acic
+func (_c *AppCustomInvoicingCreate) SetAppID(id string) *AppCustomInvoicingCreate {
+	_c.mutation.SetAppID(id)
+	return _c
 }
 
 // SetNillableAppID sets the "app" edge to the App entity by ID if the given value is not nil.
-func (acic *AppCustomInvoicingCreate) SetNillableAppID(id *string) *AppCustomInvoicingCreate {
+func (_c *AppCustomInvoicingCreate) SetNillableAppID(id *string) *AppCustomInvoicingCreate {
 	if id != nil {
-		acic = acic.SetAppID(*id)
+		_c = _c.SetAppID(*id)
 	}
-	return acic
+	return _c
 }
 
 // SetApp sets the "app" edge to the App entity.
-func (acic *AppCustomInvoicingCreate) SetApp(a *App) *AppCustomInvoicingCreate {
-	return acic.SetAppID(a.ID)
+func (_c *AppCustomInvoicingCreate) SetApp(v *App) *AppCustomInvoicingCreate {
+	return _c.SetAppID(v.ID)
 }
 
 // Mutation returns the AppCustomInvoicingMutation object of the builder.
-func (acic *AppCustomInvoicingCreate) Mutation() *AppCustomInvoicingMutation {
-	return acic.mutation
+func (_c *AppCustomInvoicingCreate) Mutation() *AppCustomInvoicingMutation {
+	return _c.mutation
 }
 
 // Save creates the AppCustomInvoicing in the database.
-func (acic *AppCustomInvoicingCreate) Save(ctx context.Context) (*AppCustomInvoicing, error) {
-	acic.defaults()
-	return withHooks(ctx, acic.sqlSave, acic.mutation, acic.hooks)
+func (_c *AppCustomInvoicingCreate) Save(ctx context.Context) (*AppCustomInvoicing, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (acic *AppCustomInvoicingCreate) SaveX(ctx context.Context) *AppCustomInvoicing {
-	v, err := acic.Save(ctx)
+func (_c *AppCustomInvoicingCreate) SaveX(ctx context.Context) *AppCustomInvoicing {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -170,73 +170,73 @@ func (acic *AppCustomInvoicingCreate) SaveX(ctx context.Context) *AppCustomInvoi
 }
 
 // Exec executes the query.
-func (acic *AppCustomInvoicingCreate) Exec(ctx context.Context) error {
-	_, err := acic.Save(ctx)
+func (_c *AppCustomInvoicingCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (acic *AppCustomInvoicingCreate) ExecX(ctx context.Context) {
-	if err := acic.Exec(ctx); err != nil {
+func (_c *AppCustomInvoicingCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (acic *AppCustomInvoicingCreate) defaults() {
-	if _, ok := acic.mutation.CreatedAt(); !ok {
+func (_c *AppCustomInvoicingCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := appcustominvoicing.DefaultCreatedAt()
-		acic.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := acic.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := appcustominvoicing.DefaultUpdatedAt()
-		acic.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := acic.mutation.EnableDraftSyncHook(); !ok {
+	if _, ok := _c.mutation.EnableDraftSyncHook(); !ok {
 		v := appcustominvoicing.DefaultEnableDraftSyncHook
-		acic.mutation.SetEnableDraftSyncHook(v)
+		_c.mutation.SetEnableDraftSyncHook(v)
 	}
-	if _, ok := acic.mutation.EnableIssuingSyncHook(); !ok {
+	if _, ok := _c.mutation.EnableIssuingSyncHook(); !ok {
 		v := appcustominvoicing.DefaultEnableIssuingSyncHook
-		acic.mutation.SetEnableIssuingSyncHook(v)
+		_c.mutation.SetEnableIssuingSyncHook(v)
 	}
-	if _, ok := acic.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := appcustominvoicing.DefaultID()
-		acic.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (acic *AppCustomInvoicingCreate) check() error {
-	if _, ok := acic.mutation.Namespace(); !ok {
+func (_c *AppCustomInvoicingCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "AppCustomInvoicing.namespace"`)}
 	}
-	if v, ok := acic.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := appcustominvoicing.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "AppCustomInvoicing.namespace": %w`, err)}
 		}
 	}
-	if _, ok := acic.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "AppCustomInvoicing.created_at"`)}
 	}
-	if _, ok := acic.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "AppCustomInvoicing.updated_at"`)}
 	}
-	if _, ok := acic.mutation.EnableDraftSyncHook(); !ok {
+	if _, ok := _c.mutation.EnableDraftSyncHook(); !ok {
 		return &ValidationError{Name: "enable_draft_sync_hook", err: errors.New(`db: missing required field "AppCustomInvoicing.enable_draft_sync_hook"`)}
 	}
-	if _, ok := acic.mutation.EnableIssuingSyncHook(); !ok {
+	if _, ok := _c.mutation.EnableIssuingSyncHook(); !ok {
 		return &ValidationError{Name: "enable_issuing_sync_hook", err: errors.New(`db: missing required field "AppCustomInvoicing.enable_issuing_sync_hook"`)}
 	}
 	return nil
 }
 
-func (acic *AppCustomInvoicingCreate) sqlSave(ctx context.Context) (*AppCustomInvoicing, error) {
-	if err := acic.check(); err != nil {
+func (_c *AppCustomInvoicingCreate) sqlSave(ctx context.Context) (*AppCustomInvoicing, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := acic.createSpec()
-	if err := sqlgraph.CreateNode(ctx, acic.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -249,46 +249,46 @@ func (acic *AppCustomInvoicingCreate) sqlSave(ctx context.Context) (*AppCustomIn
 			return nil, fmt.Errorf("unexpected AppCustomInvoicing.ID type: %T", _spec.ID.Value)
 		}
 	}
-	acic.mutation.id = &_node.ID
-	acic.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (acic *AppCustomInvoicingCreate) createSpec() (*AppCustomInvoicing, *sqlgraph.CreateSpec) {
+func (_c *AppCustomInvoicingCreate) createSpec() (*AppCustomInvoicing, *sqlgraph.CreateSpec) {
 	var (
-		_node = &AppCustomInvoicing{config: acic.config}
+		_node = &AppCustomInvoicing{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(appcustominvoicing.Table, sqlgraph.NewFieldSpec(appcustominvoicing.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = acic.conflict
-	if id, ok := acic.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := acic.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(appcustominvoicing.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := acic.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(appcustominvoicing.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := acic.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(appcustominvoicing.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := acic.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(appcustominvoicing.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := acic.mutation.EnableDraftSyncHook(); ok {
+	if value, ok := _c.mutation.EnableDraftSyncHook(); ok {
 		_spec.SetField(appcustominvoicing.FieldEnableDraftSyncHook, field.TypeBool, value)
 		_node.EnableDraftSyncHook = value
 	}
-	if value, ok := acic.mutation.EnableIssuingSyncHook(); ok {
+	if value, ok := _c.mutation.EnableIssuingSyncHook(); ok {
 		_spec.SetField(appcustominvoicing.FieldEnableIssuingSyncHook, field.TypeBool, value)
 		_node.EnableIssuingSyncHook = value
 	}
-	if nodes := acic.mutation.CustomerAppsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.CustomerAppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -304,7 +304,7 @@ func (acic *AppCustomInvoicingCreate) createSpec() (*AppCustomInvoicing, *sqlgra
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := acic.mutation.AppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.AppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: false,
@@ -340,10 +340,10 @@ func (acic *AppCustomInvoicingCreate) createSpec() (*AppCustomInvoicing, *sqlgra
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (acic *AppCustomInvoicingCreate) OnConflict(opts ...sql.ConflictOption) *AppCustomInvoicingUpsertOne {
-	acic.conflict = opts
+func (_c *AppCustomInvoicingCreate) OnConflict(opts ...sql.ConflictOption) *AppCustomInvoicingUpsertOne {
+	_c.conflict = opts
 	return &AppCustomInvoicingUpsertOne{
-		create: acic,
+		create: _c,
 	}
 }
 
@@ -353,10 +353,10 @@ func (acic *AppCustomInvoicingCreate) OnConflict(opts ...sql.ConflictOption) *Ap
 //	client.AppCustomInvoicing.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (acic *AppCustomInvoicingCreate) OnConflictColumns(columns ...string) *AppCustomInvoicingUpsertOne {
-	acic.conflict = append(acic.conflict, sql.ConflictColumns(columns...))
+func (_c *AppCustomInvoicingCreate) OnConflictColumns(columns ...string) *AppCustomInvoicingUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &AppCustomInvoicingUpsertOne{
-		create: acic,
+		create: _c,
 	}
 }
 
@@ -591,16 +591,16 @@ type AppCustomInvoicingCreateBulk struct {
 }
 
 // Save creates the AppCustomInvoicing entities in the database.
-func (acicb *AppCustomInvoicingCreateBulk) Save(ctx context.Context) ([]*AppCustomInvoicing, error) {
-	if acicb.err != nil {
-		return nil, acicb.err
+func (_c *AppCustomInvoicingCreateBulk) Save(ctx context.Context) ([]*AppCustomInvoicing, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(acicb.builders))
-	nodes := make([]*AppCustomInvoicing, len(acicb.builders))
-	mutators := make([]Mutator, len(acicb.builders))
-	for i := range acicb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*AppCustomInvoicing, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := acicb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*AppCustomInvoicingMutation)
@@ -614,12 +614,12 @@ func (acicb *AppCustomInvoicingCreateBulk) Save(ctx context.Context) ([]*AppCust
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, acicb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = acicb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, acicb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -639,7 +639,7 @@ func (acicb *AppCustomInvoicingCreateBulk) Save(ctx context.Context) ([]*AppCust
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, acicb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -647,8 +647,8 @@ func (acicb *AppCustomInvoicingCreateBulk) Save(ctx context.Context) ([]*AppCust
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (acicb *AppCustomInvoicingCreateBulk) SaveX(ctx context.Context) []*AppCustomInvoicing {
-	v, err := acicb.Save(ctx)
+func (_c *AppCustomInvoicingCreateBulk) SaveX(ctx context.Context) []*AppCustomInvoicing {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -656,14 +656,14 @@ func (acicb *AppCustomInvoicingCreateBulk) SaveX(ctx context.Context) []*AppCust
 }
 
 // Exec executes the query.
-func (acicb *AppCustomInvoicingCreateBulk) Exec(ctx context.Context) error {
-	_, err := acicb.Save(ctx)
+func (_c *AppCustomInvoicingCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (acicb *AppCustomInvoicingCreateBulk) ExecX(ctx context.Context) {
-	if err := acicb.Exec(ctx); err != nil {
+func (_c *AppCustomInvoicingCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -683,10 +683,10 @@ func (acicb *AppCustomInvoicingCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (acicb *AppCustomInvoicingCreateBulk) OnConflict(opts ...sql.ConflictOption) *AppCustomInvoicingUpsertBulk {
-	acicb.conflict = opts
+func (_c *AppCustomInvoicingCreateBulk) OnConflict(opts ...sql.ConflictOption) *AppCustomInvoicingUpsertBulk {
+	_c.conflict = opts
 	return &AppCustomInvoicingUpsertBulk{
-		create: acicb,
+		create: _c,
 	}
 }
 
@@ -696,10 +696,10 @@ func (acicb *AppCustomInvoicingCreateBulk) OnConflict(opts ...sql.ConflictOption
 //	client.AppCustomInvoicing.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (acicb *AppCustomInvoicingCreateBulk) OnConflictColumns(columns ...string) *AppCustomInvoicingUpsertBulk {
-	acicb.conflict = append(acicb.conflict, sql.ConflictColumns(columns...))
+func (_c *AppCustomInvoicingCreateBulk) OnConflictColumns(columns ...string) *AppCustomInvoicingUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &AppCustomInvoicingUpsertBulk{
-		create: acicb,
+		create: _c,
 	}
 }
 

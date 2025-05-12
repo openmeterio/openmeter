@@ -233,33 +233,7 @@ func TestPlanAddonService(t *testing.T) {
 								Code: "txcd_10000000",
 							},
 						},
-						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-							Mode: productcatalog.VolumeTieredPrice,
-							Tiers: []productcatalog.PriceTier{
-								{
-									UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-									FlatPrice: &productcatalog.PriceTierFlatPrice{
-										Amount: decimal.NewFromInt(100),
-									},
-									UnitPrice: &productcatalog.PriceTierUnitPrice{
-										Amount: decimal.NewFromInt(50),
-									},
-								},
-								{
-									UpToAmount: nil,
-									FlatPrice: &productcatalog.PriceTierFlatPrice{
-										Amount: decimal.NewFromInt(5),
-									},
-									UnitPrice: &productcatalog.PriceTierUnitPrice{
-										Amount: decimal.NewFromInt(25),
-									},
-								},
-							},
-							Commitments: productcatalog.Commitments{
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-								MaximumAmount: nil,
-							},
-						}),
+						Price: nil, // This would match with a TieredPrice, which is not supported for add-ons
 					},
 					BillingCadence: MonthPeriod,
 				},

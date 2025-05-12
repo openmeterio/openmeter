@@ -45,44 +45,44 @@ type BillingInvoiceQuery struct {
 }
 
 // Where adds a new predicate for the BillingInvoiceQuery builder.
-func (biq *BillingInvoiceQuery) Where(ps ...predicate.BillingInvoice) *BillingInvoiceQuery {
-	biq.predicates = append(biq.predicates, ps...)
-	return biq
+func (_q *BillingInvoiceQuery) Where(ps ...predicate.BillingInvoice) *BillingInvoiceQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (biq *BillingInvoiceQuery) Limit(limit int) *BillingInvoiceQuery {
-	biq.ctx.Limit = &limit
-	return biq
+func (_q *BillingInvoiceQuery) Limit(limit int) *BillingInvoiceQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (biq *BillingInvoiceQuery) Offset(offset int) *BillingInvoiceQuery {
-	biq.ctx.Offset = &offset
-	return biq
+func (_q *BillingInvoiceQuery) Offset(offset int) *BillingInvoiceQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (biq *BillingInvoiceQuery) Unique(unique bool) *BillingInvoiceQuery {
-	biq.ctx.Unique = &unique
-	return biq
+func (_q *BillingInvoiceQuery) Unique(unique bool) *BillingInvoiceQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (biq *BillingInvoiceQuery) Order(o ...billinginvoice.OrderOption) *BillingInvoiceQuery {
-	biq.order = append(biq.order, o...)
-	return biq
+func (_q *BillingInvoiceQuery) Order(o ...billinginvoice.OrderOption) *BillingInvoiceQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QuerySourceBillingProfile chains the current query on the "source_billing_profile" edge.
-func (biq *BillingInvoiceQuery) QuerySourceBillingProfile() *BillingProfileQuery {
-	query := (&BillingProfileClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) QuerySourceBillingProfile() *BillingProfileQuery {
+	query := (&BillingProfileClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := biq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := biq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -91,20 +91,20 @@ func (biq *BillingInvoiceQuery) QuerySourceBillingProfile() *BillingProfileQuery
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.SourceBillingProfileTable, billinginvoice.SourceBillingProfileColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingWorkflowConfig chains the current query on the "billing_workflow_config" edge.
-func (biq *BillingInvoiceQuery) QueryBillingWorkflowConfig() *BillingWorkflowConfigQuery {
-	query := (&BillingWorkflowConfigClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) QueryBillingWorkflowConfig() *BillingWorkflowConfigQuery {
+	query := (&BillingWorkflowConfigClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := biq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := biq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -113,20 +113,20 @@ func (biq *BillingInvoiceQuery) QueryBillingWorkflowConfig() *BillingWorkflowCon
 			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, billinginvoice.BillingWorkflowConfigTable, billinginvoice.BillingWorkflowConfigColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingInvoiceLines chains the current query on the "billing_invoice_lines" edge.
-func (biq *BillingInvoiceQuery) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceLineClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := biq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := biq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -135,20 +135,20 @@ func (biq *BillingInvoiceQuery) QueryBillingInvoiceLines() *BillingInvoiceLineQu
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceLinesTable, billinginvoice.BillingInvoiceLinesColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingInvoiceValidationIssues chains the current query on the "billing_invoice_validation_issues" edge.
-func (biq *BillingInvoiceQuery) QueryBillingInvoiceValidationIssues() *BillingInvoiceValidationIssueQuery {
-	query := (&BillingInvoiceValidationIssueClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) QueryBillingInvoiceValidationIssues() *BillingInvoiceValidationIssueQuery {
+	query := (&BillingInvoiceValidationIssueClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := biq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := biq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -157,20 +157,20 @@ func (biq *BillingInvoiceQuery) QueryBillingInvoiceValidationIssues() *BillingIn
 			sqlgraph.To(billinginvoicevalidationissue.Table, billinginvoicevalidationissue.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceValidationIssuesTable, billinginvoice.BillingInvoiceValidationIssuesColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingInvoiceCustomer chains the current query on the "billing_invoice_customer" edge.
-func (biq *BillingInvoiceQuery) QueryBillingInvoiceCustomer() *CustomerQuery {
-	query := (&CustomerClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) QueryBillingInvoiceCustomer() *CustomerQuery {
+	query := (&CustomerClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := biq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := biq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -179,20 +179,20 @@ func (biq *BillingInvoiceQuery) QueryBillingInvoiceCustomer() *CustomerQuery {
 			sqlgraph.To(customer.Table, customer.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.BillingInvoiceCustomerTable, billinginvoice.BillingInvoiceCustomerColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryTaxApp chains the current query on the "tax_app" edge.
-func (biq *BillingInvoiceQuery) QueryTaxApp() *AppQuery {
-	query := (&AppClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) QueryTaxApp() *AppQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := biq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := biq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -201,20 +201,20 @@ func (biq *BillingInvoiceQuery) QueryTaxApp() *AppQuery {
 			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.TaxAppTable, billinginvoice.TaxAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryInvoicingApp chains the current query on the "invoicing_app" edge.
-func (biq *BillingInvoiceQuery) QueryInvoicingApp() *AppQuery {
-	query := (&AppClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) QueryInvoicingApp() *AppQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := biq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := biq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -223,20 +223,20 @@ func (biq *BillingInvoiceQuery) QueryInvoicingApp() *AppQuery {
 			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.InvoicingAppTable, billinginvoice.InvoicingAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryPaymentApp chains the current query on the "payment_app" edge.
-func (biq *BillingInvoiceQuery) QueryPaymentApp() *AppQuery {
-	query := (&AppClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) QueryPaymentApp() *AppQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := biq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := biq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -245,7 +245,7 @@ func (biq *BillingInvoiceQuery) QueryPaymentApp() *AppQuery {
 			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.PaymentAppTable, billinginvoice.PaymentAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -253,8 +253,8 @@ func (biq *BillingInvoiceQuery) QueryPaymentApp() *AppQuery {
 
 // First returns the first BillingInvoice entity from the query.
 // Returns a *NotFoundError when no BillingInvoice was found.
-func (biq *BillingInvoiceQuery) First(ctx context.Context) (*BillingInvoice, error) {
-	nodes, err := biq.Limit(1).All(setContextOp(ctx, biq.ctx, ent.OpQueryFirst))
+func (_q *BillingInvoiceQuery) First(ctx context.Context) (*BillingInvoice, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -265,8 +265,8 @@ func (biq *BillingInvoiceQuery) First(ctx context.Context) (*BillingInvoice, err
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (biq *BillingInvoiceQuery) FirstX(ctx context.Context) *BillingInvoice {
-	node, err := biq.First(ctx)
+func (_q *BillingInvoiceQuery) FirstX(ctx context.Context) *BillingInvoice {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -275,9 +275,9 @@ func (biq *BillingInvoiceQuery) FirstX(ctx context.Context) *BillingInvoice {
 
 // FirstID returns the first BillingInvoice ID from the query.
 // Returns a *NotFoundError when no BillingInvoice ID was found.
-func (biq *BillingInvoiceQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *BillingInvoiceQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = biq.Limit(1).IDs(setContextOp(ctx, biq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -288,8 +288,8 @@ func (biq *BillingInvoiceQuery) FirstID(ctx context.Context) (id string, err err
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (biq *BillingInvoiceQuery) FirstIDX(ctx context.Context) string {
-	id, err := biq.FirstID(ctx)
+func (_q *BillingInvoiceQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -299,8 +299,8 @@ func (biq *BillingInvoiceQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single BillingInvoice entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one BillingInvoice entity is found.
 // Returns a *NotFoundError when no BillingInvoice entities are found.
-func (biq *BillingInvoiceQuery) Only(ctx context.Context) (*BillingInvoice, error) {
-	nodes, err := biq.Limit(2).All(setContextOp(ctx, biq.ctx, ent.OpQueryOnly))
+func (_q *BillingInvoiceQuery) Only(ctx context.Context) (*BillingInvoice, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -315,8 +315,8 @@ func (biq *BillingInvoiceQuery) Only(ctx context.Context) (*BillingInvoice, erro
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (biq *BillingInvoiceQuery) OnlyX(ctx context.Context) *BillingInvoice {
-	node, err := biq.Only(ctx)
+func (_q *BillingInvoiceQuery) OnlyX(ctx context.Context) *BillingInvoice {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -326,9 +326,9 @@ func (biq *BillingInvoiceQuery) OnlyX(ctx context.Context) *BillingInvoice {
 // OnlyID is like Only, but returns the only BillingInvoice ID in the query.
 // Returns a *NotSingularError when more than one BillingInvoice ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (biq *BillingInvoiceQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *BillingInvoiceQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = biq.Limit(2).IDs(setContextOp(ctx, biq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -343,8 +343,8 @@ func (biq *BillingInvoiceQuery) OnlyID(ctx context.Context) (id string, err erro
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (biq *BillingInvoiceQuery) OnlyIDX(ctx context.Context) string {
-	id, err := biq.OnlyID(ctx)
+func (_q *BillingInvoiceQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -352,18 +352,18 @@ func (biq *BillingInvoiceQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of BillingInvoices.
-func (biq *BillingInvoiceQuery) All(ctx context.Context) ([]*BillingInvoice, error) {
-	ctx = setContextOp(ctx, biq.ctx, ent.OpQueryAll)
-	if err := biq.prepareQuery(ctx); err != nil {
+func (_q *BillingInvoiceQuery) All(ctx context.Context) ([]*BillingInvoice, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*BillingInvoice, *BillingInvoiceQuery]()
-	return withInterceptors[[]*BillingInvoice](ctx, biq, qr, biq.inters)
+	return withInterceptors[[]*BillingInvoice](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (biq *BillingInvoiceQuery) AllX(ctx context.Context) []*BillingInvoice {
-	nodes, err := biq.All(ctx)
+func (_q *BillingInvoiceQuery) AllX(ctx context.Context) []*BillingInvoice {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -371,20 +371,20 @@ func (biq *BillingInvoiceQuery) AllX(ctx context.Context) []*BillingInvoice {
 }
 
 // IDs executes the query and returns a list of BillingInvoice IDs.
-func (biq *BillingInvoiceQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if biq.ctx.Unique == nil && biq.path != nil {
-		biq.Unique(true)
+func (_q *BillingInvoiceQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, biq.ctx, ent.OpQueryIDs)
-	if err = biq.Select(billinginvoice.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(billinginvoice.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (biq *BillingInvoiceQuery) IDsX(ctx context.Context) []string {
-	ids, err := biq.IDs(ctx)
+func (_q *BillingInvoiceQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -392,17 +392,17 @@ func (biq *BillingInvoiceQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (biq *BillingInvoiceQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, biq.ctx, ent.OpQueryCount)
-	if err := biq.prepareQuery(ctx); err != nil {
+func (_q *BillingInvoiceQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, biq, querierCount[*BillingInvoiceQuery](), biq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BillingInvoiceQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (biq *BillingInvoiceQuery) CountX(ctx context.Context) int {
-	count, err := biq.Count(ctx)
+func (_q *BillingInvoiceQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -410,9 +410,9 @@ func (biq *BillingInvoiceQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (biq *BillingInvoiceQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, biq.ctx, ent.OpQueryExist)
-	switch _, err := biq.FirstID(ctx); {
+func (_q *BillingInvoiceQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -423,8 +423,8 @@ func (biq *BillingInvoiceQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (biq *BillingInvoiceQuery) ExistX(ctx context.Context) bool {
-	exist, err := biq.Exist(ctx)
+func (_q *BillingInvoiceQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -433,116 +433,116 @@ func (biq *BillingInvoiceQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the BillingInvoiceQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (biq *BillingInvoiceQuery) Clone() *BillingInvoiceQuery {
-	if biq == nil {
+func (_q *BillingInvoiceQuery) Clone() *BillingInvoiceQuery {
+	if _q == nil {
 		return nil
 	}
 	return &BillingInvoiceQuery{
-		config:                             biq.config,
-		ctx:                                biq.ctx.Clone(),
-		order:                              append([]billinginvoice.OrderOption{}, biq.order...),
-		inters:                             append([]Interceptor{}, biq.inters...),
-		predicates:                         append([]predicate.BillingInvoice{}, biq.predicates...),
-		withSourceBillingProfile:           biq.withSourceBillingProfile.Clone(),
-		withBillingWorkflowConfig:          biq.withBillingWorkflowConfig.Clone(),
-		withBillingInvoiceLines:            biq.withBillingInvoiceLines.Clone(),
-		withBillingInvoiceValidationIssues: biq.withBillingInvoiceValidationIssues.Clone(),
-		withBillingInvoiceCustomer:         biq.withBillingInvoiceCustomer.Clone(),
-		withTaxApp:                         biq.withTaxApp.Clone(),
-		withInvoicingApp:                   biq.withInvoicingApp.Clone(),
-		withPaymentApp:                     biq.withPaymentApp.Clone(),
+		config:                             _q.config,
+		ctx:                                _q.ctx.Clone(),
+		order:                              append([]billinginvoice.OrderOption{}, _q.order...),
+		inters:                             append([]Interceptor{}, _q.inters...),
+		predicates:                         append([]predicate.BillingInvoice{}, _q.predicates...),
+		withSourceBillingProfile:           _q.withSourceBillingProfile.Clone(),
+		withBillingWorkflowConfig:          _q.withBillingWorkflowConfig.Clone(),
+		withBillingInvoiceLines:            _q.withBillingInvoiceLines.Clone(),
+		withBillingInvoiceValidationIssues: _q.withBillingInvoiceValidationIssues.Clone(),
+		withBillingInvoiceCustomer:         _q.withBillingInvoiceCustomer.Clone(),
+		withTaxApp:                         _q.withTaxApp.Clone(),
+		withInvoicingApp:                   _q.withInvoicingApp.Clone(),
+		withPaymentApp:                     _q.withPaymentApp.Clone(),
 		// clone intermediate query.
-		sql:  biq.sql.Clone(),
-		path: biq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithSourceBillingProfile tells the query-builder to eager-load the nodes that are connected to
 // the "source_billing_profile" edge. The optional arguments are used to configure the query builder of the edge.
-func (biq *BillingInvoiceQuery) WithSourceBillingProfile(opts ...func(*BillingProfileQuery)) *BillingInvoiceQuery {
-	query := (&BillingProfileClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) WithSourceBillingProfile(opts ...func(*BillingProfileQuery)) *BillingInvoiceQuery {
+	query := (&BillingProfileClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	biq.withSourceBillingProfile = query
-	return biq
+	_q.withSourceBillingProfile = query
+	return _q
 }
 
 // WithBillingWorkflowConfig tells the query-builder to eager-load the nodes that are connected to
 // the "billing_workflow_config" edge. The optional arguments are used to configure the query builder of the edge.
-func (biq *BillingInvoiceQuery) WithBillingWorkflowConfig(opts ...func(*BillingWorkflowConfigQuery)) *BillingInvoiceQuery {
-	query := (&BillingWorkflowConfigClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) WithBillingWorkflowConfig(opts ...func(*BillingWorkflowConfigQuery)) *BillingInvoiceQuery {
+	query := (&BillingWorkflowConfigClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	biq.withBillingWorkflowConfig = query
-	return biq
+	_q.withBillingWorkflowConfig = query
+	return _q
 }
 
 // WithBillingInvoiceLines tells the query-builder to eager-load the nodes that are connected to
 // the "billing_invoice_lines" edge. The optional arguments are used to configure the query builder of the edge.
-func (biq *BillingInvoiceQuery) WithBillingInvoiceLines(opts ...func(*BillingInvoiceLineQuery)) *BillingInvoiceQuery {
-	query := (&BillingInvoiceLineClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) WithBillingInvoiceLines(opts ...func(*BillingInvoiceLineQuery)) *BillingInvoiceQuery {
+	query := (&BillingInvoiceLineClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	biq.withBillingInvoiceLines = query
-	return biq
+	_q.withBillingInvoiceLines = query
+	return _q
 }
 
 // WithBillingInvoiceValidationIssues tells the query-builder to eager-load the nodes that are connected to
 // the "billing_invoice_validation_issues" edge. The optional arguments are used to configure the query builder of the edge.
-func (biq *BillingInvoiceQuery) WithBillingInvoiceValidationIssues(opts ...func(*BillingInvoiceValidationIssueQuery)) *BillingInvoiceQuery {
-	query := (&BillingInvoiceValidationIssueClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) WithBillingInvoiceValidationIssues(opts ...func(*BillingInvoiceValidationIssueQuery)) *BillingInvoiceQuery {
+	query := (&BillingInvoiceValidationIssueClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	biq.withBillingInvoiceValidationIssues = query
-	return biq
+	_q.withBillingInvoiceValidationIssues = query
+	return _q
 }
 
 // WithBillingInvoiceCustomer tells the query-builder to eager-load the nodes that are connected to
 // the "billing_invoice_customer" edge. The optional arguments are used to configure the query builder of the edge.
-func (biq *BillingInvoiceQuery) WithBillingInvoiceCustomer(opts ...func(*CustomerQuery)) *BillingInvoiceQuery {
-	query := (&CustomerClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) WithBillingInvoiceCustomer(opts ...func(*CustomerQuery)) *BillingInvoiceQuery {
+	query := (&CustomerClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	biq.withBillingInvoiceCustomer = query
-	return biq
+	_q.withBillingInvoiceCustomer = query
+	return _q
 }
 
 // WithTaxApp tells the query-builder to eager-load the nodes that are connected to
 // the "tax_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (biq *BillingInvoiceQuery) WithTaxApp(opts ...func(*AppQuery)) *BillingInvoiceQuery {
-	query := (&AppClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) WithTaxApp(opts ...func(*AppQuery)) *BillingInvoiceQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	biq.withTaxApp = query
-	return biq
+	_q.withTaxApp = query
+	return _q
 }
 
 // WithInvoicingApp tells the query-builder to eager-load the nodes that are connected to
 // the "invoicing_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (biq *BillingInvoiceQuery) WithInvoicingApp(opts ...func(*AppQuery)) *BillingInvoiceQuery {
-	query := (&AppClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) WithInvoicingApp(opts ...func(*AppQuery)) *BillingInvoiceQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	biq.withInvoicingApp = query
-	return biq
+	_q.withInvoicingApp = query
+	return _q
 }
 
 // WithPaymentApp tells the query-builder to eager-load the nodes that are connected to
 // the "payment_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (biq *BillingInvoiceQuery) WithPaymentApp(opts ...func(*AppQuery)) *BillingInvoiceQuery {
-	query := (&AppClient{config: biq.config}).Query()
+func (_q *BillingInvoiceQuery) WithPaymentApp(opts ...func(*AppQuery)) *BillingInvoiceQuery {
+	query := (&AppClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	biq.withPaymentApp = query
-	return biq
+	_q.withPaymentApp = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -559,10 +559,10 @@ func (biq *BillingInvoiceQuery) WithPaymentApp(opts ...func(*AppQuery)) *Billing
 //		GroupBy(billinginvoice.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (biq *BillingInvoiceQuery) GroupBy(field string, fields ...string) *BillingInvoiceGroupBy {
-	biq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &BillingInvoiceGroupBy{build: biq}
-	grbuild.flds = &biq.ctx.Fields
+func (_q *BillingInvoiceQuery) GroupBy(field string, fields ...string) *BillingInvoiceGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &BillingInvoiceGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = billinginvoice.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -580,95 +580,95 @@ func (biq *BillingInvoiceQuery) GroupBy(field string, fields ...string) *Billing
 //	client.BillingInvoice.Query().
 //		Select(billinginvoice.FieldNamespace).
 //		Scan(ctx, &v)
-func (biq *BillingInvoiceQuery) Select(fields ...string) *BillingInvoiceSelect {
-	biq.ctx.Fields = append(biq.ctx.Fields, fields...)
-	sbuild := &BillingInvoiceSelect{BillingInvoiceQuery: biq}
+func (_q *BillingInvoiceQuery) Select(fields ...string) *BillingInvoiceSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &BillingInvoiceSelect{BillingInvoiceQuery: _q}
 	sbuild.label = billinginvoice.Label
-	sbuild.flds, sbuild.scan = &biq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a BillingInvoiceSelect configured with the given aggregations.
-func (biq *BillingInvoiceQuery) Aggregate(fns ...AggregateFunc) *BillingInvoiceSelect {
-	return biq.Select().Aggregate(fns...)
+func (_q *BillingInvoiceQuery) Aggregate(fns ...AggregateFunc) *BillingInvoiceSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (biq *BillingInvoiceQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range biq.inters {
+func (_q *BillingInvoiceQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, biq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range biq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !billinginvoice.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if biq.path != nil {
-		prev, err := biq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		biq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoice, error) {
+func (_q *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoice, error) {
 	var (
 		nodes       = []*BillingInvoice{}
-		_spec       = biq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [8]bool{
-			biq.withSourceBillingProfile != nil,
-			biq.withBillingWorkflowConfig != nil,
-			biq.withBillingInvoiceLines != nil,
-			biq.withBillingInvoiceValidationIssues != nil,
-			biq.withBillingInvoiceCustomer != nil,
-			biq.withTaxApp != nil,
-			biq.withInvoicingApp != nil,
-			biq.withPaymentApp != nil,
+			_q.withSourceBillingProfile != nil,
+			_q.withBillingWorkflowConfig != nil,
+			_q.withBillingInvoiceLines != nil,
+			_q.withBillingInvoiceValidationIssues != nil,
+			_q.withBillingInvoiceCustomer != nil,
+			_q.withTaxApp != nil,
+			_q.withInvoicingApp != nil,
+			_q.withPaymentApp != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingInvoice).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &BillingInvoice{config: biq.config}
+		node := &BillingInvoice{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(biq.modifiers) > 0 {
-		_spec.Modifiers = biq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, biq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := biq.withSourceBillingProfile; query != nil {
-		if err := biq.loadSourceBillingProfile(ctx, query, nodes, nil,
+	if query := _q.withSourceBillingProfile; query != nil {
+		if err := _q.loadSourceBillingProfile(ctx, query, nodes, nil,
 			func(n *BillingInvoice, e *BillingProfile) { n.Edges.SourceBillingProfile = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := biq.withBillingWorkflowConfig; query != nil {
-		if err := biq.loadBillingWorkflowConfig(ctx, query, nodes, nil,
+	if query := _q.withBillingWorkflowConfig; query != nil {
+		if err := _q.loadBillingWorkflowConfig(ctx, query, nodes, nil,
 			func(n *BillingInvoice, e *BillingWorkflowConfig) { n.Edges.BillingWorkflowConfig = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := biq.withBillingInvoiceLines; query != nil {
-		if err := biq.loadBillingInvoiceLines(ctx, query, nodes,
+	if query := _q.withBillingInvoiceLines; query != nil {
+		if err := _q.loadBillingInvoiceLines(ctx, query, nodes,
 			func(n *BillingInvoice) { n.Edges.BillingInvoiceLines = []*BillingInvoiceLine{} },
 			func(n *BillingInvoice, e *BillingInvoiceLine) {
 				n.Edges.BillingInvoiceLines = append(n.Edges.BillingInvoiceLines, e)
@@ -676,8 +676,8 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 			return nil, err
 		}
 	}
-	if query := biq.withBillingInvoiceValidationIssues; query != nil {
-		if err := biq.loadBillingInvoiceValidationIssues(ctx, query, nodes,
+	if query := _q.withBillingInvoiceValidationIssues; query != nil {
+		if err := _q.loadBillingInvoiceValidationIssues(ctx, query, nodes,
 			func(n *BillingInvoice) { n.Edges.BillingInvoiceValidationIssues = []*BillingInvoiceValidationIssue{} },
 			func(n *BillingInvoice, e *BillingInvoiceValidationIssue) {
 				n.Edges.BillingInvoiceValidationIssues = append(n.Edges.BillingInvoiceValidationIssues, e)
@@ -685,26 +685,26 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 			return nil, err
 		}
 	}
-	if query := biq.withBillingInvoiceCustomer; query != nil {
-		if err := biq.loadBillingInvoiceCustomer(ctx, query, nodes, nil,
+	if query := _q.withBillingInvoiceCustomer; query != nil {
+		if err := _q.loadBillingInvoiceCustomer(ctx, query, nodes, nil,
 			func(n *BillingInvoice, e *Customer) { n.Edges.BillingInvoiceCustomer = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := biq.withTaxApp; query != nil {
-		if err := biq.loadTaxApp(ctx, query, nodes, nil,
+	if query := _q.withTaxApp; query != nil {
+		if err := _q.loadTaxApp(ctx, query, nodes, nil,
 			func(n *BillingInvoice, e *App) { n.Edges.TaxApp = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := biq.withInvoicingApp; query != nil {
-		if err := biq.loadInvoicingApp(ctx, query, nodes, nil,
+	if query := _q.withInvoicingApp; query != nil {
+		if err := _q.loadInvoicingApp(ctx, query, nodes, nil,
 			func(n *BillingInvoice, e *App) { n.Edges.InvoicingApp = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := biq.withPaymentApp; query != nil {
-		if err := biq.loadPaymentApp(ctx, query, nodes, nil,
+	if query := _q.withPaymentApp; query != nil {
+		if err := _q.loadPaymentApp(ctx, query, nodes, nil,
 			func(n *BillingInvoice, e *App) { n.Edges.PaymentApp = e }); err != nil {
 			return nil, err
 		}
@@ -712,7 +712,7 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	return nodes, nil
 }
 
-func (biq *BillingInvoiceQuery) loadSourceBillingProfile(ctx context.Context, query *BillingProfileQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingProfile)) error {
+func (_q *BillingInvoiceQuery) loadSourceBillingProfile(ctx context.Context, query *BillingProfileQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingProfile)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingInvoice)
 	for i := range nodes {
@@ -741,7 +741,7 @@ func (biq *BillingInvoiceQuery) loadSourceBillingProfile(ctx context.Context, qu
 	}
 	return nil
 }
-func (biq *BillingInvoiceQuery) loadBillingWorkflowConfig(ctx context.Context, query *BillingWorkflowConfigQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingWorkflowConfig)) error {
+func (_q *BillingInvoiceQuery) loadBillingWorkflowConfig(ctx context.Context, query *BillingWorkflowConfigQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingWorkflowConfig)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingInvoice)
 	for i := range nodes {
@@ -770,7 +770,7 @@ func (biq *BillingInvoiceQuery) loadBillingWorkflowConfig(ctx context.Context, q
 	}
 	return nil
 }
-func (biq *BillingInvoiceQuery) loadBillingInvoiceLines(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingInvoiceLine)) error {
+func (_q *BillingInvoiceQuery) loadBillingInvoiceLines(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingInvoiceLine)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*BillingInvoice)
 	for i := range nodes {
@@ -801,7 +801,7 @@ func (biq *BillingInvoiceQuery) loadBillingInvoiceLines(ctx context.Context, que
 	}
 	return nil
 }
-func (biq *BillingInvoiceQuery) loadBillingInvoiceValidationIssues(ctx context.Context, query *BillingInvoiceValidationIssueQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingInvoiceValidationIssue)) error {
+func (_q *BillingInvoiceQuery) loadBillingInvoiceValidationIssues(ctx context.Context, query *BillingInvoiceValidationIssueQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingInvoiceValidationIssue)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*BillingInvoice)
 	for i := range nodes {
@@ -831,7 +831,7 @@ func (biq *BillingInvoiceQuery) loadBillingInvoiceValidationIssues(ctx context.C
 	}
 	return nil
 }
-func (biq *BillingInvoiceQuery) loadBillingInvoiceCustomer(ctx context.Context, query *CustomerQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *Customer)) error {
+func (_q *BillingInvoiceQuery) loadBillingInvoiceCustomer(ctx context.Context, query *CustomerQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *Customer)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingInvoice)
 	for i := range nodes {
@@ -860,7 +860,7 @@ func (biq *BillingInvoiceQuery) loadBillingInvoiceCustomer(ctx context.Context, 
 	}
 	return nil
 }
-func (biq *BillingInvoiceQuery) loadTaxApp(ctx context.Context, query *AppQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *App)) error {
+func (_q *BillingInvoiceQuery) loadTaxApp(ctx context.Context, query *AppQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *App)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingInvoice)
 	for i := range nodes {
@@ -889,7 +889,7 @@ func (biq *BillingInvoiceQuery) loadTaxApp(ctx context.Context, query *AppQuery,
 	}
 	return nil
 }
-func (biq *BillingInvoiceQuery) loadInvoicingApp(ctx context.Context, query *AppQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *App)) error {
+func (_q *BillingInvoiceQuery) loadInvoicingApp(ctx context.Context, query *AppQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *App)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingInvoice)
 	for i := range nodes {
@@ -918,7 +918,7 @@ func (biq *BillingInvoiceQuery) loadInvoicingApp(ctx context.Context, query *App
 	}
 	return nil
 }
-func (biq *BillingInvoiceQuery) loadPaymentApp(ctx context.Context, query *AppQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *App)) error {
+func (_q *BillingInvoiceQuery) loadPaymentApp(ctx context.Context, query *AppQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *App)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingInvoice)
 	for i := range nodes {
@@ -948,27 +948,27 @@ func (biq *BillingInvoiceQuery) loadPaymentApp(ctx context.Context, query *AppQu
 	return nil
 }
 
-func (biq *BillingInvoiceQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := biq.querySpec()
-	if len(biq.modifiers) > 0 {
-		_spec.Modifiers = biq.modifiers
+func (_q *BillingInvoiceQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = biq.ctx.Fields
-	if len(biq.ctx.Fields) > 0 {
-		_spec.Unique = biq.ctx.Unique != nil && *biq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, biq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (biq *BillingInvoiceQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *BillingInvoiceQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(billinginvoice.Table, billinginvoice.Columns, sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString))
-	_spec.From = biq.sql
-	if unique := biq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if biq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := biq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billinginvoice.FieldID)
 		for i := range fields {
@@ -976,39 +976,39 @@ func (biq *BillingInvoiceQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if biq.withSourceBillingProfile != nil {
+		if _q.withSourceBillingProfile != nil {
 			_spec.Node.AddColumnOnce(billinginvoice.FieldSourceBillingProfileID)
 		}
-		if biq.withBillingWorkflowConfig != nil {
+		if _q.withBillingWorkflowConfig != nil {
 			_spec.Node.AddColumnOnce(billinginvoice.FieldWorkflowConfigID)
 		}
-		if biq.withBillingInvoiceCustomer != nil {
+		if _q.withBillingInvoiceCustomer != nil {
 			_spec.Node.AddColumnOnce(billinginvoice.FieldCustomerID)
 		}
-		if biq.withTaxApp != nil {
+		if _q.withTaxApp != nil {
 			_spec.Node.AddColumnOnce(billinginvoice.FieldTaxAppID)
 		}
-		if biq.withInvoicingApp != nil {
+		if _q.withInvoicingApp != nil {
 			_spec.Node.AddColumnOnce(billinginvoice.FieldInvoicingAppID)
 		}
-		if biq.withPaymentApp != nil {
+		if _q.withPaymentApp != nil {
 			_spec.Node.AddColumnOnce(billinginvoice.FieldPaymentAppID)
 		}
 	}
-	if ps := biq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := biq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := biq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := biq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -1018,36 +1018,36 @@ func (biq *BillingInvoiceQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (biq *BillingInvoiceQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(biq.driver.Dialect())
+func (_q *BillingInvoiceQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(billinginvoice.Table)
-	columns := biq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = billinginvoice.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if biq.sql != nil {
-		selector = biq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if biq.ctx.Unique != nil && *biq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range biq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range biq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range biq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := biq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := biq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -1056,27 +1056,27 @@ func (biq *BillingInvoiceQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (biq *BillingInvoiceQuery) ForUpdate(opts ...sql.LockOption) *BillingInvoiceQuery {
-	if biq.driver.Dialect() == dialect.Postgres {
-		biq.Unique(false)
+func (_q *BillingInvoiceQuery) ForUpdate(opts ...sql.LockOption) *BillingInvoiceQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	biq.modifiers = append(biq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return biq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (biq *BillingInvoiceQuery) ForShare(opts ...sql.LockOption) *BillingInvoiceQuery {
-	if biq.driver.Dialect() == dialect.Postgres {
-		biq.Unique(false)
+func (_q *BillingInvoiceQuery) ForShare(opts ...sql.LockOption) *BillingInvoiceQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	biq.modifiers = append(biq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return biq
+	return _q
 }
 
 // BillingInvoiceGroupBy is the group-by builder for BillingInvoice entities.

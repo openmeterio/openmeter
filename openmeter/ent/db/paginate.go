@@ -11,18 +11,18 @@ import (
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (a *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Addon], error) {
+func (_m *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Addon], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	a.ctx.Offset = &zero
-	a.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := a.Clone()
-	pagedQuery := a
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -59,18 +59,18 @@ var _ pagination.Paginator[*Addon] = (*AddonQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (arc *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AddonRateCard], error) {
+func (_m *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AddonRateCard], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	arc.ctx.Offset = &zero
-	arc.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := arc.Clone()
-	pagedQuery := arc
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -107,18 +107,18 @@ var _ pagination.Paginator[*AddonRateCard] = (*AddonRateCardQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (a *AppQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*App], error) {
+func (_m *AppQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*App], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	a.ctx.Offset = &zero
-	a.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := a.Clone()
-	pagedQuery := a
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -155,18 +155,18 @@ var _ pagination.Paginator[*App] = (*AppQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (aci *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomInvoicing], error) {
+func (_m *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomInvoicing], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	aci.ctx.Offset = &zero
-	aci.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := aci.Clone()
-	pagedQuery := aci
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -203,18 +203,18 @@ var _ pagination.Paginator[*AppCustomInvoicing] = (*AppCustomInvoicingQuery)(nil
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (acic *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomInvoicingCustomer], error) {
+func (_m *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomInvoicingCustomer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	acic.ctx.Offset = &zero
-	acic.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := acic.Clone()
-	pagedQuery := acic
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -251,18 +251,18 @@ var _ pagination.Paginator[*AppCustomInvoicingCustomer] = (*AppCustomInvoicingCu
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (ac *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomer], error) {
+func (_m *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	ac.ctx.Offset = &zero
-	ac.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := ac.Clone()
-	pagedQuery := ac
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -299,18 +299,18 @@ var _ pagination.Paginator[*AppCustomer] = (*AppCustomerQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (as *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppStripe], error) {
+func (_m *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppStripe], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	as.ctx.Offset = &zero
-	as.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := as.Clone()
-	pagedQuery := as
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -347,18 +347,18 @@ var _ pagination.Paginator[*AppStripe] = (*AppStripeQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (asc *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppStripeCustomer], error) {
+func (_m *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppStripeCustomer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	asc.ctx.Offset = &zero
-	asc.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := asc.Clone()
-	pagedQuery := asc
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -395,18 +395,18 @@ var _ pagination.Paginator[*AppStripeCustomer] = (*AppStripeCustomerQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (bs *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BalanceSnapshot], error) {
+func (_m *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BalanceSnapshot], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	bs.ctx.Offset = &zero
-	bs.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := bs.Clone()
-	pagedQuery := bs
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -443,18 +443,18 @@ var _ pagination.Paginator[*BalanceSnapshot] = (*BalanceSnapshotQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (bcl *BillingCustomerLockQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingCustomerLock], error) {
+func (_m *BillingCustomerLockQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingCustomerLock], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	bcl.ctx.Offset = &zero
-	bcl.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := bcl.Clone()
-	pagedQuery := bcl
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -491,18 +491,18 @@ var _ pagination.Paginator[*BillingCustomerLock] = (*BillingCustomerLockQuery)(n
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (bco *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingCustomerOverride], error) {
+func (_m *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingCustomerOverride], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	bco.ctx.Offset = &zero
-	bco.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := bco.Clone()
-	pagedQuery := bco
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -539,18 +539,18 @@ var _ pagination.Paginator[*BillingCustomerOverride] = (*BillingCustomerOverride
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (bi *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoice], error) {
+func (_m *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoice], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	bi.ctx.Offset = &zero
-	bi.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := bi.Clone()
-	pagedQuery := bi
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -587,18 +587,18 @@ var _ pagination.Paginator[*BillingInvoice] = (*BillingInvoiceQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (bifflc *BillingInvoiceFlatFeeLineConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceFlatFeeLineConfig], error) {
+func (_m *BillingInvoiceFlatFeeLineConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceFlatFeeLineConfig], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	bifflc.ctx.Offset = &zero
-	bifflc.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := bifflc.Clone()
-	pagedQuery := bifflc
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -635,18 +635,18 @@ var _ pagination.Paginator[*BillingInvoiceFlatFeeLineConfig] = (*BillingInvoiceF
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (bil *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceLine], error) {
+func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceLine], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	bil.ctx.Offset = &zero
-	bil.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := bil.Clone()
-	pagedQuery := bil
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -683,18 +683,18 @@ var _ pagination.Paginator[*BillingInvoiceLine] = (*BillingInvoiceLineQuery)(nil
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (bild *BillingInvoiceLineDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceLineDiscount], error) {
+func (_m *BillingInvoiceLineDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceLineDiscount], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	bild.ctx.Offset = &zero
-	bild.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := bild.Clone()
-	pagedQuery := bild
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -731,18 +731,18 @@ var _ pagination.Paginator[*BillingInvoiceLineDiscount] = (*BillingInvoiceLineDi
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (bilud *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceLineUsageDiscount], error) {
+func (_m *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceLineUsageDiscount], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	bilud.ctx.Offset = &zero
-	bilud.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := bilud.Clone()
-	pagedQuery := bilud
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -779,18 +779,18 @@ var _ pagination.Paginator[*BillingInvoiceLineUsageDiscount] = (*BillingInvoiceL
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (biublc *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceUsageBasedLineConfig], error) {
+func (_m *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceUsageBasedLineConfig], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	biublc.ctx.Offset = &zero
-	biublc.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := biublc.Clone()
-	pagedQuery := biublc
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -827,18 +827,18 @@ var _ pagination.Paginator[*BillingInvoiceUsageBasedLineConfig] = (*BillingInvoi
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (bivi *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceValidationIssue], error) {
+func (_m *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceValidationIssue], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	bivi.ctx.Offset = &zero
-	bivi.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := bivi.Clone()
-	pagedQuery := bivi
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -875,18 +875,18 @@ var _ pagination.Paginator[*BillingInvoiceValidationIssue] = (*BillingInvoiceVal
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (bp *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingProfile], error) {
+func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingProfile], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	bp.ctx.Offset = &zero
-	bp.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := bp.Clone()
-	pagedQuery := bp
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -923,18 +923,18 @@ var _ pagination.Paginator[*BillingProfile] = (*BillingProfileQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (bsn *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingSequenceNumbers], error) {
+func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingSequenceNumbers], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	bsn.ctx.Offset = &zero
-	bsn.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := bsn.Clone()
-	pagedQuery := bsn
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -971,18 +971,18 @@ var _ pagination.Paginator[*BillingSequenceNumbers] = (*BillingSequenceNumbersQu
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (bwc *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingWorkflowConfig], error) {
+func (_m *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingWorkflowConfig], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	bwc.ctx.Offset = &zero
-	bwc.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := bwc.Clone()
-	pagedQuery := bwc
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1019,18 +1019,18 @@ var _ pagination.Paginator[*BillingWorkflowConfig] = (*BillingWorkflowConfigQuer
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (c *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Customer], error) {
+func (_m *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Customer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	c.ctx.Offset = &zero
-	c.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := c.Clone()
-	pagedQuery := c
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1067,18 +1067,18 @@ var _ pagination.Paginator[*Customer] = (*CustomerQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (cs *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*CustomerSubjects], error) {
+func (_m *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*CustomerSubjects], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	cs.ctx.Offset = &zero
-	cs.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := cs.Clone()
-	pagedQuery := cs
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1115,18 +1115,18 @@ var _ pagination.Paginator[*CustomerSubjects] = (*CustomerSubjectsQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (e *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Entitlement], error) {
+func (_m *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Entitlement], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	e.ctx.Offset = &zero
-	e.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := e.Clone()
-	pagedQuery := e
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1163,18 +1163,18 @@ var _ pagination.Paginator[*Entitlement] = (*EntitlementQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (f *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Feature], error) {
+func (_m *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Feature], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	f.ctx.Offset = &zero
-	f.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := f.Clone()
-	pagedQuery := f
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1211,18 +1211,18 @@ var _ pagination.Paginator[*Feature] = (*FeatureQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (gr *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Grant], error) {
+func (_m *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Grant], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	gr.ctx.Offset = &zero
-	gr.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := gr.Clone()
-	pagedQuery := gr
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1259,18 +1259,18 @@ var _ pagination.Paginator[*Grant] = (*GrantQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Meter], error) {
+func (_m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Meter], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	m.ctx.Offset = &zero
-	m.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := m.Clone()
-	pagedQuery := m
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1307,18 +1307,18 @@ var _ pagination.Paginator[*Meter] = (*MeterQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (nc *NotificationChannelQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*NotificationChannel], error) {
+func (_m *NotificationChannelQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*NotificationChannel], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	nc.ctx.Offset = &zero
-	nc.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := nc.Clone()
-	pagedQuery := nc
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1355,18 +1355,18 @@ var _ pagination.Paginator[*NotificationChannel] = (*NotificationChannelQuery)(n
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (ne *NotificationEventQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*NotificationEvent], error) {
+func (_m *NotificationEventQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*NotificationEvent], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	ne.ctx.Offset = &zero
-	ne.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := ne.Clone()
-	pagedQuery := ne
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1403,18 +1403,18 @@ var _ pagination.Paginator[*NotificationEvent] = (*NotificationEventQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (neds *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*NotificationEventDeliveryStatus], error) {
+func (_m *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*NotificationEventDeliveryStatus], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	neds.ctx.Offset = &zero
-	neds.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := neds.Clone()
-	pagedQuery := neds
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1451,18 +1451,18 @@ var _ pagination.Paginator[*NotificationEventDeliveryStatus] = (*NotificationEve
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (nr *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*NotificationRule], error) {
+func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*NotificationRule], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	nr.ctx.Offset = &zero
-	nr.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := nr.Clone()
-	pagedQuery := nr
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1499,18 +1499,18 @@ var _ pagination.Paginator[*NotificationRule] = (*NotificationRuleQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (pl *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Plan], error) {
+func (_m *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Plan], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	pl.ctx.Offset = &zero
-	pl.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := pl.Clone()
-	pagedQuery := pl
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1547,18 +1547,18 @@ var _ pagination.Paginator[*Plan] = (*PlanQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (pa *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*PlanAddon], error) {
+func (_m *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*PlanAddon], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	pa.ctx.Offset = &zero
-	pa.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := pa.Clone()
-	pagedQuery := pa
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1595,18 +1595,18 @@ var _ pagination.Paginator[*PlanAddon] = (*PlanAddonQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (pp *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*PlanPhase], error) {
+func (_m *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*PlanPhase], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	pp.ctx.Offset = &zero
-	pp.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := pp.Clone()
-	pagedQuery := pp
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1643,18 +1643,18 @@ var _ pagination.Paginator[*PlanPhase] = (*PlanPhaseQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (prc *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*PlanRateCard], error) {
+func (_m *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*PlanRateCard], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	prc.ctx.Offset = &zero
-	prc.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := prc.Clone()
-	pagedQuery := prc
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1691,18 +1691,18 @@ var _ pagination.Paginator[*PlanRateCard] = (*PlanRateCardQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (s *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Subscription], error) {
+func (_m *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Subscription], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	s.ctx.Offset = &zero
-	s.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := s.Clone()
-	pagedQuery := s
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1739,18 +1739,18 @@ var _ pagination.Paginator[*Subscription] = (*SubscriptionQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (sa *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionAddon], error) {
+func (_m *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionAddon], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	sa.ctx.Offset = &zero
-	sa.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := sa.Clone()
-	pagedQuery := sa
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1787,18 +1787,18 @@ var _ pagination.Paginator[*SubscriptionAddon] = (*SubscriptionAddonQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (saq *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionAddonQuantity], error) {
+func (_m *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionAddonQuantity], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	saq.ctx.Offset = &zero
-	saq.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := saq.Clone()
-	pagedQuery := saq
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1835,18 +1835,18 @@ var _ pagination.Paginator[*SubscriptionAddonQuantity] = (*SubscriptionAddonQuan
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (si *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionItem], error) {
+func (_m *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionItem], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	si.ctx.Offset = &zero
-	si.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := si.Clone()
-	pagedQuery := si
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1883,18 +1883,18 @@ var _ pagination.Paginator[*SubscriptionItem] = (*SubscriptionItemQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (sp *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionPhase], error) {
+func (_m *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionPhase], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	sp.ctx.Offset = &zero
-	sp.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := sp.Clone()
-	pagedQuery := sp
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1931,18 +1931,18 @@ var _ pagination.Paginator[*SubscriptionPhase] = (*SubscriptionPhaseQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (ur *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*UsageReset], error) {
+func (_m *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*UsageReset], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
 	// Unset previous pagination settings
 	zero := 0
-	ur.ctx.Offset = &zero
-	ur.ctx.Limit = &zero
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
 
 	// Create duplicate of the query to run for
-	countQuery := ur.Clone()
-	pagedQuery := ur
+	countQuery := _m.Clone()
+	pagedQuery := _m
 
 	// Unset ordering for count query
 	countQuery.order = nil

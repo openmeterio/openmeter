@@ -88,7 +88,7 @@ func (*NotificationEvent) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the NotificationEvent fields.
-func (ne *NotificationEvent) assignValues(columns []string, values []any) error {
+func (_m *NotificationEvent) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -98,46 +98,46 @@ func (ne *NotificationEvent) assignValues(columns []string, values []any) error 
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				ne.ID = value.String
+				_m.ID = value.String
 			}
 		case notificationevent.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				ne.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case notificationevent.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				ne.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case notificationevent.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				ne.Type = notification.EventType(value.String)
+				_m.Type = notification.EventType(value.String)
 			}
 		case notificationevent.FieldRuleID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field rule_id", values[i])
 			} else if value.Valid {
-				ne.RuleID = value.String
+				_m.RuleID = value.String
 			}
 		case notificationevent.FieldPayload:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field payload", values[i])
 			} else if value.Valid {
-				ne.Payload = value.String
+				_m.Payload = value.String
 			}
 		case notificationevent.FieldAnnotations:
 			if value, err := notificationevent.ValueScanner.Annotations.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				ne.Annotations = value
+				_m.Annotations = value
 			}
 		default:
-			ne.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -145,60 +145,60 @@ func (ne *NotificationEvent) assignValues(columns []string, values []any) error 
 
 // Value returns the ent.Value that was dynamically selected and assigned to the NotificationEvent.
 // This includes values selected through modifiers, order, etc.
-func (ne *NotificationEvent) Value(name string) (ent.Value, error) {
-	return ne.selectValues.Get(name)
+func (_m *NotificationEvent) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryDeliveryStatuses queries the "delivery_statuses" edge of the NotificationEvent entity.
-func (ne *NotificationEvent) QueryDeliveryStatuses() *NotificationEventDeliveryStatusQuery {
-	return NewNotificationEventClient(ne.config).QueryDeliveryStatuses(ne)
+func (_m *NotificationEvent) QueryDeliveryStatuses() *NotificationEventDeliveryStatusQuery {
+	return NewNotificationEventClient(_m.config).QueryDeliveryStatuses(_m)
 }
 
 // QueryRules queries the "rules" edge of the NotificationEvent entity.
-func (ne *NotificationEvent) QueryRules() *NotificationRuleQuery {
-	return NewNotificationEventClient(ne.config).QueryRules(ne)
+func (_m *NotificationEvent) QueryRules() *NotificationRuleQuery {
+	return NewNotificationEventClient(_m.config).QueryRules(_m)
 }
 
 // Update returns a builder for updating this NotificationEvent.
 // Note that you need to call NotificationEvent.Unwrap() before calling this method if this NotificationEvent
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (ne *NotificationEvent) Update() *NotificationEventUpdateOne {
-	return NewNotificationEventClient(ne.config).UpdateOne(ne)
+func (_m *NotificationEvent) Update() *NotificationEventUpdateOne {
+	return NewNotificationEventClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the NotificationEvent entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (ne *NotificationEvent) Unwrap() *NotificationEvent {
-	_tx, ok := ne.config.driver.(*txDriver)
+func (_m *NotificationEvent) Unwrap() *NotificationEvent {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: NotificationEvent is not a transactional entity")
 	}
-	ne.config.driver = _tx.drv
-	return ne
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (ne *NotificationEvent) String() string {
+func (_m *NotificationEvent) String() string {
 	var builder strings.Builder
 	builder.WriteString("NotificationEvent(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", ne.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(ne.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(ne.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("type=")
-	builder.WriteString(fmt.Sprintf("%v", ne.Type))
+	builder.WriteString(fmt.Sprintf("%v", _m.Type))
 	builder.WriteString(", ")
 	builder.WriteString("rule_id=")
-	builder.WriteString(ne.RuleID)
+	builder.WriteString(_m.RuleID)
 	builder.WriteString(", ")
 	builder.WriteString("payload=")
-	builder.WriteString(ne.Payload)
+	builder.WriteString(_m.Payload)
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")
-	builder.WriteString(fmt.Sprintf("%v", ne.Annotations))
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteByte(')')
 	return builder.String()
 }

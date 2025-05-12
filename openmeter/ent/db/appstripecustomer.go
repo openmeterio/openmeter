@@ -94,7 +94,7 @@ func (*AppStripeCustomer) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the AppStripeCustomer fields.
-func (asc *AppStripeCustomer) assignValues(columns []string, values []any) error {
+func (_m *AppStripeCustomer) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -105,59 +105,59 @@ func (asc *AppStripeCustomer) assignValues(columns []string, values []any) error
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
-			asc.ID = int(value.Int64)
+			_m.ID = int(value.Int64)
 		case appstripecustomer.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				asc.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case appstripecustomer.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				asc.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case appstripecustomer.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				asc.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case appstripecustomer.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				asc.DeletedAt = new(time.Time)
-				*asc.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case appstripecustomer.FieldAppID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field app_id", values[i])
 			} else if value.Valid {
-				asc.AppID = value.String
+				_m.AppID = value.String
 			}
 		case appstripecustomer.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
 			} else if value.Valid {
-				asc.CustomerID = value.String
+				_m.CustomerID = value.String
 			}
 		case appstripecustomer.FieldStripeCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field stripe_customer_id", values[i])
 			} else if value.Valid {
-				asc.StripeCustomerID = value.String
+				_m.StripeCustomerID = value.String
 			}
 		case appstripecustomer.FieldStripeDefaultPaymentMethodID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field stripe_default_payment_method_id", values[i])
 			} else if value.Valid {
-				asc.StripeDefaultPaymentMethodID = new(string)
-				*asc.StripeDefaultPaymentMethodID = value.String
+				_m.StripeDefaultPaymentMethodID = new(string)
+				*_m.StripeDefaultPaymentMethodID = value.String
 			}
 		default:
-			asc.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -165,67 +165,67 @@ func (asc *AppStripeCustomer) assignValues(columns []string, values []any) error
 
 // Value returns the ent.Value that was dynamically selected and assigned to the AppStripeCustomer.
 // This includes values selected through modifiers, order, etc.
-func (asc *AppStripeCustomer) Value(name string) (ent.Value, error) {
-	return asc.selectValues.Get(name)
+func (_m *AppStripeCustomer) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryStripeApp queries the "stripe_app" edge of the AppStripeCustomer entity.
-func (asc *AppStripeCustomer) QueryStripeApp() *AppStripeQuery {
-	return NewAppStripeCustomerClient(asc.config).QueryStripeApp(asc)
+func (_m *AppStripeCustomer) QueryStripeApp() *AppStripeQuery {
+	return NewAppStripeCustomerClient(_m.config).QueryStripeApp(_m)
 }
 
 // QueryCustomer queries the "customer" edge of the AppStripeCustomer entity.
-func (asc *AppStripeCustomer) QueryCustomer() *CustomerQuery {
-	return NewAppStripeCustomerClient(asc.config).QueryCustomer(asc)
+func (_m *AppStripeCustomer) QueryCustomer() *CustomerQuery {
+	return NewAppStripeCustomerClient(_m.config).QueryCustomer(_m)
 }
 
 // Update returns a builder for updating this AppStripeCustomer.
 // Note that you need to call AppStripeCustomer.Unwrap() before calling this method if this AppStripeCustomer
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (asc *AppStripeCustomer) Update() *AppStripeCustomerUpdateOne {
-	return NewAppStripeCustomerClient(asc.config).UpdateOne(asc)
+func (_m *AppStripeCustomer) Update() *AppStripeCustomerUpdateOne {
+	return NewAppStripeCustomerClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the AppStripeCustomer entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (asc *AppStripeCustomer) Unwrap() *AppStripeCustomer {
-	_tx, ok := asc.config.driver.(*txDriver)
+func (_m *AppStripeCustomer) Unwrap() *AppStripeCustomer {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: AppStripeCustomer is not a transactional entity")
 	}
-	asc.config.driver = _tx.drv
-	return asc
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (asc *AppStripeCustomer) String() string {
+func (_m *AppStripeCustomer) String() string {
 	var builder strings.Builder
 	builder.WriteString("AppStripeCustomer(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", asc.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(asc.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(asc.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(asc.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := asc.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("app_id=")
-	builder.WriteString(asc.AppID)
+	builder.WriteString(_m.AppID)
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
-	builder.WriteString(asc.CustomerID)
+	builder.WriteString(_m.CustomerID)
 	builder.WriteString(", ")
 	builder.WriteString("stripe_customer_id=")
-	builder.WriteString(asc.StripeCustomerID)
+	builder.WriteString(_m.StripeCustomerID)
 	builder.WriteString(", ")
-	if v := asc.StripeDefaultPaymentMethodID; v != nil {
+	if v := _m.StripeDefaultPaymentMethodID; v != nil {
 		builder.WriteString("stripe_default_payment_method_id=")
 		builder.WriteString(*v)
 	}

@@ -3725,6 +3725,14 @@ export const listInvoicesQueryPageSizeDefault = 100
 export const listInvoicesQueryPageSizeMax = 1000
 
 export const listInvoicesQueryParams = zod.object({
+  createdAfter: zod
+    .date()
+    .optional()
+    .describe('Filter by invoice created time.\nInclusive.'),
+  createdBefore: zod
+    .date()
+    .optional()
+    .describe('Filter by invoice created time.\nInclusive.'),
   customers: zod
     .array(
       zod
@@ -3754,11 +3762,11 @@ export const listInvoicesQueryParams = zod.object({
   issuedAfter: zod
     .date()
     .optional()
-    .describe('Filter by invoice creation time'),
+    .describe('Filter by invoice issued time.\nInclusive.'),
   issuedBefore: zod
     .date()
     .optional()
-    .describe('Filter by invoice creation time'),
+    .describe('Filter by invoice issued time.\nInclusive.'),
   order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
   orderBy: zod
     .enum(['customer.name', 'issuedAt', 'status', 'createdAt', 'updatedAt'])
@@ -8961,6 +8969,76 @@ export const queryMeterQueryParams = zod.object({
 })
 
 /**
+ * @summary Query meter
+ */
+export const queryMeterPostPathMeterIdOrSlugMax = 64
+
+export const queryMeterPostPathMeterIdOrSlugRegExp = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+
+export const queryMeterPostParams = zod.object({
+  meterIdOrSlug: zod
+    .string()
+    .min(1)
+    .max(queryMeterPostPathMeterIdOrSlugMax)
+    .regex(queryMeterPostPathMeterIdOrSlugRegExp),
+})
+
+export const queryMeterPostBodyClientIdMax = 36
+export const queryMeterPostBodyWindowTimeZoneDefault = 'UTC'
+export const queryMeterPostBodySubjectMax = 100
+export const queryMeterPostBodyGroupByMax = 100
+
+export const queryMeterPostBody = zod
+  .object({
+    clientId: zod
+      .string()
+      .min(1)
+      .max(queryMeterPostBodyClientIdMax)
+      .optional()
+      .describe('Client ID\nUseful to track progress of a query.'),
+    filterGroupBy: zod
+      .record(zod.string(), zod.array(zod.string()))
+      .optional()
+      .describe('Simple filter for group bys with exact match.'),
+    from: zod
+      .date()
+      .optional()
+      .describe('Start date-time in RFC 3339 format.\n\nInclusive.'),
+    groupBy: zod
+      .array(zod.string())
+      .max(queryMeterPostBodyGroupByMax)
+      .optional()
+      .describe(
+        'If not specified a single aggregate will be returned for each subject and time window.\n`subject` is a reserved group by value.'
+      ),
+    subject: zod
+      .array(zod.string())
+      .max(queryMeterPostBodySubjectMax)
+      .optional()
+      .describe('Filtering by multiple subjects.'),
+    to: zod
+      .date()
+      .optional()
+      .describe('End date-time in RFC 3339 format.\n\nInclusive.'),
+    windowSize: zod
+      .enum(['MINUTE', 'HOUR', 'DAY'])
+      .describe('Aggregation window size.')
+      .optional()
+      .describe(
+        'If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.'
+      ),
+    windowTimeZone: zod
+      .string()
+      .default(queryMeterPostBodyWindowTimeZoneDefault)
+      .describe(
+        'The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).\nIf not specified, the UTC timezone will be used.'
+      ),
+  })
+  .describe('A meter query request.')
+
+/**
  * List subjects for a meter.
  * @summary List meter subjects
  */
@@ -9702,29 +9780,6 @@ export const testNotificationRulePathRuleIdRegExp = new RegExp(
 export const testNotificationRuleParams = zod.object({
   ruleId: zod.string().regex(testNotificationRulePathRuleIdRegExp),
 })
-
-/**
- * Callback endpoint used by Svix to notify about operational events.
- * @summary Receive Svix operational events
- */
-export const receiveSvixOperationalEventBody = zod
-  .object({
-    data: zod
-      .record(zod.string(), zod.string())
-      .describe('The payload of the Svix operational webhook request.'),
-    type: zod
-      .enum([
-        'endpoint.created',
-        'endpoint.deleted',
-        'endpoint.disabled',
-        'endpoint.updated',
-        'message.attempt.exhausted',
-        'message.attempt.failing',
-        'message.attempt.recovered',
-      ])
-      .describe('The type of the Svix operational webhook request.'),
-  })
-  .describe('Operational webhook reqeuest sent by Svix.')
 
 /**
  * List all plans.

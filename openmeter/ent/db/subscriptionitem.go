@@ -148,7 +148,7 @@ func (*SubscriptionItem) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the SubscriptionItem fields.
-func (si *SubscriptionItem) assignValues(columns []string, values []any) error {
+func (_m *SubscriptionItem) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -158,38 +158,38 @@ func (si *SubscriptionItem) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				si.ID = value.String
+				_m.ID = value.String
 			}
 		case subscriptionitem.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				si.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case subscriptionitem.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				si.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case subscriptionitem.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				si.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case subscriptionitem.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				si.DeletedAt = new(time.Time)
-				*si.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case subscriptionitem.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &si.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -197,114 +197,114 @@ func (si *SubscriptionItem) assignValues(columns []string, values []any) error {
 			if value, err := subscriptionitem.ValueScanner.Annotations.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				si.Annotations = value
+				_m.Annotations = value
 			}
 		case subscriptionitem.FieldActiveFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field active_from", values[i])
 			} else if value.Valid {
-				si.ActiveFrom = value.Time
+				_m.ActiveFrom = value.Time
 			}
 		case subscriptionitem.FieldActiveTo:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field active_to", values[i])
 			} else if value.Valid {
-				si.ActiveTo = new(time.Time)
-				*si.ActiveTo = value.Time
+				_m.ActiveTo = new(time.Time)
+				*_m.ActiveTo = value.Time
 			}
 		case subscriptionitem.FieldPhaseID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field phase_id", values[i])
 			} else if value.Valid {
-				si.PhaseID = value.String
+				_m.PhaseID = value.String
 			}
 		case subscriptionitem.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
-				si.Key = value.String
+				_m.Key = value.String
 			}
 		case subscriptionitem.FieldEntitlementID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field entitlement_id", values[i])
 			} else if value.Valid {
-				si.EntitlementID = new(string)
-				*si.EntitlementID = value.String
+				_m.EntitlementID = new(string)
+				*_m.EntitlementID = value.String
 			}
 		case subscriptionitem.FieldRestartsBillingPeriod:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field restarts_billing_period", values[i])
 			} else if value.Valid {
-				si.RestartsBillingPeriod = new(bool)
-				*si.RestartsBillingPeriod = value.Bool
+				_m.RestartsBillingPeriod = new(bool)
+				*_m.RestartsBillingPeriod = value.Bool
 			}
 		case subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field active_from_override_relative_to_phase_start", values[i])
 			} else if value.Valid {
-				si.ActiveFromOverrideRelativeToPhaseStart = new(isodate.String)
-				*si.ActiveFromOverrideRelativeToPhaseStart = isodate.String(value.String)
+				_m.ActiveFromOverrideRelativeToPhaseStart = new(isodate.String)
+				*_m.ActiveFromOverrideRelativeToPhaseStart = isodate.String(value.String)
 			}
 		case subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field active_to_override_relative_to_phase_start", values[i])
 			} else if value.Valid {
-				si.ActiveToOverrideRelativeToPhaseStart = new(isodate.String)
-				*si.ActiveToOverrideRelativeToPhaseStart = isodate.String(value.String)
+				_m.ActiveToOverrideRelativeToPhaseStart = new(isodate.String)
+				*_m.ActiveToOverrideRelativeToPhaseStart = isodate.String(value.String)
 			}
 		case subscriptionitem.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				si.Name = value.String
+				_m.Name = value.String
 			}
 		case subscriptionitem.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				si.Description = new(string)
-				*si.Description = value.String
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case subscriptionitem.FieldFeatureKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_key", values[i])
 			} else if value.Valid {
-				si.FeatureKey = new(string)
-				*si.FeatureKey = value.String
+				_m.FeatureKey = new(string)
+				*_m.FeatureKey = value.String
 			}
 		case subscriptionitem.FieldEntitlementTemplate:
 			if value, err := subscriptionitem.ValueScanner.EntitlementTemplate.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				si.EntitlementTemplate = value
+				_m.EntitlementTemplate = value
 			}
 		case subscriptionitem.FieldTaxConfig:
 			if value, err := subscriptionitem.ValueScanner.TaxConfig.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				si.TaxConfig = value
+				_m.TaxConfig = value
 			}
 		case subscriptionitem.FieldBillingCadence:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_cadence", values[i])
 			} else if value.Valid {
-				si.BillingCadence = new(isodate.String)
-				*si.BillingCadence = isodate.String(value.String)
+				_m.BillingCadence = new(isodate.String)
+				*_m.BillingCadence = isodate.String(value.String)
 			}
 		case subscriptionitem.FieldPrice:
 			if value, err := subscriptionitem.ValueScanner.Price.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				si.Price = value
+				_m.Price = value
 			}
 		case subscriptionitem.FieldDiscounts:
 			if value, err := subscriptionitem.ValueScanner.Discounts.FromValue(values[i]); err != nil {
 				return err
 			} else {
-				si.Discounts = value
+				_m.Discounts = value
 			}
 		default:
-			si.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -312,136 +312,136 @@ func (si *SubscriptionItem) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the SubscriptionItem.
 // This includes values selected through modifiers, order, etc.
-func (si *SubscriptionItem) Value(name string) (ent.Value, error) {
-	return si.selectValues.Get(name)
+func (_m *SubscriptionItem) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryPhase queries the "phase" edge of the SubscriptionItem entity.
-func (si *SubscriptionItem) QueryPhase() *SubscriptionPhaseQuery {
-	return NewSubscriptionItemClient(si.config).QueryPhase(si)
+func (_m *SubscriptionItem) QueryPhase() *SubscriptionPhaseQuery {
+	return NewSubscriptionItemClient(_m.config).QueryPhase(_m)
 }
 
 // QueryEntitlement queries the "entitlement" edge of the SubscriptionItem entity.
-func (si *SubscriptionItem) QueryEntitlement() *EntitlementQuery {
-	return NewSubscriptionItemClient(si.config).QueryEntitlement(si)
+func (_m *SubscriptionItem) QueryEntitlement() *EntitlementQuery {
+	return NewSubscriptionItemClient(_m.config).QueryEntitlement(_m)
 }
 
 // QueryBillingLines queries the "billing_lines" edge of the SubscriptionItem entity.
-func (si *SubscriptionItem) QueryBillingLines() *BillingInvoiceLineQuery {
-	return NewSubscriptionItemClient(si.config).QueryBillingLines(si)
+func (_m *SubscriptionItem) QueryBillingLines() *BillingInvoiceLineQuery {
+	return NewSubscriptionItemClient(_m.config).QueryBillingLines(_m)
 }
 
 // Update returns a builder for updating this SubscriptionItem.
 // Note that you need to call SubscriptionItem.Unwrap() before calling this method if this SubscriptionItem
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (si *SubscriptionItem) Update() *SubscriptionItemUpdateOne {
-	return NewSubscriptionItemClient(si.config).UpdateOne(si)
+func (_m *SubscriptionItem) Update() *SubscriptionItemUpdateOne {
+	return NewSubscriptionItemClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the SubscriptionItem entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (si *SubscriptionItem) Unwrap() *SubscriptionItem {
-	_tx, ok := si.config.driver.(*txDriver)
+func (_m *SubscriptionItem) Unwrap() *SubscriptionItem {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: SubscriptionItem is not a transactional entity")
 	}
-	si.config.driver = _tx.drv
-	return si
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (si *SubscriptionItem) String() string {
+func (_m *SubscriptionItem) String() string {
 	var builder strings.Builder
 	builder.WriteString("SubscriptionItem(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", si.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(si.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(si.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(si.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := si.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", si.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")
-	builder.WriteString(fmt.Sprintf("%v", si.Annotations))
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteString(", ")
 	builder.WriteString("active_from=")
-	builder.WriteString(si.ActiveFrom.Format(time.ANSIC))
+	builder.WriteString(_m.ActiveFrom.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := si.ActiveTo; v != nil {
+	if v := _m.ActiveTo; v != nil {
 		builder.WriteString("active_to=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("phase_id=")
-	builder.WriteString(si.PhaseID)
+	builder.WriteString(_m.PhaseID)
 	builder.WriteString(", ")
 	builder.WriteString("key=")
-	builder.WriteString(si.Key)
+	builder.WriteString(_m.Key)
 	builder.WriteString(", ")
-	if v := si.EntitlementID; v != nil {
+	if v := _m.EntitlementID; v != nil {
 		builder.WriteString("entitlement_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := si.RestartsBillingPeriod; v != nil {
+	if v := _m.RestartsBillingPeriod; v != nil {
 		builder.WriteString("restarts_billing_period=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := si.ActiveFromOverrideRelativeToPhaseStart; v != nil {
+	if v := _m.ActiveFromOverrideRelativeToPhaseStart; v != nil {
 		builder.WriteString("active_from_override_relative_to_phase_start=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := si.ActiveToOverrideRelativeToPhaseStart; v != nil {
+	if v := _m.ActiveToOverrideRelativeToPhaseStart; v != nil {
 		builder.WriteString("active_to_override_relative_to_phase_start=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
-	builder.WriteString(si.Name)
+	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
-	if v := si.Description; v != nil {
+	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := si.FeatureKey; v != nil {
+	if v := _m.FeatureKey; v != nil {
 		builder.WriteString("feature_key=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := si.EntitlementTemplate; v != nil {
+	if v := _m.EntitlementTemplate; v != nil {
 		builder.WriteString("entitlement_template=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := si.TaxConfig; v != nil {
+	if v := _m.TaxConfig; v != nil {
 		builder.WriteString("tax_config=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := si.BillingCadence; v != nil {
+	if v := _m.BillingCadence; v != nil {
 		builder.WriteString("billing_cadence=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := si.Price; v != nil {
+	if v := _m.Price; v != nil {
 		builder.WriteString("price=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := si.Discounts; v != nil {
+	if v := _m.Discounts; v != nil {
 		builder.WriteString("discounts=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}

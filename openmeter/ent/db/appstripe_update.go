@@ -24,143 +24,143 @@ type AppStripeUpdate struct {
 }
 
 // Where appends a list predicates to the AppStripeUpdate builder.
-func (asu *AppStripeUpdate) Where(ps ...predicate.AppStripe) *AppStripeUpdate {
-	asu.mutation.Where(ps...)
-	return asu
+func (_u *AppStripeUpdate) Where(ps ...predicate.AppStripe) *AppStripeUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (asu *AppStripeUpdate) SetUpdatedAt(t time.Time) *AppStripeUpdate {
-	asu.mutation.SetUpdatedAt(t)
-	return asu
+func (_u *AppStripeUpdate) SetUpdatedAt(v time.Time) *AppStripeUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (asu *AppStripeUpdate) SetDeletedAt(t time.Time) *AppStripeUpdate {
-	asu.mutation.SetDeletedAt(t)
-	return asu
+func (_u *AppStripeUpdate) SetDeletedAt(v time.Time) *AppStripeUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (asu *AppStripeUpdate) SetNillableDeletedAt(t *time.Time) *AppStripeUpdate {
-	if t != nil {
-		asu.SetDeletedAt(*t)
+func (_u *AppStripeUpdate) SetNillableDeletedAt(v *time.Time) *AppStripeUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return asu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (asu *AppStripeUpdate) ClearDeletedAt() *AppStripeUpdate {
-	asu.mutation.ClearDeletedAt()
-	return asu
+func (_u *AppStripeUpdate) ClearDeletedAt() *AppStripeUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetAPIKey sets the "api_key" field.
-func (asu *AppStripeUpdate) SetAPIKey(s string) *AppStripeUpdate {
-	asu.mutation.SetAPIKey(s)
-	return asu
+func (_u *AppStripeUpdate) SetAPIKey(v string) *AppStripeUpdate {
+	_u.mutation.SetAPIKey(v)
+	return _u
 }
 
 // SetNillableAPIKey sets the "api_key" field if the given value is not nil.
-func (asu *AppStripeUpdate) SetNillableAPIKey(s *string) *AppStripeUpdate {
-	if s != nil {
-		asu.SetAPIKey(*s)
+func (_u *AppStripeUpdate) SetNillableAPIKey(v *string) *AppStripeUpdate {
+	if v != nil {
+		_u.SetAPIKey(*v)
 	}
-	return asu
+	return _u
 }
 
 // SetMaskedAPIKey sets the "masked_api_key" field.
-func (asu *AppStripeUpdate) SetMaskedAPIKey(s string) *AppStripeUpdate {
-	asu.mutation.SetMaskedAPIKey(s)
-	return asu
+func (_u *AppStripeUpdate) SetMaskedAPIKey(v string) *AppStripeUpdate {
+	_u.mutation.SetMaskedAPIKey(v)
+	return _u
 }
 
 // SetNillableMaskedAPIKey sets the "masked_api_key" field if the given value is not nil.
-func (asu *AppStripeUpdate) SetNillableMaskedAPIKey(s *string) *AppStripeUpdate {
-	if s != nil {
-		asu.SetMaskedAPIKey(*s)
+func (_u *AppStripeUpdate) SetNillableMaskedAPIKey(v *string) *AppStripeUpdate {
+	if v != nil {
+		_u.SetMaskedAPIKey(*v)
 	}
-	return asu
+	return _u
 }
 
 // SetStripeWebhookID sets the "stripe_webhook_id" field.
-func (asu *AppStripeUpdate) SetStripeWebhookID(s string) *AppStripeUpdate {
-	asu.mutation.SetStripeWebhookID(s)
-	return asu
+func (_u *AppStripeUpdate) SetStripeWebhookID(v string) *AppStripeUpdate {
+	_u.mutation.SetStripeWebhookID(v)
+	return _u
 }
 
 // SetNillableStripeWebhookID sets the "stripe_webhook_id" field if the given value is not nil.
-func (asu *AppStripeUpdate) SetNillableStripeWebhookID(s *string) *AppStripeUpdate {
-	if s != nil {
-		asu.SetStripeWebhookID(*s)
+func (_u *AppStripeUpdate) SetNillableStripeWebhookID(v *string) *AppStripeUpdate {
+	if v != nil {
+		_u.SetStripeWebhookID(*v)
 	}
-	return asu
+	return _u
 }
 
 // SetWebhookSecret sets the "webhook_secret" field.
-func (asu *AppStripeUpdate) SetWebhookSecret(s string) *AppStripeUpdate {
-	asu.mutation.SetWebhookSecret(s)
-	return asu
+func (_u *AppStripeUpdate) SetWebhookSecret(v string) *AppStripeUpdate {
+	_u.mutation.SetWebhookSecret(v)
+	return _u
 }
 
 // SetNillableWebhookSecret sets the "webhook_secret" field if the given value is not nil.
-func (asu *AppStripeUpdate) SetNillableWebhookSecret(s *string) *AppStripeUpdate {
-	if s != nil {
-		asu.SetWebhookSecret(*s)
+func (_u *AppStripeUpdate) SetNillableWebhookSecret(v *string) *AppStripeUpdate {
+	if v != nil {
+		_u.SetWebhookSecret(*v)
 	}
-	return asu
+	return _u
 }
 
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppStripeCustomer entity by IDs.
-func (asu *AppStripeUpdate) AddCustomerAppIDs(ids ...int) *AppStripeUpdate {
-	asu.mutation.AddCustomerAppIDs(ids...)
-	return asu
+func (_u *AppStripeUpdate) AddCustomerAppIDs(ids ...int) *AppStripeUpdate {
+	_u.mutation.AddCustomerAppIDs(ids...)
+	return _u
 }
 
 // AddCustomerApps adds the "customer_apps" edges to the AppStripeCustomer entity.
-func (asu *AppStripeUpdate) AddCustomerApps(a ...*AppStripeCustomer) *AppStripeUpdate {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_u *AppStripeUpdate) AddCustomerApps(v ...*AppStripeCustomer) *AppStripeUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return asu.AddCustomerAppIDs(ids...)
+	return _u.AddCustomerAppIDs(ids...)
 }
 
 // Mutation returns the AppStripeMutation object of the builder.
-func (asu *AppStripeUpdate) Mutation() *AppStripeMutation {
-	return asu.mutation
+func (_u *AppStripeUpdate) Mutation() *AppStripeMutation {
+	return _u.mutation
 }
 
 // ClearCustomerApps clears all "customer_apps" edges to the AppStripeCustomer entity.
-func (asu *AppStripeUpdate) ClearCustomerApps() *AppStripeUpdate {
-	asu.mutation.ClearCustomerApps()
-	return asu
+func (_u *AppStripeUpdate) ClearCustomerApps() *AppStripeUpdate {
+	_u.mutation.ClearCustomerApps()
+	return _u
 }
 
 // RemoveCustomerAppIDs removes the "customer_apps" edge to AppStripeCustomer entities by IDs.
-func (asu *AppStripeUpdate) RemoveCustomerAppIDs(ids ...int) *AppStripeUpdate {
-	asu.mutation.RemoveCustomerAppIDs(ids...)
-	return asu
+func (_u *AppStripeUpdate) RemoveCustomerAppIDs(ids ...int) *AppStripeUpdate {
+	_u.mutation.RemoveCustomerAppIDs(ids...)
+	return _u
 }
 
 // RemoveCustomerApps removes "customer_apps" edges to AppStripeCustomer entities.
-func (asu *AppStripeUpdate) RemoveCustomerApps(a ...*AppStripeCustomer) *AppStripeUpdate {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_u *AppStripeUpdate) RemoveCustomerApps(v ...*AppStripeCustomer) *AppStripeUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return asu.RemoveCustomerAppIDs(ids...)
+	return _u.RemoveCustomerAppIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (asu *AppStripeUpdate) Save(ctx context.Context) (int, error) {
-	asu.defaults()
-	return withHooks(ctx, asu.sqlSave, asu.mutation, asu.hooks)
+func (_u *AppStripeUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (asu *AppStripeUpdate) SaveX(ctx context.Context) int {
-	affected, err := asu.Save(ctx)
+func (_u *AppStripeUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -168,44 +168,44 @@ func (asu *AppStripeUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (asu *AppStripeUpdate) Exec(ctx context.Context) error {
-	_, err := asu.Save(ctx)
+func (_u *AppStripeUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (asu *AppStripeUpdate) ExecX(ctx context.Context) {
-	if err := asu.Exec(ctx); err != nil {
+func (_u *AppStripeUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (asu *AppStripeUpdate) defaults() {
-	if _, ok := asu.mutation.UpdatedAt(); !ok {
+func (_u *AppStripeUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := appstripe.UpdateDefaultUpdatedAt()
-		asu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (asu *AppStripeUpdate) check() error {
-	if v, ok := asu.mutation.APIKey(); ok {
+func (_u *AppStripeUpdate) check() error {
+	if v, ok := _u.mutation.APIKey(); ok {
 		if err := appstripe.APIKeyValidator(v); err != nil {
 			return &ValidationError{Name: "api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.api_key": %w`, err)}
 		}
 	}
-	if v, ok := asu.mutation.MaskedAPIKey(); ok {
+	if v, ok := _u.mutation.MaskedAPIKey(); ok {
 		if err := appstripe.MaskedAPIKeyValidator(v); err != nil {
 			return &ValidationError{Name: "masked_api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.masked_api_key": %w`, err)}
 		}
 	}
-	if v, ok := asu.mutation.StripeWebhookID(); ok {
+	if v, ok := _u.mutation.StripeWebhookID(); ok {
 		if err := appstripe.StripeWebhookIDValidator(v); err != nil {
 			return &ValidationError{Name: "stripe_webhook_id", err: fmt.Errorf(`db: validator failed for field "AppStripe.stripe_webhook_id": %w`, err)}
 		}
 	}
-	if v, ok := asu.mutation.WebhookSecret(); ok {
+	if v, ok := _u.mutation.WebhookSecret(); ok {
 		if err := appstripe.WebhookSecretValidator(v); err != nil {
 			return &ValidationError{Name: "webhook_secret", err: fmt.Errorf(`db: validator failed for field "AppStripe.webhook_secret": %w`, err)}
 		}
@@ -213,40 +213,40 @@ func (asu *AppStripeUpdate) check() error {
 	return nil
 }
 
-func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := asu.check(); err != nil {
-		return n, err
+func (_u *AppStripeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(appstripe.Table, appstripe.Columns, sqlgraph.NewFieldSpec(appstripe.FieldID, field.TypeString))
-	if ps := asu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := asu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(appstripe.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := asu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(appstripe.FieldDeletedAt, field.TypeTime, value)
 	}
-	if asu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(appstripe.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := asu.mutation.APIKey(); ok {
+	if value, ok := _u.mutation.APIKey(); ok {
 		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
 	}
-	if value, ok := asu.mutation.MaskedAPIKey(); ok {
+	if value, ok := _u.mutation.MaskedAPIKey(); ok {
 		_spec.SetField(appstripe.FieldMaskedAPIKey, field.TypeString, value)
 	}
-	if value, ok := asu.mutation.StripeWebhookID(); ok {
+	if value, ok := _u.mutation.StripeWebhookID(); ok {
 		_spec.SetField(appstripe.FieldStripeWebhookID, field.TypeString, value)
 	}
-	if value, ok := asu.mutation.WebhookSecret(); ok {
+	if value, ok := _u.mutation.WebhookSecret(); ok {
 		_spec.SetField(appstripe.FieldWebhookSecret, field.TypeString, value)
 	}
-	if asu.mutation.CustomerAppsCleared() {
+	if _u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -259,7 +259,7 @@ func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := asu.mutation.RemovedCustomerAppsIDs(); len(nodes) > 0 && !asu.mutation.CustomerAppsCleared() {
+	if nodes := _u.mutation.RemovedCustomerAppsIDs(); len(nodes) > 0 && !_u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -275,7 +275,7 @@ func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := asu.mutation.CustomerAppsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.CustomerAppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -291,7 +291,7 @@ func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, asu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{appstripe.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -299,8 +299,8 @@ func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
-	asu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // AppStripeUpdateOne is the builder for updating a single AppStripe entity.
@@ -312,150 +312,150 @@ type AppStripeUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (asuo *AppStripeUpdateOne) SetUpdatedAt(t time.Time) *AppStripeUpdateOne {
-	asuo.mutation.SetUpdatedAt(t)
-	return asuo
+func (_u *AppStripeUpdateOne) SetUpdatedAt(v time.Time) *AppStripeUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (asuo *AppStripeUpdateOne) SetDeletedAt(t time.Time) *AppStripeUpdateOne {
-	asuo.mutation.SetDeletedAt(t)
-	return asuo
+func (_u *AppStripeUpdateOne) SetDeletedAt(v time.Time) *AppStripeUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (asuo *AppStripeUpdateOne) SetNillableDeletedAt(t *time.Time) *AppStripeUpdateOne {
-	if t != nil {
-		asuo.SetDeletedAt(*t)
+func (_u *AppStripeUpdateOne) SetNillableDeletedAt(v *time.Time) *AppStripeUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return asuo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (asuo *AppStripeUpdateOne) ClearDeletedAt() *AppStripeUpdateOne {
-	asuo.mutation.ClearDeletedAt()
-	return asuo
+func (_u *AppStripeUpdateOne) ClearDeletedAt() *AppStripeUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetAPIKey sets the "api_key" field.
-func (asuo *AppStripeUpdateOne) SetAPIKey(s string) *AppStripeUpdateOne {
-	asuo.mutation.SetAPIKey(s)
-	return asuo
+func (_u *AppStripeUpdateOne) SetAPIKey(v string) *AppStripeUpdateOne {
+	_u.mutation.SetAPIKey(v)
+	return _u
 }
 
 // SetNillableAPIKey sets the "api_key" field if the given value is not nil.
-func (asuo *AppStripeUpdateOne) SetNillableAPIKey(s *string) *AppStripeUpdateOne {
-	if s != nil {
-		asuo.SetAPIKey(*s)
+func (_u *AppStripeUpdateOne) SetNillableAPIKey(v *string) *AppStripeUpdateOne {
+	if v != nil {
+		_u.SetAPIKey(*v)
 	}
-	return asuo
+	return _u
 }
 
 // SetMaskedAPIKey sets the "masked_api_key" field.
-func (asuo *AppStripeUpdateOne) SetMaskedAPIKey(s string) *AppStripeUpdateOne {
-	asuo.mutation.SetMaskedAPIKey(s)
-	return asuo
+func (_u *AppStripeUpdateOne) SetMaskedAPIKey(v string) *AppStripeUpdateOne {
+	_u.mutation.SetMaskedAPIKey(v)
+	return _u
 }
 
 // SetNillableMaskedAPIKey sets the "masked_api_key" field if the given value is not nil.
-func (asuo *AppStripeUpdateOne) SetNillableMaskedAPIKey(s *string) *AppStripeUpdateOne {
-	if s != nil {
-		asuo.SetMaskedAPIKey(*s)
+func (_u *AppStripeUpdateOne) SetNillableMaskedAPIKey(v *string) *AppStripeUpdateOne {
+	if v != nil {
+		_u.SetMaskedAPIKey(*v)
 	}
-	return asuo
+	return _u
 }
 
 // SetStripeWebhookID sets the "stripe_webhook_id" field.
-func (asuo *AppStripeUpdateOne) SetStripeWebhookID(s string) *AppStripeUpdateOne {
-	asuo.mutation.SetStripeWebhookID(s)
-	return asuo
+func (_u *AppStripeUpdateOne) SetStripeWebhookID(v string) *AppStripeUpdateOne {
+	_u.mutation.SetStripeWebhookID(v)
+	return _u
 }
 
 // SetNillableStripeWebhookID sets the "stripe_webhook_id" field if the given value is not nil.
-func (asuo *AppStripeUpdateOne) SetNillableStripeWebhookID(s *string) *AppStripeUpdateOne {
-	if s != nil {
-		asuo.SetStripeWebhookID(*s)
+func (_u *AppStripeUpdateOne) SetNillableStripeWebhookID(v *string) *AppStripeUpdateOne {
+	if v != nil {
+		_u.SetStripeWebhookID(*v)
 	}
-	return asuo
+	return _u
 }
 
 // SetWebhookSecret sets the "webhook_secret" field.
-func (asuo *AppStripeUpdateOne) SetWebhookSecret(s string) *AppStripeUpdateOne {
-	asuo.mutation.SetWebhookSecret(s)
-	return asuo
+func (_u *AppStripeUpdateOne) SetWebhookSecret(v string) *AppStripeUpdateOne {
+	_u.mutation.SetWebhookSecret(v)
+	return _u
 }
 
 // SetNillableWebhookSecret sets the "webhook_secret" field if the given value is not nil.
-func (asuo *AppStripeUpdateOne) SetNillableWebhookSecret(s *string) *AppStripeUpdateOne {
-	if s != nil {
-		asuo.SetWebhookSecret(*s)
+func (_u *AppStripeUpdateOne) SetNillableWebhookSecret(v *string) *AppStripeUpdateOne {
+	if v != nil {
+		_u.SetWebhookSecret(*v)
 	}
-	return asuo
+	return _u
 }
 
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppStripeCustomer entity by IDs.
-func (asuo *AppStripeUpdateOne) AddCustomerAppIDs(ids ...int) *AppStripeUpdateOne {
-	asuo.mutation.AddCustomerAppIDs(ids...)
-	return asuo
+func (_u *AppStripeUpdateOne) AddCustomerAppIDs(ids ...int) *AppStripeUpdateOne {
+	_u.mutation.AddCustomerAppIDs(ids...)
+	return _u
 }
 
 // AddCustomerApps adds the "customer_apps" edges to the AppStripeCustomer entity.
-func (asuo *AppStripeUpdateOne) AddCustomerApps(a ...*AppStripeCustomer) *AppStripeUpdateOne {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_u *AppStripeUpdateOne) AddCustomerApps(v ...*AppStripeCustomer) *AppStripeUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return asuo.AddCustomerAppIDs(ids...)
+	return _u.AddCustomerAppIDs(ids...)
 }
 
 // Mutation returns the AppStripeMutation object of the builder.
-func (asuo *AppStripeUpdateOne) Mutation() *AppStripeMutation {
-	return asuo.mutation
+func (_u *AppStripeUpdateOne) Mutation() *AppStripeMutation {
+	return _u.mutation
 }
 
 // ClearCustomerApps clears all "customer_apps" edges to the AppStripeCustomer entity.
-func (asuo *AppStripeUpdateOne) ClearCustomerApps() *AppStripeUpdateOne {
-	asuo.mutation.ClearCustomerApps()
-	return asuo
+func (_u *AppStripeUpdateOne) ClearCustomerApps() *AppStripeUpdateOne {
+	_u.mutation.ClearCustomerApps()
+	return _u
 }
 
 // RemoveCustomerAppIDs removes the "customer_apps" edge to AppStripeCustomer entities by IDs.
-func (asuo *AppStripeUpdateOne) RemoveCustomerAppIDs(ids ...int) *AppStripeUpdateOne {
-	asuo.mutation.RemoveCustomerAppIDs(ids...)
-	return asuo
+func (_u *AppStripeUpdateOne) RemoveCustomerAppIDs(ids ...int) *AppStripeUpdateOne {
+	_u.mutation.RemoveCustomerAppIDs(ids...)
+	return _u
 }
 
 // RemoveCustomerApps removes "customer_apps" edges to AppStripeCustomer entities.
-func (asuo *AppStripeUpdateOne) RemoveCustomerApps(a ...*AppStripeCustomer) *AppStripeUpdateOne {
-	ids := make([]int, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
+func (_u *AppStripeUpdateOne) RemoveCustomerApps(v ...*AppStripeCustomer) *AppStripeUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return asuo.RemoveCustomerAppIDs(ids...)
+	return _u.RemoveCustomerAppIDs(ids...)
 }
 
 // Where appends a list predicates to the AppStripeUpdate builder.
-func (asuo *AppStripeUpdateOne) Where(ps ...predicate.AppStripe) *AppStripeUpdateOne {
-	asuo.mutation.Where(ps...)
-	return asuo
+func (_u *AppStripeUpdateOne) Where(ps ...predicate.AppStripe) *AppStripeUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (asuo *AppStripeUpdateOne) Select(field string, fields ...string) *AppStripeUpdateOne {
-	asuo.fields = append([]string{field}, fields...)
-	return asuo
+func (_u *AppStripeUpdateOne) Select(field string, fields ...string) *AppStripeUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated AppStripe entity.
-func (asuo *AppStripeUpdateOne) Save(ctx context.Context) (*AppStripe, error) {
-	asuo.defaults()
-	return withHooks(ctx, asuo.sqlSave, asuo.mutation, asuo.hooks)
+func (_u *AppStripeUpdateOne) Save(ctx context.Context) (*AppStripe, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (asuo *AppStripeUpdateOne) SaveX(ctx context.Context) *AppStripe {
-	node, err := asuo.Save(ctx)
+func (_u *AppStripeUpdateOne) SaveX(ctx context.Context) *AppStripe {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -463,44 +463,44 @@ func (asuo *AppStripeUpdateOne) SaveX(ctx context.Context) *AppStripe {
 }
 
 // Exec executes the query on the entity.
-func (asuo *AppStripeUpdateOne) Exec(ctx context.Context) error {
-	_, err := asuo.Save(ctx)
+func (_u *AppStripeUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (asuo *AppStripeUpdateOne) ExecX(ctx context.Context) {
-	if err := asuo.Exec(ctx); err != nil {
+func (_u *AppStripeUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (asuo *AppStripeUpdateOne) defaults() {
-	if _, ok := asuo.mutation.UpdatedAt(); !ok {
+func (_u *AppStripeUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := appstripe.UpdateDefaultUpdatedAt()
-		asuo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (asuo *AppStripeUpdateOne) check() error {
-	if v, ok := asuo.mutation.APIKey(); ok {
+func (_u *AppStripeUpdateOne) check() error {
+	if v, ok := _u.mutation.APIKey(); ok {
 		if err := appstripe.APIKeyValidator(v); err != nil {
 			return &ValidationError{Name: "api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.api_key": %w`, err)}
 		}
 	}
-	if v, ok := asuo.mutation.MaskedAPIKey(); ok {
+	if v, ok := _u.mutation.MaskedAPIKey(); ok {
 		if err := appstripe.MaskedAPIKeyValidator(v); err != nil {
 			return &ValidationError{Name: "masked_api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.masked_api_key": %w`, err)}
 		}
 	}
-	if v, ok := asuo.mutation.StripeWebhookID(); ok {
+	if v, ok := _u.mutation.StripeWebhookID(); ok {
 		if err := appstripe.StripeWebhookIDValidator(v); err != nil {
 			return &ValidationError{Name: "stripe_webhook_id", err: fmt.Errorf(`db: validator failed for field "AppStripe.stripe_webhook_id": %w`, err)}
 		}
 	}
-	if v, ok := asuo.mutation.WebhookSecret(); ok {
+	if v, ok := _u.mutation.WebhookSecret(); ok {
 		if err := appstripe.WebhookSecretValidator(v); err != nil {
 			return &ValidationError{Name: "webhook_secret", err: fmt.Errorf(`db: validator failed for field "AppStripe.webhook_secret": %w`, err)}
 		}
@@ -508,17 +508,17 @@ func (asuo *AppStripeUpdateOne) check() error {
 	return nil
 }
 
-func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, err error) {
-	if err := asuo.check(); err != nil {
+func (_u *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(appstripe.Table, appstripe.Columns, sqlgraph.NewFieldSpec(appstripe.FieldID, field.TypeString))
-	id, ok := asuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "AppStripe.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := asuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, appstripe.FieldID)
 		for _, f := range fields {
@@ -530,35 +530,35 @@ func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, 
 			}
 		}
 	}
-	if ps := asuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := asuo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(appstripe.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := asuo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(appstripe.FieldDeletedAt, field.TypeTime, value)
 	}
-	if asuo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(appstripe.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := asuo.mutation.APIKey(); ok {
+	if value, ok := _u.mutation.APIKey(); ok {
 		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
 	}
-	if value, ok := asuo.mutation.MaskedAPIKey(); ok {
+	if value, ok := _u.mutation.MaskedAPIKey(); ok {
 		_spec.SetField(appstripe.FieldMaskedAPIKey, field.TypeString, value)
 	}
-	if value, ok := asuo.mutation.StripeWebhookID(); ok {
+	if value, ok := _u.mutation.StripeWebhookID(); ok {
 		_spec.SetField(appstripe.FieldStripeWebhookID, field.TypeString, value)
 	}
-	if value, ok := asuo.mutation.WebhookSecret(); ok {
+	if value, ok := _u.mutation.WebhookSecret(); ok {
 		_spec.SetField(appstripe.FieldWebhookSecret, field.TypeString, value)
 	}
-	if asuo.mutation.CustomerAppsCleared() {
+	if _u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -571,7 +571,7 @@ func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := asuo.mutation.RemovedCustomerAppsIDs(); len(nodes) > 0 && !asuo.mutation.CustomerAppsCleared() {
+	if nodes := _u.mutation.RemovedCustomerAppsIDs(); len(nodes) > 0 && !_u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -587,7 +587,7 @@ func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := asuo.mutation.CustomerAppsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.CustomerAppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -603,10 +603,10 @@ func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &AppStripe{config: asuo.config}
+	_node = &AppStripe{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, asuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{appstripe.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -614,6 +614,6 @@ func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, 
 		}
 		return nil, err
 	}
-	asuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

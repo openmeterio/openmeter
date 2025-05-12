@@ -23,51 +23,51 @@ type UsageResetUpdate struct {
 }
 
 // Where appends a list predicates to the UsageResetUpdate builder.
-func (uru *UsageResetUpdate) Where(ps ...predicate.UsageReset) *UsageResetUpdate {
-	uru.mutation.Where(ps...)
-	return uru
+func (_u *UsageResetUpdate) Where(ps ...predicate.UsageReset) *UsageResetUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (uru *UsageResetUpdate) SetUpdatedAt(t time.Time) *UsageResetUpdate {
-	uru.mutation.SetUpdatedAt(t)
-	return uru
+func (_u *UsageResetUpdate) SetUpdatedAt(v time.Time) *UsageResetUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (uru *UsageResetUpdate) SetDeletedAt(t time.Time) *UsageResetUpdate {
-	uru.mutation.SetDeletedAt(t)
-	return uru
+func (_u *UsageResetUpdate) SetDeletedAt(v time.Time) *UsageResetUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (uru *UsageResetUpdate) SetNillableDeletedAt(t *time.Time) *UsageResetUpdate {
-	if t != nil {
-		uru.SetDeletedAt(*t)
+func (_u *UsageResetUpdate) SetNillableDeletedAt(v *time.Time) *UsageResetUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return uru
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (uru *UsageResetUpdate) ClearDeletedAt() *UsageResetUpdate {
-	uru.mutation.ClearDeletedAt()
-	return uru
+func (_u *UsageResetUpdate) ClearDeletedAt() *UsageResetUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // Mutation returns the UsageResetMutation object of the builder.
-func (uru *UsageResetUpdate) Mutation() *UsageResetMutation {
-	return uru.mutation
+func (_u *UsageResetUpdate) Mutation() *UsageResetMutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (uru *UsageResetUpdate) Save(ctx context.Context) (int, error) {
-	uru.defaults()
-	return withHooks(ctx, uru.sqlSave, uru.mutation, uru.hooks)
+func (_u *UsageResetUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (uru *UsageResetUpdate) SaveX(ctx context.Context) int {
-	affected, err := uru.Save(ctx)
+func (_u *UsageResetUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -75,56 +75,56 @@ func (uru *UsageResetUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (uru *UsageResetUpdate) Exec(ctx context.Context) error {
-	_, err := uru.Save(ctx)
+func (_u *UsageResetUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (uru *UsageResetUpdate) ExecX(ctx context.Context) {
-	if err := uru.Exec(ctx); err != nil {
+func (_u *UsageResetUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (uru *UsageResetUpdate) defaults() {
-	if _, ok := uru.mutation.UpdatedAt(); !ok {
+func (_u *UsageResetUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := usagereset.UpdateDefaultUpdatedAt()
-		uru.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (uru *UsageResetUpdate) check() error {
-	if uru.mutation.EntitlementCleared() && len(uru.mutation.EntitlementIDs()) > 0 {
+func (_u *UsageResetUpdate) check() error {
+	if _u.mutation.EntitlementCleared() && len(_u.mutation.EntitlementIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "UsageReset.entitlement"`)
 	}
 	return nil
 }
 
-func (uru *UsageResetUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := uru.check(); err != nil {
-		return n, err
+func (_u *UsageResetUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(usagereset.Table, usagereset.Columns, sqlgraph.NewFieldSpec(usagereset.FieldID, field.TypeString))
-	if ps := uru.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := uru.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(usagereset.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := uru.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(usagereset.FieldDeletedAt, field.TypeTime, value)
 	}
-	if uru.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(usagereset.FieldDeletedAt, field.TypeTime)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, uru.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{usagereset.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -132,8 +132,8 @@ func (uru *UsageResetUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
-	uru.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // UsageResetUpdateOne is the builder for updating a single UsageReset entity.
@@ -145,58 +145,58 @@ type UsageResetUpdateOne struct {
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (uruo *UsageResetUpdateOne) SetUpdatedAt(t time.Time) *UsageResetUpdateOne {
-	uruo.mutation.SetUpdatedAt(t)
-	return uruo
+func (_u *UsageResetUpdateOne) SetUpdatedAt(v time.Time) *UsageResetUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (uruo *UsageResetUpdateOne) SetDeletedAt(t time.Time) *UsageResetUpdateOne {
-	uruo.mutation.SetDeletedAt(t)
-	return uruo
+func (_u *UsageResetUpdateOne) SetDeletedAt(v time.Time) *UsageResetUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (uruo *UsageResetUpdateOne) SetNillableDeletedAt(t *time.Time) *UsageResetUpdateOne {
-	if t != nil {
-		uruo.SetDeletedAt(*t)
+func (_u *UsageResetUpdateOne) SetNillableDeletedAt(v *time.Time) *UsageResetUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return uruo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (uruo *UsageResetUpdateOne) ClearDeletedAt() *UsageResetUpdateOne {
-	uruo.mutation.ClearDeletedAt()
-	return uruo
+func (_u *UsageResetUpdateOne) ClearDeletedAt() *UsageResetUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // Mutation returns the UsageResetMutation object of the builder.
-func (uruo *UsageResetUpdateOne) Mutation() *UsageResetMutation {
-	return uruo.mutation
+func (_u *UsageResetUpdateOne) Mutation() *UsageResetMutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the UsageResetUpdate builder.
-func (uruo *UsageResetUpdateOne) Where(ps ...predicate.UsageReset) *UsageResetUpdateOne {
-	uruo.mutation.Where(ps...)
-	return uruo
+func (_u *UsageResetUpdateOne) Where(ps ...predicate.UsageReset) *UsageResetUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (uruo *UsageResetUpdateOne) Select(field string, fields ...string) *UsageResetUpdateOne {
-	uruo.fields = append([]string{field}, fields...)
-	return uruo
+func (_u *UsageResetUpdateOne) Select(field string, fields ...string) *UsageResetUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated UsageReset entity.
-func (uruo *UsageResetUpdateOne) Save(ctx context.Context) (*UsageReset, error) {
-	uruo.defaults()
-	return withHooks(ctx, uruo.sqlSave, uruo.mutation, uruo.hooks)
+func (_u *UsageResetUpdateOne) Save(ctx context.Context) (*UsageReset, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (uruo *UsageResetUpdateOne) SaveX(ctx context.Context) *UsageReset {
-	node, err := uruo.Save(ctx)
+func (_u *UsageResetUpdateOne) SaveX(ctx context.Context) *UsageReset {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -204,45 +204,45 @@ func (uruo *UsageResetUpdateOne) SaveX(ctx context.Context) *UsageReset {
 }
 
 // Exec executes the query on the entity.
-func (uruo *UsageResetUpdateOne) Exec(ctx context.Context) error {
-	_, err := uruo.Save(ctx)
+func (_u *UsageResetUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (uruo *UsageResetUpdateOne) ExecX(ctx context.Context) {
-	if err := uruo.Exec(ctx); err != nil {
+func (_u *UsageResetUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (uruo *UsageResetUpdateOne) defaults() {
-	if _, ok := uruo.mutation.UpdatedAt(); !ok {
+func (_u *UsageResetUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := usagereset.UpdateDefaultUpdatedAt()
-		uruo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (uruo *UsageResetUpdateOne) check() error {
-	if uruo.mutation.EntitlementCleared() && len(uruo.mutation.EntitlementIDs()) > 0 {
+func (_u *UsageResetUpdateOne) check() error {
+	if _u.mutation.EntitlementCleared() && len(_u.mutation.EntitlementIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "UsageReset.entitlement"`)
 	}
 	return nil
 }
 
-func (uruo *UsageResetUpdateOne) sqlSave(ctx context.Context) (_node *UsageReset, err error) {
-	if err := uruo.check(); err != nil {
+func (_u *UsageResetUpdateOne) sqlSave(ctx context.Context) (_node *UsageReset, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(usagereset.Table, usagereset.Columns, sqlgraph.NewFieldSpec(usagereset.FieldID, field.TypeString))
-	id, ok := uruo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "UsageReset.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := uruo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, usagereset.FieldID)
 		for _, f := range fields {
@@ -254,26 +254,26 @@ func (uruo *UsageResetUpdateOne) sqlSave(ctx context.Context) (_node *UsageReset
 			}
 		}
 	}
-	if ps := uruo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := uruo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(usagereset.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := uruo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(usagereset.FieldDeletedAt, field.TypeTime, value)
 	}
-	if uruo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(usagereset.FieldDeletedAt, field.TypeTime)
 	}
-	_node = &UsageReset{config: uruo.config}
+	_node = &UsageReset{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, uruo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{usagereset.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -281,6 +281,6 @@ func (uruo *UsageResetUpdateOne) sqlSave(ctx context.Context) (_node *UsageReset
 		}
 		return nil, err
 	}
-	uruo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

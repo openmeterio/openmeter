@@ -41,44 +41,44 @@ type AppQuery struct {
 }
 
 // Where adds a new predicate for the AppQuery builder.
-func (aq *AppQuery) Where(ps ...predicate.App) *AppQuery {
-	aq.predicates = append(aq.predicates, ps...)
-	return aq
+func (_q *AppQuery) Where(ps ...predicate.App) *AppQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (aq *AppQuery) Limit(limit int) *AppQuery {
-	aq.ctx.Limit = &limit
-	return aq
+func (_q *AppQuery) Limit(limit int) *AppQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (aq *AppQuery) Offset(offset int) *AppQuery {
-	aq.ctx.Offset = &offset
-	return aq
+func (_q *AppQuery) Offset(offset int) *AppQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (aq *AppQuery) Unique(unique bool) *AppQuery {
-	aq.ctx.Unique = &unique
-	return aq
+func (_q *AppQuery) Unique(unique bool) *AppQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (aq *AppQuery) Order(o ...dbapp.OrderOption) *AppQuery {
-	aq.order = append(aq.order, o...)
-	return aq
+func (_q *AppQuery) Order(o ...dbapp.OrderOption) *AppQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryCustomerApps chains the current query on the "customer_apps" edge.
-func (aq *AppQuery) QueryCustomerApps() *AppCustomerQuery {
-	query := (&AppCustomerClient{config: aq.config}).Query()
+func (_q *AppQuery) QueryCustomerApps() *AppCustomerQuery {
+	query := (&AppCustomerClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := aq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := aq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -87,20 +87,20 @@ func (aq *AppQuery) QueryCustomerApps() *AppCustomerQuery {
 			sqlgraph.To(appcustomer.Table, appcustomer.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.CustomerAppsTable, dbapp.CustomerAppsColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingProfileTaxApp chains the current query on the "billing_profile_tax_app" edge.
-func (aq *AppQuery) QueryBillingProfileTaxApp() *BillingProfileQuery {
-	query := (&BillingProfileClient{config: aq.config}).Query()
+func (_q *AppQuery) QueryBillingProfileTaxApp() *BillingProfileQuery {
+	query := (&BillingProfileClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := aq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := aq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -109,20 +109,20 @@ func (aq *AppQuery) QueryBillingProfileTaxApp() *BillingProfileQuery {
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingProfileTaxAppTable, dbapp.BillingProfileTaxAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingProfileInvoicingApp chains the current query on the "billing_profile_invoicing_app" edge.
-func (aq *AppQuery) QueryBillingProfileInvoicingApp() *BillingProfileQuery {
-	query := (&BillingProfileClient{config: aq.config}).Query()
+func (_q *AppQuery) QueryBillingProfileInvoicingApp() *BillingProfileQuery {
+	query := (&BillingProfileClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := aq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := aq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -131,20 +131,20 @@ func (aq *AppQuery) QueryBillingProfileInvoicingApp() *BillingProfileQuery {
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingProfileInvoicingAppTable, dbapp.BillingProfileInvoicingAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingProfilePaymentApp chains the current query on the "billing_profile_payment_app" edge.
-func (aq *AppQuery) QueryBillingProfilePaymentApp() *BillingProfileQuery {
-	query := (&BillingProfileClient{config: aq.config}).Query()
+func (_q *AppQuery) QueryBillingProfilePaymentApp() *BillingProfileQuery {
+	query := (&BillingProfileClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := aq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := aq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -153,20 +153,20 @@ func (aq *AppQuery) QueryBillingProfilePaymentApp() *BillingProfileQuery {
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingProfilePaymentAppTable, dbapp.BillingProfilePaymentAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingInvoiceTaxApp chains the current query on the "billing_invoice_tax_app" edge.
-func (aq *AppQuery) QueryBillingInvoiceTaxApp() *BillingInvoiceQuery {
-	query := (&BillingInvoiceClient{config: aq.config}).Query()
+func (_q *AppQuery) QueryBillingInvoiceTaxApp() *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := aq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := aq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -175,20 +175,20 @@ func (aq *AppQuery) QueryBillingInvoiceTaxApp() *BillingInvoiceQuery {
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingInvoiceTaxAppTable, dbapp.BillingInvoiceTaxAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingInvoiceInvoicingApp chains the current query on the "billing_invoice_invoicing_app" edge.
-func (aq *AppQuery) QueryBillingInvoiceInvoicingApp() *BillingInvoiceQuery {
-	query := (&BillingInvoiceClient{config: aq.config}).Query()
+func (_q *AppQuery) QueryBillingInvoiceInvoicingApp() *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := aq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := aq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -197,20 +197,20 @@ func (aq *AppQuery) QueryBillingInvoiceInvoicingApp() *BillingInvoiceQuery {
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingInvoiceInvoicingAppTable, dbapp.BillingInvoiceInvoicingAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingInvoicePaymentApp chains the current query on the "billing_invoice_payment_app" edge.
-func (aq *AppQuery) QueryBillingInvoicePaymentApp() *BillingInvoiceQuery {
-	query := (&BillingInvoiceClient{config: aq.config}).Query()
+func (_q *AppQuery) QueryBillingInvoicePaymentApp() *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := aq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := aq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -219,7 +219,7 @@ func (aq *AppQuery) QueryBillingInvoicePaymentApp() *BillingInvoiceQuery {
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingInvoicePaymentAppTable, dbapp.BillingInvoicePaymentAppColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -227,8 +227,8 @@ func (aq *AppQuery) QueryBillingInvoicePaymentApp() *BillingInvoiceQuery {
 
 // First returns the first App entity from the query.
 // Returns a *NotFoundError when no App was found.
-func (aq *AppQuery) First(ctx context.Context) (*App, error) {
-	nodes, err := aq.Limit(1).All(setContextOp(ctx, aq.ctx, ent.OpQueryFirst))
+func (_q *AppQuery) First(ctx context.Context) (*App, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -239,8 +239,8 @@ func (aq *AppQuery) First(ctx context.Context) (*App, error) {
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (aq *AppQuery) FirstX(ctx context.Context) *App {
-	node, err := aq.First(ctx)
+func (_q *AppQuery) FirstX(ctx context.Context) *App {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -249,9 +249,9 @@ func (aq *AppQuery) FirstX(ctx context.Context) *App {
 
 // FirstID returns the first App ID from the query.
 // Returns a *NotFoundError when no App ID was found.
-func (aq *AppQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *AppQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = aq.Limit(1).IDs(setContextOp(ctx, aq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -262,8 +262,8 @@ func (aq *AppQuery) FirstID(ctx context.Context) (id string, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (aq *AppQuery) FirstIDX(ctx context.Context) string {
-	id, err := aq.FirstID(ctx)
+func (_q *AppQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -273,8 +273,8 @@ func (aq *AppQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single App entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one App entity is found.
 // Returns a *NotFoundError when no App entities are found.
-func (aq *AppQuery) Only(ctx context.Context) (*App, error) {
-	nodes, err := aq.Limit(2).All(setContextOp(ctx, aq.ctx, ent.OpQueryOnly))
+func (_q *AppQuery) Only(ctx context.Context) (*App, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -289,8 +289,8 @@ func (aq *AppQuery) Only(ctx context.Context) (*App, error) {
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (aq *AppQuery) OnlyX(ctx context.Context) *App {
-	node, err := aq.Only(ctx)
+func (_q *AppQuery) OnlyX(ctx context.Context) *App {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -300,9 +300,9 @@ func (aq *AppQuery) OnlyX(ctx context.Context) *App {
 // OnlyID is like Only, but returns the only App ID in the query.
 // Returns a *NotSingularError when more than one App ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (aq *AppQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *AppQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = aq.Limit(2).IDs(setContextOp(ctx, aq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -317,8 +317,8 @@ func (aq *AppQuery) OnlyID(ctx context.Context) (id string, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (aq *AppQuery) OnlyIDX(ctx context.Context) string {
-	id, err := aq.OnlyID(ctx)
+func (_q *AppQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -326,18 +326,18 @@ func (aq *AppQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of Apps.
-func (aq *AppQuery) All(ctx context.Context) ([]*App, error) {
-	ctx = setContextOp(ctx, aq.ctx, ent.OpQueryAll)
-	if err := aq.prepareQuery(ctx); err != nil {
+func (_q *AppQuery) All(ctx context.Context) ([]*App, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*App, *AppQuery]()
-	return withInterceptors[[]*App](ctx, aq, qr, aq.inters)
+	return withInterceptors[[]*App](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (aq *AppQuery) AllX(ctx context.Context) []*App {
-	nodes, err := aq.All(ctx)
+func (_q *AppQuery) AllX(ctx context.Context) []*App {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -345,20 +345,20 @@ func (aq *AppQuery) AllX(ctx context.Context) []*App {
 }
 
 // IDs executes the query and returns a list of App IDs.
-func (aq *AppQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if aq.ctx.Unique == nil && aq.path != nil {
-		aq.Unique(true)
+func (_q *AppQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, aq.ctx, ent.OpQueryIDs)
-	if err = aq.Select(dbapp.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(dbapp.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (aq *AppQuery) IDsX(ctx context.Context) []string {
-	ids, err := aq.IDs(ctx)
+func (_q *AppQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -366,17 +366,17 @@ func (aq *AppQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (aq *AppQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, aq.ctx, ent.OpQueryCount)
-	if err := aq.prepareQuery(ctx); err != nil {
+func (_q *AppQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, aq, querierCount[*AppQuery](), aq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*AppQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (aq *AppQuery) CountX(ctx context.Context) int {
-	count, err := aq.Count(ctx)
+func (_q *AppQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -384,9 +384,9 @@ func (aq *AppQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (aq *AppQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, aq.ctx, ent.OpQueryExist)
-	switch _, err := aq.FirstID(ctx); {
+func (_q *AppQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -397,8 +397,8 @@ func (aq *AppQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (aq *AppQuery) ExistX(ctx context.Context) bool {
-	exist, err := aq.Exist(ctx)
+func (_q *AppQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -407,104 +407,104 @@ func (aq *AppQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the AppQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (aq *AppQuery) Clone() *AppQuery {
-	if aq == nil {
+func (_q *AppQuery) Clone() *AppQuery {
+	if _q == nil {
 		return nil
 	}
 	return &AppQuery{
-		config:                         aq.config,
-		ctx:                            aq.ctx.Clone(),
-		order:                          append([]dbapp.OrderOption{}, aq.order...),
-		inters:                         append([]Interceptor{}, aq.inters...),
-		predicates:                     append([]predicate.App{}, aq.predicates...),
-		withCustomerApps:               aq.withCustomerApps.Clone(),
-		withBillingProfileTaxApp:       aq.withBillingProfileTaxApp.Clone(),
-		withBillingProfileInvoicingApp: aq.withBillingProfileInvoicingApp.Clone(),
-		withBillingProfilePaymentApp:   aq.withBillingProfilePaymentApp.Clone(),
-		withBillingInvoiceTaxApp:       aq.withBillingInvoiceTaxApp.Clone(),
-		withBillingInvoiceInvoicingApp: aq.withBillingInvoiceInvoicingApp.Clone(),
-		withBillingInvoicePaymentApp:   aq.withBillingInvoicePaymentApp.Clone(),
+		config:                         _q.config,
+		ctx:                            _q.ctx.Clone(),
+		order:                          append([]dbapp.OrderOption{}, _q.order...),
+		inters:                         append([]Interceptor{}, _q.inters...),
+		predicates:                     append([]predicate.App{}, _q.predicates...),
+		withCustomerApps:               _q.withCustomerApps.Clone(),
+		withBillingProfileTaxApp:       _q.withBillingProfileTaxApp.Clone(),
+		withBillingProfileInvoicingApp: _q.withBillingProfileInvoicingApp.Clone(),
+		withBillingProfilePaymentApp:   _q.withBillingProfilePaymentApp.Clone(),
+		withBillingInvoiceTaxApp:       _q.withBillingInvoiceTaxApp.Clone(),
+		withBillingInvoiceInvoicingApp: _q.withBillingInvoiceInvoicingApp.Clone(),
+		withBillingInvoicePaymentApp:   _q.withBillingInvoicePaymentApp.Clone(),
 		// clone intermediate query.
-		sql:  aq.sql.Clone(),
-		path: aq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithCustomerApps tells the query-builder to eager-load the nodes that are connected to
 // the "customer_apps" edge. The optional arguments are used to configure the query builder of the edge.
-func (aq *AppQuery) WithCustomerApps(opts ...func(*AppCustomerQuery)) *AppQuery {
-	query := (&AppCustomerClient{config: aq.config}).Query()
+func (_q *AppQuery) WithCustomerApps(opts ...func(*AppCustomerQuery)) *AppQuery {
+	query := (&AppCustomerClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	aq.withCustomerApps = query
-	return aq
+	_q.withCustomerApps = query
+	return _q
 }
 
 // WithBillingProfileTaxApp tells the query-builder to eager-load the nodes that are connected to
 // the "billing_profile_tax_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (aq *AppQuery) WithBillingProfileTaxApp(opts ...func(*BillingProfileQuery)) *AppQuery {
-	query := (&BillingProfileClient{config: aq.config}).Query()
+func (_q *AppQuery) WithBillingProfileTaxApp(opts ...func(*BillingProfileQuery)) *AppQuery {
+	query := (&BillingProfileClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	aq.withBillingProfileTaxApp = query
-	return aq
+	_q.withBillingProfileTaxApp = query
+	return _q
 }
 
 // WithBillingProfileInvoicingApp tells the query-builder to eager-load the nodes that are connected to
 // the "billing_profile_invoicing_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (aq *AppQuery) WithBillingProfileInvoicingApp(opts ...func(*BillingProfileQuery)) *AppQuery {
-	query := (&BillingProfileClient{config: aq.config}).Query()
+func (_q *AppQuery) WithBillingProfileInvoicingApp(opts ...func(*BillingProfileQuery)) *AppQuery {
+	query := (&BillingProfileClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	aq.withBillingProfileInvoicingApp = query
-	return aq
+	_q.withBillingProfileInvoicingApp = query
+	return _q
 }
 
 // WithBillingProfilePaymentApp tells the query-builder to eager-load the nodes that are connected to
 // the "billing_profile_payment_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (aq *AppQuery) WithBillingProfilePaymentApp(opts ...func(*BillingProfileQuery)) *AppQuery {
-	query := (&BillingProfileClient{config: aq.config}).Query()
+func (_q *AppQuery) WithBillingProfilePaymentApp(opts ...func(*BillingProfileQuery)) *AppQuery {
+	query := (&BillingProfileClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	aq.withBillingProfilePaymentApp = query
-	return aq
+	_q.withBillingProfilePaymentApp = query
+	return _q
 }
 
 // WithBillingInvoiceTaxApp tells the query-builder to eager-load the nodes that are connected to
 // the "billing_invoice_tax_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (aq *AppQuery) WithBillingInvoiceTaxApp(opts ...func(*BillingInvoiceQuery)) *AppQuery {
-	query := (&BillingInvoiceClient{config: aq.config}).Query()
+func (_q *AppQuery) WithBillingInvoiceTaxApp(opts ...func(*BillingInvoiceQuery)) *AppQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	aq.withBillingInvoiceTaxApp = query
-	return aq
+	_q.withBillingInvoiceTaxApp = query
+	return _q
 }
 
 // WithBillingInvoiceInvoicingApp tells the query-builder to eager-load the nodes that are connected to
 // the "billing_invoice_invoicing_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (aq *AppQuery) WithBillingInvoiceInvoicingApp(opts ...func(*BillingInvoiceQuery)) *AppQuery {
-	query := (&BillingInvoiceClient{config: aq.config}).Query()
+func (_q *AppQuery) WithBillingInvoiceInvoicingApp(opts ...func(*BillingInvoiceQuery)) *AppQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	aq.withBillingInvoiceInvoicingApp = query
-	return aq
+	_q.withBillingInvoiceInvoicingApp = query
+	return _q
 }
 
 // WithBillingInvoicePaymentApp tells the query-builder to eager-load the nodes that are connected to
 // the "billing_invoice_payment_app" edge. The optional arguments are used to configure the query builder of the edge.
-func (aq *AppQuery) WithBillingInvoicePaymentApp(opts ...func(*BillingInvoiceQuery)) *AppQuery {
-	query := (&BillingInvoiceClient{config: aq.config}).Query()
+func (_q *AppQuery) WithBillingInvoicePaymentApp(opts ...func(*BillingInvoiceQuery)) *AppQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	aq.withBillingInvoicePaymentApp = query
-	return aq
+	_q.withBillingInvoicePaymentApp = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -521,10 +521,10 @@ func (aq *AppQuery) WithBillingInvoicePaymentApp(opts ...func(*BillingInvoiceQue
 //		GroupBy(dbapp.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (aq *AppQuery) GroupBy(field string, fields ...string) *AppGroupBy {
-	aq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &AppGroupBy{build: aq}
-	grbuild.flds = &aq.ctx.Fields
+func (_q *AppQuery) GroupBy(field string, fields ...string) *AppGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &AppGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = dbapp.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -542,89 +542,89 @@ func (aq *AppQuery) GroupBy(field string, fields ...string) *AppGroupBy {
 //	client.App.Query().
 //		Select(dbapp.FieldNamespace).
 //		Scan(ctx, &v)
-func (aq *AppQuery) Select(fields ...string) *AppSelect {
-	aq.ctx.Fields = append(aq.ctx.Fields, fields...)
-	sbuild := &AppSelect{AppQuery: aq}
+func (_q *AppQuery) Select(fields ...string) *AppSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &AppSelect{AppQuery: _q}
 	sbuild.label = dbapp.Label
-	sbuild.flds, sbuild.scan = &aq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a AppSelect configured with the given aggregations.
-func (aq *AppQuery) Aggregate(fns ...AggregateFunc) *AppSelect {
-	return aq.Select().Aggregate(fns...)
+func (_q *AppQuery) Aggregate(fns ...AggregateFunc) *AppSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (aq *AppQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range aq.inters {
+func (_q *AppQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, aq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range aq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !dbapp.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if aq.path != nil {
-		prev, err := aq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		aq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (aq *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, error) {
+func (_q *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, error) {
 	var (
 		nodes       = []*App{}
-		_spec       = aq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [7]bool{
-			aq.withCustomerApps != nil,
-			aq.withBillingProfileTaxApp != nil,
-			aq.withBillingProfileInvoicingApp != nil,
-			aq.withBillingProfilePaymentApp != nil,
-			aq.withBillingInvoiceTaxApp != nil,
-			aq.withBillingInvoiceInvoicingApp != nil,
-			aq.withBillingInvoicePaymentApp != nil,
+			_q.withCustomerApps != nil,
+			_q.withBillingProfileTaxApp != nil,
+			_q.withBillingProfileInvoicingApp != nil,
+			_q.withBillingProfilePaymentApp != nil,
+			_q.withBillingInvoiceTaxApp != nil,
+			_q.withBillingInvoiceInvoicingApp != nil,
+			_q.withBillingInvoicePaymentApp != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*App).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &App{config: aq.config}
+		node := &App{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(aq.modifiers) > 0 {
-		_spec.Modifiers = aq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, aq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := aq.withCustomerApps; query != nil {
-		if err := aq.loadCustomerApps(ctx, query, nodes,
+	if query := _q.withCustomerApps; query != nil {
+		if err := _q.loadCustomerApps(ctx, query, nodes,
 			func(n *App) { n.Edges.CustomerApps = []*AppCustomer{} },
 			func(n *App, e *AppCustomer) { n.Edges.CustomerApps = append(n.Edges.CustomerApps, e) }); err != nil {
 			return nil, err
 		}
 	}
-	if query := aq.withBillingProfileTaxApp; query != nil {
-		if err := aq.loadBillingProfileTaxApp(ctx, query, nodes,
+	if query := _q.withBillingProfileTaxApp; query != nil {
+		if err := _q.loadBillingProfileTaxApp(ctx, query, nodes,
 			func(n *App) { n.Edges.BillingProfileTaxApp = []*BillingProfile{} },
 			func(n *App, e *BillingProfile) {
 				n.Edges.BillingProfileTaxApp = append(n.Edges.BillingProfileTaxApp, e)
@@ -632,8 +632,8 @@ func (aq *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, err
 			return nil, err
 		}
 	}
-	if query := aq.withBillingProfileInvoicingApp; query != nil {
-		if err := aq.loadBillingProfileInvoicingApp(ctx, query, nodes,
+	if query := _q.withBillingProfileInvoicingApp; query != nil {
+		if err := _q.loadBillingProfileInvoicingApp(ctx, query, nodes,
 			func(n *App) { n.Edges.BillingProfileInvoicingApp = []*BillingProfile{} },
 			func(n *App, e *BillingProfile) {
 				n.Edges.BillingProfileInvoicingApp = append(n.Edges.BillingProfileInvoicingApp, e)
@@ -641,8 +641,8 @@ func (aq *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, err
 			return nil, err
 		}
 	}
-	if query := aq.withBillingProfilePaymentApp; query != nil {
-		if err := aq.loadBillingProfilePaymentApp(ctx, query, nodes,
+	if query := _q.withBillingProfilePaymentApp; query != nil {
+		if err := _q.loadBillingProfilePaymentApp(ctx, query, nodes,
 			func(n *App) { n.Edges.BillingProfilePaymentApp = []*BillingProfile{} },
 			func(n *App, e *BillingProfile) {
 				n.Edges.BillingProfilePaymentApp = append(n.Edges.BillingProfilePaymentApp, e)
@@ -650,8 +650,8 @@ func (aq *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, err
 			return nil, err
 		}
 	}
-	if query := aq.withBillingInvoiceTaxApp; query != nil {
-		if err := aq.loadBillingInvoiceTaxApp(ctx, query, nodes,
+	if query := _q.withBillingInvoiceTaxApp; query != nil {
+		if err := _q.loadBillingInvoiceTaxApp(ctx, query, nodes,
 			func(n *App) { n.Edges.BillingInvoiceTaxApp = []*BillingInvoice{} },
 			func(n *App, e *BillingInvoice) {
 				n.Edges.BillingInvoiceTaxApp = append(n.Edges.BillingInvoiceTaxApp, e)
@@ -659,8 +659,8 @@ func (aq *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, err
 			return nil, err
 		}
 	}
-	if query := aq.withBillingInvoiceInvoicingApp; query != nil {
-		if err := aq.loadBillingInvoiceInvoicingApp(ctx, query, nodes,
+	if query := _q.withBillingInvoiceInvoicingApp; query != nil {
+		if err := _q.loadBillingInvoiceInvoicingApp(ctx, query, nodes,
 			func(n *App) { n.Edges.BillingInvoiceInvoicingApp = []*BillingInvoice{} },
 			func(n *App, e *BillingInvoice) {
 				n.Edges.BillingInvoiceInvoicingApp = append(n.Edges.BillingInvoiceInvoicingApp, e)
@@ -668,8 +668,8 @@ func (aq *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, err
 			return nil, err
 		}
 	}
-	if query := aq.withBillingInvoicePaymentApp; query != nil {
-		if err := aq.loadBillingInvoicePaymentApp(ctx, query, nodes,
+	if query := _q.withBillingInvoicePaymentApp; query != nil {
+		if err := _q.loadBillingInvoicePaymentApp(ctx, query, nodes,
 			func(n *App) { n.Edges.BillingInvoicePaymentApp = []*BillingInvoice{} },
 			func(n *App, e *BillingInvoice) {
 				n.Edges.BillingInvoicePaymentApp = append(n.Edges.BillingInvoicePaymentApp, e)
@@ -680,7 +680,7 @@ func (aq *AppQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*App, err
 	return nodes, nil
 }
 
-func (aq *AppQuery) loadCustomerApps(ctx context.Context, query *AppCustomerQuery, nodes []*App, init func(*App), assign func(*App, *AppCustomer)) error {
+func (_q *AppQuery) loadCustomerApps(ctx context.Context, query *AppCustomerQuery, nodes []*App, init func(*App), assign func(*App, *AppCustomer)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*App)
 	for i := range nodes {
@@ -710,7 +710,7 @@ func (aq *AppQuery) loadCustomerApps(ctx context.Context, query *AppCustomerQuer
 	}
 	return nil
 }
-func (aq *AppQuery) loadBillingProfileTaxApp(ctx context.Context, query *BillingProfileQuery, nodes []*App, init func(*App), assign func(*App, *BillingProfile)) error {
+func (_q *AppQuery) loadBillingProfileTaxApp(ctx context.Context, query *BillingProfileQuery, nodes []*App, init func(*App), assign func(*App, *BillingProfile)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*App)
 	for i := range nodes {
@@ -740,7 +740,7 @@ func (aq *AppQuery) loadBillingProfileTaxApp(ctx context.Context, query *Billing
 	}
 	return nil
 }
-func (aq *AppQuery) loadBillingProfileInvoicingApp(ctx context.Context, query *BillingProfileQuery, nodes []*App, init func(*App), assign func(*App, *BillingProfile)) error {
+func (_q *AppQuery) loadBillingProfileInvoicingApp(ctx context.Context, query *BillingProfileQuery, nodes []*App, init func(*App), assign func(*App, *BillingProfile)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*App)
 	for i := range nodes {
@@ -770,7 +770,7 @@ func (aq *AppQuery) loadBillingProfileInvoicingApp(ctx context.Context, query *B
 	}
 	return nil
 }
-func (aq *AppQuery) loadBillingProfilePaymentApp(ctx context.Context, query *BillingProfileQuery, nodes []*App, init func(*App), assign func(*App, *BillingProfile)) error {
+func (_q *AppQuery) loadBillingProfilePaymentApp(ctx context.Context, query *BillingProfileQuery, nodes []*App, init func(*App), assign func(*App, *BillingProfile)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*App)
 	for i := range nodes {
@@ -800,7 +800,7 @@ func (aq *AppQuery) loadBillingProfilePaymentApp(ctx context.Context, query *Bil
 	}
 	return nil
 }
-func (aq *AppQuery) loadBillingInvoiceTaxApp(ctx context.Context, query *BillingInvoiceQuery, nodes []*App, init func(*App), assign func(*App, *BillingInvoice)) error {
+func (_q *AppQuery) loadBillingInvoiceTaxApp(ctx context.Context, query *BillingInvoiceQuery, nodes []*App, init func(*App), assign func(*App, *BillingInvoice)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*App)
 	for i := range nodes {
@@ -830,7 +830,7 @@ func (aq *AppQuery) loadBillingInvoiceTaxApp(ctx context.Context, query *Billing
 	}
 	return nil
 }
-func (aq *AppQuery) loadBillingInvoiceInvoicingApp(ctx context.Context, query *BillingInvoiceQuery, nodes []*App, init func(*App), assign func(*App, *BillingInvoice)) error {
+func (_q *AppQuery) loadBillingInvoiceInvoicingApp(ctx context.Context, query *BillingInvoiceQuery, nodes []*App, init func(*App), assign func(*App, *BillingInvoice)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*App)
 	for i := range nodes {
@@ -860,7 +860,7 @@ func (aq *AppQuery) loadBillingInvoiceInvoicingApp(ctx context.Context, query *B
 	}
 	return nil
 }
-func (aq *AppQuery) loadBillingInvoicePaymentApp(ctx context.Context, query *BillingInvoiceQuery, nodes []*App, init func(*App), assign func(*App, *BillingInvoice)) error {
+func (_q *AppQuery) loadBillingInvoicePaymentApp(ctx context.Context, query *BillingInvoiceQuery, nodes []*App, init func(*App), assign func(*App, *BillingInvoice)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*App)
 	for i := range nodes {
@@ -891,27 +891,27 @@ func (aq *AppQuery) loadBillingInvoicePaymentApp(ctx context.Context, query *Bil
 	return nil
 }
 
-func (aq *AppQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := aq.querySpec()
-	if len(aq.modifiers) > 0 {
-		_spec.Modifiers = aq.modifiers
+func (_q *AppQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = aq.ctx.Fields
-	if len(aq.ctx.Fields) > 0 {
-		_spec.Unique = aq.ctx.Unique != nil && *aq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, aq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (aq *AppQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *AppQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(dbapp.Table, dbapp.Columns, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
-	_spec.From = aq.sql
-	if unique := aq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if aq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := aq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, dbapp.FieldID)
 		for i := range fields {
@@ -920,20 +920,20 @@ func (aq *AppQuery) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 	}
-	if ps := aq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := aq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := aq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := aq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -943,36 +943,36 @@ func (aq *AppQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (aq *AppQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(aq.driver.Dialect())
+func (_q *AppQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(dbapp.Table)
-	columns := aq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = dbapp.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if aq.sql != nil {
-		selector = aq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if aq.ctx.Unique != nil && *aq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range aq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range aq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range aq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := aq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := aq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -981,27 +981,27 @@ func (aq *AppQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (aq *AppQuery) ForUpdate(opts ...sql.LockOption) *AppQuery {
-	if aq.driver.Dialect() == dialect.Postgres {
-		aq.Unique(false)
+func (_q *AppQuery) ForUpdate(opts ...sql.LockOption) *AppQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	aq.modifiers = append(aq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return aq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (aq *AppQuery) ForShare(opts ...sql.LockOption) *AppQuery {
-	if aq.driver.Dialect() == dialect.Postgres {
-		aq.Unique(false)
+func (_q *AppQuery) ForShare(opts ...sql.LockOption) *AppQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	aq.modifiers = append(aq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return aq
+	return _q
 }
 
 // AppGroupBy is the group-by builder for App entities.

@@ -74,7 +74,7 @@ func (*NotificationEventDeliveryStatus) scanValues(columns []string) ([]any, err
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the NotificationEventDeliveryStatus fields.
-func (neds *NotificationEventDeliveryStatus) assignValues(columns []string, values []any) error {
+func (_m *NotificationEventDeliveryStatus) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -84,52 +84,52 @@ func (neds *NotificationEventDeliveryStatus) assignValues(columns []string, valu
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				neds.ID = value.String
+				_m.ID = value.String
 			}
 		case notificationeventdeliverystatus.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				neds.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case notificationeventdeliverystatus.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				neds.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case notificationeventdeliverystatus.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				neds.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case notificationeventdeliverystatus.FieldEventID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field event_id", values[i])
 			} else if value.Valid {
-				neds.EventID = value.String
+				_m.EventID = value.String
 			}
 		case notificationeventdeliverystatus.FieldChannelID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field channel_id", values[i])
 			} else if value.Valid {
-				neds.ChannelID = value.String
+				_m.ChannelID = value.String
 			}
 		case notificationeventdeliverystatus.FieldState:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field state", values[i])
 			} else if value.Valid {
-				neds.State = notification.EventDeliveryStatusState(value.String)
+				_m.State = notification.EventDeliveryStatusState(value.String)
 			}
 		case notificationeventdeliverystatus.FieldReason:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field reason", values[i])
 			} else if value.Valid {
-				neds.Reason = value.String
+				_m.Reason = value.String
 			}
 		default:
-			neds.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -137,58 +137,58 @@ func (neds *NotificationEventDeliveryStatus) assignValues(columns []string, valu
 
 // Value returns the ent.Value that was dynamically selected and assigned to the NotificationEventDeliveryStatus.
 // This includes values selected through modifiers, order, etc.
-func (neds *NotificationEventDeliveryStatus) Value(name string) (ent.Value, error) {
-	return neds.selectValues.Get(name)
+func (_m *NotificationEventDeliveryStatus) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryEvents queries the "events" edge of the NotificationEventDeliveryStatus entity.
-func (neds *NotificationEventDeliveryStatus) QueryEvents() *NotificationEventQuery {
-	return NewNotificationEventDeliveryStatusClient(neds.config).QueryEvents(neds)
+func (_m *NotificationEventDeliveryStatus) QueryEvents() *NotificationEventQuery {
+	return NewNotificationEventDeliveryStatusClient(_m.config).QueryEvents(_m)
 }
 
 // Update returns a builder for updating this NotificationEventDeliveryStatus.
 // Note that you need to call NotificationEventDeliveryStatus.Unwrap() before calling this method if this NotificationEventDeliveryStatus
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (neds *NotificationEventDeliveryStatus) Update() *NotificationEventDeliveryStatusUpdateOne {
-	return NewNotificationEventDeliveryStatusClient(neds.config).UpdateOne(neds)
+func (_m *NotificationEventDeliveryStatus) Update() *NotificationEventDeliveryStatusUpdateOne {
+	return NewNotificationEventDeliveryStatusClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the NotificationEventDeliveryStatus entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (neds *NotificationEventDeliveryStatus) Unwrap() *NotificationEventDeliveryStatus {
-	_tx, ok := neds.config.driver.(*txDriver)
+func (_m *NotificationEventDeliveryStatus) Unwrap() *NotificationEventDeliveryStatus {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: NotificationEventDeliveryStatus is not a transactional entity")
 	}
-	neds.config.driver = _tx.drv
-	return neds
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (neds *NotificationEventDeliveryStatus) String() string {
+func (_m *NotificationEventDeliveryStatus) String() string {
 	var builder strings.Builder
 	builder.WriteString("NotificationEventDeliveryStatus(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", neds.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(neds.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(neds.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(neds.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("event_id=")
-	builder.WriteString(neds.EventID)
+	builder.WriteString(_m.EventID)
 	builder.WriteString(", ")
 	builder.WriteString("channel_id=")
-	builder.WriteString(neds.ChannelID)
+	builder.WriteString(_m.ChannelID)
 	builder.WriteString(", ")
 	builder.WriteString("state=")
-	builder.WriteString(fmt.Sprintf("%v", neds.State))
+	builder.WriteString(fmt.Sprintf("%v", _m.State))
 	builder.WriteString(", ")
 	builder.WriteString("reason=")
-	builder.WriteString(neds.Reason)
+	builder.WriteString(_m.Reason)
 	builder.WriteByte(')')
 	return builder.String()
 }

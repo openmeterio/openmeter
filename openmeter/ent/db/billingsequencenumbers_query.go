@@ -30,40 +30,40 @@ type BillingSequenceNumbersQuery struct {
 }
 
 // Where adds a new predicate for the BillingSequenceNumbersQuery builder.
-func (bsnq *BillingSequenceNumbersQuery) Where(ps ...predicate.BillingSequenceNumbers) *BillingSequenceNumbersQuery {
-	bsnq.predicates = append(bsnq.predicates, ps...)
-	return bsnq
+func (_q *BillingSequenceNumbersQuery) Where(ps ...predicate.BillingSequenceNumbers) *BillingSequenceNumbersQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (bsnq *BillingSequenceNumbersQuery) Limit(limit int) *BillingSequenceNumbersQuery {
-	bsnq.ctx.Limit = &limit
-	return bsnq
+func (_q *BillingSequenceNumbersQuery) Limit(limit int) *BillingSequenceNumbersQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (bsnq *BillingSequenceNumbersQuery) Offset(offset int) *BillingSequenceNumbersQuery {
-	bsnq.ctx.Offset = &offset
-	return bsnq
+func (_q *BillingSequenceNumbersQuery) Offset(offset int) *BillingSequenceNumbersQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (bsnq *BillingSequenceNumbersQuery) Unique(unique bool) *BillingSequenceNumbersQuery {
-	bsnq.ctx.Unique = &unique
-	return bsnq
+func (_q *BillingSequenceNumbersQuery) Unique(unique bool) *BillingSequenceNumbersQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (bsnq *BillingSequenceNumbersQuery) Order(o ...billingsequencenumbers.OrderOption) *BillingSequenceNumbersQuery {
-	bsnq.order = append(bsnq.order, o...)
-	return bsnq
+func (_q *BillingSequenceNumbersQuery) Order(o ...billingsequencenumbers.OrderOption) *BillingSequenceNumbersQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // First returns the first BillingSequenceNumbers entity from the query.
 // Returns a *NotFoundError when no BillingSequenceNumbers was found.
-func (bsnq *BillingSequenceNumbersQuery) First(ctx context.Context) (*BillingSequenceNumbers, error) {
-	nodes, err := bsnq.Limit(1).All(setContextOp(ctx, bsnq.ctx, ent.OpQueryFirst))
+func (_q *BillingSequenceNumbersQuery) First(ctx context.Context) (*BillingSequenceNumbers, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -74,8 +74,8 @@ func (bsnq *BillingSequenceNumbersQuery) First(ctx context.Context) (*BillingSeq
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (bsnq *BillingSequenceNumbersQuery) FirstX(ctx context.Context) *BillingSequenceNumbers {
-	node, err := bsnq.First(ctx)
+func (_q *BillingSequenceNumbersQuery) FirstX(ctx context.Context) *BillingSequenceNumbers {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -84,9 +84,9 @@ func (bsnq *BillingSequenceNumbersQuery) FirstX(ctx context.Context) *BillingSeq
 
 // FirstID returns the first BillingSequenceNumbers ID from the query.
 // Returns a *NotFoundError when no BillingSequenceNumbers ID was found.
-func (bsnq *BillingSequenceNumbersQuery) FirstID(ctx context.Context) (id int, err error) {
+func (_q *BillingSequenceNumbersQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = bsnq.Limit(1).IDs(setContextOp(ctx, bsnq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -97,8 +97,8 @@ func (bsnq *BillingSequenceNumbersQuery) FirstID(ctx context.Context) (id int, e
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (bsnq *BillingSequenceNumbersQuery) FirstIDX(ctx context.Context) int {
-	id, err := bsnq.FirstID(ctx)
+func (_q *BillingSequenceNumbersQuery) FirstIDX(ctx context.Context) int {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -108,8 +108,8 @@ func (bsnq *BillingSequenceNumbersQuery) FirstIDX(ctx context.Context) int {
 // Only returns a single BillingSequenceNumbers entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one BillingSequenceNumbers entity is found.
 // Returns a *NotFoundError when no BillingSequenceNumbers entities are found.
-func (bsnq *BillingSequenceNumbersQuery) Only(ctx context.Context) (*BillingSequenceNumbers, error) {
-	nodes, err := bsnq.Limit(2).All(setContextOp(ctx, bsnq.ctx, ent.OpQueryOnly))
+func (_q *BillingSequenceNumbersQuery) Only(ctx context.Context) (*BillingSequenceNumbers, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +124,8 @@ func (bsnq *BillingSequenceNumbersQuery) Only(ctx context.Context) (*BillingSequ
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (bsnq *BillingSequenceNumbersQuery) OnlyX(ctx context.Context) *BillingSequenceNumbers {
-	node, err := bsnq.Only(ctx)
+func (_q *BillingSequenceNumbersQuery) OnlyX(ctx context.Context) *BillingSequenceNumbers {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -135,9 +135,9 @@ func (bsnq *BillingSequenceNumbersQuery) OnlyX(ctx context.Context) *BillingSequ
 // OnlyID is like Only, but returns the only BillingSequenceNumbers ID in the query.
 // Returns a *NotSingularError when more than one BillingSequenceNumbers ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (bsnq *BillingSequenceNumbersQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *BillingSequenceNumbersQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = bsnq.Limit(2).IDs(setContextOp(ctx, bsnq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -152,8 +152,8 @@ func (bsnq *BillingSequenceNumbersQuery) OnlyID(ctx context.Context) (id int, er
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (bsnq *BillingSequenceNumbersQuery) OnlyIDX(ctx context.Context) int {
-	id, err := bsnq.OnlyID(ctx)
+func (_q *BillingSequenceNumbersQuery) OnlyIDX(ctx context.Context) int {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -161,18 +161,18 @@ func (bsnq *BillingSequenceNumbersQuery) OnlyIDX(ctx context.Context) int {
 }
 
 // All executes the query and returns a list of BillingSequenceNumbersSlice.
-func (bsnq *BillingSequenceNumbersQuery) All(ctx context.Context) ([]*BillingSequenceNumbers, error) {
-	ctx = setContextOp(ctx, bsnq.ctx, ent.OpQueryAll)
-	if err := bsnq.prepareQuery(ctx); err != nil {
+func (_q *BillingSequenceNumbersQuery) All(ctx context.Context) ([]*BillingSequenceNumbers, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*BillingSequenceNumbers, *BillingSequenceNumbersQuery]()
-	return withInterceptors[[]*BillingSequenceNumbers](ctx, bsnq, qr, bsnq.inters)
+	return withInterceptors[[]*BillingSequenceNumbers](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (bsnq *BillingSequenceNumbersQuery) AllX(ctx context.Context) []*BillingSequenceNumbers {
-	nodes, err := bsnq.All(ctx)
+func (_q *BillingSequenceNumbersQuery) AllX(ctx context.Context) []*BillingSequenceNumbers {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -180,20 +180,20 @@ func (bsnq *BillingSequenceNumbersQuery) AllX(ctx context.Context) []*BillingSeq
 }
 
 // IDs executes the query and returns a list of BillingSequenceNumbers IDs.
-func (bsnq *BillingSequenceNumbersQuery) IDs(ctx context.Context) (ids []int, err error) {
-	if bsnq.ctx.Unique == nil && bsnq.path != nil {
-		bsnq.Unique(true)
+func (_q *BillingSequenceNumbersQuery) IDs(ctx context.Context) (ids []int, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, bsnq.ctx, ent.OpQueryIDs)
-	if err = bsnq.Select(billingsequencenumbers.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(billingsequencenumbers.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (bsnq *BillingSequenceNumbersQuery) IDsX(ctx context.Context) []int {
-	ids, err := bsnq.IDs(ctx)
+func (_q *BillingSequenceNumbersQuery) IDsX(ctx context.Context) []int {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -201,17 +201,17 @@ func (bsnq *BillingSequenceNumbersQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (bsnq *BillingSequenceNumbersQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, bsnq.ctx, ent.OpQueryCount)
-	if err := bsnq.prepareQuery(ctx); err != nil {
+func (_q *BillingSequenceNumbersQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, bsnq, querierCount[*BillingSequenceNumbersQuery](), bsnq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BillingSequenceNumbersQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (bsnq *BillingSequenceNumbersQuery) CountX(ctx context.Context) int {
-	count, err := bsnq.Count(ctx)
+func (_q *BillingSequenceNumbersQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -219,9 +219,9 @@ func (bsnq *BillingSequenceNumbersQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (bsnq *BillingSequenceNumbersQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, bsnq.ctx, ent.OpQueryExist)
-	switch _, err := bsnq.FirstID(ctx); {
+func (_q *BillingSequenceNumbersQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -232,8 +232,8 @@ func (bsnq *BillingSequenceNumbersQuery) Exist(ctx context.Context) (bool, error
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (bsnq *BillingSequenceNumbersQuery) ExistX(ctx context.Context) bool {
-	exist, err := bsnq.Exist(ctx)
+func (_q *BillingSequenceNumbersQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -242,19 +242,19 @@ func (bsnq *BillingSequenceNumbersQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the BillingSequenceNumbersQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (bsnq *BillingSequenceNumbersQuery) Clone() *BillingSequenceNumbersQuery {
-	if bsnq == nil {
+func (_q *BillingSequenceNumbersQuery) Clone() *BillingSequenceNumbersQuery {
+	if _q == nil {
 		return nil
 	}
 	return &BillingSequenceNumbersQuery{
-		config:     bsnq.config,
-		ctx:        bsnq.ctx.Clone(),
-		order:      append([]billingsequencenumbers.OrderOption{}, bsnq.order...),
-		inters:     append([]Interceptor{}, bsnq.inters...),
-		predicates: append([]predicate.BillingSequenceNumbers{}, bsnq.predicates...),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]billingsequencenumbers.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.BillingSequenceNumbers{}, _q.predicates...),
 		// clone intermediate query.
-		sql:  bsnq.sql.Clone(),
-		path: bsnq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
@@ -272,10 +272,10 @@ func (bsnq *BillingSequenceNumbersQuery) Clone() *BillingSequenceNumbersQuery {
 //		GroupBy(billingsequencenumbers.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (bsnq *BillingSequenceNumbersQuery) GroupBy(field string, fields ...string) *BillingSequenceNumbersGroupBy {
-	bsnq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &BillingSequenceNumbersGroupBy{build: bsnq}
-	grbuild.flds = &bsnq.ctx.Fields
+func (_q *BillingSequenceNumbersQuery) GroupBy(field string, fields ...string) *BillingSequenceNumbersGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &BillingSequenceNumbersGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = billingsequencenumbers.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -293,65 +293,65 @@ func (bsnq *BillingSequenceNumbersQuery) GroupBy(field string, fields ...string)
 //	client.BillingSequenceNumbers.Query().
 //		Select(billingsequencenumbers.FieldNamespace).
 //		Scan(ctx, &v)
-func (bsnq *BillingSequenceNumbersQuery) Select(fields ...string) *BillingSequenceNumbersSelect {
-	bsnq.ctx.Fields = append(bsnq.ctx.Fields, fields...)
-	sbuild := &BillingSequenceNumbersSelect{BillingSequenceNumbersQuery: bsnq}
+func (_q *BillingSequenceNumbersQuery) Select(fields ...string) *BillingSequenceNumbersSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &BillingSequenceNumbersSelect{BillingSequenceNumbersQuery: _q}
 	sbuild.label = billingsequencenumbers.Label
-	sbuild.flds, sbuild.scan = &bsnq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a BillingSequenceNumbersSelect configured with the given aggregations.
-func (bsnq *BillingSequenceNumbersQuery) Aggregate(fns ...AggregateFunc) *BillingSequenceNumbersSelect {
-	return bsnq.Select().Aggregate(fns...)
+func (_q *BillingSequenceNumbersQuery) Aggregate(fns ...AggregateFunc) *BillingSequenceNumbersSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (bsnq *BillingSequenceNumbersQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range bsnq.inters {
+func (_q *BillingSequenceNumbersQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, bsnq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range bsnq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !billingsequencenumbers.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if bsnq.path != nil {
-		prev, err := bsnq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		bsnq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (bsnq *BillingSequenceNumbersQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingSequenceNumbers, error) {
+func (_q *BillingSequenceNumbersQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingSequenceNumbers, error) {
 	var (
 		nodes = []*BillingSequenceNumbers{}
-		_spec = bsnq.querySpec()
+		_spec = _q.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingSequenceNumbers).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &BillingSequenceNumbers{config: bsnq.config}
+		node := &BillingSequenceNumbers{config: _q.config}
 		nodes = append(nodes, node)
 		return node.assignValues(columns, values)
 	}
-	if len(bsnq.modifiers) > 0 {
-		_spec.Modifiers = bsnq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, bsnq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
@@ -360,27 +360,27 @@ func (bsnq *BillingSequenceNumbersQuery) sqlAll(ctx context.Context, hooks ...qu
 	return nodes, nil
 }
 
-func (bsnq *BillingSequenceNumbersQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := bsnq.querySpec()
-	if len(bsnq.modifiers) > 0 {
-		_spec.Modifiers = bsnq.modifiers
+func (_q *BillingSequenceNumbersQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = bsnq.ctx.Fields
-	if len(bsnq.ctx.Fields) > 0 {
-		_spec.Unique = bsnq.ctx.Unique != nil && *bsnq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, bsnq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (bsnq *BillingSequenceNumbersQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *BillingSequenceNumbersQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(billingsequencenumbers.Table, billingsequencenumbers.Columns, sqlgraph.NewFieldSpec(billingsequencenumbers.FieldID, field.TypeInt))
-	_spec.From = bsnq.sql
-	if unique := bsnq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if bsnq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := bsnq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billingsequencenumbers.FieldID)
 		for i := range fields {
@@ -389,20 +389,20 @@ func (bsnq *BillingSequenceNumbersQuery) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 	}
-	if ps := bsnq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := bsnq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := bsnq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := bsnq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -412,36 +412,36 @@ func (bsnq *BillingSequenceNumbersQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (bsnq *BillingSequenceNumbersQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(bsnq.driver.Dialect())
+func (_q *BillingSequenceNumbersQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(billingsequencenumbers.Table)
-	columns := bsnq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = billingsequencenumbers.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if bsnq.sql != nil {
-		selector = bsnq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if bsnq.ctx.Unique != nil && *bsnq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range bsnq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range bsnq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range bsnq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := bsnq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := bsnq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -450,27 +450,27 @@ func (bsnq *BillingSequenceNumbersQuery) sqlQuery(ctx context.Context) *sql.Sele
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (bsnq *BillingSequenceNumbersQuery) ForUpdate(opts ...sql.LockOption) *BillingSequenceNumbersQuery {
-	if bsnq.driver.Dialect() == dialect.Postgres {
-		bsnq.Unique(false)
+func (_q *BillingSequenceNumbersQuery) ForUpdate(opts ...sql.LockOption) *BillingSequenceNumbersQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bsnq.modifiers = append(bsnq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return bsnq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (bsnq *BillingSequenceNumbersQuery) ForShare(opts ...sql.LockOption) *BillingSequenceNumbersQuery {
-	if bsnq.driver.Dialect() == dialect.Postgres {
-		bsnq.Unique(false)
+func (_q *BillingSequenceNumbersQuery) ForShare(opts ...sql.LockOption) *BillingSequenceNumbersQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bsnq.modifiers = append(bsnq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return bsnq
+	return _q
 }
 
 // BillingSequenceNumbersGroupBy is the group-by builder for BillingSequenceNumbers entities.

@@ -28,317 +28,317 @@ type EntitlementUpdate struct {
 }
 
 // Where appends a list predicates to the EntitlementUpdate builder.
-func (eu *EntitlementUpdate) Where(ps ...predicate.Entitlement) *EntitlementUpdate {
-	eu.mutation.Where(ps...)
-	return eu
+func (_u *EntitlementUpdate) Where(ps ...predicate.Entitlement) *EntitlementUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (eu *EntitlementUpdate) SetMetadata(m map[string]string) *EntitlementUpdate {
-	eu.mutation.SetMetadata(m)
-	return eu
+func (_u *EntitlementUpdate) SetMetadata(v map[string]string) *EntitlementUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (eu *EntitlementUpdate) ClearMetadata() *EntitlementUpdate {
-	eu.mutation.ClearMetadata()
-	return eu
+func (_u *EntitlementUpdate) ClearMetadata() *EntitlementUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (eu *EntitlementUpdate) SetUpdatedAt(t time.Time) *EntitlementUpdate {
-	eu.mutation.SetUpdatedAt(t)
-	return eu
+func (_u *EntitlementUpdate) SetUpdatedAt(v time.Time) *EntitlementUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (eu *EntitlementUpdate) SetDeletedAt(t time.Time) *EntitlementUpdate {
-	eu.mutation.SetDeletedAt(t)
-	return eu
+func (_u *EntitlementUpdate) SetDeletedAt(v time.Time) *EntitlementUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (eu *EntitlementUpdate) SetNillableDeletedAt(t *time.Time) *EntitlementUpdate {
-	if t != nil {
-		eu.SetDeletedAt(*t)
+func (_u *EntitlementUpdate) SetNillableDeletedAt(v *time.Time) *EntitlementUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return eu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (eu *EntitlementUpdate) ClearDeletedAt() *EntitlementUpdate {
-	eu.mutation.ClearDeletedAt()
-	return eu
+func (_u *EntitlementUpdate) ClearDeletedAt() *EntitlementUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetActiveTo sets the "active_to" field.
-func (eu *EntitlementUpdate) SetActiveTo(t time.Time) *EntitlementUpdate {
-	eu.mutation.SetActiveTo(t)
-	return eu
+func (_u *EntitlementUpdate) SetActiveTo(v time.Time) *EntitlementUpdate {
+	_u.mutation.SetActiveTo(v)
+	return _u
 }
 
 // SetNillableActiveTo sets the "active_to" field if the given value is not nil.
-func (eu *EntitlementUpdate) SetNillableActiveTo(t *time.Time) *EntitlementUpdate {
-	if t != nil {
-		eu.SetActiveTo(*t)
+func (_u *EntitlementUpdate) SetNillableActiveTo(v *time.Time) *EntitlementUpdate {
+	if v != nil {
+		_u.SetActiveTo(*v)
 	}
-	return eu
+	return _u
 }
 
 // ClearActiveTo clears the value of the "active_to" field.
-func (eu *EntitlementUpdate) ClearActiveTo() *EntitlementUpdate {
-	eu.mutation.ClearActiveTo()
-	return eu
+func (_u *EntitlementUpdate) ClearActiveTo() *EntitlementUpdate {
+	_u.mutation.ClearActiveTo()
+	return _u
 }
 
 // SetConfig sets the "config" field.
-func (eu *EntitlementUpdate) SetConfig(u []uint8) *EntitlementUpdate {
-	eu.mutation.SetConfig(u)
-	return eu
+func (_u *EntitlementUpdate) SetConfig(v []uint8) *EntitlementUpdate {
+	_u.mutation.SetConfig(v)
+	return _u
 }
 
-// AppendConfig appends u to the "config" field.
-func (eu *EntitlementUpdate) AppendConfig(u []uint8) *EntitlementUpdate {
-	eu.mutation.AppendConfig(u)
-	return eu
+// AppendConfig appends value to the "config" field.
+func (_u *EntitlementUpdate) AppendConfig(v []uint8) *EntitlementUpdate {
+	_u.mutation.AppendConfig(v)
+	return _u
 }
 
 // ClearConfig clears the value of the "config" field.
-func (eu *EntitlementUpdate) ClearConfig() *EntitlementUpdate {
-	eu.mutation.ClearConfig()
-	return eu
+func (_u *EntitlementUpdate) ClearConfig() *EntitlementUpdate {
+	_u.mutation.ClearConfig()
+	return _u
 }
 
 // SetUsagePeriodAnchor sets the "usage_period_anchor" field.
-func (eu *EntitlementUpdate) SetUsagePeriodAnchor(t time.Time) *EntitlementUpdate {
-	eu.mutation.SetUsagePeriodAnchor(t)
-	return eu
+func (_u *EntitlementUpdate) SetUsagePeriodAnchor(v time.Time) *EntitlementUpdate {
+	_u.mutation.SetUsagePeriodAnchor(v)
+	return _u
 }
 
 // SetNillableUsagePeriodAnchor sets the "usage_period_anchor" field if the given value is not nil.
-func (eu *EntitlementUpdate) SetNillableUsagePeriodAnchor(t *time.Time) *EntitlementUpdate {
-	if t != nil {
-		eu.SetUsagePeriodAnchor(*t)
+func (_u *EntitlementUpdate) SetNillableUsagePeriodAnchor(v *time.Time) *EntitlementUpdate {
+	if v != nil {
+		_u.SetUsagePeriodAnchor(*v)
 	}
-	return eu
+	return _u
 }
 
 // ClearUsagePeriodAnchor clears the value of the "usage_period_anchor" field.
-func (eu *EntitlementUpdate) ClearUsagePeriodAnchor() *EntitlementUpdate {
-	eu.mutation.ClearUsagePeriodAnchor()
-	return eu
+func (_u *EntitlementUpdate) ClearUsagePeriodAnchor() *EntitlementUpdate {
+	_u.mutation.ClearUsagePeriodAnchor()
+	return _u
 }
 
 // SetCurrentUsagePeriodStart sets the "current_usage_period_start" field.
-func (eu *EntitlementUpdate) SetCurrentUsagePeriodStart(t time.Time) *EntitlementUpdate {
-	eu.mutation.SetCurrentUsagePeriodStart(t)
-	return eu
+func (_u *EntitlementUpdate) SetCurrentUsagePeriodStart(v time.Time) *EntitlementUpdate {
+	_u.mutation.SetCurrentUsagePeriodStart(v)
+	return _u
 }
 
 // SetNillableCurrentUsagePeriodStart sets the "current_usage_period_start" field if the given value is not nil.
-func (eu *EntitlementUpdate) SetNillableCurrentUsagePeriodStart(t *time.Time) *EntitlementUpdate {
-	if t != nil {
-		eu.SetCurrentUsagePeriodStart(*t)
+func (_u *EntitlementUpdate) SetNillableCurrentUsagePeriodStart(v *time.Time) *EntitlementUpdate {
+	if v != nil {
+		_u.SetCurrentUsagePeriodStart(*v)
 	}
-	return eu
+	return _u
 }
 
 // ClearCurrentUsagePeriodStart clears the value of the "current_usage_period_start" field.
-func (eu *EntitlementUpdate) ClearCurrentUsagePeriodStart() *EntitlementUpdate {
-	eu.mutation.ClearCurrentUsagePeriodStart()
-	return eu
+func (_u *EntitlementUpdate) ClearCurrentUsagePeriodStart() *EntitlementUpdate {
+	_u.mutation.ClearCurrentUsagePeriodStart()
+	return _u
 }
 
 // SetCurrentUsagePeriodEnd sets the "current_usage_period_end" field.
-func (eu *EntitlementUpdate) SetCurrentUsagePeriodEnd(t time.Time) *EntitlementUpdate {
-	eu.mutation.SetCurrentUsagePeriodEnd(t)
-	return eu
+func (_u *EntitlementUpdate) SetCurrentUsagePeriodEnd(v time.Time) *EntitlementUpdate {
+	_u.mutation.SetCurrentUsagePeriodEnd(v)
+	return _u
 }
 
 // SetNillableCurrentUsagePeriodEnd sets the "current_usage_period_end" field if the given value is not nil.
-func (eu *EntitlementUpdate) SetNillableCurrentUsagePeriodEnd(t *time.Time) *EntitlementUpdate {
-	if t != nil {
-		eu.SetCurrentUsagePeriodEnd(*t)
+func (_u *EntitlementUpdate) SetNillableCurrentUsagePeriodEnd(v *time.Time) *EntitlementUpdate {
+	if v != nil {
+		_u.SetCurrentUsagePeriodEnd(*v)
 	}
-	return eu
+	return _u
 }
 
 // ClearCurrentUsagePeriodEnd clears the value of the "current_usage_period_end" field.
-func (eu *EntitlementUpdate) ClearCurrentUsagePeriodEnd() *EntitlementUpdate {
-	eu.mutation.ClearCurrentUsagePeriodEnd()
-	return eu
+func (_u *EntitlementUpdate) ClearCurrentUsagePeriodEnd() *EntitlementUpdate {
+	_u.mutation.ClearCurrentUsagePeriodEnd()
+	return _u
 }
 
 // SetAnnotations sets the "annotations" field.
-func (eu *EntitlementUpdate) SetAnnotations(m map[string]interface{}) *EntitlementUpdate {
-	eu.mutation.SetAnnotations(m)
-	return eu
+func (_u *EntitlementUpdate) SetAnnotations(v map[string]interface{}) *EntitlementUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
 }
 
 // ClearAnnotations clears the value of the "annotations" field.
-func (eu *EntitlementUpdate) ClearAnnotations() *EntitlementUpdate {
-	eu.mutation.ClearAnnotations()
-	return eu
+func (_u *EntitlementUpdate) ClearAnnotations() *EntitlementUpdate {
+	_u.mutation.ClearAnnotations()
+	return _u
 }
 
 // AddUsageResetIDs adds the "usage_reset" edge to the UsageReset entity by IDs.
-func (eu *EntitlementUpdate) AddUsageResetIDs(ids ...string) *EntitlementUpdate {
-	eu.mutation.AddUsageResetIDs(ids...)
-	return eu
+func (_u *EntitlementUpdate) AddUsageResetIDs(ids ...string) *EntitlementUpdate {
+	_u.mutation.AddUsageResetIDs(ids...)
+	return _u
 }
 
 // AddUsageReset adds the "usage_reset" edges to the UsageReset entity.
-func (eu *EntitlementUpdate) AddUsageReset(u ...*UsageReset) *EntitlementUpdate {
-	ids := make([]string, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+func (_u *EntitlementUpdate) AddUsageReset(v ...*UsageReset) *EntitlementUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return eu.AddUsageResetIDs(ids...)
+	return _u.AddUsageResetIDs(ids...)
 }
 
 // AddGrantIDs adds the "grant" edge to the Grant entity by IDs.
-func (eu *EntitlementUpdate) AddGrantIDs(ids ...string) *EntitlementUpdate {
-	eu.mutation.AddGrantIDs(ids...)
-	return eu
+func (_u *EntitlementUpdate) AddGrantIDs(ids ...string) *EntitlementUpdate {
+	_u.mutation.AddGrantIDs(ids...)
+	return _u
 }
 
 // AddGrant adds the "grant" edges to the Grant entity.
-func (eu *EntitlementUpdate) AddGrant(g ...*Grant) *EntitlementUpdate {
-	ids := make([]string, len(g))
-	for i := range g {
-		ids[i] = g[i].ID
+func (_u *EntitlementUpdate) AddGrant(v ...*Grant) *EntitlementUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return eu.AddGrantIDs(ids...)
+	return _u.AddGrantIDs(ids...)
 }
 
 // AddBalanceSnapshotIDs adds the "balance_snapshot" edge to the BalanceSnapshot entity by IDs.
-func (eu *EntitlementUpdate) AddBalanceSnapshotIDs(ids ...int) *EntitlementUpdate {
-	eu.mutation.AddBalanceSnapshotIDs(ids...)
-	return eu
+func (_u *EntitlementUpdate) AddBalanceSnapshotIDs(ids ...int) *EntitlementUpdate {
+	_u.mutation.AddBalanceSnapshotIDs(ids...)
+	return _u
 }
 
 // AddBalanceSnapshot adds the "balance_snapshot" edges to the BalanceSnapshot entity.
-func (eu *EntitlementUpdate) AddBalanceSnapshot(b ...*BalanceSnapshot) *EntitlementUpdate {
-	ids := make([]int, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *EntitlementUpdate) AddBalanceSnapshot(v ...*BalanceSnapshot) *EntitlementUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return eu.AddBalanceSnapshotIDs(ids...)
+	return _u.AddBalanceSnapshotIDs(ids...)
 }
 
 // AddSubscriptionItemIDs adds the "subscription_item" edge to the SubscriptionItem entity by IDs.
-func (eu *EntitlementUpdate) AddSubscriptionItemIDs(ids ...string) *EntitlementUpdate {
-	eu.mutation.AddSubscriptionItemIDs(ids...)
-	return eu
+func (_u *EntitlementUpdate) AddSubscriptionItemIDs(ids ...string) *EntitlementUpdate {
+	_u.mutation.AddSubscriptionItemIDs(ids...)
+	return _u
 }
 
 // AddSubscriptionItem adds the "subscription_item" edges to the SubscriptionItem entity.
-func (eu *EntitlementUpdate) AddSubscriptionItem(s ...*SubscriptionItem) *EntitlementUpdate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_u *EntitlementUpdate) AddSubscriptionItem(v ...*SubscriptionItem) *EntitlementUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return eu.AddSubscriptionItemIDs(ids...)
+	return _u.AddSubscriptionItemIDs(ids...)
 }
 
 // Mutation returns the EntitlementMutation object of the builder.
-func (eu *EntitlementUpdate) Mutation() *EntitlementMutation {
-	return eu.mutation
+func (_u *EntitlementUpdate) Mutation() *EntitlementMutation {
+	return _u.mutation
 }
 
 // ClearUsageReset clears all "usage_reset" edges to the UsageReset entity.
-func (eu *EntitlementUpdate) ClearUsageReset() *EntitlementUpdate {
-	eu.mutation.ClearUsageReset()
-	return eu
+func (_u *EntitlementUpdate) ClearUsageReset() *EntitlementUpdate {
+	_u.mutation.ClearUsageReset()
+	return _u
 }
 
 // RemoveUsageResetIDs removes the "usage_reset" edge to UsageReset entities by IDs.
-func (eu *EntitlementUpdate) RemoveUsageResetIDs(ids ...string) *EntitlementUpdate {
-	eu.mutation.RemoveUsageResetIDs(ids...)
-	return eu
+func (_u *EntitlementUpdate) RemoveUsageResetIDs(ids ...string) *EntitlementUpdate {
+	_u.mutation.RemoveUsageResetIDs(ids...)
+	return _u
 }
 
 // RemoveUsageReset removes "usage_reset" edges to UsageReset entities.
-func (eu *EntitlementUpdate) RemoveUsageReset(u ...*UsageReset) *EntitlementUpdate {
-	ids := make([]string, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+func (_u *EntitlementUpdate) RemoveUsageReset(v ...*UsageReset) *EntitlementUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return eu.RemoveUsageResetIDs(ids...)
+	return _u.RemoveUsageResetIDs(ids...)
 }
 
 // ClearGrant clears all "grant" edges to the Grant entity.
-func (eu *EntitlementUpdate) ClearGrant() *EntitlementUpdate {
-	eu.mutation.ClearGrant()
-	return eu
+func (_u *EntitlementUpdate) ClearGrant() *EntitlementUpdate {
+	_u.mutation.ClearGrant()
+	return _u
 }
 
 // RemoveGrantIDs removes the "grant" edge to Grant entities by IDs.
-func (eu *EntitlementUpdate) RemoveGrantIDs(ids ...string) *EntitlementUpdate {
-	eu.mutation.RemoveGrantIDs(ids...)
-	return eu
+func (_u *EntitlementUpdate) RemoveGrantIDs(ids ...string) *EntitlementUpdate {
+	_u.mutation.RemoveGrantIDs(ids...)
+	return _u
 }
 
 // RemoveGrant removes "grant" edges to Grant entities.
-func (eu *EntitlementUpdate) RemoveGrant(g ...*Grant) *EntitlementUpdate {
-	ids := make([]string, len(g))
-	for i := range g {
-		ids[i] = g[i].ID
+func (_u *EntitlementUpdate) RemoveGrant(v ...*Grant) *EntitlementUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return eu.RemoveGrantIDs(ids...)
+	return _u.RemoveGrantIDs(ids...)
 }
 
 // ClearBalanceSnapshot clears all "balance_snapshot" edges to the BalanceSnapshot entity.
-func (eu *EntitlementUpdate) ClearBalanceSnapshot() *EntitlementUpdate {
-	eu.mutation.ClearBalanceSnapshot()
-	return eu
+func (_u *EntitlementUpdate) ClearBalanceSnapshot() *EntitlementUpdate {
+	_u.mutation.ClearBalanceSnapshot()
+	return _u
 }
 
 // RemoveBalanceSnapshotIDs removes the "balance_snapshot" edge to BalanceSnapshot entities by IDs.
-func (eu *EntitlementUpdate) RemoveBalanceSnapshotIDs(ids ...int) *EntitlementUpdate {
-	eu.mutation.RemoveBalanceSnapshotIDs(ids...)
-	return eu
+func (_u *EntitlementUpdate) RemoveBalanceSnapshotIDs(ids ...int) *EntitlementUpdate {
+	_u.mutation.RemoveBalanceSnapshotIDs(ids...)
+	return _u
 }
 
 // RemoveBalanceSnapshot removes "balance_snapshot" edges to BalanceSnapshot entities.
-func (eu *EntitlementUpdate) RemoveBalanceSnapshot(b ...*BalanceSnapshot) *EntitlementUpdate {
-	ids := make([]int, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *EntitlementUpdate) RemoveBalanceSnapshot(v ...*BalanceSnapshot) *EntitlementUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return eu.RemoveBalanceSnapshotIDs(ids...)
+	return _u.RemoveBalanceSnapshotIDs(ids...)
 }
 
 // ClearSubscriptionItem clears all "subscription_item" edges to the SubscriptionItem entity.
-func (eu *EntitlementUpdate) ClearSubscriptionItem() *EntitlementUpdate {
-	eu.mutation.ClearSubscriptionItem()
-	return eu
+func (_u *EntitlementUpdate) ClearSubscriptionItem() *EntitlementUpdate {
+	_u.mutation.ClearSubscriptionItem()
+	return _u
 }
 
 // RemoveSubscriptionItemIDs removes the "subscription_item" edge to SubscriptionItem entities by IDs.
-func (eu *EntitlementUpdate) RemoveSubscriptionItemIDs(ids ...string) *EntitlementUpdate {
-	eu.mutation.RemoveSubscriptionItemIDs(ids...)
-	return eu
+func (_u *EntitlementUpdate) RemoveSubscriptionItemIDs(ids ...string) *EntitlementUpdate {
+	_u.mutation.RemoveSubscriptionItemIDs(ids...)
+	return _u
 }
 
 // RemoveSubscriptionItem removes "subscription_item" edges to SubscriptionItem entities.
-func (eu *EntitlementUpdate) RemoveSubscriptionItem(s ...*SubscriptionItem) *EntitlementUpdate {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_u *EntitlementUpdate) RemoveSubscriptionItem(v ...*SubscriptionItem) *EntitlementUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return eu.RemoveSubscriptionItemIDs(ids...)
+	return _u.RemoveSubscriptionItemIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (eu *EntitlementUpdate) Save(ctx context.Context) (int, error) {
-	eu.defaults()
-	return withHooks(ctx, eu.sqlSave, eu.mutation, eu.hooks)
+func (_u *EntitlementUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (eu *EntitlementUpdate) SaveX(ctx context.Context) int {
-	affected, err := eu.Save(ctx)
+func (_u *EntitlementUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -346,128 +346,128 @@ func (eu *EntitlementUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (eu *EntitlementUpdate) Exec(ctx context.Context) error {
-	_, err := eu.Save(ctx)
+func (_u *EntitlementUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (eu *EntitlementUpdate) ExecX(ctx context.Context) {
-	if err := eu.Exec(ctx); err != nil {
+func (_u *EntitlementUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (eu *EntitlementUpdate) defaults() {
-	if _, ok := eu.mutation.UpdatedAt(); !ok {
+func (_u *EntitlementUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := entitlement.UpdateDefaultUpdatedAt()
-		eu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (eu *EntitlementUpdate) check() error {
-	if eu.mutation.FeatureCleared() && len(eu.mutation.FeatureIDs()) > 0 {
+func (_u *EntitlementUpdate) check() error {
+	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Entitlement.feature"`)
 	}
 	return nil
 }
 
-func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := eu.check(); err != nil {
-		return n, err
+func (_u *EntitlementUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(entitlement.Table, entitlement.Columns, sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString))
-	if ps := eu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := eu.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(entitlement.FieldMetadata, field.TypeJSON, value)
 	}
-	if eu.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(entitlement.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := eu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(entitlement.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := eu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(entitlement.FieldDeletedAt, field.TypeTime, value)
 	}
-	if eu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(entitlement.FieldDeletedAt, field.TypeTime)
 	}
-	if eu.mutation.ActiveFromCleared() {
+	if _u.mutation.ActiveFromCleared() {
 		_spec.ClearField(entitlement.FieldActiveFrom, field.TypeTime)
 	}
-	if value, ok := eu.mutation.ActiveTo(); ok {
+	if value, ok := _u.mutation.ActiveTo(); ok {
 		_spec.SetField(entitlement.FieldActiveTo, field.TypeTime, value)
 	}
-	if eu.mutation.ActiveToCleared() {
+	if _u.mutation.ActiveToCleared() {
 		_spec.ClearField(entitlement.FieldActiveTo, field.TypeTime)
 	}
-	if eu.mutation.MeasureUsageFromCleared() {
+	if _u.mutation.MeasureUsageFromCleared() {
 		_spec.ClearField(entitlement.FieldMeasureUsageFrom, field.TypeTime)
 	}
-	if eu.mutation.IssueAfterResetCleared() {
+	if _u.mutation.IssueAfterResetCleared() {
 		_spec.ClearField(entitlement.FieldIssueAfterReset, field.TypeFloat64)
 	}
-	if eu.mutation.IssueAfterResetPriorityCleared() {
+	if _u.mutation.IssueAfterResetPriorityCleared() {
 		_spec.ClearField(entitlement.FieldIssueAfterResetPriority, field.TypeUint8)
 	}
-	if eu.mutation.IsSoftLimitCleared() {
+	if _u.mutation.IsSoftLimitCleared() {
 		_spec.ClearField(entitlement.FieldIsSoftLimit, field.TypeBool)
 	}
-	if eu.mutation.PreserveOverageAtResetCleared() {
+	if _u.mutation.PreserveOverageAtResetCleared() {
 		_spec.ClearField(entitlement.FieldPreserveOverageAtReset, field.TypeBool)
 	}
-	if value, ok := eu.mutation.Config(); ok {
+	if value, ok := _u.mutation.Config(); ok {
 		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)
 	}
-	if value, ok := eu.mutation.AppendedConfig(); ok {
+	if value, ok := _u.mutation.AppendedConfig(); ok {
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, entitlement.FieldConfig, value)
 		})
 	}
-	if eu.mutation.ConfigCleared() {
+	if _u.mutation.ConfigCleared() {
 		_spec.ClearField(entitlement.FieldConfig, field.TypeJSON)
 	}
-	if eu.mutation.UsagePeriodIntervalCleared() {
+	if _u.mutation.UsagePeriodIntervalCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeString)
 	}
-	if value, ok := eu.mutation.UsagePeriodAnchor(); ok {
+	if value, ok := _u.mutation.UsagePeriodAnchor(); ok {
 		_spec.SetField(entitlement.FieldUsagePeriodAnchor, field.TypeTime, value)
 	}
-	if eu.mutation.UsagePeriodAnchorCleared() {
+	if _u.mutation.UsagePeriodAnchorCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodAnchor, field.TypeTime)
 	}
-	if value, ok := eu.mutation.CurrentUsagePeriodStart(); ok {
+	if value, ok := _u.mutation.CurrentUsagePeriodStart(); ok {
 		_spec.SetField(entitlement.FieldCurrentUsagePeriodStart, field.TypeTime, value)
 	}
-	if eu.mutation.CurrentUsagePeriodStartCleared() {
+	if _u.mutation.CurrentUsagePeriodStartCleared() {
 		_spec.ClearField(entitlement.FieldCurrentUsagePeriodStart, field.TypeTime)
 	}
-	if value, ok := eu.mutation.CurrentUsagePeriodEnd(); ok {
+	if value, ok := _u.mutation.CurrentUsagePeriodEnd(); ok {
 		_spec.SetField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime, value)
 	}
-	if eu.mutation.CurrentUsagePeriodEndCleared() {
+	if _u.mutation.CurrentUsagePeriodEndCleared() {
 		_spec.ClearField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime)
 	}
-	if value, ok := eu.mutation.Annotations(); ok {
+	if value, ok := _u.mutation.Annotations(); ok {
 		vv, err := entitlement.ValueScanner.Annotations.Value(value)
 		if err != nil {
 			return 0, err
 		}
 		_spec.SetField(entitlement.FieldAnnotations, field.TypeString, vv)
 	}
-	if eu.mutation.AnnotationsCleared() {
+	if _u.mutation.AnnotationsCleared() {
 		_spec.ClearField(entitlement.FieldAnnotations, field.TypeString)
 	}
-	if eu.mutation.UsageResetCleared() {
+	if _u.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -480,23 +480,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := eu.mutation.RemovedUsageResetIDs(); len(nodes) > 0 && !eu.mutation.UsageResetCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   entitlement.UsageResetTable,
-			Columns: []string{entitlement.UsageResetColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(usagereset.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := eu.mutation.UsageResetIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.RemovedUsageResetIDs(); len(nodes) > 0 && !_u.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -510,9 +494,25 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UsageResetIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.UsageResetTable,
+			Columns: []string{entitlement.UsageResetColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usagereset.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if eu.mutation.GrantCleared() {
+	if _u.mutation.GrantCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -525,7 +525,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := eu.mutation.RemovedGrantIDs(); len(nodes) > 0 && !eu.mutation.GrantCleared() {
+	if nodes := _u.mutation.RemovedGrantIDs(); len(nodes) > 0 && !_u.mutation.GrantCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -541,7 +541,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := eu.mutation.GrantIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.GrantIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -557,7 +557,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if eu.mutation.BalanceSnapshotCleared() {
+	if _u.mutation.BalanceSnapshotCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -570,7 +570,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := eu.mutation.RemovedBalanceSnapshotIDs(); len(nodes) > 0 && !eu.mutation.BalanceSnapshotCleared() {
+	if nodes := _u.mutation.RemovedBalanceSnapshotIDs(); len(nodes) > 0 && !_u.mutation.BalanceSnapshotCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -586,7 +586,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := eu.mutation.BalanceSnapshotIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BalanceSnapshotIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -602,7 +602,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if eu.mutation.SubscriptionItemCleared() {
+	if _u.mutation.SubscriptionItemCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -615,7 +615,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := eu.mutation.RemovedSubscriptionItemIDs(); len(nodes) > 0 && !eu.mutation.SubscriptionItemCleared() {
+	if nodes := _u.mutation.RemovedSubscriptionItemIDs(); len(nodes) > 0 && !_u.mutation.SubscriptionItemCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -631,7 +631,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := eu.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -647,7 +647,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, eu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{entitlement.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -655,8 +655,8 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
-	eu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // EntitlementUpdateOne is the builder for updating a single Entitlement entity.
@@ -668,324 +668,324 @@ type EntitlementUpdateOne struct {
 }
 
 // SetMetadata sets the "metadata" field.
-func (euo *EntitlementUpdateOne) SetMetadata(m map[string]string) *EntitlementUpdateOne {
-	euo.mutation.SetMetadata(m)
-	return euo
+func (_u *EntitlementUpdateOne) SetMetadata(v map[string]string) *EntitlementUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (euo *EntitlementUpdateOne) ClearMetadata() *EntitlementUpdateOne {
-	euo.mutation.ClearMetadata()
-	return euo
+func (_u *EntitlementUpdateOne) ClearMetadata() *EntitlementUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (euo *EntitlementUpdateOne) SetUpdatedAt(t time.Time) *EntitlementUpdateOne {
-	euo.mutation.SetUpdatedAt(t)
-	return euo
+func (_u *EntitlementUpdateOne) SetUpdatedAt(v time.Time) *EntitlementUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (euo *EntitlementUpdateOne) SetDeletedAt(t time.Time) *EntitlementUpdateOne {
-	euo.mutation.SetDeletedAt(t)
-	return euo
+func (_u *EntitlementUpdateOne) SetDeletedAt(v time.Time) *EntitlementUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (euo *EntitlementUpdateOne) SetNillableDeletedAt(t *time.Time) *EntitlementUpdateOne {
-	if t != nil {
-		euo.SetDeletedAt(*t)
+func (_u *EntitlementUpdateOne) SetNillableDeletedAt(v *time.Time) *EntitlementUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return euo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (euo *EntitlementUpdateOne) ClearDeletedAt() *EntitlementUpdateOne {
-	euo.mutation.ClearDeletedAt()
-	return euo
+func (_u *EntitlementUpdateOne) ClearDeletedAt() *EntitlementUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetActiveTo sets the "active_to" field.
-func (euo *EntitlementUpdateOne) SetActiveTo(t time.Time) *EntitlementUpdateOne {
-	euo.mutation.SetActiveTo(t)
-	return euo
+func (_u *EntitlementUpdateOne) SetActiveTo(v time.Time) *EntitlementUpdateOne {
+	_u.mutation.SetActiveTo(v)
+	return _u
 }
 
 // SetNillableActiveTo sets the "active_to" field if the given value is not nil.
-func (euo *EntitlementUpdateOne) SetNillableActiveTo(t *time.Time) *EntitlementUpdateOne {
-	if t != nil {
-		euo.SetActiveTo(*t)
+func (_u *EntitlementUpdateOne) SetNillableActiveTo(v *time.Time) *EntitlementUpdateOne {
+	if v != nil {
+		_u.SetActiveTo(*v)
 	}
-	return euo
+	return _u
 }
 
 // ClearActiveTo clears the value of the "active_to" field.
-func (euo *EntitlementUpdateOne) ClearActiveTo() *EntitlementUpdateOne {
-	euo.mutation.ClearActiveTo()
-	return euo
+func (_u *EntitlementUpdateOne) ClearActiveTo() *EntitlementUpdateOne {
+	_u.mutation.ClearActiveTo()
+	return _u
 }
 
 // SetConfig sets the "config" field.
-func (euo *EntitlementUpdateOne) SetConfig(u []uint8) *EntitlementUpdateOne {
-	euo.mutation.SetConfig(u)
-	return euo
+func (_u *EntitlementUpdateOne) SetConfig(v []uint8) *EntitlementUpdateOne {
+	_u.mutation.SetConfig(v)
+	return _u
 }
 
-// AppendConfig appends u to the "config" field.
-func (euo *EntitlementUpdateOne) AppendConfig(u []uint8) *EntitlementUpdateOne {
-	euo.mutation.AppendConfig(u)
-	return euo
+// AppendConfig appends value to the "config" field.
+func (_u *EntitlementUpdateOne) AppendConfig(v []uint8) *EntitlementUpdateOne {
+	_u.mutation.AppendConfig(v)
+	return _u
 }
 
 // ClearConfig clears the value of the "config" field.
-func (euo *EntitlementUpdateOne) ClearConfig() *EntitlementUpdateOne {
-	euo.mutation.ClearConfig()
-	return euo
+func (_u *EntitlementUpdateOne) ClearConfig() *EntitlementUpdateOne {
+	_u.mutation.ClearConfig()
+	return _u
 }
 
 // SetUsagePeriodAnchor sets the "usage_period_anchor" field.
-func (euo *EntitlementUpdateOne) SetUsagePeriodAnchor(t time.Time) *EntitlementUpdateOne {
-	euo.mutation.SetUsagePeriodAnchor(t)
-	return euo
+func (_u *EntitlementUpdateOne) SetUsagePeriodAnchor(v time.Time) *EntitlementUpdateOne {
+	_u.mutation.SetUsagePeriodAnchor(v)
+	return _u
 }
 
 // SetNillableUsagePeriodAnchor sets the "usage_period_anchor" field if the given value is not nil.
-func (euo *EntitlementUpdateOne) SetNillableUsagePeriodAnchor(t *time.Time) *EntitlementUpdateOne {
-	if t != nil {
-		euo.SetUsagePeriodAnchor(*t)
+func (_u *EntitlementUpdateOne) SetNillableUsagePeriodAnchor(v *time.Time) *EntitlementUpdateOne {
+	if v != nil {
+		_u.SetUsagePeriodAnchor(*v)
 	}
-	return euo
+	return _u
 }
 
 // ClearUsagePeriodAnchor clears the value of the "usage_period_anchor" field.
-func (euo *EntitlementUpdateOne) ClearUsagePeriodAnchor() *EntitlementUpdateOne {
-	euo.mutation.ClearUsagePeriodAnchor()
-	return euo
+func (_u *EntitlementUpdateOne) ClearUsagePeriodAnchor() *EntitlementUpdateOne {
+	_u.mutation.ClearUsagePeriodAnchor()
+	return _u
 }
 
 // SetCurrentUsagePeriodStart sets the "current_usage_period_start" field.
-func (euo *EntitlementUpdateOne) SetCurrentUsagePeriodStart(t time.Time) *EntitlementUpdateOne {
-	euo.mutation.SetCurrentUsagePeriodStart(t)
-	return euo
+func (_u *EntitlementUpdateOne) SetCurrentUsagePeriodStart(v time.Time) *EntitlementUpdateOne {
+	_u.mutation.SetCurrentUsagePeriodStart(v)
+	return _u
 }
 
 // SetNillableCurrentUsagePeriodStart sets the "current_usage_period_start" field if the given value is not nil.
-func (euo *EntitlementUpdateOne) SetNillableCurrentUsagePeriodStart(t *time.Time) *EntitlementUpdateOne {
-	if t != nil {
-		euo.SetCurrentUsagePeriodStart(*t)
+func (_u *EntitlementUpdateOne) SetNillableCurrentUsagePeriodStart(v *time.Time) *EntitlementUpdateOne {
+	if v != nil {
+		_u.SetCurrentUsagePeriodStart(*v)
 	}
-	return euo
+	return _u
 }
 
 // ClearCurrentUsagePeriodStart clears the value of the "current_usage_period_start" field.
-func (euo *EntitlementUpdateOne) ClearCurrentUsagePeriodStart() *EntitlementUpdateOne {
-	euo.mutation.ClearCurrentUsagePeriodStart()
-	return euo
+func (_u *EntitlementUpdateOne) ClearCurrentUsagePeriodStart() *EntitlementUpdateOne {
+	_u.mutation.ClearCurrentUsagePeriodStart()
+	return _u
 }
 
 // SetCurrentUsagePeriodEnd sets the "current_usage_period_end" field.
-func (euo *EntitlementUpdateOne) SetCurrentUsagePeriodEnd(t time.Time) *EntitlementUpdateOne {
-	euo.mutation.SetCurrentUsagePeriodEnd(t)
-	return euo
+func (_u *EntitlementUpdateOne) SetCurrentUsagePeriodEnd(v time.Time) *EntitlementUpdateOne {
+	_u.mutation.SetCurrentUsagePeriodEnd(v)
+	return _u
 }
 
 // SetNillableCurrentUsagePeriodEnd sets the "current_usage_period_end" field if the given value is not nil.
-func (euo *EntitlementUpdateOne) SetNillableCurrentUsagePeriodEnd(t *time.Time) *EntitlementUpdateOne {
-	if t != nil {
-		euo.SetCurrentUsagePeriodEnd(*t)
+func (_u *EntitlementUpdateOne) SetNillableCurrentUsagePeriodEnd(v *time.Time) *EntitlementUpdateOne {
+	if v != nil {
+		_u.SetCurrentUsagePeriodEnd(*v)
 	}
-	return euo
+	return _u
 }
 
 // ClearCurrentUsagePeriodEnd clears the value of the "current_usage_period_end" field.
-func (euo *EntitlementUpdateOne) ClearCurrentUsagePeriodEnd() *EntitlementUpdateOne {
-	euo.mutation.ClearCurrentUsagePeriodEnd()
-	return euo
+func (_u *EntitlementUpdateOne) ClearCurrentUsagePeriodEnd() *EntitlementUpdateOne {
+	_u.mutation.ClearCurrentUsagePeriodEnd()
+	return _u
 }
 
 // SetAnnotations sets the "annotations" field.
-func (euo *EntitlementUpdateOne) SetAnnotations(m map[string]interface{}) *EntitlementUpdateOne {
-	euo.mutation.SetAnnotations(m)
-	return euo
+func (_u *EntitlementUpdateOne) SetAnnotations(v map[string]interface{}) *EntitlementUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
 }
 
 // ClearAnnotations clears the value of the "annotations" field.
-func (euo *EntitlementUpdateOne) ClearAnnotations() *EntitlementUpdateOne {
-	euo.mutation.ClearAnnotations()
-	return euo
+func (_u *EntitlementUpdateOne) ClearAnnotations() *EntitlementUpdateOne {
+	_u.mutation.ClearAnnotations()
+	return _u
 }
 
 // AddUsageResetIDs adds the "usage_reset" edge to the UsageReset entity by IDs.
-func (euo *EntitlementUpdateOne) AddUsageResetIDs(ids ...string) *EntitlementUpdateOne {
-	euo.mutation.AddUsageResetIDs(ids...)
-	return euo
+func (_u *EntitlementUpdateOne) AddUsageResetIDs(ids ...string) *EntitlementUpdateOne {
+	_u.mutation.AddUsageResetIDs(ids...)
+	return _u
 }
 
 // AddUsageReset adds the "usage_reset" edges to the UsageReset entity.
-func (euo *EntitlementUpdateOne) AddUsageReset(u ...*UsageReset) *EntitlementUpdateOne {
-	ids := make([]string, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+func (_u *EntitlementUpdateOne) AddUsageReset(v ...*UsageReset) *EntitlementUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return euo.AddUsageResetIDs(ids...)
+	return _u.AddUsageResetIDs(ids...)
 }
 
 // AddGrantIDs adds the "grant" edge to the Grant entity by IDs.
-func (euo *EntitlementUpdateOne) AddGrantIDs(ids ...string) *EntitlementUpdateOne {
-	euo.mutation.AddGrantIDs(ids...)
-	return euo
+func (_u *EntitlementUpdateOne) AddGrantIDs(ids ...string) *EntitlementUpdateOne {
+	_u.mutation.AddGrantIDs(ids...)
+	return _u
 }
 
 // AddGrant adds the "grant" edges to the Grant entity.
-func (euo *EntitlementUpdateOne) AddGrant(g ...*Grant) *EntitlementUpdateOne {
-	ids := make([]string, len(g))
-	for i := range g {
-		ids[i] = g[i].ID
+func (_u *EntitlementUpdateOne) AddGrant(v ...*Grant) *EntitlementUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return euo.AddGrantIDs(ids...)
+	return _u.AddGrantIDs(ids...)
 }
 
 // AddBalanceSnapshotIDs adds the "balance_snapshot" edge to the BalanceSnapshot entity by IDs.
-func (euo *EntitlementUpdateOne) AddBalanceSnapshotIDs(ids ...int) *EntitlementUpdateOne {
-	euo.mutation.AddBalanceSnapshotIDs(ids...)
-	return euo
+func (_u *EntitlementUpdateOne) AddBalanceSnapshotIDs(ids ...int) *EntitlementUpdateOne {
+	_u.mutation.AddBalanceSnapshotIDs(ids...)
+	return _u
 }
 
 // AddBalanceSnapshot adds the "balance_snapshot" edges to the BalanceSnapshot entity.
-func (euo *EntitlementUpdateOne) AddBalanceSnapshot(b ...*BalanceSnapshot) *EntitlementUpdateOne {
-	ids := make([]int, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *EntitlementUpdateOne) AddBalanceSnapshot(v ...*BalanceSnapshot) *EntitlementUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return euo.AddBalanceSnapshotIDs(ids...)
+	return _u.AddBalanceSnapshotIDs(ids...)
 }
 
 // AddSubscriptionItemIDs adds the "subscription_item" edge to the SubscriptionItem entity by IDs.
-func (euo *EntitlementUpdateOne) AddSubscriptionItemIDs(ids ...string) *EntitlementUpdateOne {
-	euo.mutation.AddSubscriptionItemIDs(ids...)
-	return euo
+func (_u *EntitlementUpdateOne) AddSubscriptionItemIDs(ids ...string) *EntitlementUpdateOne {
+	_u.mutation.AddSubscriptionItemIDs(ids...)
+	return _u
 }
 
 // AddSubscriptionItem adds the "subscription_item" edges to the SubscriptionItem entity.
-func (euo *EntitlementUpdateOne) AddSubscriptionItem(s ...*SubscriptionItem) *EntitlementUpdateOne {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_u *EntitlementUpdateOne) AddSubscriptionItem(v ...*SubscriptionItem) *EntitlementUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return euo.AddSubscriptionItemIDs(ids...)
+	return _u.AddSubscriptionItemIDs(ids...)
 }
 
 // Mutation returns the EntitlementMutation object of the builder.
-func (euo *EntitlementUpdateOne) Mutation() *EntitlementMutation {
-	return euo.mutation
+func (_u *EntitlementUpdateOne) Mutation() *EntitlementMutation {
+	return _u.mutation
 }
 
 // ClearUsageReset clears all "usage_reset" edges to the UsageReset entity.
-func (euo *EntitlementUpdateOne) ClearUsageReset() *EntitlementUpdateOne {
-	euo.mutation.ClearUsageReset()
-	return euo
+func (_u *EntitlementUpdateOne) ClearUsageReset() *EntitlementUpdateOne {
+	_u.mutation.ClearUsageReset()
+	return _u
 }
 
 // RemoveUsageResetIDs removes the "usage_reset" edge to UsageReset entities by IDs.
-func (euo *EntitlementUpdateOne) RemoveUsageResetIDs(ids ...string) *EntitlementUpdateOne {
-	euo.mutation.RemoveUsageResetIDs(ids...)
-	return euo
+func (_u *EntitlementUpdateOne) RemoveUsageResetIDs(ids ...string) *EntitlementUpdateOne {
+	_u.mutation.RemoveUsageResetIDs(ids...)
+	return _u
 }
 
 // RemoveUsageReset removes "usage_reset" edges to UsageReset entities.
-func (euo *EntitlementUpdateOne) RemoveUsageReset(u ...*UsageReset) *EntitlementUpdateOne {
-	ids := make([]string, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+func (_u *EntitlementUpdateOne) RemoveUsageReset(v ...*UsageReset) *EntitlementUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return euo.RemoveUsageResetIDs(ids...)
+	return _u.RemoveUsageResetIDs(ids...)
 }
 
 // ClearGrant clears all "grant" edges to the Grant entity.
-func (euo *EntitlementUpdateOne) ClearGrant() *EntitlementUpdateOne {
-	euo.mutation.ClearGrant()
-	return euo
+func (_u *EntitlementUpdateOne) ClearGrant() *EntitlementUpdateOne {
+	_u.mutation.ClearGrant()
+	return _u
 }
 
 // RemoveGrantIDs removes the "grant" edge to Grant entities by IDs.
-func (euo *EntitlementUpdateOne) RemoveGrantIDs(ids ...string) *EntitlementUpdateOne {
-	euo.mutation.RemoveGrantIDs(ids...)
-	return euo
+func (_u *EntitlementUpdateOne) RemoveGrantIDs(ids ...string) *EntitlementUpdateOne {
+	_u.mutation.RemoveGrantIDs(ids...)
+	return _u
 }
 
 // RemoveGrant removes "grant" edges to Grant entities.
-func (euo *EntitlementUpdateOne) RemoveGrant(g ...*Grant) *EntitlementUpdateOne {
-	ids := make([]string, len(g))
-	for i := range g {
-		ids[i] = g[i].ID
+func (_u *EntitlementUpdateOne) RemoveGrant(v ...*Grant) *EntitlementUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return euo.RemoveGrantIDs(ids...)
+	return _u.RemoveGrantIDs(ids...)
 }
 
 // ClearBalanceSnapshot clears all "balance_snapshot" edges to the BalanceSnapshot entity.
-func (euo *EntitlementUpdateOne) ClearBalanceSnapshot() *EntitlementUpdateOne {
-	euo.mutation.ClearBalanceSnapshot()
-	return euo
+func (_u *EntitlementUpdateOne) ClearBalanceSnapshot() *EntitlementUpdateOne {
+	_u.mutation.ClearBalanceSnapshot()
+	return _u
 }
 
 // RemoveBalanceSnapshotIDs removes the "balance_snapshot" edge to BalanceSnapshot entities by IDs.
-func (euo *EntitlementUpdateOne) RemoveBalanceSnapshotIDs(ids ...int) *EntitlementUpdateOne {
-	euo.mutation.RemoveBalanceSnapshotIDs(ids...)
-	return euo
+func (_u *EntitlementUpdateOne) RemoveBalanceSnapshotIDs(ids ...int) *EntitlementUpdateOne {
+	_u.mutation.RemoveBalanceSnapshotIDs(ids...)
+	return _u
 }
 
 // RemoveBalanceSnapshot removes "balance_snapshot" edges to BalanceSnapshot entities.
-func (euo *EntitlementUpdateOne) RemoveBalanceSnapshot(b ...*BalanceSnapshot) *EntitlementUpdateOne {
-	ids := make([]int, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_u *EntitlementUpdateOne) RemoveBalanceSnapshot(v ...*BalanceSnapshot) *EntitlementUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return euo.RemoveBalanceSnapshotIDs(ids...)
+	return _u.RemoveBalanceSnapshotIDs(ids...)
 }
 
 // ClearSubscriptionItem clears all "subscription_item" edges to the SubscriptionItem entity.
-func (euo *EntitlementUpdateOne) ClearSubscriptionItem() *EntitlementUpdateOne {
-	euo.mutation.ClearSubscriptionItem()
-	return euo
+func (_u *EntitlementUpdateOne) ClearSubscriptionItem() *EntitlementUpdateOne {
+	_u.mutation.ClearSubscriptionItem()
+	return _u
 }
 
 // RemoveSubscriptionItemIDs removes the "subscription_item" edge to SubscriptionItem entities by IDs.
-func (euo *EntitlementUpdateOne) RemoveSubscriptionItemIDs(ids ...string) *EntitlementUpdateOne {
-	euo.mutation.RemoveSubscriptionItemIDs(ids...)
-	return euo
+func (_u *EntitlementUpdateOne) RemoveSubscriptionItemIDs(ids ...string) *EntitlementUpdateOne {
+	_u.mutation.RemoveSubscriptionItemIDs(ids...)
+	return _u
 }
 
 // RemoveSubscriptionItem removes "subscription_item" edges to SubscriptionItem entities.
-func (euo *EntitlementUpdateOne) RemoveSubscriptionItem(s ...*SubscriptionItem) *EntitlementUpdateOne {
-	ids := make([]string, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+func (_u *EntitlementUpdateOne) RemoveSubscriptionItem(v ...*SubscriptionItem) *EntitlementUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return euo.RemoveSubscriptionItemIDs(ids...)
+	return _u.RemoveSubscriptionItemIDs(ids...)
 }
 
 // Where appends a list predicates to the EntitlementUpdate builder.
-func (euo *EntitlementUpdateOne) Where(ps ...predicate.Entitlement) *EntitlementUpdateOne {
-	euo.mutation.Where(ps...)
-	return euo
+func (_u *EntitlementUpdateOne) Where(ps ...predicate.Entitlement) *EntitlementUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (euo *EntitlementUpdateOne) Select(field string, fields ...string) *EntitlementUpdateOne {
-	euo.fields = append([]string{field}, fields...)
-	return euo
+func (_u *EntitlementUpdateOne) Select(field string, fields ...string) *EntitlementUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated Entitlement entity.
-func (euo *EntitlementUpdateOne) Save(ctx context.Context) (*Entitlement, error) {
-	euo.defaults()
-	return withHooks(ctx, euo.sqlSave, euo.mutation, euo.hooks)
+func (_u *EntitlementUpdateOne) Save(ctx context.Context) (*Entitlement, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (euo *EntitlementUpdateOne) SaveX(ctx context.Context) *Entitlement {
-	node, err := euo.Save(ctx)
+func (_u *EntitlementUpdateOne) SaveX(ctx context.Context) *Entitlement {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -993,45 +993,45 @@ func (euo *EntitlementUpdateOne) SaveX(ctx context.Context) *Entitlement {
 }
 
 // Exec executes the query on the entity.
-func (euo *EntitlementUpdateOne) Exec(ctx context.Context) error {
-	_, err := euo.Save(ctx)
+func (_u *EntitlementUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (euo *EntitlementUpdateOne) ExecX(ctx context.Context) {
-	if err := euo.Exec(ctx); err != nil {
+func (_u *EntitlementUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (euo *EntitlementUpdateOne) defaults() {
-	if _, ok := euo.mutation.UpdatedAt(); !ok {
+func (_u *EntitlementUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := entitlement.UpdateDefaultUpdatedAt()
-		euo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (euo *EntitlementUpdateOne) check() error {
-	if euo.mutation.FeatureCleared() && len(euo.mutation.FeatureIDs()) > 0 {
+func (_u *EntitlementUpdateOne) check() error {
+	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Entitlement.feature"`)
 	}
 	return nil
 }
 
-func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlement, err error) {
-	if err := euo.check(); err != nil {
+func (_u *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlement, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(entitlement.Table, entitlement.Columns, sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString))
-	id, ok := euo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "Entitlement.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := euo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, entitlement.FieldID)
 		for _, f := range fields {
@@ -1043,95 +1043,95 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 			}
 		}
 	}
-	if ps := euo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := euo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(entitlement.FieldMetadata, field.TypeJSON, value)
 	}
-	if euo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(entitlement.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := euo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(entitlement.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := euo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(entitlement.FieldDeletedAt, field.TypeTime, value)
 	}
-	if euo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(entitlement.FieldDeletedAt, field.TypeTime)
 	}
-	if euo.mutation.ActiveFromCleared() {
+	if _u.mutation.ActiveFromCleared() {
 		_spec.ClearField(entitlement.FieldActiveFrom, field.TypeTime)
 	}
-	if value, ok := euo.mutation.ActiveTo(); ok {
+	if value, ok := _u.mutation.ActiveTo(); ok {
 		_spec.SetField(entitlement.FieldActiveTo, field.TypeTime, value)
 	}
-	if euo.mutation.ActiveToCleared() {
+	if _u.mutation.ActiveToCleared() {
 		_spec.ClearField(entitlement.FieldActiveTo, field.TypeTime)
 	}
-	if euo.mutation.MeasureUsageFromCleared() {
+	if _u.mutation.MeasureUsageFromCleared() {
 		_spec.ClearField(entitlement.FieldMeasureUsageFrom, field.TypeTime)
 	}
-	if euo.mutation.IssueAfterResetCleared() {
+	if _u.mutation.IssueAfterResetCleared() {
 		_spec.ClearField(entitlement.FieldIssueAfterReset, field.TypeFloat64)
 	}
-	if euo.mutation.IssueAfterResetPriorityCleared() {
+	if _u.mutation.IssueAfterResetPriorityCleared() {
 		_spec.ClearField(entitlement.FieldIssueAfterResetPriority, field.TypeUint8)
 	}
-	if euo.mutation.IsSoftLimitCleared() {
+	if _u.mutation.IsSoftLimitCleared() {
 		_spec.ClearField(entitlement.FieldIsSoftLimit, field.TypeBool)
 	}
-	if euo.mutation.PreserveOverageAtResetCleared() {
+	if _u.mutation.PreserveOverageAtResetCleared() {
 		_spec.ClearField(entitlement.FieldPreserveOverageAtReset, field.TypeBool)
 	}
-	if value, ok := euo.mutation.Config(); ok {
+	if value, ok := _u.mutation.Config(); ok {
 		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)
 	}
-	if value, ok := euo.mutation.AppendedConfig(); ok {
+	if value, ok := _u.mutation.AppendedConfig(); ok {
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, entitlement.FieldConfig, value)
 		})
 	}
-	if euo.mutation.ConfigCleared() {
+	if _u.mutation.ConfigCleared() {
 		_spec.ClearField(entitlement.FieldConfig, field.TypeJSON)
 	}
-	if euo.mutation.UsagePeriodIntervalCleared() {
+	if _u.mutation.UsagePeriodIntervalCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeString)
 	}
-	if value, ok := euo.mutation.UsagePeriodAnchor(); ok {
+	if value, ok := _u.mutation.UsagePeriodAnchor(); ok {
 		_spec.SetField(entitlement.FieldUsagePeriodAnchor, field.TypeTime, value)
 	}
-	if euo.mutation.UsagePeriodAnchorCleared() {
+	if _u.mutation.UsagePeriodAnchorCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodAnchor, field.TypeTime)
 	}
-	if value, ok := euo.mutation.CurrentUsagePeriodStart(); ok {
+	if value, ok := _u.mutation.CurrentUsagePeriodStart(); ok {
 		_spec.SetField(entitlement.FieldCurrentUsagePeriodStart, field.TypeTime, value)
 	}
-	if euo.mutation.CurrentUsagePeriodStartCleared() {
+	if _u.mutation.CurrentUsagePeriodStartCleared() {
 		_spec.ClearField(entitlement.FieldCurrentUsagePeriodStart, field.TypeTime)
 	}
-	if value, ok := euo.mutation.CurrentUsagePeriodEnd(); ok {
+	if value, ok := _u.mutation.CurrentUsagePeriodEnd(); ok {
 		_spec.SetField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime, value)
 	}
-	if euo.mutation.CurrentUsagePeriodEndCleared() {
+	if _u.mutation.CurrentUsagePeriodEndCleared() {
 		_spec.ClearField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime)
 	}
-	if value, ok := euo.mutation.Annotations(); ok {
+	if value, ok := _u.mutation.Annotations(); ok {
 		vv, err := entitlement.ValueScanner.Annotations.Value(value)
 		if err != nil {
 			return nil, err
 		}
 		_spec.SetField(entitlement.FieldAnnotations, field.TypeString, vv)
 	}
-	if euo.mutation.AnnotationsCleared() {
+	if _u.mutation.AnnotationsCleared() {
 		_spec.ClearField(entitlement.FieldAnnotations, field.TypeString)
 	}
-	if euo.mutation.UsageResetCleared() {
+	if _u.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1144,23 +1144,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := euo.mutation.RemovedUsageResetIDs(); len(nodes) > 0 && !euo.mutation.UsageResetCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   entitlement.UsageResetTable,
-			Columns: []string{entitlement.UsageResetColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(usagereset.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := euo.mutation.UsageResetIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.RemovedUsageResetIDs(); len(nodes) > 0 && !_u.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1174,9 +1158,25 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UsageResetIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.UsageResetTable,
+			Columns: []string{entitlement.UsageResetColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usagereset.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if euo.mutation.GrantCleared() {
+	if _u.mutation.GrantCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1189,7 +1189,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := euo.mutation.RemovedGrantIDs(); len(nodes) > 0 && !euo.mutation.GrantCleared() {
+	if nodes := _u.mutation.RemovedGrantIDs(); len(nodes) > 0 && !_u.mutation.GrantCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1205,7 +1205,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := euo.mutation.GrantIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.GrantIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1221,7 +1221,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if euo.mutation.BalanceSnapshotCleared() {
+	if _u.mutation.BalanceSnapshotCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1234,7 +1234,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := euo.mutation.RemovedBalanceSnapshotIDs(); len(nodes) > 0 && !euo.mutation.BalanceSnapshotCleared() {
+	if nodes := _u.mutation.RemovedBalanceSnapshotIDs(); len(nodes) > 0 && !_u.mutation.BalanceSnapshotCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1250,7 +1250,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := euo.mutation.BalanceSnapshotIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BalanceSnapshotIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1266,7 +1266,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if euo.mutation.SubscriptionItemCleared() {
+	if _u.mutation.SubscriptionItemCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1279,7 +1279,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := euo.mutation.RemovedSubscriptionItemIDs(); len(nodes) > 0 && !euo.mutation.SubscriptionItemCleared() {
+	if nodes := _u.mutation.RemovedSubscriptionItemIDs(); len(nodes) > 0 && !_u.mutation.SubscriptionItemCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1295,7 +1295,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := euo.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1311,10 +1311,10 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &Entitlement{config: euo.config}
+	_node = &Entitlement{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, euo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{entitlement.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -1322,6 +1322,6 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		}
 		return nil, err
 	}
-	euo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

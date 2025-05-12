@@ -20,56 +20,56 @@ type NotificationEventDelete struct {
 }
 
 // Where appends a list predicates to the NotificationEventDelete builder.
-func (ned *NotificationEventDelete) Where(ps ...predicate.NotificationEvent) *NotificationEventDelete {
-	ned.mutation.Where(ps...)
-	return ned
+func (_d *NotificationEventDelete) Where(ps ...predicate.NotificationEvent) *NotificationEventDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (ned *NotificationEventDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, ned.sqlExec, ned.mutation, ned.hooks)
+func (_d *NotificationEventDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (ned *NotificationEventDelete) ExecX(ctx context.Context) int {
-	n, err := ned.Exec(ctx)
+func (_d *NotificationEventDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (ned *NotificationEventDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *NotificationEventDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(notificationevent.Table, sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString))
-	if ps := ned.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, ned.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	ned.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // NotificationEventDeleteOne is the builder for deleting a single NotificationEvent entity.
 type NotificationEventDeleteOne struct {
-	ned *NotificationEventDelete
+	_d *NotificationEventDelete
 }
 
 // Where appends a list predicates to the NotificationEventDelete builder.
-func (nedo *NotificationEventDeleteOne) Where(ps ...predicate.NotificationEvent) *NotificationEventDeleteOne {
-	nedo.ned.mutation.Where(ps...)
-	return nedo
+func (_d *NotificationEventDeleteOne) Where(ps ...predicate.NotificationEvent) *NotificationEventDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (nedo *NotificationEventDeleteOne) Exec(ctx context.Context) error {
-	n, err := nedo.ned.Exec(ctx)
+func (_d *NotificationEventDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (nedo *NotificationEventDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nedo *NotificationEventDeleteOne) ExecX(ctx context.Context) {
-	if err := nedo.Exec(ctx); err != nil {
+func (_d *NotificationEventDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

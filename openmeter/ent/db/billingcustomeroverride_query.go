@@ -34,44 +34,44 @@ type BillingCustomerOverrideQuery struct {
 }
 
 // Where adds a new predicate for the BillingCustomerOverrideQuery builder.
-func (bcoq *BillingCustomerOverrideQuery) Where(ps ...predicate.BillingCustomerOverride) *BillingCustomerOverrideQuery {
-	bcoq.predicates = append(bcoq.predicates, ps...)
-	return bcoq
+func (_q *BillingCustomerOverrideQuery) Where(ps ...predicate.BillingCustomerOverride) *BillingCustomerOverrideQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (bcoq *BillingCustomerOverrideQuery) Limit(limit int) *BillingCustomerOverrideQuery {
-	bcoq.ctx.Limit = &limit
-	return bcoq
+func (_q *BillingCustomerOverrideQuery) Limit(limit int) *BillingCustomerOverrideQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (bcoq *BillingCustomerOverrideQuery) Offset(offset int) *BillingCustomerOverrideQuery {
-	bcoq.ctx.Offset = &offset
-	return bcoq
+func (_q *BillingCustomerOverrideQuery) Offset(offset int) *BillingCustomerOverrideQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (bcoq *BillingCustomerOverrideQuery) Unique(unique bool) *BillingCustomerOverrideQuery {
-	bcoq.ctx.Unique = &unique
-	return bcoq
+func (_q *BillingCustomerOverrideQuery) Unique(unique bool) *BillingCustomerOverrideQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (bcoq *BillingCustomerOverrideQuery) Order(o ...billingcustomeroverride.OrderOption) *BillingCustomerOverrideQuery {
-	bcoq.order = append(bcoq.order, o...)
-	return bcoq
+func (_q *BillingCustomerOverrideQuery) Order(o ...billingcustomeroverride.OrderOption) *BillingCustomerOverrideQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryCustomer chains the current query on the "customer" edge.
-func (bcoq *BillingCustomerOverrideQuery) QueryCustomer() *CustomerQuery {
-	query := (&CustomerClient{config: bcoq.config}).Query()
+func (_q *BillingCustomerOverrideQuery) QueryCustomer() *CustomerQuery {
+	query := (&CustomerClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bcoq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := bcoq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -80,20 +80,20 @@ func (bcoq *BillingCustomerOverrideQuery) QueryCustomer() *CustomerQuery {
 			sqlgraph.To(customer.Table, customer.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, billingcustomeroverride.CustomerTable, billingcustomeroverride.CustomerColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(bcoq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBillingProfile chains the current query on the "billing_profile" edge.
-func (bcoq *BillingCustomerOverrideQuery) QueryBillingProfile() *BillingProfileQuery {
-	query := (&BillingProfileClient{config: bcoq.config}).Query()
+func (_q *BillingCustomerOverrideQuery) QueryBillingProfile() *BillingProfileQuery {
+	query := (&BillingProfileClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bcoq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := bcoq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func (bcoq *BillingCustomerOverrideQuery) QueryBillingProfile() *BillingProfileQ
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingcustomeroverride.BillingProfileTable, billingcustomeroverride.BillingProfileColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(bcoq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -110,8 +110,8 @@ func (bcoq *BillingCustomerOverrideQuery) QueryBillingProfile() *BillingProfileQ
 
 // First returns the first BillingCustomerOverride entity from the query.
 // Returns a *NotFoundError when no BillingCustomerOverride was found.
-func (bcoq *BillingCustomerOverrideQuery) First(ctx context.Context) (*BillingCustomerOverride, error) {
-	nodes, err := bcoq.Limit(1).All(setContextOp(ctx, bcoq.ctx, ent.OpQueryFirst))
+func (_q *BillingCustomerOverrideQuery) First(ctx context.Context) (*BillingCustomerOverride, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -122,8 +122,8 @@ func (bcoq *BillingCustomerOverrideQuery) First(ctx context.Context) (*BillingCu
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (bcoq *BillingCustomerOverrideQuery) FirstX(ctx context.Context) *BillingCustomerOverride {
-	node, err := bcoq.First(ctx)
+func (_q *BillingCustomerOverrideQuery) FirstX(ctx context.Context) *BillingCustomerOverride {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -132,9 +132,9 @@ func (bcoq *BillingCustomerOverrideQuery) FirstX(ctx context.Context) *BillingCu
 
 // FirstID returns the first BillingCustomerOverride ID from the query.
 // Returns a *NotFoundError when no BillingCustomerOverride ID was found.
-func (bcoq *BillingCustomerOverrideQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *BillingCustomerOverrideQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = bcoq.Limit(1).IDs(setContextOp(ctx, bcoq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -145,8 +145,8 @@ func (bcoq *BillingCustomerOverrideQuery) FirstID(ctx context.Context) (id strin
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (bcoq *BillingCustomerOverrideQuery) FirstIDX(ctx context.Context) string {
-	id, err := bcoq.FirstID(ctx)
+func (_q *BillingCustomerOverrideQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -156,8 +156,8 @@ func (bcoq *BillingCustomerOverrideQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single BillingCustomerOverride entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one BillingCustomerOverride entity is found.
 // Returns a *NotFoundError when no BillingCustomerOverride entities are found.
-func (bcoq *BillingCustomerOverrideQuery) Only(ctx context.Context) (*BillingCustomerOverride, error) {
-	nodes, err := bcoq.Limit(2).All(setContextOp(ctx, bcoq.ctx, ent.OpQueryOnly))
+func (_q *BillingCustomerOverrideQuery) Only(ctx context.Context) (*BillingCustomerOverride, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -172,8 +172,8 @@ func (bcoq *BillingCustomerOverrideQuery) Only(ctx context.Context) (*BillingCus
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (bcoq *BillingCustomerOverrideQuery) OnlyX(ctx context.Context) *BillingCustomerOverride {
-	node, err := bcoq.Only(ctx)
+func (_q *BillingCustomerOverrideQuery) OnlyX(ctx context.Context) *BillingCustomerOverride {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -183,9 +183,9 @@ func (bcoq *BillingCustomerOverrideQuery) OnlyX(ctx context.Context) *BillingCus
 // OnlyID is like Only, but returns the only BillingCustomerOverride ID in the query.
 // Returns a *NotSingularError when more than one BillingCustomerOverride ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (bcoq *BillingCustomerOverrideQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *BillingCustomerOverrideQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = bcoq.Limit(2).IDs(setContextOp(ctx, bcoq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -200,8 +200,8 @@ func (bcoq *BillingCustomerOverrideQuery) OnlyID(ctx context.Context) (id string
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (bcoq *BillingCustomerOverrideQuery) OnlyIDX(ctx context.Context) string {
-	id, err := bcoq.OnlyID(ctx)
+func (_q *BillingCustomerOverrideQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -209,18 +209,18 @@ func (bcoq *BillingCustomerOverrideQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of BillingCustomerOverrides.
-func (bcoq *BillingCustomerOverrideQuery) All(ctx context.Context) ([]*BillingCustomerOverride, error) {
-	ctx = setContextOp(ctx, bcoq.ctx, ent.OpQueryAll)
-	if err := bcoq.prepareQuery(ctx); err != nil {
+func (_q *BillingCustomerOverrideQuery) All(ctx context.Context) ([]*BillingCustomerOverride, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*BillingCustomerOverride, *BillingCustomerOverrideQuery]()
-	return withInterceptors[[]*BillingCustomerOverride](ctx, bcoq, qr, bcoq.inters)
+	return withInterceptors[[]*BillingCustomerOverride](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (bcoq *BillingCustomerOverrideQuery) AllX(ctx context.Context) []*BillingCustomerOverride {
-	nodes, err := bcoq.All(ctx)
+func (_q *BillingCustomerOverrideQuery) AllX(ctx context.Context) []*BillingCustomerOverride {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -228,20 +228,20 @@ func (bcoq *BillingCustomerOverrideQuery) AllX(ctx context.Context) []*BillingCu
 }
 
 // IDs executes the query and returns a list of BillingCustomerOverride IDs.
-func (bcoq *BillingCustomerOverrideQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if bcoq.ctx.Unique == nil && bcoq.path != nil {
-		bcoq.Unique(true)
+func (_q *BillingCustomerOverrideQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, bcoq.ctx, ent.OpQueryIDs)
-	if err = bcoq.Select(billingcustomeroverride.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(billingcustomeroverride.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (bcoq *BillingCustomerOverrideQuery) IDsX(ctx context.Context) []string {
-	ids, err := bcoq.IDs(ctx)
+func (_q *BillingCustomerOverrideQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -249,17 +249,17 @@ func (bcoq *BillingCustomerOverrideQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (bcoq *BillingCustomerOverrideQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, bcoq.ctx, ent.OpQueryCount)
-	if err := bcoq.prepareQuery(ctx); err != nil {
+func (_q *BillingCustomerOverrideQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, bcoq, querierCount[*BillingCustomerOverrideQuery](), bcoq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BillingCustomerOverrideQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (bcoq *BillingCustomerOverrideQuery) CountX(ctx context.Context) int {
-	count, err := bcoq.Count(ctx)
+func (_q *BillingCustomerOverrideQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -267,9 +267,9 @@ func (bcoq *BillingCustomerOverrideQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (bcoq *BillingCustomerOverrideQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, bcoq.ctx, ent.OpQueryExist)
-	switch _, err := bcoq.FirstID(ctx); {
+func (_q *BillingCustomerOverrideQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -280,8 +280,8 @@ func (bcoq *BillingCustomerOverrideQuery) Exist(ctx context.Context) (bool, erro
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (bcoq *BillingCustomerOverrideQuery) ExistX(ctx context.Context) bool {
-	exist, err := bcoq.Exist(ctx)
+func (_q *BillingCustomerOverrideQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -290,44 +290,44 @@ func (bcoq *BillingCustomerOverrideQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the BillingCustomerOverrideQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (bcoq *BillingCustomerOverrideQuery) Clone() *BillingCustomerOverrideQuery {
-	if bcoq == nil {
+func (_q *BillingCustomerOverrideQuery) Clone() *BillingCustomerOverrideQuery {
+	if _q == nil {
 		return nil
 	}
 	return &BillingCustomerOverrideQuery{
-		config:             bcoq.config,
-		ctx:                bcoq.ctx.Clone(),
-		order:              append([]billingcustomeroverride.OrderOption{}, bcoq.order...),
-		inters:             append([]Interceptor{}, bcoq.inters...),
-		predicates:         append([]predicate.BillingCustomerOverride{}, bcoq.predicates...),
-		withCustomer:       bcoq.withCustomer.Clone(),
-		withBillingProfile: bcoq.withBillingProfile.Clone(),
+		config:             _q.config,
+		ctx:                _q.ctx.Clone(),
+		order:              append([]billingcustomeroverride.OrderOption{}, _q.order...),
+		inters:             append([]Interceptor{}, _q.inters...),
+		predicates:         append([]predicate.BillingCustomerOverride{}, _q.predicates...),
+		withCustomer:       _q.withCustomer.Clone(),
+		withBillingProfile: _q.withBillingProfile.Clone(),
 		// clone intermediate query.
-		sql:  bcoq.sql.Clone(),
-		path: bcoq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithCustomer tells the query-builder to eager-load the nodes that are connected to
 // the "customer" edge. The optional arguments are used to configure the query builder of the edge.
-func (bcoq *BillingCustomerOverrideQuery) WithCustomer(opts ...func(*CustomerQuery)) *BillingCustomerOverrideQuery {
-	query := (&CustomerClient{config: bcoq.config}).Query()
+func (_q *BillingCustomerOverrideQuery) WithCustomer(opts ...func(*CustomerQuery)) *BillingCustomerOverrideQuery {
+	query := (&CustomerClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bcoq.withCustomer = query
-	return bcoq
+	_q.withCustomer = query
+	return _q
 }
 
 // WithBillingProfile tells the query-builder to eager-load the nodes that are connected to
 // the "billing_profile" edge. The optional arguments are used to configure the query builder of the edge.
-func (bcoq *BillingCustomerOverrideQuery) WithBillingProfile(opts ...func(*BillingProfileQuery)) *BillingCustomerOverrideQuery {
-	query := (&BillingProfileClient{config: bcoq.config}).Query()
+func (_q *BillingCustomerOverrideQuery) WithBillingProfile(opts ...func(*BillingProfileQuery)) *BillingCustomerOverrideQuery {
+	query := (&BillingProfileClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	bcoq.withBillingProfile = query
-	return bcoq
+	_q.withBillingProfile = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -344,10 +344,10 @@ func (bcoq *BillingCustomerOverrideQuery) WithBillingProfile(opts ...func(*Billi
 //		GroupBy(billingcustomeroverride.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (bcoq *BillingCustomerOverrideQuery) GroupBy(field string, fields ...string) *BillingCustomerOverrideGroupBy {
-	bcoq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &BillingCustomerOverrideGroupBy{build: bcoq}
-	grbuild.flds = &bcoq.ctx.Fields
+func (_q *BillingCustomerOverrideQuery) GroupBy(field string, fields ...string) *BillingCustomerOverrideGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &BillingCustomerOverrideGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = billingcustomeroverride.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -365,83 +365,83 @@ func (bcoq *BillingCustomerOverrideQuery) GroupBy(field string, fields ...string
 //	client.BillingCustomerOverride.Query().
 //		Select(billingcustomeroverride.FieldNamespace).
 //		Scan(ctx, &v)
-func (bcoq *BillingCustomerOverrideQuery) Select(fields ...string) *BillingCustomerOverrideSelect {
-	bcoq.ctx.Fields = append(bcoq.ctx.Fields, fields...)
-	sbuild := &BillingCustomerOverrideSelect{BillingCustomerOverrideQuery: bcoq}
+func (_q *BillingCustomerOverrideQuery) Select(fields ...string) *BillingCustomerOverrideSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &BillingCustomerOverrideSelect{BillingCustomerOverrideQuery: _q}
 	sbuild.label = billingcustomeroverride.Label
-	sbuild.flds, sbuild.scan = &bcoq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a BillingCustomerOverrideSelect configured with the given aggregations.
-func (bcoq *BillingCustomerOverrideQuery) Aggregate(fns ...AggregateFunc) *BillingCustomerOverrideSelect {
-	return bcoq.Select().Aggregate(fns...)
+func (_q *BillingCustomerOverrideQuery) Aggregate(fns ...AggregateFunc) *BillingCustomerOverrideSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (bcoq *BillingCustomerOverrideQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range bcoq.inters {
+func (_q *BillingCustomerOverrideQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, bcoq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range bcoq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !billingcustomeroverride.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if bcoq.path != nil {
-		prev, err := bcoq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		bcoq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (bcoq *BillingCustomerOverrideQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingCustomerOverride, error) {
+func (_q *BillingCustomerOverrideQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingCustomerOverride, error) {
 	var (
 		nodes       = []*BillingCustomerOverride{}
-		_spec       = bcoq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			bcoq.withCustomer != nil,
-			bcoq.withBillingProfile != nil,
+			_q.withCustomer != nil,
+			_q.withBillingProfile != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingCustomerOverride).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &BillingCustomerOverride{config: bcoq.config}
+		node := &BillingCustomerOverride{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(bcoq.modifiers) > 0 {
-		_spec.Modifiers = bcoq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, bcoq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := bcoq.withCustomer; query != nil {
-		if err := bcoq.loadCustomer(ctx, query, nodes, nil,
+	if query := _q.withCustomer; query != nil {
+		if err := _q.loadCustomer(ctx, query, nodes, nil,
 			func(n *BillingCustomerOverride, e *Customer) { n.Edges.Customer = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := bcoq.withBillingProfile; query != nil {
-		if err := bcoq.loadBillingProfile(ctx, query, nodes, nil,
+	if query := _q.withBillingProfile; query != nil {
+		if err := _q.loadBillingProfile(ctx, query, nodes, nil,
 			func(n *BillingCustomerOverride, e *BillingProfile) { n.Edges.BillingProfile = e }); err != nil {
 			return nil, err
 		}
@@ -449,7 +449,7 @@ func (bcoq *BillingCustomerOverrideQuery) sqlAll(ctx context.Context, hooks ...q
 	return nodes, nil
 }
 
-func (bcoq *BillingCustomerOverrideQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*BillingCustomerOverride, init func(*BillingCustomerOverride), assign func(*BillingCustomerOverride, *Customer)) error {
+func (_q *BillingCustomerOverrideQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*BillingCustomerOverride, init func(*BillingCustomerOverride), assign func(*BillingCustomerOverride, *Customer)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingCustomerOverride)
 	for i := range nodes {
@@ -478,7 +478,7 @@ func (bcoq *BillingCustomerOverrideQuery) loadCustomer(ctx context.Context, quer
 	}
 	return nil
 }
-func (bcoq *BillingCustomerOverrideQuery) loadBillingProfile(ctx context.Context, query *BillingProfileQuery, nodes []*BillingCustomerOverride, init func(*BillingCustomerOverride), assign func(*BillingCustomerOverride, *BillingProfile)) error {
+func (_q *BillingCustomerOverrideQuery) loadBillingProfile(ctx context.Context, query *BillingProfileQuery, nodes []*BillingCustomerOverride, init func(*BillingCustomerOverride), assign func(*BillingCustomerOverride, *BillingProfile)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingCustomerOverride)
 	for i := range nodes {
@@ -511,27 +511,27 @@ func (bcoq *BillingCustomerOverrideQuery) loadBillingProfile(ctx context.Context
 	return nil
 }
 
-func (bcoq *BillingCustomerOverrideQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := bcoq.querySpec()
-	if len(bcoq.modifiers) > 0 {
-		_spec.Modifiers = bcoq.modifiers
+func (_q *BillingCustomerOverrideQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = bcoq.ctx.Fields
-	if len(bcoq.ctx.Fields) > 0 {
-		_spec.Unique = bcoq.ctx.Unique != nil && *bcoq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, bcoq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (bcoq *BillingCustomerOverrideQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *BillingCustomerOverrideQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(billingcustomeroverride.Table, billingcustomeroverride.Columns, sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString))
-	_spec.From = bcoq.sql
-	if unique := bcoq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if bcoq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := bcoq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billingcustomeroverride.FieldID)
 		for i := range fields {
@@ -539,27 +539,27 @@ func (bcoq *BillingCustomerOverrideQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if bcoq.withCustomer != nil {
+		if _q.withCustomer != nil {
 			_spec.Node.AddColumnOnce(billingcustomeroverride.FieldCustomerID)
 		}
-		if bcoq.withBillingProfile != nil {
+		if _q.withBillingProfile != nil {
 			_spec.Node.AddColumnOnce(billingcustomeroverride.FieldBillingProfileID)
 		}
 	}
-	if ps := bcoq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := bcoq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := bcoq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := bcoq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -569,36 +569,36 @@ func (bcoq *BillingCustomerOverrideQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (bcoq *BillingCustomerOverrideQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(bcoq.driver.Dialect())
+func (_q *BillingCustomerOverrideQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(billingcustomeroverride.Table)
-	columns := bcoq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = billingcustomeroverride.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if bcoq.sql != nil {
-		selector = bcoq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if bcoq.ctx.Unique != nil && *bcoq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range bcoq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range bcoq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range bcoq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := bcoq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := bcoq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -607,27 +607,27 @@ func (bcoq *BillingCustomerOverrideQuery) sqlQuery(ctx context.Context) *sql.Sel
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (bcoq *BillingCustomerOverrideQuery) ForUpdate(opts ...sql.LockOption) *BillingCustomerOverrideQuery {
-	if bcoq.driver.Dialect() == dialect.Postgres {
-		bcoq.Unique(false)
+func (_q *BillingCustomerOverrideQuery) ForUpdate(opts ...sql.LockOption) *BillingCustomerOverrideQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bcoq.modifiers = append(bcoq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return bcoq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (bcoq *BillingCustomerOverrideQuery) ForShare(opts ...sql.LockOption) *BillingCustomerOverrideQuery {
-	if bcoq.driver.Dialect() == dialect.Postgres {
-		bcoq.Unique(false)
+func (_q *BillingCustomerOverrideQuery) ForShare(opts ...sql.LockOption) *BillingCustomerOverrideQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	bcoq.modifiers = append(bcoq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return bcoq
+	return _q
 }
 
 // BillingCustomerOverrideGroupBy is the group-by builder for BillingCustomerOverride entities.

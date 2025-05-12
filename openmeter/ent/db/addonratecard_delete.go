@@ -20,56 +20,56 @@ type AddonRateCardDelete struct {
 }
 
 // Where appends a list predicates to the AddonRateCardDelete builder.
-func (arcd *AddonRateCardDelete) Where(ps ...predicate.AddonRateCard) *AddonRateCardDelete {
-	arcd.mutation.Where(ps...)
-	return arcd
+func (_d *AddonRateCardDelete) Where(ps ...predicate.AddonRateCard) *AddonRateCardDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (arcd *AddonRateCardDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, arcd.sqlExec, arcd.mutation, arcd.hooks)
+func (_d *AddonRateCardDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (arcd *AddonRateCardDelete) ExecX(ctx context.Context) int {
-	n, err := arcd.Exec(ctx)
+func (_d *AddonRateCardDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (arcd *AddonRateCardDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *AddonRateCardDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(addonratecard.Table, sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString))
-	if ps := arcd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, arcd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	arcd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // AddonRateCardDeleteOne is the builder for deleting a single AddonRateCard entity.
 type AddonRateCardDeleteOne struct {
-	arcd *AddonRateCardDelete
+	_d *AddonRateCardDelete
 }
 
 // Where appends a list predicates to the AddonRateCardDelete builder.
-func (arcdo *AddonRateCardDeleteOne) Where(ps ...predicate.AddonRateCard) *AddonRateCardDeleteOne {
-	arcdo.arcd.mutation.Where(ps...)
-	return arcdo
+func (_d *AddonRateCardDeleteOne) Where(ps ...predicate.AddonRateCard) *AddonRateCardDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (arcdo *AddonRateCardDeleteOne) Exec(ctx context.Context) error {
-	n, err := arcdo.arcd.Exec(ctx)
+func (_d *AddonRateCardDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (arcdo *AddonRateCardDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (arcdo *AddonRateCardDeleteOne) ExecX(ctx context.Context) {
-	if err := arcdo.Exec(ctx); err != nil {
+func (_d *AddonRateCardDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

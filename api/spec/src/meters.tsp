@@ -137,6 +137,19 @@ interface Meters {
     _: string;
   } | NotFoundError | CommonErrors;
 
+  @post
+  @route("/{meterIdOrSlug}/query")
+  @operationId("queryMeterPost")
+  @summary("Query meter")
+  @sharedRoute
+  query(
+    @path meterIdOrSlug: MeterIdentifier,
+    @body request: MeterQueryRequest,
+  ): {
+    @header contentType: "application/json";
+    @body _: MeterQueryResult;
+  } | NotFoundError | CommonErrors;
+
   /**
    * List subjects for a meter.
    */
@@ -368,7 +381,6 @@ model MeterQuery {
    * For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
    */
   @query(#{ explode: true, style: "deepObject" })
-  @example(#{ `model`: "gpt-4-turbo", type: "prompt" })
   filterGroupBy?: Record<string>;
 
   /**
@@ -379,6 +391,69 @@ model MeterQuery {
    */
   @query(#{ explode: true })
   @example(#["model", "type"])
+  groupBy?: string[];
+}
+
+/**
+ * A meter query request.
+ */
+@friendlyName("MeterQueryRequest")
+model MeterQueryRequest {
+  /**
+   * Client ID
+   * Useful to track progress of a query.
+   */
+  @example("f74e58ed-94ce-4041-ae06-cf45420451a3")
+  @minLength(1)
+  @maxLength(36)
+  clientId?: string;
+
+  /**
+   * Start date-time in RFC 3339 format.
+   *
+   * Inclusive.
+   */
+  from?: DateTime;
+
+  /**
+   * End date-time in RFC 3339 format.
+   *
+   * Inclusive.
+   */
+  to?: DateTime;
+
+  /**
+   * If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+   */
+  @example(WindowSize.DAY)
+  windowSize?: WindowSize;
+
+  /**
+   * The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+   * If not specified, the UTC timezone will be used.
+   */
+  @example("UTC")
+  windowTimeZone?: string = "UTC";
+
+  /**
+   * Filtering by multiple subjects.
+   */
+  @example(#["customer-1", "customer-2"])
+  @maxItems(100)
+  subject?: string[];
+
+  /**
+   * Simple filter for group bys with exact match.
+   */
+  @example(#{ `model`: #["gpt-4-turbo", "gpt-4o"], type: #["prompt"] })
+  filterGroupBy?: Record<string[]>;
+
+  /**
+   * If not specified a single aggregate will be returned for each subject and time window.
+   * `subject` is a reserved group by value.
+   */
+  @example(#["model", "type"])
+  @maxItems(100)
   groupBy?: string[];
 }
 

@@ -27,143 +27,143 @@ type NotificationRuleCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (nrc *NotificationRuleCreate) SetNamespace(s string) *NotificationRuleCreate {
-	nrc.mutation.SetNamespace(s)
-	return nrc
+func (_c *NotificationRuleCreate) SetNamespace(v string) *NotificationRuleCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (nrc *NotificationRuleCreate) SetCreatedAt(t time.Time) *NotificationRuleCreate {
-	nrc.mutation.SetCreatedAt(t)
-	return nrc
+func (_c *NotificationRuleCreate) SetCreatedAt(v time.Time) *NotificationRuleCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (nrc *NotificationRuleCreate) SetNillableCreatedAt(t *time.Time) *NotificationRuleCreate {
-	if t != nil {
-		nrc.SetCreatedAt(*t)
+func (_c *NotificationRuleCreate) SetNillableCreatedAt(v *time.Time) *NotificationRuleCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return nrc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (nrc *NotificationRuleCreate) SetUpdatedAt(t time.Time) *NotificationRuleCreate {
-	nrc.mutation.SetUpdatedAt(t)
-	return nrc
+func (_c *NotificationRuleCreate) SetUpdatedAt(v time.Time) *NotificationRuleCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (nrc *NotificationRuleCreate) SetNillableUpdatedAt(t *time.Time) *NotificationRuleCreate {
-	if t != nil {
-		nrc.SetUpdatedAt(*t)
+func (_c *NotificationRuleCreate) SetNillableUpdatedAt(v *time.Time) *NotificationRuleCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return nrc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (nrc *NotificationRuleCreate) SetDeletedAt(t time.Time) *NotificationRuleCreate {
-	nrc.mutation.SetDeletedAt(t)
-	return nrc
+func (_c *NotificationRuleCreate) SetDeletedAt(v time.Time) *NotificationRuleCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (nrc *NotificationRuleCreate) SetNillableDeletedAt(t *time.Time) *NotificationRuleCreate {
-	if t != nil {
-		nrc.SetDeletedAt(*t)
+func (_c *NotificationRuleCreate) SetNillableDeletedAt(v *time.Time) *NotificationRuleCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return nrc
+	return _c
 }
 
 // SetType sets the "type" field.
-func (nrc *NotificationRuleCreate) SetType(nt notification.EventType) *NotificationRuleCreate {
-	nrc.mutation.SetType(nt)
-	return nrc
+func (_c *NotificationRuleCreate) SetType(v notification.EventType) *NotificationRuleCreate {
+	_c.mutation.SetType(v)
+	return _c
 }
 
 // SetName sets the "name" field.
-func (nrc *NotificationRuleCreate) SetName(s string) *NotificationRuleCreate {
-	nrc.mutation.SetName(s)
-	return nrc
+func (_c *NotificationRuleCreate) SetName(v string) *NotificationRuleCreate {
+	_c.mutation.SetName(v)
+	return _c
 }
 
 // SetDisabled sets the "disabled" field.
-func (nrc *NotificationRuleCreate) SetDisabled(b bool) *NotificationRuleCreate {
-	nrc.mutation.SetDisabled(b)
-	return nrc
+func (_c *NotificationRuleCreate) SetDisabled(v bool) *NotificationRuleCreate {
+	_c.mutation.SetDisabled(v)
+	return _c
 }
 
 // SetNillableDisabled sets the "disabled" field if the given value is not nil.
-func (nrc *NotificationRuleCreate) SetNillableDisabled(b *bool) *NotificationRuleCreate {
-	if b != nil {
-		nrc.SetDisabled(*b)
+func (_c *NotificationRuleCreate) SetNillableDisabled(v *bool) *NotificationRuleCreate {
+	if v != nil {
+		_c.SetDisabled(*v)
 	}
-	return nrc
+	return _c
 }
 
 // SetConfig sets the "config" field.
-func (nrc *NotificationRuleCreate) SetConfig(nc notification.RuleConfig) *NotificationRuleCreate {
-	nrc.mutation.SetConfig(nc)
-	return nrc
+func (_c *NotificationRuleCreate) SetConfig(v notification.RuleConfig) *NotificationRuleCreate {
+	_c.mutation.SetConfig(v)
+	return _c
 }
 
 // SetID sets the "id" field.
-func (nrc *NotificationRuleCreate) SetID(s string) *NotificationRuleCreate {
-	nrc.mutation.SetID(s)
-	return nrc
+func (_c *NotificationRuleCreate) SetID(v string) *NotificationRuleCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (nrc *NotificationRuleCreate) SetNillableID(s *string) *NotificationRuleCreate {
-	if s != nil {
-		nrc.SetID(*s)
+func (_c *NotificationRuleCreate) SetNillableID(v *string) *NotificationRuleCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return nrc
+	return _c
 }
 
 // AddChannelIDs adds the "channels" edge to the NotificationChannel entity by IDs.
-func (nrc *NotificationRuleCreate) AddChannelIDs(ids ...string) *NotificationRuleCreate {
-	nrc.mutation.AddChannelIDs(ids...)
-	return nrc
+func (_c *NotificationRuleCreate) AddChannelIDs(ids ...string) *NotificationRuleCreate {
+	_c.mutation.AddChannelIDs(ids...)
+	return _c
 }
 
 // AddChannels adds the "channels" edges to the NotificationChannel entity.
-func (nrc *NotificationRuleCreate) AddChannels(n ...*NotificationChannel) *NotificationRuleCreate {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_c *NotificationRuleCreate) AddChannels(v ...*NotificationChannel) *NotificationRuleCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nrc.AddChannelIDs(ids...)
+	return _c.AddChannelIDs(ids...)
 }
 
 // AddEventIDs adds the "events" edge to the NotificationEvent entity by IDs.
-func (nrc *NotificationRuleCreate) AddEventIDs(ids ...string) *NotificationRuleCreate {
-	nrc.mutation.AddEventIDs(ids...)
-	return nrc
+func (_c *NotificationRuleCreate) AddEventIDs(ids ...string) *NotificationRuleCreate {
+	_c.mutation.AddEventIDs(ids...)
+	return _c
 }
 
 // AddEvents adds the "events" edges to the NotificationEvent entity.
-func (nrc *NotificationRuleCreate) AddEvents(n ...*NotificationEvent) *NotificationRuleCreate {
-	ids := make([]string, len(n))
-	for i := range n {
-		ids[i] = n[i].ID
+func (_c *NotificationRuleCreate) AddEvents(v ...*NotificationEvent) *NotificationRuleCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return nrc.AddEventIDs(ids...)
+	return _c.AddEventIDs(ids...)
 }
 
 // Mutation returns the NotificationRuleMutation object of the builder.
-func (nrc *NotificationRuleCreate) Mutation() *NotificationRuleMutation {
-	return nrc.mutation
+func (_c *NotificationRuleCreate) Mutation() *NotificationRuleMutation {
+	return _c.mutation
 }
 
 // Save creates the NotificationRule in the database.
-func (nrc *NotificationRuleCreate) Save(ctx context.Context) (*NotificationRule, error) {
-	nrc.defaults()
-	return withHooks(ctx, nrc.sqlSave, nrc.mutation, nrc.hooks)
+func (_c *NotificationRuleCreate) Save(ctx context.Context) (*NotificationRule, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (nrc *NotificationRuleCreate) SaveX(ctx context.Context) *NotificationRule {
-	v, err := nrc.Save(ctx)
+func (_c *NotificationRuleCreate) SaveX(ctx context.Context) *NotificationRule {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -171,85 +171,85 @@ func (nrc *NotificationRuleCreate) SaveX(ctx context.Context) *NotificationRule 
 }
 
 // Exec executes the query.
-func (nrc *NotificationRuleCreate) Exec(ctx context.Context) error {
-	_, err := nrc.Save(ctx)
+func (_c *NotificationRuleCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nrc *NotificationRuleCreate) ExecX(ctx context.Context) {
-	if err := nrc.Exec(ctx); err != nil {
+func (_c *NotificationRuleCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (nrc *NotificationRuleCreate) defaults() {
-	if _, ok := nrc.mutation.CreatedAt(); !ok {
+func (_c *NotificationRuleCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := notificationrule.DefaultCreatedAt()
-		nrc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := nrc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := notificationrule.DefaultUpdatedAt()
-		nrc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := nrc.mutation.Disabled(); !ok {
+	if _, ok := _c.mutation.Disabled(); !ok {
 		v := notificationrule.DefaultDisabled
-		nrc.mutation.SetDisabled(v)
+		_c.mutation.SetDisabled(v)
 	}
-	if _, ok := nrc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := notificationrule.DefaultID()
-		nrc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (nrc *NotificationRuleCreate) check() error {
-	if _, ok := nrc.mutation.Namespace(); !ok {
+func (_c *NotificationRuleCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "NotificationRule.namespace"`)}
 	}
-	if v, ok := nrc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := notificationrule.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "NotificationRule.namespace": %w`, err)}
 		}
 	}
-	if _, ok := nrc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "NotificationRule.created_at"`)}
 	}
-	if _, ok := nrc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "NotificationRule.updated_at"`)}
 	}
-	if _, ok := nrc.mutation.GetType(); !ok {
+	if _, ok := _c.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "NotificationRule.type"`)}
 	}
-	if v, ok := nrc.mutation.GetType(); ok {
+	if v, ok := _c.mutation.GetType(); ok {
 		if err := notificationrule.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "NotificationRule.type": %w`, err)}
 		}
 	}
-	if _, ok := nrc.mutation.Name(); !ok {
+	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "NotificationRule.name"`)}
 	}
-	if v, ok := nrc.mutation.Name(); ok {
+	if v, ok := _c.mutation.Name(); ok {
 		if err := notificationrule.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationRule.name": %w`, err)}
 		}
 	}
-	if _, ok := nrc.mutation.Config(); !ok {
+	if _, ok := _c.mutation.Config(); !ok {
 		return &ValidationError{Name: "config", err: errors.New(`db: missing required field "NotificationRule.config"`)}
 	}
 	return nil
 }
 
-func (nrc *NotificationRuleCreate) sqlSave(ctx context.Context) (*NotificationRule, error) {
-	if err := nrc.check(); err != nil {
+func (_c *NotificationRuleCreate) sqlSave(ctx context.Context) (*NotificationRule, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec, err := nrc.createSpec()
+	_node, _spec, err := _c.createSpec()
 	if err != nil {
 		return nil, err
 	}
-	if err := sqlgraph.CreateNode(ctx, nrc.driver, _spec); err != nil {
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -262,50 +262,50 @@ func (nrc *NotificationRuleCreate) sqlSave(ctx context.Context) (*NotificationRu
 			return nil, fmt.Errorf("unexpected NotificationRule.ID type: %T", _spec.ID.Value)
 		}
 	}
-	nrc.mutation.id = &_node.ID
-	nrc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (nrc *NotificationRuleCreate) createSpec() (*NotificationRule, *sqlgraph.CreateSpec, error) {
+func (_c *NotificationRuleCreate) createSpec() (*NotificationRule, *sqlgraph.CreateSpec, error) {
 	var (
-		_node = &NotificationRule{config: nrc.config}
+		_node = &NotificationRule{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(notificationrule.Table, sqlgraph.NewFieldSpec(notificationrule.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = nrc.conflict
-	if id, ok := nrc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := nrc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(notificationrule.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := nrc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(notificationrule.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := nrc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(notificationrule.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := nrc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(notificationrule.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := nrc.mutation.GetType(); ok {
+	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(notificationrule.FieldType, field.TypeEnum, value)
 		_node.Type = value
 	}
-	if value, ok := nrc.mutation.Name(); ok {
+	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(notificationrule.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := nrc.mutation.Disabled(); ok {
+	if value, ok := _c.mutation.Disabled(); ok {
 		_spec.SetField(notificationrule.FieldDisabled, field.TypeBool, value)
 		_node.Disabled = value
 	}
-	if value, ok := nrc.mutation.Config(); ok {
+	if value, ok := _c.mutation.Config(); ok {
 		vv, err := notificationrule.ValueScanner.Config.Value(value)
 		if err != nil {
 			return nil, nil, err
@@ -313,7 +313,7 @@ func (nrc *NotificationRuleCreate) createSpec() (*NotificationRule, *sqlgraph.Cr
 		_spec.SetField(notificationrule.FieldConfig, field.TypeString, vv)
 		_node.Config = value
 	}
-	if nodes := nrc.mutation.ChannelsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.ChannelsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
@@ -329,7 +329,7 @@ func (nrc *NotificationRuleCreate) createSpec() (*NotificationRule, *sqlgraph.Cr
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := nrc.mutation.EventsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.EventsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -364,10 +364,10 @@ func (nrc *NotificationRuleCreate) createSpec() (*NotificationRule, *sqlgraph.Cr
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (nrc *NotificationRuleCreate) OnConflict(opts ...sql.ConflictOption) *NotificationRuleUpsertOne {
-	nrc.conflict = opts
+func (_c *NotificationRuleCreate) OnConflict(opts ...sql.ConflictOption) *NotificationRuleUpsertOne {
+	_c.conflict = opts
 	return &NotificationRuleUpsertOne{
-		create: nrc,
+		create: _c,
 	}
 }
 
@@ -377,10 +377,10 @@ func (nrc *NotificationRuleCreate) OnConflict(opts ...sql.ConflictOption) *Notif
 //	client.NotificationRule.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (nrc *NotificationRuleCreate) OnConflictColumns(columns ...string) *NotificationRuleUpsertOne {
-	nrc.conflict = append(nrc.conflict, sql.ConflictColumns(columns...))
+func (_c *NotificationRuleCreate) OnConflictColumns(columns ...string) *NotificationRuleUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &NotificationRuleUpsertOne{
-		create: nrc,
+		create: _c,
 	}
 }
 
@@ -657,16 +657,16 @@ type NotificationRuleCreateBulk struct {
 }
 
 // Save creates the NotificationRule entities in the database.
-func (nrcb *NotificationRuleCreateBulk) Save(ctx context.Context) ([]*NotificationRule, error) {
-	if nrcb.err != nil {
-		return nil, nrcb.err
+func (_c *NotificationRuleCreateBulk) Save(ctx context.Context) ([]*NotificationRule, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(nrcb.builders))
-	nodes := make([]*NotificationRule, len(nrcb.builders))
-	mutators := make([]Mutator, len(nrcb.builders))
-	for i := range nrcb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*NotificationRule, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := nrcb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*NotificationRuleMutation)
@@ -683,12 +683,12 @@ func (nrcb *NotificationRuleCreateBulk) Save(ctx context.Context) ([]*Notificati
 					return nil, err
 				}
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, nrcb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = nrcb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, nrcb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -708,7 +708,7 @@ func (nrcb *NotificationRuleCreateBulk) Save(ctx context.Context) ([]*Notificati
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, nrcb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -716,8 +716,8 @@ func (nrcb *NotificationRuleCreateBulk) Save(ctx context.Context) ([]*Notificati
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (nrcb *NotificationRuleCreateBulk) SaveX(ctx context.Context) []*NotificationRule {
-	v, err := nrcb.Save(ctx)
+func (_c *NotificationRuleCreateBulk) SaveX(ctx context.Context) []*NotificationRule {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -725,14 +725,14 @@ func (nrcb *NotificationRuleCreateBulk) SaveX(ctx context.Context) []*Notificati
 }
 
 // Exec executes the query.
-func (nrcb *NotificationRuleCreateBulk) Exec(ctx context.Context) error {
-	_, err := nrcb.Save(ctx)
+func (_c *NotificationRuleCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (nrcb *NotificationRuleCreateBulk) ExecX(ctx context.Context) {
-	if err := nrcb.Exec(ctx); err != nil {
+func (_c *NotificationRuleCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -752,10 +752,10 @@ func (nrcb *NotificationRuleCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (nrcb *NotificationRuleCreateBulk) OnConflict(opts ...sql.ConflictOption) *NotificationRuleUpsertBulk {
-	nrcb.conflict = opts
+func (_c *NotificationRuleCreateBulk) OnConflict(opts ...sql.ConflictOption) *NotificationRuleUpsertBulk {
+	_c.conflict = opts
 	return &NotificationRuleUpsertBulk{
-		create: nrcb,
+		create: _c,
 	}
 }
 
@@ -765,10 +765,10 @@ func (nrcb *NotificationRuleCreateBulk) OnConflict(opts ...sql.ConflictOption) *
 //	client.NotificationRule.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (nrcb *NotificationRuleCreateBulk) OnConflictColumns(columns ...string) *NotificationRuleUpsertBulk {
-	nrcb.conflict = append(nrcb.conflict, sql.ConflictColumns(columns...))
+func (_c *NotificationRuleCreateBulk) OnConflictColumns(columns ...string) *NotificationRuleUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &NotificationRuleUpsertBulk{
-		create: nrcb,
+		create: _c,
 	}
 }
 

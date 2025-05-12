@@ -2,11 +2,15 @@ package notification
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
@@ -14,6 +18,7 @@ import (
 	notificationadapter "github.com/openmeterio/openmeter/openmeter/notification/adapter"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	webhooksvix "github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -22,7 +27,6 @@ import (
 )
 
 const (
-	TestNamespace   = "default"
 	TestMeterSlug   = "api-call"
 	TestFeatureName = "API Requests"
 	TestFeatureKey  = "api-call"
@@ -40,6 +44,14 @@ const (
 	SvixServerURLTemplate = "http://%s:8071"
 )
 
+func NewTestULID(t *testing.T) string {
+	t.Helper()
+
+	return ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String()
+}
+
+var NewTestNamespace = NewTestULID
+
 type TestEnv interface {
 	NotificationRepo() notification.Repository
 	Notification() notification.Service
@@ -47,6 +59,8 @@ type TestEnv interface {
 
 	Feature() feature.FeatureConnector
 	Meter() *meteradapter.TestAdapter
+
+	Namespace() string
 
 	Close() error
 }
@@ -60,6 +74,8 @@ type testEnv struct {
 
 	feature feature.FeatureConnector
 	meter   *meteradapter.TestAdapter
+
+	namespace string
 
 	closerFunc func() error
 }
@@ -88,6 +104,10 @@ func (n testEnv) Meter() *meteradapter.TestAdapter {
 	return n.meter
 }
 
+func (n testEnv) Namespace() string {
+	return n.namespace
+}
+
 const (
 	DefaultSvixHost             = "127.0.0.1"
 	DefaultSvixJWTSigningSecret = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds"
@@ -113,7 +133,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"))
 	featureConnector := feature.NewFeatureConnector(featureAdapter, meterService, eventbus.NewMock(t))
 
-	repo, err := notificationadapter.New(notificationadapter.Config{
+	adapter, err := notificationadapter.New(notificationadapter.Config{
 		Client: entClient,
 		Logger: logger.WithGroup("postgres"),
 	})
@@ -133,8 +153,8 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 
 	logger.Info("Svix API key", slog.String("apiKey", svixAPIKey))
 
-	webhook, err := notificationwebhook.New(notificationwebhook.Config{
-		SvixConfig: notificationwebhook.SvixConfig{
+	webhook, err := webhooksvix.New(webhooksvix.Config{
+		SvixConfig: webhooksvix.SvixConfig{
 			APIKey:    svixAPIKey,
 			ServerURL: fmt.Sprintf(SvixServerURLTemplate, svixHost),
 			Debug:     false,
@@ -146,7 +166,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	}
 
 	service, err := notificationservice.New(notificationservice.Config{
-		Repository:       repo,
+		Adapter:          adapter,
 		FeatureConnector: featureConnector,
 		Webhook:          webhook,
 		Logger:           logger.With(slog.String("subsystem", "notification")),
@@ -174,11 +194,12 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	}
 
 	return &testEnv{
-		notificationRepo: repo,
+		notificationRepo: adapter,
 		notification:     service,
 		webhook:          webhook,
 		feature:          featureConnector,
 		meter:            meterService,
+		namespace:        namespace,
 		closerFunc:       closerFunc,
 	}, nil
 }

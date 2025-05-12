@@ -37,11 +37,11 @@ func ToAPIMeter(m meter.Meter) api.Meter {
 }
 
 // ToAPIMeterQueryResult constructs an api.MeterQueryResult
-func ToAPIMeterQueryResult(apiParams api.QueryMeterParams, rows []meter.MeterQueryRow) api.MeterQueryResult {
+func ToAPIMeterQueryResult(from *time.Time, to *time.Time, windowSize *api.WindowSize, rows []meter.MeterQueryRow) api.MeterQueryResult {
 	return api.MeterQueryResult{
-		From:       apiParams.From,
-		To:         apiParams.To,
-		WindowSize: apiParams.WindowSize,
+		From:       from,
+		To:         to,
+		WindowSize: windowSize,
 		Data:       ToAPIMeterQueryRowList(rows),
 	}
 }
@@ -69,20 +69,43 @@ func ToAPIMeterQueryRowList(rows []meter.MeterQueryRow) []api.MeterQueryRow {
 	return apiRows
 }
 
-// ToQueryMeterParams converts a api.QueryMeterParams to a streaming.QueryParams.
-func ToQueryMeterParams(m meter.Meter, apiParams api.QueryMeterParams) (streaming.QueryParams, error) {
+// ToQueryParamsFromAPIParams converts a api.QueryMeterParams to a streaming.QueryParams.
+func ToQueryParamsFromAPIParams(m meter.Meter, apiParams api.QueryMeterParams) (streaming.QueryParams, error) {
+	request := api.QueryMeterPostJSONRequestBody{
+		ClientId:       apiParams.ClientId,
+		From:           apiParams.From,
+		To:             apiParams.To,
+		Subject:        apiParams.Subject,
+		GroupBy:        apiParams.GroupBy,
+		WindowSize:     apiParams.WindowSize,
+		WindowTimeZone: apiParams.WindowTimeZone,
+	}
+
+	if apiParams.FilterGroupBy != nil {
+		filterGroupBy := map[string][]string{}
+		for k, v := range *apiParams.FilterGroupBy {
+			filterGroupBy[k] = []string{v}
+		}
+		request.FilterGroupBy = &filterGroupBy
+	}
+
+	return ToQueryParamsFromRequest(m, request)
+}
+
+// ToQueryParamsFromRequest converts a api.QueryMeterPostJSONRequestBody to a streaming.QueryParams.
+func ToQueryParamsFromRequest(m meter.Meter, request api.QueryMeterPostJSONRequestBody) (streaming.QueryParams, error) {
 	params := streaming.QueryParams{
-		ClientID: apiParams.ClientId,
-		From:     apiParams.From,
-		To:       apiParams.To,
+		ClientID: request.ClientId,
+		From:     request.From,
+		To:       request.To,
 	}
 
-	if apiParams.WindowSize != nil {
-		params.WindowSize = lo.ToPtr(meter.WindowSize(*apiParams.WindowSize))
+	if request.WindowSize != nil {
+		params.WindowSize = lo.ToPtr(meter.WindowSize(*request.WindowSize))
 	}
 
-	if apiParams.GroupBy != nil {
-		for _, groupBy := range *apiParams.GroupBy {
+	if request.GroupBy != nil {
+		for _, groupBy := range *request.GroupBy {
 			// Validate group by, `subject` is a special group by
 			if ok := groupBy == "subject" || m.GroupBy[groupBy] != ""; !ok {
 				err := fmt.Errorf("invalid group by: %s", groupBy)
@@ -94,8 +117,8 @@ func ToQueryMeterParams(m meter.Meter, apiParams api.QueryMeterParams) (streamin
 	}
 
 	// Subject is a special query parameter which both filters and groups by subject(s)
-	if apiParams.Subject != nil {
-		params.FilterSubject = *apiParams.Subject
+	if request.Subject != nil {
+		params.FilterSubject = *request.Subject
 
 		// Add subject to group by if not already present
 		if !slices.Contains(params.GroupBy, "subject") {
@@ -103,8 +126,8 @@ func ToQueryMeterParams(m meter.Meter, apiParams api.QueryMeterParams) (streamin
 		}
 	}
 
-	if apiParams.WindowTimeZone != nil {
-		tz, err := time.LoadLocation(*apiParams.WindowTimeZone)
+	if request.WindowTimeZone != nil {
+		tz, err := time.LoadLocation(*request.WindowTimeZone)
 		if err != nil {
 			err := fmt.Errorf("invalid time zone: %w", err)
 			return params, models.NewGenericValidationError(err)
@@ -112,15 +135,15 @@ func ToQueryMeterParams(m meter.Meter, apiParams api.QueryMeterParams) (streamin
 		params.WindowTimeZone = tz
 	}
 
-	if apiParams.FilterGroupBy != nil {
-		for k, v := range *apiParams.FilterGroupBy {
+	if request.FilterGroupBy != nil {
+		for k, v := range *request.FilterGroupBy {
 			// GroupBy filters
 			if _, ok := m.GroupBy[k]; ok {
 				if params.FilterGroupBy == nil {
 					params.FilterGroupBy = map[string][]string{}
 				}
 
-				params.FilterGroupBy[k] = []string{v}
+				params.FilterGroupBy[k] = v
 				continue
 			} else {
 				err := fmt.Errorf("invalid group by filter: %s", k)

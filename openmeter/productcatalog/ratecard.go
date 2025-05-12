@@ -222,7 +222,10 @@ type FlatFeeRateCard struct {
 }
 
 func (r *FlatFeeRateCard) Compatible(v RateCard) error {
-	return rateCardsCompatible(r, v)
+	return RateCardWithOverlay{
+		base:    r,
+		overlay: v,
+	}.Validate()
 }
 
 func (r *FlatFeeRateCard) GetBillingCadence() *isodate.Period {
@@ -357,7 +360,10 @@ type UsageBasedRateCard struct {
 }
 
 func (r *UsageBasedRateCard) Compatible(v RateCard) error {
-	return rateCardsCompatible(r, v)
+	return RateCardWithOverlay{
+		base:    r,
+		overlay: v,
+	}.Validate()
 }
 
 func (r *UsageBasedRateCard) GetBillingCadence() *isodate.Period {
@@ -564,53 +570,117 @@ func (c RateCards) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type rateCardWithOverlays struct {
-	base     RateCard
-	overlays []RateCard
+type RateCardWithOverlay struct {
+	base    RateCard
+	overlay RateCard
 }
 
-func (r rateCardWithOverlays) Validate() error {
-	if len(r.overlays) == 0 {
+func NewRateCardWithOverlay(base, overlay RateCard) RateCardWithOverlay {
+	return RateCardWithOverlay{
+		base:    base,
+		overlay: overlay,
+	}
+}
+
+func (r RateCardWithOverlay) ValidateWith(validators ...models.ValidatorFunc[RateCardWithOverlay]) error {
+	return models.Validate(r, validators...)
+}
+
+func (r RateCardWithOverlay) Validate() error {
+	if r.base == nil || r.overlay == nil {
 		return nil
 	}
 
-	for _, rc := range r.overlays {
-		if err := r.base.Compatible(rc); err != nil {
-			return err
-		}
+	return r.ValidateWith(
+		ValidateRateCardsShareSameKey,
+		ValidateRateCardsHaveCompatiblePrice,
+		ValidateRateCardsHaveCompatibleFeatureKey,
+		ValidateRateCardsHaveCompatibleFeatureID,
+		ValidateRateCardsHaveCompatibleBillingCadence,
+		ValidateRateCardsHaveCompatibleEntitlementTemplate,
+		ValidateRateCardsHaveCompatibleDiscounts,
+	)
+}
+
+var ValidateRateCardsShareSameKey = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
+	}
+
+	if r.base.Key() != r.overlay.Key() {
+		return errors.New("incompatible rate card keys")
 	}
 
 	return nil
-}
+})
 
-func rateCardsCompatible(r, v RateCard) error {
+var ValidateRateCardsHaveCompatiblePrice = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
+	}
+
 	var errs []error
 
-	rMeta, vMeta := r.AsMeta(), v.AsMeta()
+	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
 	// Validate Price
+	if rMeta.Price != nil && vMeta.Price != nil {
+		if rMeta.Price.Type() != vMeta.Price.Type() {
+			errs = append(errs, errors.New("incompatible price types"))
+		}
 
-	if rMeta.Price != nil && vMeta.Price != nil && rMeta.Price.Type() != vMeta.Price.Type() {
-		errs = append(errs, errors.New("incompatible price types"))
-	}
+		switch rMeta.Price.Type() {
+		case FlatPriceType:
+			rFlat, _ := rMeta.Price.AsFlat()
+			vFlat, _ := vMeta.Price.AsFlat()
 
-	// Validate Feature
-
-	if rMeta.FeatureKey != nil {
-		if vMeta.FeatureKey == nil || *rMeta.FeatureKey != *vMeta.FeatureKey {
-			errs = append(errs, errors.New("feature key mismatch"))
+			if rFlat.PaymentTerm != vFlat.PaymentTerm {
+				errs = append(errs, errors.New("incompatible price payment terms"))
+			}
+		default:
+			errs = append(errs, fmt.Errorf("not supported price type: %s", rMeta.Price.Type()))
 		}
 	}
 
-	if rMeta.FeatureID != nil {
-		if vMeta.FeatureID == nil || *rMeta.FeatureID != *vMeta.FeatureID {
-			errs = append(errs, errors.New("feature id mismatch"))
-		}
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+})
+
+var ValidateRateCardsHaveCompatibleFeatureKey = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
 	}
 
-	// Validate Billing Cadence
+	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
-	rBillingCadence, vBillingCadence := r.GetBillingCadence(), v.GetBillingCadence()
+	if rMeta.FeatureKey != nil && vMeta.FeatureKey != nil && *rMeta.FeatureKey != *vMeta.FeatureKey {
+		return errors.New("incompatible feature keys")
+	}
+
+	return nil
+})
+
+var ValidateRateCardsHaveCompatibleFeatureID = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
+	}
+
+	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
+
+	if rMeta.FeatureID != nil && vMeta.FeatureID != nil && *rMeta.FeatureID != *vMeta.FeatureID {
+		return errors.New("incompatible feature ids")
+	}
+
+	return nil
+})
+
+var ValidateRateCardsHaveCompatibleBillingCadence = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
+	}
+
+	var errs []error
+
+	rBillingCadence, vBillingCadence := r.base.GetBillingCadence(), r.overlay.GetBillingCadence()
 
 	if rBillingCadence != nil {
 		if vBillingCadence == nil {
@@ -632,7 +702,17 @@ func rateCardsCompatible(r, v RateCard) error {
 		)
 	}
 
-	// Validate  Entitlement
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+})
+
+var ValidateRateCardsHaveCompatibleEntitlementTemplate = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
+	}
+
+	var errs []error
+
+	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
 	if rMeta.EntitlementTemplate != nil && vMeta.EntitlementTemplate != nil {
 		if rMeta.EntitlementTemplate.Type() != vMeta.EntitlementTemplate.Type() {
@@ -663,4 +743,20 @@ func rateCardsCompatible(r, v RateCard) error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
+})
+
+var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
+	}
+
+	var errs []error
+
+	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
+
+	if rMeta.Discounts.Percentage != nil && vMeta.Discounts.Percentage != nil {
+		errs = append(errs, errors.New("percentage discount is not allowed"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+})

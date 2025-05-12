@@ -34,671 +34,671 @@ type BillingInvoiceCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (bic *BillingInvoiceCreate) SetNamespace(s string) *BillingInvoiceCreate {
-	bic.mutation.SetNamespace(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetNamespace(v string) *BillingInvoiceCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetMetadata sets the "metadata" field.
-func (bic *BillingInvoiceCreate) SetMetadata(m map[string]string) *BillingInvoiceCreate {
-	bic.mutation.SetMetadata(m)
-	return bic
+func (_c *BillingInvoiceCreate) SetMetadata(v map[string]string) *BillingInvoiceCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (bic *BillingInvoiceCreate) SetCreatedAt(t time.Time) *BillingInvoiceCreate {
-	bic.mutation.SetCreatedAt(t)
-	return bic
+func (_c *BillingInvoiceCreate) SetCreatedAt(v time.Time) *BillingInvoiceCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableCreatedAt(t *time.Time) *BillingInvoiceCreate {
-	if t != nil {
-		bic.SetCreatedAt(*t)
+func (_c *BillingInvoiceCreate) SetNillableCreatedAt(v *time.Time) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (bic *BillingInvoiceCreate) SetUpdatedAt(t time.Time) *BillingInvoiceCreate {
-	bic.mutation.SetUpdatedAt(t)
-	return bic
+func (_c *BillingInvoiceCreate) SetUpdatedAt(v time.Time) *BillingInvoiceCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableUpdatedAt(t *time.Time) *BillingInvoiceCreate {
-	if t != nil {
-		bic.SetUpdatedAt(*t)
+func (_c *BillingInvoiceCreate) SetNillableUpdatedAt(v *time.Time) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (bic *BillingInvoiceCreate) SetDeletedAt(t time.Time) *BillingInvoiceCreate {
-	bic.mutation.SetDeletedAt(t)
-	return bic
+func (_c *BillingInvoiceCreate) SetDeletedAt(v time.Time) *BillingInvoiceCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableDeletedAt(t *time.Time) *BillingInvoiceCreate {
-	if t != nil {
-		bic.SetDeletedAt(*t)
+func (_c *BillingInvoiceCreate) SetNillableDeletedAt(v *time.Time) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetSupplierAddressCountry sets the "supplier_address_country" field.
-func (bic *BillingInvoiceCreate) SetSupplierAddressCountry(mc models.CountryCode) *BillingInvoiceCreate {
-	bic.mutation.SetSupplierAddressCountry(mc)
-	return bic
+func (_c *BillingInvoiceCreate) SetSupplierAddressCountry(v models.CountryCode) *BillingInvoiceCreate {
+	_c.mutation.SetSupplierAddressCountry(v)
+	return _c
 }
 
 // SetNillableSupplierAddressCountry sets the "supplier_address_country" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableSupplierAddressCountry(mc *models.CountryCode) *BillingInvoiceCreate {
-	if mc != nil {
-		bic.SetSupplierAddressCountry(*mc)
+func (_c *BillingInvoiceCreate) SetNillableSupplierAddressCountry(v *models.CountryCode) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetSupplierAddressCountry(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetSupplierAddressPostalCode sets the "supplier_address_postal_code" field.
-func (bic *BillingInvoiceCreate) SetSupplierAddressPostalCode(s string) *BillingInvoiceCreate {
-	bic.mutation.SetSupplierAddressPostalCode(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetSupplierAddressPostalCode(v string) *BillingInvoiceCreate {
+	_c.mutation.SetSupplierAddressPostalCode(v)
+	return _c
 }
 
 // SetNillableSupplierAddressPostalCode sets the "supplier_address_postal_code" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableSupplierAddressPostalCode(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetSupplierAddressPostalCode(*s)
+func (_c *BillingInvoiceCreate) SetNillableSupplierAddressPostalCode(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetSupplierAddressPostalCode(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetSupplierAddressState sets the "supplier_address_state" field.
-func (bic *BillingInvoiceCreate) SetSupplierAddressState(s string) *BillingInvoiceCreate {
-	bic.mutation.SetSupplierAddressState(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetSupplierAddressState(v string) *BillingInvoiceCreate {
+	_c.mutation.SetSupplierAddressState(v)
+	return _c
 }
 
 // SetNillableSupplierAddressState sets the "supplier_address_state" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableSupplierAddressState(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetSupplierAddressState(*s)
+func (_c *BillingInvoiceCreate) SetNillableSupplierAddressState(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetSupplierAddressState(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetSupplierAddressCity sets the "supplier_address_city" field.
-func (bic *BillingInvoiceCreate) SetSupplierAddressCity(s string) *BillingInvoiceCreate {
-	bic.mutation.SetSupplierAddressCity(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetSupplierAddressCity(v string) *BillingInvoiceCreate {
+	_c.mutation.SetSupplierAddressCity(v)
+	return _c
 }
 
 // SetNillableSupplierAddressCity sets the "supplier_address_city" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableSupplierAddressCity(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetSupplierAddressCity(*s)
+func (_c *BillingInvoiceCreate) SetNillableSupplierAddressCity(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetSupplierAddressCity(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetSupplierAddressLine1 sets the "supplier_address_line1" field.
-func (bic *BillingInvoiceCreate) SetSupplierAddressLine1(s string) *BillingInvoiceCreate {
-	bic.mutation.SetSupplierAddressLine1(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetSupplierAddressLine1(v string) *BillingInvoiceCreate {
+	_c.mutation.SetSupplierAddressLine1(v)
+	return _c
 }
 
 // SetNillableSupplierAddressLine1 sets the "supplier_address_line1" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableSupplierAddressLine1(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetSupplierAddressLine1(*s)
+func (_c *BillingInvoiceCreate) SetNillableSupplierAddressLine1(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetSupplierAddressLine1(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetSupplierAddressLine2 sets the "supplier_address_line2" field.
-func (bic *BillingInvoiceCreate) SetSupplierAddressLine2(s string) *BillingInvoiceCreate {
-	bic.mutation.SetSupplierAddressLine2(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetSupplierAddressLine2(v string) *BillingInvoiceCreate {
+	_c.mutation.SetSupplierAddressLine2(v)
+	return _c
 }
 
 // SetNillableSupplierAddressLine2 sets the "supplier_address_line2" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableSupplierAddressLine2(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetSupplierAddressLine2(*s)
+func (_c *BillingInvoiceCreate) SetNillableSupplierAddressLine2(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetSupplierAddressLine2(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field.
-func (bic *BillingInvoiceCreate) SetSupplierAddressPhoneNumber(s string) *BillingInvoiceCreate {
-	bic.mutation.SetSupplierAddressPhoneNumber(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetSupplierAddressPhoneNumber(v string) *BillingInvoiceCreate {
+	_c.mutation.SetSupplierAddressPhoneNumber(v)
+	return _c
 }
 
 // SetNillableSupplierAddressPhoneNumber sets the "supplier_address_phone_number" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableSupplierAddressPhoneNumber(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetSupplierAddressPhoneNumber(*s)
+func (_c *BillingInvoiceCreate) SetNillableSupplierAddressPhoneNumber(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetSupplierAddressPhoneNumber(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetCustomerAddressCountry sets the "customer_address_country" field.
-func (bic *BillingInvoiceCreate) SetCustomerAddressCountry(mc models.CountryCode) *BillingInvoiceCreate {
-	bic.mutation.SetCustomerAddressCountry(mc)
-	return bic
+func (_c *BillingInvoiceCreate) SetCustomerAddressCountry(v models.CountryCode) *BillingInvoiceCreate {
+	_c.mutation.SetCustomerAddressCountry(v)
+	return _c
 }
 
 // SetNillableCustomerAddressCountry sets the "customer_address_country" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableCustomerAddressCountry(mc *models.CountryCode) *BillingInvoiceCreate {
-	if mc != nil {
-		bic.SetCustomerAddressCountry(*mc)
+func (_c *BillingInvoiceCreate) SetNillableCustomerAddressCountry(v *models.CountryCode) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetCustomerAddressCountry(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetCustomerAddressPostalCode sets the "customer_address_postal_code" field.
-func (bic *BillingInvoiceCreate) SetCustomerAddressPostalCode(s string) *BillingInvoiceCreate {
-	bic.mutation.SetCustomerAddressPostalCode(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetCustomerAddressPostalCode(v string) *BillingInvoiceCreate {
+	_c.mutation.SetCustomerAddressPostalCode(v)
+	return _c
 }
 
 // SetNillableCustomerAddressPostalCode sets the "customer_address_postal_code" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableCustomerAddressPostalCode(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetCustomerAddressPostalCode(*s)
+func (_c *BillingInvoiceCreate) SetNillableCustomerAddressPostalCode(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetCustomerAddressPostalCode(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetCustomerAddressState sets the "customer_address_state" field.
-func (bic *BillingInvoiceCreate) SetCustomerAddressState(s string) *BillingInvoiceCreate {
-	bic.mutation.SetCustomerAddressState(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetCustomerAddressState(v string) *BillingInvoiceCreate {
+	_c.mutation.SetCustomerAddressState(v)
+	return _c
 }
 
 // SetNillableCustomerAddressState sets the "customer_address_state" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableCustomerAddressState(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetCustomerAddressState(*s)
+func (_c *BillingInvoiceCreate) SetNillableCustomerAddressState(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetCustomerAddressState(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetCustomerAddressCity sets the "customer_address_city" field.
-func (bic *BillingInvoiceCreate) SetCustomerAddressCity(s string) *BillingInvoiceCreate {
-	bic.mutation.SetCustomerAddressCity(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetCustomerAddressCity(v string) *BillingInvoiceCreate {
+	_c.mutation.SetCustomerAddressCity(v)
+	return _c
 }
 
 // SetNillableCustomerAddressCity sets the "customer_address_city" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableCustomerAddressCity(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetCustomerAddressCity(*s)
+func (_c *BillingInvoiceCreate) SetNillableCustomerAddressCity(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetCustomerAddressCity(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetCustomerAddressLine1 sets the "customer_address_line1" field.
-func (bic *BillingInvoiceCreate) SetCustomerAddressLine1(s string) *BillingInvoiceCreate {
-	bic.mutation.SetCustomerAddressLine1(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetCustomerAddressLine1(v string) *BillingInvoiceCreate {
+	_c.mutation.SetCustomerAddressLine1(v)
+	return _c
 }
 
 // SetNillableCustomerAddressLine1 sets the "customer_address_line1" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableCustomerAddressLine1(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetCustomerAddressLine1(*s)
+func (_c *BillingInvoiceCreate) SetNillableCustomerAddressLine1(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetCustomerAddressLine1(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetCustomerAddressLine2 sets the "customer_address_line2" field.
-func (bic *BillingInvoiceCreate) SetCustomerAddressLine2(s string) *BillingInvoiceCreate {
-	bic.mutation.SetCustomerAddressLine2(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetCustomerAddressLine2(v string) *BillingInvoiceCreate {
+	_c.mutation.SetCustomerAddressLine2(v)
+	return _c
 }
 
 // SetNillableCustomerAddressLine2 sets the "customer_address_line2" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableCustomerAddressLine2(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetCustomerAddressLine2(*s)
+func (_c *BillingInvoiceCreate) SetNillableCustomerAddressLine2(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetCustomerAddressLine2(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetCustomerAddressPhoneNumber sets the "customer_address_phone_number" field.
-func (bic *BillingInvoiceCreate) SetCustomerAddressPhoneNumber(s string) *BillingInvoiceCreate {
-	bic.mutation.SetCustomerAddressPhoneNumber(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetCustomerAddressPhoneNumber(v string) *BillingInvoiceCreate {
+	_c.mutation.SetCustomerAddressPhoneNumber(v)
+	return _c
 }
 
 // SetNillableCustomerAddressPhoneNumber sets the "customer_address_phone_number" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableCustomerAddressPhoneNumber(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetCustomerAddressPhoneNumber(*s)
+func (_c *BillingInvoiceCreate) SetNillableCustomerAddressPhoneNumber(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetCustomerAddressPhoneNumber(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetAmount sets the "amount" field.
-func (bic *BillingInvoiceCreate) SetAmount(a alpacadecimal.Decimal) *BillingInvoiceCreate {
-	bic.mutation.SetAmount(a)
-	return bic
+func (_c *BillingInvoiceCreate) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceCreate {
+	_c.mutation.SetAmount(v)
+	return _c
 }
 
 // SetTaxesTotal sets the "taxes_total" field.
-func (bic *BillingInvoiceCreate) SetTaxesTotal(a alpacadecimal.Decimal) *BillingInvoiceCreate {
-	bic.mutation.SetTaxesTotal(a)
-	return bic
+func (_c *BillingInvoiceCreate) SetTaxesTotal(v alpacadecimal.Decimal) *BillingInvoiceCreate {
+	_c.mutation.SetTaxesTotal(v)
+	return _c
 }
 
 // SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
-func (bic *BillingInvoiceCreate) SetTaxesInclusiveTotal(a alpacadecimal.Decimal) *BillingInvoiceCreate {
-	bic.mutation.SetTaxesInclusiveTotal(a)
-	return bic
+func (_c *BillingInvoiceCreate) SetTaxesInclusiveTotal(v alpacadecimal.Decimal) *BillingInvoiceCreate {
+	_c.mutation.SetTaxesInclusiveTotal(v)
+	return _c
 }
 
 // SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
-func (bic *BillingInvoiceCreate) SetTaxesExclusiveTotal(a alpacadecimal.Decimal) *BillingInvoiceCreate {
-	bic.mutation.SetTaxesExclusiveTotal(a)
-	return bic
+func (_c *BillingInvoiceCreate) SetTaxesExclusiveTotal(v alpacadecimal.Decimal) *BillingInvoiceCreate {
+	_c.mutation.SetTaxesExclusiveTotal(v)
+	return _c
 }
 
 // SetChargesTotal sets the "charges_total" field.
-func (bic *BillingInvoiceCreate) SetChargesTotal(a alpacadecimal.Decimal) *BillingInvoiceCreate {
-	bic.mutation.SetChargesTotal(a)
-	return bic
+func (_c *BillingInvoiceCreate) SetChargesTotal(v alpacadecimal.Decimal) *BillingInvoiceCreate {
+	_c.mutation.SetChargesTotal(v)
+	return _c
 }
 
 // SetDiscountsTotal sets the "discounts_total" field.
-func (bic *BillingInvoiceCreate) SetDiscountsTotal(a alpacadecimal.Decimal) *BillingInvoiceCreate {
-	bic.mutation.SetDiscountsTotal(a)
-	return bic
+func (_c *BillingInvoiceCreate) SetDiscountsTotal(v alpacadecimal.Decimal) *BillingInvoiceCreate {
+	_c.mutation.SetDiscountsTotal(v)
+	return _c
 }
 
 // SetTotal sets the "total" field.
-func (bic *BillingInvoiceCreate) SetTotal(a alpacadecimal.Decimal) *BillingInvoiceCreate {
-	bic.mutation.SetTotal(a)
-	return bic
+func (_c *BillingInvoiceCreate) SetTotal(v alpacadecimal.Decimal) *BillingInvoiceCreate {
+	_c.mutation.SetTotal(v)
+	return _c
 }
 
 // SetSupplierName sets the "supplier_name" field.
-func (bic *BillingInvoiceCreate) SetSupplierName(s string) *BillingInvoiceCreate {
-	bic.mutation.SetSupplierName(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetSupplierName(v string) *BillingInvoiceCreate {
+	_c.mutation.SetSupplierName(v)
+	return _c
 }
 
 // SetSupplierTaxCode sets the "supplier_tax_code" field.
-func (bic *BillingInvoiceCreate) SetSupplierTaxCode(s string) *BillingInvoiceCreate {
-	bic.mutation.SetSupplierTaxCode(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetSupplierTaxCode(v string) *BillingInvoiceCreate {
+	_c.mutation.SetSupplierTaxCode(v)
+	return _c
 }
 
 // SetNillableSupplierTaxCode sets the "supplier_tax_code" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableSupplierTaxCode(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetSupplierTaxCode(*s)
+func (_c *BillingInvoiceCreate) SetNillableSupplierTaxCode(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetSupplierTaxCode(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetCustomerName sets the "customer_name" field.
-func (bic *BillingInvoiceCreate) SetCustomerName(s string) *BillingInvoiceCreate {
-	bic.mutation.SetCustomerName(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetCustomerName(v string) *BillingInvoiceCreate {
+	_c.mutation.SetCustomerName(v)
+	return _c
 }
 
 // SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
-func (bic *BillingInvoiceCreate) SetCustomerUsageAttribution(bcua *billing.VersionedCustomerUsageAttribution) *BillingInvoiceCreate {
-	bic.mutation.SetCustomerUsageAttribution(bcua)
-	return bic
+func (_c *BillingInvoiceCreate) SetCustomerUsageAttribution(v *billing.VersionedCustomerUsageAttribution) *BillingInvoiceCreate {
+	_c.mutation.SetCustomerUsageAttribution(v)
+	return _c
 }
 
 // SetNumber sets the "number" field.
-func (bic *BillingInvoiceCreate) SetNumber(s string) *BillingInvoiceCreate {
-	bic.mutation.SetNumber(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetNumber(v string) *BillingInvoiceCreate {
+	_c.mutation.SetNumber(v)
+	return _c
 }
 
 // SetType sets the "type" field.
-func (bic *BillingInvoiceCreate) SetType(bt billing.InvoiceType) *BillingInvoiceCreate {
-	bic.mutation.SetType(bt)
-	return bic
+func (_c *BillingInvoiceCreate) SetType(v billing.InvoiceType) *BillingInvoiceCreate {
+	_c.mutation.SetType(v)
+	return _c
 }
 
 // SetDescription sets the "description" field.
-func (bic *BillingInvoiceCreate) SetDescription(s string) *BillingInvoiceCreate {
-	bic.mutation.SetDescription(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetDescription(v string) *BillingInvoiceCreate {
+	_c.mutation.SetDescription(v)
+	return _c
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableDescription(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetDescription(*s)
+func (_c *BillingInvoiceCreate) SetNillableDescription(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetDescription(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetCustomerID sets the "customer_id" field.
-func (bic *BillingInvoiceCreate) SetCustomerID(s string) *BillingInvoiceCreate {
-	bic.mutation.SetCustomerID(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetCustomerID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetCustomerID(v)
+	return _c
 }
 
 // SetSourceBillingProfileID sets the "source_billing_profile_id" field.
-func (bic *BillingInvoiceCreate) SetSourceBillingProfileID(s string) *BillingInvoiceCreate {
-	bic.mutation.SetSourceBillingProfileID(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetSourceBillingProfileID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetSourceBillingProfileID(v)
+	return _c
 }
 
 // SetVoidedAt sets the "voided_at" field.
-func (bic *BillingInvoiceCreate) SetVoidedAt(t time.Time) *BillingInvoiceCreate {
-	bic.mutation.SetVoidedAt(t)
-	return bic
+func (_c *BillingInvoiceCreate) SetVoidedAt(v time.Time) *BillingInvoiceCreate {
+	_c.mutation.SetVoidedAt(v)
+	return _c
 }
 
 // SetNillableVoidedAt sets the "voided_at" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableVoidedAt(t *time.Time) *BillingInvoiceCreate {
-	if t != nil {
-		bic.SetVoidedAt(*t)
+func (_c *BillingInvoiceCreate) SetNillableVoidedAt(v *time.Time) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetVoidedAt(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetIssuedAt sets the "issued_at" field.
-func (bic *BillingInvoiceCreate) SetIssuedAt(t time.Time) *BillingInvoiceCreate {
-	bic.mutation.SetIssuedAt(t)
-	return bic
+func (_c *BillingInvoiceCreate) SetIssuedAt(v time.Time) *BillingInvoiceCreate {
+	_c.mutation.SetIssuedAt(v)
+	return _c
 }
 
 // SetNillableIssuedAt sets the "issued_at" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableIssuedAt(t *time.Time) *BillingInvoiceCreate {
-	if t != nil {
-		bic.SetIssuedAt(*t)
+func (_c *BillingInvoiceCreate) SetNillableIssuedAt(v *time.Time) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetIssuedAt(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetSentToCustomerAt sets the "sent_to_customer_at" field.
-func (bic *BillingInvoiceCreate) SetSentToCustomerAt(t time.Time) *BillingInvoiceCreate {
-	bic.mutation.SetSentToCustomerAt(t)
-	return bic
+func (_c *BillingInvoiceCreate) SetSentToCustomerAt(v time.Time) *BillingInvoiceCreate {
+	_c.mutation.SetSentToCustomerAt(v)
+	return _c
 }
 
 // SetNillableSentToCustomerAt sets the "sent_to_customer_at" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableSentToCustomerAt(t *time.Time) *BillingInvoiceCreate {
-	if t != nil {
-		bic.SetSentToCustomerAt(*t)
+func (_c *BillingInvoiceCreate) SetNillableSentToCustomerAt(v *time.Time) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetSentToCustomerAt(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetDraftUntil sets the "draft_until" field.
-func (bic *BillingInvoiceCreate) SetDraftUntil(t time.Time) *BillingInvoiceCreate {
-	bic.mutation.SetDraftUntil(t)
-	return bic
+func (_c *BillingInvoiceCreate) SetDraftUntil(v time.Time) *BillingInvoiceCreate {
+	_c.mutation.SetDraftUntil(v)
+	return _c
 }
 
 // SetNillableDraftUntil sets the "draft_until" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableDraftUntil(t *time.Time) *BillingInvoiceCreate {
-	if t != nil {
-		bic.SetDraftUntil(*t)
+func (_c *BillingInvoiceCreate) SetNillableDraftUntil(v *time.Time) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetDraftUntil(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetCurrency sets the "currency" field.
-func (bic *BillingInvoiceCreate) SetCurrency(c currencyx.Code) *BillingInvoiceCreate {
-	bic.mutation.SetCurrency(c)
-	return bic
+func (_c *BillingInvoiceCreate) SetCurrency(v currencyx.Code) *BillingInvoiceCreate {
+	_c.mutation.SetCurrency(v)
+	return _c
 }
 
 // SetDueAt sets the "due_at" field.
-func (bic *BillingInvoiceCreate) SetDueAt(t time.Time) *BillingInvoiceCreate {
-	bic.mutation.SetDueAt(t)
-	return bic
+func (_c *BillingInvoiceCreate) SetDueAt(v time.Time) *BillingInvoiceCreate {
+	_c.mutation.SetDueAt(v)
+	return _c
 }
 
 // SetNillableDueAt sets the "due_at" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableDueAt(t *time.Time) *BillingInvoiceCreate {
-	if t != nil {
-		bic.SetDueAt(*t)
+func (_c *BillingInvoiceCreate) SetNillableDueAt(v *time.Time) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetDueAt(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetStatus sets the "status" field.
-func (bic *BillingInvoiceCreate) SetStatus(bs billing.InvoiceStatus) *BillingInvoiceCreate {
-	bic.mutation.SetStatus(bs)
-	return bic
+func (_c *BillingInvoiceCreate) SetStatus(v billing.InvoiceStatus) *BillingInvoiceCreate {
+	_c.mutation.SetStatus(v)
+	return _c
 }
 
 // SetStatusDetailsCache sets the "status_details_cache" field.
-func (bic *BillingInvoiceCreate) SetStatusDetailsCache(bsd billing.InvoiceStatusDetails) *BillingInvoiceCreate {
-	bic.mutation.SetStatusDetailsCache(bsd)
-	return bic
+func (_c *BillingInvoiceCreate) SetStatusDetailsCache(v billing.InvoiceStatusDetails) *BillingInvoiceCreate {
+	_c.mutation.SetStatusDetailsCache(v)
+	return _c
 }
 
 // SetNillableStatusDetailsCache sets the "status_details_cache" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableStatusDetailsCache(bsd *billing.InvoiceStatusDetails) *BillingInvoiceCreate {
-	if bsd != nil {
-		bic.SetStatusDetailsCache(*bsd)
+func (_c *BillingInvoiceCreate) SetNillableStatusDetailsCache(v *billing.InvoiceStatusDetails) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetStatusDetailsCache(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetWorkflowConfigID sets the "workflow_config_id" field.
-func (bic *BillingInvoiceCreate) SetWorkflowConfigID(s string) *BillingInvoiceCreate {
-	bic.mutation.SetWorkflowConfigID(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetWorkflowConfigID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetWorkflowConfigID(v)
+	return _c
 }
 
 // SetTaxAppID sets the "tax_app_id" field.
-func (bic *BillingInvoiceCreate) SetTaxAppID(s string) *BillingInvoiceCreate {
-	bic.mutation.SetTaxAppID(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetTaxAppID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetTaxAppID(v)
+	return _c
 }
 
 // SetInvoicingAppID sets the "invoicing_app_id" field.
-func (bic *BillingInvoiceCreate) SetInvoicingAppID(s string) *BillingInvoiceCreate {
-	bic.mutation.SetInvoicingAppID(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetInvoicingAppID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetInvoicingAppID(v)
+	return _c
 }
 
 // SetPaymentAppID sets the "payment_app_id" field.
-func (bic *BillingInvoiceCreate) SetPaymentAppID(s string) *BillingInvoiceCreate {
-	bic.mutation.SetPaymentAppID(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetPaymentAppID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetPaymentAppID(v)
+	return _c
 }
 
 // SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
-func (bic *BillingInvoiceCreate) SetInvoicingAppExternalID(s string) *BillingInvoiceCreate {
-	bic.mutation.SetInvoicingAppExternalID(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetInvoicingAppExternalID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetInvoicingAppExternalID(v)
+	return _c
 }
 
 // SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetInvoicingAppExternalID(*s)
+func (_c *BillingInvoiceCreate) SetNillableInvoicingAppExternalID(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetInvoicingAppExternalID(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetPaymentAppExternalID sets the "payment_app_external_id" field.
-func (bic *BillingInvoiceCreate) SetPaymentAppExternalID(s string) *BillingInvoiceCreate {
-	bic.mutation.SetPaymentAppExternalID(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetPaymentAppExternalID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetPaymentAppExternalID(v)
+	return _c
 }
 
 // SetNillablePaymentAppExternalID sets the "payment_app_external_id" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillablePaymentAppExternalID(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetPaymentAppExternalID(*s)
+func (_c *BillingInvoiceCreate) SetNillablePaymentAppExternalID(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetPaymentAppExternalID(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetTaxAppExternalID sets the "tax_app_external_id" field.
-func (bic *BillingInvoiceCreate) SetTaxAppExternalID(s string) *BillingInvoiceCreate {
-	bic.mutation.SetTaxAppExternalID(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetTaxAppExternalID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetTaxAppExternalID(v)
+	return _c
 }
 
 // SetNillableTaxAppExternalID sets the "tax_app_external_id" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableTaxAppExternalID(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetTaxAppExternalID(*s)
+func (_c *BillingInvoiceCreate) SetNillableTaxAppExternalID(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetTaxAppExternalID(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetPeriodStart sets the "period_start" field.
-func (bic *BillingInvoiceCreate) SetPeriodStart(t time.Time) *BillingInvoiceCreate {
-	bic.mutation.SetPeriodStart(t)
-	return bic
+func (_c *BillingInvoiceCreate) SetPeriodStart(v time.Time) *BillingInvoiceCreate {
+	_c.mutation.SetPeriodStart(v)
+	return _c
 }
 
 // SetNillablePeriodStart sets the "period_start" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillablePeriodStart(t *time.Time) *BillingInvoiceCreate {
-	if t != nil {
-		bic.SetPeriodStart(*t)
+func (_c *BillingInvoiceCreate) SetNillablePeriodStart(v *time.Time) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetPeriodStart(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetPeriodEnd sets the "period_end" field.
-func (bic *BillingInvoiceCreate) SetPeriodEnd(t time.Time) *BillingInvoiceCreate {
-	bic.mutation.SetPeriodEnd(t)
-	return bic
+func (_c *BillingInvoiceCreate) SetPeriodEnd(v time.Time) *BillingInvoiceCreate {
+	_c.mutation.SetPeriodEnd(v)
+	return _c
 }
 
 // SetNillablePeriodEnd sets the "period_end" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillablePeriodEnd(t *time.Time) *BillingInvoiceCreate {
-	if t != nil {
-		bic.SetPeriodEnd(*t)
+func (_c *BillingInvoiceCreate) SetNillablePeriodEnd(v *time.Time) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetPeriodEnd(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetCollectionAt sets the "collection_at" field.
-func (bic *BillingInvoiceCreate) SetCollectionAt(t time.Time) *BillingInvoiceCreate {
-	bic.mutation.SetCollectionAt(t)
-	return bic
+func (_c *BillingInvoiceCreate) SetCollectionAt(v time.Time) *BillingInvoiceCreate {
+	_c.mutation.SetCollectionAt(v)
+	return _c
 }
 
 // SetNillableCollectionAt sets the "collection_at" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableCollectionAt(t *time.Time) *BillingInvoiceCreate {
-	if t != nil {
-		bic.SetCollectionAt(*t)
+func (_c *BillingInvoiceCreate) SetNillableCollectionAt(v *time.Time) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetCollectionAt(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetID sets the "id" field.
-func (bic *BillingInvoiceCreate) SetID(s string) *BillingInvoiceCreate {
-	bic.mutation.SetID(s)
-	return bic
+func (_c *BillingInvoiceCreate) SetID(v string) *BillingInvoiceCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableID(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetID(*s)
+func (_c *BillingInvoiceCreate) SetNillableID(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return bic
+	return _c
 }
 
 // SetSourceBillingProfile sets the "source_billing_profile" edge to the BillingProfile entity.
-func (bic *BillingInvoiceCreate) SetSourceBillingProfile(b *BillingProfile) *BillingInvoiceCreate {
-	return bic.SetSourceBillingProfileID(b.ID)
+func (_c *BillingInvoiceCreate) SetSourceBillingProfile(v *BillingProfile) *BillingInvoiceCreate {
+	return _c.SetSourceBillingProfileID(v.ID)
 }
 
 // SetBillingWorkflowConfigID sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity by ID.
-func (bic *BillingInvoiceCreate) SetBillingWorkflowConfigID(id string) *BillingInvoiceCreate {
-	bic.mutation.SetBillingWorkflowConfigID(id)
-	return bic
+func (_c *BillingInvoiceCreate) SetBillingWorkflowConfigID(id string) *BillingInvoiceCreate {
+	_c.mutation.SetBillingWorkflowConfigID(id)
+	return _c
 }
 
 // SetBillingWorkflowConfig sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity.
-func (bic *BillingInvoiceCreate) SetBillingWorkflowConfig(b *BillingWorkflowConfig) *BillingInvoiceCreate {
-	return bic.SetBillingWorkflowConfigID(b.ID)
+func (_c *BillingInvoiceCreate) SetBillingWorkflowConfig(v *BillingWorkflowConfig) *BillingInvoiceCreate {
+	return _c.SetBillingWorkflowConfigID(v.ID)
 }
 
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
-func (bic *BillingInvoiceCreate) AddBillingInvoiceLineIDs(ids ...string) *BillingInvoiceCreate {
-	bic.mutation.AddBillingInvoiceLineIDs(ids...)
-	return bic
+func (_c *BillingInvoiceCreate) AddBillingInvoiceLineIDs(ids ...string) *BillingInvoiceCreate {
+	_c.mutation.AddBillingInvoiceLineIDs(ids...)
+	return _c
 }
 
 // AddBillingInvoiceLines adds the "billing_invoice_lines" edges to the BillingInvoiceLine entity.
-func (bic *BillingInvoiceCreate) AddBillingInvoiceLines(b ...*BillingInvoiceLine) *BillingInvoiceCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_c *BillingInvoiceCreate) AddBillingInvoiceLines(v ...*BillingInvoiceLine) *BillingInvoiceCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return bic.AddBillingInvoiceLineIDs(ids...)
+	return _c.AddBillingInvoiceLineIDs(ids...)
 }
 
 // AddBillingInvoiceValidationIssueIDs adds the "billing_invoice_validation_issues" edge to the BillingInvoiceValidationIssue entity by IDs.
-func (bic *BillingInvoiceCreate) AddBillingInvoiceValidationIssueIDs(ids ...string) *BillingInvoiceCreate {
-	bic.mutation.AddBillingInvoiceValidationIssueIDs(ids...)
-	return bic
+func (_c *BillingInvoiceCreate) AddBillingInvoiceValidationIssueIDs(ids ...string) *BillingInvoiceCreate {
+	_c.mutation.AddBillingInvoiceValidationIssueIDs(ids...)
+	return _c
 }
 
 // AddBillingInvoiceValidationIssues adds the "billing_invoice_validation_issues" edges to the BillingInvoiceValidationIssue entity.
-func (bic *BillingInvoiceCreate) AddBillingInvoiceValidationIssues(b ...*BillingInvoiceValidationIssue) *BillingInvoiceCreate {
-	ids := make([]string, len(b))
-	for i := range b {
-		ids[i] = b[i].ID
+func (_c *BillingInvoiceCreate) AddBillingInvoiceValidationIssues(v ...*BillingInvoiceValidationIssue) *BillingInvoiceCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return bic.AddBillingInvoiceValidationIssueIDs(ids...)
+	return _c.AddBillingInvoiceValidationIssueIDs(ids...)
 }
 
 // SetBillingInvoiceCustomerID sets the "billing_invoice_customer" edge to the Customer entity by ID.
-func (bic *BillingInvoiceCreate) SetBillingInvoiceCustomerID(id string) *BillingInvoiceCreate {
-	bic.mutation.SetBillingInvoiceCustomerID(id)
-	return bic
+func (_c *BillingInvoiceCreate) SetBillingInvoiceCustomerID(id string) *BillingInvoiceCreate {
+	_c.mutation.SetBillingInvoiceCustomerID(id)
+	return _c
 }
 
 // SetBillingInvoiceCustomer sets the "billing_invoice_customer" edge to the Customer entity.
-func (bic *BillingInvoiceCreate) SetBillingInvoiceCustomer(c *Customer) *BillingInvoiceCreate {
-	return bic.SetBillingInvoiceCustomerID(c.ID)
+func (_c *BillingInvoiceCreate) SetBillingInvoiceCustomer(v *Customer) *BillingInvoiceCreate {
+	return _c.SetBillingInvoiceCustomerID(v.ID)
 }
 
 // SetTaxApp sets the "tax_app" edge to the App entity.
-func (bic *BillingInvoiceCreate) SetTaxApp(a *App) *BillingInvoiceCreate {
-	return bic.SetTaxAppID(a.ID)
+func (_c *BillingInvoiceCreate) SetTaxApp(v *App) *BillingInvoiceCreate {
+	return _c.SetTaxAppID(v.ID)
 }
 
 // SetInvoicingApp sets the "invoicing_app" edge to the App entity.
-func (bic *BillingInvoiceCreate) SetInvoicingApp(a *App) *BillingInvoiceCreate {
-	return bic.SetInvoicingAppID(a.ID)
+func (_c *BillingInvoiceCreate) SetInvoicingApp(v *App) *BillingInvoiceCreate {
+	return _c.SetInvoicingAppID(v.ID)
 }
 
 // SetPaymentApp sets the "payment_app" edge to the App entity.
-func (bic *BillingInvoiceCreate) SetPaymentApp(a *App) *BillingInvoiceCreate {
-	return bic.SetPaymentAppID(a.ID)
+func (_c *BillingInvoiceCreate) SetPaymentApp(v *App) *BillingInvoiceCreate {
+	return _c.SetPaymentAppID(v.ID)
 }
 
 // Mutation returns the BillingInvoiceMutation object of the builder.
-func (bic *BillingInvoiceCreate) Mutation() *BillingInvoiceMutation {
-	return bic.mutation
+func (_c *BillingInvoiceCreate) Mutation() *BillingInvoiceMutation {
+	return _c.mutation
 }
 
 // Save creates the BillingInvoice in the database.
-func (bic *BillingInvoiceCreate) Save(ctx context.Context) (*BillingInvoice, error) {
-	bic.defaults()
-	return withHooks(ctx, bic.sqlSave, bic.mutation, bic.hooks)
+func (_c *BillingInvoiceCreate) Save(ctx context.Context) (*BillingInvoice, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (bic *BillingInvoiceCreate) SaveX(ctx context.Context) *BillingInvoice {
-	v, err := bic.Save(ctx)
+func (_c *BillingInvoiceCreate) SaveX(ctx context.Context) *BillingInvoice {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -706,186 +706,186 @@ func (bic *BillingInvoiceCreate) SaveX(ctx context.Context) *BillingInvoice {
 }
 
 // Exec executes the query.
-func (bic *BillingInvoiceCreate) Exec(ctx context.Context) error {
-	_, err := bic.Save(ctx)
+func (_c *BillingInvoiceCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bic *BillingInvoiceCreate) ExecX(ctx context.Context) {
-	if err := bic.Exec(ctx); err != nil {
+func (_c *BillingInvoiceCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (bic *BillingInvoiceCreate) defaults() {
-	if _, ok := bic.mutation.CreatedAt(); !ok {
+func (_c *BillingInvoiceCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := billinginvoice.DefaultCreatedAt()
-		bic.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := bic.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := billinginvoice.DefaultUpdatedAt()
-		bic.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := bic.mutation.CollectionAt(); !ok {
+	if _, ok := _c.mutation.CollectionAt(); !ok {
 		v := billinginvoice.DefaultCollectionAt()
-		bic.mutation.SetCollectionAt(v)
+		_c.mutation.SetCollectionAt(v)
 	}
-	if _, ok := bic.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := billinginvoice.DefaultID()
-		bic.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (bic *BillingInvoiceCreate) check() error {
-	if _, ok := bic.mutation.Namespace(); !ok {
+func (_c *BillingInvoiceCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BillingInvoice.namespace"`)}
 	}
-	if v, ok := bic.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := billinginvoice.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.namespace": %w`, err)}
 		}
 	}
-	if _, ok := bic.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "BillingInvoice.created_at"`)}
 	}
-	if _, ok := bic.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingInvoice.updated_at"`)}
 	}
-	if v, ok := bic.mutation.SupplierAddressCountry(); ok {
+	if v, ok := _c.mutation.SupplierAddressCountry(); ok {
 		if err := billinginvoice.SupplierAddressCountryValidator(string(v)); err != nil {
 			return &ValidationError{Name: "supplier_address_country", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.supplier_address_country": %w`, err)}
 		}
 	}
-	if v, ok := bic.mutation.CustomerAddressCountry(); ok {
+	if v, ok := _c.mutation.CustomerAddressCountry(); ok {
 		if err := billinginvoice.CustomerAddressCountryValidator(string(v)); err != nil {
 			return &ValidationError{Name: "customer_address_country", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_address_country": %w`, err)}
 		}
 	}
-	if _, ok := bic.mutation.Amount(); !ok {
+	if _, ok := _c.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingInvoice.amount"`)}
 	}
-	if _, ok := bic.mutation.TaxesTotal(); !ok {
+	if _, ok := _c.mutation.TaxesTotal(); !ok {
 		return &ValidationError{Name: "taxes_total", err: errors.New(`db: missing required field "BillingInvoice.taxes_total"`)}
 	}
-	if _, ok := bic.mutation.TaxesInclusiveTotal(); !ok {
+	if _, ok := _c.mutation.TaxesInclusiveTotal(); !ok {
 		return &ValidationError{Name: "taxes_inclusive_total", err: errors.New(`db: missing required field "BillingInvoice.taxes_inclusive_total"`)}
 	}
-	if _, ok := bic.mutation.TaxesExclusiveTotal(); !ok {
+	if _, ok := _c.mutation.TaxesExclusiveTotal(); !ok {
 		return &ValidationError{Name: "taxes_exclusive_total", err: errors.New(`db: missing required field "BillingInvoice.taxes_exclusive_total"`)}
 	}
-	if _, ok := bic.mutation.ChargesTotal(); !ok {
+	if _, ok := _c.mutation.ChargesTotal(); !ok {
 		return &ValidationError{Name: "charges_total", err: errors.New(`db: missing required field "BillingInvoice.charges_total"`)}
 	}
-	if _, ok := bic.mutation.DiscountsTotal(); !ok {
+	if _, ok := _c.mutation.DiscountsTotal(); !ok {
 		return &ValidationError{Name: "discounts_total", err: errors.New(`db: missing required field "BillingInvoice.discounts_total"`)}
 	}
-	if _, ok := bic.mutation.Total(); !ok {
+	if _, ok := _c.mutation.Total(); !ok {
 		return &ValidationError{Name: "total", err: errors.New(`db: missing required field "BillingInvoice.total"`)}
 	}
-	if _, ok := bic.mutation.SupplierName(); !ok {
+	if _, ok := _c.mutation.SupplierName(); !ok {
 		return &ValidationError{Name: "supplier_name", err: errors.New(`db: missing required field "BillingInvoice.supplier_name"`)}
 	}
-	if v, ok := bic.mutation.SupplierName(); ok {
+	if v, ok := _c.mutation.SupplierName(); ok {
 		if err := billinginvoice.SupplierNameValidator(v); err != nil {
 			return &ValidationError{Name: "supplier_name", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.supplier_name": %w`, err)}
 		}
 	}
-	if _, ok := bic.mutation.CustomerName(); !ok {
+	if _, ok := _c.mutation.CustomerName(); !ok {
 		return &ValidationError{Name: "customer_name", err: errors.New(`db: missing required field "BillingInvoice.customer_name"`)}
 	}
-	if v, ok := bic.mutation.CustomerName(); ok {
+	if v, ok := _c.mutation.CustomerName(); ok {
 		if err := billinginvoice.CustomerNameValidator(v); err != nil {
 			return &ValidationError{Name: "customer_name", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_name": %w`, err)}
 		}
 	}
-	if _, ok := bic.mutation.CustomerUsageAttribution(); !ok {
+	if _, ok := _c.mutation.CustomerUsageAttribution(); !ok {
 		return &ValidationError{Name: "customer_usage_attribution", err: errors.New(`db: missing required field "BillingInvoice.customer_usage_attribution"`)}
 	}
-	if _, ok := bic.mutation.Number(); !ok {
+	if _, ok := _c.mutation.Number(); !ok {
 		return &ValidationError{Name: "number", err: errors.New(`db: missing required field "BillingInvoice.number"`)}
 	}
-	if _, ok := bic.mutation.GetType(); !ok {
+	if _, ok := _c.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "BillingInvoice.type"`)}
 	}
-	if v, ok := bic.mutation.GetType(); ok {
+	if v, ok := _c.mutation.GetType(); ok {
 		if err := billinginvoice.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.type": %w`, err)}
 		}
 	}
-	if _, ok := bic.mutation.CustomerID(); !ok {
+	if _, ok := _c.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "BillingInvoice.customer_id"`)}
 	}
-	if v, ok := bic.mutation.CustomerID(); ok {
+	if v, ok := _c.mutation.CustomerID(); ok {
 		if err := billinginvoice.CustomerIDValidator(v); err != nil {
 			return &ValidationError{Name: "customer_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_id": %w`, err)}
 		}
 	}
-	if _, ok := bic.mutation.SourceBillingProfileID(); !ok {
+	if _, ok := _c.mutation.SourceBillingProfileID(); !ok {
 		return &ValidationError{Name: "source_billing_profile_id", err: errors.New(`db: missing required field "BillingInvoice.source_billing_profile_id"`)}
 	}
-	if v, ok := bic.mutation.SourceBillingProfileID(); ok {
+	if v, ok := _c.mutation.SourceBillingProfileID(); ok {
 		if err := billinginvoice.SourceBillingProfileIDValidator(v); err != nil {
 			return &ValidationError{Name: "source_billing_profile_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.source_billing_profile_id": %w`, err)}
 		}
 	}
-	if _, ok := bic.mutation.Currency(); !ok {
+	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "BillingInvoice.currency"`)}
 	}
-	if v, ok := bic.mutation.Currency(); ok {
+	if v, ok := _c.mutation.Currency(); ok {
 		if err := billinginvoice.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.currency": %w`, err)}
 		}
 	}
-	if _, ok := bic.mutation.Status(); !ok {
+	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "BillingInvoice.status"`)}
 	}
-	if v, ok := bic.mutation.Status(); ok {
+	if v, ok := _c.mutation.Status(); ok {
 		if err := billinginvoice.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.status": %w`, err)}
 		}
 	}
-	if _, ok := bic.mutation.WorkflowConfigID(); !ok {
+	if _, ok := _c.mutation.WorkflowConfigID(); !ok {
 		return &ValidationError{Name: "workflow_config_id", err: errors.New(`db: missing required field "BillingInvoice.workflow_config_id"`)}
 	}
-	if _, ok := bic.mutation.TaxAppID(); !ok {
+	if _, ok := _c.mutation.TaxAppID(); !ok {
 		return &ValidationError{Name: "tax_app_id", err: errors.New(`db: missing required field "BillingInvoice.tax_app_id"`)}
 	}
-	if _, ok := bic.mutation.InvoicingAppID(); !ok {
+	if _, ok := _c.mutation.InvoicingAppID(); !ok {
 		return &ValidationError{Name: "invoicing_app_id", err: errors.New(`db: missing required field "BillingInvoice.invoicing_app_id"`)}
 	}
-	if _, ok := bic.mutation.PaymentAppID(); !ok {
+	if _, ok := _c.mutation.PaymentAppID(); !ok {
 		return &ValidationError{Name: "payment_app_id", err: errors.New(`db: missing required field "BillingInvoice.payment_app_id"`)}
 	}
-	if len(bic.mutation.SourceBillingProfileIDs()) == 0 {
+	if len(_c.mutation.SourceBillingProfileIDs()) == 0 {
 		return &ValidationError{Name: "source_billing_profile", err: errors.New(`db: missing required edge "BillingInvoice.source_billing_profile"`)}
 	}
-	if len(bic.mutation.BillingWorkflowConfigIDs()) == 0 {
+	if len(_c.mutation.BillingWorkflowConfigIDs()) == 0 {
 		return &ValidationError{Name: "billing_workflow_config", err: errors.New(`db: missing required edge "BillingInvoice.billing_workflow_config"`)}
 	}
-	if len(bic.mutation.BillingInvoiceCustomerIDs()) == 0 {
+	if len(_c.mutation.BillingInvoiceCustomerIDs()) == 0 {
 		return &ValidationError{Name: "billing_invoice_customer", err: errors.New(`db: missing required edge "BillingInvoice.billing_invoice_customer"`)}
 	}
-	if len(bic.mutation.TaxAppIDs()) == 0 {
+	if len(_c.mutation.TaxAppIDs()) == 0 {
 		return &ValidationError{Name: "tax_app", err: errors.New(`db: missing required edge "BillingInvoice.tax_app"`)}
 	}
-	if len(bic.mutation.InvoicingAppIDs()) == 0 {
+	if len(_c.mutation.InvoicingAppIDs()) == 0 {
 		return &ValidationError{Name: "invoicing_app", err: errors.New(`db: missing required edge "BillingInvoice.invoicing_app"`)}
 	}
-	if len(bic.mutation.PaymentAppIDs()) == 0 {
+	if len(_c.mutation.PaymentAppIDs()) == 0 {
 		return &ValidationError{Name: "payment_app", err: errors.New(`db: missing required edge "BillingInvoice.payment_app"`)}
 	}
 	return nil
 }
 
-func (bic *BillingInvoiceCreate) sqlSave(ctx context.Context) (*BillingInvoice, error) {
-	if err := bic.check(); err != nil {
+func (_c *BillingInvoiceCreate) sqlSave(ctx context.Context) (*BillingInvoice, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := bic.createSpec()
-	if err := sqlgraph.CreateNode(ctx, bic.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -898,210 +898,210 @@ func (bic *BillingInvoiceCreate) sqlSave(ctx context.Context) (*BillingInvoice, 
 			return nil, fmt.Errorf("unexpected BillingInvoice.ID type: %T", _spec.ID.Value)
 		}
 	}
-	bic.mutation.id = &_node.ID
-	bic.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateSpec) {
+func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateSpec) {
 	var (
-		_node = &BillingInvoice{config: bic.config}
+		_node = &BillingInvoice{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(billinginvoice.Table, sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = bic.conflict
-	if id, ok := bic.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := bic.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(billinginvoice.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := bic.mutation.Metadata(); ok {
+	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(billinginvoice.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := bic.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(billinginvoice.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := bic.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoice.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := bic.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(billinginvoice.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := bic.mutation.SupplierAddressCountry(); ok {
+	if value, ok := _c.mutation.SupplierAddressCountry(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierAddressCountry, field.TypeString, value)
 		_node.SupplierAddressCountry = &value
 	}
-	if value, ok := bic.mutation.SupplierAddressPostalCode(); ok {
+	if value, ok := _c.mutation.SupplierAddressPostalCode(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierAddressPostalCode, field.TypeString, value)
 		_node.SupplierAddressPostalCode = &value
 	}
-	if value, ok := bic.mutation.SupplierAddressState(); ok {
+	if value, ok := _c.mutation.SupplierAddressState(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierAddressState, field.TypeString, value)
 		_node.SupplierAddressState = &value
 	}
-	if value, ok := bic.mutation.SupplierAddressCity(); ok {
+	if value, ok := _c.mutation.SupplierAddressCity(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierAddressCity, field.TypeString, value)
 		_node.SupplierAddressCity = &value
 	}
-	if value, ok := bic.mutation.SupplierAddressLine1(); ok {
+	if value, ok := _c.mutation.SupplierAddressLine1(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierAddressLine1, field.TypeString, value)
 		_node.SupplierAddressLine1 = &value
 	}
-	if value, ok := bic.mutation.SupplierAddressLine2(); ok {
+	if value, ok := _c.mutation.SupplierAddressLine2(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierAddressLine2, field.TypeString, value)
 		_node.SupplierAddressLine2 = &value
 	}
-	if value, ok := bic.mutation.SupplierAddressPhoneNumber(); ok {
+	if value, ok := _c.mutation.SupplierAddressPhoneNumber(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierAddressPhoneNumber, field.TypeString, value)
 		_node.SupplierAddressPhoneNumber = &value
 	}
-	if value, ok := bic.mutation.CustomerAddressCountry(); ok {
+	if value, ok := _c.mutation.CustomerAddressCountry(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerAddressCountry, field.TypeString, value)
 		_node.CustomerAddressCountry = &value
 	}
-	if value, ok := bic.mutation.CustomerAddressPostalCode(); ok {
+	if value, ok := _c.mutation.CustomerAddressPostalCode(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerAddressPostalCode, field.TypeString, value)
 		_node.CustomerAddressPostalCode = &value
 	}
-	if value, ok := bic.mutation.CustomerAddressState(); ok {
+	if value, ok := _c.mutation.CustomerAddressState(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerAddressState, field.TypeString, value)
 		_node.CustomerAddressState = &value
 	}
-	if value, ok := bic.mutation.CustomerAddressCity(); ok {
+	if value, ok := _c.mutation.CustomerAddressCity(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerAddressCity, field.TypeString, value)
 		_node.CustomerAddressCity = &value
 	}
-	if value, ok := bic.mutation.CustomerAddressLine1(); ok {
+	if value, ok := _c.mutation.CustomerAddressLine1(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerAddressLine1, field.TypeString, value)
 		_node.CustomerAddressLine1 = &value
 	}
-	if value, ok := bic.mutation.CustomerAddressLine2(); ok {
+	if value, ok := _c.mutation.CustomerAddressLine2(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerAddressLine2, field.TypeString, value)
 		_node.CustomerAddressLine2 = &value
 	}
-	if value, ok := bic.mutation.CustomerAddressPhoneNumber(); ok {
+	if value, ok := _c.mutation.CustomerAddressPhoneNumber(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerAddressPhoneNumber, field.TypeString, value)
 		_node.CustomerAddressPhoneNumber = &value
 	}
-	if value, ok := bic.mutation.Amount(); ok {
+	if value, ok := _c.mutation.Amount(); ok {
 		_spec.SetField(billinginvoice.FieldAmount, field.TypeOther, value)
 		_node.Amount = value
 	}
-	if value, ok := bic.mutation.TaxesTotal(); ok {
+	if value, ok := _c.mutation.TaxesTotal(); ok {
 		_spec.SetField(billinginvoice.FieldTaxesTotal, field.TypeOther, value)
 		_node.TaxesTotal = value
 	}
-	if value, ok := bic.mutation.TaxesInclusiveTotal(); ok {
+	if value, ok := _c.mutation.TaxesInclusiveTotal(); ok {
 		_spec.SetField(billinginvoice.FieldTaxesInclusiveTotal, field.TypeOther, value)
 		_node.TaxesInclusiveTotal = value
 	}
-	if value, ok := bic.mutation.TaxesExclusiveTotal(); ok {
+	if value, ok := _c.mutation.TaxesExclusiveTotal(); ok {
 		_spec.SetField(billinginvoice.FieldTaxesExclusiveTotal, field.TypeOther, value)
 		_node.TaxesExclusiveTotal = value
 	}
-	if value, ok := bic.mutation.ChargesTotal(); ok {
+	if value, ok := _c.mutation.ChargesTotal(); ok {
 		_spec.SetField(billinginvoice.FieldChargesTotal, field.TypeOther, value)
 		_node.ChargesTotal = value
 	}
-	if value, ok := bic.mutation.DiscountsTotal(); ok {
+	if value, ok := _c.mutation.DiscountsTotal(); ok {
 		_spec.SetField(billinginvoice.FieldDiscountsTotal, field.TypeOther, value)
 		_node.DiscountsTotal = value
 	}
-	if value, ok := bic.mutation.Total(); ok {
+	if value, ok := _c.mutation.Total(); ok {
 		_spec.SetField(billinginvoice.FieldTotal, field.TypeOther, value)
 		_node.Total = value
 	}
-	if value, ok := bic.mutation.SupplierName(); ok {
+	if value, ok := _c.mutation.SupplierName(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierName, field.TypeString, value)
 		_node.SupplierName = value
 	}
-	if value, ok := bic.mutation.SupplierTaxCode(); ok {
+	if value, ok := _c.mutation.SupplierTaxCode(); ok {
 		_spec.SetField(billinginvoice.FieldSupplierTaxCode, field.TypeString, value)
 		_node.SupplierTaxCode = &value
 	}
-	if value, ok := bic.mutation.CustomerName(); ok {
+	if value, ok := _c.mutation.CustomerName(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerName, field.TypeString, value)
 		_node.CustomerName = value
 	}
-	if value, ok := bic.mutation.CustomerUsageAttribution(); ok {
+	if value, ok := _c.mutation.CustomerUsageAttribution(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON, value)
 		_node.CustomerUsageAttribution = value
 	}
-	if value, ok := bic.mutation.Number(); ok {
+	if value, ok := _c.mutation.Number(); ok {
 		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)
 		_node.Number = value
 	}
-	if value, ok := bic.mutation.GetType(); ok {
+	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(billinginvoice.FieldType, field.TypeEnum, value)
 		_node.Type = value
 	}
-	if value, ok := bic.mutation.Description(); ok {
+	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(billinginvoice.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := bic.mutation.VoidedAt(); ok {
+	if value, ok := _c.mutation.VoidedAt(); ok {
 		_spec.SetField(billinginvoice.FieldVoidedAt, field.TypeTime, value)
 		_node.VoidedAt = &value
 	}
-	if value, ok := bic.mutation.IssuedAt(); ok {
+	if value, ok := _c.mutation.IssuedAt(); ok {
 		_spec.SetField(billinginvoice.FieldIssuedAt, field.TypeTime, value)
 		_node.IssuedAt = &value
 	}
-	if value, ok := bic.mutation.SentToCustomerAt(); ok {
+	if value, ok := _c.mutation.SentToCustomerAt(); ok {
 		_spec.SetField(billinginvoice.FieldSentToCustomerAt, field.TypeTime, value)
 		_node.SentToCustomerAt = &value
 	}
-	if value, ok := bic.mutation.DraftUntil(); ok {
+	if value, ok := _c.mutation.DraftUntil(); ok {
 		_spec.SetField(billinginvoice.FieldDraftUntil, field.TypeTime, value)
 		_node.DraftUntil = &value
 	}
-	if value, ok := bic.mutation.Currency(); ok {
+	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(billinginvoice.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
 	}
-	if value, ok := bic.mutation.DueAt(); ok {
+	if value, ok := _c.mutation.DueAt(); ok {
 		_spec.SetField(billinginvoice.FieldDueAt, field.TypeTime, value)
 		_node.DueAt = &value
 	}
-	if value, ok := bic.mutation.Status(); ok {
+	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(billinginvoice.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
 	}
-	if value, ok := bic.mutation.StatusDetailsCache(); ok {
+	if value, ok := _c.mutation.StatusDetailsCache(); ok {
 		_spec.SetField(billinginvoice.FieldStatusDetailsCache, field.TypeJSON, value)
 		_node.StatusDetailsCache = value
 	}
-	if value, ok := bic.mutation.InvoicingAppExternalID(); ok {
+	if value, ok := _c.mutation.InvoicingAppExternalID(); ok {
 		_spec.SetField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString, value)
 		_node.InvoicingAppExternalID = &value
 	}
-	if value, ok := bic.mutation.PaymentAppExternalID(); ok {
+	if value, ok := _c.mutation.PaymentAppExternalID(); ok {
 		_spec.SetField(billinginvoice.FieldPaymentAppExternalID, field.TypeString, value)
 		_node.PaymentAppExternalID = &value
 	}
-	if value, ok := bic.mutation.TaxAppExternalID(); ok {
+	if value, ok := _c.mutation.TaxAppExternalID(); ok {
 		_spec.SetField(billinginvoice.FieldTaxAppExternalID, field.TypeString, value)
 		_node.TaxAppExternalID = &value
 	}
-	if value, ok := bic.mutation.PeriodStart(); ok {
+	if value, ok := _c.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodStart, field.TypeTime, value)
 		_node.PeriodStart = &value
 	}
-	if value, ok := bic.mutation.PeriodEnd(); ok {
+	if value, ok := _c.mutation.PeriodEnd(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodEnd, field.TypeTime, value)
 		_node.PeriodEnd = &value
 	}
-	if value, ok := bic.mutation.CollectionAt(); ok {
+	if value, ok := _c.mutation.CollectionAt(); ok {
 		_spec.SetField(billinginvoice.FieldCollectionAt, field.TypeTime, value)
 		_node.CollectionAt = value
 	}
-	if nodes := bic.mutation.SourceBillingProfileIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.SourceBillingProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -1118,7 +1118,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		_node.SourceBillingProfileID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bic.mutation.BillingWorkflowConfigIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingWorkflowConfigIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
@@ -1135,7 +1135,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		_node.WorkflowConfigID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bic.mutation.BillingInvoiceLinesIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingInvoiceLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1151,7 +1151,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bic.mutation.BillingInvoiceValidationIssuesIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingInvoiceValidationIssuesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
@@ -1167,7 +1167,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bic.mutation.BillingInvoiceCustomerIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingInvoiceCustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -1184,7 +1184,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		_node.CustomerID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bic.mutation.TaxAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.TaxAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -1201,7 +1201,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		_node.TaxAppID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bic.mutation.InvoicingAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.InvoicingAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -1218,7 +1218,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		_node.InvoicingAppID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := bic.mutation.PaymentAppIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.PaymentAppIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -1254,10 +1254,10 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bic *BillingInvoiceCreate) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceUpsertOne {
-	bic.conflict = opts
+func (_c *BillingInvoiceCreate) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceUpsertOne {
+	_c.conflict = opts
 	return &BillingInvoiceUpsertOne{
-		create: bic,
+		create: _c,
 	}
 }
 
@@ -1267,10 +1267,10 @@ func (bic *BillingInvoiceCreate) OnConflict(opts ...sql.ConflictOption) *Billing
 //	client.BillingInvoice.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bic *BillingInvoiceCreate) OnConflictColumns(columns ...string) *BillingInvoiceUpsertOne {
-	bic.conflict = append(bic.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingInvoiceCreate) OnConflictColumns(columns ...string) *BillingInvoiceUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingInvoiceUpsertOne{
-		create: bic,
+		create: _c,
 	}
 }
 
@@ -2966,16 +2966,16 @@ type BillingInvoiceCreateBulk struct {
 }
 
 // Save creates the BillingInvoice entities in the database.
-func (bicb *BillingInvoiceCreateBulk) Save(ctx context.Context) ([]*BillingInvoice, error) {
-	if bicb.err != nil {
-		return nil, bicb.err
+func (_c *BillingInvoiceCreateBulk) Save(ctx context.Context) ([]*BillingInvoice, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(bicb.builders))
-	nodes := make([]*BillingInvoice, len(bicb.builders))
-	mutators := make([]Mutator, len(bicb.builders))
-	for i := range bicb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*BillingInvoice, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := bicb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*BillingInvoiceMutation)
@@ -2989,12 +2989,12 @@ func (bicb *BillingInvoiceCreateBulk) Save(ctx context.Context) ([]*BillingInvoi
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, bicb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = bicb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, bicb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -3014,7 +3014,7 @@ func (bicb *BillingInvoiceCreateBulk) Save(ctx context.Context) ([]*BillingInvoi
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, bicb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -3022,8 +3022,8 @@ func (bicb *BillingInvoiceCreateBulk) Save(ctx context.Context) ([]*BillingInvoi
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bicb *BillingInvoiceCreateBulk) SaveX(ctx context.Context) []*BillingInvoice {
-	v, err := bicb.Save(ctx)
+func (_c *BillingInvoiceCreateBulk) SaveX(ctx context.Context) []*BillingInvoice {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -3031,14 +3031,14 @@ func (bicb *BillingInvoiceCreateBulk) SaveX(ctx context.Context) []*BillingInvoi
 }
 
 // Exec executes the query.
-func (bicb *BillingInvoiceCreateBulk) Exec(ctx context.Context) error {
-	_, err := bicb.Save(ctx)
+func (_c *BillingInvoiceCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bicb *BillingInvoiceCreateBulk) ExecX(ctx context.Context) {
-	if err := bicb.Exec(ctx); err != nil {
+func (_c *BillingInvoiceCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -3058,10 +3058,10 @@ func (bicb *BillingInvoiceCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (bicb *BillingInvoiceCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceUpsertBulk {
-	bicb.conflict = opts
+func (_c *BillingInvoiceCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceUpsertBulk {
+	_c.conflict = opts
 	return &BillingInvoiceUpsertBulk{
-		create: bicb,
+		create: _c,
 	}
 }
 
@@ -3071,10 +3071,10 @@ func (bicb *BillingInvoiceCreateBulk) OnConflict(opts ...sql.ConflictOption) *Bi
 //	client.BillingInvoice.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (bicb *BillingInvoiceCreateBulk) OnConflictColumns(columns ...string) *BillingInvoiceUpsertBulk {
-	bicb.conflict = append(bicb.conflict, sql.ConflictColumns(columns...))
+func (_c *BillingInvoiceCreateBulk) OnConflictColumns(columns ...string) *BillingInvoiceUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &BillingInvoiceUpsertBulk{
-		create: bicb,
+		create: _c,
 	}
 }
 

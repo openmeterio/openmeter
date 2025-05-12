@@ -27,196 +27,196 @@ type GrantCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (gc *GrantCreate) SetNamespace(s string) *GrantCreate {
-	gc.mutation.SetNamespace(s)
-	return gc
+func (_c *GrantCreate) SetNamespace(v string) *GrantCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetMetadata sets the "metadata" field.
-func (gc *GrantCreate) SetMetadata(m map[string]string) *GrantCreate {
-	gc.mutation.SetMetadata(m)
-	return gc
+func (_c *GrantCreate) SetMetadata(v map[string]string) *GrantCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (gc *GrantCreate) SetCreatedAt(t time.Time) *GrantCreate {
-	gc.mutation.SetCreatedAt(t)
-	return gc
+func (_c *GrantCreate) SetCreatedAt(v time.Time) *GrantCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (gc *GrantCreate) SetNillableCreatedAt(t *time.Time) *GrantCreate {
-	if t != nil {
-		gc.SetCreatedAt(*t)
+func (_c *GrantCreate) SetNillableCreatedAt(v *time.Time) *GrantCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return gc
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (gc *GrantCreate) SetUpdatedAt(t time.Time) *GrantCreate {
-	gc.mutation.SetUpdatedAt(t)
-	return gc
+func (_c *GrantCreate) SetUpdatedAt(v time.Time) *GrantCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (gc *GrantCreate) SetNillableUpdatedAt(t *time.Time) *GrantCreate {
-	if t != nil {
-		gc.SetUpdatedAt(*t)
+func (_c *GrantCreate) SetNillableUpdatedAt(v *time.Time) *GrantCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return gc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (gc *GrantCreate) SetDeletedAt(t time.Time) *GrantCreate {
-	gc.mutation.SetDeletedAt(t)
-	return gc
+func (_c *GrantCreate) SetDeletedAt(v time.Time) *GrantCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (gc *GrantCreate) SetNillableDeletedAt(t *time.Time) *GrantCreate {
-	if t != nil {
-		gc.SetDeletedAt(*t)
+func (_c *GrantCreate) SetNillableDeletedAt(v *time.Time) *GrantCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return gc
+	return _c
 }
 
 // SetOwnerID sets the "owner_id" field.
-func (gc *GrantCreate) SetOwnerID(s string) *GrantCreate {
-	gc.mutation.SetOwnerID(s)
-	return gc
+func (_c *GrantCreate) SetOwnerID(v string) *GrantCreate {
+	_c.mutation.SetOwnerID(v)
+	return _c
 }
 
 // SetAmount sets the "amount" field.
-func (gc *GrantCreate) SetAmount(f float64) *GrantCreate {
-	gc.mutation.SetAmount(f)
-	return gc
+func (_c *GrantCreate) SetAmount(v float64) *GrantCreate {
+	_c.mutation.SetAmount(v)
+	return _c
 }
 
 // SetPriority sets the "priority" field.
-func (gc *GrantCreate) SetPriority(u uint8) *GrantCreate {
-	gc.mutation.SetPriority(u)
-	return gc
+func (_c *GrantCreate) SetPriority(v uint8) *GrantCreate {
+	_c.mutation.SetPriority(v)
+	return _c
 }
 
 // SetNillablePriority sets the "priority" field if the given value is not nil.
-func (gc *GrantCreate) SetNillablePriority(u *uint8) *GrantCreate {
-	if u != nil {
-		gc.SetPriority(*u)
+func (_c *GrantCreate) SetNillablePriority(v *uint8) *GrantCreate {
+	if v != nil {
+		_c.SetPriority(*v)
 	}
-	return gc
+	return _c
 }
 
 // SetEffectiveAt sets the "effective_at" field.
-func (gc *GrantCreate) SetEffectiveAt(t time.Time) *GrantCreate {
-	gc.mutation.SetEffectiveAt(t)
-	return gc
+func (_c *GrantCreate) SetEffectiveAt(v time.Time) *GrantCreate {
+	_c.mutation.SetEffectiveAt(v)
+	return _c
 }
 
 // SetExpiration sets the "expiration" field.
-func (gc *GrantCreate) SetExpiration(gp grant.ExpirationPeriod) *GrantCreate {
-	gc.mutation.SetExpiration(gp)
-	return gc
+func (_c *GrantCreate) SetExpiration(v grant.ExpirationPeriod) *GrantCreate {
+	_c.mutation.SetExpiration(v)
+	return _c
 }
 
 // SetExpiresAt sets the "expires_at" field.
-func (gc *GrantCreate) SetExpiresAt(t time.Time) *GrantCreate {
-	gc.mutation.SetExpiresAt(t)
-	return gc
+func (_c *GrantCreate) SetExpiresAt(v time.Time) *GrantCreate {
+	_c.mutation.SetExpiresAt(v)
+	return _c
 }
 
 // SetVoidedAt sets the "voided_at" field.
-func (gc *GrantCreate) SetVoidedAt(t time.Time) *GrantCreate {
-	gc.mutation.SetVoidedAt(t)
-	return gc
+func (_c *GrantCreate) SetVoidedAt(v time.Time) *GrantCreate {
+	_c.mutation.SetVoidedAt(v)
+	return _c
 }
 
 // SetNillableVoidedAt sets the "voided_at" field if the given value is not nil.
-func (gc *GrantCreate) SetNillableVoidedAt(t *time.Time) *GrantCreate {
-	if t != nil {
-		gc.SetVoidedAt(*t)
+func (_c *GrantCreate) SetNillableVoidedAt(v *time.Time) *GrantCreate {
+	if v != nil {
+		_c.SetVoidedAt(*v)
 	}
-	return gc
+	return _c
 }
 
 // SetResetMaxRollover sets the "reset_max_rollover" field.
-func (gc *GrantCreate) SetResetMaxRollover(f float64) *GrantCreate {
-	gc.mutation.SetResetMaxRollover(f)
-	return gc
+func (_c *GrantCreate) SetResetMaxRollover(v float64) *GrantCreate {
+	_c.mutation.SetResetMaxRollover(v)
+	return _c
 }
 
 // SetResetMinRollover sets the "reset_min_rollover" field.
-func (gc *GrantCreate) SetResetMinRollover(f float64) *GrantCreate {
-	gc.mutation.SetResetMinRollover(f)
-	return gc
+func (_c *GrantCreate) SetResetMinRollover(v float64) *GrantCreate {
+	_c.mutation.SetResetMinRollover(v)
+	return _c
 }
 
 // SetRecurrencePeriod sets the "recurrence_period" field.
-func (gc *GrantCreate) SetRecurrencePeriod(i isodate.String) *GrantCreate {
-	gc.mutation.SetRecurrencePeriod(i)
-	return gc
+func (_c *GrantCreate) SetRecurrencePeriod(v isodate.String) *GrantCreate {
+	_c.mutation.SetRecurrencePeriod(v)
+	return _c
 }
 
 // SetNillableRecurrencePeriod sets the "recurrence_period" field if the given value is not nil.
-func (gc *GrantCreate) SetNillableRecurrencePeriod(i *isodate.String) *GrantCreate {
-	if i != nil {
-		gc.SetRecurrencePeriod(*i)
+func (_c *GrantCreate) SetNillableRecurrencePeriod(v *isodate.String) *GrantCreate {
+	if v != nil {
+		_c.SetRecurrencePeriod(*v)
 	}
-	return gc
+	return _c
 }
 
 // SetRecurrenceAnchor sets the "recurrence_anchor" field.
-func (gc *GrantCreate) SetRecurrenceAnchor(t time.Time) *GrantCreate {
-	gc.mutation.SetRecurrenceAnchor(t)
-	return gc
+func (_c *GrantCreate) SetRecurrenceAnchor(v time.Time) *GrantCreate {
+	_c.mutation.SetRecurrenceAnchor(v)
+	return _c
 }
 
 // SetNillableRecurrenceAnchor sets the "recurrence_anchor" field if the given value is not nil.
-func (gc *GrantCreate) SetNillableRecurrenceAnchor(t *time.Time) *GrantCreate {
-	if t != nil {
-		gc.SetRecurrenceAnchor(*t)
+func (_c *GrantCreate) SetNillableRecurrenceAnchor(v *time.Time) *GrantCreate {
+	if v != nil {
+		_c.SetRecurrenceAnchor(*v)
 	}
-	return gc
+	return _c
 }
 
 // SetID sets the "id" field.
-func (gc *GrantCreate) SetID(s string) *GrantCreate {
-	gc.mutation.SetID(s)
-	return gc
+func (_c *GrantCreate) SetID(v string) *GrantCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (gc *GrantCreate) SetNillableID(s *string) *GrantCreate {
-	if s != nil {
-		gc.SetID(*s)
+func (_c *GrantCreate) SetNillableID(v *string) *GrantCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return gc
+	return _c
 }
 
 // SetEntitlementID sets the "entitlement" edge to the Entitlement entity by ID.
-func (gc *GrantCreate) SetEntitlementID(id string) *GrantCreate {
-	gc.mutation.SetEntitlementID(id)
-	return gc
+func (_c *GrantCreate) SetEntitlementID(id string) *GrantCreate {
+	_c.mutation.SetEntitlementID(id)
+	return _c
 }
 
 // SetEntitlement sets the "entitlement" edge to the Entitlement entity.
-func (gc *GrantCreate) SetEntitlement(e *Entitlement) *GrantCreate {
-	return gc.SetEntitlementID(e.ID)
+func (_c *GrantCreate) SetEntitlement(v *Entitlement) *GrantCreate {
+	return _c.SetEntitlementID(v.ID)
 }
 
 // Mutation returns the GrantMutation object of the builder.
-func (gc *GrantCreate) Mutation() *GrantMutation {
-	return gc.mutation
+func (_c *GrantCreate) Mutation() *GrantMutation {
+	return _c.mutation
 }
 
 // Save creates the Grant in the database.
-func (gc *GrantCreate) Save(ctx context.Context) (*Grant, error) {
-	gc.defaults()
-	return withHooks(ctx, gc.sqlSave, gc.mutation, gc.hooks)
+func (_c *GrantCreate) Save(ctx context.Context) (*Grant, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (gc *GrantCreate) SaveX(ctx context.Context) *Grant {
-	v, err := gc.Save(ctx)
+func (_c *GrantCreate) SaveX(ctx context.Context) *Grant {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -224,90 +224,90 @@ func (gc *GrantCreate) SaveX(ctx context.Context) *Grant {
 }
 
 // Exec executes the query.
-func (gc *GrantCreate) Exec(ctx context.Context) error {
-	_, err := gc.Save(ctx)
+func (_c *GrantCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (gc *GrantCreate) ExecX(ctx context.Context) {
-	if err := gc.Exec(ctx); err != nil {
+func (_c *GrantCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (gc *GrantCreate) defaults() {
-	if _, ok := gc.mutation.CreatedAt(); !ok {
+func (_c *GrantCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := dbgrant.DefaultCreatedAt()
-		gc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := gc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := dbgrant.DefaultUpdatedAt()
-		gc.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := gc.mutation.Priority(); !ok {
+	if _, ok := _c.mutation.Priority(); !ok {
 		v := dbgrant.DefaultPriority
-		gc.mutation.SetPriority(v)
+		_c.mutation.SetPriority(v)
 	}
-	if _, ok := gc.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := dbgrant.DefaultID()
-		gc.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (gc *GrantCreate) check() error {
-	if _, ok := gc.mutation.Namespace(); !ok {
+func (_c *GrantCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "Grant.namespace"`)}
 	}
-	if v, ok := gc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := dbgrant.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "Grant.namespace": %w`, err)}
 		}
 	}
-	if _, ok := gc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "Grant.created_at"`)}
 	}
-	if _, ok := gc.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "Grant.updated_at"`)}
 	}
-	if _, ok := gc.mutation.OwnerID(); !ok {
+	if _, ok := _c.mutation.OwnerID(); !ok {
 		return &ValidationError{Name: "owner_id", err: errors.New(`db: missing required field "Grant.owner_id"`)}
 	}
-	if _, ok := gc.mutation.Amount(); !ok {
+	if _, ok := _c.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "Grant.amount"`)}
 	}
-	if _, ok := gc.mutation.Priority(); !ok {
+	if _, ok := _c.mutation.Priority(); !ok {
 		return &ValidationError{Name: "priority", err: errors.New(`db: missing required field "Grant.priority"`)}
 	}
-	if _, ok := gc.mutation.EffectiveAt(); !ok {
+	if _, ok := _c.mutation.EffectiveAt(); !ok {
 		return &ValidationError{Name: "effective_at", err: errors.New(`db: missing required field "Grant.effective_at"`)}
 	}
-	if _, ok := gc.mutation.Expiration(); !ok {
+	if _, ok := _c.mutation.Expiration(); !ok {
 		return &ValidationError{Name: "expiration", err: errors.New(`db: missing required field "Grant.expiration"`)}
 	}
-	if _, ok := gc.mutation.ExpiresAt(); !ok {
+	if _, ok := _c.mutation.ExpiresAt(); !ok {
 		return &ValidationError{Name: "expires_at", err: errors.New(`db: missing required field "Grant.expires_at"`)}
 	}
-	if _, ok := gc.mutation.ResetMaxRollover(); !ok {
+	if _, ok := _c.mutation.ResetMaxRollover(); !ok {
 		return &ValidationError{Name: "reset_max_rollover", err: errors.New(`db: missing required field "Grant.reset_max_rollover"`)}
 	}
-	if _, ok := gc.mutation.ResetMinRollover(); !ok {
+	if _, ok := _c.mutation.ResetMinRollover(); !ok {
 		return &ValidationError{Name: "reset_min_rollover", err: errors.New(`db: missing required field "Grant.reset_min_rollover"`)}
 	}
-	if len(gc.mutation.EntitlementIDs()) == 0 {
+	if len(_c.mutation.EntitlementIDs()) == 0 {
 		return &ValidationError{Name: "entitlement", err: errors.New(`db: missing required edge "Grant.entitlement"`)}
 	}
 	return nil
 }
 
-func (gc *GrantCreate) sqlSave(ctx context.Context) (*Grant, error) {
-	if err := gc.check(); err != nil {
+func (_c *GrantCreate) sqlSave(ctx context.Context) (*Grant, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := gc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, gc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -320,82 +320,82 @@ func (gc *GrantCreate) sqlSave(ctx context.Context) (*Grant, error) {
 			return nil, fmt.Errorf("unexpected Grant.ID type: %T", _spec.ID.Value)
 		}
 	}
-	gc.mutation.id = &_node.ID
-	gc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (gc *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
+func (_c *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 	var (
-		_node = &Grant{config: gc.config}
+		_node = &Grant{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(dbgrant.Table, sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = gc.conflict
-	if id, ok := gc.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := gc.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(dbgrant.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := gc.mutation.Metadata(); ok {
+	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := gc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(dbgrant.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := gc.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbgrant.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := gc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(dbgrant.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := gc.mutation.Amount(); ok {
+	if value, ok := _c.mutation.Amount(); ok {
 		_spec.SetField(dbgrant.FieldAmount, field.TypeFloat64, value)
 		_node.Amount = value
 	}
-	if value, ok := gc.mutation.Priority(); ok {
+	if value, ok := _c.mutation.Priority(); ok {
 		_spec.SetField(dbgrant.FieldPriority, field.TypeUint8, value)
 		_node.Priority = value
 	}
-	if value, ok := gc.mutation.EffectiveAt(); ok {
+	if value, ok := _c.mutation.EffectiveAt(); ok {
 		_spec.SetField(dbgrant.FieldEffectiveAt, field.TypeTime, value)
 		_node.EffectiveAt = value
 	}
-	if value, ok := gc.mutation.Expiration(); ok {
+	if value, ok := _c.mutation.Expiration(); ok {
 		_spec.SetField(dbgrant.FieldExpiration, field.TypeJSON, value)
 		_node.Expiration = value
 	}
-	if value, ok := gc.mutation.ExpiresAt(); ok {
+	if value, ok := _c.mutation.ExpiresAt(); ok {
 		_spec.SetField(dbgrant.FieldExpiresAt, field.TypeTime, value)
 		_node.ExpiresAt = value
 	}
-	if value, ok := gc.mutation.VoidedAt(); ok {
+	if value, ok := _c.mutation.VoidedAt(); ok {
 		_spec.SetField(dbgrant.FieldVoidedAt, field.TypeTime, value)
 		_node.VoidedAt = &value
 	}
-	if value, ok := gc.mutation.ResetMaxRollover(); ok {
+	if value, ok := _c.mutation.ResetMaxRollover(); ok {
 		_spec.SetField(dbgrant.FieldResetMaxRollover, field.TypeFloat64, value)
 		_node.ResetMaxRollover = value
 	}
-	if value, ok := gc.mutation.ResetMinRollover(); ok {
+	if value, ok := _c.mutation.ResetMinRollover(); ok {
 		_spec.SetField(dbgrant.FieldResetMinRollover, field.TypeFloat64, value)
 		_node.ResetMinRollover = value
 	}
-	if value, ok := gc.mutation.RecurrencePeriod(); ok {
+	if value, ok := _c.mutation.RecurrencePeriod(); ok {
 		_spec.SetField(dbgrant.FieldRecurrencePeriod, field.TypeString, value)
 		_node.RecurrencePeriod = &value
 	}
-	if value, ok := gc.mutation.RecurrenceAnchor(); ok {
+	if value, ok := _c.mutation.RecurrenceAnchor(); ok {
 		_spec.SetField(dbgrant.FieldRecurrenceAnchor, field.TypeTime, value)
 		_node.RecurrenceAnchor = &value
 	}
-	if nodes := gc.mutation.EntitlementIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -431,10 +431,10 @@ func (gc *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (gc *GrantCreate) OnConflict(opts ...sql.ConflictOption) *GrantUpsertOne {
-	gc.conflict = opts
+func (_c *GrantCreate) OnConflict(opts ...sql.ConflictOption) *GrantUpsertOne {
+	_c.conflict = opts
 	return &GrantUpsertOne{
-		create: gc,
+		create: _c,
 	}
 }
 
@@ -444,10 +444,10 @@ func (gc *GrantCreate) OnConflict(opts ...sql.ConflictOption) *GrantUpsertOne {
 //	client.Grant.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (gc *GrantCreate) OnConflictColumns(columns ...string) *GrantUpsertOne {
-	gc.conflict = append(gc.conflict, sql.ConflictColumns(columns...))
+func (_c *GrantCreate) OnConflictColumns(columns ...string) *GrantUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &GrantUpsertOne{
-		create: gc,
+		create: _c,
 	}
 }
 
@@ -738,16 +738,16 @@ type GrantCreateBulk struct {
 }
 
 // Save creates the Grant entities in the database.
-func (gcb *GrantCreateBulk) Save(ctx context.Context) ([]*Grant, error) {
-	if gcb.err != nil {
-		return nil, gcb.err
+func (_c *GrantCreateBulk) Save(ctx context.Context) ([]*Grant, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(gcb.builders))
-	nodes := make([]*Grant, len(gcb.builders))
-	mutators := make([]Mutator, len(gcb.builders))
-	for i := range gcb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*Grant, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := gcb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*GrantMutation)
@@ -761,12 +761,12 @@ func (gcb *GrantCreateBulk) Save(ctx context.Context) ([]*Grant, error) {
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, gcb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = gcb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, gcb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -786,7 +786,7 @@ func (gcb *GrantCreateBulk) Save(ctx context.Context) ([]*Grant, error) {
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, gcb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -794,8 +794,8 @@ func (gcb *GrantCreateBulk) Save(ctx context.Context) ([]*Grant, error) {
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (gcb *GrantCreateBulk) SaveX(ctx context.Context) []*Grant {
-	v, err := gcb.Save(ctx)
+func (_c *GrantCreateBulk) SaveX(ctx context.Context) []*Grant {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -803,14 +803,14 @@ func (gcb *GrantCreateBulk) SaveX(ctx context.Context) []*Grant {
 }
 
 // Exec executes the query.
-func (gcb *GrantCreateBulk) Exec(ctx context.Context) error {
-	_, err := gcb.Save(ctx)
+func (_c *GrantCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (gcb *GrantCreateBulk) ExecX(ctx context.Context) {
-	if err := gcb.Exec(ctx); err != nil {
+func (_c *GrantCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -830,10 +830,10 @@ func (gcb *GrantCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (gcb *GrantCreateBulk) OnConflict(opts ...sql.ConflictOption) *GrantUpsertBulk {
-	gcb.conflict = opts
+func (_c *GrantCreateBulk) OnConflict(opts ...sql.ConflictOption) *GrantUpsertBulk {
+	_c.conflict = opts
 	return &GrantUpsertBulk{
-		create: gcb,
+		create: _c,
 	}
 }
 
@@ -843,10 +843,10 @@ func (gcb *GrantCreateBulk) OnConflict(opts ...sql.ConflictOption) *GrantUpsertB
 //	client.Grant.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (gcb *GrantCreateBulk) OnConflictColumns(columns ...string) *GrantUpsertBulk {
-	gcb.conflict = append(gcb.conflict, sql.ConflictColumns(columns...))
+func (_c *GrantCreateBulk) OnConflictColumns(columns ...string) *GrantUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &GrantUpsertBulk{
-		create: gcb,
+		create: _c,
 	}
 }
 

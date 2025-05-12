@@ -20,56 +20,56 @@ type BillingInvoiceLineUsageDiscountDelete struct {
 }
 
 // Where appends a list predicates to the BillingInvoiceLineUsageDiscountDelete builder.
-func (biludd *BillingInvoiceLineUsageDiscountDelete) Where(ps ...predicate.BillingInvoiceLineUsageDiscount) *BillingInvoiceLineUsageDiscountDelete {
-	biludd.mutation.Where(ps...)
-	return biludd
+func (_d *BillingInvoiceLineUsageDiscountDelete) Where(ps ...predicate.BillingInvoiceLineUsageDiscount) *BillingInvoiceLineUsageDiscountDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (biludd *BillingInvoiceLineUsageDiscountDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, biludd.sqlExec, biludd.mutation, biludd.hooks)
+func (_d *BillingInvoiceLineUsageDiscountDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (biludd *BillingInvoiceLineUsageDiscountDelete) ExecX(ctx context.Context) int {
-	n, err := biludd.Exec(ctx)
+func (_d *BillingInvoiceLineUsageDiscountDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (biludd *BillingInvoiceLineUsageDiscountDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *BillingInvoiceLineUsageDiscountDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(billinginvoicelineusagediscount.Table, sqlgraph.NewFieldSpec(billinginvoicelineusagediscount.FieldID, field.TypeString))
-	if ps := biludd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, biludd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	biludd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // BillingInvoiceLineUsageDiscountDeleteOne is the builder for deleting a single BillingInvoiceLineUsageDiscount entity.
 type BillingInvoiceLineUsageDiscountDeleteOne struct {
-	biludd *BillingInvoiceLineUsageDiscountDelete
+	_d *BillingInvoiceLineUsageDiscountDelete
 }
 
 // Where appends a list predicates to the BillingInvoiceLineUsageDiscountDelete builder.
-func (biluddo *BillingInvoiceLineUsageDiscountDeleteOne) Where(ps ...predicate.BillingInvoiceLineUsageDiscount) *BillingInvoiceLineUsageDiscountDeleteOne {
-	biluddo.biludd.mutation.Where(ps...)
-	return biluddo
+func (_d *BillingInvoiceLineUsageDiscountDeleteOne) Where(ps ...predicate.BillingInvoiceLineUsageDiscount) *BillingInvoiceLineUsageDiscountDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (biluddo *BillingInvoiceLineUsageDiscountDeleteOne) Exec(ctx context.Context) error {
-	n, err := biluddo.biludd.Exec(ctx)
+func (_d *BillingInvoiceLineUsageDiscountDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (biluddo *BillingInvoiceLineUsageDiscountDeleteOne) Exec(ctx context.Contex
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (biluddo *BillingInvoiceLineUsageDiscountDeleteOne) ExecX(ctx context.Context) {
-	if err := biluddo.Exec(ctx); err != nil {
+func (_d *BillingInvoiceLineUsageDiscountDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

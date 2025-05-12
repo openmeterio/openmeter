@@ -1591,6 +1591,8 @@ paths:
         - $ref: '#/components/parameters/InvoiceListParams.extendedStatuses'
         - $ref: '#/components/parameters/InvoiceListParams.issuedAfter'
         - $ref: '#/components/parameters/InvoiceListParams.issuedBefore'
+        - $ref: '#/components/parameters/InvoiceListParams.createdAfter'
+        - $ref: '#/components/parameters/InvoiceListParams.createdBefore'
         - $ref: '#/components/parameters/InvoiceListParams.expand'
         - $ref: '#/components/parameters/InvoiceListParams.customers'
         - $ref: '#/components/parameters/InvoiceListParams.includeDeleted'
@@ -5423,6 +5425,81 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Meters
+    post:
+      operationId: queryMeterPost
+      summary: Query meter
+      parameters:
+        - name: meterIdOrSlug
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterQueryResult'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Meters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeterQueryRequest'
   /api/v1/meters/{meterIdOrSlug}/subjects:
     get:
       operationId: listMeterSubjects
@@ -6517,66 +6594,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Notifications
-  /api/v1/notification/webhook/svix:
-    post:
-      operationId: receiveSvixOperationalEvent
-      summary: Receive Svix operational events
-      description: Callback endpoint used by Svix to notify about operational events.
-      parameters: []
-      responses:
-        '204':
-          description: 'There is no content to send for this request, but the headers may be useful. '
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '412':
-          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Notifications
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SvixOperationalWebhookRequest'
-      x-internal: true
   /api/v1/plans:
     get:
       operationId: listPlans
@@ -10448,6 +10465,30 @@ components:
         $ref: '#/components/schemas/GrantOrderBy'
       explode: false
       style: form
+    InvoiceListParams.createdAfter:
+      name: createdAfter
+      in: query
+      required: false
+      description: |-
+        Filter by invoice created time.
+        Inclusive.
+      schema:
+        type: string
+        format: date-time
+        example: '2023-01-01T01:01:01.001Z'
+      style: form
+    InvoiceListParams.createdBefore:
+      name: createdBefore
+      in: query
+      required: false
+      description: |-
+        Filter by invoice created time.
+        Inclusive.
+      schema:
+        type: string
+        format: date-time
+        example: '2023-01-01T01:01:01.001Z'
+      style: form
     InvoiceListParams.customers:
       name: customers
       in: query
@@ -10494,7 +10535,9 @@ components:
       name: issuedAfter
       in: query
       required: false
-      description: Filter by invoice creation time
+      description: |-
+        Filter by invoice issued time.
+        Inclusive.
       schema:
         type: string
         format: date-time
@@ -10504,7 +10547,9 @@ components:
       name: issuedBefore
       in: query
       required: false
-      description: Filter by invoice creation time
+      description: |-
+        Filter by invoice issued time.
+        Inclusive.
       schema:
         type: string
         format: date-time
@@ -17346,6 +17391,79 @@ components:
         - createdAt
         - updatedAt
       description: Order by options for meters.
+    MeterQueryRequest:
+      type: object
+      properties:
+        clientId:
+          type: string
+          minLength: 1
+          maxLength: 36
+          description: |-
+            Client ID
+            Useful to track progress of a query.
+          example: f74e58ed-94ce-4041-ae06-cf45420451a3
+        from:
+          type: string
+          format: date-time
+          description: |-
+            Start date-time in RFC 3339 format.
+
+            Inclusive.
+          example: '2023-01-01T01:01:01.001Z'
+        to:
+          type: string
+          format: date-time
+          description: |-
+            End date-time in RFC 3339 format.
+
+            Inclusive.
+          example: '2023-01-01T01:01:01.001Z'
+        windowSize:
+          allOf:
+            - $ref: '#/components/schemas/WindowSize'
+          description: If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+          example: DAY
+        windowTimeZone:
+          type: string
+          description: |-
+            The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+            If not specified, the UTC timezone will be used.
+          example: UTC
+          default: UTC
+        subject:
+          type: array
+          items:
+            type: string
+          maxItems: 100
+          description: Filtering by multiple subjects.
+          example:
+            - customer-1
+            - customer-2
+        filterGroupBy:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: Simple filter for group bys with exact match.
+          example:
+            model:
+              - gpt-4-turbo
+              - gpt-4o
+            type:
+              - prompt
+        groupBy:
+          type: array
+          items:
+            type: string
+          maxItems: 100
+          description: |-
+            If not specified a single aggregate will be returned for each subject and time window.
+            `subject` is a reserved group by value.
+          example:
+            - model
+            - type
+      description: A meter query request.
     MeterQueryResult:
       type: object
       required:
@@ -21303,31 +21421,6 @@ components:
         Subscription edit timing.
         When immediate, the requested changes take effect immediately.
         When nextBillingCycle, the requested changes take effect at the next billing cycle.
-    SvixOperationalWebhookRequest:
-      type: object
-      required:
-        - type
-        - data
-      properties:
-        type:
-          type: string
-          enum:
-            - endpoint.created
-            - endpoint.deleted
-            - endpoint.disabled
-            - endpoint.updated
-            - message.attempt.exhausted
-            - message.attempt.failing
-            - message.attempt.recovered
-          description: The type of the Svix operational webhook request.
-          title: Operational Webhook Type
-        data:
-          type: object
-          additionalProperties:
-            type: string
-          description: The payload of the Svix operational webhook request.
-          title: Operational Webhook Payload
-      description: Operational webhook reqeuest sent by Svix.
     TaxBehavior:
       type: string
       enum:

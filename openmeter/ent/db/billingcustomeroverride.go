@@ -112,7 +112,7 @@ func (*BillingCustomerOverride) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the BillingCustomerOverride fields.
-func (bco *BillingCustomerOverride) assignValues(columns []string, values []any) error {
+func (_m *BillingCustomerOverride) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -122,105 +122,105 @@ func (bco *BillingCustomerOverride) assignValues(columns []string, values []any)
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				bco.ID = value.String
+				_m.ID = value.String
 			}
 		case billingcustomeroverride.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				bco.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case billingcustomeroverride.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				bco.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case billingcustomeroverride.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				bco.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case billingcustomeroverride.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				bco.DeletedAt = new(time.Time)
-				*bco.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case billingcustomeroverride.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
 			} else if value.Valid {
-				bco.CustomerID = value.String
+				_m.CustomerID = value.String
 			}
 		case billingcustomeroverride.FieldBillingProfileID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_profile_id", values[i])
 			} else if value.Valid {
-				bco.BillingProfileID = new(string)
-				*bco.BillingProfileID = value.String
+				_m.BillingProfileID = new(string)
+				*_m.BillingProfileID = value.String
 			}
 		case billingcustomeroverride.FieldCollectionAlignment:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field collection_alignment", values[i])
 			} else if value.Valid {
-				bco.CollectionAlignment = new(billing.AlignmentKind)
-				*bco.CollectionAlignment = billing.AlignmentKind(value.String)
+				_m.CollectionAlignment = new(billing.AlignmentKind)
+				*_m.CollectionAlignment = billing.AlignmentKind(value.String)
 			}
 		case billingcustomeroverride.FieldLineCollectionPeriod:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field line_collection_period", values[i])
 			} else if value.Valid {
-				bco.LineCollectionPeriod = new(isodate.String)
-				*bco.LineCollectionPeriod = isodate.String(value.String)
+				_m.LineCollectionPeriod = new(isodate.String)
+				*_m.LineCollectionPeriod = isodate.String(value.String)
 			}
 		case billingcustomeroverride.FieldInvoiceAutoAdvance:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_auto_advance", values[i])
 			} else if value.Valid {
-				bco.InvoiceAutoAdvance = new(bool)
-				*bco.InvoiceAutoAdvance = value.Bool
+				_m.InvoiceAutoAdvance = new(bool)
+				*_m.InvoiceAutoAdvance = value.Bool
 			}
 		case billingcustomeroverride.FieldInvoiceDraftPeriod:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_draft_period", values[i])
 			} else if value.Valid {
-				bco.InvoiceDraftPeriod = new(isodate.String)
-				*bco.InvoiceDraftPeriod = isodate.String(value.String)
+				_m.InvoiceDraftPeriod = new(isodate.String)
+				*_m.InvoiceDraftPeriod = isodate.String(value.String)
 			}
 		case billingcustomeroverride.FieldInvoiceDueAfter:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_due_after", values[i])
 			} else if value.Valid {
-				bco.InvoiceDueAfter = new(isodate.String)
-				*bco.InvoiceDueAfter = isodate.String(value.String)
+				_m.InvoiceDueAfter = new(isodate.String)
+				*_m.InvoiceDueAfter = isodate.String(value.String)
 			}
 		case billingcustomeroverride.FieldInvoiceCollectionMethod:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_collection_method", values[i])
 			} else if value.Valid {
-				bco.InvoiceCollectionMethod = new(billing.CollectionMethod)
-				*bco.InvoiceCollectionMethod = billing.CollectionMethod(value.String)
+				_m.InvoiceCollectionMethod = new(billing.CollectionMethod)
+				*_m.InvoiceCollectionMethod = billing.CollectionMethod(value.String)
 			}
 		case billingcustomeroverride.FieldInvoiceProgressiveBilling:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_progressive_billing", values[i])
 			} else if value.Valid {
-				bco.InvoiceProgressiveBilling = new(bool)
-				*bco.InvoiceProgressiveBilling = value.Bool
+				_m.InvoiceProgressiveBilling = new(bool)
+				*_m.InvoiceProgressiveBilling = value.Bool
 			}
 		case billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_default_tax_config", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &bco.InvoiceDefaultTaxConfig); err != nil {
+				if err := json.Unmarshal(*value, &_m.InvoiceDefaultTaxConfig); err != nil {
 					return fmt.Errorf("unmarshal field invoice_default_tax_config: %w", err)
 				}
 			}
 		default:
-			bco.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -228,102 +228,102 @@ func (bco *BillingCustomerOverride) assignValues(columns []string, values []any)
 
 // Value returns the ent.Value that was dynamically selected and assigned to the BillingCustomerOverride.
 // This includes values selected through modifiers, order, etc.
-func (bco *BillingCustomerOverride) Value(name string) (ent.Value, error) {
-	return bco.selectValues.Get(name)
+func (_m *BillingCustomerOverride) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryCustomer queries the "customer" edge of the BillingCustomerOverride entity.
-func (bco *BillingCustomerOverride) QueryCustomer() *CustomerQuery {
-	return NewBillingCustomerOverrideClient(bco.config).QueryCustomer(bco)
+func (_m *BillingCustomerOverride) QueryCustomer() *CustomerQuery {
+	return NewBillingCustomerOverrideClient(_m.config).QueryCustomer(_m)
 }
 
 // QueryBillingProfile queries the "billing_profile" edge of the BillingCustomerOverride entity.
-func (bco *BillingCustomerOverride) QueryBillingProfile() *BillingProfileQuery {
-	return NewBillingCustomerOverrideClient(bco.config).QueryBillingProfile(bco)
+func (_m *BillingCustomerOverride) QueryBillingProfile() *BillingProfileQuery {
+	return NewBillingCustomerOverrideClient(_m.config).QueryBillingProfile(_m)
 }
 
 // Update returns a builder for updating this BillingCustomerOverride.
 // Note that you need to call BillingCustomerOverride.Unwrap() before calling this method if this BillingCustomerOverride
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (bco *BillingCustomerOverride) Update() *BillingCustomerOverrideUpdateOne {
-	return NewBillingCustomerOverrideClient(bco.config).UpdateOne(bco)
+func (_m *BillingCustomerOverride) Update() *BillingCustomerOverrideUpdateOne {
+	return NewBillingCustomerOverrideClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the BillingCustomerOverride entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (bco *BillingCustomerOverride) Unwrap() *BillingCustomerOverride {
-	_tx, ok := bco.config.driver.(*txDriver)
+func (_m *BillingCustomerOverride) Unwrap() *BillingCustomerOverride {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: BillingCustomerOverride is not a transactional entity")
 	}
-	bco.config.driver = _tx.drv
-	return bco
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (bco *BillingCustomerOverride) String() string {
+func (_m *BillingCustomerOverride) String() string {
 	var builder strings.Builder
 	builder.WriteString("BillingCustomerOverride(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", bco.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(bco.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(bco.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(bco.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := bco.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
-	builder.WriteString(bco.CustomerID)
+	builder.WriteString(_m.CustomerID)
 	builder.WriteString(", ")
-	if v := bco.BillingProfileID; v != nil {
+	if v := _m.BillingProfileID; v != nil {
 		builder.WriteString("billing_profile_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := bco.CollectionAlignment; v != nil {
+	if v := _m.CollectionAlignment; v != nil {
 		builder.WriteString("collection_alignment=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bco.LineCollectionPeriod; v != nil {
+	if v := _m.LineCollectionPeriod; v != nil {
 		builder.WriteString("line_collection_period=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bco.InvoiceAutoAdvance; v != nil {
+	if v := _m.InvoiceAutoAdvance; v != nil {
 		builder.WriteString("invoice_auto_advance=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bco.InvoiceDraftPeriod; v != nil {
+	if v := _m.InvoiceDraftPeriod; v != nil {
 		builder.WriteString("invoice_draft_period=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bco.InvoiceDueAfter; v != nil {
+	if v := _m.InvoiceDueAfter; v != nil {
 		builder.WriteString("invoice_due_after=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bco.InvoiceCollectionMethod; v != nil {
+	if v := _m.InvoiceCollectionMethod; v != nil {
 		builder.WriteString("invoice_collection_method=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := bco.InvoiceProgressiveBilling; v != nil {
+	if v := _m.InvoiceProgressiveBilling; v != nil {
 		builder.WriteString("invoice_progressive_billing=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("invoice_default_tax_config=")
-	builder.WriteString(fmt.Sprintf("%v", bco.InvoiceDefaultTaxConfig))
+	builder.WriteString(fmt.Sprintf("%v", _m.InvoiceDefaultTaxConfig))
 	builder.WriteByte(')')
 	return builder.String()
 }

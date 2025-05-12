@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log/slog"
 	"strings"
 	"time"
 )
@@ -259,79 +258,32 @@ type EventType struct {
 	Deprecated bool
 }
 
-type Handler interface {
+type EventTypeHandler interface {
 	RegisterEventTypes(ctx context.Context, params RegisterEventTypesInputs) error
+}
+
+type WebhookHandler interface {
 	ListWebhooks(ctx context.Context, params ListWebhooksInput) ([]Webhook, error)
 	CreateWebhook(ctx context.Context, params CreateWebhookInput) (*Webhook, error)
 	UpdateWebhook(ctx context.Context, params UpdateWebhookInput) (*Webhook, error)
 	UpdateWebhookChannels(ctx context.Context, params UpdateWebhookChannelsInput) (*Webhook, error)
 	GetWebhook(ctx context.Context, params GetWebhookInput) (*Webhook, error)
 	DeleteWebhook(ctx context.Context, params DeleteWebhookInput) error
+}
+
+type MessageHandler interface {
 	SendMessage(ctx context.Context, params SendMessageInput) (*Message, error)
+}
+
+type Handler interface {
+	WebhookHandler
+	MessageHandler
+	EventTypeHandler
 }
 
 const (
 	DefaultRegistrationTimeout = 30 * time.Second
 )
-
-type Config struct {
-	SvixConfig
-
-	RegisterEventTypes      []EventType
-	RegistrationTimeout     time.Duration
-	SkipRegistrationOnError bool
-
-	Logger *slog.Logger
-}
-
-func New(config Config) (Handler, error) {
-	if config.Logger == nil {
-		return nil, errors.New("logger is required")
-	}
-
-	if config.RegisterEventTypes == nil {
-		config.RegisterEventTypes = NotificationEventTypes
-	}
-
-	if config.RegistrationTimeout == 0 {
-		config.RegistrationTimeout = DefaultRegistrationTimeout
-	}
-
-	var (
-		handler Handler
-		err     error
-	)
-
-	// If Svix is not enabled, we use the noop webhook handler
-	if config.IsEnabled() {
-		handler, err = newSvixWebhookHandler(config.SvixConfig)
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize Svix webhook handler: %w", err)
-		}
-	} else {
-		config.Logger.InfoContext(context.Background(), "svix is disabled: using noop webhook handler")
-
-		handler = newNoopWebhookHandler(config.Logger)
-	}
-
-	if len(config.RegisterEventTypes) > 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), config.RegistrationTimeout)
-		defer cancel()
-
-		err = handler.RegisterEventTypes(ctx, RegisterEventTypesInputs{
-			EventTypes: config.RegisterEventTypes,
-		})
-		if err != nil {
-			if config.SkipRegistrationOnError {
-				config.Logger.WarnContext(ctx, "failed to register event types", "error", err)
-			} else {
-				return nil, fmt.Errorf("failed to register event types: %w", err)
-			}
-		}
-	}
-
-	return handler, nil
-}
 
 func ValidateSigningSecret(secret string) error {
 	s, _ := strings.CutPrefix(secret, SigningSecretPrefix)

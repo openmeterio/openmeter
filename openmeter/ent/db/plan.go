@@ -114,7 +114,7 @@ func (*Plan) scanValues(columns []string) ([]any, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the Plan fields.
-func (pl *Plan) assignValues(columns []string, values []any) error {
+func (_m *Plan) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -124,19 +124,19 @@ func (pl *Plan) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				pl.ID = value.String
+				_m.ID = value.String
 			}
 		case plan.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				pl.Namespace = value.String
+				_m.Namespace = value.String
 			}
 		case plan.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &pl.Metadata); err != nil {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
@@ -144,74 +144,74 @@ func (pl *Plan) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				pl.CreatedAt = value.Time
+				_m.CreatedAt = value.Time
 			}
 		case plan.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				pl.UpdatedAt = value.Time
+				_m.UpdatedAt = value.Time
 			}
 		case plan.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
-				pl.DeletedAt = new(time.Time)
-				*pl.DeletedAt = value.Time
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		case plan.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				pl.Name = value.String
+				_m.Name = value.String
 			}
 		case plan.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				pl.Description = new(string)
-				*pl.Description = value.String
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case plan.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
-				pl.Key = value.String
+				_m.Key = value.String
 			}
 		case plan.FieldBillablesMustAlign:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field billables_must_align", values[i])
 			} else if value.Valid {
-				pl.BillablesMustAlign = value.Bool
+				_m.BillablesMustAlign = value.Bool
 			}
 		case plan.FieldVersion:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field version", values[i])
 			} else if value.Valid {
-				pl.Version = int(value.Int64)
+				_m.Version = int(value.Int64)
 			}
 		case plan.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				pl.Currency = value.String
+				_m.Currency = value.String
 			}
 		case plan.FieldEffectiveFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field effective_from", values[i])
 			} else if value.Valid {
-				pl.EffectiveFrom = new(time.Time)
-				*pl.EffectiveFrom = value.Time
+				_m.EffectiveFrom = new(time.Time)
+				*_m.EffectiveFrom = value.Time
 			}
 		case plan.FieldEffectiveTo:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field effective_to", values[i])
 			} else if value.Valid {
-				pl.EffectiveTo = new(time.Time)
-				*pl.EffectiveTo = value.Time
+				_m.EffectiveTo = new(time.Time)
+				*_m.EffectiveTo = value.Time
 			}
 		default:
-			pl.selectValues.Set(columns[i], values[i])
+			_m.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
@@ -219,91 +219,91 @@ func (pl *Plan) assignValues(columns []string, values []any) error {
 
 // Value returns the ent.Value that was dynamically selected and assigned to the Plan.
 // This includes values selected through modifiers, order, etc.
-func (pl *Plan) Value(name string) (ent.Value, error) {
-	return pl.selectValues.Get(name)
+func (_m *Plan) Value(name string) (ent.Value, error) {
+	return _m.selectValues.Get(name)
 }
 
 // QueryPhases queries the "phases" edge of the Plan entity.
-func (pl *Plan) QueryPhases() *PlanPhaseQuery {
-	return NewPlanClient(pl.config).QueryPhases(pl)
+func (_m *Plan) QueryPhases() *PlanPhaseQuery {
+	return NewPlanClient(_m.config).QueryPhases(_m)
 }
 
 // QueryAddons queries the "addons" edge of the Plan entity.
-func (pl *Plan) QueryAddons() *PlanAddonQuery {
-	return NewPlanClient(pl.config).QueryAddons(pl)
+func (_m *Plan) QueryAddons() *PlanAddonQuery {
+	return NewPlanClient(_m.config).QueryAddons(_m)
 }
 
 // QuerySubscriptions queries the "subscriptions" edge of the Plan entity.
-func (pl *Plan) QuerySubscriptions() *SubscriptionQuery {
-	return NewPlanClient(pl.config).QuerySubscriptions(pl)
+func (_m *Plan) QuerySubscriptions() *SubscriptionQuery {
+	return NewPlanClient(_m.config).QuerySubscriptions(_m)
 }
 
 // Update returns a builder for updating this Plan.
 // Note that you need to call Plan.Unwrap() before calling this method if this Plan
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (pl *Plan) Update() *PlanUpdateOne {
-	return NewPlanClient(pl.config).UpdateOne(pl)
+func (_m *Plan) Update() *PlanUpdateOne {
+	return NewPlanClient(_m.config).UpdateOne(_m)
 }
 
 // Unwrap unwraps the Plan entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (pl *Plan) Unwrap() *Plan {
-	_tx, ok := pl.config.driver.(*txDriver)
+func (_m *Plan) Unwrap() *Plan {
+	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
 		panic("db: Plan is not a transactional entity")
 	}
-	pl.config.driver = _tx.drv
-	return pl
+	_m.config.driver = _tx.drv
+	return _m
 }
 
 // String implements the fmt.Stringer.
-func (pl *Plan) String() string {
+func (_m *Plan) String() string {
 	var builder strings.Builder
 	builder.WriteString("Plan(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", pl.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
-	builder.WriteString(pl.Namespace)
+	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", pl.Metadata))
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
-	builder.WriteString(pl.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(pl.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := pl.DeletedAt; v != nil {
+	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
-	builder.WriteString(pl.Name)
+	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
-	if v := pl.Description; v != nil {
+	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("key=")
-	builder.WriteString(pl.Key)
+	builder.WriteString(_m.Key)
 	builder.WriteString(", ")
 	builder.WriteString("billables_must_align=")
-	builder.WriteString(fmt.Sprintf("%v", pl.BillablesMustAlign))
+	builder.WriteString(fmt.Sprintf("%v", _m.BillablesMustAlign))
 	builder.WriteString(", ")
 	builder.WriteString("version=")
-	builder.WriteString(fmt.Sprintf("%v", pl.Version))
+	builder.WriteString(fmt.Sprintf("%v", _m.Version))
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
-	builder.WriteString(pl.Currency)
+	builder.WriteString(_m.Currency)
 	builder.WriteString(", ")
-	if v := pl.EffectiveFrom; v != nil {
+	if v := _m.EffectiveFrom; v != nil {
 		builder.WriteString("effective_from=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	if v := pl.EffectiveTo; v != nil {
+	if v := _m.EffectiveTo; v != nil {
 		builder.WriteString("effective_to=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}

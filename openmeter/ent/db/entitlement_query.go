@@ -41,44 +41,44 @@ type EntitlementQuery struct {
 }
 
 // Where adds a new predicate for the EntitlementQuery builder.
-func (eq *EntitlementQuery) Where(ps ...predicate.Entitlement) *EntitlementQuery {
-	eq.predicates = append(eq.predicates, ps...)
-	return eq
+func (_q *EntitlementQuery) Where(ps ...predicate.Entitlement) *EntitlementQuery {
+	_q.predicates = append(_q.predicates, ps...)
+	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (eq *EntitlementQuery) Limit(limit int) *EntitlementQuery {
-	eq.ctx.Limit = &limit
-	return eq
+func (_q *EntitlementQuery) Limit(limit int) *EntitlementQuery {
+	_q.ctx.Limit = &limit
+	return _q
 }
 
 // Offset to start from.
-func (eq *EntitlementQuery) Offset(offset int) *EntitlementQuery {
-	eq.ctx.Offset = &offset
-	return eq
+func (_q *EntitlementQuery) Offset(offset int) *EntitlementQuery {
+	_q.ctx.Offset = &offset
+	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (eq *EntitlementQuery) Unique(unique bool) *EntitlementQuery {
-	eq.ctx.Unique = &unique
-	return eq
+func (_q *EntitlementQuery) Unique(unique bool) *EntitlementQuery {
+	_q.ctx.Unique = &unique
+	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (eq *EntitlementQuery) Order(o ...entitlement.OrderOption) *EntitlementQuery {
-	eq.order = append(eq.order, o...)
-	return eq
+func (_q *EntitlementQuery) Order(o ...entitlement.OrderOption) *EntitlementQuery {
+	_q.order = append(_q.order, o...)
+	return _q
 }
 
 // QueryUsageReset chains the current query on the "usage_reset" edge.
-func (eq *EntitlementQuery) QueryUsageReset() *UsageResetQuery {
-	query := (&UsageResetClient{config: eq.config}).Query()
+func (_q *EntitlementQuery) QueryUsageReset() *UsageResetQuery {
+	query := (&UsageResetClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := eq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := eq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -87,20 +87,20 @@ func (eq *EntitlementQuery) QueryUsageReset() *UsageResetQuery {
 			sqlgraph.To(usagereset.Table, usagereset.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.UsageResetTable, entitlement.UsageResetColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryGrant chains the current query on the "grant" edge.
-func (eq *EntitlementQuery) QueryGrant() *GrantQuery {
-	query := (&GrantClient{config: eq.config}).Query()
+func (_q *EntitlementQuery) QueryGrant() *GrantQuery {
+	query := (&GrantClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := eq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := eq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -109,20 +109,20 @@ func (eq *EntitlementQuery) QueryGrant() *GrantQuery {
 			sqlgraph.To(dbgrant.Table, dbgrant.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.GrantTable, entitlement.GrantColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryBalanceSnapshot chains the current query on the "balance_snapshot" edge.
-func (eq *EntitlementQuery) QueryBalanceSnapshot() *BalanceSnapshotQuery {
-	query := (&BalanceSnapshotClient{config: eq.config}).Query()
+func (_q *EntitlementQuery) QueryBalanceSnapshot() *BalanceSnapshotQuery {
+	query := (&BalanceSnapshotClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := eq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := eq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -131,20 +131,20 @@ func (eq *EntitlementQuery) QueryBalanceSnapshot() *BalanceSnapshotQuery {
 			sqlgraph.To(balancesnapshot.Table, balancesnapshot.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.BalanceSnapshotTable, entitlement.BalanceSnapshotColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QuerySubscriptionItem chains the current query on the "subscription_item" edge.
-func (eq *EntitlementQuery) QuerySubscriptionItem() *SubscriptionItemQuery {
-	query := (&SubscriptionItemClient{config: eq.config}).Query()
+func (_q *EntitlementQuery) QuerySubscriptionItem() *SubscriptionItemQuery {
+	query := (&SubscriptionItemClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := eq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := eq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -153,20 +153,20 @@ func (eq *EntitlementQuery) QuerySubscriptionItem() *SubscriptionItemQuery {
 			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.SubscriptionItemTable, entitlement.SubscriptionItemColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
 }
 
 // QueryFeature chains the current query on the "feature" edge.
-func (eq *EntitlementQuery) QueryFeature() *FeatureQuery {
-	query := (&FeatureClient{config: eq.config}).Query()
+func (_q *EntitlementQuery) QueryFeature() *FeatureQuery {
+	query := (&FeatureClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := eq.prepareQuery(ctx); err != nil {
+		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
-		selector := eq.sqlQuery(ctx)
+		selector := _q.sqlQuery(ctx)
 		if err := selector.Err(); err != nil {
 			return nil, err
 		}
@@ -175,7 +175,7 @@ func (eq *EntitlementQuery) QueryFeature() *FeatureQuery {
 			sqlgraph.To(feature.Table, feature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, entitlement.FeatureTable, entitlement.FeatureColumn),
 		)
-		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
 	}
 	return query
@@ -183,8 +183,8 @@ func (eq *EntitlementQuery) QueryFeature() *FeatureQuery {
 
 // First returns the first Entitlement entity from the query.
 // Returns a *NotFoundError when no Entitlement was found.
-func (eq *EntitlementQuery) First(ctx context.Context) (*Entitlement, error) {
-	nodes, err := eq.Limit(1).All(setContextOp(ctx, eq.ctx, ent.OpQueryFirst))
+func (_q *EntitlementQuery) First(ctx context.Context) (*Entitlement, error) {
+	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -195,8 +195,8 @@ func (eq *EntitlementQuery) First(ctx context.Context) (*Entitlement, error) {
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (eq *EntitlementQuery) FirstX(ctx context.Context) *Entitlement {
-	node, err := eq.First(ctx)
+func (_q *EntitlementQuery) FirstX(ctx context.Context) *Entitlement {
+	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -205,9 +205,9 @@ func (eq *EntitlementQuery) FirstX(ctx context.Context) *Entitlement {
 
 // FirstID returns the first Entitlement ID from the query.
 // Returns a *NotFoundError when no Entitlement ID was found.
-func (eq *EntitlementQuery) FirstID(ctx context.Context) (id string, err error) {
+func (_q *EntitlementQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = eq.Limit(1).IDs(setContextOp(ctx, eq.ctx, ent.OpQueryFirstID)); err != nil {
+	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -218,8 +218,8 @@ func (eq *EntitlementQuery) FirstID(ctx context.Context) (id string, err error) 
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (eq *EntitlementQuery) FirstIDX(ctx context.Context) string {
-	id, err := eq.FirstID(ctx)
+func (_q *EntitlementQuery) FirstIDX(ctx context.Context) string {
+	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
 	}
@@ -229,8 +229,8 @@ func (eq *EntitlementQuery) FirstIDX(ctx context.Context) string {
 // Only returns a single Entitlement entity found by the query, ensuring it only returns one.
 // Returns a *NotSingularError when more than one Entitlement entity is found.
 // Returns a *NotFoundError when no Entitlement entities are found.
-func (eq *EntitlementQuery) Only(ctx context.Context) (*Entitlement, error) {
-	nodes, err := eq.Limit(2).All(setContextOp(ctx, eq.ctx, ent.OpQueryOnly))
+func (_q *EntitlementQuery) Only(ctx context.Context) (*Entitlement, error) {
+	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -245,8 +245,8 @@ func (eq *EntitlementQuery) Only(ctx context.Context) (*Entitlement, error) {
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (eq *EntitlementQuery) OnlyX(ctx context.Context) *Entitlement {
-	node, err := eq.Only(ctx)
+func (_q *EntitlementQuery) OnlyX(ctx context.Context) *Entitlement {
+	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -256,9 +256,9 @@ func (eq *EntitlementQuery) OnlyX(ctx context.Context) *Entitlement {
 // OnlyID is like Only, but returns the only Entitlement ID in the query.
 // Returns a *NotSingularError when more than one Entitlement ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (eq *EntitlementQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *EntitlementQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = eq.Limit(2).IDs(setContextOp(ctx, eq.ctx, ent.OpQueryOnlyID)); err != nil {
+	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -273,8 +273,8 @@ func (eq *EntitlementQuery) OnlyID(ctx context.Context) (id string, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (eq *EntitlementQuery) OnlyIDX(ctx context.Context) string {
-	id, err := eq.OnlyID(ctx)
+func (_q *EntitlementQuery) OnlyIDX(ctx context.Context) string {
+	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -282,18 +282,18 @@ func (eq *EntitlementQuery) OnlyIDX(ctx context.Context) string {
 }
 
 // All executes the query and returns a list of Entitlements.
-func (eq *EntitlementQuery) All(ctx context.Context) ([]*Entitlement, error) {
-	ctx = setContextOp(ctx, eq.ctx, ent.OpQueryAll)
-	if err := eq.prepareQuery(ctx); err != nil {
+func (_q *EntitlementQuery) All(ctx context.Context) ([]*Entitlement, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
 	qr := querierAll[[]*Entitlement, *EntitlementQuery]()
-	return withInterceptors[[]*Entitlement](ctx, eq, qr, eq.inters)
+	return withInterceptors[[]*Entitlement](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (eq *EntitlementQuery) AllX(ctx context.Context) []*Entitlement {
-	nodes, err := eq.All(ctx)
+func (_q *EntitlementQuery) AllX(ctx context.Context) []*Entitlement {
+	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -301,20 +301,20 @@ func (eq *EntitlementQuery) AllX(ctx context.Context) []*Entitlement {
 }
 
 // IDs executes the query and returns a list of Entitlement IDs.
-func (eq *EntitlementQuery) IDs(ctx context.Context) (ids []string, err error) {
-	if eq.ctx.Unique == nil && eq.path != nil {
-		eq.Unique(true)
+func (_q *EntitlementQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if _q.ctx.Unique == nil && _q.path != nil {
+		_q.Unique(true)
 	}
-	ctx = setContextOp(ctx, eq.ctx, ent.OpQueryIDs)
-	if err = eq.Select(entitlement.FieldID).Scan(ctx, &ids); err != nil {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
+	if err = _q.Select(entitlement.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (eq *EntitlementQuery) IDsX(ctx context.Context) []string {
-	ids, err := eq.IDs(ctx)
+func (_q *EntitlementQuery) IDsX(ctx context.Context) []string {
+	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -322,17 +322,17 @@ func (eq *EntitlementQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (eq *EntitlementQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, eq.ctx, ent.OpQueryCount)
-	if err := eq.prepareQuery(ctx); err != nil {
+func (_q *EntitlementQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
+	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, eq, querierCount[*EntitlementQuery](), eq.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*EntitlementQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (eq *EntitlementQuery) CountX(ctx context.Context) int {
-	count, err := eq.Count(ctx)
+func (_q *EntitlementQuery) CountX(ctx context.Context) int {
+	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -340,9 +340,9 @@ func (eq *EntitlementQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (eq *EntitlementQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, eq.ctx, ent.OpQueryExist)
-	switch _, err := eq.FirstID(ctx); {
+func (_q *EntitlementQuery) Exist(ctx context.Context) (bool, error) {
+	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
+	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
 	case err != nil:
@@ -353,8 +353,8 @@ func (eq *EntitlementQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (eq *EntitlementQuery) ExistX(ctx context.Context) bool {
-	exist, err := eq.Exist(ctx)
+func (_q *EntitlementQuery) ExistX(ctx context.Context) bool {
+	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -363,80 +363,80 @@ func (eq *EntitlementQuery) ExistX(ctx context.Context) bool {
 
 // Clone returns a duplicate of the EntitlementQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (eq *EntitlementQuery) Clone() *EntitlementQuery {
-	if eq == nil {
+func (_q *EntitlementQuery) Clone() *EntitlementQuery {
+	if _q == nil {
 		return nil
 	}
 	return &EntitlementQuery{
-		config:               eq.config,
-		ctx:                  eq.ctx.Clone(),
-		order:                append([]entitlement.OrderOption{}, eq.order...),
-		inters:               append([]Interceptor{}, eq.inters...),
-		predicates:           append([]predicate.Entitlement{}, eq.predicates...),
-		withUsageReset:       eq.withUsageReset.Clone(),
-		withGrant:            eq.withGrant.Clone(),
-		withBalanceSnapshot:  eq.withBalanceSnapshot.Clone(),
-		withSubscriptionItem: eq.withSubscriptionItem.Clone(),
-		withFeature:          eq.withFeature.Clone(),
+		config:               _q.config,
+		ctx:                  _q.ctx.Clone(),
+		order:                append([]entitlement.OrderOption{}, _q.order...),
+		inters:               append([]Interceptor{}, _q.inters...),
+		predicates:           append([]predicate.Entitlement{}, _q.predicates...),
+		withUsageReset:       _q.withUsageReset.Clone(),
+		withGrant:            _q.withGrant.Clone(),
+		withBalanceSnapshot:  _q.withBalanceSnapshot.Clone(),
+		withSubscriptionItem: _q.withSubscriptionItem.Clone(),
+		withFeature:          _q.withFeature.Clone(),
 		// clone intermediate query.
-		sql:  eq.sql.Clone(),
-		path: eq.path,
+		sql:  _q.sql.Clone(),
+		path: _q.path,
 	}
 }
 
 // WithUsageReset tells the query-builder to eager-load the nodes that are connected to
 // the "usage_reset" edge. The optional arguments are used to configure the query builder of the edge.
-func (eq *EntitlementQuery) WithUsageReset(opts ...func(*UsageResetQuery)) *EntitlementQuery {
-	query := (&UsageResetClient{config: eq.config}).Query()
+func (_q *EntitlementQuery) WithUsageReset(opts ...func(*UsageResetQuery)) *EntitlementQuery {
+	query := (&UsageResetClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	eq.withUsageReset = query
-	return eq
+	_q.withUsageReset = query
+	return _q
 }
 
 // WithGrant tells the query-builder to eager-load the nodes that are connected to
 // the "grant" edge. The optional arguments are used to configure the query builder of the edge.
-func (eq *EntitlementQuery) WithGrant(opts ...func(*GrantQuery)) *EntitlementQuery {
-	query := (&GrantClient{config: eq.config}).Query()
+func (_q *EntitlementQuery) WithGrant(opts ...func(*GrantQuery)) *EntitlementQuery {
+	query := (&GrantClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	eq.withGrant = query
-	return eq
+	_q.withGrant = query
+	return _q
 }
 
 // WithBalanceSnapshot tells the query-builder to eager-load the nodes that are connected to
 // the "balance_snapshot" edge. The optional arguments are used to configure the query builder of the edge.
-func (eq *EntitlementQuery) WithBalanceSnapshot(opts ...func(*BalanceSnapshotQuery)) *EntitlementQuery {
-	query := (&BalanceSnapshotClient{config: eq.config}).Query()
+func (_q *EntitlementQuery) WithBalanceSnapshot(opts ...func(*BalanceSnapshotQuery)) *EntitlementQuery {
+	query := (&BalanceSnapshotClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	eq.withBalanceSnapshot = query
-	return eq
+	_q.withBalanceSnapshot = query
+	return _q
 }
 
 // WithSubscriptionItem tells the query-builder to eager-load the nodes that are connected to
 // the "subscription_item" edge. The optional arguments are used to configure the query builder of the edge.
-func (eq *EntitlementQuery) WithSubscriptionItem(opts ...func(*SubscriptionItemQuery)) *EntitlementQuery {
-	query := (&SubscriptionItemClient{config: eq.config}).Query()
+func (_q *EntitlementQuery) WithSubscriptionItem(opts ...func(*SubscriptionItemQuery)) *EntitlementQuery {
+	query := (&SubscriptionItemClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	eq.withSubscriptionItem = query
-	return eq
+	_q.withSubscriptionItem = query
+	return _q
 }
 
 // WithFeature tells the query-builder to eager-load the nodes that are connected to
 // the "feature" edge. The optional arguments are used to configure the query builder of the edge.
-func (eq *EntitlementQuery) WithFeature(opts ...func(*FeatureQuery)) *EntitlementQuery {
-	query := (&FeatureClient{config: eq.config}).Query()
+func (_q *EntitlementQuery) WithFeature(opts ...func(*FeatureQuery)) *EntitlementQuery {
+	query := (&FeatureClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	eq.withFeature = query
-	return eq
+	_q.withFeature = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -453,10 +453,10 @@ func (eq *EntitlementQuery) WithFeature(opts ...func(*FeatureQuery)) *Entitlemen
 //		GroupBy(entitlement.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (eq *EntitlementQuery) GroupBy(field string, fields ...string) *EntitlementGroupBy {
-	eq.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &EntitlementGroupBy{build: eq}
-	grbuild.flds = &eq.ctx.Fields
+func (_q *EntitlementQuery) GroupBy(field string, fields ...string) *EntitlementGroupBy {
+	_q.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &EntitlementGroupBy{build: _q}
+	grbuild.flds = &_q.ctx.Fields
 	grbuild.label = entitlement.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
@@ -474,101 +474,101 @@ func (eq *EntitlementQuery) GroupBy(field string, fields ...string) *Entitlement
 //	client.Entitlement.Query().
 //		Select(entitlement.FieldNamespace).
 //		Scan(ctx, &v)
-func (eq *EntitlementQuery) Select(fields ...string) *EntitlementSelect {
-	eq.ctx.Fields = append(eq.ctx.Fields, fields...)
-	sbuild := &EntitlementSelect{EntitlementQuery: eq}
+func (_q *EntitlementQuery) Select(fields ...string) *EntitlementSelect {
+	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
+	sbuild := &EntitlementSelect{EntitlementQuery: _q}
 	sbuild.label = entitlement.Label
-	sbuild.flds, sbuild.scan = &eq.ctx.Fields, sbuild.Scan
+	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
 // Aggregate returns a EntitlementSelect configured with the given aggregations.
-func (eq *EntitlementQuery) Aggregate(fns ...AggregateFunc) *EntitlementSelect {
-	return eq.Select().Aggregate(fns...)
+func (_q *EntitlementQuery) Aggregate(fns ...AggregateFunc) *EntitlementSelect {
+	return _q.Select().Aggregate(fns...)
 }
 
-func (eq *EntitlementQuery) prepareQuery(ctx context.Context) error {
-	for _, inter := range eq.inters {
+func (_q *EntitlementQuery) prepareQuery(ctx context.Context) error {
+	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
 		}
 		if trv, ok := inter.(Traverser); ok {
-			if err := trv.Traverse(ctx, eq); err != nil {
+			if err := trv.Traverse(ctx, _q); err != nil {
 				return err
 			}
 		}
 	}
-	for _, f := range eq.ctx.Fields {
+	for _, f := range _q.ctx.Fields {
 		if !entitlement.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
-	if eq.path != nil {
-		prev, err := eq.path(ctx)
+	if _q.path != nil {
+		prev, err := _q.path(ctx)
 		if err != nil {
 			return err
 		}
-		eq.sql = prev
+		_q.sql = prev
 	}
 	return nil
 }
 
-func (eq *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Entitlement, error) {
+func (_q *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Entitlement, error) {
 	var (
 		nodes       = []*Entitlement{}
-		_spec       = eq.querySpec()
+		_spec       = _q.querySpec()
 		loadedTypes = [5]bool{
-			eq.withUsageReset != nil,
-			eq.withGrant != nil,
-			eq.withBalanceSnapshot != nil,
-			eq.withSubscriptionItem != nil,
-			eq.withFeature != nil,
+			_q.withUsageReset != nil,
+			_q.withGrant != nil,
+			_q.withBalanceSnapshot != nil,
+			_q.withSubscriptionItem != nil,
+			_q.withFeature != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Entitlement).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Entitlement{config: eq.config}
+		node := &Entitlement{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
-	if len(eq.modifiers) > 0 {
-		_spec.Modifiers = eq.modifiers
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
-	if err := sqlgraph.QueryNodes(ctx, eq.driver, _spec); err != nil {
+	if err := sqlgraph.QueryNodes(ctx, _q.driver, _spec); err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := eq.withUsageReset; query != nil {
-		if err := eq.loadUsageReset(ctx, query, nodes,
+	if query := _q.withUsageReset; query != nil {
+		if err := _q.loadUsageReset(ctx, query, nodes,
 			func(n *Entitlement) { n.Edges.UsageReset = []*UsageReset{} },
 			func(n *Entitlement, e *UsageReset) { n.Edges.UsageReset = append(n.Edges.UsageReset, e) }); err != nil {
 			return nil, err
 		}
 	}
-	if query := eq.withGrant; query != nil {
-		if err := eq.loadGrant(ctx, query, nodes,
+	if query := _q.withGrant; query != nil {
+		if err := _q.loadGrant(ctx, query, nodes,
 			func(n *Entitlement) { n.Edges.Grant = []*Grant{} },
 			func(n *Entitlement, e *Grant) { n.Edges.Grant = append(n.Edges.Grant, e) }); err != nil {
 			return nil, err
 		}
 	}
-	if query := eq.withBalanceSnapshot; query != nil {
-		if err := eq.loadBalanceSnapshot(ctx, query, nodes,
+	if query := _q.withBalanceSnapshot; query != nil {
+		if err := _q.loadBalanceSnapshot(ctx, query, nodes,
 			func(n *Entitlement) { n.Edges.BalanceSnapshot = []*BalanceSnapshot{} },
 			func(n *Entitlement, e *BalanceSnapshot) { n.Edges.BalanceSnapshot = append(n.Edges.BalanceSnapshot, e) }); err != nil {
 			return nil, err
 		}
 	}
-	if query := eq.withSubscriptionItem; query != nil {
-		if err := eq.loadSubscriptionItem(ctx, query, nodes,
+	if query := _q.withSubscriptionItem; query != nil {
+		if err := _q.loadSubscriptionItem(ctx, query, nodes,
 			func(n *Entitlement) { n.Edges.SubscriptionItem = []*SubscriptionItem{} },
 			func(n *Entitlement, e *SubscriptionItem) {
 				n.Edges.SubscriptionItem = append(n.Edges.SubscriptionItem, e)
@@ -576,8 +576,8 @@ func (eq *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 			return nil, err
 		}
 	}
-	if query := eq.withFeature; query != nil {
-		if err := eq.loadFeature(ctx, query, nodes, nil,
+	if query := _q.withFeature; query != nil {
+		if err := _q.loadFeature(ctx, query, nodes, nil,
 			func(n *Entitlement, e *Feature) { n.Edges.Feature = e }); err != nil {
 			return nil, err
 		}
@@ -585,7 +585,7 @@ func (eq *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 	return nodes, nil
 }
 
-func (eq *EntitlementQuery) loadUsageReset(ctx context.Context, query *UsageResetQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *UsageReset)) error {
+func (_q *EntitlementQuery) loadUsageReset(ctx context.Context, query *UsageResetQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *UsageReset)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Entitlement)
 	for i := range nodes {
@@ -615,7 +615,7 @@ func (eq *EntitlementQuery) loadUsageReset(ctx context.Context, query *UsageRese
 	}
 	return nil
 }
-func (eq *EntitlementQuery) loadGrant(ctx context.Context, query *GrantQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *Grant)) error {
+func (_q *EntitlementQuery) loadGrant(ctx context.Context, query *GrantQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *Grant)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Entitlement)
 	for i := range nodes {
@@ -645,7 +645,7 @@ func (eq *EntitlementQuery) loadGrant(ctx context.Context, query *GrantQuery, no
 	}
 	return nil
 }
-func (eq *EntitlementQuery) loadBalanceSnapshot(ctx context.Context, query *BalanceSnapshotQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *BalanceSnapshot)) error {
+func (_q *EntitlementQuery) loadBalanceSnapshot(ctx context.Context, query *BalanceSnapshotQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *BalanceSnapshot)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Entitlement)
 	for i := range nodes {
@@ -675,7 +675,7 @@ func (eq *EntitlementQuery) loadBalanceSnapshot(ctx context.Context, query *Bala
 	}
 	return nil
 }
-func (eq *EntitlementQuery) loadSubscriptionItem(ctx context.Context, query *SubscriptionItemQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *SubscriptionItem)) error {
+func (_q *EntitlementQuery) loadSubscriptionItem(ctx context.Context, query *SubscriptionItemQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *SubscriptionItem)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Entitlement)
 	for i := range nodes {
@@ -708,7 +708,7 @@ func (eq *EntitlementQuery) loadSubscriptionItem(ctx context.Context, query *Sub
 	}
 	return nil
 }
-func (eq *EntitlementQuery) loadFeature(ctx context.Context, query *FeatureQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *Feature)) error {
+func (_q *EntitlementQuery) loadFeature(ctx context.Context, query *FeatureQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *Feature)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*Entitlement)
 	for i := range nodes {
@@ -738,27 +738,27 @@ func (eq *EntitlementQuery) loadFeature(ctx context.Context, query *FeatureQuery
 	return nil
 }
 
-func (eq *EntitlementQuery) sqlCount(ctx context.Context) (int, error) {
-	_spec := eq.querySpec()
-	if len(eq.modifiers) > 0 {
-		_spec.Modifiers = eq.modifiers
+func (_q *EntitlementQuery) sqlCount(ctx context.Context) (int, error) {
+	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
 	}
-	_spec.Node.Columns = eq.ctx.Fields
-	if len(eq.ctx.Fields) > 0 {
-		_spec.Unique = eq.ctx.Unique != nil && *eq.ctx.Unique
+	_spec.Node.Columns = _q.ctx.Fields
+	if len(_q.ctx.Fields) > 0 {
+		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
 	}
-	return sqlgraph.CountNodes(ctx, eq.driver, _spec)
+	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (eq *EntitlementQuery) querySpec() *sqlgraph.QuerySpec {
+func (_q *EntitlementQuery) querySpec() *sqlgraph.QuerySpec {
 	_spec := sqlgraph.NewQuerySpec(entitlement.Table, entitlement.Columns, sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString))
-	_spec.From = eq.sql
-	if unique := eq.ctx.Unique; unique != nil {
+	_spec.From = _q.sql
+	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
-	} else if eq.path != nil {
+	} else if _q.path != nil {
 		_spec.Unique = true
 	}
-	if fields := eq.ctx.Fields; len(fields) > 0 {
+	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, entitlement.FieldID)
 		for i := range fields {
@@ -766,24 +766,24 @@ func (eq *EntitlementQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if eq.withFeature != nil {
+		if _q.withFeature != nil {
 			_spec.Node.AddColumnOnce(entitlement.FieldFeatureID)
 		}
 	}
-	if ps := eq.predicates; len(ps) > 0 {
+	if ps := _q.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if limit := eq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := eq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
-	if ps := eq.order; len(ps) > 0 {
+	if ps := _q.order; len(ps) > 0 {
 		_spec.Order = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
@@ -793,36 +793,36 @@ func (eq *EntitlementQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (eq *EntitlementQuery) sqlQuery(ctx context.Context) *sql.Selector {
-	builder := sql.Dialect(eq.driver.Dialect())
+func (_q *EntitlementQuery) sqlQuery(ctx context.Context) *sql.Selector {
+	builder := sql.Dialect(_q.driver.Dialect())
 	t1 := builder.Table(entitlement.Table)
-	columns := eq.ctx.Fields
+	columns := _q.ctx.Fields
 	if len(columns) == 0 {
 		columns = entitlement.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
-	if eq.sql != nil {
-		selector = eq.sql
+	if _q.sql != nil {
+		selector = _q.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if eq.ctx.Unique != nil && *eq.ctx.Unique {
+	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
-	for _, m := range eq.modifiers {
+	for _, m := range _q.modifiers {
 		m(selector)
 	}
-	for _, p := range eq.predicates {
+	for _, p := range _q.predicates {
 		p(selector)
 	}
-	for _, p := range eq.order {
+	for _, p := range _q.order {
 		p(selector)
 	}
-	if offset := eq.ctx.Offset; offset != nil {
+	if offset := _q.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := eq.ctx.Limit; limit != nil {
+	if limit := _q.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -831,27 +831,27 @@ func (eq *EntitlementQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (eq *EntitlementQuery) ForUpdate(opts ...sql.LockOption) *EntitlementQuery {
-	if eq.driver.Dialect() == dialect.Postgres {
-		eq.Unique(false)
+func (_q *EntitlementQuery) ForUpdate(opts ...sql.LockOption) *EntitlementQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	eq.modifiers = append(eq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForUpdate(opts...)
 	})
-	return eq
+	return _q
 }
 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (eq *EntitlementQuery) ForShare(opts ...sql.LockOption) *EntitlementQuery {
-	if eq.driver.Dialect() == dialect.Postgres {
-		eq.Unique(false)
+func (_q *EntitlementQuery) ForShare(opts ...sql.LockOption) *EntitlementQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
 	}
-	eq.modifiers = append(eq.modifiers, func(s *sql.Selector) {
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
 		s.ForShare(opts...)
 	})
-	return eq
+	return _q
 }
 
 // EntitlementGroupBy is the group-by builder for Entitlement entities.

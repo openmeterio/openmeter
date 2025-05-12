@@ -2,9 +2,7 @@ package notification
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -25,7 +23,7 @@ type RepositoryTestSuite struct {
 }
 
 func (s *RepositoryTestSuite) Setup(ctx context.Context, t *testing.T) {
-	s.namespace = fmt.Sprintf("ns_%s", time.Now().Format(time.RFC3339))
+	s.namespace = s.Env.Namespace()
 
 	repo := s.Env.NotificationRepo()
 

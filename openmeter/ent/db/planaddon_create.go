@@ -26,135 +26,135 @@ type PlanAddonCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (pac *PlanAddonCreate) SetNamespace(s string) *PlanAddonCreate {
-	pac.mutation.SetNamespace(s)
-	return pac
+func (_c *PlanAddonCreate) SetNamespace(v string) *PlanAddonCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetMetadata sets the "metadata" field.
-func (pac *PlanAddonCreate) SetMetadata(m map[string]string) *PlanAddonCreate {
-	pac.mutation.SetMetadata(m)
-	return pac
+func (_c *PlanAddonCreate) SetMetadata(v map[string]string) *PlanAddonCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
 }
 
 // SetAnnotations sets the "annotations" field.
-func (pac *PlanAddonCreate) SetAnnotations(m map[string]interface{}) *PlanAddonCreate {
-	pac.mutation.SetAnnotations(m)
-	return pac
+func (_c *PlanAddonCreate) SetAnnotations(v map[string]interface{}) *PlanAddonCreate {
+	_c.mutation.SetAnnotations(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (pac *PlanAddonCreate) SetCreatedAt(t time.Time) *PlanAddonCreate {
-	pac.mutation.SetCreatedAt(t)
-	return pac
+func (_c *PlanAddonCreate) SetCreatedAt(v time.Time) *PlanAddonCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (pac *PlanAddonCreate) SetNillableCreatedAt(t *time.Time) *PlanAddonCreate {
-	if t != nil {
-		pac.SetCreatedAt(*t)
+func (_c *PlanAddonCreate) SetNillableCreatedAt(v *time.Time) *PlanAddonCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return pac
+	return _c
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (pac *PlanAddonCreate) SetUpdatedAt(t time.Time) *PlanAddonCreate {
-	pac.mutation.SetUpdatedAt(t)
-	return pac
+func (_c *PlanAddonCreate) SetUpdatedAt(v time.Time) *PlanAddonCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
 }
 
 // SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (pac *PlanAddonCreate) SetNillableUpdatedAt(t *time.Time) *PlanAddonCreate {
-	if t != nil {
-		pac.SetUpdatedAt(*t)
+func (_c *PlanAddonCreate) SetNillableUpdatedAt(v *time.Time) *PlanAddonCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
-	return pac
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (pac *PlanAddonCreate) SetDeletedAt(t time.Time) *PlanAddonCreate {
-	pac.mutation.SetDeletedAt(t)
-	return pac
+func (_c *PlanAddonCreate) SetDeletedAt(v time.Time) *PlanAddonCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (pac *PlanAddonCreate) SetNillableDeletedAt(t *time.Time) *PlanAddonCreate {
-	if t != nil {
-		pac.SetDeletedAt(*t)
+func (_c *PlanAddonCreate) SetNillableDeletedAt(v *time.Time) *PlanAddonCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return pac
+	return _c
 }
 
 // SetPlanID sets the "plan_id" field.
-func (pac *PlanAddonCreate) SetPlanID(s string) *PlanAddonCreate {
-	pac.mutation.SetPlanID(s)
-	return pac
+func (_c *PlanAddonCreate) SetPlanID(v string) *PlanAddonCreate {
+	_c.mutation.SetPlanID(v)
+	return _c
 }
 
 // SetAddonID sets the "addon_id" field.
-func (pac *PlanAddonCreate) SetAddonID(s string) *PlanAddonCreate {
-	pac.mutation.SetAddonID(s)
-	return pac
+func (_c *PlanAddonCreate) SetAddonID(v string) *PlanAddonCreate {
+	_c.mutation.SetAddonID(v)
+	return _c
 }
 
 // SetFromPlanPhase sets the "from_plan_phase" field.
-func (pac *PlanAddonCreate) SetFromPlanPhase(s string) *PlanAddonCreate {
-	pac.mutation.SetFromPlanPhase(s)
-	return pac
+func (_c *PlanAddonCreate) SetFromPlanPhase(v string) *PlanAddonCreate {
+	_c.mutation.SetFromPlanPhase(v)
+	return _c
 }
 
 // SetMaxQuantity sets the "max_quantity" field.
-func (pac *PlanAddonCreate) SetMaxQuantity(i int) *PlanAddonCreate {
-	pac.mutation.SetMaxQuantity(i)
-	return pac
+func (_c *PlanAddonCreate) SetMaxQuantity(v int) *PlanAddonCreate {
+	_c.mutation.SetMaxQuantity(v)
+	return _c
 }
 
 // SetNillableMaxQuantity sets the "max_quantity" field if the given value is not nil.
-func (pac *PlanAddonCreate) SetNillableMaxQuantity(i *int) *PlanAddonCreate {
-	if i != nil {
-		pac.SetMaxQuantity(*i)
+func (_c *PlanAddonCreate) SetNillableMaxQuantity(v *int) *PlanAddonCreate {
+	if v != nil {
+		_c.SetMaxQuantity(*v)
 	}
-	return pac
+	return _c
 }
 
 // SetID sets the "id" field.
-func (pac *PlanAddonCreate) SetID(s string) *PlanAddonCreate {
-	pac.mutation.SetID(s)
-	return pac
+func (_c *PlanAddonCreate) SetID(v string) *PlanAddonCreate {
+	_c.mutation.SetID(v)
+	return _c
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (pac *PlanAddonCreate) SetNillableID(s *string) *PlanAddonCreate {
-	if s != nil {
-		pac.SetID(*s)
+func (_c *PlanAddonCreate) SetNillableID(v *string) *PlanAddonCreate {
+	if v != nil {
+		_c.SetID(*v)
 	}
-	return pac
+	return _c
 }
 
 // SetPlan sets the "plan" edge to the Plan entity.
-func (pac *PlanAddonCreate) SetPlan(p *Plan) *PlanAddonCreate {
-	return pac.SetPlanID(p.ID)
+func (_c *PlanAddonCreate) SetPlan(v *Plan) *PlanAddonCreate {
+	return _c.SetPlanID(v.ID)
 }
 
 // SetAddon sets the "addon" edge to the Addon entity.
-func (pac *PlanAddonCreate) SetAddon(a *Addon) *PlanAddonCreate {
-	return pac.SetAddonID(a.ID)
+func (_c *PlanAddonCreate) SetAddon(v *Addon) *PlanAddonCreate {
+	return _c.SetAddonID(v.ID)
 }
 
 // Mutation returns the PlanAddonMutation object of the builder.
-func (pac *PlanAddonCreate) Mutation() *PlanAddonMutation {
-	return pac.mutation
+func (_c *PlanAddonCreate) Mutation() *PlanAddonMutation {
+	return _c.mutation
 }
 
 // Save creates the PlanAddon in the database.
-func (pac *PlanAddonCreate) Save(ctx context.Context) (*PlanAddon, error) {
-	pac.defaults()
-	return withHooks(ctx, pac.sqlSave, pac.mutation, pac.hooks)
+func (_c *PlanAddonCreate) Save(ctx context.Context) (*PlanAddon, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (pac *PlanAddonCreate) SaveX(ctx context.Context) *PlanAddon {
-	v, err := pac.Save(ctx)
+func (_c *PlanAddonCreate) SaveX(ctx context.Context) *PlanAddon {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -162,84 +162,84 @@ func (pac *PlanAddonCreate) SaveX(ctx context.Context) *PlanAddon {
 }
 
 // Exec executes the query.
-func (pac *PlanAddonCreate) Exec(ctx context.Context) error {
-	_, err := pac.Save(ctx)
+func (_c *PlanAddonCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (pac *PlanAddonCreate) ExecX(ctx context.Context) {
-	if err := pac.Exec(ctx); err != nil {
+func (_c *PlanAddonCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (pac *PlanAddonCreate) defaults() {
-	if _, ok := pac.mutation.CreatedAt(); !ok {
+func (_c *PlanAddonCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := planaddon.DefaultCreatedAt()
-		pac.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := pac.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := planaddon.DefaultUpdatedAt()
-		pac.mutation.SetUpdatedAt(v)
+		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := pac.mutation.ID(); !ok {
+	if _, ok := _c.mutation.ID(); !ok {
 		v := planaddon.DefaultID()
-		pac.mutation.SetID(v)
+		_c.mutation.SetID(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (pac *PlanAddonCreate) check() error {
-	if _, ok := pac.mutation.Namespace(); !ok {
+func (_c *PlanAddonCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "PlanAddon.namespace"`)}
 	}
-	if v, ok := pac.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := planaddon.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "PlanAddon.namespace": %w`, err)}
 		}
 	}
-	if _, ok := pac.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "PlanAddon.created_at"`)}
 	}
-	if _, ok := pac.mutation.UpdatedAt(); !ok {
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "PlanAddon.updated_at"`)}
 	}
-	if _, ok := pac.mutation.PlanID(); !ok {
+	if _, ok := _c.mutation.PlanID(); !ok {
 		return &ValidationError{Name: "plan_id", err: errors.New(`db: missing required field "PlanAddon.plan_id"`)}
 	}
-	if v, ok := pac.mutation.PlanID(); ok {
+	if v, ok := _c.mutation.PlanID(); ok {
 		if err := planaddon.PlanIDValidator(v); err != nil {
 			return &ValidationError{Name: "plan_id", err: fmt.Errorf(`db: validator failed for field "PlanAddon.plan_id": %w`, err)}
 		}
 	}
-	if _, ok := pac.mutation.AddonID(); !ok {
+	if _, ok := _c.mutation.AddonID(); !ok {
 		return &ValidationError{Name: "addon_id", err: errors.New(`db: missing required field "PlanAddon.addon_id"`)}
 	}
-	if v, ok := pac.mutation.AddonID(); ok {
+	if v, ok := _c.mutation.AddonID(); ok {
 		if err := planaddon.AddonIDValidator(v); err != nil {
 			return &ValidationError{Name: "addon_id", err: fmt.Errorf(`db: validator failed for field "PlanAddon.addon_id": %w`, err)}
 		}
 	}
-	if _, ok := pac.mutation.FromPlanPhase(); !ok {
+	if _, ok := _c.mutation.FromPlanPhase(); !ok {
 		return &ValidationError{Name: "from_plan_phase", err: errors.New(`db: missing required field "PlanAddon.from_plan_phase"`)}
 	}
-	if len(pac.mutation.PlanIDs()) == 0 {
+	if len(_c.mutation.PlanIDs()) == 0 {
 		return &ValidationError{Name: "plan", err: errors.New(`db: missing required edge "PlanAddon.plan"`)}
 	}
-	if len(pac.mutation.AddonIDs()) == 0 {
+	if len(_c.mutation.AddonIDs()) == 0 {
 		return &ValidationError{Name: "addon", err: errors.New(`db: missing required edge "PlanAddon.addon"`)}
 	}
 	return nil
 }
 
-func (pac *PlanAddonCreate) sqlSave(ctx context.Context) (*PlanAddon, error) {
-	if err := pac.check(); err != nil {
+func (_c *PlanAddonCreate) sqlSave(ctx context.Context) (*PlanAddon, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := pac.createSpec()
-	if err := sqlgraph.CreateNode(ctx, pac.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -252,54 +252,54 @@ func (pac *PlanAddonCreate) sqlSave(ctx context.Context) (*PlanAddon, error) {
 			return nil, fmt.Errorf("unexpected PlanAddon.ID type: %T", _spec.ID.Value)
 		}
 	}
-	pac.mutation.id = &_node.ID
-	pac.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (pac *PlanAddonCreate) createSpec() (*PlanAddon, *sqlgraph.CreateSpec) {
+func (_c *PlanAddonCreate) createSpec() (*PlanAddon, *sqlgraph.CreateSpec) {
 	var (
-		_node = &PlanAddon{config: pac.config}
+		_node = &PlanAddon{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(planaddon.Table, sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString))
 	)
-	_spec.OnConflict = pac.conflict
-	if id, ok := pac.mutation.ID(); ok {
+	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := pac.mutation.Namespace(); ok {
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(planaddon.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := pac.mutation.Metadata(); ok {
+	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(planaddon.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
-	if value, ok := pac.mutation.Annotations(); ok {
+	if value, ok := _c.mutation.Annotations(); ok {
 		_spec.SetField(planaddon.FieldAnnotations, field.TypeJSON, value)
 		_node.Annotations = value
 	}
-	if value, ok := pac.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(planaddon.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := pac.mutation.UpdatedAt(); ok {
+	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(planaddon.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := pac.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(planaddon.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := pac.mutation.FromPlanPhase(); ok {
+	if value, ok := _c.mutation.FromPlanPhase(); ok {
 		_spec.SetField(planaddon.FieldFromPlanPhase, field.TypeString, value)
 		_node.FromPlanPhase = value
 	}
-	if value, ok := pac.mutation.MaxQuantity(); ok {
+	if value, ok := _c.mutation.MaxQuantity(); ok {
 		_spec.SetField(planaddon.FieldMaxQuantity, field.TypeInt, value)
 		_node.MaxQuantity = &value
 	}
-	if nodes := pac.mutation.PlanIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.PlanIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -316,7 +316,7 @@ func (pac *PlanAddonCreate) createSpec() (*PlanAddon, *sqlgraph.CreateSpec) {
 		_node.PlanID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := pac.mutation.AddonIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.AddonIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -352,10 +352,10 @@ func (pac *PlanAddonCreate) createSpec() (*PlanAddon, *sqlgraph.CreateSpec) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (pac *PlanAddonCreate) OnConflict(opts ...sql.ConflictOption) *PlanAddonUpsertOne {
-	pac.conflict = opts
+func (_c *PlanAddonCreate) OnConflict(opts ...sql.ConflictOption) *PlanAddonUpsertOne {
+	_c.conflict = opts
 	return &PlanAddonUpsertOne{
-		create: pac,
+		create: _c,
 	}
 }
 
@@ -365,10 +365,10 @@ func (pac *PlanAddonCreate) OnConflict(opts ...sql.ConflictOption) *PlanAddonUps
 //	client.PlanAddon.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (pac *PlanAddonCreate) OnConflictColumns(columns ...string) *PlanAddonUpsertOne {
-	pac.conflict = append(pac.conflict, sql.ConflictColumns(columns...))
+func (_c *PlanAddonCreate) OnConflictColumns(columns ...string) *PlanAddonUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &PlanAddonUpsertOne{
-		create: pac,
+		create: _c,
 	}
 }
 
@@ -713,16 +713,16 @@ type PlanAddonCreateBulk struct {
 }
 
 // Save creates the PlanAddon entities in the database.
-func (pacb *PlanAddonCreateBulk) Save(ctx context.Context) ([]*PlanAddon, error) {
-	if pacb.err != nil {
-		return nil, pacb.err
+func (_c *PlanAddonCreateBulk) Save(ctx context.Context) ([]*PlanAddon, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(pacb.builders))
-	nodes := make([]*PlanAddon, len(pacb.builders))
-	mutators := make([]Mutator, len(pacb.builders))
-	for i := range pacb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*PlanAddon, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := pacb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*PlanAddonMutation)
@@ -736,12 +736,12 @@ func (pacb *PlanAddonCreateBulk) Save(ctx context.Context) ([]*PlanAddon, error)
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, pacb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = pacb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, pacb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -761,7 +761,7 @@ func (pacb *PlanAddonCreateBulk) Save(ctx context.Context) ([]*PlanAddon, error)
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, pacb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -769,8 +769,8 @@ func (pacb *PlanAddonCreateBulk) Save(ctx context.Context) ([]*PlanAddon, error)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (pacb *PlanAddonCreateBulk) SaveX(ctx context.Context) []*PlanAddon {
-	v, err := pacb.Save(ctx)
+func (_c *PlanAddonCreateBulk) SaveX(ctx context.Context) []*PlanAddon {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -778,14 +778,14 @@ func (pacb *PlanAddonCreateBulk) SaveX(ctx context.Context) []*PlanAddon {
 }
 
 // Exec executes the query.
-func (pacb *PlanAddonCreateBulk) Exec(ctx context.Context) error {
-	_, err := pacb.Save(ctx)
+func (_c *PlanAddonCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (pacb *PlanAddonCreateBulk) ExecX(ctx context.Context) {
-	if err := pacb.Exec(ctx); err != nil {
+func (_c *PlanAddonCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -805,10 +805,10 @@ func (pacb *PlanAddonCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (pacb *PlanAddonCreateBulk) OnConflict(opts ...sql.ConflictOption) *PlanAddonUpsertBulk {
-	pacb.conflict = opts
+func (_c *PlanAddonCreateBulk) OnConflict(opts ...sql.ConflictOption) *PlanAddonUpsertBulk {
+	_c.conflict = opts
 	return &PlanAddonUpsertBulk{
-		create: pacb,
+		create: _c,
 	}
 }
 
@@ -818,10 +818,10 @@ func (pacb *PlanAddonCreateBulk) OnConflict(opts ...sql.ConflictOption) *PlanAdd
 //	client.PlanAddon.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (pacb *PlanAddonCreateBulk) OnConflictColumns(columns ...string) *PlanAddonUpsertBulk {
-	pacb.conflict = append(pacb.conflict, sql.ConflictColumns(columns...))
+func (_c *PlanAddonCreateBulk) OnConflictColumns(columns ...string) *PlanAddonUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &PlanAddonUpsertBulk{
-		create: pacb,
+		create: _c,
 	}
 }
 

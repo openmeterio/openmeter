@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -351,7 +352,7 @@ func TestComplete(t *testing.T) {
 				SkipEventTypeRegistrationOnError: false,
 			},
 		},
-		Svix: notificationwebhook.SvixConfig{
+		Svix: svix.SvixConfig{
 			APIKey:    "test-svix-token",
 			ServerURL: "http://127.0.0.1:8071",
 			Debug:     true,

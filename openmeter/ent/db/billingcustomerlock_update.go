@@ -22,38 +22,38 @@ type BillingCustomerLockUpdate struct {
 }
 
 // Where appends a list predicates to the BillingCustomerLockUpdate builder.
-func (bclu *BillingCustomerLockUpdate) Where(ps ...predicate.BillingCustomerLock) *BillingCustomerLockUpdate {
-	bclu.mutation.Where(ps...)
-	return bclu
+func (_u *BillingCustomerLockUpdate) Where(ps ...predicate.BillingCustomerLock) *BillingCustomerLockUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetCustomerID sets the "customer_id" field.
-func (bclu *BillingCustomerLockUpdate) SetCustomerID(s string) *BillingCustomerLockUpdate {
-	bclu.mutation.SetCustomerID(s)
-	return bclu
+func (_u *BillingCustomerLockUpdate) SetCustomerID(v string) *BillingCustomerLockUpdate {
+	_u.mutation.SetCustomerID(v)
+	return _u
 }
 
 // SetNillableCustomerID sets the "customer_id" field if the given value is not nil.
-func (bclu *BillingCustomerLockUpdate) SetNillableCustomerID(s *string) *BillingCustomerLockUpdate {
-	if s != nil {
-		bclu.SetCustomerID(*s)
+func (_u *BillingCustomerLockUpdate) SetNillableCustomerID(v *string) *BillingCustomerLockUpdate {
+	if v != nil {
+		_u.SetCustomerID(*v)
 	}
-	return bclu
+	return _u
 }
 
 // Mutation returns the BillingCustomerLockMutation object of the builder.
-func (bclu *BillingCustomerLockUpdate) Mutation() *BillingCustomerLockMutation {
-	return bclu.mutation
+func (_u *BillingCustomerLockUpdate) Mutation() *BillingCustomerLockMutation {
+	return _u.mutation
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (bclu *BillingCustomerLockUpdate) Save(ctx context.Context) (int, error) {
-	return withHooks(ctx, bclu.sqlSave, bclu.mutation, bclu.hooks)
+func (_u *BillingCustomerLockUpdate) Save(ctx context.Context) (int, error) {
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bclu *BillingCustomerLockUpdate) SaveX(ctx context.Context) int {
-	affected, err := bclu.Save(ctx)
+func (_u *BillingCustomerLockUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -61,31 +61,31 @@ func (bclu *BillingCustomerLockUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (bclu *BillingCustomerLockUpdate) Exec(ctx context.Context) error {
-	_, err := bclu.Save(ctx)
+func (_u *BillingCustomerLockUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bclu *BillingCustomerLockUpdate) ExecX(ctx context.Context) {
-	if err := bclu.Exec(ctx); err != nil {
+func (_u *BillingCustomerLockUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
-func (bclu *BillingCustomerLockUpdate) sqlSave(ctx context.Context) (n int, err error) {
+func (_u *BillingCustomerLockUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	_spec := sqlgraph.NewUpdateSpec(billingcustomerlock.Table, billingcustomerlock.Columns, sqlgraph.NewFieldSpec(billingcustomerlock.FieldID, field.TypeString))
-	if ps := bclu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := bclu.mutation.CustomerID(); ok {
+	if value, ok := _u.mutation.CustomerID(); ok {
 		_spec.SetField(billingcustomerlock.FieldCustomerID, field.TypeString, value)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, bclu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billingcustomerlock.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -93,8 +93,8 @@ func (bclu *BillingCustomerLockUpdate) sqlSave(ctx context.Context) (n int, err 
 		}
 		return 0, err
 	}
-	bclu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // BillingCustomerLockUpdateOne is the builder for updating a single BillingCustomerLock entity.
@@ -106,45 +106,45 @@ type BillingCustomerLockUpdateOne struct {
 }
 
 // SetCustomerID sets the "customer_id" field.
-func (bcluo *BillingCustomerLockUpdateOne) SetCustomerID(s string) *BillingCustomerLockUpdateOne {
-	bcluo.mutation.SetCustomerID(s)
-	return bcluo
+func (_u *BillingCustomerLockUpdateOne) SetCustomerID(v string) *BillingCustomerLockUpdateOne {
+	_u.mutation.SetCustomerID(v)
+	return _u
 }
 
 // SetNillableCustomerID sets the "customer_id" field if the given value is not nil.
-func (bcluo *BillingCustomerLockUpdateOne) SetNillableCustomerID(s *string) *BillingCustomerLockUpdateOne {
-	if s != nil {
-		bcluo.SetCustomerID(*s)
+func (_u *BillingCustomerLockUpdateOne) SetNillableCustomerID(v *string) *BillingCustomerLockUpdateOne {
+	if v != nil {
+		_u.SetCustomerID(*v)
 	}
-	return bcluo
+	return _u
 }
 
 // Mutation returns the BillingCustomerLockMutation object of the builder.
-func (bcluo *BillingCustomerLockUpdateOne) Mutation() *BillingCustomerLockMutation {
-	return bcluo.mutation
+func (_u *BillingCustomerLockUpdateOne) Mutation() *BillingCustomerLockMutation {
+	return _u.mutation
 }
 
 // Where appends a list predicates to the BillingCustomerLockUpdate builder.
-func (bcluo *BillingCustomerLockUpdateOne) Where(ps ...predicate.BillingCustomerLock) *BillingCustomerLockUpdateOne {
-	bcluo.mutation.Where(ps...)
-	return bcluo
+func (_u *BillingCustomerLockUpdateOne) Where(ps ...predicate.BillingCustomerLock) *BillingCustomerLockUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (bcluo *BillingCustomerLockUpdateOne) Select(field string, fields ...string) *BillingCustomerLockUpdateOne {
-	bcluo.fields = append([]string{field}, fields...)
-	return bcluo
+func (_u *BillingCustomerLockUpdateOne) Select(field string, fields ...string) *BillingCustomerLockUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated BillingCustomerLock entity.
-func (bcluo *BillingCustomerLockUpdateOne) Save(ctx context.Context) (*BillingCustomerLock, error) {
-	return withHooks(ctx, bcluo.sqlSave, bcluo.mutation, bcluo.hooks)
+func (_u *BillingCustomerLockUpdateOne) Save(ctx context.Context) (*BillingCustomerLock, error) {
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (bcluo *BillingCustomerLockUpdateOne) SaveX(ctx context.Context) *BillingCustomerLock {
-	node, err := bcluo.Save(ctx)
+func (_u *BillingCustomerLockUpdateOne) SaveX(ctx context.Context) *BillingCustomerLock {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -152,26 +152,26 @@ func (bcluo *BillingCustomerLockUpdateOne) SaveX(ctx context.Context) *BillingCu
 }
 
 // Exec executes the query on the entity.
-func (bcluo *BillingCustomerLockUpdateOne) Exec(ctx context.Context) error {
-	_, err := bcluo.Save(ctx)
+func (_u *BillingCustomerLockUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (bcluo *BillingCustomerLockUpdateOne) ExecX(ctx context.Context) {
-	if err := bcluo.Exec(ctx); err != nil {
+func (_u *BillingCustomerLockUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
-func (bcluo *BillingCustomerLockUpdateOne) sqlSave(ctx context.Context) (_node *BillingCustomerLock, err error) {
+func (_u *BillingCustomerLockUpdateOne) sqlSave(ctx context.Context) (_node *BillingCustomerLock, err error) {
 	_spec := sqlgraph.NewUpdateSpec(billingcustomerlock.Table, billingcustomerlock.Columns, sqlgraph.NewFieldSpec(billingcustomerlock.FieldID, field.TypeString))
-	id, ok := bcluo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "BillingCustomerLock.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := bcluo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, billingcustomerlock.FieldID)
 		for _, f := range fields {
@@ -183,20 +183,20 @@ func (bcluo *BillingCustomerLockUpdateOne) sqlSave(ctx context.Context) (_node *
 			}
 		}
 	}
-	if ps := bcluo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := bcluo.mutation.CustomerID(); ok {
+	if value, ok := _u.mutation.CustomerID(); ok {
 		_spec.SetField(billingcustomerlock.FieldCustomerID, field.TypeString, value)
 	}
-	_node = &BillingCustomerLock{config: bcluo.config}
+	_node = &BillingCustomerLock{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, bcluo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billingcustomerlock.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -204,6 +204,6 @@ func (bcluo *BillingCustomerLockUpdateOne) sqlSave(ctx context.Context) (_node *
 		}
 		return nil, err
 	}
-	bcluo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

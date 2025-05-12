@@ -24,70 +24,70 @@ type CustomerSubjectsCreate struct {
 }
 
 // SetNamespace sets the "namespace" field.
-func (csc *CustomerSubjectsCreate) SetNamespace(s string) *CustomerSubjectsCreate {
-	csc.mutation.SetNamespace(s)
-	return csc
+func (_c *CustomerSubjectsCreate) SetNamespace(v string) *CustomerSubjectsCreate {
+	_c.mutation.SetNamespace(v)
+	return _c
 }
 
 // SetCustomerID sets the "customer_id" field.
-func (csc *CustomerSubjectsCreate) SetCustomerID(s string) *CustomerSubjectsCreate {
-	csc.mutation.SetCustomerID(s)
-	return csc
+func (_c *CustomerSubjectsCreate) SetCustomerID(v string) *CustomerSubjectsCreate {
+	_c.mutation.SetCustomerID(v)
+	return _c
 }
 
 // SetSubjectKey sets the "subject_key" field.
-func (csc *CustomerSubjectsCreate) SetSubjectKey(s string) *CustomerSubjectsCreate {
-	csc.mutation.SetSubjectKey(s)
-	return csc
+func (_c *CustomerSubjectsCreate) SetSubjectKey(v string) *CustomerSubjectsCreate {
+	_c.mutation.SetSubjectKey(v)
+	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (csc *CustomerSubjectsCreate) SetCreatedAt(t time.Time) *CustomerSubjectsCreate {
-	csc.mutation.SetCreatedAt(t)
-	return csc
+func (_c *CustomerSubjectsCreate) SetCreatedAt(v time.Time) *CustomerSubjectsCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (csc *CustomerSubjectsCreate) SetNillableCreatedAt(t *time.Time) *CustomerSubjectsCreate {
-	if t != nil {
-		csc.SetCreatedAt(*t)
+func (_c *CustomerSubjectsCreate) SetNillableCreatedAt(v *time.Time) *CustomerSubjectsCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
 	}
-	return csc
+	return _c
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (csc *CustomerSubjectsCreate) SetDeletedAt(t time.Time) *CustomerSubjectsCreate {
-	csc.mutation.SetDeletedAt(t)
-	return csc
+func (_c *CustomerSubjectsCreate) SetDeletedAt(v time.Time) *CustomerSubjectsCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (csc *CustomerSubjectsCreate) SetNillableDeletedAt(t *time.Time) *CustomerSubjectsCreate {
-	if t != nil {
-		csc.SetDeletedAt(*t)
+func (_c *CustomerSubjectsCreate) SetNillableDeletedAt(v *time.Time) *CustomerSubjectsCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
-	return csc
+	return _c
 }
 
 // SetCustomer sets the "customer" edge to the Customer entity.
-func (csc *CustomerSubjectsCreate) SetCustomer(c *Customer) *CustomerSubjectsCreate {
-	return csc.SetCustomerID(c.ID)
+func (_c *CustomerSubjectsCreate) SetCustomer(v *Customer) *CustomerSubjectsCreate {
+	return _c.SetCustomerID(v.ID)
 }
 
 // Mutation returns the CustomerSubjectsMutation object of the builder.
-func (csc *CustomerSubjectsCreate) Mutation() *CustomerSubjectsMutation {
-	return csc.mutation
+func (_c *CustomerSubjectsCreate) Mutation() *CustomerSubjectsMutation {
+	return _c.mutation
 }
 
 // Save creates the CustomerSubjects in the database.
-func (csc *CustomerSubjectsCreate) Save(ctx context.Context) (*CustomerSubjects, error) {
-	csc.defaults()
-	return withHooks(ctx, csc.sqlSave, csc.mutation, csc.hooks)
+func (_c *CustomerSubjectsCreate) Save(ctx context.Context) (*CustomerSubjects, error) {
+	_c.defaults()
+	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (csc *CustomerSubjectsCreate) SaveX(ctx context.Context) *CustomerSubjects {
-	v, err := csc.Save(ctx)
+func (_c *CustomerSubjectsCreate) SaveX(ctx context.Context) *CustomerSubjects {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -95,67 +95,67 @@ func (csc *CustomerSubjectsCreate) SaveX(ctx context.Context) *CustomerSubjects 
 }
 
 // Exec executes the query.
-func (csc *CustomerSubjectsCreate) Exec(ctx context.Context) error {
-	_, err := csc.Save(ctx)
+func (_c *CustomerSubjectsCreate) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (csc *CustomerSubjectsCreate) ExecX(ctx context.Context) {
-	if err := csc.Exec(ctx); err != nil {
+func (_c *CustomerSubjectsCreate) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (csc *CustomerSubjectsCreate) defaults() {
-	if _, ok := csc.mutation.CreatedAt(); !ok {
+func (_c *CustomerSubjectsCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := customersubjects.DefaultCreatedAt()
-		csc.mutation.SetCreatedAt(v)
+		_c.mutation.SetCreatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (csc *CustomerSubjectsCreate) check() error {
-	if _, ok := csc.mutation.Namespace(); !ok {
+func (_c *CustomerSubjectsCreate) check() error {
+	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "CustomerSubjects.namespace"`)}
 	}
-	if v, ok := csc.mutation.Namespace(); ok {
+	if v, ok := _c.mutation.Namespace(); ok {
 		if err := customersubjects.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "CustomerSubjects.namespace": %w`, err)}
 		}
 	}
-	if _, ok := csc.mutation.CustomerID(); !ok {
+	if _, ok := _c.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "CustomerSubjects.customer_id"`)}
 	}
-	if v, ok := csc.mutation.CustomerID(); ok {
+	if v, ok := _c.mutation.CustomerID(); ok {
 		if err := customersubjects.CustomerIDValidator(v); err != nil {
 			return &ValidationError{Name: "customer_id", err: fmt.Errorf(`db: validator failed for field "CustomerSubjects.customer_id": %w`, err)}
 		}
 	}
-	if _, ok := csc.mutation.SubjectKey(); !ok {
+	if _, ok := _c.mutation.SubjectKey(); !ok {
 		return &ValidationError{Name: "subject_key", err: errors.New(`db: missing required field "CustomerSubjects.subject_key"`)}
 	}
-	if v, ok := csc.mutation.SubjectKey(); ok {
+	if v, ok := _c.mutation.SubjectKey(); ok {
 		if err := customersubjects.SubjectKeyValidator(v); err != nil {
 			return &ValidationError{Name: "subject_key", err: fmt.Errorf(`db: validator failed for field "CustomerSubjects.subject_key": %w`, err)}
 		}
 	}
-	if _, ok := csc.mutation.CreatedAt(); !ok {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "CustomerSubjects.created_at"`)}
 	}
-	if len(csc.mutation.CustomerIDs()) == 0 {
+	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "CustomerSubjects.customer"`)}
 	}
 	return nil
 }
 
-func (csc *CustomerSubjectsCreate) sqlSave(ctx context.Context) (*CustomerSubjects, error) {
-	if err := csc.check(); err != nil {
+func (_c *CustomerSubjectsCreate) sqlSave(ctx context.Context) (*CustomerSubjects, error) {
+	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := csc.createSpec()
-	if err := sqlgraph.CreateNode(ctx, csc.driver, _spec); err != nil {
+	_node, _spec := _c.createSpec()
+	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -163,34 +163,34 @@ func (csc *CustomerSubjectsCreate) sqlSave(ctx context.Context) (*CustomerSubjec
 	}
 	id := _spec.ID.Value.(int64)
 	_node.ID = int(id)
-	csc.mutation.id = &_node.ID
-	csc.mutation.done = true
+	_c.mutation.id = &_node.ID
+	_c.mutation.done = true
 	return _node, nil
 }
 
-func (csc *CustomerSubjectsCreate) createSpec() (*CustomerSubjects, *sqlgraph.CreateSpec) {
+func (_c *CustomerSubjectsCreate) createSpec() (*CustomerSubjects, *sqlgraph.CreateSpec) {
 	var (
-		_node = &CustomerSubjects{config: csc.config}
+		_node = &CustomerSubjects{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(customersubjects.Table, sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt))
 	)
-	_spec.OnConflict = csc.conflict
-	if value, ok := csc.mutation.Namespace(); ok {
+	_spec.OnConflict = _c.conflict
+	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(customersubjects.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := csc.mutation.SubjectKey(); ok {
+	if value, ok := _c.mutation.SubjectKey(); ok {
 		_spec.SetField(customersubjects.FieldSubjectKey, field.TypeString, value)
 		_node.SubjectKey = value
 	}
-	if value, ok := csc.mutation.CreatedAt(); ok {
+	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(customersubjects.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := csc.mutation.DeletedAt(); ok {
+	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(customersubjects.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if nodes := csc.mutation.CustomerIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -226,10 +226,10 @@ func (csc *CustomerSubjectsCreate) createSpec() (*CustomerSubjects, *sqlgraph.Cr
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (csc *CustomerSubjectsCreate) OnConflict(opts ...sql.ConflictOption) *CustomerSubjectsUpsertOne {
-	csc.conflict = opts
+func (_c *CustomerSubjectsCreate) OnConflict(opts ...sql.ConflictOption) *CustomerSubjectsUpsertOne {
+	_c.conflict = opts
 	return &CustomerSubjectsUpsertOne{
-		create: csc,
+		create: _c,
 	}
 }
 
@@ -239,10 +239,10 @@ func (csc *CustomerSubjectsCreate) OnConflict(opts ...sql.ConflictOption) *Custo
 //	client.CustomerSubjects.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (csc *CustomerSubjectsCreate) OnConflictColumns(columns ...string) *CustomerSubjectsUpsertOne {
-	csc.conflict = append(csc.conflict, sql.ConflictColumns(columns...))
+func (_c *CustomerSubjectsCreate) OnConflictColumns(columns ...string) *CustomerSubjectsUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &CustomerSubjectsUpsertOne{
-		create: csc,
+		create: _c,
 	}
 }
 
@@ -394,16 +394,16 @@ type CustomerSubjectsCreateBulk struct {
 }
 
 // Save creates the CustomerSubjects entities in the database.
-func (cscb *CustomerSubjectsCreateBulk) Save(ctx context.Context) ([]*CustomerSubjects, error) {
-	if cscb.err != nil {
-		return nil, cscb.err
+func (_c *CustomerSubjectsCreateBulk) Save(ctx context.Context) ([]*CustomerSubjects, error) {
+	if _c.err != nil {
+		return nil, _c.err
 	}
-	specs := make([]*sqlgraph.CreateSpec, len(cscb.builders))
-	nodes := make([]*CustomerSubjects, len(cscb.builders))
-	mutators := make([]Mutator, len(cscb.builders))
-	for i := range cscb.builders {
+	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
+	nodes := make([]*CustomerSubjects, len(_c.builders))
+	mutators := make([]Mutator, len(_c.builders))
+	for i := range _c.builders {
 		func(i int, root context.Context) {
-			builder := cscb.builders[i]
+			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*CustomerSubjectsMutation)
@@ -417,12 +417,12 @@ func (cscb *CustomerSubjectsCreateBulk) Save(ctx context.Context) ([]*CustomerSu
 				var err error
 				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
-					_, err = mutators[i+1].Mutate(root, cscb.builders[i+1].mutation)
+					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = cscb.conflict
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
-					if err = sqlgraph.BatchCreate(ctx, cscb.driver, spec); err != nil {
+					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
 							err = &ConstraintError{msg: err.Error(), wrap: err}
 						}
@@ -446,7 +446,7 @@ func (cscb *CustomerSubjectsCreateBulk) Save(ctx context.Context) ([]*CustomerSu
 		}(i, ctx)
 	}
 	if len(mutators) > 0 {
-		if _, err := mutators[0].Mutate(ctx, cscb.builders[0].mutation); err != nil {
+		if _, err := mutators[0].Mutate(ctx, _c.builders[0].mutation); err != nil {
 			return nil, err
 		}
 	}
@@ -454,8 +454,8 @@ func (cscb *CustomerSubjectsCreateBulk) Save(ctx context.Context) ([]*CustomerSu
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (cscb *CustomerSubjectsCreateBulk) SaveX(ctx context.Context) []*CustomerSubjects {
-	v, err := cscb.Save(ctx)
+func (_c *CustomerSubjectsCreateBulk) SaveX(ctx context.Context) []*CustomerSubjects {
+	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -463,14 +463,14 @@ func (cscb *CustomerSubjectsCreateBulk) SaveX(ctx context.Context) []*CustomerSu
 }
 
 // Exec executes the query.
-func (cscb *CustomerSubjectsCreateBulk) Exec(ctx context.Context) error {
-	_, err := cscb.Save(ctx)
+func (_c *CustomerSubjectsCreateBulk) Exec(ctx context.Context) error {
+	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (cscb *CustomerSubjectsCreateBulk) ExecX(ctx context.Context) {
-	if err := cscb.Exec(ctx); err != nil {
+func (_c *CustomerSubjectsCreateBulk) ExecX(ctx context.Context) {
+	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
@@ -490,10 +490,10 @@ func (cscb *CustomerSubjectsCreateBulk) ExecX(ctx context.Context) {
 //			SetNamespace(v+v).
 //		}).
 //		Exec(ctx)
-func (cscb *CustomerSubjectsCreateBulk) OnConflict(opts ...sql.ConflictOption) *CustomerSubjectsUpsertBulk {
-	cscb.conflict = opts
+func (_c *CustomerSubjectsCreateBulk) OnConflict(opts ...sql.ConflictOption) *CustomerSubjectsUpsertBulk {
+	_c.conflict = opts
 	return &CustomerSubjectsUpsertBulk{
-		create: cscb,
+		create: _c,
 	}
 }
 
@@ -503,10 +503,10 @@ func (cscb *CustomerSubjectsCreateBulk) OnConflict(opts ...sql.ConflictOption) *
 //	client.CustomerSubjects.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-func (cscb *CustomerSubjectsCreateBulk) OnConflictColumns(columns ...string) *CustomerSubjectsUpsertBulk {
-	cscb.conflict = append(cscb.conflict, sql.ConflictColumns(columns...))
+func (_c *CustomerSubjectsCreateBulk) OnConflictColumns(columns ...string) *CustomerSubjectsUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
 	return &CustomerSubjectsUpsertBulk{
-		create: cscb,
+		create: _c,
 	}
 }
 

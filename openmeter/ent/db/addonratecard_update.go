@@ -27,255 +27,255 @@ type AddonRateCardUpdate struct {
 }
 
 // Where appends a list predicates to the AddonRateCardUpdate builder.
-func (arcu *AddonRateCardUpdate) Where(ps ...predicate.AddonRateCard) *AddonRateCardUpdate {
-	arcu.mutation.Where(ps...)
-	return arcu
+func (_u *AddonRateCardUpdate) Where(ps ...predicate.AddonRateCard) *AddonRateCardUpdate {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
-func (arcu *AddonRateCardUpdate) SetMetadata(m map[string]string) *AddonRateCardUpdate {
-	arcu.mutation.SetMetadata(m)
-	return arcu
+func (_u *AddonRateCardUpdate) SetMetadata(v map[string]string) *AddonRateCardUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (arcu *AddonRateCardUpdate) ClearMetadata() *AddonRateCardUpdate {
-	arcu.mutation.ClearMetadata()
-	return arcu
+func (_u *AddonRateCardUpdate) ClearMetadata() *AddonRateCardUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (arcu *AddonRateCardUpdate) SetUpdatedAt(t time.Time) *AddonRateCardUpdate {
-	arcu.mutation.SetUpdatedAt(t)
-	return arcu
+func (_u *AddonRateCardUpdate) SetUpdatedAt(v time.Time) *AddonRateCardUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (arcu *AddonRateCardUpdate) SetDeletedAt(t time.Time) *AddonRateCardUpdate {
-	arcu.mutation.SetDeletedAt(t)
-	return arcu
+func (_u *AddonRateCardUpdate) SetDeletedAt(v time.Time) *AddonRateCardUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (arcu *AddonRateCardUpdate) SetNillableDeletedAt(t *time.Time) *AddonRateCardUpdate {
-	if t != nil {
-		arcu.SetDeletedAt(*t)
+func (_u *AddonRateCardUpdate) SetNillableDeletedAt(v *time.Time) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return arcu
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (arcu *AddonRateCardUpdate) ClearDeletedAt() *AddonRateCardUpdate {
-	arcu.mutation.ClearDeletedAt()
-	return arcu
+func (_u *AddonRateCardUpdate) ClearDeletedAt() *AddonRateCardUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (arcu *AddonRateCardUpdate) SetName(s string) *AddonRateCardUpdate {
-	arcu.mutation.SetName(s)
-	return arcu
+func (_u *AddonRateCardUpdate) SetName(v string) *AddonRateCardUpdate {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (arcu *AddonRateCardUpdate) SetNillableName(s *string) *AddonRateCardUpdate {
-	if s != nil {
-		arcu.SetName(*s)
+func (_u *AddonRateCardUpdate) SetNillableName(v *string) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return arcu
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (arcu *AddonRateCardUpdate) SetDescription(s string) *AddonRateCardUpdate {
-	arcu.mutation.SetDescription(s)
-	return arcu
+func (_u *AddonRateCardUpdate) SetDescription(v string) *AddonRateCardUpdate {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (arcu *AddonRateCardUpdate) SetNillableDescription(s *string) *AddonRateCardUpdate {
-	if s != nil {
-		arcu.SetDescription(*s)
+func (_u *AddonRateCardUpdate) SetNillableDescription(v *string) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return arcu
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (arcu *AddonRateCardUpdate) ClearDescription() *AddonRateCardUpdate {
-	arcu.mutation.ClearDescription()
-	return arcu
+func (_u *AddonRateCardUpdate) ClearDescription() *AddonRateCardUpdate {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetFeatureKey sets the "feature_key" field.
-func (arcu *AddonRateCardUpdate) SetFeatureKey(s string) *AddonRateCardUpdate {
-	arcu.mutation.SetFeatureKey(s)
-	return arcu
+func (_u *AddonRateCardUpdate) SetFeatureKey(v string) *AddonRateCardUpdate {
+	_u.mutation.SetFeatureKey(v)
+	return _u
 }
 
 // SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
-func (arcu *AddonRateCardUpdate) SetNillableFeatureKey(s *string) *AddonRateCardUpdate {
-	if s != nil {
-		arcu.SetFeatureKey(*s)
+func (_u *AddonRateCardUpdate) SetNillableFeatureKey(v *string) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetFeatureKey(*v)
 	}
-	return arcu
+	return _u
 }
 
 // ClearFeatureKey clears the value of the "feature_key" field.
-func (arcu *AddonRateCardUpdate) ClearFeatureKey() *AddonRateCardUpdate {
-	arcu.mutation.ClearFeatureKey()
-	return arcu
+func (_u *AddonRateCardUpdate) ClearFeatureKey() *AddonRateCardUpdate {
+	_u.mutation.ClearFeatureKey()
+	return _u
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (arcu *AddonRateCardUpdate) SetEntitlementTemplate(pt *productcatalog.EntitlementTemplate) *AddonRateCardUpdate {
-	arcu.mutation.SetEntitlementTemplate(pt)
-	return arcu
+func (_u *AddonRateCardUpdate) SetEntitlementTemplate(v *productcatalog.EntitlementTemplate) *AddonRateCardUpdate {
+	_u.mutation.SetEntitlementTemplate(v)
+	return _u
 }
 
 // ClearEntitlementTemplate clears the value of the "entitlement_template" field.
-func (arcu *AddonRateCardUpdate) ClearEntitlementTemplate() *AddonRateCardUpdate {
-	arcu.mutation.ClearEntitlementTemplate()
-	return arcu
+func (_u *AddonRateCardUpdate) ClearEntitlementTemplate() *AddonRateCardUpdate {
+	_u.mutation.ClearEntitlementTemplate()
+	return _u
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (arcu *AddonRateCardUpdate) SetTaxConfig(pc *productcatalog.TaxConfig) *AddonRateCardUpdate {
-	arcu.mutation.SetTaxConfig(pc)
-	return arcu
+func (_u *AddonRateCardUpdate) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardUpdate {
+	_u.mutation.SetTaxConfig(v)
+	return _u
 }
 
 // ClearTaxConfig clears the value of the "tax_config" field.
-func (arcu *AddonRateCardUpdate) ClearTaxConfig() *AddonRateCardUpdate {
-	arcu.mutation.ClearTaxConfig()
-	return arcu
+func (_u *AddonRateCardUpdate) ClearTaxConfig() *AddonRateCardUpdate {
+	_u.mutation.ClearTaxConfig()
+	return _u
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (arcu *AddonRateCardUpdate) SetBillingCadence(i isodate.String) *AddonRateCardUpdate {
-	arcu.mutation.SetBillingCadence(i)
-	return arcu
+func (_u *AddonRateCardUpdate) SetBillingCadence(v isodate.String) *AddonRateCardUpdate {
+	_u.mutation.SetBillingCadence(v)
+	return _u
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (arcu *AddonRateCardUpdate) SetNillableBillingCadence(i *isodate.String) *AddonRateCardUpdate {
-	if i != nil {
-		arcu.SetBillingCadence(*i)
+func (_u *AddonRateCardUpdate) SetNillableBillingCadence(v *isodate.String) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetBillingCadence(*v)
 	}
-	return arcu
+	return _u
 }
 
 // ClearBillingCadence clears the value of the "billing_cadence" field.
-func (arcu *AddonRateCardUpdate) ClearBillingCadence() *AddonRateCardUpdate {
-	arcu.mutation.ClearBillingCadence()
-	return arcu
+func (_u *AddonRateCardUpdate) ClearBillingCadence() *AddonRateCardUpdate {
+	_u.mutation.ClearBillingCadence()
+	return _u
 }
 
 // SetPrice sets the "price" field.
-func (arcu *AddonRateCardUpdate) SetPrice(pr *productcatalog.Price) *AddonRateCardUpdate {
-	arcu.mutation.SetPrice(pr)
-	return arcu
+func (_u *AddonRateCardUpdate) SetPrice(v *productcatalog.Price) *AddonRateCardUpdate {
+	_u.mutation.SetPrice(v)
+	return _u
 }
 
 // ClearPrice clears the value of the "price" field.
-func (arcu *AddonRateCardUpdate) ClearPrice() *AddonRateCardUpdate {
-	arcu.mutation.ClearPrice()
-	return arcu
+func (_u *AddonRateCardUpdate) ClearPrice() *AddonRateCardUpdate {
+	_u.mutation.ClearPrice()
+	return _u
 }
 
 // SetDiscounts sets the "discounts" field.
-func (arcu *AddonRateCardUpdate) SetDiscounts(pr *productcatalog.Discounts) *AddonRateCardUpdate {
-	arcu.mutation.SetDiscounts(pr)
-	return arcu
+func (_u *AddonRateCardUpdate) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardUpdate {
+	_u.mutation.SetDiscounts(v)
+	return _u
 }
 
 // ClearDiscounts clears the value of the "discounts" field.
-func (arcu *AddonRateCardUpdate) ClearDiscounts() *AddonRateCardUpdate {
-	arcu.mutation.ClearDiscounts()
-	return arcu
+func (_u *AddonRateCardUpdate) ClearDiscounts() *AddonRateCardUpdate {
+	_u.mutation.ClearDiscounts()
+	return _u
 }
 
 // SetAddonID sets the "addon_id" field.
-func (arcu *AddonRateCardUpdate) SetAddonID(s string) *AddonRateCardUpdate {
-	arcu.mutation.SetAddonID(s)
-	return arcu
+func (_u *AddonRateCardUpdate) SetAddonID(v string) *AddonRateCardUpdate {
+	_u.mutation.SetAddonID(v)
+	return _u
 }
 
 // SetNillableAddonID sets the "addon_id" field if the given value is not nil.
-func (arcu *AddonRateCardUpdate) SetNillableAddonID(s *string) *AddonRateCardUpdate {
-	if s != nil {
-		arcu.SetAddonID(*s)
+func (_u *AddonRateCardUpdate) SetNillableAddonID(v *string) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetAddonID(*v)
 	}
-	return arcu
+	return _u
 }
 
 // SetFeatureID sets the "feature_id" field.
-func (arcu *AddonRateCardUpdate) SetFeatureID(s string) *AddonRateCardUpdate {
-	arcu.mutation.SetFeatureID(s)
-	return arcu
+func (_u *AddonRateCardUpdate) SetFeatureID(v string) *AddonRateCardUpdate {
+	_u.mutation.SetFeatureID(v)
+	return _u
 }
 
 // SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
-func (arcu *AddonRateCardUpdate) SetNillableFeatureID(s *string) *AddonRateCardUpdate {
-	if s != nil {
-		arcu.SetFeatureID(*s)
+func (_u *AddonRateCardUpdate) SetNillableFeatureID(v *string) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetFeatureID(*v)
 	}
-	return arcu
+	return _u
 }
 
 // ClearFeatureID clears the value of the "feature_id" field.
-func (arcu *AddonRateCardUpdate) ClearFeatureID() *AddonRateCardUpdate {
-	arcu.mutation.ClearFeatureID()
-	return arcu
+func (_u *AddonRateCardUpdate) ClearFeatureID() *AddonRateCardUpdate {
+	_u.mutation.ClearFeatureID()
+	return _u
 }
 
 // SetAddon sets the "addon" edge to the Addon entity.
-func (arcu *AddonRateCardUpdate) SetAddon(a *Addon) *AddonRateCardUpdate {
-	return arcu.SetAddonID(a.ID)
+func (_u *AddonRateCardUpdate) SetAddon(v *Addon) *AddonRateCardUpdate {
+	return _u.SetAddonID(v.ID)
 }
 
 // SetFeaturesID sets the "features" edge to the Feature entity by ID.
-func (arcu *AddonRateCardUpdate) SetFeaturesID(id string) *AddonRateCardUpdate {
-	arcu.mutation.SetFeaturesID(id)
-	return arcu
+func (_u *AddonRateCardUpdate) SetFeaturesID(id string) *AddonRateCardUpdate {
+	_u.mutation.SetFeaturesID(id)
+	return _u
 }
 
 // SetNillableFeaturesID sets the "features" edge to the Feature entity by ID if the given value is not nil.
-func (arcu *AddonRateCardUpdate) SetNillableFeaturesID(id *string) *AddonRateCardUpdate {
+func (_u *AddonRateCardUpdate) SetNillableFeaturesID(id *string) *AddonRateCardUpdate {
 	if id != nil {
-		arcu = arcu.SetFeaturesID(*id)
+		_u = _u.SetFeaturesID(*id)
 	}
-	return arcu
+	return _u
 }
 
 // SetFeatures sets the "features" edge to the Feature entity.
-func (arcu *AddonRateCardUpdate) SetFeatures(f *Feature) *AddonRateCardUpdate {
-	return arcu.SetFeaturesID(f.ID)
+func (_u *AddonRateCardUpdate) SetFeatures(v *Feature) *AddonRateCardUpdate {
+	return _u.SetFeaturesID(v.ID)
 }
 
 // Mutation returns the AddonRateCardMutation object of the builder.
-func (arcu *AddonRateCardUpdate) Mutation() *AddonRateCardMutation {
-	return arcu.mutation
+func (_u *AddonRateCardUpdate) Mutation() *AddonRateCardMutation {
+	return _u.mutation
 }
 
 // ClearAddon clears the "addon" edge to the Addon entity.
-func (arcu *AddonRateCardUpdate) ClearAddon() *AddonRateCardUpdate {
-	arcu.mutation.ClearAddon()
-	return arcu
+func (_u *AddonRateCardUpdate) ClearAddon() *AddonRateCardUpdate {
+	_u.mutation.ClearAddon()
+	return _u
 }
 
 // ClearFeatures clears the "features" edge to the Feature entity.
-func (arcu *AddonRateCardUpdate) ClearFeatures() *AddonRateCardUpdate {
-	arcu.mutation.ClearFeatures()
-	return arcu
+func (_u *AddonRateCardUpdate) ClearFeatures() *AddonRateCardUpdate {
+	_u.mutation.ClearFeatures()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
-func (arcu *AddonRateCardUpdate) Save(ctx context.Context) (int, error) {
-	arcu.defaults()
-	return withHooks(ctx, arcu.sqlSave, arcu.mutation, arcu.hooks)
+func (_u *AddonRateCardUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (arcu *AddonRateCardUpdate) SaveX(ctx context.Context) int {
-	affected, err := arcu.Save(ctx)
+func (_u *AddonRateCardUpdate) SaveX(ctx context.Context) int {
+	affected, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -283,148 +283,148 @@ func (arcu *AddonRateCardUpdate) SaveX(ctx context.Context) int {
 }
 
 // Exec executes the query.
-func (arcu *AddonRateCardUpdate) Exec(ctx context.Context) error {
-	_, err := arcu.Save(ctx)
+func (_u *AddonRateCardUpdate) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (arcu *AddonRateCardUpdate) ExecX(ctx context.Context) {
-	if err := arcu.Exec(ctx); err != nil {
+func (_u *AddonRateCardUpdate) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (arcu *AddonRateCardUpdate) defaults() {
-	if _, ok := arcu.mutation.UpdatedAt(); !ok {
+func (_u *AddonRateCardUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := addonratecard.UpdateDefaultUpdatedAt()
-		arcu.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (arcu *AddonRateCardUpdate) check() error {
-	if v, ok := arcu.mutation.EntitlementTemplate(); ok {
+func (_u *AddonRateCardUpdate) check() error {
+	if v, ok := _u.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.entitlement_template": %w`, err)}
 		}
 	}
-	if v, ok := arcu.mutation.TaxConfig(); ok {
+	if v, ok := _u.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
 		}
 	}
-	if v, ok := arcu.mutation.Price(); ok {
+	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
 		}
 	}
-	if v, ok := arcu.mutation.Discounts(); ok {
+	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.discounts": %w`, err)}
 		}
 	}
-	if v, ok := arcu.mutation.AddonID(); ok {
+	if v, ok := _u.mutation.AddonID(); ok {
 		if err := addonratecard.AddonIDValidator(v); err != nil {
 			return &ValidationError{Name: "addon_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.addon_id": %w`, err)}
 		}
 	}
-	if arcu.mutation.AddonCleared() && len(arcu.mutation.AddonIDs()) > 0 {
+	if _u.mutation.AddonCleared() && len(_u.mutation.AddonIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AddonRateCard.addon"`)
 	}
 	return nil
 }
 
-func (arcu *AddonRateCardUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := arcu.check(); err != nil {
-		return n, err
+func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(addonratecard.Table, addonratecard.Columns, sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString))
-	if ps := arcu.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := arcu.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(addonratecard.FieldMetadata, field.TypeJSON, value)
 	}
-	if arcu.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(addonratecard.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := arcu.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(addonratecard.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := arcu.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(addonratecard.FieldDeletedAt, field.TypeTime, value)
 	}
-	if arcu.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(addonratecard.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := arcu.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(addonratecard.FieldName, field.TypeString, value)
 	}
-	if value, ok := arcu.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(addonratecard.FieldDescription, field.TypeString, value)
 	}
-	if arcu.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(addonratecard.FieldDescription, field.TypeString)
 	}
-	if value, ok := arcu.mutation.FeatureKey(); ok {
+	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(addonratecard.FieldFeatureKey, field.TypeString, value)
 	}
-	if arcu.mutation.FeatureKeyCleared() {
+	if _u.mutation.FeatureKeyCleared() {
 		_spec.ClearField(addonratecard.FieldFeatureKey, field.TypeString)
 	}
-	if value, ok := arcu.mutation.EntitlementTemplate(); ok {
+	if value, ok := _u.mutation.EntitlementTemplate(); ok {
 		vv, err := addonratecard.ValueScanner.EntitlementTemplate.Value(value)
 		if err != nil {
 			return 0, err
 		}
 		_spec.SetField(addonratecard.FieldEntitlementTemplate, field.TypeString, vv)
 	}
-	if arcu.mutation.EntitlementTemplateCleared() {
+	if _u.mutation.EntitlementTemplateCleared() {
 		_spec.ClearField(addonratecard.FieldEntitlementTemplate, field.TypeString)
 	}
-	if value, ok := arcu.mutation.TaxConfig(); ok {
+	if value, ok := _u.mutation.TaxConfig(); ok {
 		vv, err := addonratecard.ValueScanner.TaxConfig.Value(value)
 		if err != nil {
 			return 0, err
 		}
 		_spec.SetField(addonratecard.FieldTaxConfig, field.TypeString, vv)
 	}
-	if arcu.mutation.TaxConfigCleared() {
+	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(addonratecard.FieldTaxConfig, field.TypeString)
 	}
-	if value, ok := arcu.mutation.BillingCadence(); ok {
+	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(addonratecard.FieldBillingCadence, field.TypeString, value)
 	}
-	if arcu.mutation.BillingCadenceCleared() {
+	if _u.mutation.BillingCadenceCleared() {
 		_spec.ClearField(addonratecard.FieldBillingCadence, field.TypeString)
 	}
-	if value, ok := arcu.mutation.Price(); ok {
+	if value, ok := _u.mutation.Price(); ok {
 		vv, err := addonratecard.ValueScanner.Price.Value(value)
 		if err != nil {
 			return 0, err
 		}
 		_spec.SetField(addonratecard.FieldPrice, field.TypeString, vv)
 	}
-	if arcu.mutation.PriceCleared() {
+	if _u.mutation.PriceCleared() {
 		_spec.ClearField(addonratecard.FieldPrice, field.TypeString)
 	}
-	if value, ok := arcu.mutation.Discounts(); ok {
+	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := addonratecard.ValueScanner.Discounts.Value(value)
 		if err != nil {
 			return 0, err
 		}
 		_spec.SetField(addonratecard.FieldDiscounts, field.TypeString, vv)
 	}
-	if arcu.mutation.DiscountsCleared() {
+	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(addonratecard.FieldDiscounts, field.TypeString)
 	}
-	if arcu.mutation.AddonCleared() {
+	if _u.mutation.AddonCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -437,7 +437,7 @@ func (arcu *AddonRateCardUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := arcu.mutation.AddonIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.AddonIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -453,7 +453,7 @@ func (arcu *AddonRateCardUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if arcu.mutation.FeaturesCleared() {
+	if _u.mutation.FeaturesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -466,7 +466,7 @@ func (arcu *AddonRateCardUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := arcu.mutation.FeaturesIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.FeaturesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -482,7 +482,7 @@ func (arcu *AddonRateCardUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if n, err = sqlgraph.UpdateNodes(ctx, arcu.driver, _spec); err != nil {
+	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{addonratecard.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -490,8 +490,8 @@ func (arcu *AddonRateCardUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		return 0, err
 	}
-	arcu.mutation.done = true
-	return n, nil
+	_u.mutation.done = true
+	return _node, nil
 }
 
 // AddonRateCardUpdateOne is the builder for updating a single AddonRateCard entity.
@@ -503,262 +503,262 @@ type AddonRateCardUpdateOne struct {
 }
 
 // SetMetadata sets the "metadata" field.
-func (arcuo *AddonRateCardUpdateOne) SetMetadata(m map[string]string) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetMetadata(m)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetMetadata(v map[string]string) *AddonRateCardUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
-func (arcuo *AddonRateCardUpdateOne) ClearMetadata() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearMetadata()
-	return arcuo
+func (_u *AddonRateCardUpdateOne) ClearMetadata() *AddonRateCardUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (arcuo *AddonRateCardUpdateOne) SetUpdatedAt(t time.Time) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetUpdatedAt(t)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetUpdatedAt(v time.Time) *AddonRateCardUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
-func (arcuo *AddonRateCardUpdateOne) SetDeletedAt(t time.Time) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetDeletedAt(t)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetDeletedAt(v time.Time) *AddonRateCardUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
 }
 
 // SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (arcuo *AddonRateCardUpdateOne) SetNillableDeletedAt(t *time.Time) *AddonRateCardUpdateOne {
-	if t != nil {
-		arcuo.SetDeletedAt(*t)
+func (_u *AddonRateCardUpdateOne) SetNillableDeletedAt(v *time.Time) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
 	}
-	return arcuo
+	return _u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
-func (arcuo *AddonRateCardUpdateOne) ClearDeletedAt() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearDeletedAt()
-	return arcuo
+func (_u *AddonRateCardUpdateOne) ClearDeletedAt() *AddonRateCardUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
 }
 
 // SetName sets the "name" field.
-func (arcuo *AddonRateCardUpdateOne) SetName(s string) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetName(s)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetName(v string) *AddonRateCardUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
 }
 
 // SetNillableName sets the "name" field if the given value is not nil.
-func (arcuo *AddonRateCardUpdateOne) SetNillableName(s *string) *AddonRateCardUpdateOne {
-	if s != nil {
-		arcuo.SetName(*s)
+func (_u *AddonRateCardUpdateOne) SetNillableName(v *string) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
 	}
-	return arcuo
+	return _u
 }
 
 // SetDescription sets the "description" field.
-func (arcuo *AddonRateCardUpdateOne) SetDescription(s string) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetDescription(s)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetDescription(v string) *AddonRateCardUpdateOne {
+	_u.mutation.SetDescription(v)
+	return _u
 }
 
 // SetNillableDescription sets the "description" field if the given value is not nil.
-func (arcuo *AddonRateCardUpdateOne) SetNillableDescription(s *string) *AddonRateCardUpdateOne {
-	if s != nil {
-		arcuo.SetDescription(*s)
+func (_u *AddonRateCardUpdateOne) SetNillableDescription(v *string) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetDescription(*v)
 	}
-	return arcuo
+	return _u
 }
 
 // ClearDescription clears the value of the "description" field.
-func (arcuo *AddonRateCardUpdateOne) ClearDescription() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearDescription()
-	return arcuo
+func (_u *AddonRateCardUpdateOne) ClearDescription() *AddonRateCardUpdateOne {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // SetFeatureKey sets the "feature_key" field.
-func (arcuo *AddonRateCardUpdateOne) SetFeatureKey(s string) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetFeatureKey(s)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetFeatureKey(v string) *AddonRateCardUpdateOne {
+	_u.mutation.SetFeatureKey(v)
+	return _u
 }
 
 // SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
-func (arcuo *AddonRateCardUpdateOne) SetNillableFeatureKey(s *string) *AddonRateCardUpdateOne {
-	if s != nil {
-		arcuo.SetFeatureKey(*s)
+func (_u *AddonRateCardUpdateOne) SetNillableFeatureKey(v *string) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetFeatureKey(*v)
 	}
-	return arcuo
+	return _u
 }
 
 // ClearFeatureKey clears the value of the "feature_key" field.
-func (arcuo *AddonRateCardUpdateOne) ClearFeatureKey() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearFeatureKey()
-	return arcuo
+func (_u *AddonRateCardUpdateOne) ClearFeatureKey() *AddonRateCardUpdateOne {
+	_u.mutation.ClearFeatureKey()
+	return _u
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (arcuo *AddonRateCardUpdateOne) SetEntitlementTemplate(pt *productcatalog.EntitlementTemplate) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetEntitlementTemplate(pt)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetEntitlementTemplate(v *productcatalog.EntitlementTemplate) *AddonRateCardUpdateOne {
+	_u.mutation.SetEntitlementTemplate(v)
+	return _u
 }
 
 // ClearEntitlementTemplate clears the value of the "entitlement_template" field.
-func (arcuo *AddonRateCardUpdateOne) ClearEntitlementTemplate() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearEntitlementTemplate()
-	return arcuo
+func (_u *AddonRateCardUpdateOne) ClearEntitlementTemplate() *AddonRateCardUpdateOne {
+	_u.mutation.ClearEntitlementTemplate()
+	return _u
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (arcuo *AddonRateCardUpdateOne) SetTaxConfig(pc *productcatalog.TaxConfig) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetTaxConfig(pc)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardUpdateOne {
+	_u.mutation.SetTaxConfig(v)
+	return _u
 }
 
 // ClearTaxConfig clears the value of the "tax_config" field.
-func (arcuo *AddonRateCardUpdateOne) ClearTaxConfig() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearTaxConfig()
-	return arcuo
+func (_u *AddonRateCardUpdateOne) ClearTaxConfig() *AddonRateCardUpdateOne {
+	_u.mutation.ClearTaxConfig()
+	return _u
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (arcuo *AddonRateCardUpdateOne) SetBillingCadence(i isodate.String) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetBillingCadence(i)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetBillingCadence(v isodate.String) *AddonRateCardUpdateOne {
+	_u.mutation.SetBillingCadence(v)
+	return _u
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (arcuo *AddonRateCardUpdateOne) SetNillableBillingCadence(i *isodate.String) *AddonRateCardUpdateOne {
-	if i != nil {
-		arcuo.SetBillingCadence(*i)
+func (_u *AddonRateCardUpdateOne) SetNillableBillingCadence(v *isodate.String) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetBillingCadence(*v)
 	}
-	return arcuo
+	return _u
 }
 
 // ClearBillingCadence clears the value of the "billing_cadence" field.
-func (arcuo *AddonRateCardUpdateOne) ClearBillingCadence() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearBillingCadence()
-	return arcuo
+func (_u *AddonRateCardUpdateOne) ClearBillingCadence() *AddonRateCardUpdateOne {
+	_u.mutation.ClearBillingCadence()
+	return _u
 }
 
 // SetPrice sets the "price" field.
-func (arcuo *AddonRateCardUpdateOne) SetPrice(pr *productcatalog.Price) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetPrice(pr)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetPrice(v *productcatalog.Price) *AddonRateCardUpdateOne {
+	_u.mutation.SetPrice(v)
+	return _u
 }
 
 // ClearPrice clears the value of the "price" field.
-func (arcuo *AddonRateCardUpdateOne) ClearPrice() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearPrice()
-	return arcuo
+func (_u *AddonRateCardUpdateOne) ClearPrice() *AddonRateCardUpdateOne {
+	_u.mutation.ClearPrice()
+	return _u
 }
 
 // SetDiscounts sets the "discounts" field.
-func (arcuo *AddonRateCardUpdateOne) SetDiscounts(pr *productcatalog.Discounts) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetDiscounts(pr)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardUpdateOne {
+	_u.mutation.SetDiscounts(v)
+	return _u
 }
 
 // ClearDiscounts clears the value of the "discounts" field.
-func (arcuo *AddonRateCardUpdateOne) ClearDiscounts() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearDiscounts()
-	return arcuo
+func (_u *AddonRateCardUpdateOne) ClearDiscounts() *AddonRateCardUpdateOne {
+	_u.mutation.ClearDiscounts()
+	return _u
 }
 
 // SetAddonID sets the "addon_id" field.
-func (arcuo *AddonRateCardUpdateOne) SetAddonID(s string) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetAddonID(s)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetAddonID(v string) *AddonRateCardUpdateOne {
+	_u.mutation.SetAddonID(v)
+	return _u
 }
 
 // SetNillableAddonID sets the "addon_id" field if the given value is not nil.
-func (arcuo *AddonRateCardUpdateOne) SetNillableAddonID(s *string) *AddonRateCardUpdateOne {
-	if s != nil {
-		arcuo.SetAddonID(*s)
+func (_u *AddonRateCardUpdateOne) SetNillableAddonID(v *string) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetAddonID(*v)
 	}
-	return arcuo
+	return _u
 }
 
 // SetFeatureID sets the "feature_id" field.
-func (arcuo *AddonRateCardUpdateOne) SetFeatureID(s string) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetFeatureID(s)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetFeatureID(v string) *AddonRateCardUpdateOne {
+	_u.mutation.SetFeatureID(v)
+	return _u
 }
 
 // SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
-func (arcuo *AddonRateCardUpdateOne) SetNillableFeatureID(s *string) *AddonRateCardUpdateOne {
-	if s != nil {
-		arcuo.SetFeatureID(*s)
+func (_u *AddonRateCardUpdateOne) SetNillableFeatureID(v *string) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetFeatureID(*v)
 	}
-	return arcuo
+	return _u
 }
 
 // ClearFeatureID clears the value of the "feature_id" field.
-func (arcuo *AddonRateCardUpdateOne) ClearFeatureID() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearFeatureID()
-	return arcuo
+func (_u *AddonRateCardUpdateOne) ClearFeatureID() *AddonRateCardUpdateOne {
+	_u.mutation.ClearFeatureID()
+	return _u
 }
 
 // SetAddon sets the "addon" edge to the Addon entity.
-func (arcuo *AddonRateCardUpdateOne) SetAddon(a *Addon) *AddonRateCardUpdateOne {
-	return arcuo.SetAddonID(a.ID)
+func (_u *AddonRateCardUpdateOne) SetAddon(v *Addon) *AddonRateCardUpdateOne {
+	return _u.SetAddonID(v.ID)
 }
 
 // SetFeaturesID sets the "features" edge to the Feature entity by ID.
-func (arcuo *AddonRateCardUpdateOne) SetFeaturesID(id string) *AddonRateCardUpdateOne {
-	arcuo.mutation.SetFeaturesID(id)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) SetFeaturesID(id string) *AddonRateCardUpdateOne {
+	_u.mutation.SetFeaturesID(id)
+	return _u
 }
 
 // SetNillableFeaturesID sets the "features" edge to the Feature entity by ID if the given value is not nil.
-func (arcuo *AddonRateCardUpdateOne) SetNillableFeaturesID(id *string) *AddonRateCardUpdateOne {
+func (_u *AddonRateCardUpdateOne) SetNillableFeaturesID(id *string) *AddonRateCardUpdateOne {
 	if id != nil {
-		arcuo = arcuo.SetFeaturesID(*id)
+		_u = _u.SetFeaturesID(*id)
 	}
-	return arcuo
+	return _u
 }
 
 // SetFeatures sets the "features" edge to the Feature entity.
-func (arcuo *AddonRateCardUpdateOne) SetFeatures(f *Feature) *AddonRateCardUpdateOne {
-	return arcuo.SetFeaturesID(f.ID)
+func (_u *AddonRateCardUpdateOne) SetFeatures(v *Feature) *AddonRateCardUpdateOne {
+	return _u.SetFeaturesID(v.ID)
 }
 
 // Mutation returns the AddonRateCardMutation object of the builder.
-func (arcuo *AddonRateCardUpdateOne) Mutation() *AddonRateCardMutation {
-	return arcuo.mutation
+func (_u *AddonRateCardUpdateOne) Mutation() *AddonRateCardMutation {
+	return _u.mutation
 }
 
 // ClearAddon clears the "addon" edge to the Addon entity.
-func (arcuo *AddonRateCardUpdateOne) ClearAddon() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearAddon()
-	return arcuo
+func (_u *AddonRateCardUpdateOne) ClearAddon() *AddonRateCardUpdateOne {
+	_u.mutation.ClearAddon()
+	return _u
 }
 
 // ClearFeatures clears the "features" edge to the Feature entity.
-func (arcuo *AddonRateCardUpdateOne) ClearFeatures() *AddonRateCardUpdateOne {
-	arcuo.mutation.ClearFeatures()
-	return arcuo
+func (_u *AddonRateCardUpdateOne) ClearFeatures() *AddonRateCardUpdateOne {
+	_u.mutation.ClearFeatures()
+	return _u
 }
 
 // Where appends a list predicates to the AddonRateCardUpdate builder.
-func (arcuo *AddonRateCardUpdateOne) Where(ps ...predicate.AddonRateCard) *AddonRateCardUpdateOne {
-	arcuo.mutation.Where(ps...)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) Where(ps ...predicate.AddonRateCard) *AddonRateCardUpdateOne {
+	_u.mutation.Where(ps...)
+	return _u
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
-func (arcuo *AddonRateCardUpdateOne) Select(field string, fields ...string) *AddonRateCardUpdateOne {
-	arcuo.fields = append([]string{field}, fields...)
-	return arcuo
+func (_u *AddonRateCardUpdateOne) Select(field string, fields ...string) *AddonRateCardUpdateOne {
+	_u.fields = append([]string{field}, fields...)
+	return _u
 }
 
 // Save executes the query and returns the updated AddonRateCard entity.
-func (arcuo *AddonRateCardUpdateOne) Save(ctx context.Context) (*AddonRateCard, error) {
-	arcuo.defaults()
-	return withHooks(ctx, arcuo.sqlSave, arcuo.mutation, arcuo.hooks)
+func (_u *AddonRateCardUpdateOne) Save(ctx context.Context) (*AddonRateCard, error) {
+	_u.defaults()
+	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (arcuo *AddonRateCardUpdateOne) SaveX(ctx context.Context) *AddonRateCard {
-	node, err := arcuo.Save(ctx)
+func (_u *AddonRateCardUpdateOne) SaveX(ctx context.Context) *AddonRateCard {
+	node, err := _u.Save(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -766,70 +766,70 @@ func (arcuo *AddonRateCardUpdateOne) SaveX(ctx context.Context) *AddonRateCard {
 }
 
 // Exec executes the query on the entity.
-func (arcuo *AddonRateCardUpdateOne) Exec(ctx context.Context) error {
-	_, err := arcuo.Save(ctx)
+func (_u *AddonRateCardUpdateOne) Exec(ctx context.Context) error {
+	_, err := _u.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (arcuo *AddonRateCardUpdateOne) ExecX(ctx context.Context) {
-	if err := arcuo.Exec(ctx); err != nil {
+func (_u *AddonRateCardUpdateOne) ExecX(ctx context.Context) {
+	if err := _u.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (arcuo *AddonRateCardUpdateOne) defaults() {
-	if _, ok := arcuo.mutation.UpdatedAt(); !ok {
+func (_u *AddonRateCardUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
 		v := addonratecard.UpdateDefaultUpdatedAt()
-		arcuo.mutation.SetUpdatedAt(v)
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (arcuo *AddonRateCardUpdateOne) check() error {
-	if v, ok := arcuo.mutation.EntitlementTemplate(); ok {
+func (_u *AddonRateCardUpdateOne) check() error {
+	if v, ok := _u.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.entitlement_template": %w`, err)}
 		}
 	}
-	if v, ok := arcuo.mutation.TaxConfig(); ok {
+	if v, ok := _u.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
 		}
 	}
-	if v, ok := arcuo.mutation.Price(); ok {
+	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
 		}
 	}
-	if v, ok := arcuo.mutation.Discounts(); ok {
+	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.discounts": %w`, err)}
 		}
 	}
-	if v, ok := arcuo.mutation.AddonID(); ok {
+	if v, ok := _u.mutation.AddonID(); ok {
 		if err := addonratecard.AddonIDValidator(v); err != nil {
 			return &ValidationError{Name: "addon_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.addon_id": %w`, err)}
 		}
 	}
-	if arcuo.mutation.AddonCleared() && len(arcuo.mutation.AddonIDs()) > 0 {
+	if _u.mutation.AddonCleared() && len(_u.mutation.AddonIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "AddonRateCard.addon"`)
 	}
 	return nil
 }
 
-func (arcuo *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRateCard, err error) {
-	if err := arcuo.check(); err != nil {
+func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRateCard, err error) {
+	if err := _u.check(); err != nil {
 		return _node, err
 	}
 	_spec := sqlgraph.NewUpdateSpec(addonratecard.Table, addonratecard.Columns, sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString))
-	id, ok := arcuo.mutation.ID()
+	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "AddonRateCard.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
-	if fields := arcuo.fields; len(fields) > 0 {
+	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, addonratecard.FieldID)
 		for _, f := range fields {
@@ -841,90 +841,90 @@ func (arcuo *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonR
 			}
 		}
 	}
-	if ps := arcuo.mutation.predicates; len(ps) > 0 {
+	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	if value, ok := arcuo.mutation.Metadata(); ok {
+	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(addonratecard.FieldMetadata, field.TypeJSON, value)
 	}
-	if arcuo.mutation.MetadataCleared() {
+	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(addonratecard.FieldMetadata, field.TypeJSON)
 	}
-	if value, ok := arcuo.mutation.UpdatedAt(); ok {
+	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(addonratecard.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := arcuo.mutation.DeletedAt(); ok {
+	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(addonratecard.FieldDeletedAt, field.TypeTime, value)
 	}
-	if arcuo.mutation.DeletedAtCleared() {
+	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(addonratecard.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := arcuo.mutation.Name(); ok {
+	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(addonratecard.FieldName, field.TypeString, value)
 	}
-	if value, ok := arcuo.mutation.Description(); ok {
+	if value, ok := _u.mutation.Description(); ok {
 		_spec.SetField(addonratecard.FieldDescription, field.TypeString, value)
 	}
-	if arcuo.mutation.DescriptionCleared() {
+	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(addonratecard.FieldDescription, field.TypeString)
 	}
-	if value, ok := arcuo.mutation.FeatureKey(); ok {
+	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(addonratecard.FieldFeatureKey, field.TypeString, value)
 	}
-	if arcuo.mutation.FeatureKeyCleared() {
+	if _u.mutation.FeatureKeyCleared() {
 		_spec.ClearField(addonratecard.FieldFeatureKey, field.TypeString)
 	}
-	if value, ok := arcuo.mutation.EntitlementTemplate(); ok {
+	if value, ok := _u.mutation.EntitlementTemplate(); ok {
 		vv, err := addonratecard.ValueScanner.EntitlementTemplate.Value(value)
 		if err != nil {
 			return nil, err
 		}
 		_spec.SetField(addonratecard.FieldEntitlementTemplate, field.TypeString, vv)
 	}
-	if arcuo.mutation.EntitlementTemplateCleared() {
+	if _u.mutation.EntitlementTemplateCleared() {
 		_spec.ClearField(addonratecard.FieldEntitlementTemplate, field.TypeString)
 	}
-	if value, ok := arcuo.mutation.TaxConfig(); ok {
+	if value, ok := _u.mutation.TaxConfig(); ok {
 		vv, err := addonratecard.ValueScanner.TaxConfig.Value(value)
 		if err != nil {
 			return nil, err
 		}
 		_spec.SetField(addonratecard.FieldTaxConfig, field.TypeString, vv)
 	}
-	if arcuo.mutation.TaxConfigCleared() {
+	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(addonratecard.FieldTaxConfig, field.TypeString)
 	}
-	if value, ok := arcuo.mutation.BillingCadence(); ok {
+	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(addonratecard.FieldBillingCadence, field.TypeString, value)
 	}
-	if arcuo.mutation.BillingCadenceCleared() {
+	if _u.mutation.BillingCadenceCleared() {
 		_spec.ClearField(addonratecard.FieldBillingCadence, field.TypeString)
 	}
-	if value, ok := arcuo.mutation.Price(); ok {
+	if value, ok := _u.mutation.Price(); ok {
 		vv, err := addonratecard.ValueScanner.Price.Value(value)
 		if err != nil {
 			return nil, err
 		}
 		_spec.SetField(addonratecard.FieldPrice, field.TypeString, vv)
 	}
-	if arcuo.mutation.PriceCleared() {
+	if _u.mutation.PriceCleared() {
 		_spec.ClearField(addonratecard.FieldPrice, field.TypeString)
 	}
-	if value, ok := arcuo.mutation.Discounts(); ok {
+	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := addonratecard.ValueScanner.Discounts.Value(value)
 		if err != nil {
 			return nil, err
 		}
 		_spec.SetField(addonratecard.FieldDiscounts, field.TypeString, vv)
 	}
-	if arcuo.mutation.DiscountsCleared() {
+	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(addonratecard.FieldDiscounts, field.TypeString)
 	}
-	if arcuo.mutation.AddonCleared() {
+	if _u.mutation.AddonCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -937,7 +937,7 @@ func (arcuo *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonR
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := arcuo.mutation.AddonIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.AddonIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -953,7 +953,7 @@ func (arcuo *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonR
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if arcuo.mutation.FeaturesCleared() {
+	if _u.mutation.FeaturesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -966,7 +966,7 @@ func (arcuo *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonR
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := arcuo.mutation.FeaturesIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.FeaturesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
@@ -982,10 +982,10 @@ func (arcuo *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonR
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	_node = &AddonRateCard{config: arcuo.config}
+	_node = &AddonRateCard{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
-	if err = sqlgraph.UpdateNode(ctx, arcuo.driver, _spec); err != nil {
+	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{addonratecard.Label}
 		} else if sqlgraph.IsConstraintError(err) {
@@ -993,6 +993,6 @@ func (arcuo *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonR
 		}
 		return nil, err
 	}
-	arcuo.mutation.done = true
+	_u.mutation.done = true
 	return _node, nil
 }

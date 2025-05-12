@@ -20,56 +20,56 @@ type AppCustomerDelete struct {
 }
 
 // Where appends a list predicates to the AppCustomerDelete builder.
-func (acd *AppCustomerDelete) Where(ps ...predicate.AppCustomer) *AppCustomerDelete {
-	acd.mutation.Where(ps...)
-	return acd
+func (_d *AppCustomerDelete) Where(ps ...predicate.AppCustomer) *AppCustomerDelete {
+	_d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (acd *AppCustomerDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks(ctx, acd.sqlExec, acd.mutation, acd.hooks)
+func (_d *AppCustomerDelete) Exec(ctx context.Context) (int, error) {
+	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (acd *AppCustomerDelete) ExecX(ctx context.Context) int {
-	n, err := acd.Exec(ctx)
+func (_d *AppCustomerDelete) ExecX(ctx context.Context) int {
+	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
 	}
 	return n
 }
 
-func (acd *AppCustomerDelete) sqlExec(ctx context.Context) (int, error) {
+func (_d *AppCustomerDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(appcustomer.Table, sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt))
-	if ps := acd.mutation.predicates; len(ps) > 0 {
+	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
 	}
-	affected, err := sqlgraph.DeleteNodes(ctx, acd.driver, _spec)
+	affected, err := sqlgraph.DeleteNodes(ctx, _d.driver, _spec)
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
-	acd.mutation.done = true
+	_d.mutation.done = true
 	return affected, err
 }
 
 // AppCustomerDeleteOne is the builder for deleting a single AppCustomer entity.
 type AppCustomerDeleteOne struct {
-	acd *AppCustomerDelete
+	_d *AppCustomerDelete
 }
 
 // Where appends a list predicates to the AppCustomerDelete builder.
-func (acdo *AppCustomerDeleteOne) Where(ps ...predicate.AppCustomer) *AppCustomerDeleteOne {
-	acdo.acd.mutation.Where(ps...)
-	return acdo
+func (_d *AppCustomerDeleteOne) Where(ps ...predicate.AppCustomer) *AppCustomerDeleteOne {
+	_d._d.mutation.Where(ps...)
+	return _d
 }
 
 // Exec executes the deletion query.
-func (acdo *AppCustomerDeleteOne) Exec(ctx context.Context) error {
-	n, err := acdo.acd.Exec(ctx)
+func (_d *AppCustomerDeleteOne) Exec(ctx context.Context) error {
+	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
@@ -81,8 +81,8 @@ func (acdo *AppCustomerDeleteOne) Exec(ctx context.Context) error {
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (acdo *AppCustomerDeleteOne) ExecX(ctx context.Context) {
-	if err := acdo.Exec(ctx); err != nil {
+func (_d *AppCustomerDeleteOne) ExecX(ctx context.Context) {
+	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

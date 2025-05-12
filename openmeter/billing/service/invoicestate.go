@@ -597,6 +597,10 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 			}
 		}
 
+		if m.Invoice.IssuedAt == nil {
+			m.Invoice.IssuedAt = lo.ToPtr(clock.Now().In(time.UTC))
+		}
+
 		return nil, nil
 	})
 }

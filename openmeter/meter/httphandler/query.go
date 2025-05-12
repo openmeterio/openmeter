@@ -105,7 +105,7 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			params, err := ToQueryMeterParams(meter, request.params)
+			params, err := ToQueryParamsFromAPIParams(meter, request.params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
@@ -120,7 +120,7 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return nil, fmt.Errorf("failed to query meter: %w", err)
 			}
 
-			response := ToAPIMeterQueryResult(request.params, rows)
+			response := ToAPIMeterQueryResult(request.params.From, request.params.To, request.params.WindowSize, rows)
 
 			return &response, nil
 		},
@@ -163,7 +163,7 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			params, err := ToQueryMeterParams(meter, request.params)
+			params, err := ToQueryParamsFromAPIParams(meter, request.params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
@@ -249,4 +249,70 @@ func (a *queryMeterCSVResult) Records() [][]string {
 // FileName returns the CSV file name.
 func (a *queryMeterCSVResult) FileName() string {
 	return fmt.Sprintf("%s.csv", a.meterSlug)
+}
+
+type QueryMeterPostRequest struct {
+	namespace string
+	idOrSlug  string
+	params    api.QueryMeterPostJSONRequestBody
+}
+
+type (
+	QueryMeterPostParams   = string // meterIdOrSlug
+	QueryMeterPostResponse = QueryMeterResponse
+	QueryMeterPostHandler  httptransport.HandlerWithArgs[QueryMeterPostRequest, QueryMeterPostResponse, QueryMeterPostParams]
+)
+
+// QueryMeterPost returns a handler for query meter via POST.
+func (h *handler) QueryMeterPost() QueryMeterPostHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, meterIdOrSlug QueryMeterPostParams) (QueryMeterPostRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return QueryMeterPostRequest{}, err
+			}
+
+			var request api.QueryMeterPostJSONRequestBody
+			if err := commonhttp.JSONRequestBodyDecoder(r, &request); err != nil {
+				return QueryMeterPostRequest{}, fmt.Errorf("failed to decode request body: %w", err)
+			}
+
+			return QueryMeterPostRequest{
+				namespace: ns,
+				idOrSlug:  meterIdOrSlug,
+				params:    request,
+			}, nil
+		},
+		func(ctx context.Context, request QueryMeterPostRequest) (QueryMeterPostResponse, error) {
+			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+				Namespace: request.namespace,
+				IDOrSlug:  request.idOrSlug,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get meter: %w", err)
+			}
+
+			params, err := ToQueryParamsFromRequest(meter, request.params)
+			if err != nil {
+				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
+			}
+
+			// We allow caching queries for HTTP requests
+			params.Cachable = true
+
+			rows, err := h.streaming.QueryMeter(ctx, request.namespace, meter, params)
+			if err != nil {
+				return nil, fmt.Errorf("failed to query meter: %w", err)
+			}
+
+			response := ToAPIMeterQueryResult(request.params.From, request.params.To, request.params.WindowSize, rows)
+
+			return &response, nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[QueryMeterPostResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("queryMeterPost"),
+		)...,
+	)
 }
