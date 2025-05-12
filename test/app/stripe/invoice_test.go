@@ -816,8 +816,9 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		s.StripeAppClient.
 			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
-				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
-				DueDate:         lo.ToPtr(dueAt),
+				AutomaticTaxEnabled: true,
+				StripeInvoiceID:     updateInvoice.ExternalIDs.Invoicing,
+				DueDate:             lo.ToPtr(dueAt),
 			}).
 			// We return the updated invoice.
 			Return(stripeInvoiceUpdated, nil)
@@ -1078,8 +1079,9 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	// Editing the invoice should also work
 	s.StripeAppClient.
 		On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
-			StripeInvoiceID: invoice.ExternalIDs.Invoicing,
-			DueDate:         lo.ToPtr(dueAt),
+			AutomaticTaxEnabled: true,
+			StripeInvoiceID:     invoice.ExternalIDs.Invoicing,
+			DueDate:             lo.ToPtr(dueAt),
 		}).
 		Return(&stripe.Invoice{
 			ID: "stripe-invoice-id",

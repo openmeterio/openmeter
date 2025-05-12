@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -86,6 +87,11 @@ func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
 
 // FinalizeInvoice finalizes the invoice for the app
 func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*billing.FinalizeInvoiceResult, error) {
+	// Validate due at: Stripe does not support finalizing invoices that are due in the future.
+	if invoice.DueAt.After(time.Now()) {
+		return nil, fmt.Errorf("invoice due at is in the future")
+	}
+
 	// Get the Stripe client
 	_, stripeClient, err := a.getStripeClient(ctx, "finalizeInvoice", "invoice_id", invoice.ID, "stripe_invoice_id", invoice.ExternalIDs.GetInvoicingOrEmpty())
 	if err != nil {

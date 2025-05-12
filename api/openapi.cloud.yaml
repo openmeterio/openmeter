@@ -12087,6 +12087,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
           description: The payment settings for this workflow
+        tax:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowTaxSettings'
+          description: The tax settings for this workflow
       description: BillingWorkflow represents the settings for a billing workflow.
     BillingWorkflowCollectionAlignment:
       type: object
@@ -12145,6 +12149,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
           description: The payment settings for this workflow
+        tax:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowTaxSettings'
+          description: The tax settings for this workflow
       description: Resource create operation model.
     BillingWorkflowInvoicingSettings:
       type: object
@@ -12185,6 +12193,25 @@ components:
           default: charge_automatically
       description: BillingWorkflowPaymentSettings represents the payment settings for a billing workflow
       title: Workflow payment settings
+    BillingWorkflowTaxSettings:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: |-
+            Enable automatic tax calculation when tax is supported by the app.
+            For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+          default: true
+        enforced:
+          type: boolean
+          description: |-
+            Enforce tax calculation when tax is supported by the app.
+            When enabled, OpenMeter will not allow to create an invoice without tax calculation.
+            Enforcement is different per apps, for example, Stripe app requires customer
+            to have a tax location when starting a paid subscription.
+          default: false
+      description: BillingWorkflowTaxSettings represents the tax settings for a billing workflow
+      title: Workflow tax settings
     CheckoutSessionCustomTextAfterSubmitParams:
       type: object
       properties:

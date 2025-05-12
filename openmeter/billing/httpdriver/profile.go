@@ -369,6 +369,10 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, erro
 		i.Payment = &api.BillingWorkflowPaymentSettings{}
 	}
 
+	if i.Tax == nil {
+		i.Tax = &api.BillingWorkflowTaxSettings{}
+	}
+
 	collInterval, err := parseDurationPtr(i.Collection.Interval, def.Collection.Interval)
 	if err != nil {
 		return billing.WorkflowConfig{}, fmt.Errorf("failed to parse collection interval: %w", err)
@@ -400,6 +404,11 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, erro
 
 		Payment: billing.PaymentConfig{
 			CollectionMethod: lo.FromPtrOr((*billing.CollectionMethod)(i.Payment.CollectionMethod), def.Payment.CollectionMethod),
+		},
+
+		Tax: billing.WorkflowTaxConfig{
+			Enabled:  lo.FromPtrOr(i.Tax.Enabled, def.Tax.Enabled),
+			Enforced: lo.FromPtrOr(i.Tax.Enforced, def.Tax.Enforced),
 		},
 	}, nil
 }
@@ -578,6 +587,11 @@ func mapWorkflowConfigToAPI(c billing.WorkflowConfig) api.BillingWorkflow {
 		Payment: &api.BillingWorkflowPaymentSettings{
 			CollectionMethod: (*api.CollectionMethod)(lo.EmptyableToPtr(string(c.Payment.CollectionMethod))),
 		},
+
+		Tax: &api.BillingWorkflowTaxSettings{
+			Enabled:  lo.ToPtr(c.Tax.Enabled),
+			Enforced: lo.ToPtr(c.Tax.Enforced),
+		},
 	}
 }
 
@@ -600,6 +614,11 @@ func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) api.BillingWorkflo
 
 		Payment: &api.BillingWorkflowPaymentSettings{
 			CollectionMethod: (*api.CollectionMethod)(lo.EmptyableToPtr(string(c.Payment.CollectionMethod))),
+		},
+
+		Tax: &api.BillingWorkflowTaxSettings{
+			Enabled:  lo.ToPtr(c.Tax.Enabled),
+			Enforced: lo.ToPtr(c.Tax.Enforced),
 		},
 	}
 }

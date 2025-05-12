@@ -579,6 +579,10 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodChargeAutomatically,
 			},
+			Tax: billing.WorkflowTaxConfig{
+				Enabled:  true,
+				Enforced: false,
+			},
 		},
 
 		Supplier: billing.SupplierContact{
