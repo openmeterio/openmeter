@@ -3,6 +3,7 @@ package service_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
@@ -10,10 +11,12 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
@@ -299,6 +302,175 @@ func TestAddAddon(t *testing.T) {
 		require.Error(t, err)
 		require.ErrorAs(t, err, lo.ToPtr(&models.GenericConflictError{}))
 		require.True(t, models.IsGenericConflictError(err))
+	}))
+
+	t.Run("Should work if subscription addon associated with quantity already changed", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+		// We'll set up a plan with two addons
+		// We'll create the sub, add one addon to it and play with it
+		// We'll then add the second addon too and play with it
+
+		// Let's set up a plan with two compatible addons
+		planInp := subscriptiontestutils.BuildTestPlan(t).
+			SetMeta(productcatalog.PlanMeta{
+				Name:     "Test Plan",
+				Key:      "test_plan",
+				Version:  1,
+				Currency: currency.USD,
+				Alignment: productcatalog.Alignment{
+					BillablesMustAlign: true,
+				},
+			}).
+			AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
+			Build()
+
+		addonInp1 := subscriptiontestutils.BuildAddonForTesting(t,
+			productcatalog.EffectivePeriod{
+				EffectiveFrom: &now,
+				EffectiveTo:   nil,
+			},
+			productcatalog.AddonInstanceTypeMultiple,
+			subscriptiontestutils.ExampleAddonRateCard5.Clone(),
+		)
+
+		addonInp2 := addon.CreateAddonInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: subscriptiontestutils.ExampleNamespace,
+			},
+			Addon: productcatalog.Addon{
+				AddonMeta: productcatalog.AddonMeta{
+					Name:        "Test Addon",
+					Description: lo.ToPtr("Test Addon Description"),
+					EffectivePeriod: productcatalog.EffectivePeriod{
+						EffectiveFrom: &now,
+						EffectiveTo:   nil,
+					},
+					Key:          "test-addon-2",
+					Version:      1,
+					Currency:     currency.USD,
+					InstanceType: productcatalog.AddonInstanceTypeMultiple,
+					Metadata: models.NewMetadata(map[string]string{
+						"test": "test",
+					}),
+				},
+				RateCards: []productcatalog.RateCard{subscriptiontestutils.ExampleAddonRateCard5.Clone()},
+			},
+		}
+
+		_ = deps.deps.FeatureConnector.CreateExampleFeatures(t)
+
+		p, err := deps.deps.PlanService.CreatePlan(context.Background(), planInp)
+		require.Nil(t, err)
+		require.NotNil(t, p)
+
+		add1 := deps.deps.AddonService.CreateTestAddon(t, addonInp1)
+		add2 := deps.deps.AddonService.CreateTestAddon(t, addonInp2)
+
+		_, err = deps.deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: subscriptiontestutils.ExampleNamespace,
+			},
+			PlanID:        p.ID,
+			AddonID:       add1.ID,
+			FromPlanPhase: p.Phases[0].Key,
+		})
+		require.Nil(t, err, "received error: %s", err)
+
+		_, err = deps.deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: subscriptiontestutils.ExampleNamespace,
+			},
+			PlanID:        p.ID,
+			AddonID:       add2.ID,
+			FromPlanPhase: p.Phases[0].Key,
+		})
+		require.Nil(t, err, "received error: %s", err)
+
+		p, err = deps.deps.PlanService.PublishPlan(context.Background(), plan.PublishPlanInput{
+			NamespacedID: p.NamespacedID,
+			EffectivePeriod: productcatalog.EffectivePeriod{
+				EffectiveFrom: lo.ToPtr(clock.Now()),
+				EffectiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2099-01-01T00:00:00Z")),
+			},
+		})
+		require.Nil(t, err, "received error: %s", err)
+
+		sp := &plansubscription.Plan{
+			Plan: p.AsProductCatalogPlan(),
+			Ref:  &p.NamespacedID,
+		}
+
+		// Now let's create a subscription from the plan
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, sp, now)
+
+		// Now let's add both addons
+		subsAddInp1 := subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add1.ID,
+			InitialQuantity: 1,
+			Timing: subscription.Timing{
+				Custom: &now,
+			},
+		}
+
+		subView, subsAdd1, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subsAddInp1)
+		require.NoError(t, err)
+		subAddons, err := deps.deps.SubscriptionAddonService.List(context.Background(), subView.Subscription.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{
+			SubscriptionID: subView.Subscription.ID,
+		})
+		require.NoError(t, err)
+		require.Len(t, subAddons.Items, 1)
+		require.True(t, lo.ContainsBy(subAddons.Items, func(item subscriptionaddon.SubscriptionAddon) bool {
+			return item.ID == subsAdd1.ID
+		}))
+
+		// Now let's try and change the quantity of the first addon to two
+		changeInp := subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
+			SubscriptionAddonID: subsAdd1.NamespacedID,
+			Quantity:            2,
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(now.Add(time.Hour * 2)),
+			},
+		}
+
+		subView, subsAdd1, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
+		require.NoError(t, err)
+
+		// Let's advance some time
+		now := now.Add(time.Hour * 4)
+		clock.SetTime(now)
+		defer clock.ResetTime()
+
+		// Let's add the second addon
+
+		subsAddInp2 := subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add2.ID,
+			InitialQuantity: 1,
+			Timing: subscription.Timing{
+				Custom: &now,
+			},
+		}
+
+		subView, subsAdd2, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subsAddInp2)
+		require.NoError(t, err)
+		subAddons, err = deps.deps.SubscriptionAddonService.List(context.Background(), subView.Subscription.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{
+			SubscriptionID: subView.Subscription.ID,
+		})
+		require.NoError(t, err)
+		require.Len(t, subAddons.Items, 2)
+		require.True(t, lo.ContainsBy(subAddons.Items, func(item subscriptionaddon.SubscriptionAddon) bool {
+			return item.ID == subsAdd2.ID
+		}))
+
+		// Let's change the quantity of the second addon to three
+		changeInp2 := subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
+			SubscriptionAddonID: subsAdd2.NamespacedID,
+			Quantity:            3,
+			Timing: subscription.Timing{
+				Custom: &now,
+			},
+		}
+
+		subView, subsAdd2, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp2)
+		require.NoError(t, err)
 	}))
 }
 
@@ -631,6 +803,173 @@ func TestChangeAddonQuantity(t *testing.T) {
 
 		// Now it should be three items: original two with addon included + 3rd without the addon after 3 months
 		require.Len(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()], 3)
+	}))
+
+	t.Run("Should work if subscription has multiple addons associated already", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+		// We'll set up a plan with two addons
+		// We'll create the sub, add both addons to it
+		// We'll then play around with them
+
+		// Let's set up a plan with two compatible addons
+		planInp := subscriptiontestutils.BuildTestPlan(t).
+			SetMeta(productcatalog.PlanMeta{
+				Name:     "Test Plan",
+				Key:      "test_plan",
+				Version:  1,
+				Currency: currency.USD,
+				Alignment: productcatalog.Alignment{
+					BillablesMustAlign: true,
+				},
+			}).
+			AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
+			Build()
+
+		addonInp1 := subscriptiontestutils.BuildAddonForTesting(t,
+			productcatalog.EffectivePeriod{
+				EffectiveFrom: &now,
+				EffectiveTo:   nil,
+			},
+			productcatalog.AddonInstanceTypeMultiple,
+			subscriptiontestutils.ExampleAddonRateCard5.Clone(),
+		)
+
+		addonInp2 := addon.CreateAddonInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: subscriptiontestutils.ExampleNamespace,
+			},
+			Addon: productcatalog.Addon{
+				AddonMeta: productcatalog.AddonMeta{
+					Name:        "Test Addon",
+					Description: lo.ToPtr("Test Addon Description"),
+					EffectivePeriod: productcatalog.EffectivePeriod{
+						EffectiveFrom: &now,
+						EffectiveTo:   nil,
+					},
+					Key:          "test-addon-2",
+					Version:      1,
+					Currency:     currency.USD,
+					InstanceType: productcatalog.AddonInstanceTypeMultiple,
+					Metadata: models.NewMetadata(map[string]string{
+						"test": "test",
+					}),
+				},
+				RateCards: []productcatalog.RateCard{subscriptiontestutils.ExampleAddonRateCard5.Clone()},
+			},
+		}
+
+		_ = deps.deps.FeatureConnector.CreateExampleFeatures(t)
+
+		p, err := deps.deps.PlanService.CreatePlan(context.Background(), planInp)
+		require.Nil(t, err)
+		require.NotNil(t, p)
+
+		add1 := deps.deps.AddonService.CreateTestAddon(t, addonInp1)
+		add2 := deps.deps.AddonService.CreateTestAddon(t, addonInp2)
+
+		_, err = deps.deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: subscriptiontestutils.ExampleNamespace,
+			},
+			PlanID:        p.ID,
+			AddonID:       add1.ID,
+			FromPlanPhase: p.Phases[0].Key,
+		})
+		require.Nil(t, err, "received error: %s", err)
+
+		_, err = deps.deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: subscriptiontestutils.ExampleNamespace,
+			},
+			PlanID:        p.ID,
+			AddonID:       add2.ID,
+			FromPlanPhase: p.Phases[0].Key,
+		})
+		require.Nil(t, err, "received error: %s", err)
+
+		p, err = deps.deps.PlanService.PublishPlan(context.Background(), plan.PublishPlanInput{
+			NamespacedID: p.NamespacedID,
+			EffectivePeriod: productcatalog.EffectivePeriod{
+				EffectiveFrom: lo.ToPtr(clock.Now()),
+				EffectiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2099-01-01T00:00:00Z")),
+			},
+		})
+		require.Nil(t, err, "received error: %s", err)
+
+		sp := &plansubscription.Plan{
+			Plan: p.AsProductCatalogPlan(),
+			Ref:  &p.NamespacedID,
+		}
+
+		// Now let's create a subscription from the plan
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, sp, now)
+
+		// Now let's add both addons
+		subsAddInp1 := subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add1.ID,
+			InitialQuantity: 1,
+			Timing: subscription.Timing{
+				Custom: &now,
+			},
+		}
+
+		subView, subsAdd1, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subsAddInp1)
+		require.NoError(t, err)
+		subAddons, err := deps.deps.SubscriptionAddonService.List(context.Background(), subView.Subscription.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{
+			SubscriptionID: subView.Subscription.ID,
+		})
+		require.NoError(t, err)
+		require.Len(t, subAddons.Items, 1)
+		require.True(t, lo.ContainsBy(subAddons.Items, func(item subscriptionaddon.SubscriptionAddon) bool {
+			return item.ID == subsAdd1.ID
+		}))
+
+		subsAddInp2 := subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add2.ID,
+			InitialQuantity: 1,
+			Timing: subscription.Timing{
+				Custom: &now,
+			},
+		}
+
+		subView, subsAdd2, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subsAddInp2)
+		require.NoError(t, err)
+		subAddons, err = deps.deps.SubscriptionAddonService.List(context.Background(), subView.Subscription.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{
+			SubscriptionID: subView.Subscription.ID,
+		})
+		require.NoError(t, err)
+		require.Len(t, subAddons.Items, 2)
+		require.True(t, lo.ContainsBy(subAddons.Items, func(item subscriptionaddon.SubscriptionAddon) bool {
+			return item.ID == subsAdd2.ID
+		}))
+
+		// Now let's try and change the quantity of the first addon to two
+		changeInp := subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
+			SubscriptionAddonID: subsAdd1.NamespacedID,
+			Quantity:            2,
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(now.Add(time.Hour * 2)),
+			},
+		}
+
+		subView, subsAdd1, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
+		require.NoError(t, err)
+
+		// Let's advance some time
+		now := now.Add(time.Hour * 4)
+		clock.SetTime(now)
+		defer clock.ResetTime()
+
+		// Let's change the quantity of the second addon to three
+		changeInp2 := subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
+			SubscriptionAddonID: subsAdd2.NamespacedID,
+			Quantity:            3,
+			Timing: subscription.Timing{
+				Custom: &now,
+			},
+		}
+
+		subView, subsAdd2, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp2)
+		require.NoError(t, err)
 	}))
 }
 
