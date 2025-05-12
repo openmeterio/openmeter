@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
@@ -19,10 +18,8 @@ func (c *stripeAppClient) GetCustomer(ctx context.Context, stripeCustomerID stri
 	if err != nil {
 		// Stripe customer not found error
 		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeResourceMissing {
-			if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
-				return StripeCustomer{}, StripeCustomerNotFoundError{
-					StripeCustomerID: stripeCustomerID,
-				}
+			return StripeCustomer{}, StripeCustomerNotFoundError{
+				StripeCustomerID: stripeCustomerID,
 			}
 		}
 
