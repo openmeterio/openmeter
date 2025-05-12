@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -312,6 +313,7 @@ func TestEditRunning(t *testing.T) {
 					CustomerService:    tuDeps.CustomerService,
 					TransactionManager: tuDeps.CustomerAdapter,
 					AddonService:       tuDeps.SubscriptionAddonService,
+					Logger:             slog.Default(),
 				})
 
 				_, err := workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1}, immediate)
