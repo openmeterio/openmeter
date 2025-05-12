@@ -2759,6 +2759,8 @@ export interface components {
       invoicing?: components['schemas']['BillingWorkflowInvoicingSettings']
       /** @description The payment settings for this workflow */
       payment?: components['schemas']['BillingWorkflowPaymentSettings']
+      /** @description The tax settings for this workflow */
+      tax?: components['schemas']['BillingWorkflowTaxSettings']
     }
     /** @description The alignment for collecting the pending line items into an invoice.
      *
@@ -2802,6 +2804,8 @@ export interface components {
       invoicing?: components['schemas']['BillingWorkflowInvoicingSettings']
       /** @description The payment settings for this workflow */
       payment?: components['schemas']['BillingWorkflowPaymentSettings']
+      /** @description The tax settings for this workflow */
+      tax?: components['schemas']['BillingWorkflowTaxSettings']
     }
     /**
      * Workflow invoice settings
@@ -2845,6 +2849,26 @@ export interface components {
        * @default charge_automatically
        */
       collectionMethod?: components['schemas']['CollectionMethod']
+    }
+    /**
+     * Workflow tax settings
+     * @description BillingWorkflowTaxSettings represents the tax settings for a billing workflow
+     */
+    BillingWorkflowTaxSettings: {
+      /**
+       * @description Enable automatic tax calculation when tax is supported by the app.
+       *     For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+       * @default true
+       */
+      enabled?: boolean
+      /**
+       * @description Enforce tax calculation when tax is supported by the app.
+       *     When enabled, OpenMeter will not allow to create an invoice without tax calculation.
+       *     Enforcement is different per apps, for example, Stripe app requires customer
+       *     to have a tax location when starting a paid subscription.
+       * @default false
+       */
+      enforced?: boolean
     }
     /** @description Stripe CheckoutSession.custom_text */
     CheckoutSessionCustomTextAfterSubmitParams: {
@@ -10286,6 +10310,8 @@ export type BillingWorkflowInvoicingSettings =
   components['schemas']['BillingWorkflowInvoicingSettings']
 export type BillingWorkflowPaymentSettings =
   components['schemas']['BillingWorkflowPaymentSettings']
+export type BillingWorkflowTaxSettings =
+  components['schemas']['BillingWorkflowTaxSettings']
 export type CheckoutSessionCustomTextAfterSubmitParams =
   components['schemas']['CheckoutSessionCustomTextAfterSubmitParams']
 export type CheckoutSessionUiMode =
