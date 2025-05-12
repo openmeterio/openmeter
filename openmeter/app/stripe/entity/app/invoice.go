@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -16,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 const (
@@ -87,9 +87,9 @@ func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
 
 // FinalizeInvoice finalizes the invoice for the app
 func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*billing.FinalizeInvoiceResult, error) {
-	// Validate due at: Stripe does not support finalizing invoices that are due in the future.
-	if invoice.DueAt.After(time.Now()) {
-		return nil, fmt.Errorf("invoice due at is in the future")
+	// Validate due at: Stripe does not support finalizing invoices that are due in the past.
+	if invoice.DueAt.Before(clock.Now()) {
+		return nil, fmt.Errorf("invoice due at is in the past")
 	}
 
 	// Get the Stripe client
