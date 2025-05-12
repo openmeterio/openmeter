@@ -9,7 +9,6 @@ package main
 import (
 	"context"
 	kafka2 "github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/go-chi/chi/v5"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -29,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/secret"
+	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -446,6 +446,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
+	routerHooks := common.NewRouterHooks(v6)
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
@@ -499,7 +500,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		PlanAddon:                   planaddonService,
 		Portal:                      portalService,
 		ProgressManager:             progressmanagerService,
-		RouterHook:                  v6,
+		RouterHooks:                 routerHooks,
 		Secret:                      secretserviceService,
 		Subscription:                subscriptionServiceWithWorkflow,
 		StreamingConnector:          connector,
@@ -549,7 +550,7 @@ type Application struct {
 	PlanAddon                   planaddon.Service
 	Portal                      portal.Service
 	ProgressManager             progressmanager.Service
-	RouterHook                  func(chi.Router)
+	RouterHooks                 *server.RouterHooks
 	Secret                      secret.Service
 	Subscription                common.SubscriptionServiceWithWorkflow
 	StreamingConnector          streaming.Connector

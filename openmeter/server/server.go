@@ -28,9 +28,39 @@ type Server struct {
 
 type ServerLogger struct{}
 
+type MiddlewareManager interface {
+	Use(middlewares ...func(http.Handler) http.Handler)
+}
+
+type MiddlewareHook func(m MiddlewareManager)
+
+type RouteManager interface {
+	Mount(pattern string, h http.Handler)
+	Handle(pattern string, h http.Handler)
+	HandleFunc(pattern string, h http.HandlerFunc)
+	Method(method, pattern string, h http.Handler)
+	MethodFunc(method, pattern string, h http.HandlerFunc)
+	Connect(pattern string, h http.HandlerFunc)
+	Delete(pattern string, h http.HandlerFunc)
+	Get(pattern string, h http.HandlerFunc)
+	Head(pattern string, h http.HandlerFunc)
+	Options(pattern string, h http.HandlerFunc)
+	Patch(pattern string, h http.HandlerFunc)
+	Post(pattern string, h http.HandlerFunc)
+	Put(pattern string, h http.HandlerFunc)
+	Trace(pattern string, h http.HandlerFunc)
+}
+
+type RouteHook func(r RouteManager)
+
+type RouterHooks struct {
+	Middlewares []MiddlewareHook
+	Routes      []RouteHook
+}
+
 type Config struct {
 	RouterConfig router.Config
-	RouterHook   func(r chi.Router)
+	RouterHooks  RouterHooks
 }
 
 func NewServer(config *Config) (*Server, error) {
@@ -53,8 +83,9 @@ func NewServer(config *Config) (*Server, error) {
 
 	r := chi.NewRouter()
 
-	if config.RouterHook != nil {
-		config.RouterHook(r)
+	// Apply middlewares
+	for _, middlewareHook := range config.RouterHooks.Middlewares {
+		middlewareHook(r)
 	}
 
 	r.Use(middleware.RealIP)
@@ -96,6 +127,11 @@ func NewServer(config *Config) (*Server, error) {
 	r.Get("/api/swagger.json", func(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, swagger)
 	})
+
+	// Apply route handlers
+	for _, routeHook := range config.RouterHooks.Routes {
+		routeHook(r)
+	}
 
 	// Use validator middleware to check requests against the OpenAPI schema
 	_ = api.HandlerWithOptions(impl, api.ChiServerOptions{

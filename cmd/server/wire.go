@@ -8,7 +8,6 @@ import (
 	"log/slog"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/go-chi/chi/v5"
 	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
@@ -32,6 +31,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/secret"
+	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -64,7 +64,7 @@ type Application struct {
 	PlanAddon                   planaddon.Service
 	Portal                      portal.Service
 	ProgressManager             progressmanager.Service
-	RouterHook                  func(chi.Router)
+	RouterHooks                 *server.RouterHooks
 	Secret                      secret.Service
 	Subscription                common.SubscriptionServiceWithWorkflow
 	StreamingConnector          streaming.Connector
@@ -95,12 +95,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewKafkaIngestCollector,
 		common.NewIngestCollector,
 		common.NewServerPublisher,
-		common.NewTelemetryRouterHook,
 		common.Notification,
 		common.Streaming,
 		common.Portal,
 		common.ProductCatalog,
 		common.ProgressManager,
+		common.Server,
 		common.Subscription,
 		common.Secret,
 		common.ServerProvisionTopics,

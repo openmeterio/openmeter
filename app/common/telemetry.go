@@ -30,6 +30,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 )
@@ -258,9 +259,11 @@ func NewTelemetryServer(conf config.TelemetryConfig, handler TelemetryHandler) (
 	return server, func() { server.Close() }
 }
 
-func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider trace.TracerProvider) func(chi.Router) {
-	return func(r chi.Router) {
-		r.Use(func(h http.Handler) http.Handler {
+type TelemetryMiddlewareHook = server.MiddlewareHook
+
+func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider trace.TracerProvider) TelemetryMiddlewareHook {
+	return func(m server.MiddlewareManager) {
+		m.Use(func(h http.Handler) http.Handler {
 			return otelhttp.NewHandler(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					span := trace.SpanFromContext(r.Context())
