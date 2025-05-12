@@ -435,6 +435,8 @@ func mapWorkflowConfigToDB(wc billing.WorkflowConfig, id string) *db.BillingWork
 		InvoiceDraftPeriod:      wc.Invoicing.DraftPeriod.ISOString(),
 		InvoiceDueAfter:         wc.Invoicing.DueAfter.ISOString(),
 		InvoiceCollectionMethod: wc.Payment.CollectionMethod,
+		TaxEnabled:              wc.Tax.Enabled,
+		TaxEnforced:             wc.Tax.Enforced,
 	}
 }
 
