@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/oklog/run"
+	"github.com/samber/lo"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
@@ -185,7 +186,7 @@ func main() {
 			SubscriptionAddonService:    app.Subscription.SubscriptionAddonService,
 			StreamingConnector:          app.StreamingConnector,
 		},
-		RouterHook: app.RouterHook,
+		RouterHooks: lo.FromPtr(app.RouterHooks),
 	})
 	if err != nil {
 		logger.Error("failed to create server", "error", err)

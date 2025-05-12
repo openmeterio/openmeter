@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
-	"github.com/go-chi/chi/v5"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -528,7 +527,7 @@ func getTestServer(t *testing.T) *Server {
 			SubscriptionWorkflowService: subscriptionWorkflowService,
 			SubscriptionAddonService:    subscriptionAddonService,
 		},
-		RouterHook: func(r chi.Router) {},
+		RouterHooks: RouterHooks{},
 	}
 
 	// Create server
