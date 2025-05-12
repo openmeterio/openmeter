@@ -47,6 +47,10 @@ type BillingWorkflowConfig struct {
 	InvoiceProgressiveBilling bool `json:"invoice_progressive_billing,omitempty"`
 	// InvoiceDefaultTaxSettings holds the value of the "invoice_default_tax_settings" field.
 	InvoiceDefaultTaxSettings productcatalog.TaxConfig `json:"invoice_default_tax_settings,omitempty"`
+	// TaxEnabled holds the value of the "tax_enabled" field.
+	TaxEnabled bool `json:"tax_enabled,omitempty"`
+	// TaxEnforced holds the value of the "tax_enforced" field.
+	TaxEnforced bool `json:"tax_enforced,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingWorkflowConfigQuery when eager-loading is set.
 	Edges        BillingWorkflowConfigEdges `json:"edges"`
@@ -93,7 +97,7 @@ func (*BillingWorkflowConfig) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billingworkflowconfig.FieldInvoiceDefaultTaxSettings:
 			values[i] = new([]byte)
-		case billingworkflowconfig.FieldInvoiceAutoAdvance, billingworkflowconfig.FieldInvoiceProgressiveBilling:
+		case billingworkflowconfig.FieldInvoiceAutoAdvance, billingworkflowconfig.FieldInvoiceProgressiveBilling, billingworkflowconfig.FieldTaxEnabled, billingworkflowconfig.FieldTaxEnforced:
 			values[i] = new(sql.NullBool)
 		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldLineCollectionPeriod, billingworkflowconfig.FieldInvoiceDraftPeriod, billingworkflowconfig.FieldInvoiceDueAfter, billingworkflowconfig.FieldInvoiceCollectionMethod:
 			values[i] = new(sql.NullString)
@@ -195,6 +199,18 @@ func (_m *BillingWorkflowConfig) assignValues(columns []string, values []any) er
 					return fmt.Errorf("unmarshal field invoice_default_tax_settings: %w", err)
 				}
 			}
+		case billingworkflowconfig.FieldTaxEnabled:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_enabled", values[i])
+			} else if value.Valid {
+				_m.TaxEnabled = value.Bool
+			}
+		case billingworkflowconfig.FieldTaxEnforced:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_enforced", values[i])
+			} else if value.Valid {
+				_m.TaxEnforced = value.Bool
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -278,6 +294,12 @@ func (_m *BillingWorkflowConfig) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("invoice_default_tax_settings=")
 	builder.WriteString(fmt.Sprintf("%v", _m.InvoiceDefaultTaxSettings))
+	builder.WriteString(", ")
+	builder.WriteString("tax_enabled=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxEnabled))
+	builder.WriteString(", ")
+	builder.WriteString("tax_enforced=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxEnforced))
 	builder.WriteByte(')')
 	return builder.String()
 }

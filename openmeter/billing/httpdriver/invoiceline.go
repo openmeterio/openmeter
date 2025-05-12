@@ -210,7 +210,7 @@ func mapCreatePendingUsageBasedLineToEntity(line api.InvoiceUsageBasedPendingLin
 	}, nil
 }
 
-func mapTaxConfigToEntity(tc *api.TaxConfig) *billing.TaxConfig {
+func mapTaxConfigToEntity(tc *api.TaxConfig) *productcatalog.TaxConfig {
 	if tc == nil {
 		return nil
 	}
@@ -218,7 +218,7 @@ func mapTaxConfigToEntity(tc *api.TaxConfig) *billing.TaxConfig {
 	return lo.ToPtr(productcataloghttp.AsTaxConfig(*tc))
 }
 
-func mapTaxConfigToAPI(to *billing.TaxConfig) *api.TaxConfig {
+func mapTaxConfigToAPI(to *productcatalog.TaxConfig) *api.TaxConfig {
 	if to == nil {
 		return nil
 	}

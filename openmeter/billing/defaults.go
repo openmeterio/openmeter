@@ -27,4 +27,12 @@ var DefaultWorkflowConfig = WorkflowConfig{
 	Payment: PaymentConfig{
 		CollectionMethod: CollectionMethodChargeAutomatically,
 	},
+	Tax: WorkflowTaxConfig{
+		// By default tax calculation is enabled when tax is supported by the app.
+		Enabled: true,
+
+		// By default tax is not enforced. Subscriptions can be created without tax location and
+		// invoices can be finalized with missing tax location.
+		Enforced: false,
+	},
 }

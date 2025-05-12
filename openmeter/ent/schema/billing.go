@@ -138,6 +138,12 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 
 		field.JSON("invoice_default_tax_settings", productcatalog.TaxConfig{}).
 			Optional(),
+
+		// Enable automatic tax calculation when tax is supported by the app.
+		field.Bool("tax_enabled").Default(true),
+
+		// Enforce tax calculation when tax is supported by the app.
+		field.Bool("tax_enforced").Default(false),
 	}
 }
 
@@ -342,7 +348,7 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 				dialect.Postgres: "numeric",
 			}),
 
-		field.JSON("tax_config", billing.TaxConfig{}).
+		field.JSON("tax_config", productcatalog.TaxConfig{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).

@@ -97,7 +97,7 @@ type flatFeeRateCardParsed struct {
 	PerUnitAmount alpacadecimal.Decimal
 	PaymentTerm   productcatalog.PaymentTermType
 	Quantity      alpacadecimal.Decimal
-	TaxConfig     *billing.TaxConfig
+	TaxConfig     *productcatalog.TaxConfig
 	Discounts     billing.Discounts
 }
 
@@ -125,7 +125,7 @@ func mapAndValidateFlatFeeRateCardDeprecatedFields(in flatFeeRateCardItems) (*fl
 			}
 		}
 
-		var taxConfig *billing.TaxConfig
+		var taxConfig *productcatalog.TaxConfig
 		if in.TaxConfig != nil {
 			taxConfig = mapTaxConfigToEntity(in.TaxConfig)
 		}
@@ -145,7 +145,7 @@ func mapAndValidateFlatFeeRateCardDeprecatedFields(in flatFeeRateCardItems) (*fl
 		}
 	}
 
-	var taxConfig *billing.TaxConfig
+	var taxConfig *productcatalog.TaxConfig
 	if in.TaxConfig != nil {
 		taxConfig = mapTaxConfigToEntity(in.TaxConfig)
 	}
@@ -254,7 +254,7 @@ func (i *usageBasedRateCardItems) ValidateRateCard() error {
 
 type usageBasedRateCardParsed struct {
 	Price      *productcatalog.Price
-	TaxConfig  *billing.TaxConfig
+	TaxConfig  *productcatalog.TaxConfig
 	FeatureKey string
 	Discounts  billing.Discounts
 }

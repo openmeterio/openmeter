@@ -1159,6 +1159,8 @@ var (
 		{Name: "invoice_collection_method", Type: field.TypeEnum, Enums: []string{"charge_automatically", "send_invoice"}},
 		{Name: "invoice_progressive_billing", Type: field.TypeBool},
 		{Name: "invoice_default_tax_settings", Type: field.TypeJSON, Nullable: true},
+		{Name: "tax_enabled", Type: field.TypeBool, Default: true},
+		{Name: "tax_enforced", Type: field.TypeBool, Default: false},
 	}
 	// BillingWorkflowConfigsTable holds the schema information for the "billing_workflow_configs" table.
 	BillingWorkflowConfigsTable = &schema.Table{

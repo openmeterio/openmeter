@@ -18,10 +18,11 @@ import (
 )
 
 const (
-	invoiceLineMetadataID           = "om_line_id"
-	invoiceLineMetadataType         = "om_line_type"
-	invoiceLineMetadataTypeLine     = "line"
-	invoiceLineMetadataTypeDiscount = "discount"
+	invoiceLineMetadataID                   = "om_line_id"
+	invoiceLineMetadataType                 = "om_line_type"
+	invoiceLineMetadataTypeLine             = "line"
+	invoiceLineMetadataTypeDiscount         = "discount"
+	stripeErrCodeCustomerTaxLocationInvalid = "customer_tax_location_invalid"
 )
 
 var _ billing.InvoicingApp = (*App)(nil)
@@ -101,6 +102,28 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*bil
 		AutoAdvance: true,
 	})
 	if err != nil {
+		// If customer tax location is invalid but tax is not enforced,
+		// we can finalize the invoice without tax calculation.
+		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripeErrCodeCustomerTaxLocationInvalid {
+			if invoice.Workflow.Config.Tax.Enforced {
+				return nil, fmt.Errorf("tax enforced but stripe tax returns error: %s", stripeErr.Msg)
+			}
+
+			// We can finalize the invoice without tax calculation.
+			_, err = stripeClient.UpdateInvoice(ctx, stripeclient.UpdateInvoiceInput{
+				// Disable tax calculation
+				AutomaticTaxEnabled: false,
+				StripeInvoiceID:     invoice.ExternalIDs.Invoicing,
+				DueDate:             invoice.DueAt,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to update invoice in stripe to disable tax calculation: %w", err)
+			}
+
+			// Finalize the invoice again
+			return a.FinalizeInvoice(ctx, invoice)
+		}
+
 		return nil, fmt.Errorf("failed to finalize invoice in stripe: %w", err)
 	}
 
@@ -151,13 +174,8 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Create the invoice in Stripe
 	createInvoiceParams := stripeclient.CreateInvoiceInput{
-		InvoiceID: invoice.ID,
-
-		// TODO: Automatic tax is currently always set to true because we only support automated tax via Stripe.
-		// In the future set it to false when:
-		// 1. OpenMeter orchestrates tax calculation via Stripe API
-		// 2. Tax collection is done by a separate third party app
-		AutomaticTaxEnabled:          true,
+		InvoiceID:                    invoice.ID,
+		AutomaticTaxEnabled:          invoice.Workflow.Config.Tax.Enabled,
 		CollectionMethod:             invoice.Workflow.Config.Payment.CollectionMethod,
 		Currency:                     invoice.Currency,
 		DueDate:                      invoice.DueAt,
@@ -250,8 +268,9 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Update the invoice in Stripe
 	stripeInvoice, err := stripeClient.UpdateInvoice(ctx, stripeclient.UpdateInvoiceInput{
-		StripeInvoiceID: invoice.ExternalIDs.Invoicing,
-		DueDate:         invoice.DueAt,
+		AutomaticTaxEnabled: invoice.Workflow.Config.Tax.Enabled,
+		DueDate:             invoice.DueAt,
+		StripeInvoiceID:     invoice.ExternalIDs.Invoicing,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update invoice in stripe: %w", err)

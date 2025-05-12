@@ -27,6 +27,10 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 		// If not set, defaults to the default payment method in the customer’s invoice settings.
 		DefaultPaymentMethod: input.StripeDefaultPaymentMethodID,
 		StatementDescriptor:  input.StatementDescriptor,
+		// Tax settings
+		AutomaticTax: &stripe.InvoiceAutomaticTaxParams{
+			Enabled: lo.ToPtr(input.AutomaticTaxEnabled),
+		},
 	}
 
 	// When charging automatically, Stripe will attempt to pay this invoice using the default source attached to the customer.
@@ -46,12 +50,6 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 		return nil, fmt.Errorf("stripe create invoice: invalid collection method: %s", input.CollectionMethod)
 	}
 
-	if input.AutomaticTaxEnabled {
-		params.AutomaticTax = &stripe.InvoiceAutomaticTaxParams{
-			Enabled: lo.ToPtr(true),
-		}
-	}
-
 	// See: https://docs.stripe.com/api/idempotent_requests
 	// Stripe’s idempotency works by saving the resulting status code and body of the first request made for any given idempotency key,
 	// regardless of whether it succeeds or fails. Subsequent requests with the same key return the same result, including 500 errors.
@@ -67,6 +65,9 @@ func (c *stripeAppClient) UpdateInvoice(ctx context.Context, input UpdateInvoice
 	}
 
 	params := &stripe.InvoiceParams{
+		AutomaticTax: &stripe.InvoiceAutomaticTaxParams{
+			Enabled: lo.ToPtr(input.AutomaticTaxEnabled),
+		},
 		StatementDescriptor: input.StatementDescriptor,
 	}
 
@@ -149,6 +150,7 @@ func (i CreateInvoiceInput) Validate() error {
 
 // UpdateInvoiceInput is the input for updating an invoice in Stripe.
 type UpdateInvoiceInput struct {
+	AutomaticTaxEnabled bool
 	StripeInvoiceID     string
 	DueDate             *time.Time
 	StatementDescriptor *string

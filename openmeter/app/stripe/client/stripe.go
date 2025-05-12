@@ -31,7 +31,26 @@ type StripeCustomer struct {
 	// ID of a payment method that’s attached to the customer,
 	// to be used as the customer’s default payment method for invoices.
 	DefaultPaymentMethod *StripePaymentMethod
+	Tax                  *StripeCustomerTax
 }
+
+type StripeCustomerTax struct {
+	AutomaticTax StripeCustomerAutomaticTax
+}
+
+// https://docs.stripe.com/api/customers/object#customer_object-tax-automatic_tax
+type StripeCustomerAutomaticTax string
+
+const (
+	// There was an error determining the customer’s location. This is usually caused by a temporary issue. Retrieve the customer to try again.
+	StripeCustomerAutomaticTaxFailed StripeCustomerAutomaticTax = "failed"
+	// The customer is located in a country or state where you’re not registered to collect tax. Also returned when automatic tax calculation is not supported in the customer’s location.
+	StripeCustomerAutomaticTaxNotCollecting StripeCustomerAutomaticTax = "not_collecting"
+	// The customer is located in a country or state where you’re collecting tax
+	StripeCustomerAutomaticTaxSupported StripeCustomerAutomaticTax = "supported"
+	// The customer’s location couldn’t be determined. Make sure the provided address information is valid and supported in the customer’s country.
+	StripeCustomerAutomaticTaxUnrecognizedLocation StripeCustomerAutomaticTax = "unrecognized_location"
+)
 
 type StripePaymentMethod struct {
 	ID               string

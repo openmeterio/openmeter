@@ -152,8 +152,8 @@ type LineBase struct {
 	Status                 InvoiceLineStatus `json:"status"`
 	ChildUniqueReferenceID *string           `json:"childUniqueReferenceID,omitempty"`
 
-	TaxConfig         *TaxConfig `json:"taxOverrides,omitempty"`
-	RateCardDiscounts Discounts  `json:"rateCardDiscounts,omitempty"`
+	TaxConfig         *productcatalog.TaxConfig `json:"taxOverrides,omitempty"`
+	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`
 
 	ExternalIDs  LineExternalIDs        `json:"externalIDs,omitempty"`
 	Subscription *SubscriptionReference `json:"subscription,omitempty"`
@@ -955,7 +955,7 @@ type UpdateInvoiceLineBaseInput struct {
 	Name      mo.Option[string]
 	ManagedBy mo.Option[InvoiceLineManagedBy]
 	Period    mo.Option[Period]
-	TaxConfig mo.Option[*TaxConfig]
+	TaxConfig mo.Option[*productcatalog.TaxConfig]
 }
 
 func (u UpdateInvoiceLineBaseInput) Validate() error {

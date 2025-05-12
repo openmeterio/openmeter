@@ -115,6 +115,16 @@ func InvoiceProgressiveBilling(v bool) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceProgressiveBilling, v))
 }
 
+// TaxEnabled applies equality check predicate on the "tax_enabled" field. It's identical to TaxEnabledEQ.
+func TaxEnabled(v bool) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldTaxEnabled, v))
+}
+
+// TaxEnforced applies equality check predicate on the "tax_enforced" field. It's identical to TaxEnforcedEQ.
+func TaxEnforced(v bool) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldTaxEnforced, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldNamespace, v))
@@ -650,6 +660,26 @@ func InvoiceDefaultTaxSettingsIsNil() predicate.BillingWorkflowConfig {
 // InvoiceDefaultTaxSettingsNotNil applies the NotNil predicate on the "invoice_default_tax_settings" field.
 func InvoiceDefaultTaxSettingsNotNil() predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldInvoiceDefaultTaxSettings))
+}
+
+// TaxEnabledEQ applies the EQ predicate on the "tax_enabled" field.
+func TaxEnabledEQ(v bool) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldTaxEnabled, v))
+}
+
+// TaxEnabledNEQ applies the NEQ predicate on the "tax_enabled" field.
+func TaxEnabledNEQ(v bool) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldTaxEnabled, v))
+}
+
+// TaxEnforcedEQ applies the EQ predicate on the "tax_enforced" field.
+func TaxEnforcedEQ(v bool) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldTaxEnforced, v))
+}
+
+// TaxEnforcedNEQ applies the NEQ predicate on the "tax_enforced" field.
+func TaxEnforcedNEQ(v bool) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldTaxEnforced, v))
 }
 
 // HasBillingInvoices applies the HasEdge predicate on the "billing_invoices" edge.
