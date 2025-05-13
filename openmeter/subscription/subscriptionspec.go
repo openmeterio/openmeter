@@ -300,7 +300,7 @@ func (s *SubscriptionSpec) Validate() error {
 			errs = append(errs, fmt.Errorf("phase %s validation failed: %w", phase.PhaseKey, err))
 		}
 	}
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreateSubscriptionPhasePlanInput struct {
