@@ -89,6 +89,7 @@ func NewSubscriptionServices(
 		CustomerService:    customerService,
 		TransactionManager: subscriptionRepo,
 		AddonService:       subAddSvc,
+		Logger:             logger.With("subsystem", "subscription.workflow.service"),
 	})
 
 	planSubscriptionService := subscriptionchangeservice.New(subscriptionchangeservice.Config{

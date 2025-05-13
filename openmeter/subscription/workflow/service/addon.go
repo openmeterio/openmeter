@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -92,12 +93,7 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 			return def, errors.New("subscription addon is nil")
 		}
 
-		newDiff, err := addondiff.GetDiffableFromAddon(subView, *subsAdd)
-		if err != nil {
-			return def, fmt.Errorf("failed to get diffable from addon: %w", err)
-		}
-
-		subView, err = s.syncWithAddons(ctx, subView, diffs, append(diffs, newDiff), editTime)
+		subView, err = s.syncWithAddons(ctx, subView, subsAdds.Items, append(subsAdds.Items, *subsAdd), editTime)
 		if err != nil {
 			return def, fmt.Errorf("failed to sync with addons: %w", err)
 		}
@@ -151,11 +147,6 @@ func (s *service) ChangeAddonQuantity(ctx context.Context, subscriptionID models
 			return def, err
 		}
 
-		diffsBefore, err := asDiffs(subView, subsAddsBefore.Items)
-		if err != nil {
-			return def, err
-		}
-
 		// Let's try to decode when the subscription should be patched
 		if err := changeInp.Timing.ValidateForAction(subscription.SubscriptionActionChangeAddons, &subView); err != nil {
 			return def, models.NewGenericValidationError(fmt.Errorf("invalid timing for adding add-on: %w", err))
@@ -181,12 +172,7 @@ func (s *service) ChangeAddonQuantity(ctx context.Context, subscriptionID models
 			return def, err
 		}
 
-		diffsAfter, err := asDiffs(subView, subsAddsAfter.Items)
-		if err != nil {
-			return def, err
-		}
-
-		subView, err = s.syncWithAddons(ctx, subView, diffsBefore, diffsAfter, editTime)
+		subView, err = s.syncWithAddons(ctx, subView, subsAddsBefore.Items, subsAddsAfter.Items, editTime)
 		if err != nil {
 			return def, fmt.Errorf("failed to sync with addons: %w", err)
 		}
@@ -203,20 +189,58 @@ func (s *service) ChangeAddonQuantity(ctx context.Context, subscriptionID models
 func (s *service) syncWithAddons(
 	ctx context.Context,
 	view subscription.SubscriptionView,
-	restores []addondiff.Diffable,
-	applies []addondiff.Diffable,
+	before []subscriptionaddon.SubscriptionAddon,
+	after []subscriptionaddon.SubscriptionAddon,
 	currentTime time.Time,
 ) (subscription.SubscriptionView, error) {
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
 		var def subscription.SubscriptionView
 
+		// TODO: remove after issue is fixed
+		logErrWithArgs := func(mErr error) {
+			// Let's json serialize everything
+			viewJson, err := json.Marshal(view)
+			if err != nil {
+				s.Logger.DebugContext(ctx, "failed to marshal subscription view", "error", err)
+			}
+
+			beforeJson, err := json.Marshal(before)
+			if err != nil {
+				s.Logger.DebugContext(ctx, "failed to marshal before addons", "error", err)
+			}
+
+			afterJson, err := json.Marshal(after)
+			if err != nil {
+				s.Logger.DebugContext(ctx, "failed to marshal after addons", "error", err)
+			}
+
+			s.Logger.DebugContext(ctx, "failed to restore subscription state without addons",
+				"restore_error", mErr,
+				"subscription_view", viewJson,
+				"before_addons", beforeJson,
+				"after_addons", afterJson,
+			)
+		}
+
 		spec := view.AsSpec()
+
+		restores, err := asDiffs(view, before)
+		if err != nil {
+			return def, fmt.Errorf("failed to get diffable from addons: %w", err)
+		}
+
+		applies, err := asDiffs(view, after)
+		if err != nil {
+			return def, fmt.Errorf("failed to get diffable from addons: %w", err)
+		}
 
 		if err := spec.ApplyMany(lo.Map(restores, func(d addondiff.Diffable, _ int) subscription.AppliesToSpec {
 			return d.GetRestores()
 		}), subscription.ApplyContext{
 			CurrentTime: currentTime,
 		}); err != nil {
+			logErrWithArgs(fmt.Errorf("failed to restore subscription state without addons: %w", err))
+
 			return def, fmt.Errorf("failed to restore subscription state without addons: %w", err)
 		}
 
@@ -225,10 +249,14 @@ func (s *service) syncWithAddons(
 		}), subscription.ApplyContext{
 			CurrentTime: currentTime,
 		}); err != nil {
+			logErrWithArgs(fmt.Errorf("failed to calculate subscription state with addons: %w", err))
+
 			return def, fmt.Errorf("failed to calculate subscription state with addons: %w", err)
 		}
 
 		if _, err := s.Service.Update(ctx, view.Subscription.NamespacedID, spec); err != nil {
+			logErrWithArgs(fmt.Errorf("failed to update subscription: %w", err))
+
 			return def, fmt.Errorf("failed to update subscription: %w", err)
 		}
 

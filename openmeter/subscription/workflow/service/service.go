@@ -1,6 +1,8 @@
 package service
 
 import (
+	"log/slog"
+
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
@@ -15,6 +17,7 @@ type WorkflowServiceConfig struct {
 	CustomerService customer.Service
 	// framework
 	TransactionManager transaction.Creator
+	Logger             *slog.Logger
 }
 
 type service struct {
