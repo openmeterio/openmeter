@@ -49,7 +49,7 @@ func (h *handler) EditSubscription() EditSubscriptionHandler {
 			for idx, patch := range body.Customizations {
 				p, err := MapAPISubscriptionEditOperationToPatch(patch)
 				if err != nil {
-					return EditSubscriptionRequest{}, fmt.Errorf("failed to map patch at idx %d to subscription.Patch: %w", idx, err)
+					return EditSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("failed to map patch at idx %d to subscription.Patch: %w", idx, err))
 				}
 
 				patches = append(patches, p)
@@ -60,7 +60,7 @@ func (h *handler) EditSubscription() EditSubscriptionHandler {
 			if body.Timing != nil {
 				timing, err = MapAPITimingToTiming(*body.Timing)
 				if err != nil {
-					return EditSubscriptionRequest{}, fmt.Errorf("failed to map timing to subscription.Timing: %w", err)
+					return EditSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("failed to map timing to subscription.Timing: %w", err))
 				}
 			} else {
 				timing = subscription.Timing{
