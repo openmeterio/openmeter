@@ -131,6 +131,7 @@ func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripee
 			// Upsert
 			OnConflictColumns(appstripecustomerdb.FieldNamespace, appstripecustomerdb.FieldAppID, appstripecustomerdb.FieldCustomerID).
 			UpdateStripeCustomerID().
+			UpdateStripeDefaultPaymentMethodID().
 			Exec(ctx)
 		if err != nil {
 			if entdb.IsConstraintError(err) {
