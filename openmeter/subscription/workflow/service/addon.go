@@ -196,7 +196,7 @@ func (s *service) syncWithAddons(
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
 		var def subscription.SubscriptionView
 
-		// FIXME: figure out how we can log stuff
+		// TODO: remove after issue is fixed
 		logErrWithArgs := func(mErr error) {
 			// Let's json serialize everything
 			viewJson, err := json.Marshal(view)
