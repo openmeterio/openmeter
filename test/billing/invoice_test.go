@@ -297,6 +297,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 						Collection: billingProfile.WorkflowConfig.Collection,
 						Invoicing:  billingProfile.WorkflowConfig.Invoicing,
 						Payment:    billingProfile.WorkflowConfig.Payment,
+						Tax:        billingProfile.WorkflowConfig.Tax,
 					},
 					SourceBillingProfileID: billingProfile.ID,
 					AppReferences:          *billingProfile.AppReferences,

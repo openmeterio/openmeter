@@ -579,6 +579,10 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodChargeAutomatically,
 			},
+			Tax: billing.WorkflowTaxConfig{
+				Enabled:  true,
+				Enforced: false,
+			},
 		},
 
 		Supplier: billing.SupplierContact{
@@ -699,6 +703,7 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	s.Env.StripeAppClient().Restore()
 	s.Env.StripeAppClient().
 		On("GetCustomer", defaultStripeCustomerID).
+		Once().
 		Return(stripeclient.StripeCustomer{
 			StripeCustomerID: defaultStripeCustomerID,
 			// No email
@@ -707,6 +712,72 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 
 	err = customerApp.ValidateCustomer(ctx, testCustomer, []app.CapabilityType{app.CapabilityTypeCollectPayments})
 	require.ErrorContains(t, err, "stripe customer missing email", "Validate customer must return error")
+
+	// Validate tax
+	baseProfile = billingProfile.BaseProfile
+	baseProfile.WorkflowConfig.Payment.CollectionMethod = billing.CollectionMethodChargeAutomatically
+	baseProfile.WorkflowConfig.Tax.Enabled = true
+	baseProfile.WorkflowConfig.Tax.Enforced = true
+	baseProfile.AppReferences = nil // cannot be updated
+
+	_, err = s.Env.Billing().UpdateProfile(ctx, billing.UpdateProfileInput(baseProfile))
+	require.NoError(t, err, "Update profile must not return error")
+
+	// Should not return error with automatic tax supported
+	s.Env.StripeAppClient().Restore()
+	s.Env.StripeAppClient().
+		On("GetCustomer", defaultStripeCustomerID).
+		Once().
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: defaultStripeCustomerID,
+			Email:            lo.ToPtr("test@example.com"),
+			DefaultPaymentMethod: &stripeclient.StripePaymentMethod{
+				ID:    "pm_123",
+				Name:  "ACME Inc.",
+				Email: "acme@test.com",
+				BillingAddress: &models.Address{
+					City:       lo.ToPtr("San Francisco"),
+					PostalCode: lo.ToPtr("94103"),
+					State:      lo.ToPtr("CA"),
+					Country:    lo.ToPtr(models.CountryCode("US")),
+					Line1:      lo.ToPtr("123 Market St"),
+				},
+			},
+			Tax: &stripeclient.StripeCustomerTax{
+				AutomaticTax: stripeclient.StripeCustomerAutomaticTaxSupported,
+			},
+		}, nil)
+
+	err = customerApp.ValidateCustomer(ctx, testCustomer, []app.CapabilityType{app.CapabilityTypeCollectPayments, app.CapabilityTypeCalculateTax})
+	require.NoError(t, err, "Validate customer must not return error")
+
+	// Should return error with automatic tax not supported
+	s.Env.StripeAppClient().Restore()
+	s.Env.StripeAppClient().
+		On("GetCustomer", defaultStripeCustomerID).
+		Once().
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: defaultStripeCustomerID,
+			Email:            lo.ToPtr("test@example.com"),
+			DefaultPaymentMethod: &stripeclient.StripePaymentMethod{
+				ID:    "pm_123",
+				Name:  "ACME Inc.",
+				Email: "acme@test.com",
+				BillingAddress: &models.Address{
+					City:       lo.ToPtr("San Francisco"),
+					PostalCode: lo.ToPtr("94103"),
+					State:      lo.ToPtr("CA"),
+					Country:    lo.ToPtr(models.CountryCode("US")),
+					Line1:      lo.ToPtr("123 Market St"),
+				},
+			},
+			Tax: &stripeclient.StripeCustomerTax{
+				AutomaticTax: stripeclient.StripeCustomerAutomaticTaxUnrecognizedLocation,
+			},
+		}, nil)
+
+	err = customerApp.ValidateCustomer(ctx, testCustomer, []app.CapabilityType{app.CapabilityTypeCollectPayments, app.CapabilityTypeCalculateTax})
+	require.ErrorContains(t, err, "stripe tax: the customer cus_123 location couldn't be determined for stripe app", "Validate customer must return error")
 }
 
 // TestCreateCheckoutSession tests stripe app behavior when creating a new checkout session

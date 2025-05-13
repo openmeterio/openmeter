@@ -40,6 +40,10 @@ const (
 	FieldInvoiceProgressiveBilling = "invoice_progressive_billing"
 	// FieldInvoiceDefaultTaxSettings holds the string denoting the invoice_default_tax_settings field in the database.
 	FieldInvoiceDefaultTaxSettings = "invoice_default_tax_settings"
+	// FieldTaxEnabled holds the string denoting the tax_enabled field in the database.
+	FieldTaxEnabled = "tax_enabled"
+	// FieldTaxEnforced holds the string denoting the tax_enforced field in the database.
+	FieldTaxEnforced = "tax_enforced"
 	// EdgeBillingInvoices holds the string denoting the billing_invoices edge name in mutations.
 	EdgeBillingInvoices = "billing_invoices"
 	// EdgeBillingProfile holds the string denoting the billing_profile edge name in mutations.
@@ -77,6 +81,8 @@ var Columns = []string{
 	FieldInvoiceCollectionMethod,
 	FieldInvoiceProgressiveBilling,
 	FieldInvoiceDefaultTaxSettings,
+	FieldTaxEnabled,
+	FieldTaxEnforced,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -98,6 +104,10 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultTaxEnabled holds the default value on creation for the "tax_enabled" field.
+	DefaultTaxEnabled bool
+	// DefaultTaxEnforced holds the default value on creation for the "tax_enforced" field.
+	DefaultTaxEnforced bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -183,6 +193,16 @@ func ByInvoiceCollectionMethod(opts ...sql.OrderTermOption) OrderOption {
 // ByInvoiceProgressiveBilling orders the results by the invoice_progressive_billing field.
 func ByInvoiceProgressiveBilling(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceProgressiveBilling, opts...).ToFunc()
+}
+
+// ByTaxEnabled orders the results by the tax_enabled field.
+func ByTaxEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxEnabled, opts...).ToFunc()
+}
+
+// ByTaxEnforced orders the results by the tax_enforced field.
+func ByTaxEnforced(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxEnforced, opts...).ToFunc()
 }
 
 // ByBillingInvoicesField orders the results by billing_invoices field.

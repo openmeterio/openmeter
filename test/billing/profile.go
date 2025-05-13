@@ -26,6 +26,10 @@ var MinimalCreateProfileInputTemplate = billing.CreateProfileInput{
 		Payment: billing.PaymentConfig{
 			CollectionMethod: billing.CollectionMethodChargeAutomatically,
 		},
+		Tax: billing.WorkflowTaxConfig{
+			Enabled:  true,
+			Enforced: false,
+		},
 	},
 
 	Supplier: billing.SupplierContact{

@@ -16,9 +16,11 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/stripe/stripe-go/v80"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -471,12 +473,17 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 	clock.FreezeTime(periodEnd.Add(time.Minute))
 
-	s.Run("upsert invoice", func() {
-		// Setup the app with the customer
-		app, err := s.Fixture.setupApp(ctx, namespace)
+	var app app.App
+	var customerData appstripeentity.CustomerData
+	var invoice billing.Invoice
+	var invoicingApp billing.InvoicingApp
+
+	// Setup the app with the customer
+	s.Run("setup app, customer and invoice", func() {
+		app, err = s.Fixture.setupApp(ctx, namespace)
 		s.NoError(err)
 
-		customerData, err := s.Fixture.setupAppCustomerData(ctx, app, customerEntity)
+		customerData, err = s.Fixture.setupAppCustomerData(ctx, app, customerEntity)
 		s.NoError(err)
 
 		// Covered case: most measurements are fractional
@@ -494,12 +501,14 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.NoError(err)
 		s.Len(invoices, 1)
 
-		invoice := invoices[0].RemoveCircularReferences()
+		invoice = invoices[0].RemoveCircularReferences()
 
 		// Create a new invoice for the customer.
-		invoicingApp, err := billing.GetApp(app)
+		invoicingApp, err = billing.GetApp(app)
 		s.NoError(err)
+	})
 
+	s.Run("upsert invoice", func() {
 		// Mock the stripe client to return the created invoice.
 		s.StripeAppClient.
 			On("CreateInvoice", stripeclient.CreateInvoiceInput{
@@ -510,6 +519,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Currency:            "USD",
 				DueDate:             lo.ToPtr(dueAt),
 			}).
+			Once().
 			Return(&stripe.Invoice{
 				ID: "stripe-invoice-id",
 				Customer: &stripe.Customer{
@@ -736,6 +746,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				StripeInvoiceID: "stripe-invoice-id",
 				Lines:           expectedInvoiceAddLines,
 			}).
+			Once().
 			Return(lo.Map(
 				expectedInvoiceAddLines,
 				func(line *stripe.InvoiceItemParams, idx int) stripeclient.StripeInvoiceItemWithLineID {
@@ -816,9 +827,11 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		s.StripeAppClient.
 			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
-				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
-				DueDate:         lo.ToPtr(dueAt),
+				AutomaticTaxEnabled: true,
+				StripeInvoiceID:     updateInvoice.ExternalIDs.Invoicing,
+				DueDate:             lo.ToPtr(dueAt),
 			}).
+			Once().
 			// We return the updated invoice.
 			Return(stripeInvoiceUpdated, nil)
 
@@ -848,6 +861,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
 				Lines:           filteredUpdatedLines,
 			}).
+			Once().
 			Return(lo.Map(filteredUpdatedLines, func(l *stripeclient.StripeInvoiceItemWithID, _ int) *stripe.InvoiceItem {
 				return mapInvoiceItemParamsToInvoiceItem(l.ID, l.InvoiceItemParams).InvoiceItem
 			}), nil)
@@ -857,6 +871,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
 				Lines:           []string{stripeLineIDToRemove},
 			}).
+			Once().
 			Return(nil)
 
 		// TODO: do not share env between tests
@@ -870,6 +885,130 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.Equal(expectedResult, results.GetLineExternalIDs())
 
 		// Assert invoice is created in stripe.
+		s.StripeAppClient.AssertExpectations(s.T())
+	})
+
+	s.Run("finalize invoice", func() {
+		// Mock the stripe client to return the created invoice.
+		invoice.ExternalIDs.Invoicing = "stripe-invoice-id"
+
+		// Mock the stripe client for finalize invoice.
+		s.StripeAppClient.
+			On("FinalizeInvoice", stripeclient.FinalizeInvoiceInput{
+				AutoAdvance:     true,
+				StripeInvoiceID: invoice.ExternalIDs.Invoicing,
+			}).
+			Once().
+			Return(&stripe.Invoice{
+				ID: invoice.ExternalIDs.Invoicing,
+				Customer: &stripe.Customer{
+					ID: customerData.StripeCustomerID,
+				},
+				Number:   "INV-123",
+				Currency: "USD",
+				Lines: &stripe.InvoiceLineItemList{
+					Data: []*stripe.InvoiceLineItem{},
+				},
+				PaymentIntent: &stripe.PaymentIntent{
+					ID: "pmi_123",
+				},
+			}, nil)
+
+		// TODO: do not share env between tests
+		defer s.StripeAppClient.Restore()
+
+		// Create the invoice.
+		result, err := invoicingApp.FinalizeInvoice(ctx, invoice)
+		s.NoError(err, "failed to finalize invoice")
+
+		// Assert the result.
+		expectedResult := billing.NewFinalizeInvoiceResult()
+		expectedResult.SetInvoiceNumber("INV-123")
+		expectedResult.SetPaymentExternalID("pmi_123")
+
+		s.Equal(expectedResult, result)
+
+		// Assert the client is called with the correct arguments.
+		s.StripeAppClient.AssertExpectations(s.T())
+	})
+
+	s.Run("finalize invoice with stripe tax error", func() {
+		// Mock the stripe client to return the created invoice.
+		invoice.ExternalIDs.Invoicing = "stripe-invoice-id"
+
+		// Mock the stripe client for finalize invoice.
+		// 1. We return a Stripe Tax error.
+		s.StripeAppClient.
+			On("FinalizeInvoice", stripeclient.FinalizeInvoiceInput{
+				AutoAdvance:     true,
+				StripeInvoiceID: invoice.ExternalIDs.Invoicing,
+			}).
+			Once().
+			Return(&stripe.Invoice{}, &stripe.Error{
+				Type:          "invalid_request_error",
+				Code:          "customer_tax_location_invalid",
+				DocURL:        "https://stripe.com/docs/error-codes/customer-tax-location-invalid",
+				Msg:           "When `automatic_tax[enabled]=true`, enough customer location information must be provided to accurately determine tax rates for the customer.",
+				RequestLogURL: "https://dashboard.stripe.com/test/logs/req_abcd?t=1746741453",
+			})
+
+		// 2. We update the invoice to disable tax calculation.
+		s.StripeAppClient.
+			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
+				StripeInvoiceID:     invoice.ExternalIDs.Invoicing,
+				DueDate:             lo.ToPtr(dueAt),
+				AutomaticTaxEnabled: false,
+			}).
+			Once().
+			Return(&stripe.Invoice{
+				ID: invoice.ExternalIDs.Invoicing,
+				Customer: &stripe.Customer{
+					ID: customerData.StripeCustomerID,
+				},
+				Number:   "INV-123",
+				Currency: "USD",
+				Lines: &stripe.InvoiceLineItemList{
+					Data: []*stripe.InvoiceLineItem{},
+				},
+			}, nil)
+
+		// 3. We finalize the invoice.
+		s.StripeAppClient.
+			On("FinalizeInvoice", stripeclient.FinalizeInvoiceInput{
+				AutoAdvance:     true,
+				StripeInvoiceID: invoice.ExternalIDs.Invoicing,
+			}).
+			Once().
+			Return(&stripe.Invoice{
+				ID: invoice.ExternalIDs.Invoicing,
+				Customer: &stripe.Customer{
+					ID: customerData.StripeCustomerID,
+				},
+				Number:   "INV-123",
+				Currency: "USD",
+				Lines: &stripe.InvoiceLineItemList{
+					Data: []*stripe.InvoiceLineItem{},
+				},
+				PaymentIntent: &stripe.PaymentIntent{
+					ID: "pmi_123",
+				},
+			}, nil)
+
+		// TODO: do not share env between tests
+		defer s.StripeAppClient.Restore()
+
+		// Create the invoice.
+		result, err := invoicingApp.FinalizeInvoice(ctx, invoice)
+		s.NoError(err, "failed to finalize invoice")
+
+		// Assert the result.
+		expectedResult := billing.NewFinalizeInvoiceResult()
+		expectedResult.SetInvoiceNumber("INV-123")
+		expectedResult.SetPaymentExternalID("pmi_123")
+
+		s.Equal(expectedResult, result)
+
+		// Assert the client is called with the correct arguments.
 		s.StripeAppClient.AssertExpectations(s.T())
 	})
 }
@@ -1078,8 +1217,9 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	// Editing the invoice should also work
 	s.StripeAppClient.
 		On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
-			StripeInvoiceID: invoice.ExternalIDs.Invoicing,
-			DueDate:         lo.ToPtr(dueAt),
+			AutomaticTaxEnabled: true,
+			StripeInvoiceID:     invoice.ExternalIDs.Invoicing,
+			DueDate:             lo.ToPtr(dueAt),
 		}).
 		Return(&stripe.Invoice{
 			ID: "stripe-invoice-id",

@@ -134,6 +134,40 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 		}
 	}
 
+	// Validate tax settings if the app supports tax calculation and tax is enabled
+	if slices.Contains(capabilities, app.CapabilityTypeCalculateTax) && customerBillingProfile.MergedProfile.WorkflowConfig.Tax.Enabled {
+		// If tax is enforced, we need to ensure that the customer has a tax location
+		if customerBillingProfile.MergedProfile.WorkflowConfig.Tax.Enforced {
+			switch stripeCustomer.Tax.AutomaticTax {
+			case stripeclient.StripeCustomerAutomaticTaxNotCollecting:
+				// Automatic tax is not supported
+				return app.NewAppCustomerPreConditionError(
+					a.GetID(),
+					a.GetType(),
+					&customerID,
+					fmt.Sprintf("stripe tax: customer %s is not collecting tax", stripeCustomerData.StripeCustomerID),
+				)
+
+			case stripeclient.StripeCustomerAutomaticTaxFailed:
+				// Automatic tax failed
+				return app.NewAppCustomerPreConditionError(
+					a.GetID(),
+					a.GetType(),
+					&customerID,
+					fmt.Sprintf("stripe tax: there was an error determining the customer %s location, retry later", stripeCustomerData.StripeCustomerID),
+				)
+			case stripeclient.StripeCustomerAutomaticTaxUnrecognizedLocation:
+				// Automatic tax failed because the location could not be determined
+				return app.NewAppCustomerPreConditionError(
+					a.GetID(),
+					a.GetType(),
+					&customerID,
+					fmt.Sprintf("stripe tax: the customer %s location couldn't be determined", stripeCustomerData.StripeCustomerID),
+				)
+			}
+		}
+	}
+
 	return nil
 }
 

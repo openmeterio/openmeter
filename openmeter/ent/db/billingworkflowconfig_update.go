@@ -177,6 +177,34 @@ func (_u *BillingWorkflowConfigUpdate) ClearInvoiceDefaultTaxSettings() *Billing
 	return _u
 }
 
+// SetTaxEnabled sets the "tax_enabled" field.
+func (_u *BillingWorkflowConfigUpdate) SetTaxEnabled(v bool) *BillingWorkflowConfigUpdate {
+	_u.mutation.SetTaxEnabled(v)
+	return _u
+}
+
+// SetNillableTaxEnabled sets the "tax_enabled" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdate) SetNillableTaxEnabled(v *bool) *BillingWorkflowConfigUpdate {
+	if v != nil {
+		_u.SetTaxEnabled(*v)
+	}
+	return _u
+}
+
+// SetTaxEnforced sets the "tax_enforced" field.
+func (_u *BillingWorkflowConfigUpdate) SetTaxEnforced(v bool) *BillingWorkflowConfigUpdate {
+	_u.mutation.SetTaxEnforced(v)
+	return _u
+}
+
+// SetNillableTaxEnforced sets the "tax_enforced" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdate) SetNillableTaxEnforced(v *bool) *BillingWorkflowConfigUpdate {
+	if v != nil {
+		_u.SetTaxEnforced(*v)
+	}
+	return _u
+}
+
 // SetBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by ID.
 func (_u *BillingWorkflowConfigUpdate) SetBillingInvoicesID(id string) *BillingWorkflowConfigUpdate {
 	_u.mutation.SetBillingInvoicesID(id)
@@ -335,6 +363,12 @@ func (_u *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (_node int, 
 	}
 	if _u.mutation.InvoiceDefaultTaxSettingsCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxEnabled(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTaxEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.TaxEnforced(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTaxEnforced, field.TypeBool, value)
 	}
 	if _u.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -558,6 +592,34 @@ func (_u *BillingWorkflowConfigUpdateOne) ClearInvoiceDefaultTaxSettings() *Bill
 	return _u
 }
 
+// SetTaxEnabled sets the "tax_enabled" field.
+func (_u *BillingWorkflowConfigUpdateOne) SetTaxEnabled(v bool) *BillingWorkflowConfigUpdateOne {
+	_u.mutation.SetTaxEnabled(v)
+	return _u
+}
+
+// SetNillableTaxEnabled sets the "tax_enabled" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdateOne) SetNillableTaxEnabled(v *bool) *BillingWorkflowConfigUpdateOne {
+	if v != nil {
+		_u.SetTaxEnabled(*v)
+	}
+	return _u
+}
+
+// SetTaxEnforced sets the "tax_enforced" field.
+func (_u *BillingWorkflowConfigUpdateOne) SetTaxEnforced(v bool) *BillingWorkflowConfigUpdateOne {
+	_u.mutation.SetTaxEnforced(v)
+	return _u
+}
+
+// SetNillableTaxEnforced sets the "tax_enforced" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdateOne) SetNillableTaxEnforced(v *bool) *BillingWorkflowConfigUpdateOne {
+	if v != nil {
+		_u.SetTaxEnforced(*v)
+	}
+	return _u
+}
+
 // SetBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by ID.
 func (_u *BillingWorkflowConfigUpdateOne) SetBillingInvoicesID(id string) *BillingWorkflowConfigUpdateOne {
 	_u.mutation.SetBillingInvoicesID(id)
@@ -746,6 +808,12 @@ func (_u *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node *B
 	}
 	if _u.mutation.InvoiceDefaultTaxSettingsCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxEnabled(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTaxEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.TaxEnforced(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTaxEnforced, field.TypeBool, value)
 	}
 	if _u.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{

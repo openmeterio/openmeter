@@ -33,28 +33,6 @@ func (k AlignmentKind) Values() []string {
 	}
 }
 
-type WorkflowConfig struct {
-	Collection CollectionConfig `json:"collection"`
-	Invoicing  InvoicingConfig  `json:"invoicing"`
-	Payment    PaymentConfig    `json:"payment"`
-}
-
-func (c WorkflowConfig) Validate() error {
-	if err := c.Collection.Validate(); err != nil {
-		return fmt.Errorf("invalid collection config: %w", err)
-	}
-
-	if err := c.Invoicing.Validate(); err != nil {
-		return fmt.Errorf("invalid invoice config: %w", err)
-	}
-
-	if err := c.Payment.Validate(); err != nil {
-		return fmt.Errorf("invalid payment config: %w", err)
-	}
-
-	return nil
-}
-
 type AppReference struct {
 	ID   string      `json:"id"`
 	Type app.AppType `json:"type"`
@@ -67,24 +45,6 @@ func (a AppReference) Validate() error {
 
 	if a.ID != "" && a.Type != "" {
 		return errors.New("only one of id or type is allowed")
-	}
-
-	return nil
-}
-
-// CollectionConfig groups fields related to item collection.
-type CollectionConfig struct {
-	Alignment AlignmentKind  `json:"alignment"`
-	Interval  isodate.Period `json:"period,omitempty"`
-}
-
-func (c *CollectionConfig) Validate() error {
-	if c.Alignment != AlignmentKindSubscription {
-		return fmt.Errorf("invalid alignment: %s", c.Alignment)
-	}
-
-	if !c.Interval.IsPositive() {
-		return fmt.Errorf("item collection period must be greater or equal to 0")
 	}
 
 	return nil

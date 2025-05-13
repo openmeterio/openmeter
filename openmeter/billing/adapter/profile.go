@@ -91,6 +91,8 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
 		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
 		SetNillableInvoiceDefaultTaxSettings(input.Invoicing.DefaultTaxConfig).
+		SetTaxEnabled(input.Tax.Enabled).
+		SetTaxEnforced(input.Tax.Enforced).
 		Save(ctx)
 }
 
@@ -369,6 +371,8 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
 		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
 		SetOrClearInvoiceDefaultTaxSettings(input.Invoicing.DefaultTaxConfig).
+		SetTaxEnabled(input.Tax.Enabled).
+		SetTaxEnforced(input.Tax.Enforced).
 		Save(ctx)
 }
 
@@ -431,6 +435,8 @@ func mapWorkflowConfigToDB(wc billing.WorkflowConfig, id string) *db.BillingWork
 		InvoiceDraftPeriod:      wc.Invoicing.DraftPeriod.ISOString(),
 		InvoiceDueAfter:         wc.Invoicing.DueAfter.ISOString(),
 		InvoiceCollectionMethod: wc.Payment.CollectionMethod,
+		TaxEnabled:              wc.Tax.Enabled,
+		TaxEnforced:             wc.Tax.Enforced,
 	}
 }
 
@@ -466,6 +472,11 @@ func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billing.WorkflowCo
 
 		Payment: billing.PaymentConfig{
 			CollectionMethod: dbWC.InvoiceCollectionMethod,
+		},
+
+		Tax: billing.WorkflowTaxConfig{
+			Enabled:  dbWC.TaxEnabled,
+			Enforced: dbWC.TaxEnforced,
 		},
 	}, nil
 }

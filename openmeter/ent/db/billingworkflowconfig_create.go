@@ -132,6 +132,34 @@ func (_c *BillingWorkflowConfigCreate) SetNillableInvoiceDefaultTaxSettings(v *p
 	return _c
 }
 
+// SetTaxEnabled sets the "tax_enabled" field.
+func (_c *BillingWorkflowConfigCreate) SetTaxEnabled(v bool) *BillingWorkflowConfigCreate {
+	_c.mutation.SetTaxEnabled(v)
+	return _c
+}
+
+// SetNillableTaxEnabled sets the "tax_enabled" field if the given value is not nil.
+func (_c *BillingWorkflowConfigCreate) SetNillableTaxEnabled(v *bool) *BillingWorkflowConfigCreate {
+	if v != nil {
+		_c.SetTaxEnabled(*v)
+	}
+	return _c
+}
+
+// SetTaxEnforced sets the "tax_enforced" field.
+func (_c *BillingWorkflowConfigCreate) SetTaxEnforced(v bool) *BillingWorkflowConfigCreate {
+	_c.mutation.SetTaxEnforced(v)
+	return _c
+}
+
+// SetNillableTaxEnforced sets the "tax_enforced" field if the given value is not nil.
+func (_c *BillingWorkflowConfigCreate) SetNillableTaxEnforced(v *bool) *BillingWorkflowConfigCreate {
+	if v != nil {
+		_c.SetTaxEnforced(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *BillingWorkflowConfigCreate) SetID(v string) *BillingWorkflowConfigCreate {
 	_c.mutation.SetID(v)
@@ -227,6 +255,14 @@ func (_c *BillingWorkflowConfigCreate) defaults() {
 		v := billingworkflowconfig.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.TaxEnabled(); !ok {
+		v := billingworkflowconfig.DefaultTaxEnabled
+		_c.mutation.SetTaxEnabled(v)
+	}
+	if _, ok := _c.mutation.TaxEnforced(); !ok {
+		v := billingworkflowconfig.DefaultTaxEnforced
+		_c.mutation.SetTaxEnforced(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := billingworkflowconfig.DefaultID()
 		_c.mutation.SetID(v)
@@ -284,6 +320,12 @@ func (_c *BillingWorkflowConfigCreate) check() error {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "invoice_default_tax_settings", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_default_tax_settings": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.TaxEnabled(); !ok {
+		return &ValidationError{Name: "tax_enabled", err: errors.New(`db: missing required field "BillingWorkflowConfig.tax_enabled"`)}
+	}
+	if _, ok := _c.mutation.TaxEnforced(); !ok {
+		return &ValidationError{Name: "tax_enforced", err: errors.New(`db: missing required field "BillingWorkflowConfig.tax_enforced"`)}
 	}
 	return nil
 }
@@ -368,6 +410,14 @@ func (_c *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *sq
 	if value, ok := _c.mutation.InvoiceDefaultTaxSettings(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON, value)
 		_node.InvoiceDefaultTaxSettings = value
+	}
+	if value, ok := _c.mutation.TaxEnabled(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTaxEnabled, field.TypeBool, value)
+		_node.TaxEnabled = value
+	}
+	if value, ok := _c.mutation.TaxEnforced(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTaxEnforced, field.TypeBool, value)
+		_node.TaxEnforced = value
 	}
 	if nodes := _c.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -585,6 +635,30 @@ func (u *BillingWorkflowConfigUpsert) ClearInvoiceDefaultTaxSettings() *BillingW
 	return u
 }
 
+// SetTaxEnabled sets the "tax_enabled" field.
+func (u *BillingWorkflowConfigUpsert) SetTaxEnabled(v bool) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldTaxEnabled, v)
+	return u
+}
+
+// UpdateTaxEnabled sets the "tax_enabled" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateTaxEnabled() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldTaxEnabled)
+	return u
+}
+
+// SetTaxEnforced sets the "tax_enforced" field.
+func (u *BillingWorkflowConfigUpsert) SetTaxEnforced(v bool) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldTaxEnforced, v)
+	return u
+}
+
+// UpdateTaxEnforced sets the "tax_enforced" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateTaxEnforced() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldTaxEnforced)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -790,6 +864,34 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceDefaultTaxSettings() *Bill
 func (u *BillingWorkflowConfigUpsertOne) ClearInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.ClearInvoiceDefaultTaxSettings()
+	})
+}
+
+// SetTaxEnabled sets the "tax_enabled" field.
+func (u *BillingWorkflowConfigUpsertOne) SetTaxEnabled(v bool) *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetTaxEnabled(v)
+	})
+}
+
+// UpdateTaxEnabled sets the "tax_enabled" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateTaxEnabled() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateTaxEnabled()
+	})
+}
+
+// SetTaxEnforced sets the "tax_enforced" field.
+func (u *BillingWorkflowConfigUpsertOne) SetTaxEnforced(v bool) *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetTaxEnforced(v)
+	})
+}
+
+// UpdateTaxEnforced sets the "tax_enforced" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateTaxEnforced() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateTaxEnforced()
 	})
 }
 
@@ -1165,6 +1267,34 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceDefaultTaxSettings() *Bil
 func (u *BillingWorkflowConfigUpsertBulk) ClearInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.ClearInvoiceDefaultTaxSettings()
+	})
+}
+
+// SetTaxEnabled sets the "tax_enabled" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetTaxEnabled(v bool) *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetTaxEnabled(v)
+	})
+}
+
+// UpdateTaxEnabled sets the "tax_enabled" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateTaxEnabled() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateTaxEnabled()
+	})
+}
+
+// SetTaxEnforced sets the "tax_enforced" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetTaxEnforced(v bool) *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetTaxEnforced(v)
+	})
+}
+
+// UpdateTaxEnforced sets the "tax_enforced" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateTaxEnforced() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateTaxEnforced()
 	})
 }
 

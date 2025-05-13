@@ -25536,6 +25536,8 @@ type BillingWorkflowConfigMutation struct {
 	invoice_collection_method    *billing.CollectionMethod
 	invoice_progressive_billing  *bool
 	invoice_default_tax_settings *productcatalog.TaxConfig
+	tax_enabled                  *bool
+	tax_enforced                 *bool
 	clearedFields                map[string]struct{}
 	billing_invoices             *string
 	clearedbilling_invoices      bool
@@ -26108,6 +26110,78 @@ func (m *BillingWorkflowConfigMutation) ResetInvoiceDefaultTaxSettings() {
 	delete(m.clearedFields, billingworkflowconfig.FieldInvoiceDefaultTaxSettings)
 }
 
+// SetTaxEnabled sets the "tax_enabled" field.
+func (m *BillingWorkflowConfigMutation) SetTaxEnabled(b bool) {
+	m.tax_enabled = &b
+}
+
+// TaxEnabled returns the value of the "tax_enabled" field in the mutation.
+func (m *BillingWorkflowConfigMutation) TaxEnabled() (r bool, exists bool) {
+	v := m.tax_enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxEnabled returns the old "tax_enabled" field's value of the BillingWorkflowConfig entity.
+// If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingWorkflowConfigMutation) OldTaxEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxEnabled: %w", err)
+	}
+	return oldValue.TaxEnabled, nil
+}
+
+// ResetTaxEnabled resets all changes to the "tax_enabled" field.
+func (m *BillingWorkflowConfigMutation) ResetTaxEnabled() {
+	m.tax_enabled = nil
+}
+
+// SetTaxEnforced sets the "tax_enforced" field.
+func (m *BillingWorkflowConfigMutation) SetTaxEnforced(b bool) {
+	m.tax_enforced = &b
+}
+
+// TaxEnforced returns the value of the "tax_enforced" field in the mutation.
+func (m *BillingWorkflowConfigMutation) TaxEnforced() (r bool, exists bool) {
+	v := m.tax_enforced
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxEnforced returns the old "tax_enforced" field's value of the BillingWorkflowConfig entity.
+// If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingWorkflowConfigMutation) OldTaxEnforced(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxEnforced is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxEnforced requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxEnforced: %w", err)
+	}
+	return oldValue.TaxEnforced, nil
+}
+
+// ResetTaxEnforced resets all changes to the "tax_enforced" field.
+func (m *BillingWorkflowConfigMutation) ResetTaxEnforced() {
+	m.tax_enforced = nil
+}
+
 // SetBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by id.
 func (m *BillingWorkflowConfigMutation) SetBillingInvoicesID(id string) {
 	m.billing_invoices = &id
@@ -26220,7 +26294,7 @@ func (m *BillingWorkflowConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingWorkflowConfigMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 14)
 	if m.namespace != nil {
 		fields = append(fields, billingworkflowconfig.FieldNamespace)
 	}
@@ -26257,6 +26331,12 @@ func (m *BillingWorkflowConfigMutation) Fields() []string {
 	if m.invoice_default_tax_settings != nil {
 		fields = append(fields, billingworkflowconfig.FieldInvoiceDefaultTaxSettings)
 	}
+	if m.tax_enabled != nil {
+		fields = append(fields, billingworkflowconfig.FieldTaxEnabled)
+	}
+	if m.tax_enforced != nil {
+		fields = append(fields, billingworkflowconfig.FieldTaxEnforced)
+	}
 	return fields
 }
 
@@ -26289,6 +26369,10 @@ func (m *BillingWorkflowConfigMutation) Field(name string) (ent.Value, bool) {
 		return m.InvoiceProgressiveBilling()
 	case billingworkflowconfig.FieldInvoiceDefaultTaxSettings:
 		return m.InvoiceDefaultTaxSettings()
+	case billingworkflowconfig.FieldTaxEnabled:
+		return m.TaxEnabled()
+	case billingworkflowconfig.FieldTaxEnforced:
+		return m.TaxEnforced()
 	}
 	return nil, false
 }
@@ -26322,6 +26406,10 @@ func (m *BillingWorkflowConfigMutation) OldField(ctx context.Context, name strin
 		return m.OldInvoiceProgressiveBilling(ctx)
 	case billingworkflowconfig.FieldInvoiceDefaultTaxSettings:
 		return m.OldInvoiceDefaultTaxSettings(ctx)
+	case billingworkflowconfig.FieldTaxEnabled:
+		return m.OldTaxEnabled(ctx)
+	case billingworkflowconfig.FieldTaxEnforced:
+		return m.OldTaxEnforced(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingWorkflowConfig field %s", name)
 }
@@ -26414,6 +26502,20 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetInvoiceDefaultTaxSettings(v)
+		return nil
+	case billingworkflowconfig.FieldTaxEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxEnabled(v)
+		return nil
+	case billingworkflowconfig.FieldTaxEnforced:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxEnforced(v)
 		return nil
 	}
 	return fmt.Errorf("unknown BillingWorkflowConfig field %s", name)
@@ -26514,6 +26616,12 @@ func (m *BillingWorkflowConfigMutation) ResetField(name string) error {
 		return nil
 	case billingworkflowconfig.FieldInvoiceDefaultTaxSettings:
 		m.ResetInvoiceDefaultTaxSettings()
+		return nil
+	case billingworkflowconfig.FieldTaxEnabled:
+		m.ResetTaxEnabled()
+		return nil
+	case billingworkflowconfig.FieldTaxEnforced:
+		m.ResetTaxEnforced()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingWorkflowConfig field %s", name)

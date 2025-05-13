@@ -173,47 +173,6 @@ func (c *stripeAppClient) GetAccount(ctx context.Context) (StripeAccount, error)
 	}, nil
 }
 
-// GetCustomer returns the stripe customer by stripe customer ID
-func (c *stripeAppClient) GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error) {
-	stripeCustomer, err := c.client.Customers.Get(stripeCustomerID, &stripe.CustomerParams{
-		Expand: []*string{lo.ToPtr("invoice_settings.default_payment_method")},
-	})
-	if err != nil {
-		// Stripe customer not found error
-		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeResourceMissing {
-			if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
-				return StripeCustomer{}, StripeCustomerNotFoundError{
-					StripeCustomerID: stripeCustomerID,
-				}
-			}
-		}
-
-		return StripeCustomer{}, c.providerError(err)
-	}
-
-	customer := StripeCustomer{
-		StripeCustomerID: stripeCustomer.ID,
-	}
-
-	if stripeCustomer.Email != "" {
-		customer.Email = &stripeCustomer.Email
-	}
-
-	if stripeCustomer.Currency != "" {
-		customer.Currency = lo.ToPtr(string(stripeCustomer.Currency))
-	}
-
-	if stripeCustomer.InvoiceSettings != nil {
-		invoiceSettings := *stripeCustomer.InvoiceSettings
-
-		if stripeCustomer.InvoiceSettings.DefaultPaymentMethod != nil {
-			customer.DefaultPaymentMethod = lo.ToPtr(toStripePaymentMethod(invoiceSettings.DefaultPaymentMethod))
-		}
-	}
-
-	return customer, nil
-}
-
 // GetPaymentMethod returns the stripe payment method by stripe payment method ID
 func (c *stripeAppClient) GetPaymentMethod(ctx context.Context, stripePaymentMethodID string) (StripePaymentMethod, error) {
 	stripePaymentMethod, err := c.client.PaymentMethods.Get(stripePaymentMethodID, nil)
@@ -231,32 +190,6 @@ func (c *stripeAppClient) GetPaymentMethod(ctx context.Context, stripePaymentMet
 	}
 
 	return toStripePaymentMethod(stripePaymentMethod), nil
-}
-
-// CreateCustomer creates a stripe customer
-func (c *stripeAppClient) CreateCustomer(ctx context.Context, input CreateStripeCustomerInput) (StripeCustomer, error) {
-	if err := input.Validate(); err != nil {
-		return StripeCustomer{}, err
-	}
-
-	// Create customer
-	stripeCustomer, err := c.client.Customers.New(&stripe.CustomerParams{
-		Name:  input.Name,
-		Email: input.Email,
-		Metadata: map[string]string{
-			SetupIntentDataMetadataNamespace:  input.AppID.Namespace,
-			SetupIntentDataMetadataCustomerID: input.CustomerID.ID,
-		},
-	})
-	if err != nil {
-		return StripeCustomer{}, c.providerError(err)
-	}
-
-	out := StripeCustomer{
-		StripeCustomerID: stripeCustomer.ID,
-	}
-
-	return out, nil
 }
 
 // StripePaymentMethod converts a Stripe API payment method to a StripePaymentMethod

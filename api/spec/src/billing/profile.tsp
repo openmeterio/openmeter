@@ -289,6 +289,12 @@ model BillingWorkflow {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   payment?: BillingWorkflowPaymentSettings;
+
+  /**
+   * The tax settings for this workflow
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  tax?: BillingWorkflowTaxSettings;
 }
 
 /**
@@ -404,6 +410,29 @@ model BillingWorkflowInvoicingSettings {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   defaultTaxConfig?: OpenMeter.ProductCatalog.TaxConfig;
+}
+
+/**
+ * BillingWorkflowTaxSettings represents the tax settings for a billing workflow
+ */
+@summary("Workflow tax settings")
+@friendlyName("BillingWorkflowTaxSettings")
+model BillingWorkflowTaxSettings {
+  /**
+   * Enable automatic tax calculation when tax is supported by the app.
+   * For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  enabled?: boolean = true;
+
+  /**
+   * Enforce tax calculation when tax is supported by the app.
+   * When enabled, OpenMeter will not allow to create an invoice without tax calculation.
+   * Enforcement is different per apps, for example, Stripe app requires customer
+   * to have a tax location when starting a paid subscription.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  enforced?: boolean = false;
 }
 
 /**

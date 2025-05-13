@@ -6693,6 +6693,8 @@ export const createBillingProfileBodyWorkflowInvoicingDefaultTaxConfigStripeCode
   new RegExp('^txcd_\\d{8}$')
 export const createBillingProfileBodyWorkflowPaymentCollectionMethodDefault =
   'charge_automatically'
+export const createBillingProfileBodyWorkflowTaxEnabledDefault = true
+export const createBillingProfileBodyWorkflowTaxEnforcedDefault = false
 export const createBillingProfileBodyAppsTaxRegExpOne = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
@@ -6963,6 +6965,26 @@ export const createBillingProfileBody = zod
           )
           .optional()
           .describe('The payment settings for this workflow'),
+        tax: zod
+          .object({
+            enabled: zod
+              .boolean()
+              .default(createBillingProfileBodyWorkflowTaxEnabledDefault)
+              .describe(
+                'Enable automatic tax calculation when tax is supported by the app.\nFor example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.'
+              ),
+            enforced: zod
+              .boolean()
+              .optional()
+              .describe(
+                'Enforce tax calculation when tax is supported by the app.\nWhen enabled, OpenMeter will not allow to create an invoice without tax calculation.\nEnforcement is different per apps, for example, Stripe app requires customer\nto have a tax location when starting a paid subscription.'
+              ),
+          })
+          .describe(
+            'BillingWorkflowTaxSettings represents the tax settings for a billing workflow'
+          )
+          .optional()
+          .describe('The tax settings for this workflow'),
       })
       .describe('Resource create operation model.')
       .describe('The billing workflow settings for this profile.'),
@@ -7040,6 +7062,8 @@ export const updateBillingProfileBodyWorkflowInvoicingDefaultTaxConfigStripeCode
   new RegExp('^txcd_\\d{8}$')
 export const updateBillingProfileBodyWorkflowPaymentCollectionMethodDefault =
   'charge_automatically'
+export const updateBillingProfileBodyWorkflowTaxEnabledDefault = true
+export const updateBillingProfileBodyWorkflowTaxEnforcedDefault = false
 
 export const updateBillingProfileBody = zod
   .object({
@@ -7270,6 +7294,26 @@ export const updateBillingProfileBody = zod
           )
           .optional()
           .describe('The payment settings for this workflow'),
+        tax: zod
+          .object({
+            enabled: zod
+              .boolean()
+              .default(updateBillingProfileBodyWorkflowTaxEnabledDefault)
+              .describe(
+                'Enable automatic tax calculation when tax is supported by the app.\nFor example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.'
+              ),
+            enforced: zod
+              .boolean()
+              .optional()
+              .describe(
+                'Enforce tax calculation when tax is supported by the app.\nWhen enabled, OpenMeter will not allow to create an invoice without tax calculation.\nEnforcement is different per apps, for example, Stripe app requires customer\nto have a tax location when starting a paid subscription.'
+              ),
+          })
+          .describe(
+            'BillingWorkflowTaxSettings represents the tax settings for a billing workflow'
+          )
+          .optional()
+          .describe('The tax settings for this workflow'),
       })
       .describe(
         'BillingWorkflow represents the settings for a billing workflow.'
