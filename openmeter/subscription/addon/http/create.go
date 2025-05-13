@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -54,7 +58,30 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 		func(ctx context.Context, req CreateSubscriptionAddonRequest) (CreateSubscriptionAddonResponse, error) {
 			var def CreateSubscriptionAddonResponse
 
-			view, add, err := h.SubscriptionWorkflowService.AddAddon(ctx, req.SubscriptionID, req.AddonInput)
+			subsAdds, err := h.SubscriptionAddonService.List(ctx, req.SubscriptionID.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{
+				SubscriptionID: req.SubscriptionID.ID,
+			})
+			if err != nil {
+				return def, err
+			}
+
+			var view subscription.SubscriptionView
+			var add subscriptionaddon.SubscriptionAddon
+
+			// If the addon is already present, we'll change the quantity instead as a convenience
+			if sAdd, ok := lo.Find(subsAdds.Items, func(subAdd subscriptionaddon.SubscriptionAddon) bool {
+				return subAdd.Addon.ID == req.AddonInput.AddonID
+			}); ok {
+				view, add, err = h.SubscriptionWorkflowService.ChangeAddonQuantity(ctx, req.SubscriptionID, subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
+					SubscriptionAddonID: sAdd.NamespacedID,
+					Quantity:            req.AddonInput.InitialQuantity,
+					Timing:              req.AddonInput.Timing,
+				})
+			} else {
+				// Otherwise, we'll create it as per usual
+				view, add, err = h.SubscriptionWorkflowService.AddAddon(ctx, req.SubscriptionID, req.AddonInput)
+			}
+
 			if err != nil {
 				return def, err
 			}
