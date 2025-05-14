@@ -13687,6 +13687,12 @@ export const createSubscriptionBody = zod
         'References an exact plan defaulting to the current active version.'
       )
       .describe('The plan reference to change to.'),
+    startingPhase: zod
+      .string()
+      .optional()
+      .describe(
+        'The key of the phase to start the subscription in.\nIf not provided, the subscription will start in the first phase of the plan.'
+      ),
     timing: zod
       .enum(['immediate', 'next_billing_cycle'])
       .describe(
@@ -16162,6 +16168,12 @@ export const changeSubscriptionBody = zod
         'References an exact plan defaulting to the current active version.'
       )
       .describe('The plan reference to change to.'),
+    startingPhase: zod
+      .string()
+      .optional()
+      .describe(
+        'The key of the phase to start the subscription in.\nIf not provided, the subscription will start in the first phase of the plan.'
+      ),
     timing: zod
       .enum(['immediate', 'next_billing_cycle'])
       .describe(
@@ -17160,7 +17172,20 @@ export const migrateSubscriptionParams = zod.object({
 })
 
 export const migrateSubscriptionBody = zod.object({
-  targetVersion: zod.number().min(1).optional(),
+  startingPhase: zod
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      'The key of the phase to start the subscription in.\nIf not provided, the subscription will start in the first phase of the plan.'
+    ),
+  targetVersion: zod
+    .number()
+    .min(1)
+    .optional()
+    .describe(
+      'The version of the plan to migrate to.\nIf not provided, the subscription will migrate to the latest version of the current plan.'
+    ),
 })
 
 /**

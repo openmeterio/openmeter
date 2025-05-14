@@ -486,8 +486,19 @@ interface Subscriptions {
   migrate(
     @path subscriptionId: ULID,
     @body body: {
+      /**
+       * The version of the plan to migrate to.
+       * If not provided, the subscription will migrate to the latest version of the current plan.
+       */
       @minValue(1)
       targetVersion?: integer;
+
+      /**
+       * The key of the phase to start the subscription in.
+       * If not provided, the subscription will start in the first phase of the plan.
+       */
+      @minLength(1)
+      startingPhase?: string;
     },
   ):
     | SubscriptionChangeResponseBody

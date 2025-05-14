@@ -66,6 +66,23 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 		)
 	}
 
+	// Let's find the starting phase
+	if request.StartingPhase != nil {
+		for idx, phase := range p.Phases {
+			if phase.Key == *request.StartingPhase {
+				// Let's filter out the phases before the starting phase
+				p.Phases = p.Phases[idx:]
+				break
+			}
+
+			if idx == len(p.Phases)-1 {
+				return def, models.NewGenericValidationError(
+					fmt.Errorf("starting phase %s not found in plan %s@%d", *request.StartingPhase, p.Key, p.Version),
+				)
+			}
+		}
+	}
+
 	pp := PlanFromPlan(*p)
 
 	currView, err := s.SubscriptionService.GetView(ctx, request.ID)
