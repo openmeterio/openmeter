@@ -13689,6 +13689,7 @@ export const createSubscriptionBody = zod
       .describe('The plan reference to change to.'),
     startingPhase: zod
       .string()
+      .min(1)
       .optional()
       .describe(
         'The key of the phase to start the subscription in.\nIf not provided, the subscription will start in the first phase of the plan.'
@@ -16170,6 +16171,7 @@ export const changeSubscriptionBody = zod
       .describe('The plan reference to change to.'),
     startingPhase: zod
       .string()
+      .min(1)
       .optional()
       .describe(
         'The key of the phase to start the subscription in.\nIf not provided, the subscription will start in the first phase of the plan.'
