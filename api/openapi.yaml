@@ -19416,6 +19416,7 @@ components:
         - updatedAt
         - addon
         - fromPlanPhase
+        - validationErrors
       properties:
         createdAt:
           type: string
@@ -19469,7 +19470,7 @@ components:
             version:
               type: integer
               minimum: 1
-              description: The version of the Add-on which templates this instance.
+              description: The version of the add-on which templates this instance.
               title: Version
               default: 1
               readOnly: true
@@ -19496,7 +19497,15 @@ components:
             The maximum number of times the add-on can be purchased for the plan.
             It is not applicable for add-ons with single instance type.
           title: Max quantity of the add-on
-      description: The AddonAssignment describes the association between a plan and add-on.
+        validationErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          nullable: true
+          description: List of validation errors.
+          title: Validation errors
+          readOnly: true
+      description: The PlanAddon describes the association between a plan and add-on.
     PlanAddonCreate:
       type: object
       required:
@@ -22269,6 +22278,29 @@ components:
           description: The customer is limited to spend at most the amount.
           title: Maximum amount
       description: Unit price with spend commitments.
+    ValidationError:
+      type: object
+      required:
+        - resource
+        - field
+        - detail
+      properties:
+        resource:
+          allOf:
+            - $ref: '#/components/schemas/ValidationResource'
+          description: The resource information.
+          readOnly: true
+        field:
+          type: string
+          description: The field of the resource the error relates to.
+          example: key
+          readOnly: true
+        detail:
+          type: string
+          description: The detailed description of the error.
+          example: invalid key
+          readOnly: true
+      description: Validation errors providing details about compatibility issues between a plan and its add-on.
     ValidationIssue:
       type: object
       required:
@@ -22345,6 +22377,28 @@ components:
         ValidationIssueSeverity describes the severity of a validation issue.
 
         Issues with severity "critical" will prevent the invoice from being issued.
+    ValidationResource:
+      type: object
+      required:
+        - key
+        - kind
+      properties:
+        key:
+          type: string
+          description: The key of the resource.
+          example: token
+          readOnly: true
+        kind:
+          type: string
+          description: The resource type.
+          example: ratecard
+          readOnly: true
+        attributes:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Additional attributes.
+          readOnly: true
+      description: ValidationResource captures the resource information attached to ValidationError.
     VoidInvoiceActionCreate:
       type: object
       required:

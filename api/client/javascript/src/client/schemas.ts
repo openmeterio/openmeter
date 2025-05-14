@@ -7870,7 +7870,7 @@ export interface components {
        */
       phases: components['schemas']['PlanPhase'][]
     }
-    /** @description The AddonAssignment describes the association between a plan and add-on. */
+    /** @description The PlanAddon describes the association between a plan and add-on. */
     PlanAddon: {
       /**
        * Creation Time
@@ -7921,7 +7921,7 @@ export interface components {
         readonly key: string
         /**
          * Version
-         * @description The version of the Add-on which templates this instance.
+         * @description The version of the add-on which templates this instance.
          * @default 1
          */
         readonly version: number
@@ -7942,6 +7942,13 @@ export interface components {
        *     It is not applicable for add-ons with single instance type.
        */
       maxQuantity?: number
+      /**
+       * Validation errors
+       * @description List of validation errors.
+       */
+      readonly validationErrors:
+        | components['schemas']['ValidationError'][]
+        | null
     }
     /** @description A plan add-on assignment create request. */
     PlanAddonCreate: {
@@ -9872,6 +9879,21 @@ export interface components {
        */
       maximumAmount?: components['schemas']['Numeric']
     }
+    /** @description Validation errors providing details about compatibility issues between a plan and its add-on. */
+    ValidationError: {
+      /** @description The resource information. */
+      readonly resource: components['schemas']['ValidationResource']
+      /**
+       * @description The field of the resource the error relates to.
+       * @example key
+       */
+      readonly field: string
+      /**
+       * @description The detailed description of the error.
+       * @example invalid key
+       */
+      readonly detail: string
+    }
     /** @description ValidationIssue captures any validation issues related to the invoice.
      *
      *     Issues with severity "critical" will prevent the invoice from being issued. */
@@ -9922,6 +9944,21 @@ export interface components {
      * @enum {string}
      */
     ValidationIssueSeverity: 'critical' | 'warning'
+    /** @description ValidationResource captures the resource information attached to ValidationError. */
+    ValidationResource: {
+      /**
+       * @description The key of the resource.
+       * @example token
+       */
+      readonly key: string
+      /**
+       * @description The resource type.
+       * @example ratecard
+       */
+      readonly kind: string
+      /** @description Additional attributes. */
+      readonly attributes?: components['schemas']['Annotations']
+    }
     /** @description InvoiceVoidAction describes how to handle the voided line items. */
     VoidInvoiceActionCreate: {
       /** @description How much of the total line items to be voided? (e.g. 100% means all charges are voided) */
@@ -10784,9 +10821,11 @@ export type UnexpectedProblemResponse =
 export type UnitPrice = components['schemas']['UnitPrice']
 export type UnitPriceWithCommitments =
   components['schemas']['UnitPriceWithCommitments']
+export type ValidationError = components['schemas']['ValidationError']
 export type ValidationIssue = components['schemas']['ValidationIssue']
 export type ValidationIssueSeverity =
   components['schemas']['ValidationIssueSeverity']
+export type ValidationResource = components['schemas']['ValidationResource']
 export type VoidInvoiceActionCreate =
   components['schemas']['VoidInvoiceActionCreate']
 export type VoidInvoiceActionCreateItem =
