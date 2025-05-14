@@ -91,34 +91,47 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.
 	}
 
 	// FIXME: (OM-1055) we should marry productcatalog/plan with feature so we can do this check outside the db layer
-	planReferencesIt, err := c.db.Plan.Query().WithPhases(func(qp *db.PlanPhaseQuery) {
-		qp.WithRatecards()
-	}).Where(
-		dbplan.EffectiveFromNotNil(),
-		dbplan.Or(dbplan.EffectiveToGT(clock.Now()), dbplan.EffectiveToIsNil()),
-		dbplan.HasPhasesWith(dbplanphase.HasRatecardsWith(
-			dbratecard.Or(dbratecard.FeatureID(f.ID), dbratecard.FeatureKey(f.Key)),
-		)),
-	).Exist(ctx)
+	planReferencesIt, err := c.db.Plan.Query().
+		WithPhases(func(qp *db.PlanPhaseQuery) {
+			qp.WithRatecards()
+		}).
+		Where(
+			dbplan.Namespace(featureID.Namespace),
+			dbplan.EffectiveFromNotNil(),
+			dbplan.Or(dbplan.EffectiveToGT(clock.Now()), dbplan.EffectiveToIsNil()),
+			dbplan.HasPhasesWith(dbplanphase.HasRatecardsWith(
+				dbratecard.Or(dbratecard.FeatureID(f.ID), dbratecard.FeatureKey(f.Key)),
+			)),
+		).
+		Exist(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check for plan references: %w", err)
 	}
 
-	subsReferencesIt, err := c.db.Subscription.Query().WithPhases(func(qp *db.SubscriptionPhaseQuery) {
-		qp.WithItems()
-	}).Where(
-		subscriptionrepo.SubscriptionActiveAfter(clock.Now())...,
-	).Where(
-		dbsub.HasPhasesWith(dbsubphase.HasItemsWith(dbsubitem.FeatureKey(f.Key))),
-	).Exist(ctx)
+	subsReferencesIt, err := c.db.Subscription.Query().
+		WithPhases(func(qp *db.SubscriptionPhaseQuery) {
+			qp.WithItems()
+		}).
+		Where(
+			subscriptionrepo.SubscriptionActiveAfter(clock.Now())...,
+		).
+		Where(
+			dbsub.Namespace(featureID.Namespace),
+			dbsub.HasPhasesWith(dbsubphase.HasItemsWith(dbsubitem.FeatureKey(f.Key))),
+		).
+		Exist(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check for subscription references: %w", err)
 	}
 
 	// As currently features are referenced by IDs instead of Keys, and there's no way to publish a new feature version in a single action,
 	// using subscriptions/productcatalog bricks referenced features either way as they can no longer be updated.
-	if planReferencesIt || subsReferencesIt {
-		return &feature.ForbiddenError{Msg: "feature is referenced by active plan or subscription, it cannot be archived", ID: f.ID}
+	if planReferencesIt {
+		return &feature.ForbiddenError{Msg: "feature is referenced by active plan, it cannot be archived", ID: f.ID}
+	}
+
+	if subsReferencesIt {
+		return &feature.ForbiddenError{Msg: "feature is referenced by active subscription, it cannot be archived", ID: f.ID}
 	}
 
 	err = c.db.Feature.Update().
