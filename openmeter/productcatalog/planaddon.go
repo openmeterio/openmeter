@@ -7,7 +7,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type PlanAddonMeta struct {
@@ -44,78 +43,103 @@ func (c PlanAddon) ValidateWith(validators ...models.ValidatorFunc[PlanAddon]) e
 	return models.Validate(c, validators...)
 }
 
+// ValidationErrors returns a list of possible validation error(s) regarding to compatibility of the plan and add-on in the assignment.
+// It returns nil if the plan and add-on are compatible.
+func (c PlanAddon) ValidationErrors() []InvalidResourceError {
+	err := c.Validate()
+	if err == nil {
+		return nil
+	}
+
+	return UnwrapErrors[InvalidResourceError](err)
+}
+
 func (c PlanAddon) Validate() error {
 	var errs []error
 
-	// Validate config
-
-	switch c.Addon.InstanceType {
-	case AddonInstanceTypeMultiple:
-		if c.MaxQuantity != nil && *c.MaxQuantity <= 0 {
-			errs = append(errs,
-				fmt.Errorf("maxQuantity must be set to positive number for add-on with multiple instance type [addon.key=%s addon.version=%d]",
-					c.Addon.Key, c.Addon.Version),
-			)
-		}
-	case AddonInstanceTypeSingle:
-		if c.MaxQuantity != nil {
-			errs = append(errs,
-				fmt.Errorf("maxQuantity must not be set for add-on with single instance type [addon.key=%s addon.version=%d]",
-					c.Addon.Key, c.Addon.Version),
-			)
-		}
-	}
-
 	// Validate plan
+
+	planResource := Resource{
+		Key:  c.Plan.Key,
+		Kind: "plan",
+	}
 
 	// Check plan status
 	allowedPlanStatuses := []PlanStatus{PlanStatusDraft, PlanStatusActive, PlanStatusScheduled}
 	if !lo.Contains(allowedPlanStatuses, c.Plan.Status()) {
-		errs = append(errs,
-			fmt.Errorf("invalid plan [plan.key=%s plan.version=%d]: invalid %s status, allowed statuses: %+v",
-				c.Plan.Key, c.Plan.Version, c.Plan.Status(), allowedPlanStatuses),
-		)
+		errs = append(errs, InvalidResourceError{
+			Resource: planResource,
+			Field:    "status",
+			Detail:   fmt.Sprintf("invalid status %s allowed statuses: %+v", c.Plan.Status(), allowedPlanStatuses),
+		})
 	}
 
 	// Validate add-on
 
+	addonResource := Resource{
+		Key:  c.Addon.Key,
+		Kind: "addon",
+		Attributes: map[string]any{
+			"version": c.Addon.Version,
+		},
+	}
+
 	// Add-on must be active and the effective period of add-on must be open-ended
 	// as we do not support scheduled changes for add-ons.
 	if c.Addon.Status() != AddonStatusActive || c.Addon.EffectiveTo != nil {
-		errs = append(errs,
-			fmt.Errorf("invalid add-on [addon.key=%s addon.version=%d]: status must be active",
-				c.Addon.Key, c.Addon.Version),
-		)
+		errs = append(errs, InvalidResourceError{
+			Resource: addonResource,
+			Field:    "status",
+			Detail:   fmt.Sprintf("invalid status %s, add-on must be active", c.Addon.Status()),
+		})
 	}
 
-	// validate plan with add-on
+	// Validate add-on assignment
 
-	// Currency must match.
-	if c.Addon.Currency != c.Plan.Currency {
-		errs = append(errs, errors.New("currency mismatch"))
-	}
-
-	if len(c.Plan.Phases) > 0 {
-		phaseIdx := -1
-		for i, phase := range c.Plan.Phases {
-			if phase.Key == c.FromPlanPhase {
-				phaseIdx = i
-				break
-			}
+	switch c.Addon.InstanceType {
+	case AddonInstanceTypeMultiple:
+		if c.MaxQuantity != nil && *c.MaxQuantity <= 0 {
+			errs = append(errs, InvalidResourceError{
+				Resource: addonResource,
+				Field:    "maxQuantity",
+				Detail:   "must be set to positive number for add-on with multiple instance type",
+			})
 		}
+	case AddonInstanceTypeSingle:
+		if c.MaxQuantity != nil {
+			errs = append(errs, InvalidResourceError{
+				Resource: addonResource,
+				Field:    "maxQuantity",
+				Detail:   "must not be set for add-on with single instance type",
+			})
+		}
+	}
 
-		if phaseIdx == -1 {
-			errs = append(errs, fmt.Errorf("plan does not have phase %q", c.FromPlanPhase))
-		} else {
-			// Validate ratecards from plan phases and addon.
-			for _, phase := range c.Plan.Phases[phaseIdx:] {
-				if err := c.validateRateCardsInPhase(phase.RateCards, c.Addon.RateCards); err != nil {
-					errs = append(errs, fmt.Errorf("invalid phase [phase.key=%s]: ratecards are not compatible: %w", phase.Key, err))
-				}
+	if c.Addon.Currency != c.Plan.Currency {
+		errs = append(errs, InvalidResourceError{
+			Resource: addonResource,
+			Field:    "currency",
+			Detail:   "currency mismatch",
+		})
+	}
+
+	_, fromPhaseIdx, ok := lo.FindIndexOf(c.Plan.Phases, func(item Phase) bool {
+		return item.Key == c.FromPlanPhase
+	})
+
+	if ok {
+		// Validate ratecards from plan phases and addon.
+		for _, phase := range c.Plan.Phases[fromPhaseIdx:] {
+			if err := c.validateRateCardsInPhase(phase.RateCards, c.Addon.RateCards); err != nil {
+				errs = append(errs, fmt.Errorf("invalid phase [phase.key=%s]: ratecards are not compatible: %w", phase.Key, err))
 			}
 		}
 	} else {
-		errs = append(errs, errors.New("invalid plan: has no phases"))
+		errs = append(errs, InvalidResourceError{
+			Resource: addonResource,
+			Field:    "fromPlanPhase",
+			Detail:   fmt.Sprintf("plan does not have phase with key: %s", c.FromPlanPhase),
+		})
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -124,29 +148,23 @@ func (c PlanAddon) Validate() error {
 func (c PlanAddon) validateRateCardsInPhase(phaseRateCards, addonRateCards RateCards) error {
 	var errs []error
 
-	// We'll assume phaseRateCards and addonRateCards are otherwise valid by unique constraints and formal contents...
-	for _, phaseRateCard := range phaseRateCards {
-		affectingRateCards := lo.Filter(addonRateCards, slicesx.AsFilterIteratee(AddonRateCardMatcherForAGivenPlanRateCard(phaseRateCard)))
+	phaseRateCardsByKey := lo.SliceToMap(phaseRateCards, func(item RateCard) (string, RateCard) {
+		return item.Key(), item
+	})
 
-		// No RateCards affect this plan RateCard
-		if len(affectingRateCards) == 0 {
+	for _, addonRateCard := range addonRateCards {
+		phaseRateCard, ok := phaseRateCardsByKey[addonRateCard.Key()]
+
+		// Add-on ratecard is not present in plan phase ratecards, it is safe to skip.
+		if !ok {
 			continue
 		}
 
-		// For now we only support a single RateCard per addon effecting a single plan RateCard.
-		if len(affectingRateCards) > 1 {
-			errs = append(errs, fmt.Errorf("multiple add-on ratecards affect plan ratecard [plan.ratecard.key=%s]: affecting add-on ratecard keys: %+v", phaseRateCard.Key(), lo.Map(affectingRateCards, func(item RateCard, index int) string {
-				return item.Key()
-			})))
-
-			continue
-		}
-
-		// Finally, let's check that they are compatible
-		if err := NewRateCardWithOverlay(phaseRateCard, affectingRateCards[0]).Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("plan ratecard is not compatible with add-on ratecard [plan.ratecard.key=%s add-on.ratecard.key=%s]: %w", phaseRateCard.Key(), affectingRateCards[0].Key(), err))
+		if err := NewRateCardWithOverlay(phaseRateCard, addonRateCard).Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("plan ratecard is not compatible with add-on ratecard [key=%s]: %w",
+				phaseRateCard.Key(), err))
 		}
 	}
 
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	return errors.Join(errs...)
 }

@@ -127,7 +127,7 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 			case productcatalog.UsageBasedRateCardType:
 				bc := rateCard.GetBillingCadence()
 				if bc == nil {
-					return fmt.Errorf("BillingCadence is required for UsageBasedRateCard")
+					return models.NewGenericValidationError(fmt.Errorf("BillingCadence is required for UsageBasedRateCard"))
 				}
 
 				rcNew = &productcatalog.UsageBasedRateCard{
@@ -135,7 +135,7 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 					BillingCadence: *bc,
 				}
 			default:
-				return fmt.Errorf("unsupported RateCard type: %s", rateCard.Type())
+				return models.NewGenericValidationError(fmt.Errorf("unsupported RateCard type: %s", rateCard.Type()))
 			}
 
 			if err := rateCard.Merge(rcNew); err != nil {
@@ -144,7 +144,7 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 		} else if fID == nil && fK != nil {
 			// We need to populate FeatureID
 			if !featureByKeyOk {
-				return fmt.Errorf("feature with key %s not found", *fK)
+				return models.NewGenericNotFoundError(fmt.Errorf("feature with key %s not found", *fK))
 			}
 
 			// FIXME: merging like this is a pain, we should just use pointers...

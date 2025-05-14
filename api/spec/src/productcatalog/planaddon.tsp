@@ -5,7 +5,7 @@ import "./ratecards.tsp";
 namespace OpenMeter.ProductCatalog;
 
 /**
- *  The AddonAssignment describes the association between a plan and add-on.
+ *  The PlanAddon describes the association between a plan and add-on.
  */
 @friendlyName("PlanAddon")
 model PlanAddon {
@@ -46,7 +46,7 @@ model PlanAddon {
     key: Key;
 
     /**
-     * The version of the Add-on which templates this instance.
+     * The version of the add-on which templates this instance.
      */
     @summary("Version")
     @minValue(1)
@@ -75,6 +75,13 @@ model PlanAddon {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Max quantity of the add-on")
   maxQuantity?: integer;
+
+  /**
+   * List of validation errors.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Validation errors")
+  validationErrors: ValidationError[] | null;
 }
 
 /**
