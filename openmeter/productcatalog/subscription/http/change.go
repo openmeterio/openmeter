@@ -118,6 +118,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 						Name:        lo.FromPtr(parsedBody.Name),
 						Description: parsedBody.Description,
 					},
+					StartingPhase: parsedBody.StartingPhase,
 				}, nil
 			}
 		},
