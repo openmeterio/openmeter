@@ -113,6 +113,83 @@ func TestMigrate(t *testing.T) {
 
 			// Let's migrate the subscription to the new version
 			resp, err := svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
+				ID: sub.NamespacedID,
+			})
+			require.Nil(t, err)
+
+			require.Equal(t, sub.NamespacedID, resp.Current.NamespacedID)
+			require.Equal(t, plan2.PlanMeta.Version, resp.Next.Subscription.PlanRef.Version)
+		})
+	})
+
+	t.Run("Should migrate to specific version of plan when provided", func(t *testing.T) {
+		withDeps(t, func(t *testing.T, deps tDeps) {
+			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
+			clock.SetTime(now)
+			defer clock.ResetTime()
+
+			ctx := context.Background()
+
+			svc := service.New(service.Config{
+				SubscriptionService: deps.subSvc,
+				WorkflowService:     deps.wfSvc,
+				Logger:              logger,
+				PlanService:         deps.subDeps.PlanService,
+				CustomerService:     deps.subDeps.CustomerService,
+			})
+
+			// Let's set up the feature & customer
+			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
+			deps.subDeps.FeatureConnector.CreateExampleFeatures(t)
+
+			// Let's create the plan
+			plan1 := deps.subDeps.PlanHelper.CreatePlan(t, examplePlanInput1)
+
+			// Let's create the subscription
+			p1Inp := plansubscription.PlanInput{}
+			p1Inp.FromRef(&plansubscription.PlanRefInput{
+				Key:     plan1.ToCreateSubscriptionPlanInput().Plan.Key,
+				Version: &plan1.ToCreateSubscriptionPlanInput().Plan.Version,
+			})
+
+			sub, err := svc.Create(ctx, plansubscription.CreateSubscriptionRequest{
+				PlanInput: p1Inp,
+				WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+						Name: "test",
+						Timing: subscription.Timing{
+							Custom: lo.ToPtr(now.Add(time.Second)),
+						},
+					},
+					Namespace:  cust.Namespace,
+					CustomerID: cust.ID,
+				},
+			})
+			require.Nil(t, err)
+
+			pv2Input := examplePlanInput1
+			pv2Input.Plan.PlanMeta.Name = "New Name"
+
+			// Let's create a new version of the plan
+			plan2, err := deps.subDeps.PlanService.CreatePlan(ctx, pv2Input)
+			require.Nil(t, err)
+
+			eFrom := clock.Now().Add(5 * time.Second)
+
+			// Let's publish the new version
+			plan2, err = deps.subDeps.PlanService.PublishPlan(ctx, plan.PublishPlanInput{
+				NamespacedID: plan2.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: &eFrom,
+				},
+			})
+			require.Nil(t, err)
+			require.NotNil(t, plan2)
+
+			clock.SetTime(eFrom.Add(time.Second))
+
+			// Let's migrate the subscription to the new version
+			resp, err := svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
 				ID:            sub.NamespacedID,
 				TargetVersion: &plan2.PlanMeta.Version,
 			})
@@ -201,5 +278,95 @@ func TestMigrate(t *testing.T) {
 
 	t.Run("Should not allow migrating to archived version", func(t *testing.T) {
 		t.Skip("Should it or should it not? Right now it allows it")
+	})
+
+	t.Run("Should migrate to new version of plan starting from specific phase", func(t *testing.T) {
+		withDeps(t, func(t *testing.T, deps tDeps) {
+			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
+			clock.SetTime(now)
+			defer clock.ResetTime()
+
+			ctx := context.Background()
+
+			svc := service.New(service.Config{
+				SubscriptionService: deps.subSvc,
+				WorkflowService:     deps.wfSvc,
+				Logger:              logger,
+				PlanService:         deps.subDeps.PlanService,
+				CustomerService:     deps.subDeps.CustomerService,
+			})
+
+			// Let's set up the feature & customer
+			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
+			deps.subDeps.FeatureConnector.CreateExampleFeatures(t)
+
+			// Let's create the plan
+			plan1 := deps.subDeps.PlanHelper.CreatePlan(t, examplePlanInput1)
+
+			// Let's create the subscription
+			p1Inp := plansubscription.PlanInput{}
+			p1Inp.FromRef(&plansubscription.PlanRefInput{
+				Key:     plan1.ToCreateSubscriptionPlanInput().Plan.Key,
+				Version: &plan1.ToCreateSubscriptionPlanInput().Plan.Version,
+			})
+
+			sub, err := svc.Create(ctx, plansubscription.CreateSubscriptionRequest{
+				PlanInput: p1Inp,
+				WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+						Name: "test",
+						Timing: subscription.Timing{
+							Custom: lo.ToPtr(now.Add(time.Second)),
+						},
+					},
+					Namespace:  cust.Namespace,
+					CustomerID: cust.ID,
+				},
+			})
+			require.Nil(t, err)
+
+			pv2Input := examplePlanInput1
+			pv2Input.Plan.PlanMeta.Name = "New Name"
+
+			// Let's create a new version of the plan
+			plan2, err := deps.subDeps.PlanService.CreatePlan(ctx, pv2Input)
+			require.Nil(t, err)
+
+			eFrom := clock.Now().Add(5 * time.Second)
+
+			// Let's publish the new version
+			plan2, err = deps.subDeps.PlanService.PublishPlan(ctx, plan.PublishPlanInput{
+				NamespacedID: plan2.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: &eFrom,
+				},
+			})
+			require.Nil(t, err)
+			require.NotNil(t, plan2)
+
+			clock.SetTime(eFrom.Add(time.Second))
+
+			t.Run("Should error if starting phase is not found", func(t *testing.T) {
+				// Let's migrate the subscription to the new version starting with the second phase
+				_, err := svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
+					ID:            sub.NamespacedID,
+					TargetVersion: &plan2.PlanMeta.Version,
+					StartingPhase: lo.ToPtr("test_phase_NOT_FOUND"),
+				})
+				require.Error(t, err)
+				require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
+			})
+
+			// Let's migrate the subscription to the new version starting with the second phase
+			resp, err := svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
+				ID:            sub.NamespacedID,
+				TargetVersion: &plan2.PlanMeta.Version,
+				StartingPhase: lo.ToPtr("test_phase_2"),
+			})
+			require.Nil(t, err)
+
+			require.Len(t, resp.Next.Phases, len(plan2.Phases)-1)
+			require.Equal(t, "test_phase_2", resp.Next.Phases[0].SubscriptionPhase.Key)
+		})
 	})
 }

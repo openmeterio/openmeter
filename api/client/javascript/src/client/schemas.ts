@@ -8167,6 +8167,9 @@ export interface components {
       metadata?: components['schemas']['Metadata']
       /** @description The plan reference to change to. */
       plan: components['schemas']['PlanReferenceInput']
+      /** @description The key of the phase to start the subscription in.
+       *     If not provided, the subscription will start in the first phase of the plan. */
+      startingPhase?: string
       /** @description The name of the Subscription. If not provided the plan name is used. */
       name?: string
       /** @description Description for the Subscription. */
@@ -8180,6 +8183,9 @@ export interface components {
       metadata?: components['schemas']['Metadata']
       /** @description The plan reference to change to. */
       plan: components['schemas']['PlanReferenceInput']
+      /** @description The key of the phase to start the subscription in.
+       *     If not provided, the subscription will start in the first phase of the plan. */
+      startingPhase?: string
       /** @description The name of the Subscription. If not provided the plan name is used. */
       name?: string
       /** @description Description for the Subscription. */
@@ -23516,7 +23522,12 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
+          /** @description The version of the plan to migrate to.
+           *     If not provided, the subscription will migrate to the latest version of the current plan. */
           targetVersion?: number
+          /** @description The key of the phase to start the subscription in.
+           *     If not provided, the subscription will start in the first phase of the plan. */
+          startingPhase?: string
         }
       }
     }

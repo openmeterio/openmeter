@@ -23,12 +23,16 @@ type SubscriptionChangeResponse struct {
 type MigrateSubscriptionRequest struct {
 	ID            models.NamespacedID
 	TargetVersion *int
+	StartingPhase *string
 }
 
 type ChangeSubscriptionRequest struct {
 	ID            models.NamespacedID
 	WorkflowInput subscriptionworkflow.ChangeSubscriptionWorkflowInput
 	PlanInput     PlanInput
+
+	// Only used if existing plan is provided
+	StartingPhase *string
 }
 
 type CreateSubscriptionRequest struct {

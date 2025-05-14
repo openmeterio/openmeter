@@ -45,6 +45,23 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 			)
 		}
 
+		// Let's find the starting phase
+		if request.StartingPhase != nil {
+			for idx, phase := range p.Phases {
+				if phase.Key == *request.StartingPhase {
+					// Let's filter out the phases before the starting phase
+					p.Phases = p.Phases[idx:]
+					break
+				}
+
+				if idx == len(p.Phases)-1 {
+					return def, models.NewGenericValidationError(
+						fmt.Errorf("starting phase %s not found in plan %s@%d", *request.StartingPhase, p.Key, p.Version),
+					)
+				}
+			}
+		}
+
 		plan = PlanFromPlan(*p)
 	} else {
 		return def, fmt.Errorf("plan or plan reference must be provided, input should already be validated")
