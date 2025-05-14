@@ -318,7 +318,7 @@ model BillingWorkflowCollectionSettings {
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  interval?: string = "PT2H";
+  interval?: string = "PT1H";
 }
 
 /**
@@ -393,11 +393,12 @@ model BillingWorkflowInvoicingSettings {
 
   /**
    * The period after which the invoice is due.
+   * With some payment solutions it's only applicable for manual collection method.
    */
   @encode(DurationKnownEncoding.ISO8601)
-  @example("P1D")
+  @example("P30D")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  dueAfter?: string = "P1W";
+  dueAfter?: string = "P30D";
 
   /**
    * Should progressive billing be allowed for this workflow?

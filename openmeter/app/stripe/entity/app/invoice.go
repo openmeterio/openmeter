@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 const (
@@ -87,11 +86,6 @@ func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
 
 // FinalizeInvoice finalizes the invoice for the app
 func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*billing.FinalizeInvoiceResult, error) {
-	// Validate due at: Stripe does not support finalizing invoices that are due in the past.
-	if invoice.DueAt.Before(clock.Now()) {
-		return nil, fmt.Errorf("invoice due at is in the past")
-	}
-
 	// Get the Stripe client
 	_, stripeClient, err := a.getStripeClient(ctx, "finalizeInvoice", "invoice_id", invoice.ID, "stripe_invoice_id", invoice.ExternalIDs.GetInvoicingOrEmpty())
 	if err != nil {
@@ -120,7 +114,6 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*bil
 				// Disable tax calculation
 				AutomaticTaxEnabled: false,
 				StripeInvoiceID:     invoice.ExternalIDs.Invoicing,
-				DueDate:             invoice.DueAt,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to update invoice in stripe to disable tax calculation: %w", err)
@@ -184,9 +177,14 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		AutomaticTaxEnabled:          invoice.Workflow.Config.Tax.Enabled,
 		CollectionMethod:             invoice.Workflow.Config.Payment.CollectionMethod,
 		Currency:                     invoice.Currency,
-		DueDate:                      invoice.DueAt,
 		StripeCustomerID:             stripeCustomerData.StripeCustomerID,
 		StripeDefaultPaymentMethodID: stripeCustomerData.StripeDefaultPaymentMethodID,
+	}
+
+	// Set the days until due if the invoice is sent
+	if invoice.Workflow.Config.Payment.CollectionMethod == billing.CollectionMethodSendInvoice {
+		daysUntilDue := invoice.Workflow.Config.Invoicing.DueAfter.Days()
+		createInvoiceParams.DaysUntilDue = lo.ToPtr(int64(daysUntilDue))
 	}
 
 	stripeInvoice, err := stripeClient.CreateInvoice(ctx, createInvoiceParams)
@@ -275,7 +273,6 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Update the invoice in Stripe
 	stripeInvoice, err := stripeClient.UpdateInvoice(ctx, stripeclient.UpdateInvoiceInput{
 		AutomaticTaxEnabled: invoice.Workflow.Config.Tax.Enabled,
-		DueDate:             invoice.DueAt,
 		StripeInvoiceID:     invoice.ExternalIDs.Invoicing,
 	})
 	if err != nil {
