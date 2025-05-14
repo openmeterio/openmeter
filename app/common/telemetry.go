@@ -269,10 +269,6 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 					span := trace.SpanFromContext(r.Context())
 
 					span.SetAttributes(semconv.URLPath(r.URL.String()))
-					labeler, ok := otelhttp.LabelerFromContext(r.Context())
-					if ok {
-						labeler.Add(semconv.URLPath(r.URL.String()))
-					}
 
 					// Run the instrumented handler
 					h.ServeHTTP(w, r)
