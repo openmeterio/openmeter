@@ -4,6 +4,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -21,19 +22,46 @@ func FromPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
 			Key:          a.Addon.Key,
 			Version:      a.Addon.Version,
 		},
-		FromPlanPhase: a.PlanAddonConfig.FromPlanPhase,
-		MaxQuantity:   a.PlanAddonConfig.MaxQuantity,
-		CreatedAt:     a.CreatedAt,
-		DeletedAt:     a.DeletedAt,
-		UpdatedAt:     a.UpdatedAt,
-		Annotations:   FromAnnotations(a.Annotations),
-		Metadata:      FromMetadata(a.Metadata),
+		FromPlanPhase:    a.PlanAddonConfig.FromPlanPhase,
+		MaxQuantity:      a.PlanAddonConfig.MaxQuantity,
+		CreatedAt:        a.CreatedAt,
+		DeletedAt:        a.DeletedAt,
+		UpdatedAt:        a.UpdatedAt,
+		Annotations:      FromAnnotations(a.Annotations),
+		Metadata:         FromMetadata(a.Metadata),
+		ValidationErrors: FromValidationErrors(a.AsProductCatalogPlanAddon().ValidationErrors()),
 	}
 
 	return resp, nil
 }
 
+func FromValidationErrors(errs []productcatalog.InvalidResourceError) *[]api.ValidationError {
+	if len(errs) == 0 {
+		return nil
+	}
+
+	var result []api.ValidationError
+
+	for _, err := range errs {
+		result = append(result, api.ValidationError{
+			Detail: err.Detail,
+			Field:  err.Field,
+			Resource: api.ValidationResource{
+				Attributes: FromAnnotations(err.Resource.Attributes),
+				Key:        err.Resource.Key,
+				Kind:       err.Resource.Kind,
+			},
+		})
+	}
+
+	return &result
+}
+
 func FromAnnotations(annotations models.Annotations) *api.Annotations {
+	if len(annotations) == 0 {
+		return nil
+	}
+
 	var result api.Annotations
 
 	if len(annotations) > 0 {
@@ -48,6 +76,10 @@ func FromAnnotations(annotations models.Annotations) *api.Annotations {
 }
 
 func FromMetadata(metadata models.Metadata) *api.Metadata {
+	if len(metadata) == 0 {
+		return nil
+	}
+
 	var result api.Metadata
 
 	if len(metadata) > 0 {
