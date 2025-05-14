@@ -5175,7 +5175,7 @@ export const updateInvoiceBodyLinesItemIdRegExpOne = new RegExp(
 export const updateInvoiceBodyWorkflowWorkflowInvoicingAutoAdvanceDefault = true
 export const updateInvoiceBodyWorkflowWorkflowInvoicingDraftPeriodDefault =
   'P0D'
-export const updateInvoiceBodyWorkflowWorkflowInvoicingDueAfterDefault = 'P1W'
+export const updateInvoiceBodyWorkflowWorkflowInvoicingDueAfterDefault = 'P30D'
 export const updateInvoiceBodyWorkflowWorkflowInvoicingDefaultTaxConfigStripeCodeRegExp =
   new RegExp('^txcd_\\d{8}$')
 export const updateInvoiceBodyWorkflowWorkflowPaymentCollectionMethodDefault =
@@ -6403,7 +6403,9 @@ export const updateInvoiceBody = zod
                   .default(
                     updateInvoiceBodyWorkflowWorkflowInvoicingDueAfterDefault
                   )
-                  .describe('The period after which the invoice is due.'),
+                  .describe(
+                    "The period after which the invoice is due.\nWith some payment solutions it's only applicable for manual collection method."
+                  ),
               })
               .describe(
                 'InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow.'
@@ -6683,10 +6685,10 @@ export const createBillingProfileBodySupplierAddressesMax = 1
 export const createBillingProfileBodyWorkflowCollectionAlignmentDefault = {
   type: 'subscription',
 }
-export const createBillingProfileBodyWorkflowCollectionIntervalDefault = 'PT2H'
+export const createBillingProfileBodyWorkflowCollectionIntervalDefault = 'PT1H'
 export const createBillingProfileBodyWorkflowInvoicingAutoAdvanceDefault = true
 export const createBillingProfileBodyWorkflowInvoicingDraftPeriodDefault = 'P0D'
-export const createBillingProfileBodyWorkflowInvoicingDueAfterDefault = 'P1W'
+export const createBillingProfileBodyWorkflowInvoicingDueAfterDefault = 'P30D'
 export const createBillingProfileBodyWorkflowInvoicingProgressiveBillingDefault =
   false
 export const createBillingProfileBodyWorkflowInvoicingDefaultTaxConfigStripeCodeRegExp =
@@ -6935,7 +6937,9 @@ export const createBillingProfileBody = zod
             dueAfter: zod
               .string()
               .default(createBillingProfileBodyWorkflowInvoicingDueAfterDefault)
-              .describe('The period after which the invoice is due.'),
+              .describe(
+                "The period after which the invoice is due.\nWith some payment solutions it's only applicable for manual collection method."
+              ),
             progressiveBilling: zod
               .boolean()
               .optional()
@@ -7052,10 +7056,10 @@ export const updateBillingProfileBodySupplierAddressesMax = 1
 export const updateBillingProfileBodyWorkflowCollectionAlignmentDefault = {
   type: 'subscription',
 }
-export const updateBillingProfileBodyWorkflowCollectionIntervalDefault = 'PT2H'
+export const updateBillingProfileBodyWorkflowCollectionIntervalDefault = 'PT1H'
 export const updateBillingProfileBodyWorkflowInvoicingAutoAdvanceDefault = true
 export const updateBillingProfileBodyWorkflowInvoicingDraftPeriodDefault = 'P0D'
-export const updateBillingProfileBodyWorkflowInvoicingDueAfterDefault = 'P1W'
+export const updateBillingProfileBodyWorkflowInvoicingDueAfterDefault = 'P30D'
 export const updateBillingProfileBodyWorkflowInvoicingProgressiveBillingDefault =
   false
 export const updateBillingProfileBodyWorkflowInvoicingDefaultTaxConfigStripeCodeRegExp =
@@ -7264,7 +7268,9 @@ export const updateBillingProfileBody = zod
             dueAfter: zod
               .string()
               .default(updateBillingProfileBodyWorkflowInvoicingDueAfterDefault)
-              .describe('The period after which the invoice is due.'),
+              .describe(
+                "The period after which the invoice is due.\nWith some payment solutions it's only applicable for manual collection method."
+              ),
             progressiveBilling: zod
               .boolean()
               .optional()
