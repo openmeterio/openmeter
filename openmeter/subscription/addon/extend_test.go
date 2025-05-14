@@ -157,7 +157,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "incompatible rate card keys")
+			require.ErrorContains(t, err, "key mismatch between ratecards")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -165,7 +165,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "incompatible rate card keys")
+			require.ErrorContains(t, err, "key mismatch between ratecards")
 		})
 	})
 
