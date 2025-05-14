@@ -2791,7 +2791,7 @@ export interface components {
        *     alignment.
        *
        *     This is useful, in case of multiple subscriptions having slightly different billing periods.
-       * @default PT2H
+       * @default PT1H
        * @example P1D
        */
       interval?: string
@@ -2827,8 +2827,9 @@ export interface components {
       /**
        * Format: ISO8601
        * @description The period after which the invoice is due.
-       * @default P1W
-       * @example P1D
+       *     With some payment solutions it's only applicable for manual collection method.
+       * @default P30D
+       * @example P30D
        */
       dueAfter?: string
       /**
@@ -6317,8 +6318,9 @@ export interface components {
       /**
        * Format: ISO8601
        * @description The period after which the invoice is due.
-       * @default P1W
-       * @example P1D
+       *     With some payment solutions it's only applicable for manual collection method.
+       * @default P30D
+       * @example P30D
        */
       dueAfter?: string
       /** @description Default tax configuration to apply to the invoices. */
