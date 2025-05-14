@@ -15,13 +15,13 @@ const (
 var DefaultWorkflowConfig = WorkflowConfig{
 	Collection: CollectionConfig{
 		Alignment: AlignmentKindSubscription,
-		Interval:  lo.Must(isodate.String("PT2H").Parse()),
+		Interval:  lo.Must(isodate.String("PT1H").Parse()),
 	},
 	Invoicing: InvoicingConfig{
 		AutoAdvance:        true,
 		DraftPeriod:        lo.Must(isodate.String("P0D").Parse()),
-		DueAfter:           lo.Must(isodate.String("P1W").Parse()),
-		ProgressiveBilling: false,
+		DueAfter:           lo.Must(isodate.String("P30D").Parse()),
+		ProgressiveBilling: true,
 		DefaultTaxConfig:   nil,
 	},
 	Payment: PaymentConfig{
