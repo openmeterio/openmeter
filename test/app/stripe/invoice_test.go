@@ -119,7 +119,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
-	dueAt := lo.Must(time.Parse(time.RFC3339, "2024-09-10T12:14:14Z"))
 	clock.FreezeTime(periodStart)
 	defer clock.UnFreeze()
 
@@ -517,7 +516,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				CollectionMethod:    billing.CollectionMethodChargeAutomatically,
 				StripeCustomerID:    customerData.StripeCustomerID,
 				Currency:            "USD",
-				DueDate:             lo.ToPtr(dueAt),
 			}).
 			Once().
 			Return(&stripe.Invoice{
@@ -829,7 +827,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
 				AutomaticTaxEnabled: true,
 				StripeInvoiceID:     updateInvoice.ExternalIDs.Invoicing,
-				DueDate:             lo.ToPtr(dueAt),
 			}).
 			Once().
 			// We return the updated invoice.
@@ -956,7 +953,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.StripeAppClient.
 			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
 				StripeInvoiceID:     invoice.ExternalIDs.Invoicing,
-				DueDate:             lo.ToPtr(dueAt),
 				AutomaticTaxEnabled: false,
 			}).
 			Once().
@@ -1022,7 +1018,6 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	ctx := context.Background()
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
-	dueAt := lo.Must(time.Parse(time.RFC3339, "2024-09-10T12:14:14Z"))
 	clock.FreezeTime(periodStart)
 	defer clock.UnFreeze()
 
@@ -1203,7 +1198,6 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		CollectionMethod:    billing.CollectionMethodChargeAutomatically,
 		StripeCustomerID:    customerData.StripeCustomerID,
 		Currency:            "USD",
-		DueDate:             lo.ToPtr(dueAt),
 	})
 
 	// Then the invoice should have the UBP line with 0 amount
@@ -1219,7 +1213,6 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
 			AutomaticTaxEnabled: true,
 			StripeInvoiceID:     invoice.ExternalIDs.Invoicing,
-			DueDate:             lo.ToPtr(dueAt),
 		}).
 		Return(&stripe.Invoice{
 			ID: "stripe-invoice-id",

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
@@ -26,6 +25,7 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 		AutoAdvance: lo.ToPtr(false),
 		// If not set, defaults to the default payment method in the customer’s invoice settings.
 		DefaultPaymentMethod: input.StripeDefaultPaymentMethodID,
+		DaysUntilDue:         input.DaysUntilDue,
 		StatementDescriptor:  input.StatementDescriptor,
 		// Tax settings
 		AutomaticTax: &stripe.InvoiceAutomaticTaxParams{
@@ -40,12 +40,6 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 		params.CollectionMethod = lo.ToPtr(string(stripe.InvoiceCollectionMethodChargeAutomatically))
 	case billing.CollectionMethodSendInvoice:
 		params.CollectionMethod = lo.ToPtr(string(stripe.InvoiceCollectionMethodSendInvoice))
-
-		// The due date can only be set if we are not charging automatically.
-		if input.DueDate != nil {
-			params.DueDate = lo.ToPtr(input.DueDate.Unix())
-		}
-
 	default:
 		return nil, fmt.Errorf("stripe create invoice: invalid collection method: %s", input.CollectionMethod)
 	}
@@ -71,9 +65,6 @@ func (c *stripeAppClient) UpdateInvoice(ctx context.Context, input UpdateInvoice
 		StatementDescriptor: input.StatementDescriptor,
 	}
 
-	if input.DueDate != nil {
-		params.DueDate = lo.ToPtr(input.DueDate.Unix())
-	}
 	return c.client.Invoices.Update(input.StripeInvoiceID, params)
 }
 
@@ -114,7 +105,7 @@ type CreateInvoiceInput struct {
 	AutomaticTaxEnabled          bool
 	CollectionMethod             billing.CollectionMethod
 	Currency                     currencyx.Code
-	DueDate                      *time.Time
+	DaysUntilDue                 *int64
 	StatementDescriptor          *string
 	StripeCustomerID             string
 	StripeDefaultPaymentMethodID *string
@@ -133,8 +124,12 @@ func (i CreateInvoiceInput) Validate() error {
 		return errors.New("currency is required")
 	}
 
-	if i.DueDate != nil && i.DueDate.IsZero() {
-		return errors.New("due date cannot be zero")
+	if i.CollectionMethod == billing.CollectionMethodChargeAutomatically && i.DaysUntilDue != nil {
+		return errors.New("days until due cannot be set when charging automatically")
+	}
+
+	if i.CollectionMethod == billing.CollectionMethodSendInvoice && i.DaysUntilDue == nil {
+		return errors.New("days until due is required when sending an invoice")
 	}
 
 	if i.StripeCustomerID == "" {
@@ -152,17 +147,12 @@ func (i CreateInvoiceInput) Validate() error {
 type UpdateInvoiceInput struct {
 	AutomaticTaxEnabled bool
 	StripeInvoiceID     string
-	DueDate             *time.Time
 	StatementDescriptor *string
 }
 
 func (i UpdateInvoiceInput) Validate() error {
 	if i.StripeInvoiceID == "" {
 		return errors.New("stripe invoice id is required")
-	}
-
-	if i.DueDate != nil && i.DueDate.IsZero() {
-		return errors.New("due date cannot be zero")
 	}
 
 	if i.StatementDescriptor != nil && *i.StatementDescriptor == "" {
