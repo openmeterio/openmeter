@@ -40,6 +40,7 @@ func (h *handler) MigrateSubscription() MigrateSubscriptionHandler {
 					ID:        params.ID,
 				},
 				TargetVersion: body.TargetVersion,
+				StartingPhase: body.StartingPhase,
 			}, nil
 		},
 		func(ctx context.Context, request MigrateSubscriptionRequest) (MigrateSubscriptionResponse, error) {
