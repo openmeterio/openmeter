@@ -404,6 +404,17 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	require.NoError(t, err, "Update customer data must not return error")
 
+	// Get customer data
+	getCustomerData, err = testApp.GetCustomerData(ctx, app.GetAppInstanceCustomerDataInput{
+		CustomerID: customer.GetID(),
+	})
+
+	require.NoError(t, err, "Get customer data must not return error")
+	require.Equal(t, appstripeentity.CustomerData{
+		StripeCustomerID:             newStripeCustomerID,
+		StripeDefaultPaymentMethodID: &newStripePaymentMethodID,
+	}, getCustomerData, "Customer data must match")
+
 	// Update customer data with non existing stripe customer should return error
 	nonExistingStripeCustomerID := "cus_789"
 
@@ -489,7 +500,8 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	require.NoError(t, err, "Get customer data must not return error")
 	require.Equal(t, appstripeentity.CustomerData{
-		StripeCustomerID: "cus_456",
+		StripeCustomerID:             "cus_456",
+		StripeDefaultPaymentMethodID: &newStripePaymentMethodID,
 	}, getCustomerData, "Customer data must match")
 
 	// Delete customer data
