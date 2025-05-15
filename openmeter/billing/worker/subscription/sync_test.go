@@ -14,6 +14,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -53,6 +54,7 @@ func (s *SubscriptionHandlerTestSuite) SetupSuite() {
 	handler, err := New(Config{
 		BillingService:      s.BillingService,
 		Logger:              slog.Default(),
+		Tracer:              noop.NewTracerProvider().Tracer("test"),
 		TxCreator:           s.BillingAdapter,
 		SubscriptionService: s.SubscriptionService,
 	})

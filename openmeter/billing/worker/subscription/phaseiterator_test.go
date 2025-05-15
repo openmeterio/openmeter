@@ -1,6 +1,8 @@
 package billingworkersubscription
 
 import (
+	"context"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -8,6 +10,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -600,12 +603,14 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			}
 
 			it, err := NewPhaseIterator(
+				slog.Default(),
+				noop.NewTracerProvider().Tracer("test"),
 				subs,
 				phase.SubscriptionPhase.Key,
 			)
 			s.NoError(err)
 
-			out, err := it.Generate(tc.end)
+			out, err := it.Generate(context.Background(), tc.end)
 
 			if tc.expectedErr != nil {
 				s.EqualError(err, tc.expectedErr.Error())

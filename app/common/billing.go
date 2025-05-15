@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/google/wire"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -50,6 +51,7 @@ func BillingService(
 	advancementStrategy billing.AdvancementStrategy,
 	subscriptionServices SubscriptionServiceWithWorkflow,
 	fsConfig config.BillingFeatureSwitchesConfiguration,
+	tracer trace.Tracer,
 ) (billing.Service, error) {
 	service, err := billingservice.New(billingservice.Config{
 		Adapter:             billingAdapter,
@@ -67,7 +69,7 @@ func BillingService(
 		return nil, err
 	}
 
-	handler, err := NewBillingSubscriptionHandler(logger, subscriptionServices, service, billingAdapter)
+	handler, err := NewBillingSubscriptionHandler(logger, subscriptionServices, service, billingAdapter, tracer)
 	if err != nil {
 		return nil, err
 	}
@@ -114,11 +116,12 @@ func NewBillingSubscriptionReconciler(logger *slog.Logger, subsServices Subscrip
 	})
 }
 
-func NewBillingSubscriptionHandler(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingService billing.Service, billingAdapter billing.Adapter) (*billingworkersubscription.Handler, error) {
+func NewBillingSubscriptionHandler(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingService billing.Service, billingAdapter billing.Adapter, tracer trace.Tracer) (*billingworkersubscription.Handler, error) {
 	return billingworkersubscription.New(billingworkersubscription.Config{
 		SubscriptionService: subsServices.Service,
 		BillingService:      billingService,
 		TxCreator:           billingAdapter,
 		Logger:              logger,
+		Tracer:              tracer,
 	})
 }
