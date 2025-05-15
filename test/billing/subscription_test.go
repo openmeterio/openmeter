@@ -9,6 +9,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
@@ -43,6 +44,7 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 	handler, err := billingworkersubscription.New(billingworkersubscription.Config{
 		BillingService:      s.BillingService,
 		Logger:              slog.Default(),
+		Tracer:              noop.NewTracerProvider().Tracer("test"),
 		TxCreator:           s.BillingAdapter,
 		SubscriptionService: s.SubscriptionService,
 	})

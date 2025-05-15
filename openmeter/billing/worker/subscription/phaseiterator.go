@@ -1,6 +1,7 @@
 package billingworkersubscription
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"runtime/debug"
@@ -10,11 +11,14 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -31,6 +35,10 @@ type PhaseIterator struct {
 	phaseCadence models.CadencedModel
 	// phase is the phase that is being iterated
 	phase subscription.SubscriptionPhaseView
+
+	// observability
+	logger *slog.Logger
+	tracer trace.Tracer
 }
 
 type subscriptionItemWithPeriod struct {
@@ -60,7 +68,7 @@ func (r subscriptionItemWithPeriod) PeriodPercentage() alpacadecimal.Decimal {
 	return alpacadecimal.NewFromInt(int64(r.Period.Duration())).Div(alpacadecimal.NewFromInt(nonTruncatedPeriodLength))
 }
 
-func NewPhaseIterator(subs subscription.SubscriptionView, phaseKey string) (*PhaseIterator, error) {
+func NewPhaseIterator(logger *slog.Logger, tracer trace.Tracer, subs subscription.SubscriptionView, phaseKey string) (*PhaseIterator, error) {
 	phase, ok := subs.GetPhaseByKey(phaseKey)
 	if !ok {
 		return nil, fmt.Errorf("phase %s not found in subscription %s", phaseKey, subs.Subscription.ID)
@@ -76,6 +84,8 @@ func NewPhaseIterator(subs subscription.SubscriptionView, phaseKey string) (*Pha
 	}
 
 	it := &PhaseIterator{
+		logger:       logger,
+		tracer:       tracer,
 		sub:          subs,
 		phase:        *phase,
 		phaseCadence: phaseCadence,
@@ -145,15 +155,23 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 	return minTime
 }
 
-func (it *PhaseIterator) Generate(iterationEnd time.Time) ([]subscriptionItemWithPeriod, error) {
+func (it *PhaseIterator) Generate(ctx context.Context, iterationEnd time.Time) ([]subscriptionItemWithPeriod, error) {
+	ctx, span := it.tracer.Start(ctx, "billing.worker.subscription.phaseiterator.Generate", trace.WithAttributes(
+		attribute.String("phase_key", it.phase.Spec.PhaseKey),
+	))
+	defer span.End()
+
 	if it.sub.Subscription.BillablesMustAlign {
-		return it.generateAligned(iterationEnd)
+		return it.generateAligned(ctx, iterationEnd)
 	}
 
 	return it.generate(iterationEnd)
 }
 
-func (it *PhaseIterator) generateAligned(iterationEnd time.Time) ([]subscriptionItemWithPeriod, error) {
+func (it *PhaseIterator) generateAligned(ctx context.Context, iterationEnd time.Time) ([]subscriptionItemWithPeriod, error) {
+	ctx, span := it.tracer.Start(ctx, "billing.worker.subscription.phaseiterator.generateAligned")
+	defer span.End()
+
 	if !it.sub.Subscription.BillablesMustAlign {
 		return nil, fmt.Errorf("aligned generation is not supported for non-aligned subscriptions")
 	}
@@ -161,105 +179,148 @@ func (it *PhaseIterator) generateAligned(iterationEnd time.Time) ([]subscription
 	items := []subscriptionItemWithPeriod{}
 
 	for _, itemsByKey := range it.phase.ItemsByKey {
-		for version, item := range itemsByKey {
-			// Let's drop non-billable items
-			if item.Spec.RateCard.AsMeta().Price == nil {
-				continue
-			}
-
-			if item.Spec.RateCard.GetBillingCadence() == nil {
-				generatedItem, err := it.generateOneTimeAlignedItem(item, version)
-				if err != nil {
-					return nil, err
-				}
-
-				if generatedItem == nil {
-					// One time item is not billable yet, let's skip it
-					break
-				}
-
-				items = append(items, *generatedItem)
-				continue
-			}
-
-			periodIdx := 0
-
-			at := item.SubscriptionItem.ActiveFrom
-			for {
-				// We start when the item activates, then advance until either
-				nonTruncatedPeriod, err := it.sub.Spec.GetAlignedBillingPeriodAt(it.phase.Spec.PhaseKey, at)
-				if err != nil {
-					return nil, err
-				}
-
-				// Period otherwise is truncated by activeFrom and activeTo times
-				period := timeutil.ClosedPeriod{
-					From: nonTruncatedPeriod.From,
-					To:   nonTruncatedPeriod.To,
-				}
-
-				if item.SubscriptionItem.ActiveFrom.After(period.From) {
-					period.From = item.SubscriptionItem.ActiveFrom
-				}
-
-				if item.SubscriptionItem.ActiveTo != nil && item.SubscriptionItem.ActiveTo.Before(period.To) {
-					period.To = *item.SubscriptionItem.ActiveTo
-				}
-
-				// Let's build the line
-				generatedItem := subscriptionItemWithPeriod{
-					SubscriptionItemView: item,
-					InvoiceAligned:       true,
-
-					Period: billing.Period{
-						Start: period.From,
-						End:   period.To,
-					},
-
-					UniqueID: strings.Join([]string{
-						it.sub.Subscription.ID,
-						it.phase.Spec.PhaseKey,
-						item.Spec.ItemKey,
-						fmt.Sprintf("v[%d]", version),
-						fmt.Sprintf("period[%d]", periodIdx),
-					}, "/"),
-
-					NonTruncatedPeriod: billing.Period{
-						Start: nonTruncatedPeriod.From,
-						End:   nonTruncatedPeriod.To,
-					},
-					PhaseID: it.phase.SubscriptionPhase.ID,
-				}
-
-				items = append(items, generatedItem)
-
-				// We advance the period counter for ID-ing
-				periodIdx++
-				// And we try to go to the next period (end times are exclusive)
-				at = period.To
-
-				// 1. it deactivates
-				if item.SubscriptionItem.ActiveTo != nil && !at.Before(*item.SubscriptionItem.ActiveTo) {
-					break
-				}
-				// 2. the phase ends
-				if it.phaseCadence.ActiveTo != nil && !at.Before(*it.phaseCadence.ActiveTo) {
-					break
-				}
-				// 3. we reach the iteration end
-				if !at.Before(iterationEnd) {
-					break
-				}
-				// 4. we reach the max iterations
-				if periodIdx > maxSafeIter {
-					slog.Error("max iterations reached", slog.Any("iterator", it), slog.String("stack", string(debug.Stack())))
-					break
-				}
-			}
+		err := slicesx.ForEachUntilWithErr(
+			itemsByKey,
+			func(item subscription.SubscriptionItemView, version int) (breaks bool, err error) {
+				return it.generateForAlignedItemVersion(ctx, item, version, iterationEnd, &items)
+			},
+		)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return it.truncateItemsIfNeeded(items), nil
+}
+
+func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item subscription.SubscriptionItemView, version int, iterationEnd time.Time, items *[]subscriptionItemWithPeriod) (bool, error) {
+	ctx, span := it.tracer.Start(ctx, "billing.worker.subscription.phaseiterator.generateForAlignedItemVersion", trace.WithAttributes(
+		attribute.String("itemKey", item.Spec.ItemKey),
+		attribute.Int("itemVersion", version),
+		attribute.String("phaseKey", it.phase.Spec.PhaseKey),
+	))
+	defer span.End()
+
+	logger := it.logger.With("itemKey", item.Spec.ItemKey, "itemVersion", version, "phaseKey", it.phase.Spec.PhaseKey)
+
+	// Let's drop non-billable items
+	if item.Spec.RateCard.AsMeta().Price == nil {
+		return false, nil
+	}
+
+	if item.Spec.RateCard.GetBillingCadence() == nil {
+		generatedItem, err := it.generateOneTimeAlignedItem(item, version)
+		if err != nil {
+			logger.ErrorContext(ctx, "failed to generate one-time aligned item", slog.Any("error", err))
+			return false, err
+		}
+
+		if generatedItem == nil {
+			// One time item is not billable yet, let's skip it
+			return true, nil
+		}
+
+		*items = append(*items, *generatedItem)
+
+		return false, nil
+	}
+
+	periodIdx := 0
+	at := item.SubscriptionItem.ActiveFrom
+	var err error
+
+	for {
+		logger := logger.With("periodIdx", periodIdx, "periodAt", at)
+
+		periodIdx, at, err = it.generateForAlignedItemVersionPeriod(ctx, logger, item, version, periodIdx, at, items)
+		if err != nil {
+			return false, err
+		}
+
+		// We start when the item activates, then advance until either
+		// 1. it deactivates
+		if item.SubscriptionItem.ActiveTo != nil && !at.Before(*item.SubscriptionItem.ActiveTo) {
+			logger.DebugContext(ctx, "exiting loop due to item deactivation", slog.Time("at", at), slog.Time("activeTo", *item.SubscriptionItem.ActiveTo))
+			break
+		}
+		// 2. the phase ends
+		if it.phaseCadence.ActiveTo != nil && !at.Before(*it.phaseCadence.ActiveTo) {
+			logger.DebugContext(ctx, "exiting loop due to phase end", slog.Time("at", at), slog.Time("activeTo", *it.phaseCadence.ActiveTo))
+			break
+		}
+		// 3. we reach the iteration end
+		if !at.Before(iterationEnd) {
+			logger.DebugContext(ctx, "exiting loop due to iteration end", slog.Time("at", at), slog.Time("iterationEnd", iterationEnd))
+			break
+		}
+		// 4. we reach the max iterations
+		if periodIdx > maxSafeIter {
+			logger.ErrorContext(ctx, "max iterations reached", slog.Any("iterator", it), slog.String("stack", string(debug.Stack())))
+			break
+		}
+
+		logger.DebugContext(ctx, "iterating", slog.Time("at", at))
+	}
+
+	return false, nil
+}
+
+func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context, logger *slog.Logger, item subscription.SubscriptionItemView, version int, periodIdx int, at time.Time, items *[]subscriptionItemWithPeriod) (int, time.Time, error) {
+	ctx, span := it.tracer.Start(ctx, "billing.worker.subscription.phaseiterator.generateForAlignedItemVersionPeriod", trace.WithAttributes(
+		attribute.Int("periodIdx", periodIdx),
+		attribute.String("periodAt", at.Format(time.RFC3339)),
+	))
+	defer span.End()
+
+	// We start when the item activates, then advance until either
+	nonTruncatedPeriod, err := it.sub.Spec.GetAlignedBillingPeriodAt(it.phase.Spec.PhaseKey, at)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to get aligned billing period", slog.Any("error", err))
+		return periodIdx, at, err
+	}
+
+	// Period otherwise is truncated by activeFrom and activeTo times
+	period := timeutil.ClosedPeriod{
+		From: nonTruncatedPeriod.From,
+		To:   nonTruncatedPeriod.To,
+	}
+
+	if item.SubscriptionItem.ActiveFrom.After(period.From) {
+		period.From = item.SubscriptionItem.ActiveFrom
+	}
+
+	if item.SubscriptionItem.ActiveTo != nil && item.SubscriptionItem.ActiveTo.Before(period.To) {
+		period.To = *item.SubscriptionItem.ActiveTo
+	}
+
+	// Let's build the line
+	generatedItem := subscriptionItemWithPeriod{
+		SubscriptionItemView: item,
+		InvoiceAligned:       true,
+
+		Period: billing.Period{
+			Start: period.From,
+			End:   period.To,
+		},
+
+		UniqueID: strings.Join([]string{
+			it.sub.Subscription.ID,
+			it.phase.Spec.PhaseKey,
+			item.Spec.ItemKey,
+			fmt.Sprintf("v[%d]", version),
+			fmt.Sprintf("period[%d]", periodIdx),
+		}, "/"),
+
+		NonTruncatedPeriod: billing.Period{
+			Start: nonTruncatedPeriod.From,
+			End:   nonTruncatedPeriod.To,
+		},
+		PhaseID: it.phase.SubscriptionPhase.ID,
+	}
+
+	*items = append(*items, generatedItem)
+
+	return periodIdx + 1, period.To, nil
 }
 
 func (it *PhaseIterator) generate(iterationEnd time.Time) ([]subscriptionItemWithPeriod, error) {

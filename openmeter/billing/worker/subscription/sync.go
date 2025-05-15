@@ -9,6 +9,8 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -34,8 +36,9 @@ type Config struct {
 	BillingService      billing.Service
 	SubscriptionService subscription.Service
 	TxCreator           transaction.Creator
-	Logger              *slog.Logger
 	FeatureFlags        FeatureFlags
+	Logger              *slog.Logger
+	Tracer              trace.Tracer
 }
 
 func (c Config) Validate() error {
@@ -62,8 +65,9 @@ type Handler struct {
 	billingService      billing.Service
 	subscriptionService subscription.Service
 	txCreator           transaction.Creator
-	logger              *slog.Logger
 	featureFlags        FeatureFlags
+	logger              *slog.Logger
+	tracer              trace.Tracer
 }
 
 func New(config Config) (*Handler, error) {
@@ -73,15 +77,22 @@ func New(config Config) (*Handler, error) {
 	return &Handler{
 		billingService:      config.BillingService,
 		txCreator:           config.TxCreator,
-		logger:              config.Logger,
 		featureFlags:        config.FeatureFlags,
 		subscriptionService: config.SubscriptionService,
+		logger:              config.Logger,
+		tracer:              config.Tracer,
 	}, nil
 }
 
 func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
+	ctx, span := h.tracer.Start(ctx, "billing.worker.subscription.sync.SynchronizeSubscription", trace.WithAttributes(
+		attribute.String("subscription_id", subs.Subscription.ID),
+		attribute.String("as_of", asOf.Format(time.RFC3339)),
+	))
+	defer span.End()
+
 	if !subs.Spec.HasBillables() {
-		h.logger.Info("subscription has no billables, skipping sync", "subscription_id", subs.Subscription.ID)
+		h.logger.InfoContext(ctx, "subscription has no billables, skipping sync", "subscription_id", subs.Subscription.ID)
 		return nil
 	}
 
@@ -211,12 +222,15 @@ func (h *Handler) getPatchesFromPlan(p *syncPlan, subs subscription.Subscription
 }
 
 func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) (*syncPlan, error) {
+	ctx, span := h.tracer.Start(ctx, "billing.worker.subscription.sync.calculateSyncPlan")
+	defer span.End()
+
 	// Let's see what's in scope for the subscription
 	slices.SortFunc(subs.Phases, func(i, j subscription.SubscriptionPhaseView) int {
 		return timeutil.Compare(i.SubscriptionPhase.ActiveFrom, j.SubscriptionPhase.ActiveFrom)
 	})
 
-	inScopeLines, err := h.collectUpcomingLines(subs, asOf)
+	inScopeLines, err := h.collectUpcomingLines(ctx, subs, asOf)
 	if err != nil {
 		return nil, fmt.Errorf("collecting upcoming lines: %w", err)
 	}
@@ -305,11 +319,14 @@ func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.Subsc
 //
 // This approach allows us to not to have to poll all the subscriptions periodically, but we can act when an invoice is created or when
 // a subscription is updated.
-func (h *Handler) collectUpcomingLines(subs subscription.SubscriptionView, asOf time.Time) ([]subscriptionItemWithPeriod, error) {
+func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) ([]subscriptionItemWithPeriod, error) {
+	ctx, span := h.tracer.Start(ctx, "billing.worker.subscription.sync.collectUpcomingLines")
+	defer span.End()
+
 	inScopeLines := make([]subscriptionItemWithPeriod, 0, 128)
 
 	for _, phase := range subs.Phases {
-		iterator, err := NewPhaseIterator(subs, phase.SubscriptionPhase.Key)
+		iterator, err := NewPhaseIterator(h.logger, h.tracer, subs, phase.SubscriptionPhase.Key)
 		if err != nil {
 			return nil, fmt.Errorf("creating phase iterator: %w", err)
 		}
@@ -331,7 +348,7 @@ func (h *Handler) collectUpcomingLines(subs subscription.SubscriptionView, asOf 
 			}
 		}
 
-		items, err := iterator.Generate(generationLimit)
+		items, err := iterator.Generate(ctx, generationLimit)
 		if err != nil {
 			return nil, fmt.Errorf("generating items: %w", err)
 		}
