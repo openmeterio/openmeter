@@ -614,7 +614,7 @@ var ValidateRateCardsShareSameKey = models.ValidatorFunc[RateCardWithOverlay](fu
 				Kind: "ratecard",
 			},
 			Field:  "key",
-			Detail: fmt.Sprintf("key mismatch between ratecards: %s != %s", r.base.Key(), r.overlay.Key()),
+			Detail: fmt.Sprintf("incompatible ratecard as keys must match: [%s, %s]", r.base.Key(), r.overlay.Key()),
 		}
 	}
 
@@ -639,7 +639,7 @@ var ValidateRateCardsHaveCompatiblePrice = models.ValidatorFunc[RateCardWithOver
 					Kind: "ratecard",
 				},
 				Field:  "price",
-				Detail: fmt.Sprintf("incompatible price types: %s, %s", rMeta.Price.Type(), vMeta.Price.Type()),
+				Detail: fmt.Sprintf("incompatible ratecard as price types must match: [%s, %s]", rMeta.Price.Type(), vMeta.Price.Type()),
 			})
 		}
 
@@ -649,14 +649,13 @@ var ValidateRateCardsHaveCompatiblePrice = models.ValidatorFunc[RateCardWithOver
 			vFlat, _ := vMeta.Price.AsFlat()
 
 			if rFlat.PaymentTerm != vFlat.PaymentTerm {
-				errs = append(errs, errors.New("incompatible price payment terms"))
 				errs = append(errs, InvalidResourceError{
 					Resource: Resource{
 						Key:  r.base.Key(),
 						Kind: "ratecard",
 					},
 					Field:  "price",
-					Detail: fmt.Sprintf("incompatible price payment terms: %s, %s", rFlat.PaymentTerm, vFlat.PaymentTerm),
+					Detail: fmt.Sprintf("incompatible ratecard as price payment terms must match: [%s, %s]", rFlat.PaymentTerm, vFlat.PaymentTerm),
 				})
 			}
 		default:
@@ -666,7 +665,7 @@ var ValidateRateCardsHaveCompatiblePrice = models.ValidatorFunc[RateCardWithOver
 					Kind: "ratecard",
 				},
 				Field:  "price",
-				Detail: fmt.Sprintf("unsupported price type: %s", rMeta.Price.Type()),
+				Detail: fmt.Sprintf("incompatible ratecard due to unsupported price type: %s", rMeta.Price.Type()),
 			})
 		}
 	}
@@ -688,7 +687,7 @@ var ValidateRateCardsHaveCompatibleFeatureKey = models.ValidatorFunc[RateCardWit
 				Kind: "ratecard",
 			},
 			Field:  "featureKey",
-			Detail: fmt.Sprintf("incompatible feature keys: %s != %s", *rMeta.FeatureKey, *vMeta.FeatureKey),
+			Detail: fmt.Sprintf("incompatible ratecard as feature keys must match: [%s, %s]", *rMeta.FeatureKey, *vMeta.FeatureKey),
 		}
 	}
 
@@ -709,7 +708,7 @@ var ValidateRateCardsHaveCompatibleFeatureID = models.ValidatorFunc[RateCardWith
 				Kind: "ratecard",
 			},
 			Field:  "featureID",
-			Detail: fmt.Sprintf("incompatible feature ids: %s != %s", *rMeta.FeatureID, *vMeta.FeatureID),
+			Detail: fmt.Sprintf("incompatible ratecard feature ids must match: [%s, %s]", *rMeta.FeatureID, *vMeta.FeatureID),
 		}
 	}
 
@@ -733,7 +732,7 @@ var ValidateRateCardsHaveCompatibleBillingCadence = models.ValidatorFunc[RateCar
 					Kind: "ratecard",
 				},
 				Field:  "billingCadence",
-				Detail: fmt.Sprintf("billing cadence must be equal: %s != %s", rBillingCadence.ISOString(), "nil"),
+				Detail: fmt.Sprintf("incompatible ratecard as billing cadence must match [%s,  %s]", rBillingCadence.ISOString(), "nil"),
 			})
 		}
 
@@ -744,7 +743,7 @@ var ValidateRateCardsHaveCompatibleBillingCadence = models.ValidatorFunc[RateCar
 					Kind: "ratecard",
 				},
 				Field:  "billingCadence",
-				Detail: fmt.Sprintf("billing cadence must be equal: %s != %s", rBillingCadence.ISOString(), vBillingCadence.ISOString()),
+				Detail: fmt.Sprintf("incompatible ratecard as billing cadence must match [%s, %s]", rBillingCadence.ISOString(), vBillingCadence.ISOString()),
 			})
 		}
 	}
@@ -756,7 +755,7 @@ var ValidateRateCardsHaveCompatibleBillingCadence = models.ValidatorFunc[RateCar
 				Kind: "ratecard",
 			},
 			Field:  "billingCadence",
-			Detail: fmt.Sprintf("billing cadence must be equal: %s != %s", "nil", vBillingCadence.ISOString()),
+			Detail: fmt.Sprintf("incompatible ratecard as billing cadence must match [%s, %s]", "nil", vBillingCadence.ISOString()),
 		})
 	}
 
@@ -780,7 +779,7 @@ var ValidateRateCardsHaveCompatibleEntitlementTemplate = models.ValidatorFunc[Ra
 					Kind: "ratecard",
 				},
 				Field:  "entitlementTemplate",
-				Detail: fmt.Sprintf("incompatible entitlement template types: %s != %s", rMeta.EntitlementTemplate.Type(), vMeta.EntitlementTemplate.Type()),
+				Detail: fmt.Sprintf("incompatible ratecard as entitlement template types must match: [%s, %s]", rMeta.EntitlementTemplate.Type(), vMeta.EntitlementTemplate.Type()),
 			})
 		} else {
 			switch rMeta.EntitlementTemplate.Type() {
@@ -791,7 +790,7 @@ var ValidateRateCardsHaveCompatibleEntitlementTemplate = models.ValidatorFunc[Ra
 						Kind: "ratecard",
 					},
 					Field:  "entitlementTemplate",
-					Detail: "static entitlement is not allowed",
+					Detail: "incompatible ratecard as static entitlement is not allowed",
 				})
 			case entitlement.EntitlementTypeMetered:
 				rMetered, err := rMeta.EntitlementTemplate.AsMetered()
@@ -811,7 +810,7 @@ var ValidateRateCardsHaveCompatibleEntitlementTemplate = models.ValidatorFunc[Ra
 							Kind: "ratecard",
 						},
 						Field: "entitlementTemplate",
-						Detail: fmt.Sprintf("incompatible usage period for metered entitlement template: %s, %s",
+						Detail: fmt.Sprintf("incompatible ratecard as usage period for metered entitlement template must match: [%s, %s]",
 							rMetered.UsagePeriod.ISOString(), vMetered.UsagePeriod.ISOString()),
 					})
 				}
@@ -833,14 +832,13 @@ var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWith
 	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
 	if rMeta.Discounts.Percentage != nil && vMeta.Discounts.Percentage != nil {
-		errs = append(errs, errors.New("percentage discount is not allowed"))
 		errs = append(errs, InvalidResourceError{
 			Resource: Resource{
 				Key:  r.base.Key(),
 				Kind: "ratecard",
 			},
 			Field:  "discounts",
-			Detail: "percentage discount is not allowed",
+			Detail: "incompatible ratecard as percentage discount is not allowed",
 		})
 	}
 

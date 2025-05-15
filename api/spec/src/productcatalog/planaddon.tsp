@@ -39,11 +39,19 @@ model PlanAddon {
     id: ULID;
 
     /**
-     * A semi-unique identifier for the resource.
+     * User provided unique identifier for add-on.
      */
     @visibility(Lifecycle.Read)
     @summary("Key")
     key: Key;
+
+    /**
+     * Human-readable name for add-on.
+     */
+    @summary("Display name")
+    @minLength(1)
+    @maxLength(256)
+    name: string;
 
     /**
      * The version of the add-on which templates this instance.

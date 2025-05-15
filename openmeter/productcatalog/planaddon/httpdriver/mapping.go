@@ -15,11 +15,13 @@ func FromPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
 			Id           string                `json:"id"`
 			InstanceType api.AddonInstanceType `json:"instanceType"`
 			Key          string                `json:"key"`
+			Name         string                `json:"name"`
 			Version      int                   `json:"version"`
 		}{
 			Id:           a.Addon.ID,
 			InstanceType: api.AddonInstanceType(a.Addon.InstanceType),
 			Key:          a.Addon.Key,
+			Name:         a.Addon.Name,
 			Version:      a.Addon.Version,
 		},
 		FromPlanPhase:    a.PlanAddonConfig.FromPlanPhase,

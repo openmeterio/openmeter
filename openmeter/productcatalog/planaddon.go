@@ -62,6 +62,9 @@ func (c PlanAddon) Validate() error {
 	planResource := Resource{
 		Key:  c.Plan.Key,
 		Kind: "plan",
+		Attributes: map[string]interface{}{
+			"name": c.Plan.Name,
+		},
 	}
 
 	// Check plan status
@@ -70,7 +73,7 @@ func (c PlanAddon) Validate() error {
 		errs = append(errs, InvalidResourceError{
 			Resource: planResource,
 			Field:    "status",
-			Detail:   fmt.Sprintf("invalid status %s allowed statuses: %+v", c.Plan.Status(), allowedPlanStatuses),
+			Detail:   "add-ons can be assigned only to draft or published plans",
 		})
 	}
 
@@ -80,6 +83,7 @@ func (c PlanAddon) Validate() error {
 		Key:  c.Addon.Key,
 		Kind: "addon",
 		Attributes: map[string]any{
+			"name":    c.Addon.Name,
 			"version": c.Addon.Version,
 		},
 	}
@@ -90,7 +94,7 @@ func (c PlanAddon) Validate() error {
 		errs = append(errs, InvalidResourceError{
 			Resource: addonResource,
 			Field:    "status",
-			Detail:   fmt.Sprintf("invalid status %s, add-on must be active", c.Addon.Status()),
+			Detail:   "only published add-ons can be assigned to plans",
 		})
 	}
 
@@ -102,7 +106,7 @@ func (c PlanAddon) Validate() error {
 			errs = append(errs, InvalidResourceError{
 				Resource: addonResource,
 				Field:    "maxQuantity",
-				Detail:   "must be set to positive number for add-on with multiple instance type",
+				Detail:   "maximum quantity must be set to positive number for add-on with multiple instance type",
 			})
 		}
 	case AddonInstanceTypeSingle:
@@ -110,7 +114,7 @@ func (c PlanAddon) Validate() error {
 			errs = append(errs, InvalidResourceError{
 				Resource: addonResource,
 				Field:    "maxQuantity",
-				Detail:   "must not be set for add-on with single instance type",
+				Detail:   "maximum quantity must not be set for add-on with single instance type",
 			})
 		}
 	}
@@ -119,7 +123,7 @@ func (c PlanAddon) Validate() error {
 		errs = append(errs, InvalidResourceError{
 			Resource: addonResource,
 			Field:    "currency",
-			Detail:   "currency mismatch",
+			Detail:   "add-ons can be assigned to plans with matching currency settings",
 		})
 	}
 
@@ -138,7 +142,7 @@ func (c PlanAddon) Validate() error {
 		errs = append(errs, InvalidResourceError{
 			Resource: addonResource,
 			Field:    "fromPlanPhase",
-			Detail:   fmt.Sprintf("plan does not have phase with key: %s", c.FromPlanPhase),
+			Detail:   "add-on must define valid/existing plan phase key from which the add-on is available for purchase",
 		})
 	}
 
