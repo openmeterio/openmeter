@@ -104,7 +104,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "incompatible price types")
+			require.ErrorContains(t, err, "price types must match")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -112,7 +112,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "incompatible price types")
+			require.ErrorContains(t, err, "price types must match")
 		})
 	})
 
@@ -132,7 +132,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "incompatible entitlement template type")
+			require.ErrorContains(t, err, "entitlement template types must match")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -140,7 +140,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "incompatible entitlement template type")
+			require.ErrorContains(t, err, "entitlement template types must match")
 		})
 	})
 
@@ -157,7 +157,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "key mismatch between ratecards")
+			require.ErrorContains(t, err, "keys must match")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -165,7 +165,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "key mismatch between ratecards")
+			require.ErrorContains(t, err, "keys must match")
 		})
 	})
 
@@ -193,14 +193,14 @@ func TestValidations(t *testing.T) {
 			err := rc.Apply(target, models.Annotations{})
 
 			require.Error(t, err)
-			require.ErrorContains(t, err, "incompatible price payment terms")
+			require.ErrorContains(t, err, "price payment terms must match")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(target, models.Annotations{})
 
 			require.Error(t, err)
-			require.ErrorContains(t, err, "incompatible price payment terms")
+			require.ErrorContains(t, err, "price payment terms must match")
 		})
 	})
 
@@ -221,7 +221,7 @@ func TestValidations(t *testing.T) {
 
 		err := rc.Apply(target, models.Annotations{})
 		require.Error(t, err)
-		require.ErrorContains(t, err, "billing cadence must be equal")
+		require.ErrorContains(t, err, "billing cadence must match")
 	})
 }
 
