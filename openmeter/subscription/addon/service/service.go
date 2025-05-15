@@ -207,6 +207,22 @@ func (s *service) ChangeQuantity(ctx context.Context, id models.NamespacedID, in
 		return nil, fmt.Errorf("failed to get plan add-on: %w", err)
 	}
 
+	phaseAtAddonStart, ok := sView.Spec.GetCurrentPhaseAt(input.ActiveFrom)
+	if !ok {
+		return nil, models.NewGenericValidationError(fmt.Errorf("subscription doesn't have an active phase at %s", input.ActiveFrom))
+	}
+
+	for _, phase := range sView.Phases {
+		if phase.SubscriptionPhase.Key == compatibility.FromPlanPhase {
+			// We reached the compatible start time first
+			break
+		}
+
+		if phase.SubscriptionPhase.Key == phaseAtAddonStart.PhaseKey {
+			return nil, models.NewGenericValidationError(fmt.Errorf("addon %s@%d can be only added starting with phase %s, current phase is %s", add.Key, add.Version, compatibility.FromPlanPhase, phaseAtAddonStart.PhaseKey))
+		}
+	}
+
 	if compatibility.MaxQuantity != nil && input.Quantity > *compatibility.MaxQuantity {
 		return nil, models.NewGenericValidationError(fmt.Errorf("addon %s@%d can be added a maximum of %d times", add.Key, add.Version, *compatibility.MaxQuantity))
 	}
