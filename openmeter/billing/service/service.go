@@ -142,10 +142,9 @@ func (s Service) InvoiceCalculator() invoicecalc.Calculator {
 	return s.invoiceCalculator
 }
 
-// TranscationForGatheringInvoiceManipulation is a helper function that wraps the given function in a transaction and ensures that
-// an update lock is held on the customer record. This is useful when you need to manipulate the gathering invoices, as we cannot lock an
-// invoice, that doesn't exist yet.
-func TranscationForGatheringInvoiceManipulation[T any](ctx context.Context, svc *Service, customerID customer.CustomerID, fn func(ctx context.Context) (T, error)) (T, error) {
+// transcationForInvoiceManipulation is a helper function that wraps the given function in a transaction and ensures that
+// an update lock is held on the customer record.
+func transcationForInvoiceManipulation[T any](ctx context.Context, svc *Service, customerID customer.CustomerID, fn func(ctx context.Context) (T, error)) (T, error) {
 	var empty T
 
 	if err := customerID.Validate(); err != nil {

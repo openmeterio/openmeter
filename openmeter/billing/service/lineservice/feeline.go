@@ -119,3 +119,8 @@ func (l *feeLine) UpdateTotals() error {
 	l.line.LineBase.Totals = totals
 	return nil
 }
+
+func (l feeLine) IsPeriodEmptyConsideringTruncations() bool {
+	// Fee lines are not subject to truncation, and for now they can be empty (one time fees)
+	return false
+}

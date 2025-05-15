@@ -9,6 +9,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -73,7 +74,7 @@ type LineBase interface {
 	CloneForCreate(in UpdateInput) Line
 	Update(in UpdateInput) Line
 	Save(context.Context) (Line, error)
-
+	Delete(context.Context) error
 	// Split splits a line into two lines at the given time.
 	// The strategy is that we will have a line with status InvoiceLineStatusSplit and two child
 	// lines with status InvoiceLineStatusValid.
@@ -169,6 +170,14 @@ func (l lineBase) Save(ctx context.Context) (Line, error) {
 	return l.service.FromEntity(lines[0])
 }
 
+func (l lineBase) Delete(ctx context.Context) error {
+	l.line.DeletedAt = lo.ToPtr(clock.Now())
+
+	_, err := l.Save(ctx)
+
+	return err
+}
+
 func (l lineBase) Service() *Service {
 	return l.service
 }
@@ -229,6 +238,8 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 			return SplitResult{}, fmt.Errorf("saving parent line: %w", err)
 		}
 
+		result := SplitResult{}
+
 		// Let's create the child lines
 		preSplitAtLine := l.CloneForCreate(UpdateInput{
 			ParentLine:                  mo.Some(parentLine.ToEntity()),
@@ -238,6 +249,16 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 			ResetChildUniqueReferenceID: true,
 		})
 
+		// Let's not create a line if it has an empty period as that prevents gathering invoice updates
+		if !preSplitAtLine.IsPeriodEmptyConsideringTruncations() {
+			preSplitAtLine, err := preSplitAtLine.Save(ctx)
+			if err != nil {
+				return SplitResult{}, fmt.Errorf("saving pre split line: %w", err)
+			}
+
+			result.PreSplitAtLine = preSplitAtLine
+		}
+
 		postSplitAtLine := l.CloneForCreate(UpdateInput{
 			ParentLine:                  mo.Some(parentLine.ToEntity()),
 			Status:                      billing.InvoiceLineStatusValid,
@@ -245,41 +266,56 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 			ResetChildUniqueReferenceID: true,
 		})
 
-		splitLines, err := l.service.UpsertLines(ctx, l.line.Namespace, preSplitAtLine, postSplitAtLine)
-		if err != nil {
-			return SplitResult{}, fmt.Errorf("creating split lines: %w", err)
+		if !postSplitAtLine.IsPeriodEmptyConsideringTruncations() {
+			postSplitAtLine, err := postSplitAtLine.Save(ctx)
+			if err != nil {
+				return SplitResult{}, fmt.Errorf("saving post split line: %w", err)
+			}
+
+			result.PostSplitAtLine = postSplitAtLine
 		}
 
-		return SplitResult{
-			PreSplitAtLine:  splitLines[0],
-			PostSplitAtLine: splitLines[1],
-		}, nil
+		return result, nil
 	}
 
+	result := SplitResult{}
+
 	// We have alredy split the line once, we just need to create a new line and update the existing line
-	postSplitAtLine, err := l.CloneForCreate(UpdateInput{
+	postSplitAtLine := l.CloneForCreate(UpdateInput{
 		Status:                      billing.InvoiceLineStatusValid,
 		PeriodStart:                 splitAt,
 		ParentLine:                  mo.Some(l.line.ParentLine),
 		ResetChildUniqueReferenceID: true,
-	}).Save(ctx)
-	if err != nil {
-		return SplitResult{}, fmt.Errorf("creating split lines: %w", err)
+	})
+	if !postSplitAtLine.IsPeriodEmptyConsideringTruncations() {
+		postSplitAtLine, err := postSplitAtLine.Save(ctx)
+		if err != nil {
+			return SplitResult{}, fmt.Errorf("saving post split line: %w", err)
+		}
+
+		result.PostSplitAtLine = postSplitAtLine
 	}
 
-	preSplitAtLine, err := l.Update(UpdateInput{
+	preSplitAtLine := l.Update(UpdateInput{
 		PeriodEnd:                   splitAt,
 		InvoiceAt:                   splitAt,
 		ResetChildUniqueReferenceID: true,
-	}).Save(ctx)
-	if err != nil {
-		return SplitResult{}, fmt.Errorf("updating parent line: %w", err)
+	})
+
+	if !preSplitAtLine.IsPeriodEmptyConsideringTruncations() {
+		preSplitAtLine, err := preSplitAtLine.Save(ctx)
+		if err != nil {
+			return SplitResult{}, fmt.Errorf("saving pre split line: %w", err)
+		}
+
+		result.PreSplitAtLine = preSplitAtLine
+	} else {
+		if err := preSplitAtLine.Delete(ctx); err != nil {
+			return SplitResult{}, fmt.Errorf("deleting pre split line: %w", err)
+		}
 	}
 
-	return SplitResult{
-		PreSplitAtLine:  preSplitAtLine,
-		PostSplitAtLine: postSplitAtLine,
-	}, nil
+	return result, nil
 }
 
 func (l lineBase) ResetTotals() {

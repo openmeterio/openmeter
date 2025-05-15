@@ -1698,6 +1698,203 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 }
 
+func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBillingCancellation() {
+	ctx := s.Context
+	startTime := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(startTime)
+	defer clock.UnFreeze()
+
+	s.updateProfile(func(profile *billing.Profile) {
+		profile.WorkflowConfig.Invoicing = billing.InvoicingConfig{
+			AutoAdvance:        true,
+			DraftPeriod:        isodate.MustParse(s.T(), "P0D"),
+			ProgressiveBilling: true,
+		}
+
+		s.True(profile.Default)
+	})
+	s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 1, s.mustParseTime("2023-01-01T00:00:00Z"))
+
+	// Given
+	//	a subscription with one phase, with an usage-based rate card that has been already sinced
+	//  we have already progressively billed the line for a day
+	// When
+	//  we cancel said subscription during the first billing period
+	// Then
+	//  The remaining part of the billing period should be invoiced
+	//  The gathering invoice should be deleted
+
+	testPrice := productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+		Mode: productcatalog.GraduatedTieredPrice,
+		Tiers: []productcatalog.PriceTier{
+			{
+				UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1)),
+				FlatPrice: &productcatalog.PriceTierFlatPrice{
+					Amount: alpacadecimal.NewFromFloat(5),
+				},
+			},
+			{
+				UpToAmount: nil,
+				UnitPrice: &productcatalog.PriceTierUnitPrice{
+					Amount: alpacadecimal.NewFromFloat(5),
+				},
+			},
+		},
+	})
+
+	// Let's create the initial subscription
+	subView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:     "Test Plan",
+				Key:      "test-plan",
+				Version:  1,
+				Currency: currency.USD,
+				Alignment: productcatalog.Alignment{
+					BillablesMustAlign: true,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Name:     "default",
+						Key:      "default",
+						Duration: nil,
+					},
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:        s.APIRequestsTotalFeature.Key,
+								Name:       s.APIRequestsTotalFeature.Key,
+								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Price:      testPrice,
+							},
+							BillingCadence: isodate.MustParse(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	// Let's synchronize the subscription
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subView, clock.Now()))
+
+	// Let's check the invoice
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+
+	// Trial isn't synchronized as its a free trial...
+	// Let's check the default phase
+	s.expectLines(gatheringInvoice, subView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "default",
+				ItemKey:  s.APIRequestsTotalFeature.Key,
+			},
+			Price: mo.Some(testPrice),
+			Periods: []billing.Period{
+				{
+					Start: startTime,
+					End:   startTime.AddDate(0, 1, 0),
+				},
+			},
+			InvoiceAt: []time.Time{
+				startTime.AddDate(0, 1, 0),
+			},
+		},
+	})
+
+	// Given we already have a progressively billed line/invoice for a day
+	// Let's advane the clock a day
+	progressiveBilledAt := startTime.Add(time.Hour * 24)
+	clock.FreezeTime(progressiveBilledAt)
+
+	createdInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customer.CustomerID{
+			Namespace: s.Namespace,
+			ID:        s.Customer.ID,
+		},
+		AsOf: &progressiveBilledAt,
+	})
+	s.NoError(err)
+	s.Len(createdInvoices, 1)
+	createdInvoice := createdInvoices[0]
+
+	// Let's check the invoice
+	s.populateChildIDsFromParents(&createdInvoice)
+	s.DebugDumpInvoice("partial invoice", createdInvoice)
+
+	s.expectLines(createdInvoice, subView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "default",
+				ItemKey:  s.APIRequestsTotalFeature.Key,
+			},
+			Price: mo.Some(testPrice),
+			Periods: []billing.Period{
+				{
+					Start: startTime,
+					End:   startTime.AddDate(0, 0, 1),
+				},
+			},
+			InvoiceAt: []time.Time{
+				startTime.AddDate(0, 0, 1),
+			},
+		},
+	})
+
+	// Let's fetch the gathering invoice again
+	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.populateChildIDsFromParents(&gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice - after progressive billing", gatheringInvoice)
+
+	s.expectLines(gatheringInvoice, subView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "default",
+				ItemKey:  s.APIRequestsTotalFeature.Key,
+			},
+			Price: mo.Some(testPrice),
+			Periods: []billing.Period{
+				{
+					Start: startTime.AddDate(0, 0, 1),
+					End:   startTime.AddDate(0, 1, 0),
+				},
+			},
+			InvoiceAt: []time.Time{
+				startTime.AddDate(0, 1, 0),
+			},
+		},
+	})
+
+	// When canceling the subscription, only the remaining part of the billing period should be invoiced
+	// Let's cancel the subscription a few ms later, to make sure that the remaining gathering line is empty
+	// (this tests if we are fast enought we are still handling the deletion gracefully)
+	cancelAt := progressiveBilledAt.Add(10 * time.Millisecond)
+
+	clock.FreezeTime(cancelAt)
+	sub, err := s.SubscriptionService.Cancel(ctx, subView.Subscription.NamespacedID, subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
+	})
+	s.NoError(err)
+
+	subView, err = s.SubscriptionService.GetView(ctx, sub.NamespacedID)
+	s.NoError(err)
+
+	// Event delivery is async, so we need to advance the clock a bit
+	clock.FreezeTime(clock.Now().Add(time.Second))
+	// Let's synchronize the subscription
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subView, clock.Now()))
+
+	// Let's validate that the gathering invoice is gone too
+	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+}
+
 func (s *SubscriptionHandlerTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 	ctx := s.Context
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
@@ -2672,8 +2869,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 	s.T().Log("-> Subscription canceled")
 
-	s.DebugDumpInvoice("gathering invoice - after sync", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
-
+	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	resyncedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 		Invoice: editedInvoice.InvoiceID(),
 		Expand:  billing.InvoiceExpandAll,
@@ -2845,7 +3041,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 	s.T().Log("-> Subscription canceled")
 
-	s.DebugDumpInvoice("gathering invoice - after sync", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
+	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 
 	resyncedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 		Invoice: editedInvoice.InvoiceID(),
@@ -3289,12 +3485,19 @@ func (s *SubscriptionHandlerTestSuite) phaseMeta(key string, duration string) pr
 }
 
 func (s *SubscriptionHandlerTestSuite) enableProgressiveBilling() {
+	s.updateProfile(func(profile *billing.Profile) {
+		profile.WorkflowConfig.Invoicing.ProgressiveBilling = true
+	})
+}
+
+func (s *SubscriptionHandlerTestSuite) updateProfile(modify func(profile *billing.Profile)) {
 	defaultProfile, err := s.BillingService.GetDefaultProfile(s.Context, billing.GetDefaultProfileInput{
 		Namespace: s.Namespace,
 	})
 	s.NoError(err)
 
-	defaultProfile.WorkflowConfig.Invoicing.ProgressiveBilling = true
+	modify(defaultProfile)
+
 	defaultProfile.AppReferences = nil
 
 	_, err = s.BillingService.UpdateProfile(s.Context, billing.UpdateProfileInput(defaultProfile.BaseProfile))

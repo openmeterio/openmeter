@@ -237,7 +237,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		}
 	}
 
-	return TranscationForGatheringInvoiceManipulation(
+	return transcationForInvoiceManipulation(
 		ctx,
 		s,
 		input.Customer,
@@ -275,15 +275,6 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				return nil, billing.ValidationError{
 					Err: fmt.Errorf("no source lines found"),
 				}
-			}
-
-			// let's lock the source gathering invoices, so that no other invoice operation can interfere
-			err = s.adapter.LockInvoicesForUpdate(ctx, billing.LockInvoicesForUpdateInput{
-				Namespace:  input.Customer.Namespace,
-				InvoiceIDs: sourceInvoiceIDs,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("locking gathering invoices: %w", err)
 			}
 
 			linesByCurrency := lo.GroupBy(inScopeLines, func(line lineservice.LineWithBillablePeriod) currencyx.Code {
@@ -609,25 +600,26 @@ func (s *Service) withLockedInvoiceStateMachine(
 	ctx context.Context,
 	in withLockedStateMachineInput,
 ) (billing.Invoice, error) {
-	// let's lock the invoice for update, we are using the dedicated call, so that
-	// edges won't end up having SELECT FOR UPDATE locks
-	if err := s.adapter.LockInvoicesForUpdate(ctx, billing.LockInvoicesForUpdateInput{
-		Namespace:  in.InvoiceID.Namespace,
-		InvoiceIDs: []string{in.InvoiceID.ID},
-	}); err != nil {
-		return billing.Invoice{}, fmt.Errorf("locking invoice: %w", err)
-	}
-
-	invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+	invoiceHeader, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 		Invoice: in.InvoiceID,
-		Expand: billing.InvoiceExpandAll.
-			SetDeletedLines(in.IncludeDeletedLines),
+		Expand:  billing.InvoiceExpand{}, // We just need the customer ID at this point
 	})
 	if err != nil {
 		return billing.Invoice{}, fmt.Errorf("fetching invoice: %w", err)
 	}
 
-	return s.WithInvoiceStateMachine(ctx, invoice, in.Callback)
+	return transcationForInvoiceManipulation(ctx, s, invoiceHeader.CustomerID(), func(ctx context.Context) (billing.Invoice, error) {
+		invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+			Invoice: in.InvoiceID,
+			Expand: billing.InvoiceExpandAll.
+				SetDeletedLines(in.IncludeDeletedLines),
+		})
+		if err != nil {
+			return billing.Invoice{}, fmt.Errorf("fetching invoice: %w", err)
+		}
+
+		return s.WithInvoiceStateMachine(ctx, invoice, in.Callback)
+	})
 }
 
 func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoiceInput) (billing.Invoice, error) {
@@ -882,16 +874,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 			return billing.Invoice{}, fmt.Errorf("fetching profile: %w", err)
 		}
 
-		return TranscationForGatheringInvoiceManipulation(ctx, s, invoice.CustomerID(), func(ctx context.Context) (billing.Invoice, error) {
-			// let's lock the invoice for update, we are using the dedicated call, so that
-			// edges won't end up having SELECT FOR UPDATE locks
-			if err := s.adapter.LockInvoicesForUpdate(ctx, billing.LockInvoicesForUpdateInput{
-				Namespace:  input.Invoice.Namespace,
-				InvoiceIDs: []string{input.Invoice.ID},
-			}); err != nil {
-				return billing.Invoice{}, fmt.Errorf("locking invoice: %w", err)
-			}
-
+		return transcationForInvoiceManipulation(ctx, s, invoice.CustomerID(), func(ctx context.Context) (billing.Invoice, error) {
 			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 				Invoice: input.Invoice,
 				// We need split lines too, as for gathering invoices we need to edit those too

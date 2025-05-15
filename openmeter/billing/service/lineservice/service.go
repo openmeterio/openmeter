@@ -124,29 +124,6 @@ func (s *Service) resolveFeatureMeter(ctx context.Context, ns string, featureKey
 	}, nil
 }
 
-func (s *Service) UpsertLines(ctx context.Context, ns string, lines ...Line) (Lines, error) {
-	if len(lines) == 0 {
-		return nil, nil
-	}
-
-	newLines, err := s.BillingAdapter.UpsertInvoiceLines(
-		ctx,
-		billing.UpsertInvoiceLinesAdapterInput{
-			Namespace: ns,
-			Lines: lo.Map(lines, func(line Line, _ int) *billing.Line {
-				return line.ToEntity()
-			}),
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("creating invoice lines: %w", err)
-	}
-
-	return slicesx.MapWithErr(newLines, func(line *billing.Line) (Line, error) {
-		return s.FromEntity(line)
-	})
-}
-
 func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billing.Invoice, lines Lines) (Lines, error) {
 	lineEntities, err := s.BillingAdapter.AssociateLinesToInvoice(ctx, billing.AssociateLinesToInvoiceAdapterInput{
 		Invoice: billing.InvoiceID{
@@ -181,6 +158,10 @@ type Line interface {
 	LineBase
 
 	Service() *Service
+
+	// IsPeriodEmptyConsideringTruncations returns true if the line has an empty period. This is different from Period.IsEmpty() as
+	// this method does any truncation for usage based lines.
+	IsPeriodEmptyConsideringTruncations() bool
 
 	Validate(context.Context, *billing.Invoice) error
 	CanBeInvoicedAsOf(context.Context, CanBeInvoicedAsOfInput) (*billing.Period, error)

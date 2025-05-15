@@ -445,3 +445,7 @@ func formatMaximumSpendDiscountDescription(amount alpacadecimal.Decimal) *string
 	// TODO[OM-1019]: currency formatting!
 	return lo.ToPtr(fmt.Sprintf("Maximum spend discount for charges over %s", amount))
 }
+
+func (l usageBasedLine) IsPeriodEmptyConsideringTruncations() bool {
+	return l.Period().Truncate(billing.DefaultMeterResolution).IsEmpty()
+}

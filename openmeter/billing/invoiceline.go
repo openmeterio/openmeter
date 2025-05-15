@@ -692,9 +692,10 @@ func (c LineChildren) Clone() LineChildren {
 	})
 }
 
+// NonDeletedLineCount returns the number of lines that are not deleted and have a valid status (e.g. we are ignoring split lines)
 func (c LineChildren) NonDeletedLineCount() int {
 	return lo.CountBy(c.OrEmpty(), func(l *Line) bool {
-		return l.DeletedAt == nil
+		return l.DeletedAt == nil && l.Status == InvoiceLineStatusValid
 	})
 }
 
