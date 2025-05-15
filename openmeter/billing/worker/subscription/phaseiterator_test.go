@@ -59,13 +59,14 @@ func (s *PhaseIteratorTestSuite) mustParseTime(t string) time.Time {
 
 func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 	tcs := []struct {
-		name        string
-		items       []subscriptionItemViewMock
-		end         time.Time
-		expected    []expectedIterations
-		expectedErr error
-		phaseEnd    *time.Time
-		alignedSub  bool
+		name            string
+		items           []subscriptionItemViewMock
+		end             time.Time
+		expected        []expectedIterations
+		expectedErr     error
+		phaseEnd        *time.Time
+		subscriptionEnd *time.Time
+		alignedSub      bool
 	}{
 		{
 			name:     "empty",
@@ -473,6 +474,61 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				},
 			},
 		},
+		{
+			name:            "aligned subscription item is outside of subscription",
+			subscriptionEnd: lo.ToPtr(s.mustParseTime("2021-01-03T00:00:00Z")),
+			items: []subscriptionItemViewMock{
+				{
+					Key:        "item-key",
+					Type:       productcatalog.FlatPriceType,
+					Cadence:    "P1D",
+					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P30D")),
+				},
+			},
+			end:        s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedSub: true,
+			expected:   []expectedIterations{},
+		},
+		{
+			name:            "aligned subscription item crosses subs cancellation date",
+			subscriptionEnd: lo.ToPtr(s.mustParseTime("2021-01-03T00:00:00Z")),
+			end:             s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedSub:      true,
+			items: []subscriptionItemViewMock{
+				{
+					Key:     "item-key",
+					Type:    productcatalog.FlatPriceType,
+					Cadence: "P1M",
+				},
+			},
+			expected: []expectedIterations{
+				{
+					Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					Key:   "subID/phase-test/item-key/v[0]/period[0]",
+				},
+			},
+		},
+		{
+			name:       "aligned subscription item crosses phase end date",
+			phaseEnd:   lo.ToPtr(s.mustParseTime("2021-01-03T00:00:00Z")),
+			end:        s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedSub: true,
+			items: []subscriptionItemViewMock{
+				{
+					Key:     "item-key",
+					Type:    productcatalog.FlatPriceType,
+					Cadence: "P1M",
+				},
+			},
+			expected: []expectedIterations{
+				{
+					Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					Key:   "subID/phase-test/item-key/v[0]/period[0]",
+				},
+			},
+		},
 	}
 
 	for _, tc := range tcs {
@@ -589,6 +645,11 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					},
 				},
 				Phases: []subscription.SubscriptionPhaseView{phase},
+			}
+
+			if tc.subscriptionEnd != nil {
+				subs.Subscription.ActiveTo = tc.subscriptionEnd
+				subs.Spec.ActiveTo = tc.subscriptionEnd
 			}
 
 			if tc.alignedSub {

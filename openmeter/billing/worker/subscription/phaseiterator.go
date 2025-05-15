@@ -227,6 +227,17 @@ func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item
 
 	periodIdx := 0
 	at := item.SubscriptionItem.ActiveFrom
+
+	// If the item is already past the subscription end, we can ignore it
+	if it.sub.Spec.ActiveTo != nil && !at.Before(*it.sub.Spec.ActiveTo) {
+		return true, nil
+	}
+
+	// Should not happen, being a bit defensive here
+	if it.phaseCadence.ActiveTo != nil && !at.Before(*it.phaseCadence.ActiveTo) {
+		return true, nil
+	}
+
 	var err error
 
 	for {
