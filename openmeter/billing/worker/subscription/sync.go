@@ -116,22 +116,25 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 		return fmt.Errorf("getting currency calculator: %w", err)
 	}
 
-	plan, err := h.calculateSyncPlan(ctx, subs, asOf)
-	if err != nil {
-		return err
-	}
+	return h.billingService.WithLock(ctx, customer.CustomerID{
+		Namespace: subs.Subscription.Namespace,
+		ID:        subs.Subscription.CustomerId,
+	}, func(ctx context.Context) error {
+		plan, err := h.calculateSyncPlan(ctx, subs, asOf)
+		if err != nil {
+			return err
+		}
 
-	if plan == nil {
-		return nil
-	}
+		if plan == nil {
+			return nil
+		}
 
-	patches, err := h.getPatchesFromPlan(plan, subs, currency)
-	if err != nil {
-		return nil
-	}
+		patches, err := h.getPatchesFromPlan(plan, subs, currency)
+		if err != nil {
+			return err
+		}
 
-	return transaction.RunWithNoValue(ctx, h.txCreator, func(ctx context.Context) error {
-		err := h.provisionPendingLines(ctx,
+		err = h.provisionPendingLines(ctx,
 			subs,
 			currency,
 			plan.NewSubscriptionItems,
@@ -215,7 +218,19 @@ func (h *Handler) getPatchesFromPlan(p *syncPlan, subs subscription.Subscription
 			return nil, fmt.Errorf("updating line[%s]: %w", line.Target.UniqueID, err)
 		}
 
-		patches = append(patches, updatePatches...)
+		for _, patch := range updatePatches {
+			// If a line is an empty UBP line, we should delete it instead of updating it or we will end up having validation errors
+			// during invoice save processing.
+			if patch.Op == patchOpUpdate && patch.TargetState.Type == billing.InvoiceLineTypeUsageBased {
+				if patch.TargetState.Period.Truncate(billing.DefaultMeterResolution).IsEmpty() {
+					// This is an empty line, we should delete it
+					patches = append(patches, h.getDeletePatchesForLine(line.Existing)...)
+					continue
+				}
+			}
+
+			patches = append(patches, patch)
+		}
 	}
 
 	return patches, nil

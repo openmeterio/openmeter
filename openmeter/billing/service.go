@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
 type Service interface {
@@ -12,6 +13,7 @@ type Service interface {
 	InvoiceLineService
 	InvoiceService
 	SequenceService
+	LockableService
 
 	InvoiceAppService
 
@@ -83,6 +85,10 @@ type InvoiceAppService interface {
 	// Async sync support
 	SyncDraftInvoice(ctx context.Context, input SyncDraftInvoiceInput) (Invoice, error)
 	SyncIssuingInvoice(ctx context.Context, input SyncIssuingInvoiceInput) (Invoice, error)
+}
+
+type LockableService interface {
+	WithLock(ctx context.Context, customerID customer.CustomerID, fn func(ctx context.Context) error) error
 }
 
 type ConfigService interface {

@@ -65,7 +65,6 @@ type InvoiceLineAdapter interface {
 type InvoiceAdapter interface {
 	CreateInvoice(ctx context.Context, input CreateInvoiceAdapterInput) (CreateInvoiceAdapterRespone, error)
 	GetInvoiceById(ctx context.Context, input GetInvoiceByIdInput) (Invoice, error)
-	LockInvoicesForUpdate(ctx context.Context, input LockInvoicesForUpdateInput) error
 	DeleteInvoices(ctx context.Context, input DeleteInvoicesAdapterInput) error
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
 	AssociatedLineCounts(ctx context.Context, input AssociatedLineCountsAdapterInput) (AssociatedLineCountsAdapterResponse, error)

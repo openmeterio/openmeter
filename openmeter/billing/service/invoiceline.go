@@ -62,7 +62,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 				return nil, err
 			}
 
-			createdLines, err := TranscationForGatheringInvoiceManipulation(
+			createdLines, err := transcationForInvoiceManipulation(
 				ctx,
 				s,
 				customer.CustomerID{
@@ -316,6 +316,10 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, invoice billing.I
 			splitLine, err := line.Split(ctx, line.BillablePeriod.End)
 			if err != nil {
 				return invoice, fmt.Errorf("line[%s]: splitting line: %w", line.ID(), err)
+			}
+
+			if splitLine.PreSplitAtLine == nil {
+				s.logger.WarnContext(ctx, "pre split line is nil, we are not creating empty lines", "line", line.ID(), "period_start", line.Period().Start, "period_end", line.Period().End, "period_end", line.Period().End)
 			}
 
 			invoiceLines = append(invoiceLines, splitLine.PreSplitAtLine)

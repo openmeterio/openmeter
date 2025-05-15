@@ -83,37 +83,6 @@ func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand b
 	})
 }
 
-func (a *adapter) LockInvoicesForUpdate(ctx context.Context, input billing.LockInvoicesForUpdateInput) error {
-	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		ids, err := tx.db.BillingInvoice.Query().
-			Where(billinginvoice.IDIn(input.InvoiceIDs...)).
-			Where(billinginvoice.Namespace(input.Namespace)).
-			ForUpdate().
-			Select(billinginvoice.FieldID).
-			Strings(ctx)
-		if err != nil {
-			return err
-		}
-
-		missingIds := lo.Without(input.InvoiceIDs, ids...)
-		if len(missingIds) > 0 {
-			return billing.NotFoundError{
-				Entity: billing.EntityInvoice,
-				ID:     strings.Join(missingIds, ","),
-				Err:    billing.ErrInvoiceNotFound,
-			}
-		}
-
-		return nil
-	})
-}
-
 func (a *adapter) DeleteInvoices(ctx context.Context, input billing.DeleteInvoicesAdapterInput) error {
 	if err := input.Validate(); err != nil {
 		return billing.ValidationError{

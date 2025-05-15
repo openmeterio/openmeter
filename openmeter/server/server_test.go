@@ -1485,3 +1485,8 @@ func (n NoopBillingService) WithAdvancementStrategy(strategy billing.Advancement
 func (n NoopBillingService) WithLockedNamespaces(namespaces []string) billing.Service {
 	return n
 }
+
+// LockableService methods
+func (n NoopBillingService) WithLock(ctx context.Context, customerID customer.CustomerID, fn func(ctx context.Context) error) error {
+	return fn(ctx)
+}
