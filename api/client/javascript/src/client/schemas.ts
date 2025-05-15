@@ -7916,9 +7916,14 @@ export interface components {
         id: string
         /**
          * Key
-         * @description A semi-unique identifier for the resource.
+         * @description User provided unique identifier for add-on.
          */
         readonly key: string
+        /**
+         * Display name
+         * @description Human-readable name for add-on.
+         */
+        name: string
         /**
          * Version
          * @description The version of the add-on which templates this instance.

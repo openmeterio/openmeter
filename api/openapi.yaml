@@ -19464,9 +19464,15 @@ components:
               minLength: 1
               maxLength: 64
               pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: A semi-unique identifier for the resource.
+              description: User provided unique identifier for add-on.
               title: Key
               readOnly: true
+            name:
+              type: string
+              minLength: 1
+              maxLength: 256
+              description: Human-readable name for add-on.
+              title: Display name
             version:
               type: integer
               minimum: 1
@@ -19483,6 +19489,7 @@ components:
           required:
             - id
             - key
+            - name
             - version
             - instanceType
           description: Partially populated add-on properties.
