@@ -143,7 +143,7 @@ func (a *queryMeterCSVResult) Records() [][]string {
 		if row.Customer != nil {
 			data = append(data, row.Customer.Name, lo.FromPtrOr(row.Customer.PrimaryEmail, ""))
 		} else {
-			data = append(data, "", "", "")
+			data = append(data, "", "")
 		}
 
 		for _, k := range groupByKeys {
