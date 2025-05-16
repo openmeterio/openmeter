@@ -281,6 +281,33 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/billing/customers/{customerId}/invoices/pending-lines': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Create pending line items
+     * @description Create a new pending line item (charge).
+     *
+     *     This call is used to create a new pending line item for the customer if required a new
+     *     gathering invoice will be created.
+     *
+     *     A new invoice will be created if:
+     *     - there is no invoice in gathering state
+     *     - the currency of the line item doesn't match the currency of any invoices in gathering state
+     */
+    post: operations['createPendingInvoiceLine']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/billing/customers/{customerId}/invoices/simulate': {
     parameters: {
       query?: never
@@ -347,33 +374,6 @@ export interface paths {
      *     The call can return multiple invoices if the pending line items are in different currencies.
      */
     post: operations['invoicePendingLinesAction']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/billing/invoices/lines': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Create pending line items
-     * @description Create a new pending line item (charge).
-     *
-     *     This call is used to create a new pending line item for the customer if required a new
-     *     gathering invoice will be created.
-     *
-     *     A new invoice will be created if:
-     *     - there is no invoice in gathering state
-     *     - the currency of the line item doesn't match the currency of any invoices in gathering state
-     */
-    post: operations['createPendingInvoiceLine']
     delete?: never
     options?: never
     head?: never
@@ -5484,8 +5484,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /** @description The currency of this line. */
-      currency: components['schemas']['CurrencyCode']
       /**
        * @deprecated
        * @description Tax config specify the tax configuration for this line.
@@ -5529,11 +5527,6 @@ export interface components {
        * @default regular
        */
       category?: components['schemas']['InvoiceFlatFeeCategory']
-      /**
-       * @description The customer this line item belongs to.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      customerId: string
     }
     /** @description InvoiceFlatFeeRateCard represents the rate card (intent) for a flat fee line. */
     InvoiceFlatFeeRateCard: {
@@ -5780,6 +5773,22 @@ export interface components {
     InvoicePendingLineCreate:
       | components['schemas']['InvoiceUsageBasedPendingLineCreate']
       | components['schemas']['InvoiceFlatFeePendingLineCreate']
+    /** @description InvoicePendingLineCreate represents the create model for a pending invoice line. */
+    InvoicePendingLineCreateInput: {
+      /** @description The currency of the lines to be created. */
+      currency: components['schemas']['CurrencyCode']
+      /** @description The lines to be created. */
+      lines: components['schemas']['InvoicePendingLineCreate'][]
+    }
+    /** @description InvoicePendingLineCreateResponse represents the response from the create pending line endpoint. */
+    InvoicePendingLineCreateResponse: {
+      /** @description The lines that were created. */
+      readonly lines: components['schemas']['InvoiceLine'][]
+      /** @description The invoice containing the created lines. */
+      readonly invoice: components['schemas']['Invoice']
+      /** @description Whether the invoice was newly created. */
+      readonly isInvoiceNew: boolean
+    }
     /** @description InvoicePendingLinesActionFiltersInput specifies which lines to include in the invoice. */
     InvoicePendingLinesActionFiltersInput: {
       /** @description The pending line items to include in the invoice, if not provided:
@@ -6246,8 +6255,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /** @description The currency of this line. */
-      currency: components['schemas']['CurrencyCode']
       /**
        * @deprecated
        * @description Tax config specify the tax configuration for this line.
@@ -6282,11 +6289,6 @@ export interface components {
        *
        *     The rate card captures the intent of the price and discounts for the usage-based item. */
       rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
-      /**
-       * @description The customer this line item belongs to.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      customerId: string
     }
     /** @description InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line. */
     InvoiceUsageBasedRateCard: {
@@ -10577,6 +10579,10 @@ export type InvoicePaginatedResponse =
 export type InvoicePaymentTerms = components['schemas']['InvoicePaymentTerms']
 export type InvoicePendingLineCreate =
   components['schemas']['InvoicePendingLineCreate']
+export type InvoicePendingLineCreateInput =
+  components['schemas']['InvoicePendingLineCreateInput']
+export type InvoicePendingLineCreateResponse =
+  components['schemas']['InvoicePendingLineCreateResponse']
 export type InvoicePendingLinesActionFiltersInput =
   components['schemas']['InvoicePendingLinesActionFiltersInput']
 export type InvoicePendingLinesActionInput =
@@ -12914,6 +12920,95 @@ export interface operations {
       }
     }
   }
+  createPendingInvoiceLine: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        customerId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['InvoicePendingLineCreateInput']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['InvoicePendingLineCreateResponse']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
   simulateInvoice: {
     parameters: {
       query?: never
@@ -13141,93 +13236,6 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['Invoice'][]
-        }
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
-      412: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  createPendingInvoiceLine: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['InvoicePendingLineCreate'][]
-      }
-    }
-    responses: {
-      /** @description The request has succeeded and a new resource has been created as a result. */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['InvoiceLine'][]
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */

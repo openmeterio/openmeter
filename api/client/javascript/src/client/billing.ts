@@ -4,7 +4,7 @@ import type {
   BillingProfileCreate,
   BillingProfileCustomerOverrideCreate,
   BillingProfileReplaceUpdateWithWorkflow,
-  InvoicePendingLineCreate,
+  InvoicePendingLineCreateInput,
   InvoiceReplaceUpdate,
   InvoiceSimulationInput,
   operations,
@@ -362,19 +362,31 @@ export class BillingInvoices {
 
   /**
    * Create pending line items
-   * @description Create new pending line items (charges). If required, a new gathering invoice will be created.
+   * @description Create new pending line items (charges).
+   *     This call is used to create a new pending line item for the customer if required a new
+   *     gathering invoice will be created.
+   *
+   *     A new invoice will be created if:
+   *     - there is no invoice in gathering state
+   *     - the currency of the line item doesn't match the currency of any invoices in gathering state
+   * @param customerId - The ID of the customer to create the line items for
    * @param body - The line items to create
    * @param signal - An optional abort signal
    * @returns The created line items
    */
   public async createLineItems(
-    body: InvoicePendingLineCreate[],
+    customerId: operations['createPendingInvoiceLine']['parameters']['path']['customerId'],
+    body: InvoicePendingLineCreateInput,
     options?: RequestOptions
   ) {
-    const resp = await this.client.POST('/api/v1/billing/invoices/lines', {
-      body,
-      ...options,
-    })
+    const resp = await this.client.POST(
+      '/api/v1/billing/customers/{customerId}/invoices/pending-lines',
+      {
+        body,
+        params: { path: { customerId } },
+        ...options,
+      }
+    )
 
     return transformResponse(resp)
   }
