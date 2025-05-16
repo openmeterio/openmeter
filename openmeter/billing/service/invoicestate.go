@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
@@ -25,6 +26,7 @@ type InvoiceStateMachine struct {
 	StateMachine        *stateless.StateMachine
 	Logger              *slog.Logger
 	Publisher           eventbus.Publisher
+	Service             *Service
 	FSNamespaceLockdown []string
 }
 
@@ -78,9 +80,32 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerUpdated, billing.InvoiceStatusDraftUpdating).
 		OnActive(out.calculateInvoice)
 
-	stateMachine.Configure(billing.InvoiceStatusDraftUpdating).
+	stateMachine.Configure(billing.InvoiceStatusDraftWaitingForCollection).
+		Permit(
+			billing.TriggerNext,
+			billing.InvoiceStatusDraftCollecting,
+			boolFn(out.isReadyForCollection),
+		).
+		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress).
+		Permit(billing.TriggerUpdated, billing.InvoiceStatusDraftUpdating)
+
+	stateMachine.Configure(billing.InvoiceStatusDraftCollecting).
 		Permit(billing.TriggerNext, billing.InvoiceStatusDraftValidating).
 		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress).
+		Permit(billing.TriggerFailed, billing.InvoiceStatusDraftInvalid).
+		Permit(billing.TriggerUpdated, billing.InvoiceStatusDraftUpdating).
+		OnActive(
+			allOf(
+				out.calculateInvoice,
+				out.snapshotQuantity,
+			),
+		)
+
+	// Invoice is edited
+	stateMachine.Configure(billing.InvoiceStatusDraftUpdating).
+		Permit(billing.TriggerNext, billing.InvoiceStatusDraftCollecting).
+		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress).
+		Permit(billing.TriggerFailed, billing.InvoiceStatusDraftInvalid).
 		OnActive(
 			allOf(
 				out.calculateInvoice,
@@ -253,10 +278,16 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.I
 	// Stateless doesn't store any state in the state machine, so it's fine to reuse the state machine itself
 	sm.Invoice = invoice
 	sm.Calculator = s.invoiceCalculator
+	sm.Service = s
 
 	defer func() {
 		sm.Invoice = billing.Invoice{}
 		sm.Calculator = nil
+		sm.Service = nil
+		sm.Logger = nil
+		sm.Publisher = nil
+		sm.FSNamespaceLockdown = nil
+
 		invoiceStateMachineCache.Put(sm)
 	}()
 
@@ -637,6 +668,55 @@ func (m *InvoiceStateMachine) shouldAutoAdvance() bool {
 	}
 
 	return !clock.Now().In(time.UTC).Before(*m.Invoice.DraftUntil)
+}
+
+func (m *InvoiceStateMachine) isReadyForCollection() bool {
+	// If the quantity has been snapshoted, we have already collected the quantity
+	if m.Invoice.QuantitySnapshotedAt != nil {
+		return true
+	}
+
+	// Let's skip the collection period if the invoice does not contain any usage based lines
+	collectingLines := lo.Filter(m.Invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
+		if line.Type != billing.InvoiceLineTypeUsageBased {
+			return false
+		}
+
+		if line.UsageBased == nil {
+			m.Logger.Warn("invoice contains usage based line with no usage based data, assuming collection is required")
+			return true
+		}
+
+		if line.UsageBased.Price.Type() == productcatalog.FlatPriceType {
+			return false
+		}
+
+		return true
+	})
+
+	if len(collectingLines) == 0 {
+		return true
+	}
+
+	// We can proceed with the collection period if the collection period has already passed
+	lineMaxPeriodEnd := time.Time{}
+	for _, line := range collectingLines {
+		if line.Period.End.After(lineMaxPeriodEnd) {
+			lineMaxPeriodEnd = line.Period.End
+		}
+	}
+
+	collectionEnd, _ := m.Invoice.Workflow.Config.Collection.Interval.AddTo(lineMaxPeriodEnd)
+
+	if collectionEnd.Before(clock.Now()) || collectionEnd.Equal(clock.Now()) {
+		return true
+	}
+
+	return false
+}
+
+func (m *InvoiceStateMachine) snapshotQuantity(ctx context.Context) error {
+	return m.Service.snapshotQuantity(ctx, &m.Invoice)
 }
 
 func (m *InvoiceStateMachine) canDraftSyncAdvance() bool {

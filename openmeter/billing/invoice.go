@@ -72,7 +72,11 @@ const (
 	// InvoiceStatusGathering is the status of an invoice that is gathering the items to be invoiced.
 	InvoiceStatusGathering InvoiceStatus = "gathering"
 
-	InvoiceStatusDraftCreated              InvoiceStatus = "draft.created"
+	InvoiceStatusDraftCreated InvoiceStatus = "draft.created"
+	// InvoiceStatusDraftWaitingForCollection is the status of an invoice that is waiting for the collection to be possible (e.g. collection period has passed)
+	InvoiceStatusDraftWaitingForCollection InvoiceStatus = "draft.waiting_for_collection"
+	// InvoiceStatusDraftCollecting is the status of an invoice that is collecting the items to be invoiced.
+	InvoiceStatusDraftCollecting           InvoiceStatus = "draft.collecting"
 	InvoiceStatusDraftUpdating             InvoiceStatus = "draft.updating"
 	InvoiceStatusDraftManualApprovalNeeded InvoiceStatus = "draft.manual_approval_needed"
 	InvoiceStatusDraftValidating           InvoiceStatus = "draft.validating"
@@ -110,6 +114,8 @@ const (
 var validStatuses = []InvoiceStatus{
 	InvoiceStatusGathering,
 	InvoiceStatusDraftCreated,
+	InvoiceStatusDraftWaitingForCollection,
+	InvoiceStatusDraftCollecting,
 	InvoiceStatusDraftUpdating,
 	InvoiceStatusDraftManualApprovalNeeded,
 	InvoiceStatusDraftValidating,
