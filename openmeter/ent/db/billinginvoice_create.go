@@ -451,6 +451,20 @@ func (_c *BillingInvoiceCreate) SetNillableDraftUntil(v *time.Time) *BillingInvo
 	return _c
 }
 
+// SetQuantitySnapshotedAt sets the "quantity_snapshoted_at" field.
+func (_c *BillingInvoiceCreate) SetQuantitySnapshotedAt(v time.Time) *BillingInvoiceCreate {
+	_c.mutation.SetQuantitySnapshotedAt(v)
+	return _c
+}
+
+// SetNillableQuantitySnapshotedAt sets the "quantity_snapshoted_at" field if the given value is not nil.
+func (_c *BillingInvoiceCreate) SetNillableQuantitySnapshotedAt(v *time.Time) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetQuantitySnapshotedAt(*v)
+	}
+	return _c
+}
+
 // SetCurrency sets the "currency" field.
 func (_c *BillingInvoiceCreate) SetCurrency(v currencyx.Code) *BillingInvoiceCreate {
 	_c.mutation.SetCurrency(v)
@@ -1060,6 +1074,10 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 	if value, ok := _c.mutation.DraftUntil(); ok {
 		_spec.SetField(billinginvoice.FieldDraftUntil, field.TypeTime, value)
 		_node.DraftUntil = &value
+	}
+	if value, ok := _c.mutation.QuantitySnapshotedAt(); ok {
+		_spec.SetField(billinginvoice.FieldQuantitySnapshotedAt, field.TypeTime, value)
+		_node.QuantitySnapshotedAt = &value
 	}
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(billinginvoice.FieldCurrency, field.TypeString, value)
@@ -1836,6 +1854,24 @@ func (u *BillingInvoiceUpsert) UpdateDraftUntil() *BillingInvoiceUpsert {
 // ClearDraftUntil clears the value of the "draft_until" field.
 func (u *BillingInvoiceUpsert) ClearDraftUntil() *BillingInvoiceUpsert {
 	u.SetNull(billinginvoice.FieldDraftUntil)
+	return u
+}
+
+// SetQuantitySnapshotedAt sets the "quantity_snapshoted_at" field.
+func (u *BillingInvoiceUpsert) SetQuantitySnapshotedAt(v time.Time) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldQuantitySnapshotedAt, v)
+	return u
+}
+
+// UpdateQuantitySnapshotedAt sets the "quantity_snapshoted_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateQuantitySnapshotedAt() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldQuantitySnapshotedAt)
+	return u
+}
+
+// ClearQuantitySnapshotedAt clears the value of the "quantity_snapshoted_at" field.
+func (u *BillingInvoiceUpsert) ClearQuantitySnapshotedAt() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldQuantitySnapshotedAt)
 	return u
 }
 
@@ -2720,6 +2756,27 @@ func (u *BillingInvoiceUpsertOne) UpdateDraftUntil() *BillingInvoiceUpsertOne {
 func (u *BillingInvoiceUpsertOne) ClearDraftUntil() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearDraftUntil()
+	})
+}
+
+// SetQuantitySnapshotedAt sets the "quantity_snapshoted_at" field.
+func (u *BillingInvoiceUpsertOne) SetQuantitySnapshotedAt(v time.Time) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetQuantitySnapshotedAt(v)
+	})
+}
+
+// UpdateQuantitySnapshotedAt sets the "quantity_snapshoted_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateQuantitySnapshotedAt() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateQuantitySnapshotedAt()
+	})
+}
+
+// ClearQuantitySnapshotedAt clears the value of the "quantity_snapshoted_at" field.
+func (u *BillingInvoiceUpsertOne) ClearQuantitySnapshotedAt() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearQuantitySnapshotedAt()
 	})
 }
 
@@ -3799,6 +3856,27 @@ func (u *BillingInvoiceUpsertBulk) UpdateDraftUntil() *BillingInvoiceUpsertBulk 
 func (u *BillingInvoiceUpsertBulk) ClearDraftUntil() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearDraftUntil()
+	})
+}
+
+// SetQuantitySnapshotedAt sets the "quantity_snapshoted_at" field.
+func (u *BillingInvoiceUpsertBulk) SetQuantitySnapshotedAt(v time.Time) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetQuantitySnapshotedAt(v)
+	})
+}
+
+// UpdateQuantitySnapshotedAt sets the "quantity_snapshoted_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateQuantitySnapshotedAt() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateQuantitySnapshotedAt()
+	})
+}
+
+// ClearQuantitySnapshotedAt clears the value of the "quantity_snapshoted_at" field.
+func (u *BillingInvoiceUpsertBulk) ClearQuantitySnapshotedAt() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearQuantitySnapshotedAt()
 	})
 }
 

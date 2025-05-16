@@ -139,6 +139,12 @@ model Invoice {
   draftUntil?: DateTime;
 
   /**
+   * The time when the quantity snapshots on the invoice lines were taken.
+   */
+  @visibility(Lifecycle.Read)
+  quantitySnapshotedAt?: DateTime;
+
+  /**
    * Due time of the fulfillment of the invoice (if available).
    */
   @visibility(Lifecycle.Read)

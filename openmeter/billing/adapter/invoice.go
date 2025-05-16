@@ -452,6 +452,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			SetOrClearIssuedAt(convert.SafeToUTC(in.IssuedAt)).
 			SetOrClearDeletedAt(convert.SafeToUTC(in.DeletedAt)).
 			SetOrClearSentToCustomerAt(convert.SafeToUTC(in.SentToCustomerAt)).
+			SetOrClearQuantitySnapshotedAt(convert.SafeToUTC(in.QuantitySnapshotedAt)).
 			// Totals
 			SetAmount(in.Totals.Amount).
 			SetChargesTotal(in.Totals.ChargesTotal).
@@ -631,18 +632,19 @@ func (a *adapter) GetInvoiceOwnership(ctx context.Context, in billing.GetInvoice
 
 func (a *adapter) mapInvoiceBaseFromDB(ctx context.Context, invoice *db.BillingInvoice) billing.InvoiceBase {
 	return billing.InvoiceBase{
-		ID:               invoice.ID,
-		Namespace:        invoice.Namespace,
-		Metadata:         invoice.Metadata,
-		Currency:         invoice.Currency,
-		Status:           invoice.Status,
-		StatusDetails:    invoice.StatusDetailsCache,
-		Type:             invoice.Type,
-		Number:           invoice.Number,
-		Description:      invoice.Description,
-		DueAt:            convert.TimePtrIn(invoice.DueAt, time.UTC),
-		DraftUntil:       convert.TimePtrIn(invoice.DraftUntil, time.UTC),
-		SentToCustomerAt: convert.TimePtrIn(invoice.SentToCustomerAt, time.UTC),
+		ID:                   invoice.ID,
+		Namespace:            invoice.Namespace,
+		Metadata:             invoice.Metadata,
+		Currency:             invoice.Currency,
+		Status:               invoice.Status,
+		StatusDetails:        invoice.StatusDetailsCache,
+		Type:                 invoice.Type,
+		Number:               invoice.Number,
+		Description:          invoice.Description,
+		DueAt:                convert.TimePtrIn(invoice.DueAt, time.UTC),
+		DraftUntil:           convert.TimePtrIn(invoice.DraftUntil, time.UTC),
+		SentToCustomerAt:     convert.TimePtrIn(invoice.SentToCustomerAt, time.UTC),
+		QuantitySnapshotedAt: convert.TimePtrIn(invoice.QuantitySnapshotedAt, time.UTC),
 		Supplier: billing.SupplierContact{
 			Name: invoice.SupplierName,
 			Address: models.Address{

@@ -104,6 +104,8 @@ type BillingInvoice struct {
 	SentToCustomerAt *time.Time `json:"sent_to_customer_at,omitempty"`
 	// DraftUntil holds the value of the "draft_until" field.
 	DraftUntil *time.Time `json:"draft_until,omitempty"`
+	// QuantitySnapshotedAt holds the value of the "quantity_snapshoted_at" field.
+	QuantitySnapshotedAt *time.Time `json:"quantity_snapshoted_at,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
 	// DueAt holds the value of the "due_at" field.
@@ -256,7 +258,7 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerName, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID, billinginvoice.FieldInvoicingAppExternalID, billinginvoice.FieldPaymentAppExternalID, billinginvoice.FieldTaxAppExternalID:
 			values[i] = new(sql.NullString)
-		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldIssuedAt, billinginvoice.FieldSentToCustomerAt, billinginvoice.FieldDraftUntil, billinginvoice.FieldDueAt, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd, billinginvoice.FieldCollectionAt:
+		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldIssuedAt, billinginvoice.FieldSentToCustomerAt, billinginvoice.FieldDraftUntil, billinginvoice.FieldQuantitySnapshotedAt, billinginvoice.FieldDueAt, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd, billinginvoice.FieldCollectionAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -537,6 +539,13 @@ func (_m *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.DraftUntil = new(time.Time)
 				*_m.DraftUntil = value.Time
+			}
+		case billinginvoice.FieldQuantitySnapshotedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field quantity_snapshoted_at", values[i])
+			} else if value.Valid {
+				_m.QuantitySnapshotedAt = new(time.Time)
+				*_m.QuantitySnapshotedAt = value.Time
 			}
 		case billinginvoice.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -862,6 +871,11 @@ func (_m *BillingInvoice) String() string {
 	builder.WriteString(", ")
 	if v := _m.DraftUntil; v != nil {
 		builder.WriteString("draft_until=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.QuantitySnapshotedAt; v != nil {
+		builder.WriteString("quantity_snapshoted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")

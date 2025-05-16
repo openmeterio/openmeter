@@ -251,6 +251,11 @@ func DraftUntil(v time.Time) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldDraftUntil, v))
 }
 
+// QuantitySnapshotedAt applies equality check predicate on the "quantity_snapshoted_at" field. It's identical to QuantitySnapshotedAtEQ.
+func QuantitySnapshotedAt(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldQuantitySnapshotedAt, v))
+}
+
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
 func Currency(v currencyx.Code) predicate.BillingInvoice {
 	vc := string(v)
@@ -2588,6 +2593,56 @@ func DraftUntilIsNil() predicate.BillingInvoice {
 // DraftUntilNotNil applies the NotNil predicate on the "draft_until" field.
 func DraftUntilNotNil() predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldNotNull(FieldDraftUntil))
+}
+
+// QuantitySnapshotedAtEQ applies the EQ predicate on the "quantity_snapshoted_at" field.
+func QuantitySnapshotedAtEQ(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldQuantitySnapshotedAt, v))
+}
+
+// QuantitySnapshotedAtNEQ applies the NEQ predicate on the "quantity_snapshoted_at" field.
+func QuantitySnapshotedAtNEQ(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNEQ(FieldQuantitySnapshotedAt, v))
+}
+
+// QuantitySnapshotedAtIn applies the In predicate on the "quantity_snapshoted_at" field.
+func QuantitySnapshotedAtIn(vs ...time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIn(FieldQuantitySnapshotedAt, vs...))
+}
+
+// QuantitySnapshotedAtNotIn applies the NotIn predicate on the "quantity_snapshoted_at" field.
+func QuantitySnapshotedAtNotIn(vs ...time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotIn(FieldQuantitySnapshotedAt, vs...))
+}
+
+// QuantitySnapshotedAtGT applies the GT predicate on the "quantity_snapshoted_at" field.
+func QuantitySnapshotedAtGT(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGT(FieldQuantitySnapshotedAt, v))
+}
+
+// QuantitySnapshotedAtGTE applies the GTE predicate on the "quantity_snapshoted_at" field.
+func QuantitySnapshotedAtGTE(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGTE(FieldQuantitySnapshotedAt, v))
+}
+
+// QuantitySnapshotedAtLT applies the LT predicate on the "quantity_snapshoted_at" field.
+func QuantitySnapshotedAtLT(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLT(FieldQuantitySnapshotedAt, v))
+}
+
+// QuantitySnapshotedAtLTE applies the LTE predicate on the "quantity_snapshoted_at" field.
+func QuantitySnapshotedAtLTE(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLTE(FieldQuantitySnapshotedAt, v))
+}
+
+// QuantitySnapshotedAtIsNil applies the IsNil predicate on the "quantity_snapshoted_at" field.
+func QuantitySnapshotedAtIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldQuantitySnapshotedAt))
+}
+
+// QuantitySnapshotedAtNotNil applies the NotNil predicate on the "quantity_snapshoted_at" field.
+func QuantitySnapshotedAtNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldQuantitySnapshotedAt))
 }
 
 // CurrencyEQ applies the EQ predicate on the "currency" field.

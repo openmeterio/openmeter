@@ -157,6 +157,8 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		}
 	}
 
+	invoice.QuantitySnapshotedAt = lo.ToPtr(now)
+
 	if err := s.invoiceCalculator.Calculate(&invoice); err != nil {
 		return invoice, fmt.Errorf("calculating invoice: %w", err)
 	}

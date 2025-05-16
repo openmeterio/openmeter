@@ -5192,6 +5192,12 @@ export interface components {
       draftUntil?: Date
       /**
        * Format: date-time
+       * @description The time when the quantity snapshots on the invoice lines were taken.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly quantitySnapshotedAt?: Date
+      /**
+       * Format: date-time
        * @description Due time of the fulfillment of the invoice (if available).
        * @example 2023-01-01T01:01:01.001Z
        */

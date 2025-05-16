@@ -15315,6 +15315,12 @@ components:
 
             If manual approval is required, the draftUntil time is set.
           example: '2023-01-01T01:01:01.001Z'
+        quantitySnapshotedAt:
+          type: string
+          format: date-time
+          description: The time when the quantity snapshots on the invoice lines were taken.
+          example: '2023-01-01T01:01:01.001Z'
+          readOnly: true
         dueAt:
           type: string
           format: date-time

@@ -94,6 +94,8 @@ const (
 	FieldSentToCustomerAt = "sent_to_customer_at"
 	// FieldDraftUntil holds the string denoting the draft_until field in the database.
 	FieldDraftUntil = "draft_until"
+	// FieldQuantitySnapshotedAt holds the string denoting the quantity_snapshoted_at field in the database.
+	FieldQuantitySnapshotedAt = "quantity_snapshoted_at"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
 	// FieldDueAt holds the string denoting the due_at field in the database.
@@ -240,6 +242,7 @@ var Columns = []string{
 	FieldIssuedAt,
 	FieldSentToCustomerAt,
 	FieldDraftUntil,
+	FieldQuantitySnapshotedAt,
 	FieldCurrency,
 	FieldDueAt,
 	FieldStatus,
@@ -506,6 +509,11 @@ func BySentToCustomerAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDraftUntil orders the results by the draft_until field.
 func ByDraftUntil(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDraftUntil, opts...).ToFunc()
+}
+
+// ByQuantitySnapshotedAt orders the results by the quantity_snapshoted_at field.
+func ByQuantitySnapshotedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldQuantitySnapshotedAt, opts...).ToFunc()
 }
 
 // ByCurrency orders the results by the currency field.

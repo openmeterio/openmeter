@@ -597,6 +597,7 @@ var (
 		{Name: "issued_at", Type: field.TypeTime, Nullable: true},
 		{Name: "sent_to_customer_at", Type: field.TypeTime, Nullable: true},
 		{Name: "draft_until", Type: field.TypeTime, Nullable: true},
+		{Name: "quantity_snapshoted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "due_at", Type: field.TypeTime, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"gathering", "draft.created", "draft.updating", "draft.manual_approval_needed", "draft.validating", "draft.invalid", "draft.syncing", "draft.sync_failed", "draft.waiting_auto_approval", "draft.ready_to_issue", "delete.in_progress", "delete.syncing", "delete.failed", "deleted", "issuing.syncing", "issuing.failed", "issued", "payment_processing.pending", "payment_processing.failed", "payment_processing.action_required", "overdue", "paid", "uncollectible", "voided"}},
@@ -622,37 +623,37 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoices_apps_billing_invoice_tax_app",
-				Columns:    []*schema.Column{BillingInvoicesColumns[48]},
-				RefColumns: []*schema.Column{AppsColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-			{
-				Symbol:     "billing_invoices_apps_billing_invoice_invoicing_app",
 				Columns:    []*schema.Column{BillingInvoicesColumns[49]},
 				RefColumns: []*schema.Column{AppsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "billing_invoices_apps_billing_invoice_payment_app",
+				Symbol:     "billing_invoices_apps_billing_invoice_invoicing_app",
 				Columns:    []*schema.Column{BillingInvoicesColumns[50]},
 				RefColumns: []*schema.Column{AppsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "billing_invoices_billing_profiles_billing_invoices",
+				Symbol:     "billing_invoices_apps_billing_invoice_payment_app",
 				Columns:    []*schema.Column{BillingInvoicesColumns[51]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "billing_invoices_billing_profiles_billing_invoices",
+				Columns:    []*schema.Column{BillingInvoicesColumns[52]},
 				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "billing_invoices_billing_workflow_configs_billing_invoices",
-				Columns:    []*schema.Column{BillingInvoicesColumns[52]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[53]},
 				RefColumns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "billing_invoices_customers_billing_invoice",
-				Columns:    []*schema.Column{BillingInvoicesColumns[53]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[54]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -676,17 +677,17 @@ var (
 			{
 				Name:    "billinginvoice_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[53]},
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[54]},
 			},
 			{
 				Name:    "billinginvoice_namespace_status",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[40]},
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[41]},
 			},
 			{
 				Name:    "billinginvoice_status_details_cache",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[41]},
+				Columns: []*schema.Column{BillingInvoicesColumns[42]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
