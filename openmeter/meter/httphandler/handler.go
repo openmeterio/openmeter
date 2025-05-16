@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -35,6 +36,7 @@ type handler struct {
 	options          []httptransport.HandlerOption
 	meterService     meter.ManageService
 	streaming        streaming.Connector
+	customerService  customer.Service
 }
 
 func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
@@ -50,6 +52,7 @@ func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	meterService meter.ManageService,
 	streaming streaming.Connector,
+	customerService customer.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
@@ -57,5 +60,6 @@ func New(
 		options:          options,
 		meterService:     meterService,
 		streaming:        streaming,
+		customerService:  customerService,
 	}
 }

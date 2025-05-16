@@ -57,7 +57,6 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 					Key:          params.Key,
 					Name:         params.Name,
 					PrimaryEmail: params.PrimaryEmail,
-					Subject:      params.Subject,
 					PlanKey:      params.PlanKey,
 
 					// Modifiers
@@ -66,6 +65,11 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 
 				// Expand
 				Expand: lo.FromPtrOr(params.Expand, []api.CustomerExpand{}),
+			}
+
+			// If a subject filter is provided, set the subjects filter
+			if params.Subject != nil {
+				req.Subjects = lo.ToPtr([]string{*params.Subject})
 			}
 
 			if err := req.Page.Validate(); err != nil {

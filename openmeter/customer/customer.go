@@ -150,7 +150,7 @@ type ListCustomersInput struct {
 	Key          *string
 	Name         *string
 	PrimaryEmail *string
-	Subject      *string
+	Subjects     *[]string
 	PlanKey      *string
 	CustomerIDs  []string
 }
@@ -158,6 +158,10 @@ type ListCustomersInput struct {
 func (i ListCustomersInput) Validate() error {
 	if i.Namespace == "" {
 		return models.NewGenericValidationError(errors.New("namespace is required"))
+	}
+
+	if i.Subjects != nil && len(*i.Subjects) == 0 {
+		return models.NewGenericValidationError(errors.New("subjects cannot be empty"))
 	}
 
 	return nil
