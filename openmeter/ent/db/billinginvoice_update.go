@@ -632,6 +632,26 @@ func (_u *BillingInvoiceUpdate) ClearDraftUntil() *BillingInvoiceUpdate {
 	return _u
 }
 
+// SetQuantitySnapshotedAt sets the "quantity_snapshoted_at" field.
+func (_u *BillingInvoiceUpdate) SetQuantitySnapshotedAt(v time.Time) *BillingInvoiceUpdate {
+	_u.mutation.SetQuantitySnapshotedAt(v)
+	return _u
+}
+
+// SetNillableQuantitySnapshotedAt sets the "quantity_snapshoted_at" field if the given value is not nil.
+func (_u *BillingInvoiceUpdate) SetNillableQuantitySnapshotedAt(v *time.Time) *BillingInvoiceUpdate {
+	if v != nil {
+		_u.SetQuantitySnapshotedAt(*v)
+	}
+	return _u
+}
+
+// ClearQuantitySnapshotedAt clears the value of the "quantity_snapshoted_at" field.
+func (_u *BillingInvoiceUpdate) ClearQuantitySnapshotedAt() *BillingInvoiceUpdate {
+	_u.mutation.ClearQuantitySnapshotedAt()
+	return _u
+}
+
 // SetDueAt sets the "due_at" field.
 func (_u *BillingInvoiceUpdate) SetDueAt(v time.Time) *BillingInvoiceUpdate {
 	_u.mutation.SetDueAt(v)
@@ -1185,6 +1205,12 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if _u.mutation.DraftUntilCleared() {
 		_spec.ClearField(billinginvoice.FieldDraftUntil, field.TypeTime)
+	}
+	if value, ok := _u.mutation.QuantitySnapshotedAt(); ok {
+		_spec.SetField(billinginvoice.FieldQuantitySnapshotedAt, field.TypeTime, value)
+	}
+	if _u.mutation.QuantitySnapshotedAtCleared() {
+		_spec.ClearField(billinginvoice.FieldQuantitySnapshotedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DueAt(); ok {
 		_spec.SetField(billinginvoice.FieldDueAt, field.TypeTime, value)
@@ -1974,6 +2000,26 @@ func (_u *BillingInvoiceUpdateOne) ClearDraftUntil() *BillingInvoiceUpdateOne {
 	return _u
 }
 
+// SetQuantitySnapshotedAt sets the "quantity_snapshoted_at" field.
+func (_u *BillingInvoiceUpdateOne) SetQuantitySnapshotedAt(v time.Time) *BillingInvoiceUpdateOne {
+	_u.mutation.SetQuantitySnapshotedAt(v)
+	return _u
+}
+
+// SetNillableQuantitySnapshotedAt sets the "quantity_snapshoted_at" field if the given value is not nil.
+func (_u *BillingInvoiceUpdateOne) SetNillableQuantitySnapshotedAt(v *time.Time) *BillingInvoiceUpdateOne {
+	if v != nil {
+		_u.SetQuantitySnapshotedAt(*v)
+	}
+	return _u
+}
+
+// ClearQuantitySnapshotedAt clears the value of the "quantity_snapshoted_at" field.
+func (_u *BillingInvoiceUpdateOne) ClearQuantitySnapshotedAt() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearQuantitySnapshotedAt()
+	return _u
+}
+
 // SetDueAt sets the "due_at" field.
 func (_u *BillingInvoiceUpdateOne) SetDueAt(v time.Time) *BillingInvoiceUpdateOne {
 	_u.mutation.SetDueAt(v)
@@ -2557,6 +2603,12 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 	}
 	if _u.mutation.DraftUntilCleared() {
 		_spec.ClearField(billinginvoice.FieldDraftUntil, field.TypeTime)
+	}
+	if value, ok := _u.mutation.QuantitySnapshotedAt(); ok {
+		_spec.SetField(billinginvoice.FieldQuantitySnapshotedAt, field.TypeTime, value)
+	}
+	if _u.mutation.QuantitySnapshotedAtCleared() {
+		_spec.ClearField(billinginvoice.FieldQuantitySnapshotedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DueAt(); ok {
 		_spec.SetField(billinginvoice.FieldDueAt, field.TypeTime, value)

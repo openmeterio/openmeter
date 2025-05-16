@@ -839,6 +839,20 @@ func (u *BillingInvoiceUpdateOne) SetOrClearDraftUntil(value *time.Time) *Billin
 	return u.SetDraftUntil(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearQuantitySnapshotedAt(value *time.Time) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearQuantitySnapshotedAt()
+	}
+	return u.SetQuantitySnapshotedAt(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearQuantitySnapshotedAt(value *time.Time) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearQuantitySnapshotedAt()
+	}
+	return u.SetQuantitySnapshotedAt(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearDueAt(value *time.Time) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearDueAt()

@@ -772,6 +772,10 @@ func (BillingInvoice) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.Time("quantity_snapshoted_at").
+			Optional().
+			Nillable(),
+
 		field.String("currency").
 			GoType(currencyx.Code("")).
 			NotEmpty().
@@ -839,6 +843,7 @@ func (BillingInvoice) Fields() []ent.Field {
 		field.Time("period_end").
 			Optional().
 			Nillable(),
+
 		// The timestamp set in the collection_at field defines when new draft invoice is need to be created
 		// from line-items available on the gathering invoice. It is defaulted to time.Now() on creation.
 		field.Time("collection_at").

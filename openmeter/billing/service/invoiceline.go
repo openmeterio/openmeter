@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -351,6 +352,8 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, invoice billing.I
 			return invoice, fmt.Errorf("line[%s]: snapshotting quantity: %w", line.ID(), err)
 		}
 	}
+
+	invoice.QuantitySnapshotedAt = lo.ToPtr(clock.Now().UTC())
 
 	// Let's active the invoice state machine so that calculations can be done
 	return s.WithInvoiceStateMachine(ctx, invoice, func(ctx context.Context, ism *InvoiceStateMachine) error {

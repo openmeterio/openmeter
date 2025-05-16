@@ -272,13 +272,14 @@ type InvoiceBase struct {
 
 	DueAt *time.Time `json:"dueDate,omitempty"`
 
-	CreatedAt        time.Time  `json:"createdAt"`
-	UpdatedAt        time.Time  `json:"updatedAt"`
-	VoidedAt         *time.Time `json:"voidedAt,omitempty"`
-	DraftUntil       *time.Time `json:"draftUntil,omitempty"`
-	IssuedAt         *time.Time `json:"issuedAt,omitempty"`
-	DeletedAt        *time.Time `json:"deletedAt,omitempty"`
-	SentToCustomerAt *time.Time `json:"sentToCustomerAt,omitempty"`
+	CreatedAt            time.Time  `json:"createdAt"`
+	UpdatedAt            time.Time  `json:"updatedAt"`
+	VoidedAt             *time.Time `json:"voidedAt,omitempty"`
+	DraftUntil           *time.Time `json:"draftUntil,omitempty"`
+	IssuedAt             *time.Time `json:"issuedAt,omitempty"`
+	DeletedAt            *time.Time `json:"deletedAt,omitempty"`
+	SentToCustomerAt     *time.Time `json:"sentToCustomerAt,omitempty"`
+	QuantitySnapshotedAt *time.Time `json:"quantitySnapshotedAt,omitempty"`
 
 	CollectionAt *time.Time `json:"collectionAt,omitempty"`
 
