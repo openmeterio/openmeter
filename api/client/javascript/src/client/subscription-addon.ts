@@ -1,6 +1,6 @@
 import { transformResponse } from './utils.js'
+import type { RequestOptions } from './common.js'
 import type { paths } from './schemas.js'
-import type { RequestOptions } from 'http'
 import type { Client } from 'openapi-fetch'
 
 export class SubscriptionAddons {
