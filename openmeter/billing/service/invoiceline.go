@@ -17,25 +17,37 @@ import (
 
 var _ billing.InvoiceLineService = (*Service)(nil)
 
-func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (billing.CreatePendingInvoiceLinesResult, error) {
-	var empty billing.CreatePendingInvoiceLinesResult
-
+func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (*billing.CreatePendingInvoiceLinesResult, error) {
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Customer.Namespace
 		input.Lines[i].Status = billing.InvoiceLineStatusValid
 		input.Lines[i].Currency = input.Currency
-
 	}
 
 	if err := input.Validate(); err != nil {
-		return empty, billing.ValidationError{
+		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	res, err := transcationForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (*billing.CreatePendingInvoiceLinesResult, error) {
+	return transcationForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (*billing.CreatePendingInvoiceLinesResult, error) {
 		if err := s.validateCustomerForUpdate(ctx, input.Customer); err != nil {
 			return nil, err
+		}
+
+		lineServices, err := s.lineService.FromEntities(lo.Map(input.Lines, func(l *billing.Line, _ int) *billing.Line {
+			l.Namespace = input.Customer.Namespace
+			l.Status = billing.InvoiceLineStatusValid
+			l.Currency = input.Currency
+
+			return l
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("creating line services: %w", err)
+		}
+
+		if len(lineServices) == 0 {
+			return nil, nil
 		}
 
 		// let's resolve the customer's settings
@@ -62,21 +74,9 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 		lines := make(lineservice.Lines, 0, len(input.Lines))
 
-		lineServices, err := s.lineService.FromEntities(lo.Map(input.Lines, func(l *billing.Line, _ int) *billing.Line {
-			l.Namespace = input.Customer.Namespace
-			l.Status = billing.InvoiceLineStatusValid
-			l.Currency = input.Currency
-			l.InvoiceID = gatheringInvoice.ID
-
-			return l
-		}))
-		if err != nil {
-			return nil, fmt.Errorf("creating line services: %w", err)
-		}
-
 		for i, lineSvc := range lineServices {
 			line := lineSvc.ToEntity()
-
+			line.InvoiceID = gatheringInvoice.ID
 			line.RateCardDiscounts, err = s.generateDiscountCorrelationIDs(line.RateCardDiscounts)
 			if err != nil {
 				return nil, fmt.Errorf("generating discount correlation IDs: %w", err)
@@ -141,44 +141,12 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			}
 		}
 
-		// If the invoice has no lines, we should delete it (this can happen if all input lines were
-		// filtered out during entity creation for being zero valued)
-		if gatheringInvoice.Lines.NonDeletedLineCount() == 0 {
-			if err := s.adapter.DeleteInvoices(ctx, billing.DeleteInvoicesAdapterInput{
-				Namespace:  gatheringInvoice.Namespace,
-				InvoiceIDs: []string{gatheringInvoice.ID},
-			}); err != nil {
-				return nil, fmt.Errorf("deleting invoice: %w", err)
-			}
-
-			gatheringInvoice, err = s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: gatheringInvoice.InvoiceID(),
-				Expand:  billing.InvoiceExpandAll,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("fetching invoice[%s]: %w", gatheringInvoice.ID, err)
-			}
-
-			// TODO[later]: we should throw an error here, as some input lines were zero and we have dropped them
-
-			// No new lines created, but we should return the invoice
-			return &billing.CreatePendingInvoiceLinesResult{
-				Invoice:      gatheringInvoice,
-				IsInvoiceNew: false,
-			}, nil
-		}
-
 		return &billing.CreatePendingInvoiceLinesResult{
 			Invoice:      gatheringInvoice,
 			IsInvoiceNew: gatheringInvoiceUpsertResult.IsInvoiceNew,
 			Lines:        createdLines,
 		}, nil
 	})
-	if err != nil {
-		return empty, err
-	}
-
-	return *res, nil
 }
 
 type upsertGatheringInvoiceForCurrencyResponse struct {

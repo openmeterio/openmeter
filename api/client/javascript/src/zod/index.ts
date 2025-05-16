@@ -3662,6 +3662,7 @@ export const createPendingInvoiceLineBody = zod
             'InvoiceLineCreate represents the create model for an invoice line.'
           )
       )
+      .min(1)
       .describe('The lines to be created.'),
   })
   .describe(

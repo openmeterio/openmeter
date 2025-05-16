@@ -667,6 +667,7 @@ model InvoicePendingLineCreateInput {
    * The lines to be created.
    */
   @visibility(Lifecycle.Create)
+  @minItems(1)
   lines: Invoice.InvoicePendingLineCreate[];
 }
 

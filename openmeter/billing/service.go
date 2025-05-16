@@ -40,7 +40,8 @@ type CustomerOverrideService interface {
 }
 
 type InvoiceLineService interface {
-	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (CreatePendingInvoiceLinesResult, error)
+	// CreatePendingInvoiceLines creates pending invoice lines for a customer, if the lines are zero valued, the response is nil
+	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
 	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]*Line, error)
 	// SnapshotLineQuantity returns an updated line with the quantity snapshoted from meters
 	// the invoice is used as contextual information to the call.

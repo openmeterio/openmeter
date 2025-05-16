@@ -16502,6 +16502,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InvoicePendingLineCreate'
+          minItems: 1
           description: The lines to be created.
       description: InvoicePendingLineCreate represents the create model for a pending invoice line.
     InvoicePendingLineCreateResponse:
