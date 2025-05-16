@@ -1,6 +1,6 @@
 import { transformResponse } from './utils.js'
+import type { RequestOptions } from './common.js'
 import type { paths, AddonCreate } from './schemas.js'
-import type { RequestOptions } from 'http'
 import type { Client } from 'openapi-fetch'
 
 export class Addons {
@@ -107,7 +107,7 @@ export class Addons {
       | infer T
       | undefined
       ? T
-      : void | undefined
+      : undefined
   > {
     const resp = await this.client.DELETE('/api/v1/addons/{addonId}', {
       params: { path: { addonId } },
