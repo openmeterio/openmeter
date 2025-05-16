@@ -8,9 +8,39 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-// ListAllCustomers returns a list of customer.
+// listCustomersBySubjectKey returns a map of customers by subject key.
+func listCustomersBySubjectKey(
+	ctx context.Context,
+	customerService customer.Service,
+	namespace string,
+	subjects []string,
+) (map[string]*customer.Customer, error) {
+	customersBySubjectKey := map[string]*customer.Customer{}
+
+	if len(subjects) == 0 {
+		return customersBySubjectKey, nil
+	}
+
+	customers, err := listAllCustomers(ctx, customerService, customer.ListCustomersInput{
+		Namespace: namespace,
+		Subjects:  &subjects,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list customers: %w", err)
+	}
+
+	for i, c := range customers {
+		for _, key := range c.UsageAttribution.SubjectKeys {
+			customersBySubjectKey[key] = &customers[i]
+		}
+	}
+
+	return customersBySubjectKey, nil
+}
+
+// listAllCustomers returns a list of customer.
 // Helper function for listing all customers. Page param will be ignored.
-func ListAllCustomers(ctx context.Context, service customer.Service, params customer.ListCustomersInput) ([]customer.Customer, error) {
+func listAllCustomers(ctx context.Context, service customer.Service, params customer.ListCustomersInput) ([]customer.Customer, error) {
 	customers := []customer.Customer{}
 	limit := 100
 	page := 1
