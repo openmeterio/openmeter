@@ -9,212 +9,176 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 var _ billing.InvoiceLineService = (*Service)(nil)
 
-func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreateInvoiceLinesInput) ([]*billing.Line, error) {
-	for i := range input.Lines {
-		input.Lines[i].Namespace = input.Namespace
-		input.Lines[i].Status = billing.InvoiceLineStatusValid
+func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (billing.CreatePendingInvoiceLinesResult, error) {
+	var empty billing.CreatePendingInvoiceLinesResult
 
-		if input.Lines[i].InvoiceID != "" {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: invoice ID is not allowed for pending lines", input.Lines[i].ID),
-			}
-		}
+	for i := range input.Lines {
+		input.Lines[i].Namespace = input.Customer.Namespace
+		input.Lines[i].Status = billing.InvoiceLineStatusValid
+		input.Lines[i].Currency = input.Currency
+
 	}
 
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return empty, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	// Let's execute the change on a by customer basis. Later we can optimize this to be done in a single batch, but
-	// first we need to see if multiple customer staging of invoices is a common use case.
-
-	createByCustomerID := lo.GroupBy(input.Lines, func(line billing.LineWithCustomer) string {
-		return line.CustomerID
-	})
-
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]*billing.Line, error) {
-		out := make([]*billing.Line, 0, len(input.Lines))
-
-		type UpsertedInvoiceWithProfile struct {
-			InvoiceID       billing.InvoiceID
-			CustomerProfile billing.CustomerOverrideWithDetails
-			IsInvoiceNew    bool
+	res, err := transcationForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (*billing.CreatePendingInvoiceLinesResult, error) {
+		if err := s.validateCustomerForUpdate(ctx, input.Customer); err != nil {
+			return nil, err
 		}
 
-		upsertedInvoices := make(map[billing.InvoiceID]UpsertedInvoiceWithProfile)
+		// let's resolve the customer's settings
+		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: input.Customer,
+			Expand: billing.CustomerOverrideExpand{
+				Customer: true,
+				Apps:     true,
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("fetching customer profile: %w", err)
+		}
 
-		for customerID, lineByCustomer := range createByCustomerID {
-			if err := s.validateCustomerForUpdate(ctx, customer.CustomerID{
-				Namespace: input.Namespace,
-				ID:        customerID,
-			}); err != nil {
-				return nil, err
-			}
+		gatheringInvoiceUpsertResult, err := s.upsertGatheringInvoiceForCurrency(ctx, input.Currency, customerProfile)
+		if err != nil {
+			return nil, fmt.Errorf("upserting gathering invoice: %w", err)
+		}
 
-			createdLines, err := transcationForInvoiceManipulation(
-				ctx,
-				s,
-				customer.CustomerID{
-					Namespace: input.Namespace,
-					ID:        customerID,
-				},
-				func(ctx context.Context) ([]*billing.Line, error) {
-					// let's resolve the customer's settings
-					customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-						Customer: customer.CustomerID{
-							Namespace: input.Namespace,
-							ID:        customerID,
-						},
-						Expand: billing.CustomerOverrideExpand{
-							Customer: true,
-							Apps:     true,
-						},
-					})
-					if err != nil {
-						return nil, fmt.Errorf("fetching customer profile: %w", err)
-					}
+		if gatheringInvoiceUpsertResult.Invoice == nil {
+			return nil, fmt.Errorf("gathering invoice is nil")
+		}
+		gatheringInvoice := *gatheringInvoiceUpsertResult.Invoice
 
-					lines := make(lineservice.Lines, 0, len(lineByCustomer))
+		lines := make(lineservice.Lines, 0, len(input.Lines))
 
-					invoicesByCurrency := make(map[currencyx.Code]upsertGatheringInvoiceForCurrencyResponse)
+		lineServices, err := s.lineService.FromEntities(lo.Map(input.Lines, func(l *billing.Line, _ int) *billing.Line {
+			l.Namespace = input.Customer.Namespace
+			l.Status = billing.InvoiceLineStatusValid
+			l.Currency = input.Currency
+			l.InvoiceID = gatheringInvoice.ID
 
-					for _, line := range lineByCustomer {
-						currency := line.Line.Currency
-						if _, ok := invoicesByCurrency[currency]; ok {
-							continue
-						}
+			return l
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("creating line services: %w", err)
+		}
 
-						res, err := s.upsertGatheringInvoiceForCurrency(ctx, currency, input, customerProfile)
-						if err != nil {
-							return nil, fmt.Errorf("upserting gathering invoice[currency=%s]: %w", currency, err)
-						}
+		for i, lineSvc := range lineServices {
+			line := lineSvc.ToEntity()
 
-						invoicesByCurrency[currency] = *res
-					}
-
-					lineServices, err := s.lineService.FromEntities(lo.Map(lineByCustomer, func(l billing.LineWithCustomer, _ int) *billing.Line {
-						return &l.Line
-					}))
-					if err != nil {
-						return nil, fmt.Errorf("creating line services: %w", err)
-					}
-
-					for i, lineSvc := range lineServices {
-						line := lineSvc.ToEntity()
-
-						line.RateCardDiscounts, err = s.generateDiscountCorrelationIDs(line.RateCardDiscounts)
-						if err != nil {
-							return nil, fmt.Errorf("generating discount correlation IDs: %w", err)
-						}
-
-						targetInvoice := invoicesByCurrency[line.Currency]
-
-						if targetInvoice.Invoice == nil {
-							return nil, fmt.Errorf("invoice not found for line[%d]", i)
-						}
-
-						invoiceID := billing.InvoiceID{
-							Namespace: line.Namespace,
-							ID:        targetInvoice.Invoice.ID,
-						}
-
-						line.InvoiceID = targetInvoice.Invoice.ID
-
-						// NOTE: invoices collected once at first encounter in order to make sure that the information
-						// (captured by IsInvoiceNew attribute) about newly created gathering invoices is kept.
-						// Subsequent updates would shadow this parameter which would prevent the system to send system events
-						// about newly created invoices.
-						if _, ok := upsertedInvoices[invoiceID]; !ok {
-							upsertedInvoices[invoiceID] = UpsertedInvoiceWithProfile{
-								InvoiceID:       invoiceID,
-								CustomerProfile: customerProfile,
-								IsInvoiceNew:    targetInvoice.IsInvoiceNew,
-							}
-						}
-
-						if err := lineSvc.Validate(ctx, targetInvoice.Invoice); err != nil {
-							return nil, fmt.Errorf("validating line[%d]: %w", i, err)
-						}
-
-						lineSvc, err = lineSvc.PrepareForCreate(ctx)
-						if err != nil {
-							return nil, fmt.Errorf("modifying line[%d]: %w", i, err)
-						}
-
-						lines = append(lines, lineSvc)
-					}
-
-					// Create the invoice Lines
-					createdLines, err := s.adapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-						Namespace: input.Namespace,
-						Lines:     lines.ToEntities(),
-					})
-					if err != nil {
-						return nil, fmt.Errorf("creating invoice Line: %w", err)
-					}
-
-					return createdLines, nil
-				})
+			line.RateCardDiscounts, err = s.generateDiscountCorrelationIDs(line.RateCardDiscounts)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("generating discount correlation IDs: %w", err)
 			}
 
-			out = append(out, createdLines...)
+			if err := lineSvc.Validate(ctx, &gatheringInvoice); err != nil {
+				return nil, fmt.Errorf("validating line[%d]: %w", i, err)
+			}
+
+			lineSvc, err = lineSvc.PrepareForCreate(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("modifying line[%d]: %w", i, err)
+			}
+
+			lines = append(lines, lineSvc)
 		}
 
-		for _, upsertedInvoice := range upsertedInvoices {
-			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: upsertedInvoice.InvoiceID,
+		// Create the invoice Lines
+		createdLines, err := s.adapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+			Namespace: input.Customer.Namespace,
+			Lines:     lines.ToEntities(),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("creating invoice Line: %w", err)
+		}
+
+		// Let's reload the invoice after the lines has been assigned
+		gatheringInvoice, err = s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+			Invoice: gatheringInvoice.InvoiceID(),
+			Expand:  billing.InvoiceExpandAll,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("fetching invoice[%s]: %w", gatheringInvoice.ID, err)
+		}
+
+		// Update invoice if collectionAt field has changed
+		collectionConfig := customerProfile.MergedProfile.WorkflowConfig.Collection
+		collectionAt := gatheringInvoice.CollectionAt
+		if ok := UpdateInvoiceCollectionAt(&gatheringInvoice, collectionConfig); ok {
+			s.logger.DebugContext(ctx, "collection time updated for invoice",
+				"invoiceID", gatheringInvoice.ID,
+				"collectionAt", map[string]interface{}{
+					"from":               lo.FromPtr(collectionAt),
+					"to":                 lo.FromPtr(gatheringInvoice.CollectionAt),
+					"collectionInterval": collectionConfig.Interval.String(),
+				},
+			)
+			if _, err = s.adapter.UpdateInvoice(ctx, gatheringInvoice); err != nil {
+				return nil, fmt.Errorf("failed to update invoice[%s]: %w", gatheringInvoice.ID, err)
+			}
+		}
+
+		// Publish system event for newly created invoices
+		if gatheringInvoiceUpsertResult.IsInvoiceNew {
+			event, err := billing.NewInvoiceCreatedEvent(gatheringInvoice)
+			if err != nil {
+				return nil, fmt.Errorf("creating event: %w", err)
+			}
+
+			if err := s.publisher.Publish(ctx, event); err != nil {
+				return nil, fmt.Errorf("publishing invoice[%s] created event: %w", gatheringInvoice.ID, err)
+			}
+		}
+
+		// If the invoice has no lines, we should delete it (this can happen if all input lines were
+		// filtered out during entity creation for being zero valued)
+		if gatheringInvoice.Lines.NonDeletedLineCount() == 0 {
+			if err := s.adapter.DeleteInvoices(ctx, billing.DeleteInvoicesAdapterInput{
+				Namespace:  gatheringInvoice.Namespace,
+				InvoiceIDs: []string{gatheringInvoice.ID},
+			}); err != nil {
+				return nil, fmt.Errorf("deleting invoice: %w", err)
+			}
+
+			gatheringInvoice, err = s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+				Invoice: gatheringInvoice.InvoiceID(),
 				Expand:  billing.InvoiceExpandAll,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("fetching invoice[%s]: %w", upsertedInvoice.InvoiceID.ID, err)
+				return nil, fmt.Errorf("fetching invoice[%s]: %w", gatheringInvoice.ID, err)
 			}
 
-			// Update invoice if collectionAt field has changed
-			collectionConfig := upsertedInvoice.CustomerProfile.MergedProfile.WorkflowConfig.Collection
-			collectionAt := invoice.CollectionAt
-			if ok := UpdateInvoiceCollectionAt(&invoice, collectionConfig); ok {
-				s.logger.DebugContext(ctx, "collection time updated for invoice",
-					"invoiceID", invoice.ID,
-					"collectionAt", map[string]interface{}{
-						"from":               lo.FromPtr(collectionAt),
-						"to":                 lo.FromPtr(invoice.CollectionAt),
-						"collectionInterval": collectionConfig.Interval.String(),
-					},
-				)
-				if _, err = s.adapter.UpdateInvoice(ctx, invoice); err != nil {
-					return nil, fmt.Errorf("failed to update invoice[%s]: %w", upsertedInvoice.InvoiceID.ID, err)
-				}
-			}
+			// TODO[later]: we should throw an error here, as some input lines were zero and we have dropped them
 
-			// Publish system event for newly created invoices
-			if upsertedInvoice.IsInvoiceNew {
-				event, err := billing.NewInvoiceCreatedEvent(invoice)
-				if err != nil {
-					return nil, fmt.Errorf("creating event: %w", err)
-				}
-
-				if err := s.publisher.Publish(ctx, event); err != nil {
-					return nil, fmt.Errorf("publishing invoice[%s] created event: %w", upsertedInvoice.InvoiceID.ID, err)
-				}
-			}
+			// No new lines created, but we should return the invoice
+			return &billing.CreatePendingInvoiceLinesResult{
+				Invoice:      gatheringInvoice,
+				IsInvoiceNew: false,
+			}, nil
 		}
 
-		return out, nil
+		return &billing.CreatePendingInvoiceLinesResult{
+			Invoice:      gatheringInvoice,
+			IsInvoiceNew: gatheringInvoiceUpsertResult.IsInvoiceNew,
+			Lines:        createdLines,
+		}, nil
 	})
+	if err != nil {
+		return empty, err
+	}
+
+	return *res, nil
 }
 
 type upsertGatheringInvoiceForCurrencyResponse struct {
@@ -222,7 +186,7 @@ type upsertGatheringInvoiceForCurrencyResponse struct {
 	IsInvoiceNew bool
 }
 
-func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currency currencyx.Code, input billing.CreateInvoiceLinesInput, customerProfile billing.CustomerOverrideWithDetails) (*upsertGatheringInvoiceForCurrencyResponse, error) {
+func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currency currencyx.Code, customerProfile billing.CustomerOverrideWithDetails) (*upsertGatheringInvoiceForCurrencyResponse, error) {
 	// We would want to stage a pending invoice Line
 	pendingInvoiceList, err := s.adapter.ListInvoices(ctx, billing.ListInvoicesInput{
 		Page: pagination.Page{
@@ -230,7 +194,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 			PageSize:   10,
 		},
 		Customers:        []string{customerProfile.Customer.ID},
-		Namespaces:       []string{input.Namespace},
+		Namespaces:       []string{customerProfile.Customer.Namespace},
 		ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 		Currencies:       []currencyx.Code{currency},
 		OrderBy:          api.InvoiceOrderByCreatedAt,
@@ -244,7 +208,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 	if len(pendingInvoiceList.Items) == 0 {
 		invoiceNumber, err := s.GenerateInvoiceSequenceNumber(ctx,
 			billing.SequenceGenerationInput{
-				Namespace:    input.Namespace,
+				Namespace:    customerProfile.Customer.Namespace,
 				CustomerName: customerProfile.Customer.Name,
 				Currency:     currency,
 			},
@@ -255,7 +219,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 
 		// Create a new invoice
 		invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
-			Namespace: input.Namespace,
+			Namespace: customerProfile.Customer.Namespace,
 			Customer:  lo.FromPtr(customerProfile.Customer),
 			Profile:   customerProfile.MergedProfile,
 			Number:    invoiceNumber,
@@ -278,7 +242,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 		// have multiple gathering invoices for the same customer.
 		// This is a rare case, but we should log it at least, later we can implement a call that
 		// merges these invoices (it's fine to just move the Lines to the first invoice)
-		s.logger.WarnContext(ctx, "more than one pending invoice found", "customer", customerProfile.Customer.ID, "namespace", input.Namespace)
+		s.logger.WarnContext(ctx, "more than one pending invoice found", "customer", customerProfile.Customer.ID, "namespace", customerProfile.Customer.Namespace, "currency", currency)
 	}
 
 	invoice := pendingInvoiceList.Items[0]

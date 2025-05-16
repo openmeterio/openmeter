@@ -178,65 +178,58 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 	// Let's create a gathering invoice
 	s.Run("gathering invoice can be created", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
-			billing.CreateInvoiceLinesInput{
-				Namespace: namespace,
-				Lines: []billing.LineWithCustomer{
+			billing.CreatePendingInvoiceLinesInput{
+				Customer: customerEntity.GetID(),
+				Currency: currencyx.Code(currency.HUF),
+				Lines: []*billing.Line{
 					{
-						Line: billing.Line{
-							LineBase: billing.LineBase{
-								Period: billing.Period{Start: periodStart, End: periodEnd},
+						LineBase: billing.LineBase{
+							Period: billing.Period{Start: periodStart, End: periodEnd},
 
-								InvoiceAt: issueAt,
-								ManagedBy: billing.ManuallyManagedLine,
+							InvoiceAt: issueAt,
+							ManagedBy: billing.ManuallyManagedLine,
 
-								Type: billing.InvoiceLineTypeFee,
+							Type: billing.InvoiceLineTypeFee,
 
-								Name:     "Test item - HUF",
-								Currency: currencyx.Code(currency.HUF),
-							},
-							FlatFee: &billing.FlatFeeLine{
-								PerUnitAmount: alpacadecimal.NewFromFloat(200),
-								Quantity:      alpacadecimal.NewFromFloat(3),
-								Category:      billing.FlatFeeCategoryRegular,
-								PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-							},
+							Name: "Test item - HUF",
 						},
-						CustomerID: customerEntity.ID,
+						FlatFee: &billing.FlatFeeLine{
+							PerUnitAmount: alpacadecimal.NewFromFloat(200),
+							Quantity:      alpacadecimal.NewFromFloat(3),
+							Category:      billing.FlatFeeCategoryRegular,
+							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+						},
 					},
 					{
-						Line: billing.Line{
-							LineBase: billing.LineBase{
-								Period: billing.Period{Start: periodStart, End: periodEnd},
+						LineBase: billing.LineBase{
+							Period: billing.Period{Start: periodStart, End: periodEnd},
 
-								InvoiceAt: issueAt,
-								ManagedBy: billing.ManuallyManagedLine,
+							InvoiceAt: issueAt,
+							ManagedBy: billing.ManuallyManagedLine,
 
-								Type: billing.InvoiceLineTypeUsageBased,
+							Type: billing.InvoiceLineTypeUsageBased,
 
-								Name:     "Test item - HUF",
-								Currency: currencyx.Code(currency.HUF),
-							},
-							UsageBased: &billing.UsageBasedLine{
-								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-									Mode: productcatalog.GraduatedTieredPrice,
-									Tiers: []productcatalog.PriceTier{
-										{
-											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
-											UnitPrice: &productcatalog.PriceTierUnitPrice{
-												Amount: alpacadecimal.NewFromFloat(10),
-											},
-										},
-										{
-											UnitPrice: &productcatalog.PriceTierUnitPrice{
-												Amount: alpacadecimal.NewFromFloat(100),
-											},
+							Name: "Test item - HUF",
+						},
+						UsageBased: &billing.UsageBasedLine{
+							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+								Mode: productcatalog.GraduatedTieredPrice,
+								Tiers: []productcatalog.PriceTier{
+									{
+										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+										UnitPrice: &productcatalog.PriceTierUnitPrice{
+											Amount: alpacadecimal.NewFromFloat(10),
 										},
 									},
-								}),
-								FeatureKey: "test",
-							},
+									{
+										UnitPrice: &productcatalog.PriceTierUnitPrice{
+											Amount: alpacadecimal.NewFromFloat(100),
+										},
+									},
+								},
+							}),
+							FeatureKey: "test",
 						},
-						CustomerID: customerEntity.ID,
 					},
 				},
 			})
@@ -360,30 +353,27 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 
 	s.Run("gathering invoice can be created", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
-			billing.CreateInvoiceLinesInput{
-				Namespace: namespace,
-				Lines: []billing.LineWithCustomer{
+			billing.CreatePendingInvoiceLinesInput{
+				Customer: customerEntity.GetID(),
+				Currency: currencyx.Code(currency.HUF),
+				Lines: []*billing.Line{
 					{
-						Line: billing.Line{
-							LineBase: billing.LineBase{
-								Period: billing.Period{Start: periodStart, End: periodEnd},
+						LineBase: billing.LineBase{
+							Period: billing.Period{Start: periodStart, End: periodEnd},
 
-								InvoiceAt: issueAt,
-								ManagedBy: billing.ManuallyManagedLine,
+							InvoiceAt: issueAt,
+							ManagedBy: billing.ManuallyManagedLine,
 
-								Type: billing.InvoiceLineTypeFee,
+							Type: billing.InvoiceLineTypeFee,
 
-								Name:     "Test item - HUF",
-								Currency: currencyx.Code(currency.HUF),
-							},
-							FlatFee: &billing.FlatFeeLine{
-								PerUnitAmount: alpacadecimal.NewFromFloat(200),
-								Quantity:      alpacadecimal.NewFromFloat(3),
-								Category:      billing.FlatFeeCategoryRegular,
-								PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-							},
+							Name: "Test item - HUF",
 						},
-						CustomerID: customerEntity.ID,
+						FlatFee: &billing.FlatFeeLine{
+							PerUnitAmount: alpacadecimal.NewFromFloat(200),
+							Quantity:      alpacadecimal.NewFromFloat(3),
+							Category:      billing.FlatFeeCategoryRegular,
+							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+						},
 					},
 				},
 			})

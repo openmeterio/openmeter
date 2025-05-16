@@ -3,6 +3,7 @@ package subscription
 import (
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -69,4 +70,11 @@ func (s Subscription) GetStatusAt(at time.Time) SubscriptionStatus {
 
 	// The default status is inactive
 	return SubscriptionStatusInactive
+}
+
+func (s Subscription) GetCustomerID() customer.CustomerID {
+	return customer.CustomerID{
+		Namespace: s.Namespace,
+		ID:        s.CustomerId,
+	}
 }

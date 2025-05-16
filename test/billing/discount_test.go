@@ -91,46 +91,44 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	var discountCorrelationID string
 	s.Run("Creating new pending lines with discounts sets the correlationID", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
-			billing.CreateInvoiceLinesInput{
-				Namespace: namespace,
-				Lines: []billing.LineWithCustomer{
+			billing.CreatePendingInvoiceLinesInput{
+				Customer: customerEntity.GetID(),
+				Currency: currencyx.Code(currency.USD),
+				Lines: []*billing.Line{
 					{
-						Line: billing.Line{
-							LineBase: billing.LineBase{
-								Namespace: namespace,
-								Period:    billing.Period{Start: periodStart, End: periodEnd},
+						LineBase: billing.LineBase{
+							Namespace: namespace,
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
 
-								InvoiceAt: periodEnd,
+							InvoiceAt: periodEnd,
 
-								Type:      billing.InvoiceLineTypeUsageBased,
-								ManagedBy: billing.ManuallyManagedLine,
+							Type:      billing.InvoiceLineTypeUsageBased,
+							ManagedBy: billing.ManuallyManagedLine,
 
-								Name:     "Test item1",
-								Currency: currencyx.Code(currency.USD),
-								RateCardDiscounts: billing.Discounts{
-									Percentage: &billing.PercentageDiscount{
-										PercentageDiscount: productcatalog.PercentageDiscount{
-											Percentage: models.NewPercentage(10),
-										},
+							Name:     "Test item1",
+							Currency: currencyx.Code(currency.USD),
+							RateCardDiscounts: billing.Discounts{
+								Percentage: &billing.PercentageDiscount{
+									PercentageDiscount: productcatalog.PercentageDiscount{
+										Percentage: models.NewPercentage(10),
 									},
 								},
 							},
-							UsageBased: &billing.UsageBasedLine{
-								FeatureKey: featureFlatPerUnit.Key,
-								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-									Amount: alpacadecimal.NewFromFloat(100),
-								}),
-							},
 						},
-						CustomerID: customerEntity.ID,
+						UsageBased: &billing.UsageBasedLine{
+							FeatureKey: featureFlatPerUnit.Key,
+							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+								Amount: alpacadecimal.NewFromFloat(100),
+							}),
+						},
 					},
 				},
 			})
 		s.NoError(err)
-		s.Len(res, 1)
+		s.Len(res.Lines, 1)
 
 		// Then the freshly created line has a correlation ID set
-		percentageDiscount := res[0].RateCardDiscounts.Percentage
+		percentageDiscount := res.Lines[0].RateCardDiscounts.Percentage
 		s.NotEmpty(percentageDiscount.CorrelationID)
 		discountCorrelationID = percentageDiscount.CorrelationID
 
@@ -287,47 +285,45 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 	}))
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
-		billing.CreateInvoiceLinesInput{
-			Namespace: namespace,
-			Lines: []billing.LineWithCustomer{
+		billing.CreatePendingInvoiceLinesInput{
+			Customer: customerEntity.GetID(),
+			Currency: currencyx.Code(currency.USD),
+			Lines: []*billing.Line{
 				{
-					Line: billing.Line{
-						LineBase: billing.LineBase{
-							Namespace: namespace,
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
+					LineBase: billing.LineBase{
+						Namespace: namespace,
+						Period:    billing.Period{Start: periodStart, End: periodEnd},
 
-							InvoiceAt: periodEnd,
+						InvoiceAt: periodEnd,
 
-							Type:      billing.InvoiceLineTypeUsageBased,
-							ManagedBy: billing.ManuallyManagedLine,
+						Type:      billing.InvoiceLineTypeUsageBased,
+						ManagedBy: billing.ManuallyManagedLine,
 
-							Name:     "Test item1",
-							Currency: currencyx.Code(currency.USD),
-							RateCardDiscounts: billing.Discounts{
-								Usage: &billing.UsageDiscount{
-									UsageDiscount: productcatalog.UsageDiscount{
-										Quantity: alpacadecimal.NewFromInt(110),
-									},
+						Name:     "Test item1",
+						Currency: currencyx.Code(currency.USD),
+						RateCardDiscounts: billing.Discounts{
+							Usage: &billing.UsageDiscount{
+								UsageDiscount: productcatalog.UsageDiscount{
+									Quantity: alpacadecimal.NewFromInt(110),
 								},
 							},
 						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: featureFlatPerUnit.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-								Amount: alpacadecimal.NewFromFloat(100),
-							}),
-						},
 					},
-					CustomerID: customerEntity.ID,
+					UsageBased: &billing.UsageBasedLine{
+						FeatureKey: featureFlatPerUnit.Key,
+						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(100),
+						}),
+					},
 				},
 			},
 		})
 	s.NoError(err)
-	s.Len(res, 1)
+	s.Len(res.Lines, 1)
 
-	require.NotNil(s.T(), res[0].RateCardDiscounts.Usage)
-	require.NotEmpty(s.T(), res[0].RateCardDiscounts.Usage.CorrelationID)
-	discountCorrelationID := res[0].RateCardDiscounts.Usage.CorrelationID
+	require.NotNil(s.T(), res.Lines[0].RateCardDiscounts.Usage)
+	require.NotEmpty(s.T(), res.Lines[0].RateCardDiscounts.Usage.CorrelationID)
+	discountCorrelationID := res.Lines[0].RateCardDiscounts.Usage.CorrelationID
 
 	s.Run("[invoice1] Creating a draft invoice with 50 usage", func() {
 		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 50, periodStart.Add(time.Minute))

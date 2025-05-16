@@ -323,66 +323,61 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 	// Given we have a default profile for the namespace
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
-		billing.CreateInvoiceLinesInput{
-			Namespace: in.Customer.Namespace,
-			Lines: []billing.LineWithCustomer{
+		billing.CreatePendingInvoiceLinesInput{
+			Customer: in.Customer.GetID(),
+			Currency: currencyx.Code(currency.USD),
+			Lines: []*billing.Line{
 				{
-					Line: billing.Line{
-						LineBase: billing.LineBase{
-							Namespace: namespace,
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
+					LineBase: billing.LineBase{
+						Namespace: namespace,
+						Period:    billing.Period{Start: periodStart, End: periodEnd},
 
-							InvoiceAt: invoiceAt,
+						InvoiceAt: invoiceAt,
 
-							Type:      billing.InvoiceLineTypeFee,
-							ManagedBy: billing.ManuallyManagedLine,
+						Type:      billing.InvoiceLineTypeFee,
+						ManagedBy: billing.ManuallyManagedLine,
 
-							Name:     "Test item1",
-							Currency: currencyx.Code(currency.USD),
+						Name:     "Test item1",
+						Currency: currencyx.Code(currency.USD),
 
-							Metadata: map[string]string{
-								"key": "value",
-							},
-						},
-						FlatFee: &billing.FlatFeeLine{
-							PerUnitAmount: alpacadecimal.NewFromFloat(100),
-							Quantity:      alpacadecimal.NewFromFloat(1),
-							Category:      billing.FlatFeeCategoryRegular,
-							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+						Metadata: map[string]string{
+							"key": "value",
 						},
 					},
-					CustomerID: in.Customer.ID,
+					FlatFee: &billing.FlatFeeLine{
+						PerUnitAmount: alpacadecimal.NewFromFloat(100),
+						Quantity:      alpacadecimal.NewFromFloat(1),
+						Category:      billing.FlatFeeCategoryRegular,
+						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+					},
 				},
 				{
-					Line: billing.Line{
-						LineBase: billing.LineBase{
-							Namespace: namespace,
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
+					LineBase: billing.LineBase{
+						Namespace: namespace,
+						Period:    billing.Period{Start: periodStart, End: periodEnd},
 
-							InvoiceAt: invoiceAt,
+						InvoiceAt: invoiceAt,
 
-							Type:      billing.InvoiceLineTypeFee,
-							ManagedBy: billing.ManuallyManagedLine,
+						Type:      billing.InvoiceLineTypeFee,
+						ManagedBy: billing.ManuallyManagedLine,
 
-							Name:     "Test item2",
-							Currency: currencyx.Code(currency.USD),
-						},
-						FlatFee: &billing.FlatFeeLine{
-							PerUnitAmount: alpacadecimal.NewFromFloat(200),
-							Quantity:      alpacadecimal.NewFromFloat(3),
-							Category:      billing.FlatFeeCategoryRegular,
-							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-						},
+						Name:     "Test item2",
+						Currency: currencyx.Code(currency.USD),
 					},
-					CustomerID: in.Customer.ID,
+					FlatFee: &billing.FlatFeeLine{
+						PerUnitAmount: alpacadecimal.NewFromFloat(200),
+						Quantity:      alpacadecimal.NewFromFloat(3),
+						Category:      billing.FlatFeeCategoryRegular,
+						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+					},
 				},
 			},
 		})
 
 	require.NoError(s.T(), err)
-	require.Len(s.T(), res, 2)
-	line1ID := res[0].ID
-	line2ID := res[1].ID
+	require.Len(s.T(), res.Lines, 2)
+	line1ID := res.Lines[0].ID
+	line2ID := res.Lines[1].ID
 	require.NotEmpty(s.T(), line1ID)
 	require.NotEmpty(s.T(), line2ID)
 }
