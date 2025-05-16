@@ -90,6 +90,21 @@ func (a *AutoAdvancer) ListInvoicesPendingAutoAdvance(ctx context.Context, names
 	return resp.Items, nil
 }
 
+// ListInvoicesPendingCollection lists invoices that are due to be collected
+func (a *AutoAdvancer) ListInvoicesPendingCollection(ctx context.Context, namespaces []string, ids []string) ([]billing.Invoice, error) {
+	resp, err := a.invoice.ListInvoices(ctx, billing.ListInvoicesInput{
+		ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusDraftWaitingForCollection},
+		CollectionAt:     lo.ToPtr(time.Now()),
+		Namespaces:       namespaces,
+		IDs:              ids,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Items, nil
+}
+
 // ListStuckInvoicesNeedingAdvance lists invoices that are stuck in some advancable state (this is a fail-safe mechanism)
 func (a *AutoAdvancer) ListStuckInvoicesNeedingAdvance(ctx context.Context, namespaces []string, ids []string) ([]billing.Invoice, error) {
 	resp, err := a.invoice.ListInvoices(ctx, billing.ListInvoicesInput{
@@ -110,13 +125,18 @@ func (a *AutoAdvancer) ListInvoicesToAdvance(ctx context.Context, namespace []st
 		return nil, fmt.Errorf("failed to list invoices to auto-advance: %w", err)
 	}
 
+	collectingInvoices, err := a.ListInvoicesPendingCollection(ctx, namespace, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list invoices to collect: %w", err)
+	}
+
 	stuckInvoices, err := a.ListStuckInvoicesNeedingAdvance(ctx, namespace, ids)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list invoices that can be advanced: %w", err)
 	}
 
 	allInvoices := append(autoAdvanceInvoices, stuckInvoices...)
-
+	allInvoices = append(allInvoices, collectingInvoices...)
 	return lo.UniqBy(allInvoices, func(i billing.Invoice) string {
 		return i.ID
 	}), nil

@@ -600,7 +600,7 @@ var (
 		{Name: "quantity_snapshoted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "due_at", Type: field.TypeTime, Nullable: true},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"gathering", "draft.created", "draft.updating", "draft.manual_approval_needed", "draft.validating", "draft.invalid", "draft.syncing", "draft.sync_failed", "draft.waiting_auto_approval", "draft.ready_to_issue", "delete.in_progress", "delete.syncing", "delete.failed", "deleted", "issuing.syncing", "issuing.failed", "issued", "payment_processing.pending", "payment_processing.failed", "payment_processing.action_required", "overdue", "paid", "uncollectible", "voided"}},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"gathering", "draft.created", "draft.waiting_for_collection", "draft.collecting", "draft.updating", "draft.manual_approval_needed", "draft.validating", "draft.invalid", "draft.syncing", "draft.sync_failed", "draft.waiting_auto_approval", "draft.ready_to_issue", "delete.in_progress", "delete.syncing", "delete.failed", "deleted", "issuing.syncing", "issuing.failed", "issued", "payment_processing.pending", "payment_processing.failed", "payment_processing.action_required", "overdue", "paid", "uncollectible", "voided"}},
 		{Name: "status_details_cache", Type: field.TypeJSON, Nullable: true},
 		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
 		{Name: "payment_app_external_id", Type: field.TypeString, Nullable: true},

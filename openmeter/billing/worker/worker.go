@@ -136,19 +136,16 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 		opts.Router.MetricMeter,
 
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CreatedEvent) error {
-			return w.subscriptionSyncHandler.HandleSubscriptionCreated(ctx, event.SubscriptionView, time.Now())
+			return w.subscriptionSyncHandler.SyncronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CancelledEvent) error {
 			return w.subscriptionSyncHandler.HandleCancelledEvent(ctx, event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.ContinuedEvent) error {
-			return w.subscriptionSyncHandler.SyncronizeSubscription(ctx, event.SubscriptionView, time.Now())
+			return w.subscriptionSyncHandler.SyncronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.UpdatedEvent) error {
-			return w.subscriptionSyncHandler.SyncronizeSubscription(ctx, event.UpdatedView, time.Now())
-		}),
-		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.InvoiceCreatedEvent) error {
-			return w.subscriptionSyncHandler.HandleInvoiceCreation(ctx, event.EventInvoice)
+			return w.subscriptionSyncHandler.SyncronizeSubscriptionAndInvoiceCustomer(ctx, event.UpdatedView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.AdvanceInvoiceEvent) error {
 			return w.asyncAdvanceHandler.Handle(ctx, event)

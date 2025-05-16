@@ -14,6 +14,7 @@ type invoiceCalculatorsByType struct {
 
 var InvoiceCalculations = invoiceCalculatorsByType{
 	Invoice: []Calculation{
+		StandardInvoiceCollectionAt,
 		CalculateDraftUntil,
 		UpsertDiscountCorrelationIDs,
 		RecalculateDetailedLinesAndTotals,
@@ -22,10 +23,13 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 	},
 	GatheringInvoice: []Calculation{
 		UpsertDiscountCorrelationIDs,
+		GatheringInvoiceCollectionAt,
 	},
 }
 
-type Calculation func(*billing.Invoice, CalculatorDependencies) error
+type (
+	Calculation func(*billing.Invoice, CalculatorDependencies) error
+)
 
 type Calculator interface {
 	Calculate(*billing.Invoice) error

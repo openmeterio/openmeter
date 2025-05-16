@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/cmd/jobs/internal"
 	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
 var (
@@ -67,12 +68,15 @@ var InvoiceCmd = func() *cobra.Command {
 			for _, customerID := range args {
 				_, err := internal.App.BillingCollector.CollectCustomerInvoice(cmd.Context(),
 					billingworkercollect.CollectCustomerInvoiceInput{
-						CustomerID: customerID,
-						AsOf:       nil,
+						CustomerID: customer.CustomerID{
+							Namespace: "default",
+							ID:        customerID,
+						},
+						AsOf: time.Now(),
 					},
 				)
 				if err != nil {
-					return fmt.Errorf("failed to advance invoice %s: %w", customerID, err)
+					return fmt.Errorf("failed to invoice customer %s: %w", customerID, err)
 				}
 			}
 

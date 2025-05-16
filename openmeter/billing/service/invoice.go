@@ -77,7 +77,12 @@ func (s *Service) resolveStatusDetails(ctx context.Context, invoice billing.Invo
 	// If we are not in a time sensitive state and the status details is not empty, we can return the invoice as is, so we
 	// don't have to lock the invoice in the DB
 	if !lo.IsEmpty(invoice.StatusDetails) &&
-		invoice.Status != billing.InvoiceStatusDraftWaitingAutoApproval { // The status details depends on the current time, so we should recalculate
+		!slices.Contains(
+			[]billing.InvoiceStatus{
+				billing.InvoiceStatusDraftWaitingForCollection,
+				billing.InvoiceStatusDraftWaitingAutoApproval,
+			}, invoice.Status) {
+		// The status details depends on the current time, so we should recalculate
 		return invoice, nil
 	}
 
@@ -160,6 +165,13 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 	invoice.QuantitySnapshotedAt = lo.ToPtr(now)
 
 	if err := s.invoiceCalculator.Calculate(&invoice); err != nil {
+		return invoice, fmt.Errorf("calculating invoice: %w", err)
+	}
+
+	// TODO/Hack: Here we are recalculating the invoice again to correct gathering invoice specific calculations.
+	// Once when we have proper threshold billing stack, we should not do this double calculation, but right now
+	// this is just a sugar to have the gathering invoice's data fully populated.
+	if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
 		return invoice, fmt.Errorf("calculating invoice: %w", err)
 	}
 
@@ -402,15 +414,9 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				}
 
 				for _, invoice := range resp.Items {
-					collectionAt := invoice.CollectionAt
-					if ok := UpdateInvoiceCollectionAt(&invoice, customerProfile.MergedProfile.WorkflowConfig.Collection); ok {
-						s.logger.DebugContext(ctx, "collection time updated for invoice",
-							"invoiceID", invoice.ID,
-							"collectionAt", map[string]interface{}{
-								"from":               lo.FromPtr(collectionAt),
-								"to":                 lo.FromPtr(invoice.CollectionAt),
-								"collectionInterval": customerProfile.MergedProfile.WorkflowConfig.Collection.Interval.String(),
-							},
+					if err := s.invoiceCalculator.Calculate(&invoice); err != nil {
+						return nil, fmt.Errorf("failed to calculate invoice [namespace=%s invoice=%s, customer=%s]: %w",
+							input.Customer.Namespace, invoice.ID, input.Customer.ID, err,
 						)
 					}
 
@@ -899,18 +905,6 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				return billing.Invoice{}, fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)
 			}
 
-			collectionAt := invoice.CollectionAt
-			if ok := UpdateInvoiceCollectionAt(&invoice, customerProfile.MergedProfile.WorkflowConfig.Collection); ok {
-				s.logger.DebugContext(ctx, "collection time updated for invoice",
-					"invoiceID", invoice.ID,
-					"collectionAt", map[string]interface{}{
-						"from":               lo.FromPtr(collectionAt),
-						"to":                 lo.FromPtr(invoice.CollectionAt),
-						"collectionInterval": customerProfile.MergedProfile.WorkflowConfig.Collection.Interval.String(),
-					},
-				)
-			}
-
 			if err := invoice.Validate(); err != nil {
 				return billing.Invoice{}, billing.ValidationError{
 					Err: err,
@@ -968,6 +962,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 // updateInvoice calls the adapter to update the invoice and returns the updated invoice including any expands that are
 // the responsibility of the service
 func (s Service) updateInvoice(ctx context.Context, in billing.UpdateInvoiceAdapterInput) (billing.Invoice, error) {
+	// TODO[later]: This should include the status details too, but it's a chicken and egg problem
 	invoice, err := s.adapter.UpdateInvoice(ctx, in)
 	if err != nil {
 		return billing.Invoice{}, err
@@ -1205,4 +1200,21 @@ func (s *Service) UpsertValidationIssues(ctx context.Context, input billing.Upse
 
 		return nil
 	})
+}
+
+func (s *Service) snapshotQuantity(ctx context.Context, invoice *billing.Invoice) error {
+	lineSvcs, err := s.lineService.FromEntities(invoice.Lines.OrEmpty())
+	if err != nil {
+		return fmt.Errorf("creating line services: %w", err)
+	}
+
+	for _, lineSvc := range lineSvcs {
+		if err := lineSvc.SnapshotQuantity(ctx, invoice); err != nil {
+			return fmt.Errorf("snapshotting quantity: %w", err)
+		}
+	}
+
+	invoice.QuantitySnapshotedAt = lo.ToPtr(clock.Now().UTC())
+
+	return nil
 }

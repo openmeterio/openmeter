@@ -19,7 +19,7 @@ import (
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
-	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -323,7 +323,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 			ExpandedFields: billing.InvoiceExpandAll,
 		}
-		_ = billingservice.UpdateInvoiceCollectionAt(&expectedInvoice, billingProfile.WorkflowConfig.Collection)
+
+		s.NoError(invoicecalc.GatheringInvoiceCollectionAt(&expectedInvoice, nil))
 
 		require.Equal(s.T(),
 			expectedInvoice.RemoveMetaForCompare(),
@@ -1328,6 +1329,7 @@ func (s *InvoicingTestSuite) TestBillingProfileChange() {
 func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 	namespace := "ns-ubp-invoicing-progressive"
 	ctx := context.Background()
+	defer clock.ResetTime()
 
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
@@ -1648,6 +1650,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		// Period
 		asOf := periodStart.Add(time.Hour)
+		clock.SetTime(asOf)
+
 		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 			AsOf:     &asOf,
@@ -1948,6 +1952,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		s.MockStreamingConnector.AddSimpleEvent("tiered-graduated", 15, periodStart.Add(time.Minute*100))
 
 		asOf := periodStart.Add(2 * time.Hour)
+		clock.SetTime(asOf)
+
 		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 			AsOf:     &asOf,
@@ -2157,6 +2163,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		s.MockStreamingConnector.AddSimpleEvent("flat-per-unit", 30, afterPreviousTest)
 
 		asOf := periodEnd
+		clock.SetTime(asOf)
+
 		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 			AsOf:     &asOf,
@@ -3690,58 +3698,6 @@ func (s *InvoicingTestSuite) TestNamespaceLockedInvoiceProgression() {
 	s.Equal(billing.ValidationIssueSeverityCritical, validationError.Severity)
 }
 
-type TestFeature struct {
-	Cleanup func()
-	Feature feature.Feature
-}
-
-func (s *InvoicingTestSuite) setupApiRequestsTotalFeature(ctx context.Context, ns string) TestFeature {
-	apiRequestsTotalMeterSlug := "api-requests-total"
-
-	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
-		{
-			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
-				NamespacedModel: models.NamespacedModel{
-					Namespace: ns,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
-				Name: "API Requests Total",
-			},
-			Key:           apiRequestsTotalMeterSlug,
-			Aggregation:   meter.MeterAggregationSum,
-			EventType:     "test",
-			ValueProperty: lo.ToPtr("$.value"),
-		},
-	})
-	s.NoError(err, "Replacing meters must not return error")
-
-	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalMeterSlug, 0, time.Now())
-
-	apiRequestsTotalFeatureKey := "api-requests-total"
-
-	apiRequestsTotalFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
-		Namespace: ns,
-		Name:      "api-requests-total",
-		Key:       apiRequestsTotalFeatureKey,
-		MeterSlug: lo.ToPtr("api-requests-total"),
-	})
-	s.NoError(err)
-
-	return TestFeature{
-		Cleanup: func() {
-			err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
-			s.NoError(err, "failed to replace meters")
-
-			s.MockStreamingConnector.Reset()
-		},
-		Feature: apiRequestsTotalFeature,
-	}
-}
-
 func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 	namespace := "ns-progressive-bill-late"
 	ctx := context.Background()
@@ -3772,7 +3728,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 
 	collecitonDoneAt := periodEnd.Add(time.Hour)
 
-	apiRequestsTotalFeature := s.setupApiRequestsTotalFeature(ctx, namespace)
+	apiRequestsTotalFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
 	defer apiRequestsTotalFeature.Cleanup()
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
@@ -3873,7 +3829,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 
 	collecitonDoneAt := periodEnd.Add(time.Hour)
 
-	apiRequestsTotalFeature := s.setupApiRequestsTotalFeature(ctx, namespace)
+	apiRequestsTotalFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
 	defer apiRequestsTotalFeature.Cleanup()
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")

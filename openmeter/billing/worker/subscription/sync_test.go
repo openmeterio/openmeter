@@ -28,6 +28,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -469,6 +470,88 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 			End:   s.mustParseTime("2024-03-01T00:00:00Z"),
 		})
 	})
+}
+
+func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
+	// Test that the InvoicePendingLines returns the correct error when there are no lines to invoice,
+	// as sync depends on this.
+
+	// Given
+	//  a customer with a gathering invoice, that is not collectible
+	// When
+	//  invoice pending lines is called
+	// Then
+	//  ErrInvoiceCreateNoLines is returned
+
+	namespace := "ns-uncollectable-collection"
+	ctx := context.Background()
+
+	s.InstallSandboxApp(s.T(), namespace)
+
+	customer := s.CreateTestCustomer(namespace, "test-customer")
+	s.NotNil(customer)
+
+	minimalCreateProfileInput := billingtest.MinimalCreateProfileInputTemplate
+	minimalCreateProfileInput.Namespace = namespace
+
+	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+	s.NoError(err)
+	s.NotNil(profile)
+
+	// Test no gathering invoice state
+	s.Run("no gathering invoice", func() {
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customer.GetID(),
+		})
+		s.Error(err)
+		s.ErrorIs(err, billing.ErrInvoiceCreateNoLines)
+		s.Len(invoices, 0)
+	})
+
+	apiRequestsTotalFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
+	defer apiRequestsTotalFeature.Cleanup()
+
+	lineServicePeriod := billing.Period{
+		Start: lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z")),
+		End:   lo.Must(time.Parse(time.RFC3339, "2025-01-02T00:00:00Z")),
+	}
+
+	clock.SetTime(lineServicePeriod.Start)
+	defer clock.ResetTime()
+
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customer.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []*billing.Line{
+			{
+				LineBase: billing.LineBase{
+					Period:    lineServicePeriod,
+					InvoiceAt: lineServicePeriod.End,
+					ManagedBy: billing.ManuallyManagedLine,
+					Type:      billing.InvoiceLineTypeUsageBased,
+					Name:      "UBP - unit",
+				},
+				UsageBased: &billing.UsageBasedLine{
+					FeatureKey: apiRequestsTotalFeature.Feature.Key,
+					Price: productcatalog.NewPriceFrom(
+						productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(1),
+						},
+					),
+				},
+			},
+		},
+	})
+
+	s.NoError(err)
+	s.Len(pendingLines.Lines, 1)
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customer.GetID(),
+	})
+	s.Error(err)
+	s.ErrorIs(err, billing.ErrInvoiceCreateNoLines)
+	s.Len(invoices, 0)
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
@@ -3193,7 +3276,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 		},
 	})
 
-	s.NoError(s.Handler.HandleSubscriptionCreated(ctx, subsView, clock.Now()))
+	s.NoError(s.Handler.SyncronizeSubscriptionAndInvoiceCustomer(ctx, subsView, clock.Now()))
 
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 		Customers: []string{s.Customer.ID},
@@ -3307,7 +3390,7 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 		},
 	})
 
-	s.NoError(s.Handler.HandleSubscriptionCreated(ctx, subsView, clock.Now()))
+	s.NoError(s.Handler.SyncronizeSubscriptionAndInvoiceCustomer(ctx, subsView, clock.Now()))
 
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 		Customers: []string{s.Customer.ID},

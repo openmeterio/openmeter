@@ -1,6 +1,10 @@
 package invoicecalc
 
-import "github.com/openmeterio/openmeter/openmeter/billing"
+import (
+	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/openmeter/billing"
+)
 
 // CalculateDraftUntil calculates the draft until date
 func CalculateDraftUntil(i *billing.Invoice, _ CalculatorDependencies) error {
@@ -9,7 +13,8 @@ func CalculateDraftUntil(i *billing.Invoice, _ CalculatorDependencies) error {
 		return nil
 	}
 
-	draftUntil, _ := i.Workflow.Config.Invoicing.DraftPeriod.AddTo(i.CreatedAt)
+	collectionAt := lo.FromPtrOr(i.CollectionAt, i.CreatedAt)
+	draftUntil, _ := i.Workflow.Config.Invoicing.DraftPeriod.AddTo(collectionAt)
 	i.DraftUntil = &draftUntil
 
 	return nil

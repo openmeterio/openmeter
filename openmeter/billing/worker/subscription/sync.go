@@ -2,6 +2,7 @@ package billingworkersubscription
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -82,6 +83,50 @@ func New(config Config) (*Handler, error) {
 		logger:              config.Logger,
 		tracer:              config.Tracer,
 	}, nil
+}
+
+func (h *Handler) invoicePendingLines(ctx context.Context, customer customer.CustomerID) error {
+	ctx, span := h.tracer.Start(ctx, "billing.worker.subscription.sync.invoicePendingLines", trace.WithAttributes(
+		attribute.String("customer_id", customer.ID),
+	))
+	defer span.End()
+
+	_, err := h.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer:                   customer,
+		ProgressiveBillingOverride: lo.ToPtr(false),
+	})
+	if err != nil {
+		if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
+			return nil
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (h *Handler) SyncronizeSubscriptionAndInvoiceCustomer(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
+	ctx, span := h.tracer.Start(ctx, "billing.worker.subscription.sync.SynchronizeSubscriptionAndInvoiceCustomer", trace.WithAttributes(
+		attribute.String("subscription_id", subs.Subscription.ID),
+		attribute.String("as_of", asOf.Format(time.RFC3339)),
+	))
+	defer span.End()
+
+	if err := h.SyncronizeSubscription(ctx, subs, asOf); err != nil {
+		return fmt.Errorf("synchronize subscription: %w", err)
+	}
+
+	customerID := customer.CustomerID{
+		Namespace: subs.Subscription.Namespace,
+		ID:        subs.Subscription.CustomerId,
+	}
+	// Invoice any pending lines invoicable now, so that any in advance fees are invoiced immediately.
+	if err := h.invoicePendingLines(ctx, customerID); err != nil {
+		return fmt.Errorf("invoice pending lines (post): %w [customer_id=%s]", err, customerID.ID)
+	}
+
+	return nil
 }
 
 func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
