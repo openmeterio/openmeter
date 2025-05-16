@@ -55,7 +55,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
 	github.com/redis/go-redis/extra/redisotel/v9 v9.8.0
 	github.com/redis/go-redis/v9 v9.8.0
-	github.com/redpanda-data/benthos/v4 v4.50.0
+	github.com/redpanda-data/benthos/v4 v4.51.0
 	github.com/redpanda-data/connect/public/bundle/free/v4 v4.49.1
 	github.com/rickb777/period v1.0.12
 	github.com/sagikazarmark/mapstructurex v0.1.0
