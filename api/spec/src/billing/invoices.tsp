@@ -46,28 +46,6 @@ interface InvoicesEndpoints {
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryOrdering<InvoiceOrderBy>,
   ): OpenMeter.PaginatedResponse<Invoice.Invoice> | OpenMeter.CommonErrors;
-
-  /**
-   * Create a new pending line item (charge).
-   *
-   * This call is used to create a new pending line item for the customer if required a new
-   * gathering invoice will be created.
-   *
-   * A new invoice will be created if:
-   * - there is no invoice in gathering state
-   * - the currency of the line item doesn't match the currency of any invoices in gathering state
-   */
-  @post
-  @route("/lines")
-  @summary("Create pending line items")
-  @operationId("createPendingInvoiceLine")
-  createPendingInvoiceLine(
-    @body
-    request: Invoice.InvoicePendingLineCreate[],
-  ): {
-    @statusCode _: 201;
-    @body body: Invoice.InvoiceLine[];
-  } | OpenMeter.CommonErrors;
 }
 
 /**
@@ -206,9 +184,9 @@ interface InvoiceEndpoints {
   ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
-@route("/api/v1/billing/customers/{customerId}/invoices/simulate")
+@route("/api/v1/billing/customers/{customerId}/invoices")
 @tag("Billing")
-interface InvoiceSimulationEndpoints {
+interface CustomerInvoiceEndpoints {
   /**
    * Simulate an invoice for a customer.
    *
@@ -218,6 +196,7 @@ interface InvoiceSimulationEndpoints {
    */
   @post
   @summary("Simulate an invoice for a customer")
+  @route("/simulate")
   @operationId("simulateInvoice")
   simulateInvoice(
     @path
@@ -226,6 +205,32 @@ interface InvoiceSimulationEndpoints {
     @body
     request: InvoiceSimulationInput,
   ): Invoice.Invoice | OpenMeter.CommonErrors;
+
+  // TODO[later]: Let's add a @get to list upcoming charges without the gathering invoices
+  /**
+   * Create a new pending line item (charge).
+   *
+   * This call is used to create a new pending line item for the customer if required a new
+   * gathering invoice will be created.
+   *
+   * A new invoice will be created if:
+   * - there is no invoice in gathering state
+   * - the currency of the line item doesn't match the currency of any invoices in gathering state
+   */
+  @post
+  @summary("Create pending line items")
+  @route("/pending-lines")
+  @operationId("createPendingInvoiceLine")
+  createPendingInvoiceLine(
+    @path
+    customerId: ULID,
+
+    @body
+    request: InvoicePendingLineCreateInput,
+  ): {
+    @statusCode _: 201;
+    @body body: InvoicePendingLineCreateResponse;
+  } | OpenMeter.CommonErrors;
 }
 
 /**
@@ -645,4 +650,47 @@ model InvoiceWorkflowInvoicingSettingsReplaceUpdate {
     BillingWorkflowInvoicingSettings,
     "progressiveBilling"
   >>;
+}
+
+/**
+ * InvoicePendingLineCreate represents the create model for a pending invoice line.
+ */
+@friendlyName("InvoicePendingLineCreateInput")
+model InvoicePendingLineCreateInput {
+  /**
+   * The currency of the lines to be created.
+   */
+  @visibility(Lifecycle.Create)
+  currency: CurrencyCode;
+
+  /**
+   * The lines to be created.
+   */
+  @visibility(Lifecycle.Create)
+  @minItems(1)
+  lines: Invoice.InvoicePendingLineCreate[];
+}
+
+/**
+ * InvoicePendingLineCreateResponse represents the response from the create pending line endpoint.
+ */
+@friendlyName("InvoicePendingLineCreateResponse")
+model InvoicePendingLineCreateResponse {
+  /**
+   * The lines that were created.
+   */
+  @visibility(Lifecycle.Read)
+  lines: Invoice.InvoiceLine[];
+
+  /**
+   * The invoice containing the created lines.
+   */
+  @visibility(Lifecycle.Read)
+  invoice: Invoice.Invoice;
+
+  /**
+   * Whether the invoice was newly created.
+   */
+  @visibility(Lifecycle.Read)
+  isInvoiceNew: boolean;
 }

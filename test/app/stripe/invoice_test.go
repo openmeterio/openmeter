@@ -295,179 +295,156 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 	s.Run("create pending invoice items", func() {
 		// When we create pending invoice items
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
-			billing.CreateInvoiceLinesInput{
-				Namespace: namespace,
-				Lines: []billing.LineWithCustomer{
+			billing.CreatePendingInvoiceLinesInput{
+				Customer: customerEntity.GetID(),
+				Currency: currencyx.Code(currency.USD),
+				Lines: []*billing.Line{
 					{
 						// Covered case: standalone flat line
-						Line: billing.Line{
-							LineBase: billing.LineBase{
-								Period:    billing.Period{Start: periodStart, End: periodEnd},
-								InvoiceAt: periodEnd,
-								ManagedBy: billing.ManuallyManagedLine,
-								Currency:  currencyx.Code(currency.USD),
-								Type:      billing.InvoiceLineTypeFee,
-								Name:      "Fee",
-							},
-							FlatFee: &billing.FlatFeeLine{
-								PerUnitAmount: alpacadecimal.NewFromFloat(100),
-								PaymentTerm:   productcatalog.InArrearsPaymentTerm,
-								Quantity:      alpacadecimal.NewFromFloat(1),
-								Category:      billing.FlatFeeCategoryRegular,
-							},
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+							InvoiceAt: periodEnd,
+							ManagedBy: billing.ManuallyManagedLine,
+							Type:      billing.InvoiceLineTypeFee,
+							Name:      "Fee",
 						},
-						CustomerID: customerEntity.ID,
+						FlatFee: &billing.FlatFeeLine{
+							PerUnitAmount: alpacadecimal.NewFromFloat(100),
+							PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+							Quantity:      alpacadecimal.NewFromFloat(1),
+							Category:      billing.FlatFeeCategoryRegular,
+						},
 					},
 					{
 						// Covered case: Discount caused by maximum amount
-						Line: billing.Line{
-							LineBase: billing.LineBase{
-								Period:    billing.Period{Start: periodStart, End: periodEnd},
-								InvoiceAt: periodEnd,
-								ManagedBy: billing.ManuallyManagedLine,
-								Currency:  currencyx.Code(currency.USD),
-								Type:      billing.InvoiceLineTypeUsageBased,
-								Name:      "UBP - FLAT per unit",
-							},
-							UsageBased: &billing.UsageBasedLine{
-								FeatureKey: features.flatPerUnit.Key,
-								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-									Amount: alpacadecimal.NewFromFloat(100),
-									Commitments: productcatalog.Commitments{
-										MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
-									},
-								}),
-							},
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+							InvoiceAt: periodEnd,
+							ManagedBy: billing.ManuallyManagedLine,
+							Type:      billing.InvoiceLineTypeUsageBased,
+							Name:      "UBP - FLAT per unit",
 						},
-						CustomerID: customerEntity.ID,
+						UsageBased: &billing.UsageBasedLine{
+							FeatureKey: features.flatPerUnit.Key,
+							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+								Amount: alpacadecimal.NewFromFloat(100),
+								Commitments: productcatalog.Commitments{
+									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+								},
+							}),
+						},
 					},
 					{
 						// Covered case: Very small per unit amount, high quantity, rounding to two decimal places
-						Line: billing.Line{
-							LineBase: billing.LineBase{
-								Period:    billing.Period{Start: periodStart, End: periodEnd},
-								InvoiceAt: periodEnd,
-								ManagedBy: billing.ManuallyManagedLine,
-								Currency:  currencyx.Code(currency.USD),
-								Type:      billing.InvoiceLineTypeUsageBased,
-								Name:      "UBP - AI Usecase",
-							},
-							UsageBased: &billing.UsageBasedLine{
-								FeatureKey: features.aiFlatPerUnit.Key,
-								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-									Amount: alpacadecimal.NewFromFloat(0.00000075),
-								}),
-							},
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+							InvoiceAt: periodEnd,
+							ManagedBy: billing.ManuallyManagedLine,
+							Type:      billing.InvoiceLineTypeUsageBased,
+							Name:      "UBP - AI Usecase",
 						},
-						CustomerID: customerEntity.ID,
+						UsageBased: &billing.UsageBasedLine{
+							FeatureKey: features.aiFlatPerUnit.Key,
+							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+								Amount: alpacadecimal.NewFromFloat(0.00000075),
+							}),
+						},
 					},
 					{
 						// Covered case: Flat line represented as UBP item
-						Line: billing.Line{
-							LineBase: billing.LineBase{
-								Period:    billing.Period{Start: periodStart, End: periodEnd},
-								InvoiceAt: periodEnd,
-								ManagedBy: billing.ManuallyManagedLine,
-								Currency:  currencyx.Code(currency.USD),
-								Type:      billing.InvoiceLineTypeUsageBased,
-								Name:      "UBP - FLAT per any usage",
-							},
-							UsageBased: &billing.UsageBasedLine{
-								FeatureKey: features.flatPerUsage.Key,
-								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-									Amount:      alpacadecimal.NewFromFloat(100),
-									PaymentTerm: productcatalog.InArrearsPaymentTerm,
-								}),
-							},
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+							InvoiceAt: periodEnd,
+							ManagedBy: billing.ManuallyManagedLine,
+							Type:      billing.InvoiceLineTypeUsageBased,
+							Name:      "UBP - FLAT per any usage",
 						},
-						CustomerID: customerEntity.ID,
+						UsageBased: &billing.UsageBasedLine{
+							FeatureKey: features.flatPerUsage.Key,
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      alpacadecimal.NewFromFloat(100),
+								PaymentTerm: productcatalog.InArrearsPaymentTerm,
+							}),
+						},
 					},
 					{
 						// Covered case: Multiple lines per item, tier boundary is fractional
-						Line: billing.Line{
-							LineBase: billing.LineBase{
-								Period:    billing.Period{Start: periodStart, End: periodEnd},
-								InvoiceAt: periodEnd,
-								ManagedBy: billing.ManuallyManagedLine,
-								Currency:  currencyx.Code(currency.USD),
-								Type:      billing.InvoiceLineTypeUsageBased,
-								Name:      "UBP - Tiered graduated",
-							},
-							UsageBased: &billing.UsageBasedLine{
-								FeatureKey: features.tieredGraduated.Key,
-								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-									Mode: productcatalog.GraduatedTieredPrice,
-									Tiers: []productcatalog.PriceTier{
-										{
-											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(9.5)),
-											UnitPrice: &productcatalog.PriceTierUnitPrice{
-												Amount: alpacadecimal.NewFromFloat(100),
-											},
-										},
-										{
-											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
-											UnitPrice: &productcatalog.PriceTierUnitPrice{
-												Amount: alpacadecimal.NewFromFloat(90),
-											},
-										},
-										{
-											UnitPrice: &productcatalog.PriceTierUnitPrice{
-												Amount: alpacadecimal.NewFromFloat(80),
-											},
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+							InvoiceAt: periodEnd,
+							ManagedBy: billing.ManuallyManagedLine,
+							Type:      billing.InvoiceLineTypeUsageBased,
+							Name:      "UBP - Tiered graduated",
+						},
+						UsageBased: &billing.UsageBasedLine{
+							FeatureKey: features.tieredGraduated.Key,
+							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+								Mode: productcatalog.GraduatedTieredPrice,
+								Tiers: []productcatalog.PriceTier{
+									{
+										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(9.5)),
+										UnitPrice: &productcatalog.PriceTierUnitPrice{
+											Amount: alpacadecimal.NewFromFloat(100),
 										},
 									},
-								}),
-							},
+									{
+										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
+										UnitPrice: &productcatalog.PriceTierUnitPrice{
+											Amount: alpacadecimal.NewFromFloat(90),
+										},
+									},
+									{
+										UnitPrice: &productcatalog.PriceTierUnitPrice{
+											Amount: alpacadecimal.NewFromFloat(80),
+										},
+									},
+								},
+							}),
 						},
-						CustomerID: customerEntity.ID,
 					},
 					{
 						// Covered case: minimum amount charges
-						Line: billing.Line{
-							LineBase: billing.LineBase{
-								Period:    billing.Period{Start: periodStart, End: periodEnd},
-								InvoiceAt: periodEnd,
-								ManagedBy: billing.ManuallyManagedLine,
-								Currency:  currencyx.Code(currency.USD),
-								Type:      billing.InvoiceLineTypeUsageBased,
-								Name:      "UBP - Tiered volume",
-							},
-							UsageBased: &billing.UsageBasedLine{
-								FeatureKey: features.tieredVolume.Key,
-								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-									Mode: productcatalog.VolumeTieredPrice,
-									Tiers: []productcatalog.PriceTier{
-										{
-											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
-											UnitPrice: &productcatalog.PriceTierUnitPrice{
-												Amount: alpacadecimal.NewFromFloat(100),
-											},
-										},
-										{
-											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
-											UnitPrice: &productcatalog.PriceTierUnitPrice{
-												Amount: alpacadecimal.NewFromFloat(90),
-											},
-										},
-										{
-											UnitPrice: &productcatalog.PriceTierUnitPrice{
-												Amount: alpacadecimal.NewFromFloat(80),
-											},
-										},
-									},
-									Commitments: productcatalog.Commitments{
-										MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
-									},
-								}),
-							},
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+							InvoiceAt: periodEnd,
+							ManagedBy: billing.ManuallyManagedLine,
+							Type:      billing.InvoiceLineTypeUsageBased,
+							Name:      "UBP - Tiered volume",
 						},
-						CustomerID: customerEntity.ID,
+						UsageBased: &billing.UsageBasedLine{
+							FeatureKey: features.tieredVolume.Key,
+							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+								Mode: productcatalog.VolumeTieredPrice,
+								Tiers: []productcatalog.PriceTier{
+									{
+										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
+										UnitPrice: &productcatalog.PriceTierUnitPrice{
+											Amount: alpacadecimal.NewFromFloat(100),
+										},
+									},
+									{
+										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
+										UnitPrice: &productcatalog.PriceTierUnitPrice{
+											Amount: alpacadecimal.NewFromFloat(90),
+										},
+									},
+									{
+										UnitPrice: &productcatalog.PriceTierUnitPrice{
+											Amount: alpacadecimal.NewFromFloat(80),
+										},
+									},
+								},
+								Commitments: productcatalog.Commitments{
+									MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
+								},
+							}),
+						},
 					},
 				},
 			},
 		)
 		s.NoError(err)
-		s.Len(pendingLines, 6)
+		s.Len(pendingLines.Lines, 6)
 	})
 
 	clock.FreezeTime(periodEnd.Add(time.Minute))
@@ -1137,33 +1114,30 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 
 	// Given we have pending invoice items without usage
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
-		billing.CreateInvoiceLinesInput{
-			Namespace: namespace,
-			Lines: []billing.LineWithCustomer{
+		billing.CreatePendingInvoiceLinesInput{
+			Customer: customerEntity.GetID(),
+			Currency: currencyx.Code(currency.USD),
+			Lines: []*billing.Line{
 				{
-					Line: billing.Line{
-						LineBase: billing.LineBase{
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							Currency:  currencyx.Code(currency.USD),
-							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - FLAT per unit",
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: flatPerUnitFeature.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-								Amount: alpacadecimal.NewFromFloat(0),
-							}),
-						},
+					LineBase: billing.LineBase{
+						Period:    billing.Period{Start: periodStart, End: periodEnd},
+						InvoiceAt: periodEnd,
+						ManagedBy: billing.ManuallyManagedLine,
+						Type:      billing.InvoiceLineTypeUsageBased,
+						Name:      "UBP - FLAT per unit",
 					},
-					CustomerID: customerEntity.ID,
+					UsageBased: &billing.UsageBasedLine{
+						FeatureKey: flatPerUnitFeature.Key,
+						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(0),
+						}),
+					},
 				},
 			},
 		},
 	)
 	s.NoError(err)
-	s.Len(pendingLines, 1)
+	s.Len(pendingLines.Lines, 1)
 
 	clock.FreezeTime(periodEnd.Add(time.Minute))
 

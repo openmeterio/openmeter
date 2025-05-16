@@ -212,47 +212,44 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	}
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
-		billing.CreateInvoiceLinesInput{
-			Namespace: namespace,
-			Lines: []billing.LineWithCustomer{
+		billing.CreatePendingInvoiceLinesInput{
+			Customer: customer.GetID(),
+			Currency: currencyx.Code(currency.USD),
+			Lines: []*billing.Line{
 				{
-					Line: billing.Line{
-						LineBase: billing.LineBase{
-							Namespace: namespace,
-							Period:    billing.Period{Start: now, End: now.Add(time.Hour * 24)},
+					LineBase: billing.LineBase{
+						Namespace: namespace,
+						Period:    billing.Period{Start: now, End: now.Add(time.Hour * 24)},
 
-							InvoiceAt: now.Add(time.Hour * 24),
-							ManagedBy: billing.ManuallyManagedLine,
+						InvoiceAt: now.Add(time.Hour * 24),
+						ManagedBy: billing.ManuallyManagedLine,
 
-							Type: billing.InvoiceLineTypeUsageBased,
+						Type: billing.InvoiceLineTypeUsageBased,
 
-							Name:     "Test item - USD",
-							Currency: currencyx.Code(currency.USD),
+						Name: "Test item - USD",
 
-							TaxConfig: taxConfig,
+						TaxConfig: taxConfig,
 
-							Metadata: map[string]string{
-								"key": "value",
-							},
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: flatPerUnitFeature.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-								Amount: alpacadecimal.NewFromFloat(100),
-								Commitments: productcatalog.Commitments{
-									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
-								},
-							}),
+						Metadata: map[string]string{
+							"key": "value",
 						},
 					},
-					CustomerID: customer.ID,
+					UsageBased: &billing.UsageBasedLine{
+						FeatureKey: flatPerUnitFeature.Key,
+						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(100),
+							Commitments: productcatalog.Commitments{
+								MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+							},
+						}),
+					},
 				},
 			},
 		},
 	)
 
 	s.NoError(err)
-	s.Len(res, 1)
+	s.Len(res.Lines, 1)
 
 	// Let's create a partial invoice
 	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 100, now.Add(time.Minute))
@@ -285,42 +282,38 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, namesp
 	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
-		billing.CreateInvoiceLinesInput{
-			Namespace: namespace,
-			Lines: []billing.LineWithCustomer{
+		billing.CreatePendingInvoiceLinesInput{
+			Customer: customer.GetID(),
+			Currency: currencyx.Code(currency.USD),
+			Lines: []*billing.Line{
 				{
-					Line: billing.Line{
-						LineBase: billing.LineBase{
-							Namespace: namespace,
-							Period:    billing.Period{Start: now, End: now.Add(time.Hour * 24)},
+					LineBase: billing.LineBase{
+						Period: billing.Period{Start: now, End: now.Add(time.Hour * 24)},
 
-							InvoiceAt: now,
-							ManagedBy: billing.ManuallyManagedLine,
+						InvoiceAt: now,
+						ManagedBy: billing.ManuallyManagedLine,
 
-							Type: billing.InvoiceLineTypeFee,
+						Type: billing.InvoiceLineTypeFee,
 
-							Name:     "Test item - USD",
-							Currency: currencyx.Code(currency.USD),
+						Name: "Test item - USD",
 
-							Metadata: map[string]string{
-								"key": "value",
-							},
-						},
-						FlatFee: &billing.FlatFeeLine{
-							PerUnitAmount: alpacadecimal.NewFromFloat(100),
-							Quantity:      alpacadecimal.NewFromFloat(1),
-							Category:      billing.FlatFeeCategoryRegular,
-							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+						Metadata: map[string]string{
+							"key": "value",
 						},
 					},
-					CustomerID: customer.ID,
+					FlatFee: &billing.FlatFeeLine{
+						PerUnitAmount: alpacadecimal.NewFromFloat(100),
+						Quantity:      alpacadecimal.NewFromFloat(1),
+						Category:      billing.FlatFeeCategoryRegular,
+						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+					},
 				},
 			},
 		},
 	)
 
 	s.NoError(err)
-	s.Len(res, 1)
+	s.Len(res.Lines, 1)
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: customer.GetID(),

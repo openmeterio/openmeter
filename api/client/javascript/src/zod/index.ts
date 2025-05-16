@@ -2510,6 +2510,1166 @@ export const deleteBillingProfileCustomerOverrideParams = zod.object({
 })
 
 /**
+ * Create a new pending line item (charge).
+
+This call is used to create a new pending line item for the customer if required a new
+gathering invoice will be created.
+
+A new invoice will be created if:
+- there is no invoice in gathering state
+- the currency of the line item doesn't match the currency of any invoices in gathering state
+ * @summary Create pending line items
+ */
+export const createPendingInvoiceLinePathCustomerIdRegExp = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+
+export const createPendingInvoiceLineParams = zod.object({
+  customerId: zod.string().regex(createPendingInvoiceLinePathCustomerIdRegExp),
+})
+
+export const createPendingInvoiceLineBodyCurrencyMinOne = 3
+
+export const createPendingInvoiceLineBodyCurrencyMaxOne = 3
+
+export const createPendingInvoiceLineBodyCurrencyRegExpOne = new RegExp(
+  '^[A-Z]{3}$'
+)
+export const createPendingInvoiceLineBodyLinesItemNameMax = 256
+export const createPendingInvoiceLineBodyLinesItemDescriptionMax = 1024
+export const createPendingInvoiceLineBodyLinesItemTaxConfigStripeCodeRegExp =
+  new RegExp('^txcd_\\d{8}$')
+export const createPendingInvoiceLineBodyLinesItemPriceAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPricePaymentTermDefault =
+  'in_advance'
+export const createPendingInvoiceLineBodyLinesItemPriceAmountRegExpThree =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceMinimumAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceMaximumAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceTiersItemUpToAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceTiersItemFlatPriceAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceTiersItemUnitPriceAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceMinimumAmountRegExpThree =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceMaximumAmountRegExpThree =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceMultiplierRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceMultiplierDefault = '1'
+export const createPendingInvoiceLineBodyLinesItemPriceMinimumAmountRegExpFive =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceMaximumAmountRegExpFive =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceAmountRegExpFive =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceQuantityPerPackageRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceMinimumAmountRegExpSeven =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPriceMaximumAmountRegExpSeven =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemFeatureKeyMax = 64
+
+export const createPendingInvoiceLineBodyLinesItemFeatureKeyRegExp = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
+export const createPendingInvoiceLineBodyLinesItemRateCardFeatureKeyMax = 64
+
+export const createPendingInvoiceLineBodyLinesItemRateCardFeatureKeyRegExp =
+  new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$')
+export const createPendingInvoiceLineBodyLinesItemRateCardTaxConfigStripeCodeRegExp =
+  new RegExp('^txcd_\\d{8}$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPricePaymentTermDefault =
+  'in_advance'
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceAmountRegExpThree =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceMinimumAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceMaximumAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceTiersItemUpToAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceTiersItemFlatPriceAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceTiersItemUnitPriceAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceMinimumAmountRegExpThree =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceMaximumAmountRegExpThree =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceMultiplierRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceMultiplierDefault =
+  '1'
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceMinimumAmountRegExpFive =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceMaximumAmountRegExpFive =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceAmountRegExpFive =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceQuantityPerPackageRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceMinimumAmountRegExpSeven =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceMaximumAmountRegExpSeven =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardDiscountsPercentageCorrelationIdRegExp =
+  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
+export const createPendingInvoiceLineBodyLinesItemRateCardDiscountsUsageQuantityRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardDiscountsUsageCorrelationIdRegExp =
+  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
+export const createPendingInvoiceLineBodyLinesItemNameMaxOne = 256
+export const createPendingInvoiceLineBodyLinesItemDescriptionMaxOne = 1024
+export const createPendingInvoiceLineBodyLinesItemTaxConfigStripeCodeRegExpOne =
+  new RegExp('^txcd_\\d{8}$')
+export const createPendingInvoiceLineBodyLinesItemPerUnitAmountRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemPaymentTermDefault =
+  'in_advance'
+export const createPendingInvoiceLineBodyLinesItemQuantityRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardTaxConfigStripeCodeRegExpOne =
+  new RegExp('^txcd_\\d{8}$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPriceAmountRegExpSeven =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardPricePaymentTermDefaultTwo =
+  'in_advance'
+export const createPendingInvoiceLineBodyLinesItemRateCardQuantityRegExpOne =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardDiscountsPercentageCorrelationIdRegExpOne =
+  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
+export const createPendingInvoiceLineBodyLinesItemRateCardDiscountsUsageQuantityRegExpThree =
+  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
+export const createPendingInvoiceLineBodyLinesItemRateCardDiscountsUsageCorrelationIdRegExpOne =
+  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
+export const createPendingInvoiceLineBodyLinesItemCategoryDefault = 'regular'
+
+export const createPendingInvoiceLineBody = zod
+  .object({
+    currency: zod
+      .string()
+      .min(createPendingInvoiceLineBodyCurrencyMinOne)
+      .max(createPendingInvoiceLineBodyCurrencyMaxOne)
+      .regex(createPendingInvoiceLineBodyCurrencyRegExpOne)
+      .describe(
+        'Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.\nCustom three-letter currency codes are also supported for convenience.'
+      )
+      .describe('The currency of the lines to be created.'),
+    lines: zod
+      .array(
+        zod
+          .discriminatedUnion('type', [
+            zod
+              .object({
+                description: zod
+                  .string()
+                  .max(createPendingInvoiceLineBodyLinesItemDescriptionMax)
+                  .optional()
+                  .describe(
+                    'Optional description of the resource. Maximum 1024 characters.'
+                  ),
+                featureKey: zod
+                  .string()
+                  .min(1)
+                  .max(createPendingInvoiceLineBodyLinesItemFeatureKeyMax)
+                  .regex(createPendingInvoiceLineBodyLinesItemFeatureKeyRegExp)
+                  .optional()
+                  .describe('The feature that the usage is based on.'),
+                invoiceAt: zod
+                  .date()
+                  .describe('The time this line item should be invoiced.'),
+                metadata: zod
+                  .record(zod.string(), zod.string())
+                  .describe(
+                    'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
+                  )
+                  .nullish()
+                  .describe('Additional metadata for the resource.'),
+                name: zod
+                  .string()
+                  .min(1)
+                  .max(createPendingInvoiceLineBodyLinesItemNameMax)
+                  .describe(
+                    'Human-readable name for the resource. Between 1 and 256 characters.'
+                  ),
+                period: zod
+                  .object({
+                    from: zod.date().describe('Period start time.'),
+                    to: zod.date().describe('Period end time.'),
+                  })
+                  .describe('A period with a start and end time.')
+                  .describe(
+                    'Period of the line item applies to for revenue recognition pruposes.\n\nBilling always treats periods as start being inclusive and end being exclusive.'
+                  ),
+                price: zod
+                  .discriminatedUnion('type', [
+                    zod
+                      .object({
+                        amount: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceAmountRegExpOne
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .describe('The amount of the flat price.'),
+                        paymentTerm: zod
+                          .enum(['in_advance', 'in_arrears'])
+                          .describe(
+                            'The payment term of a flat price.\nOne of: in_advance or in_arrears.'
+                          )
+                          .default(
+                            createPendingInvoiceLineBodyLinesItemPricePaymentTermDefault
+                          )
+                          .describe(
+                            'The payment term of the flat price.\nDefaults to in advance.'
+                          ),
+                        type: zod.enum(['flat']),
+                      })
+                      .describe('Flat price with payment term.'),
+                    zod
+                      .object({
+                        amount: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceAmountRegExpThree
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .describe('The amount of the unit price.'),
+                        maximumAmount: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceMaximumAmountRegExpOne
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .optional()
+                          .describe(
+                            'The customer is limited to spend at most the amount.'
+                          ),
+                        minimumAmount: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceMinimumAmountRegExpOne
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .optional()
+                          .describe(
+                            'The customer is committed to spend at least the amount.'
+                          ),
+                        type: zod.enum(['unit']),
+                      })
+                      .describe('Unit price with spend commitments.'),
+                    zod
+                      .object({
+                        maximumAmount: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceMaximumAmountRegExpThree
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .optional()
+                          .describe(
+                            'The customer is limited to spend at most the amount.'
+                          ),
+                        minimumAmount: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceMinimumAmountRegExpThree
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .optional()
+                          .describe(
+                            'The customer is committed to spend at least the amount.'
+                          ),
+                        mode: zod
+                          .enum(['volume', 'graduated'])
+                          .describe('The mode of the tiered price.')
+                          .describe(
+                            'Defines if the tiering mode is volume-based or graduated:\n- In `volume`-based tiering, the maximum quantity within a period determines the per unit price.\n- In `graduated` tiering, pricing can change as the quantity grows.'
+                          ),
+                        tiers: zod
+                          .array(
+                            zod
+                              .object({
+                                flatPrice: zod
+                                  .object({
+                                    amount: zod
+                                      .string()
+                                      .regex(
+                                        createPendingInvoiceLineBodyLinesItemPriceTiersItemFlatPriceAmountRegExpOne
+                                      )
+                                      .describe(
+                                        'Numeric represents an arbitrary precision number.'
+                                      )
+                                      .describe(
+                                        'The amount of the flat price.'
+                                      ),
+                                    type: zod
+                                      .enum(['flat'])
+                                      .describe('The type of the price.'),
+                                  })
+                                  .describe('Flat price.')
+                                  .nullable()
+                                  .describe(
+                                    'The flat price component of the tier.'
+                                  ),
+                                unitPrice: zod
+                                  .object({
+                                    amount: zod
+                                      .string()
+                                      .regex(
+                                        createPendingInvoiceLineBodyLinesItemPriceTiersItemUnitPriceAmountRegExpOne
+                                      )
+                                      .describe(
+                                        'Numeric represents an arbitrary precision number.'
+                                      )
+                                      .describe(
+                                        'The amount of the unit price.'
+                                      ),
+                                    type: zod
+                                      .enum(['unit'])
+                                      .describe('The type of the price.'),
+                                  })
+                                  .describe('Unit price.')
+                                  .nullable()
+                                  .describe(
+                                    'The unit price component of the tier.'
+                                  ),
+                                upToAmount: zod
+                                  .string()
+                                  .regex(
+                                    createPendingInvoiceLineBodyLinesItemPriceTiersItemUpToAmountRegExpOne
+                                  )
+                                  .describe(
+                                    'Numeric represents an arbitrary precision number.'
+                                  )
+                                  .optional()
+                                  .describe(
+                                    'Up to and including to this quantity will be contained in the tier.\nIf null, the tier is open-ended.'
+                                  ),
+                              })
+                              .describe(
+                                'A price tier.\nAt least one price component is required in each tier.'
+                              )
+                          )
+                          .min(1)
+                          .describe(
+                            'The tiers of the tiered price.\nAt least one price component is required in each tier.'
+                          ),
+                        type: zod.enum(['tiered']),
+                      })
+                      .describe('Tiered price with spend commitments.'),
+                    zod
+                      .object({
+                        maximumAmount: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceMaximumAmountRegExpFive
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .optional()
+                          .describe(
+                            'The customer is limited to spend at most the amount.'
+                          ),
+                        minimumAmount: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceMinimumAmountRegExpFive
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .optional()
+                          .describe(
+                            'The customer is committed to spend at least the amount.'
+                          ),
+                        multiplier: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceMultiplierRegExpOne
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .default(
+                            createPendingInvoiceLineBodyLinesItemPriceMultiplierDefault
+                          )
+                          .describe(
+                            'The multiplier to apply to the base price to get the dynamic price.\n\nExamples:\n- 0.0: the price is zero\n- 0.5: the price is 50% of the base price\n- 1.0: the price is the same as the base price\n- 1.5: the price is 150% of the base price'
+                          ),
+                        type: zod.enum(['dynamic']),
+                      })
+                      .describe('Dynamic price with spend commitments.'),
+                    zod
+                      .object({
+                        amount: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceAmountRegExpFive
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .describe('The price of one package.'),
+                        maximumAmount: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceMaximumAmountRegExpSeven
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .optional()
+                          .describe(
+                            'The customer is limited to spend at most the amount.'
+                          ),
+                        minimumAmount: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceMinimumAmountRegExpSeven
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .optional()
+                          .describe(
+                            'The customer is committed to spend at least the amount.'
+                          ),
+                        quantityPerPackage: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemPriceQuantityPerPackageRegExpOne
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .describe('The quantity per package.'),
+                        type: zod.enum(['package']),
+                      })
+                      .describe('Package price with spend commitments.'),
+                  ])
+                  .describe('The price of the usage based rate card.')
+                  .optional()
+                  .describe('Price of the usage-based item being sold.'),
+                rateCard: zod
+                  .object({
+                    discounts: zod
+                      .object({
+                        percentage: zod
+                          .object({
+                            correlationId: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardDiscountsPercentageCorrelationIdRegExp
+                              )
+                              .optional()
+                              .describe(
+                                'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
+                              ),
+                            percentage: zod
+                              .number()
+                              .describe(
+                                'Numeric representation of a percentage\n\n50% is represented as 50'
+                              )
+                              .describe('The percentage of the discount.'),
+                          })
+                          .describe('A percentage discount.')
+                          .optional()
+                          .describe('The percentage discount.'),
+                        usage: zod
+                          .object({
+                            correlationId: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardDiscountsUsageCorrelationIdRegExp
+                              )
+                              .optional()
+                              .describe(
+                                'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
+                              ),
+                            quantity: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardDiscountsUsageQuantityRegExpOne
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .describe(
+                                'The quantity of the usage discount.\n\nMust be positive.'
+                              ),
+                          })
+                          .describe('A usage discount.')
+                          .optional()
+                          .describe('The usage discount.'),
+                      })
+                      .describe('A discount by type.')
+                      .optional()
+                      .describe('The discounts that are applied to the line.'),
+                    featureKey: zod
+                      .string()
+                      .min(1)
+                      .max(
+                        createPendingInvoiceLineBodyLinesItemRateCardFeatureKeyMax
+                      )
+                      .regex(
+                        createPendingInvoiceLineBodyLinesItemRateCardFeatureKeyRegExp
+                      )
+                      .optional()
+                      .describe('The feature the customer is entitled to use.'),
+                    price: zod
+                      .discriminatedUnion('type', [
+                        zod
+                          .object({
+                            amount: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceAmountRegExpOne
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .describe('The amount of the flat price.'),
+                            paymentTerm: zod
+                              .enum(['in_advance', 'in_arrears'])
+                              .describe(
+                                'The payment term of a flat price.\nOne of: in_advance or in_arrears.'
+                              )
+                              .default(
+                                createPendingInvoiceLineBodyLinesItemRateCardPricePaymentTermDefault
+                              )
+                              .describe(
+                                'The payment term of the flat price.\nDefaults to in advance.'
+                              ),
+                            type: zod.enum(['flat']),
+                          })
+                          .describe('Flat price with payment term.'),
+                        zod
+                          .object({
+                            amount: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceAmountRegExpThree
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .describe('The amount of the unit price.'),
+                            maximumAmount: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceMaximumAmountRegExpOne
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .optional()
+                              .describe(
+                                'The customer is limited to spend at most the amount.'
+                              ),
+                            minimumAmount: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceMinimumAmountRegExpOne
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .optional()
+                              .describe(
+                                'The customer is committed to spend at least the amount.'
+                              ),
+                            type: zod.enum(['unit']),
+                          })
+                          .describe('Unit price with spend commitments.'),
+                        zod
+                          .object({
+                            maximumAmount: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceMaximumAmountRegExpThree
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .optional()
+                              .describe(
+                                'The customer is limited to spend at most the amount.'
+                              ),
+                            minimumAmount: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceMinimumAmountRegExpThree
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .optional()
+                              .describe(
+                                'The customer is committed to spend at least the amount.'
+                              ),
+                            mode: zod
+                              .enum(['volume', 'graduated'])
+                              .describe('The mode of the tiered price.')
+                              .describe(
+                                'Defines if the tiering mode is volume-based or graduated:\n- In `volume`-based tiering, the maximum quantity within a period determines the per unit price.\n- In `graduated` tiering, pricing can change as the quantity grows.'
+                              ),
+                            tiers: zod
+                              .array(
+                                zod
+                                  .object({
+                                    flatPrice: zod
+                                      .object({
+                                        amount: zod
+                                          .string()
+                                          .regex(
+                                            createPendingInvoiceLineBodyLinesItemRateCardPriceTiersItemFlatPriceAmountRegExpOne
+                                          )
+                                          .describe(
+                                            'Numeric represents an arbitrary precision number.'
+                                          )
+                                          .describe(
+                                            'The amount of the flat price.'
+                                          ),
+                                        type: zod
+                                          .enum(['flat'])
+                                          .describe('The type of the price.'),
+                                      })
+                                      .describe('Flat price.')
+                                      .nullable()
+                                      .describe(
+                                        'The flat price component of the tier.'
+                                      ),
+                                    unitPrice: zod
+                                      .object({
+                                        amount: zod
+                                          .string()
+                                          .regex(
+                                            createPendingInvoiceLineBodyLinesItemRateCardPriceTiersItemUnitPriceAmountRegExpOne
+                                          )
+                                          .describe(
+                                            'Numeric represents an arbitrary precision number.'
+                                          )
+                                          .describe(
+                                            'The amount of the unit price.'
+                                          ),
+                                        type: zod
+                                          .enum(['unit'])
+                                          .describe('The type of the price.'),
+                                      })
+                                      .describe('Unit price.')
+                                      .nullable()
+                                      .describe(
+                                        'The unit price component of the tier.'
+                                      ),
+                                    upToAmount: zod
+                                      .string()
+                                      .regex(
+                                        createPendingInvoiceLineBodyLinesItemRateCardPriceTiersItemUpToAmountRegExpOne
+                                      )
+                                      .describe(
+                                        'Numeric represents an arbitrary precision number.'
+                                      )
+                                      .optional()
+                                      .describe(
+                                        'Up to and including to this quantity will be contained in the tier.\nIf null, the tier is open-ended.'
+                                      ),
+                                  })
+                                  .describe(
+                                    'A price tier.\nAt least one price component is required in each tier.'
+                                  )
+                              )
+                              .min(1)
+                              .describe(
+                                'The tiers of the tiered price.\nAt least one price component is required in each tier.'
+                              ),
+                            type: zod.enum(['tiered']),
+                          })
+                          .describe('Tiered price with spend commitments.'),
+                        zod
+                          .object({
+                            maximumAmount: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceMaximumAmountRegExpFive
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .optional()
+                              .describe(
+                                'The customer is limited to spend at most the amount.'
+                              ),
+                            minimumAmount: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceMinimumAmountRegExpFive
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .optional()
+                              .describe(
+                                'The customer is committed to spend at least the amount.'
+                              ),
+                            multiplier: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceMultiplierRegExpOne
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .default(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceMultiplierDefault
+                              )
+                              .describe(
+                                'The multiplier to apply to the base price to get the dynamic price.\n\nExamples:\n- 0.0: the price is zero\n- 0.5: the price is 50% of the base price\n- 1.0: the price is the same as the base price\n- 1.5: the price is 150% of the base price'
+                              ),
+                            type: zod.enum(['dynamic']),
+                          })
+                          .describe('Dynamic price with spend commitments.'),
+                        zod
+                          .object({
+                            amount: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceAmountRegExpFive
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .describe('The price of one package.'),
+                            maximumAmount: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceMaximumAmountRegExpSeven
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .optional()
+                              .describe(
+                                'The customer is limited to spend at most the amount.'
+                              ),
+                            minimumAmount: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceMinimumAmountRegExpSeven
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .optional()
+                              .describe(
+                                'The customer is committed to spend at least the amount.'
+                              ),
+                            quantityPerPackage: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardPriceQuantityPerPackageRegExpOne
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .describe('The quantity per package.'),
+                            type: zod.enum(['package']),
+                          })
+                          .describe('Package price with spend commitments.'),
+                      ])
+                      .describe('The price of the usage based rate card.')
+                      .nullable()
+                      .describe(
+                        'The price of the rate card.\nWhen null, the feature or service is free.'
+                      ),
+                    taxConfig: zod
+                      .object({
+                        behavior: zod
+                          .enum(['inclusive', 'exclusive'])
+                          .describe(
+                            'Tax behavior.\n\nThis enum is used to specify whether tax is included in the price or excluded from the price.'
+                          )
+                          .optional()
+                          .describe(
+                            "Tax behavior.\n\nIf not specified the billing profile is used to determine the tax behavior.\nIf not specified in the billing profile, the provider's default behavior is used."
+                          ),
+                        customInvoicing: zod
+                          .object({
+                            code: zod
+                              .string()
+                              .describe(
+                                'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
+                              ),
+                          })
+                          .describe('Custom invoicing tax config.')
+                          .optional()
+                          .describe('Custom invoicing tax config.'),
+                        stripe: zod
+                          .object({
+                            code: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardTaxConfigStripeCodeRegExp
+                              )
+                              .describe(
+                                'Product tax code.\n\nSee: https://docs.stripe.com/tax/tax-codes'
+                              ),
+                          })
+                          .describe('The tax config for Stripe.')
+                          .optional()
+                          .describe('Stripe tax config.'),
+                      })
+                      .describe('Set of provider specific tax configs.')
+                      .optional()
+                      .describe(
+                        'The tax config of the rate card.\nWhen undefined, the tax config of the feature or the default tax config of the plan is used.'
+                      ),
+                  })
+                  .describe(
+                    'InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line.'
+                  )
+                  .optional()
+                  .describe(
+                    'The rate card that is used for this line.\n\nThe rate card captures the intent of the price and discounts for the usage-based item.'
+                  ),
+                taxConfig: zod
+                  .object({
+                    behavior: zod
+                      .enum(['inclusive', 'exclusive'])
+                      .describe(
+                        'Tax behavior.\n\nThis enum is used to specify whether tax is included in the price or excluded from the price.'
+                      )
+                      .optional()
+                      .describe(
+                        "Tax behavior.\n\nIf not specified the billing profile is used to determine the tax behavior.\nIf not specified in the billing profile, the provider's default behavior is used."
+                      ),
+                    customInvoicing: zod
+                      .object({
+                        code: zod
+                          .string()
+                          .describe(
+                            'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
+                          ),
+                      })
+                      .describe('Custom invoicing tax config.')
+                      .optional()
+                      .describe('Custom invoicing tax config.'),
+                    stripe: zod
+                      .object({
+                        code: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemTaxConfigStripeCodeRegExp
+                          )
+                          .describe(
+                            'Product tax code.\n\nSee: https://docs.stripe.com/tax/tax-codes'
+                          ),
+                      })
+                      .describe('The tax config for Stripe.')
+                      .optional()
+                      .describe('Stripe tax config.'),
+                  })
+                  .describe('Set of provider specific tax configs.')
+                  .optional()
+                  .describe(
+                    'Tax config specify the tax configuration for this line.'
+                  ),
+                type: zod.enum(['usage_based']),
+              })
+              .describe(
+                'InvoiceUsageBasedLineCreateWithCustomer represents the create model for an invoice line that is sold to the customer based on usage.'
+              ),
+            zod
+              .object({
+                category: zod
+                  .enum(['regular', 'commitment'])
+                  .describe(
+                    'InvoiceFlatFeeCategory determines if the flat fee is a regular fee due to use due to a\ncommitment.'
+                  )
+                  .default(createPendingInvoiceLineBodyLinesItemCategoryDefault)
+                  .describe('Category of the flat fee.'),
+                description: zod
+                  .string()
+                  .max(createPendingInvoiceLineBodyLinesItemDescriptionMaxOne)
+                  .optional()
+                  .describe(
+                    'Optional description of the resource. Maximum 1024 characters.'
+                  ),
+                invoiceAt: zod
+                  .date()
+                  .describe('The time this line item should be invoiced.'),
+                metadata: zod
+                  .record(zod.string(), zod.string())
+                  .describe(
+                    'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
+                  )
+                  .nullish()
+                  .describe('Additional metadata for the resource.'),
+                name: zod
+                  .string()
+                  .min(1)
+                  .max(createPendingInvoiceLineBodyLinesItemNameMaxOne)
+                  .describe(
+                    'Human-readable name for the resource. Between 1 and 256 characters.'
+                  ),
+                paymentTerm: zod
+                  .enum(['in_advance', 'in_arrears'])
+                  .describe(
+                    'The payment term of a flat price.\nOne of: in_advance or in_arrears.'
+                  )
+                  .default(
+                    createPendingInvoiceLineBodyLinesItemPaymentTermDefault
+                  )
+                  .describe('Payment term of the line.'),
+                period: zod
+                  .object({
+                    from: zod.date().describe('Period start time.'),
+                    to: zod.date().describe('Period end time.'),
+                  })
+                  .describe('A period with a start and end time.')
+                  .describe(
+                    'Period of the line item applies to for revenue recognition pruposes.\n\nBilling always treats periods as start being inclusive and end being exclusive.'
+                  ),
+                perUnitAmount: zod
+                  .string()
+                  .regex(
+                    createPendingInvoiceLineBodyLinesItemPerUnitAmountRegExpOne
+                  )
+                  .describe('Numeric represents an arbitrary precision number.')
+                  .optional()
+                  .describe('Price of the item being sold.'),
+                quantity: zod
+                  .string()
+                  .regex(createPendingInvoiceLineBodyLinesItemQuantityRegExpOne)
+                  .describe('Numeric represents an arbitrary precision number.')
+                  .optional()
+                  .describe('Quantity of the item being sold.'),
+                rateCard: zod
+                  .object({
+                    discounts: zod
+                      .object({
+                        percentage: zod
+                          .object({
+                            correlationId: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardDiscountsPercentageCorrelationIdRegExpOne
+                              )
+                              .optional()
+                              .describe(
+                                'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
+                              ),
+                            percentage: zod
+                              .number()
+                              .describe(
+                                'Numeric representation of a percentage\n\n50% is represented as 50'
+                              )
+                              .describe('The percentage of the discount.'),
+                          })
+                          .describe('A percentage discount.')
+                          .optional()
+                          .describe('The percentage discount.'),
+                        usage: zod
+                          .object({
+                            correlationId: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardDiscountsUsageCorrelationIdRegExpOne
+                              )
+                              .optional()
+                              .describe(
+                                'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
+                              ),
+                            quantity: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardDiscountsUsageQuantityRegExpThree
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.'
+                              )
+                              .describe(
+                                'The quantity of the usage discount.\n\nMust be positive.'
+                              ),
+                          })
+                          .describe('A usage discount.')
+                          .optional()
+                          .describe('The usage discount.'),
+                      })
+                      .describe('A discount by type.')
+                      .optional()
+                      .describe('The discounts that are applied to the line.'),
+                    price: zod
+                      .object({
+                        amount: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemRateCardPriceAmountRegExpSeven
+                          )
+                          .describe(
+                            'Numeric represents an arbitrary precision number.'
+                          )
+                          .describe('The amount of the flat price.'),
+                        paymentTerm: zod
+                          .enum(['in_advance', 'in_arrears'])
+                          .describe(
+                            'The payment term of a flat price.\nOne of: in_advance or in_arrears.'
+                          )
+                          .default(
+                            createPendingInvoiceLineBodyLinesItemRateCardPricePaymentTermDefaultTwo
+                          )
+                          .describe(
+                            'The payment term of the flat price.\nDefaults to in advance.'
+                          ),
+                        type: zod.enum(['flat']),
+                      })
+                      .describe('Flat price with payment term.')
+                      .nullable()
+                      .describe(
+                        'The price of the rate card.\nWhen null, the feature or service is free.'
+                      ),
+                    quantity: zod
+                      .string()
+                      .regex(
+                        createPendingInvoiceLineBodyLinesItemRateCardQuantityRegExpOne
+                      )
+                      .describe(
+                        'Numeric represents an arbitrary precision number.'
+                      )
+                      .optional()
+                      .describe(
+                        'Quantity of the item being sold.\n\nDefault: 1'
+                      ),
+                    taxConfig: zod
+                      .object({
+                        behavior: zod
+                          .enum(['inclusive', 'exclusive'])
+                          .describe(
+                            'Tax behavior.\n\nThis enum is used to specify whether tax is included in the price or excluded from the price.'
+                          )
+                          .optional()
+                          .describe(
+                            "Tax behavior.\n\nIf not specified the billing profile is used to determine the tax behavior.\nIf not specified in the billing profile, the provider's default behavior is used."
+                          ),
+                        customInvoicing: zod
+                          .object({
+                            code: zod
+                              .string()
+                              .describe(
+                                'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
+                              ),
+                          })
+                          .describe('Custom invoicing tax config.')
+                          .optional()
+                          .describe('Custom invoicing tax config.'),
+                        stripe: zod
+                          .object({
+                            code: zod
+                              .string()
+                              .regex(
+                                createPendingInvoiceLineBodyLinesItemRateCardTaxConfigStripeCodeRegExpOne
+                              )
+                              .describe(
+                                'Product tax code.\n\nSee: https://docs.stripe.com/tax/tax-codes'
+                              ),
+                          })
+                          .describe('The tax config for Stripe.')
+                          .optional()
+                          .describe('Stripe tax config.'),
+                      })
+                      .describe('Set of provider specific tax configs.')
+                      .optional()
+                      .describe(
+                        'The tax config of the rate card.\nWhen undefined, the tax config of the feature or the default tax config of the plan is used.'
+                      ),
+                  })
+                  .describe(
+                    'InvoiceFlatFeeRateCard represents the rate card (intent) for a flat fee line.'
+                  )
+                  .optional()
+                  .describe('The rate card that is used for this line.'),
+                taxConfig: zod
+                  .object({
+                    behavior: zod
+                      .enum(['inclusive', 'exclusive'])
+                      .describe(
+                        'Tax behavior.\n\nThis enum is used to specify whether tax is included in the price or excluded from the price.'
+                      )
+                      .optional()
+                      .describe(
+                        "Tax behavior.\n\nIf not specified the billing profile is used to determine the tax behavior.\nIf not specified in the billing profile, the provider's default behavior is used."
+                      ),
+                    customInvoicing: zod
+                      .object({
+                        code: zod
+                          .string()
+                          .describe(
+                            'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
+                          ),
+                      })
+                      .describe('Custom invoicing tax config.')
+                      .optional()
+                      .describe('Custom invoicing tax config.'),
+                    stripe: zod
+                      .object({
+                        code: zod
+                          .string()
+                          .regex(
+                            createPendingInvoiceLineBodyLinesItemTaxConfigStripeCodeRegExpOne
+                          )
+                          .describe(
+                            'Product tax code.\n\nSee: https://docs.stripe.com/tax/tax-codes'
+                          ),
+                      })
+                      .describe('The tax config for Stripe.')
+                      .optional()
+                      .describe('Stripe tax config.'),
+                  })
+                  .describe('Set of provider specific tax configs.')
+                  .optional()
+                  .describe(
+                    'Tax config specify the tax configuration for this line.'
+                  ),
+                type: zod.enum(['flat_fee']),
+              })
+              .describe(
+                'InvoiceFlatFeePendingLineCreate represents the create model for an invoice line that is sold to the customer as a manually added fee.'
+              ),
+          ])
+          .describe(
+            'InvoiceLineCreate represents the create model for an invoice line.'
+          )
+      )
+      .min(1)
+      .describe('The lines to be created.'),
+  })
+  .describe(
+    'InvoicePendingLineCreate represents the create model for a pending invoice line.'
+  )
+
+/**
  * Simulate an invoice for a customer.
 
 This call will simulate an invoice for a customer based on the pending line items.
@@ -3859,1114 +5019,6 @@ export const invoicePendingLinesActionBody = zod
   .describe(
     'BillingInvoiceActionInput is the input for creating an invoice.\n\nInvoice creation is always based on already pending line items created by the billingCreateLineByCustomer\noperation. Empty invoices are not allowed.'
   )
-
-/**
- * Create a new pending line item (charge).
-
-This call is used to create a new pending line item for the customer if required a new
-gathering invoice will be created.
-
-A new invoice will be created if:
-- there is no invoice in gathering state
-- the currency of the line item doesn't match the currency of any invoices in gathering state
- * @summary Create pending line items
- */
-export const createPendingInvoiceLineBodyNameMax = 256
-export const createPendingInvoiceLineBodyDescriptionMax = 1024
-export const createPendingInvoiceLineBodyCurrencyMinOne = 3
-
-export const createPendingInvoiceLineBodyCurrencyMaxOne = 3
-
-export const createPendingInvoiceLineBodyCurrencyRegExpOne = new RegExp(
-  '^[A-Z]{3}$'
-)
-export const createPendingInvoiceLineBodyTaxConfigStripeCodeRegExp = new RegExp(
-  '^txcd_\\d{8}$'
-)
-export const createPendingInvoiceLineBodyPriceAmountRegExpOne = new RegExp(
-  '^\\-?[0-9]+(\\.[0-9]+)?$'
-)
-export const createPendingInvoiceLineBodyPricePaymentTermDefault = 'in_advance'
-export const createPendingInvoiceLineBodyPriceAmountRegExpThree = new RegExp(
-  '^\\-?[0-9]+(\\.[0-9]+)?$'
-)
-export const createPendingInvoiceLineBodyPriceMinimumAmountRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyPriceMaximumAmountRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyPriceTiersItemUpToAmountRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyPriceTiersItemFlatPriceAmountRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyPriceTiersItemUnitPriceAmountRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyPriceMinimumAmountRegExpThree =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyPriceMaximumAmountRegExpThree =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyPriceMultiplierRegExpOne = new RegExp(
-  '^\\-?[0-9]+(\\.[0-9]+)?$'
-)
-export const createPendingInvoiceLineBodyPriceMultiplierDefault = '1'
-export const createPendingInvoiceLineBodyPriceMinimumAmountRegExpFive =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyPriceMaximumAmountRegExpFive =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyPriceAmountRegExpFive = new RegExp(
-  '^\\-?[0-9]+(\\.[0-9]+)?$'
-)
-export const createPendingInvoiceLineBodyPriceQuantityPerPackageRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyPriceMinimumAmountRegExpSeven =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyPriceMaximumAmountRegExpSeven =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyFeatureKeyMax = 64
-
-export const createPendingInvoiceLineBodyFeatureKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-export const createPendingInvoiceLineBodyRateCardFeatureKeyMax = 64
-
-export const createPendingInvoiceLineBodyRateCardFeatureKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-export const createPendingInvoiceLineBodyRateCardTaxConfigStripeCodeRegExp =
-  new RegExp('^txcd_\\d{8}$')
-export const createPendingInvoiceLineBodyRateCardPriceAmountRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPricePaymentTermDefault =
-  'in_advance'
-export const createPendingInvoiceLineBodyRateCardPriceAmountRegExpThree =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceMinimumAmountRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceMaximumAmountRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceTiersItemUpToAmountRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceTiersItemFlatPriceAmountRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceTiersItemUnitPriceAmountRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceMinimumAmountRegExpThree =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceMaximumAmountRegExpThree =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceMultiplierRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceMultiplierDefault = '1'
-export const createPendingInvoiceLineBodyRateCardPriceMinimumAmountRegExpFive =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceMaximumAmountRegExpFive =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceAmountRegExpFive =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceQuantityPerPackageRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceMinimumAmountRegExpSeven =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPriceMaximumAmountRegExpSeven =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardDiscountsPercentageCorrelationIdRegExp =
-  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const createPendingInvoiceLineBodyRateCardDiscountsUsageQuantityRegExpOne =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardDiscountsUsageCorrelationIdRegExp =
-  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const createPendingInvoiceLineBodyCustomerIdRegExp = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const createPendingInvoiceLineBodyNameMaxOne = 256
-export const createPendingInvoiceLineBodyDescriptionMaxOne = 1024
-export const createPendingInvoiceLineBodyCurrencyMinThree = 3
-
-export const createPendingInvoiceLineBodyCurrencyMaxThree = 3
-
-export const createPendingInvoiceLineBodyCurrencyRegExpThree = new RegExp(
-  '^[A-Z]{3}$'
-)
-export const createPendingInvoiceLineBodyTaxConfigStripeCodeRegExpOne =
-  new RegExp('^txcd_\\d{8}$')
-export const createPendingInvoiceLineBodyPerUnitAmountRegExpOne = new RegExp(
-  '^\\-?[0-9]+(\\.[0-9]+)?$'
-)
-export const createPendingInvoiceLineBodyPaymentTermDefault = 'in_advance'
-export const createPendingInvoiceLineBodyQuantityRegExpOne = new RegExp(
-  '^\\-?[0-9]+(\\.[0-9]+)?$'
-)
-export const createPendingInvoiceLineBodyRateCardTaxConfigStripeCodeRegExpOne =
-  new RegExp('^txcd_\\d{8}$')
-export const createPendingInvoiceLineBodyRateCardPriceAmountRegExpSeven =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardPricePaymentTermDefaultTwo =
-  'in_advance'
-export const createPendingInvoiceLineBodyRateCardQuantityRegExpOne = new RegExp(
-  '^\\-?[0-9]+(\\.[0-9]+)?$'
-)
-export const createPendingInvoiceLineBodyRateCardDiscountsPercentageCorrelationIdRegExpOne =
-  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const createPendingInvoiceLineBodyRateCardDiscountsUsageQuantityRegExpThree =
-  new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
-export const createPendingInvoiceLineBodyRateCardDiscountsUsageCorrelationIdRegExpOne =
-  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const createPendingInvoiceLineBodyCategoryDefault = 'regular'
-export const createPendingInvoiceLineBodyCustomerIdRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-
-export const createPendingInvoiceLineBodyItem = zod
-  .discriminatedUnion('type', [
-    zod
-      .object({
-        currency: zod
-          .string()
-          .min(createPendingInvoiceLineBodyCurrencyMinOne)
-          .max(createPendingInvoiceLineBodyCurrencyMaxOne)
-          .regex(createPendingInvoiceLineBodyCurrencyRegExpOne)
-          .describe(
-            'Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.\nCustom three-letter currency codes are also supported for convenience.'
-          )
-          .describe('The currency of this line.'),
-        customerId: zod
-          .string()
-          .regex(createPendingInvoiceLineBodyCustomerIdRegExp)
-          .describe('The customer this line item belongs to.'),
-        description: zod
-          .string()
-          .max(createPendingInvoiceLineBodyDescriptionMax)
-          .optional()
-          .describe(
-            'Optional description of the resource. Maximum 1024 characters.'
-          ),
-        featureKey: zod
-          .string()
-          .min(1)
-          .max(createPendingInvoiceLineBodyFeatureKeyMax)
-          .regex(createPendingInvoiceLineBodyFeatureKeyRegExp)
-          .optional()
-          .describe('The feature that the usage is based on.'),
-        invoiceAt: zod
-          .date()
-          .describe('The time this line item should be invoiced.'),
-        metadata: zod
-          .record(zod.string(), zod.string())
-          .describe(
-            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
-          )
-          .nullish()
-          .describe('Additional metadata for the resource.'),
-        name: zod
-          .string()
-          .min(1)
-          .max(createPendingInvoiceLineBodyNameMax)
-          .describe(
-            'Human-readable name for the resource. Between 1 and 256 characters.'
-          ),
-        period: zod
-          .object({
-            from: zod.date().describe('Period start time.'),
-            to: zod.date().describe('Period end time.'),
-          })
-          .describe('A period with a start and end time.')
-          .describe(
-            'Period of the line item applies to for revenue recognition pruposes.\n\nBilling always treats periods as start being inclusive and end being exclusive.'
-          ),
-        price: zod
-          .discriminatedUnion('type', [
-            zod
-              .object({
-                amount: zod
-                  .string()
-                  .regex(createPendingInvoiceLineBodyPriceAmountRegExpOne)
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .describe('The amount of the flat price.'),
-                paymentTerm: zod
-                  .enum(['in_advance', 'in_arrears'])
-                  .describe(
-                    'The payment term of a flat price.\nOne of: in_advance or in_arrears.'
-                  )
-                  .default(createPendingInvoiceLineBodyPricePaymentTermDefault)
-                  .describe(
-                    'The payment term of the flat price.\nDefaults to in advance.'
-                  ),
-                type: zod.enum(['flat']),
-              })
-              .describe('Flat price with payment term.'),
-            zod
-              .object({
-                amount: zod
-                  .string()
-                  .regex(createPendingInvoiceLineBodyPriceAmountRegExpThree)
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .describe('The amount of the unit price.'),
-                maximumAmount: zod
-                  .string()
-                  .regex(
-                    createPendingInvoiceLineBodyPriceMaximumAmountRegExpOne
-                  )
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .optional()
-                  .describe(
-                    'The customer is limited to spend at most the amount.'
-                  ),
-                minimumAmount: zod
-                  .string()
-                  .regex(
-                    createPendingInvoiceLineBodyPriceMinimumAmountRegExpOne
-                  )
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .optional()
-                  .describe(
-                    'The customer is committed to spend at least the amount.'
-                  ),
-                type: zod.enum(['unit']),
-              })
-              .describe('Unit price with spend commitments.'),
-            zod
-              .object({
-                maximumAmount: zod
-                  .string()
-                  .regex(
-                    createPendingInvoiceLineBodyPriceMaximumAmountRegExpThree
-                  )
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .optional()
-                  .describe(
-                    'The customer is limited to spend at most the amount.'
-                  ),
-                minimumAmount: zod
-                  .string()
-                  .regex(
-                    createPendingInvoiceLineBodyPriceMinimumAmountRegExpThree
-                  )
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .optional()
-                  .describe(
-                    'The customer is committed to spend at least the amount.'
-                  ),
-                mode: zod
-                  .enum(['volume', 'graduated'])
-                  .describe('The mode of the tiered price.')
-                  .describe(
-                    'Defines if the tiering mode is volume-based or graduated:\n- In `volume`-based tiering, the maximum quantity within a period determines the per unit price.\n- In `graduated` tiering, pricing can change as the quantity grows.'
-                  ),
-                tiers: zod
-                  .array(
-                    zod
-                      .object({
-                        flatPrice: zod
-                          .object({
-                            amount: zod
-                              .string()
-                              .regex(
-                                createPendingInvoiceLineBodyPriceTiersItemFlatPriceAmountRegExpOne
-                              )
-                              .describe(
-                                'Numeric represents an arbitrary precision number.'
-                              )
-                              .describe('The amount of the flat price.'),
-                            type: zod
-                              .enum(['flat'])
-                              .describe('The type of the price.'),
-                          })
-                          .describe('Flat price.')
-                          .nullable()
-                          .describe('The flat price component of the tier.'),
-                        unitPrice: zod
-                          .object({
-                            amount: zod
-                              .string()
-                              .regex(
-                                createPendingInvoiceLineBodyPriceTiersItemUnitPriceAmountRegExpOne
-                              )
-                              .describe(
-                                'Numeric represents an arbitrary precision number.'
-                              )
-                              .describe('The amount of the unit price.'),
-                            type: zod
-                              .enum(['unit'])
-                              .describe('The type of the price.'),
-                          })
-                          .describe('Unit price.')
-                          .nullable()
-                          .describe('The unit price component of the tier.'),
-                        upToAmount: zod
-                          .string()
-                          .regex(
-                            createPendingInvoiceLineBodyPriceTiersItemUpToAmountRegExpOne
-                          )
-                          .describe(
-                            'Numeric represents an arbitrary precision number.'
-                          )
-                          .optional()
-                          .describe(
-                            'Up to and including to this quantity will be contained in the tier.\nIf null, the tier is open-ended.'
-                          ),
-                      })
-                      .describe(
-                        'A price tier.\nAt least one price component is required in each tier.'
-                      )
-                  )
-                  .min(1)
-                  .describe(
-                    'The tiers of the tiered price.\nAt least one price component is required in each tier.'
-                  ),
-                type: zod.enum(['tiered']),
-              })
-              .describe('Tiered price with spend commitments.'),
-            zod
-              .object({
-                maximumAmount: zod
-                  .string()
-                  .regex(
-                    createPendingInvoiceLineBodyPriceMaximumAmountRegExpFive
-                  )
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .optional()
-                  .describe(
-                    'The customer is limited to spend at most the amount.'
-                  ),
-                minimumAmount: zod
-                  .string()
-                  .regex(
-                    createPendingInvoiceLineBodyPriceMinimumAmountRegExpFive
-                  )
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .optional()
-                  .describe(
-                    'The customer is committed to spend at least the amount.'
-                  ),
-                multiplier: zod
-                  .string()
-                  .regex(createPendingInvoiceLineBodyPriceMultiplierRegExpOne)
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .default(createPendingInvoiceLineBodyPriceMultiplierDefault)
-                  .describe(
-                    'The multiplier to apply to the base price to get the dynamic price.\n\nExamples:\n- 0.0: the price is zero\n- 0.5: the price is 50% of the base price\n- 1.0: the price is the same as the base price\n- 1.5: the price is 150% of the base price'
-                  ),
-                type: zod.enum(['dynamic']),
-              })
-              .describe('Dynamic price with spend commitments.'),
-            zod
-              .object({
-                amount: zod
-                  .string()
-                  .regex(createPendingInvoiceLineBodyPriceAmountRegExpFive)
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .describe('The price of one package.'),
-                maximumAmount: zod
-                  .string()
-                  .regex(
-                    createPendingInvoiceLineBodyPriceMaximumAmountRegExpSeven
-                  )
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .optional()
-                  .describe(
-                    'The customer is limited to spend at most the amount.'
-                  ),
-                minimumAmount: zod
-                  .string()
-                  .regex(
-                    createPendingInvoiceLineBodyPriceMinimumAmountRegExpSeven
-                  )
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .optional()
-                  .describe(
-                    'The customer is committed to spend at least the amount.'
-                  ),
-                quantityPerPackage: zod
-                  .string()
-                  .regex(
-                    createPendingInvoiceLineBodyPriceQuantityPerPackageRegExpOne
-                  )
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .describe('The quantity per package.'),
-                type: zod.enum(['package']),
-              })
-              .describe('Package price with spend commitments.'),
-          ])
-          .describe('The price of the usage based rate card.')
-          .optional()
-          .describe('Price of the usage-based item being sold.'),
-        rateCard: zod
-          .object({
-            discounts: zod
-              .object({
-                percentage: zod
-                  .object({
-                    correlationId: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardDiscountsPercentageCorrelationIdRegExp
-                      )
-                      .optional()
-                      .describe(
-                        'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
-                      ),
-                    percentage: zod
-                      .number()
-                      .describe(
-                        'Numeric representation of a percentage\n\n50% is represented as 50'
-                      )
-                      .describe('The percentage of the discount.'),
-                  })
-                  .describe('A percentage discount.')
-                  .optional()
-                  .describe('The percentage discount.'),
-                usage: zod
-                  .object({
-                    correlationId: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardDiscountsUsageCorrelationIdRegExp
-                      )
-                      .optional()
-                      .describe(
-                        'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
-                      ),
-                    quantity: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardDiscountsUsageQuantityRegExpOne
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .describe(
-                        'The quantity of the usage discount.\n\nMust be positive.'
-                      ),
-                  })
-                  .describe('A usage discount.')
-                  .optional()
-                  .describe('The usage discount.'),
-              })
-              .describe('A discount by type.')
-              .optional()
-              .describe('The discounts that are applied to the line.'),
-            featureKey: zod
-              .string()
-              .min(1)
-              .max(createPendingInvoiceLineBodyRateCardFeatureKeyMax)
-              .regex(createPendingInvoiceLineBodyRateCardFeatureKeyRegExp)
-              .optional()
-              .describe('The feature the customer is entitled to use.'),
-            price: zod
-              .discriminatedUnion('type', [
-                zod
-                  .object({
-                    amount: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceAmountRegExpOne
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .describe('The amount of the flat price.'),
-                    paymentTerm: zod
-                      .enum(['in_advance', 'in_arrears'])
-                      .describe(
-                        'The payment term of a flat price.\nOne of: in_advance or in_arrears.'
-                      )
-                      .default(
-                        createPendingInvoiceLineBodyRateCardPricePaymentTermDefault
-                      )
-                      .describe(
-                        'The payment term of the flat price.\nDefaults to in advance.'
-                      ),
-                    type: zod.enum(['flat']),
-                  })
-                  .describe('Flat price with payment term.'),
-                zod
-                  .object({
-                    amount: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceAmountRegExpThree
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .describe('The amount of the unit price.'),
-                    maximumAmount: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceMaximumAmountRegExpOne
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .optional()
-                      .describe(
-                        'The customer is limited to spend at most the amount.'
-                      ),
-                    minimumAmount: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceMinimumAmountRegExpOne
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .optional()
-                      .describe(
-                        'The customer is committed to spend at least the amount.'
-                      ),
-                    type: zod.enum(['unit']),
-                  })
-                  .describe('Unit price with spend commitments.'),
-                zod
-                  .object({
-                    maximumAmount: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceMaximumAmountRegExpThree
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .optional()
-                      .describe(
-                        'The customer is limited to spend at most the amount.'
-                      ),
-                    minimumAmount: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceMinimumAmountRegExpThree
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .optional()
-                      .describe(
-                        'The customer is committed to spend at least the amount.'
-                      ),
-                    mode: zod
-                      .enum(['volume', 'graduated'])
-                      .describe('The mode of the tiered price.')
-                      .describe(
-                        'Defines if the tiering mode is volume-based or graduated:\n- In `volume`-based tiering, the maximum quantity within a period determines the per unit price.\n- In `graduated` tiering, pricing can change as the quantity grows.'
-                      ),
-                    tiers: zod
-                      .array(
-                        zod
-                          .object({
-                            flatPrice: zod
-                              .object({
-                                amount: zod
-                                  .string()
-                                  .regex(
-                                    createPendingInvoiceLineBodyRateCardPriceTiersItemFlatPriceAmountRegExpOne
-                                  )
-                                  .describe(
-                                    'Numeric represents an arbitrary precision number.'
-                                  )
-                                  .describe('The amount of the flat price.'),
-                                type: zod
-                                  .enum(['flat'])
-                                  .describe('The type of the price.'),
-                              })
-                              .describe('Flat price.')
-                              .nullable()
-                              .describe(
-                                'The flat price component of the tier.'
-                              ),
-                            unitPrice: zod
-                              .object({
-                                amount: zod
-                                  .string()
-                                  .regex(
-                                    createPendingInvoiceLineBodyRateCardPriceTiersItemUnitPriceAmountRegExpOne
-                                  )
-                                  .describe(
-                                    'Numeric represents an arbitrary precision number.'
-                                  )
-                                  .describe('The amount of the unit price.'),
-                                type: zod
-                                  .enum(['unit'])
-                                  .describe('The type of the price.'),
-                              })
-                              .describe('Unit price.')
-                              .nullable()
-                              .describe(
-                                'The unit price component of the tier.'
-                              ),
-                            upToAmount: zod
-                              .string()
-                              .regex(
-                                createPendingInvoiceLineBodyRateCardPriceTiersItemUpToAmountRegExpOne
-                              )
-                              .describe(
-                                'Numeric represents an arbitrary precision number.'
-                              )
-                              .optional()
-                              .describe(
-                                'Up to and including to this quantity will be contained in the tier.\nIf null, the tier is open-ended.'
-                              ),
-                          })
-                          .describe(
-                            'A price tier.\nAt least one price component is required in each tier.'
-                          )
-                      )
-                      .min(1)
-                      .describe(
-                        'The tiers of the tiered price.\nAt least one price component is required in each tier.'
-                      ),
-                    type: zod.enum(['tiered']),
-                  })
-                  .describe('Tiered price with spend commitments.'),
-                zod
-                  .object({
-                    maximumAmount: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceMaximumAmountRegExpFive
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .optional()
-                      .describe(
-                        'The customer is limited to spend at most the amount.'
-                      ),
-                    minimumAmount: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceMinimumAmountRegExpFive
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .optional()
-                      .describe(
-                        'The customer is committed to spend at least the amount.'
-                      ),
-                    multiplier: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceMultiplierRegExpOne
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .default(
-                        createPendingInvoiceLineBodyRateCardPriceMultiplierDefault
-                      )
-                      .describe(
-                        'The multiplier to apply to the base price to get the dynamic price.\n\nExamples:\n- 0.0: the price is zero\n- 0.5: the price is 50% of the base price\n- 1.0: the price is the same as the base price\n- 1.5: the price is 150% of the base price'
-                      ),
-                    type: zod.enum(['dynamic']),
-                  })
-                  .describe('Dynamic price with spend commitments.'),
-                zod
-                  .object({
-                    amount: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceAmountRegExpFive
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .describe('The price of one package.'),
-                    maximumAmount: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceMaximumAmountRegExpSeven
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .optional()
-                      .describe(
-                        'The customer is limited to spend at most the amount.'
-                      ),
-                    minimumAmount: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceMinimumAmountRegExpSeven
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .optional()
-                      .describe(
-                        'The customer is committed to spend at least the amount.'
-                      ),
-                    quantityPerPackage: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardPriceQuantityPerPackageRegExpOne
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .describe('The quantity per package.'),
-                    type: zod.enum(['package']),
-                  })
-                  .describe('Package price with spend commitments.'),
-              ])
-              .describe('The price of the usage based rate card.')
-              .nullable()
-              .describe(
-                'The price of the rate card.\nWhen null, the feature or service is free.'
-              ),
-            taxConfig: zod
-              .object({
-                behavior: zod
-                  .enum(['inclusive', 'exclusive'])
-                  .describe(
-                    'Tax behavior.\n\nThis enum is used to specify whether tax is included in the price or excluded from the price.'
-                  )
-                  .optional()
-                  .describe(
-                    "Tax behavior.\n\nIf not specified the billing profile is used to determine the tax behavior.\nIf not specified in the billing profile, the provider's default behavior is used."
-                  ),
-                customInvoicing: zod
-                  .object({
-                    code: zod
-                      .string()
-                      .describe(
-                        'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
-                      ),
-                  })
-                  .describe('Custom invoicing tax config.')
-                  .optional()
-                  .describe('Custom invoicing tax config.'),
-                stripe: zod
-                  .object({
-                    code: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardTaxConfigStripeCodeRegExp
-                      )
-                      .describe(
-                        'Product tax code.\n\nSee: https://docs.stripe.com/tax/tax-codes'
-                      ),
-                  })
-                  .describe('The tax config for Stripe.')
-                  .optional()
-                  .describe('Stripe tax config.'),
-              })
-              .describe('Set of provider specific tax configs.')
-              .optional()
-              .describe(
-                'The tax config of the rate card.\nWhen undefined, the tax config of the feature or the default tax config of the plan is used.'
-              ),
-          })
-          .describe(
-            'InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line.'
-          )
-          .optional()
-          .describe(
-            'The rate card that is used for this line.\n\nThe rate card captures the intent of the price and discounts for the usage-based item.'
-          ),
-        taxConfig: zod
-          .object({
-            behavior: zod
-              .enum(['inclusive', 'exclusive'])
-              .describe(
-                'Tax behavior.\n\nThis enum is used to specify whether tax is included in the price or excluded from the price.'
-              )
-              .optional()
-              .describe(
-                "Tax behavior.\n\nIf not specified the billing profile is used to determine the tax behavior.\nIf not specified in the billing profile, the provider's default behavior is used."
-              ),
-            customInvoicing: zod
-              .object({
-                code: zod
-                  .string()
-                  .describe(
-                    'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
-                  ),
-              })
-              .describe('Custom invoicing tax config.')
-              .optional()
-              .describe('Custom invoicing tax config.'),
-            stripe: zod
-              .object({
-                code: zod
-                  .string()
-                  .regex(createPendingInvoiceLineBodyTaxConfigStripeCodeRegExp)
-                  .describe(
-                    'Product tax code.\n\nSee: https://docs.stripe.com/tax/tax-codes'
-                  ),
-              })
-              .describe('The tax config for Stripe.')
-              .optional()
-              .describe('Stripe tax config.'),
-          })
-          .describe('Set of provider specific tax configs.')
-          .optional()
-          .describe('Tax config specify the tax configuration for this line.'),
-        type: zod.enum(['usage_based']),
-      })
-      .describe(
-        'InvoiceUsageBasedLineCreateWithCustomer represents the create model for an invoice line that is sold to the customer based on usage.'
-      ),
-    zod
-      .object({
-        category: zod
-          .enum(['regular', 'commitment'])
-          .describe(
-            'InvoiceFlatFeeCategory determines if the flat fee is a regular fee due to use due to a\ncommitment.'
-          )
-          .default(createPendingInvoiceLineBodyCategoryDefault)
-          .describe('Category of the flat fee.'),
-        currency: zod
-          .string()
-          .min(createPendingInvoiceLineBodyCurrencyMinThree)
-          .max(createPendingInvoiceLineBodyCurrencyMaxThree)
-          .regex(createPendingInvoiceLineBodyCurrencyRegExpThree)
-          .describe(
-            'Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.\nCustom three-letter currency codes are also supported for convenience.'
-          )
-          .describe('The currency of this line.'),
-        customerId: zod
-          .string()
-          .regex(createPendingInvoiceLineBodyCustomerIdRegExpOne)
-          .describe('The customer this line item belongs to.'),
-        description: zod
-          .string()
-          .max(createPendingInvoiceLineBodyDescriptionMaxOne)
-          .optional()
-          .describe(
-            'Optional description of the resource. Maximum 1024 characters.'
-          ),
-        invoiceAt: zod
-          .date()
-          .describe('The time this line item should be invoiced.'),
-        metadata: zod
-          .record(zod.string(), zod.string())
-          .describe(
-            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
-          )
-          .nullish()
-          .describe('Additional metadata for the resource.'),
-        name: zod
-          .string()
-          .min(1)
-          .max(createPendingInvoiceLineBodyNameMaxOne)
-          .describe(
-            'Human-readable name for the resource. Between 1 and 256 characters.'
-          ),
-        paymentTerm: zod
-          .enum(['in_advance', 'in_arrears'])
-          .describe(
-            'The payment term of a flat price.\nOne of: in_advance or in_arrears.'
-          )
-          .default(createPendingInvoiceLineBodyPaymentTermDefault)
-          .describe('Payment term of the line.'),
-        period: zod
-          .object({
-            from: zod.date().describe('Period start time.'),
-            to: zod.date().describe('Period end time.'),
-          })
-          .describe('A period with a start and end time.')
-          .describe(
-            'Period of the line item applies to for revenue recognition pruposes.\n\nBilling always treats periods as start being inclusive and end being exclusive.'
-          ),
-        perUnitAmount: zod
-          .string()
-          .regex(createPendingInvoiceLineBodyPerUnitAmountRegExpOne)
-          .describe('Numeric represents an arbitrary precision number.')
-          .optional()
-          .describe('Price of the item being sold.'),
-        quantity: zod
-          .string()
-          .regex(createPendingInvoiceLineBodyQuantityRegExpOne)
-          .describe('Numeric represents an arbitrary precision number.')
-          .optional()
-          .describe('Quantity of the item being sold.'),
-        rateCard: zod
-          .object({
-            discounts: zod
-              .object({
-                percentage: zod
-                  .object({
-                    correlationId: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardDiscountsPercentageCorrelationIdRegExpOne
-                      )
-                      .optional()
-                      .describe(
-                        'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
-                      ),
-                    percentage: zod
-                      .number()
-                      .describe(
-                        'Numeric representation of a percentage\n\n50% is represented as 50'
-                      )
-                      .describe('The percentage of the discount.'),
-                  })
-                  .describe('A percentage discount.')
-                  .optional()
-                  .describe('The percentage discount.'),
-                usage: zod
-                  .object({
-                    correlationId: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardDiscountsUsageCorrelationIdRegExpOne
-                      )
-                      .optional()
-                      .describe(
-                        'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
-                      ),
-                    quantity: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardDiscountsUsageQuantityRegExpThree
-                      )
-                      .describe(
-                        'Numeric represents an arbitrary precision number.'
-                      )
-                      .describe(
-                        'The quantity of the usage discount.\n\nMust be positive.'
-                      ),
-                  })
-                  .describe('A usage discount.')
-                  .optional()
-                  .describe('The usage discount.'),
-              })
-              .describe('A discount by type.')
-              .optional()
-              .describe('The discounts that are applied to the line.'),
-            price: zod
-              .object({
-                amount: zod
-                  .string()
-                  .regex(
-                    createPendingInvoiceLineBodyRateCardPriceAmountRegExpSeven
-                  )
-                  .describe('Numeric represents an arbitrary precision number.')
-                  .describe('The amount of the flat price.'),
-                paymentTerm: zod
-                  .enum(['in_advance', 'in_arrears'])
-                  .describe(
-                    'The payment term of a flat price.\nOne of: in_advance or in_arrears.'
-                  )
-                  .default(
-                    createPendingInvoiceLineBodyRateCardPricePaymentTermDefaultTwo
-                  )
-                  .describe(
-                    'The payment term of the flat price.\nDefaults to in advance.'
-                  ),
-                type: zod.enum(['flat']),
-              })
-              .describe('Flat price with payment term.')
-              .nullable()
-              .describe(
-                'The price of the rate card.\nWhen null, the feature or service is free.'
-              ),
-            quantity: zod
-              .string()
-              .regex(createPendingInvoiceLineBodyRateCardQuantityRegExpOne)
-              .describe('Numeric represents an arbitrary precision number.')
-              .optional()
-              .describe('Quantity of the item being sold.\n\nDefault: 1'),
-            taxConfig: zod
-              .object({
-                behavior: zod
-                  .enum(['inclusive', 'exclusive'])
-                  .describe(
-                    'Tax behavior.\n\nThis enum is used to specify whether tax is included in the price or excluded from the price.'
-                  )
-                  .optional()
-                  .describe(
-                    "Tax behavior.\n\nIf not specified the billing profile is used to determine the tax behavior.\nIf not specified in the billing profile, the provider's default behavior is used."
-                  ),
-                customInvoicing: zod
-                  .object({
-                    code: zod
-                      .string()
-                      .describe(
-                        'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
-                      ),
-                  })
-                  .describe('Custom invoicing tax config.')
-                  .optional()
-                  .describe('Custom invoicing tax config.'),
-                stripe: zod
-                  .object({
-                    code: zod
-                      .string()
-                      .regex(
-                        createPendingInvoiceLineBodyRateCardTaxConfigStripeCodeRegExpOne
-                      )
-                      .describe(
-                        'Product tax code.\n\nSee: https://docs.stripe.com/tax/tax-codes'
-                      ),
-                  })
-                  .describe('The tax config for Stripe.')
-                  .optional()
-                  .describe('Stripe tax config.'),
-              })
-              .describe('Set of provider specific tax configs.')
-              .optional()
-              .describe(
-                'The tax config of the rate card.\nWhen undefined, the tax config of the feature or the default tax config of the plan is used.'
-              ),
-          })
-          .describe(
-            'InvoiceFlatFeeRateCard represents the rate card (intent) for a flat fee line.'
-          )
-          .optional()
-          .describe('The rate card that is used for this line.'),
-        taxConfig: zod
-          .object({
-            behavior: zod
-              .enum(['inclusive', 'exclusive'])
-              .describe(
-                'Tax behavior.\n\nThis enum is used to specify whether tax is included in the price or excluded from the price.'
-              )
-              .optional()
-              .describe(
-                "Tax behavior.\n\nIf not specified the billing profile is used to determine the tax behavior.\nIf not specified in the billing profile, the provider's default behavior is used."
-              ),
-            customInvoicing: zod
-              .object({
-                code: zod
-                  .string()
-                  .describe(
-                    'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
-                  ),
-              })
-              .describe('Custom invoicing tax config.')
-              .optional()
-              .describe('Custom invoicing tax config.'),
-            stripe: zod
-              .object({
-                code: zod
-                  .string()
-                  .regex(
-                    createPendingInvoiceLineBodyTaxConfigStripeCodeRegExpOne
-                  )
-                  .describe(
-                    'Product tax code.\n\nSee: https://docs.stripe.com/tax/tax-codes'
-                  ),
-              })
-              .describe('The tax config for Stripe.')
-              .optional()
-              .describe('Stripe tax config.'),
-          })
-          .describe('Set of provider specific tax configs.')
-          .optional()
-          .describe('Tax config specify the tax configuration for this line.'),
-        type: zod.enum(['flat_fee']),
-      })
-      .describe(
-        'InvoiceFlatFeePendingLineCreate represents the create model for an invoice line that is sold to the customer as a manually added fee.'
-      ),
-  ])
-  .describe(
-    'InvoiceLineCreate represents the create model for an invoice line.'
-  )
-export const createPendingInvoiceLineBody = zod.array(
-  createPendingInvoiceLineBodyItem
-)
 
 /**
  * Get an invoice by ID.

@@ -210,10 +210,10 @@ namespace OpenMeterCloud.Billing {
   @tag("Billing")
   interface InvoiceEndpoints extends OpenMeter.Billing.InvoiceEndpoints {}
 
-  @route("/api/v1/billing/customers/{customerId}/invoices/simulate")
+  @route("/api/v1/billing/customers/{customerId}/invoices")
   @tag("Billing")
-  interface InvoiceSimulationEndpoints
-    extends OpenMeter.Billing.InvoiceSimulationEndpoints {}
+  interface CustomerInvoiceEndpoints
+    extends OpenMeter.Billing.CustomerInvoiceEndpoints {}
 }
 
 namespace OpenMeterCloud.ProductCatalog {

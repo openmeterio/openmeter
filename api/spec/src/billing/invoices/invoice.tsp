@@ -483,14 +483,8 @@ model InvoiceUsageBasedPendingLineCreate {
   // Note: invoice is omitted as the line is assigned a new or existing gathering invoice
   ...TypeSpec.Rest.Resource.ResourceCreateModel<OmitProperties<
     InvoiceUsageBasedLine,
-    "invoice"
+    "invoice" | "currency"
   >>;
-
-  /**
-   * The customer this line item belongs to.
-   */
-  @visibility(Lifecycle.Create)
-  customerId: ULID;
 }
 
 /**
@@ -501,14 +495,8 @@ model InvoiceFlatFeePendingLineCreate {
   // Note: invoice is omitted as the line is assigned a new or existing gathering invoice
   ...TypeSpec.Rest.Resource.ResourceCreateModel<OmitProperties<
     InvoiceFlatFeeLine,
-    "invoice"
+    "invoice" | "currency"
   >>;
-
-  /**
-   * The customer this line item belongs to.
-   */
-  @visibility(Lifecycle.Create)
-  customerId: ULID;
 }
 
 /**

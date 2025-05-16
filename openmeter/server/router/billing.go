@@ -126,9 +126,11 @@ func (a *Router) VoidInvoiceAction(w http.ResponseWriter, r *http.Request, invoi
 }
 
 // Create a new line item
-// (POST /api/v1/billing/invoices/lines)
-func (a *Router) CreatePendingInvoiceLine(w http.ResponseWriter, r *http.Request) {
-	a.billingHandler.CreatePendingLine().ServeHTTP(w, r)
+// (POST /api/v1/billing/customers/{customerId}/pending-lines)
+func (a *Router) CreatePendingInvoiceLine(w http.ResponseWriter, r *http.Request, customerId string) {
+	a.billingHandler.CreatePendingLine().With(httpdriver.CreatePendingLineParams{
+		CustomerID: customerId,
+	}).ServeHTTP(w, r)
 }
 
 // (GET /api/v1/billing/profile)

@@ -518,40 +518,24 @@ func (h *Handler) shouldProrateFlatFee(price productcatalog.FlatPrice) bool {
 }
 
 func (h *Handler) provisionPendingLines(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []subscriptionItemWithPeriod) error {
-	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem subscriptionItemWithPeriod) (*billing.LineWithCustomer, error) {
+	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem subscriptionItemWithPeriod) (*billing.Line, error) {
 		line, err := h.lineFromSubscritionRateCard(subs, subsItem, currency)
 		if err != nil {
 			return nil, fmt.Errorf("generating line from subscription item [%s]: %w", subsItem.SubscriptionItem.ID, err)
 		}
 
-		if line == nil {
-			// We map all items to ItemWithPeriod that have a Price defined, however, we might deliberater later that for some de-facto 0 prices
-			// we don't want to generate lines. This is the case for instance with 0 flat prices
-			return nil, nil
-		}
-
-		return &billing.LineWithCustomer{
-			Line:       *line,
-			CustomerID: subs.Subscription.CustomerId,
-		}, nil
+		return line, nil
 	})
 	if err != nil {
 		return fmt.Errorf("creating new lines: %w", err)
 	}
 
-	_, err = h.billingService.CreatePendingInvoiceLines(ctx, billing.CreateInvoiceLinesInput{
-		Namespace: subs.Subscription.Namespace,
-		Lines: func() []billing.LineWithCustomer {
-			lines := make([]billing.LineWithCustomer, 0, len(newLines))
-
-			for _, l := range newLines {
-				if l != nil {
-					lines = append(lines, *l)
-				}
-			}
-
-			return lines
-		}(),
+	_, err = h.billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: subs.Subscription.GetCustomerID(),
+		Currency: subs.Spec.Currency,
+		Lines: lo.Filter(newLines, func(l *billing.Line, _ int) bool {
+			return l != nil
+		}),
 	})
 	if err != nil {
 		return fmt.Errorf("creating pending invoice lines: %w", err)

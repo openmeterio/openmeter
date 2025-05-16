@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -24,9 +25,12 @@ import (
 var _ InvoiceLineHandler = (*handler)(nil)
 
 type (
-	CreatePendingLineRequest  = billing.CreateInvoiceLinesInput
-	CreatePendingLineResponse = []api.InvoiceLine
-	CreatePendingLineHandler  = httptransport.Handler[CreatePendingLineRequest, CreatePendingLineResponse]
+	CreatePendingLineRequest  = billing.CreatePendingInvoiceLinesInput
+	CreatePendingLineResponse = api.InvoicePendingLineCreateResponse
+	CreatePendingLineParams   struct {
+		CustomerID string
+	}
+	CreatePendingLineHandler = httptransport.HandlerWithArgs[CreatePendingLineRequest, CreatePendingLineResponse, CreatePendingLineParams]
 )
 
 const (
@@ -35,11 +39,11 @@ const (
 )
 
 func (h *handler) CreatePendingLine() CreatePendingLineHandler {
-	return httptransport.NewHandler(
-		func(ctx context.Context, r *http.Request) (CreatePendingLineRequest, error) {
-			lines := []api.InvoicePendingLineCreate{}
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params CreatePendingLineParams) (CreatePendingLineRequest, error) {
+			req := api.InvoicePendingLineCreateInput{}
 
-			if err := commonhttp.JSONRequestBodyDecoder(r, &lines); err != nil {
+			if err := commonhttp.JSONRequestBodyDecoder(r, &req); err != nil {
 				return CreatePendingLineRequest{}, fmt.Errorf("failed to decode request body: %w", err)
 			}
 
@@ -50,44 +54,53 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				return CreatePendingLineRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			if len(lines) == 0 {
+			if len(req.Lines) == 0 {
 				return CreatePendingLineRequest{}, billing.ValidationError{
 					Err: fmt.Errorf("no lines provided"),
 				}
 			}
 
-			lineEntities := make([]billing.LineWithCustomer, 0, len(lines))
-			for _, line := range lines {
-				lineEntity, err := mapCreateLineToEntity(line, ns)
-				if err != nil {
-					return CreatePendingLineRequest{}, fmt.Errorf("failed to map line: %w", err)
+			lineEntities, err := slicesx.MapWithErr(req.Lines, func(line api.InvoicePendingLineCreate) (*billing.Line, error) {
+				return mapCreateLineToEntity(line, ns)
+			})
+			if err != nil {
+				return CreatePendingLineRequest{}, billing.ValidationError{
+					Err: fmt.Errorf("failed to map lines: %w", err),
 				}
-
-				lineEntities = append(lineEntities, lineEntity)
 			}
 
 			return CreatePendingLineRequest{
-				Namespace: ns,
-				Lines:     lineEntities,
+				Customer: customer.CustomerID{
+					Namespace: ns,
+					ID:        params.CustomerID,
+				},
+				Currency: currencyx.Code(req.Currency),
+				Lines:    lineEntities,
 			}, nil
 		},
 		func(ctx context.Context, request CreatePendingLineRequest) (CreatePendingLineResponse, error) {
-			lines, err := h.service.CreatePendingInvoiceLines(ctx, request)
+			res, err := h.service.CreatePendingInvoiceLines(ctx, request)
 			if err != nil {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to create invoice lines: %w", err)
 			}
 
-			res := make(CreatePendingLineResponse, 0, len(lines))
-
-			for _, line := range lines {
-				line, err := mapBillingLineToAPI(line)
-				if err != nil {
-					return CreatePendingLineResponse{}, fmt.Errorf("failed to map line: %w", err)
-				}
-				res = append(res, line)
+			out := CreatePendingLineResponse{
+				IsInvoiceNew: res.IsInvoiceNew,
 			}
 
-			return res, nil
+			out.Invoice, err = MapInvoiceToAPI(res.Invoice)
+			if err != nil {
+				return CreatePendingLineResponse{}, fmt.Errorf("failed to map invoice: %w", err)
+			}
+
+			out.Lines, err = slicesx.MapWithErr(res.Lines, func(line *billing.Line) (api.InvoiceLine, error) {
+				return mapBillingLineToAPI(line)
+			})
+			if err != nil {
+				return CreatePendingLineResponse{}, fmt.Errorf("failed to map lines: %w", err)
+			}
+
+			return out, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreatePendingLineResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -98,32 +111,32 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 	)
 }
 
-func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (billing.LineWithCustomer, error) {
+func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billing.Line, error) {
 	// This should not fail, and we would have at least the discriminator unmarshaled
 	discriminator, err := line.Discriminator()
 	if err != nil {
-		return billing.LineWithCustomer{}, fmt.Errorf("failed to get type discriminator: %w", err)
+		return nil, fmt.Errorf("failed to get type discriminator: %w", err)
 	}
 
 	switch discriminator {
 	case string(api.InvoiceFlatFeeLineTypeFlatFee):
 		fee, err := line.AsInvoiceFlatFeePendingLineCreate()
 		if err != nil {
-			return billing.LineWithCustomer{}, fmt.Errorf("failed to map fee line: %w", err)
+			return nil, fmt.Errorf("failed to map fee line: %w", err)
 		}
 		return mapCreatePendingFlatFeeLineToEntity(fee, ns)
 	case string(api.InvoiceUsageBasedLineTypeUsageBased):
 		usageBased, err := line.AsInvoiceUsageBasedPendingLineCreate()
 		if err != nil {
-			return billing.LineWithCustomer{}, fmt.Errorf("failed to map usage based line: %w", err)
+			return nil, fmt.Errorf("failed to map usage based line: %w", err)
 		}
 		return mapCreatePendingUsageBasedLineToEntity(usageBased, ns)
 	default:
-		return billing.LineWithCustomer{}, fmt.Errorf("unsupported type: %s", discriminator)
+		return nil, fmt.Errorf("unsupported type: %s", discriminator)
 	}
 }
 
-func mapCreatePendingFlatFeeLineToEntity(line api.InvoiceFlatFeePendingLineCreate, ns string) (billing.LineWithCustomer, error) {
+func mapCreatePendingFlatFeeLineToEntity(line api.InvoiceFlatFeePendingLineCreate, ns string) (*billing.Line, error) {
 	rateCardParsed, err := mapAndValidateFlatFeeRateCardDeprecatedFields(flatFeeRateCardItems{
 		RateCard:      line.RateCard,
 		PerUnitAmount: line.PerUnitAmount,
@@ -132,43 +145,39 @@ func mapCreatePendingFlatFeeLineToEntity(line api.InvoiceFlatFeePendingLineCreat
 		TaxConfig:     line.TaxConfig,
 	})
 	if err != nil {
-		return billing.LineWithCustomer{}, fmt.Errorf("failed to map flat fee line: %w", err)
+		return nil, fmt.Errorf("failed to map flat fee line: %w", err)
 	}
 
-	return billing.LineWithCustomer{
-		Line: billing.Line{
-			LineBase: billing.LineBase{
-				Namespace: ns,
+	return &billing.Line{
+		LineBase: billing.LineBase{
+			Namespace: ns,
 
-				Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
-				Name:        line.Name,
-				Type:        billing.InvoiceLineTypeFee,
-				Description: line.Description,
-				ManagedBy:   billing.ManuallyManagedLine,
+			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
+			Name:        line.Name,
+			Type:        billing.InvoiceLineTypeFee,
+			Description: line.Description,
+			ManagedBy:   billing.ManuallyManagedLine,
 
-				Status:   billing.InvoiceLineStatusValid, // This is not settable from outside
-				Currency: currencyx.Code(line.Currency),
-				Period: billing.Period{
-					Start: line.Period.From,
-					End:   line.Period.To,
-				},
-
-				InvoiceAt:         line.InvoiceAt,
-				TaxConfig:         rateCardParsed.TaxConfig,
-				RateCardDiscounts: rateCardParsed.Discounts,
+			Status: billing.InvoiceLineStatusValid, // This is not settable from outside
+			Period: billing.Period{
+				Start: line.Period.From,
+				End:   line.Period.To,
 			},
-			FlatFee: &billing.FlatFeeLine{
-				PerUnitAmount: rateCardParsed.PerUnitAmount,
-				PaymentTerm:   rateCardParsed.PaymentTerm,
-				Quantity:      rateCardParsed.Quantity,
-				Category:      lo.FromPtrOr((*billing.FlatFeeCategory)(line.Category), billing.FlatFeeCategoryRegular),
-			},
+
+			InvoiceAt:         line.InvoiceAt,
+			TaxConfig:         rateCardParsed.TaxConfig,
+			RateCardDiscounts: rateCardParsed.Discounts,
 		},
-		CustomerID: line.CustomerId,
+		FlatFee: &billing.FlatFeeLine{
+			PerUnitAmount: rateCardParsed.PerUnitAmount,
+			PaymentTerm:   rateCardParsed.PaymentTerm,
+			Quantity:      rateCardParsed.Quantity,
+			Category:      lo.FromPtrOr((*billing.FlatFeeCategory)(line.Category), billing.FlatFeeCategoryRegular),
+		},
 	}, nil
 }
 
-func mapCreatePendingUsageBasedLineToEntity(line api.InvoiceUsageBasedPendingLineCreate, ns string) (billing.LineWithCustomer, error) {
+func mapCreatePendingUsageBasedLineToEntity(line api.InvoiceUsageBasedPendingLineCreate, ns string) (*billing.Line, error) {
 	rateCardParsed, err := mapAndValidateUsageBasedRateCardDeprecatedFields(usageBasedRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -176,37 +185,33 @@ func mapCreatePendingUsageBasedLineToEntity(line api.InvoiceUsageBasedPendingLin
 		FeatureKey: line.FeatureKey,
 	})
 	if err != nil {
-		return billing.LineWithCustomer{}, fmt.Errorf("failed to map usage based line: %w", err)
+		return nil, fmt.Errorf("failed to map usage based line: %w", err)
 	}
 
-	return billing.LineWithCustomer{
-		Line: billing.Line{
-			LineBase: billing.LineBase{
-				Namespace: ns,
+	return &billing.Line{
+		LineBase: billing.LineBase{
+			Namespace: ns,
 
-				Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
-				Name:        line.Name,
-				Type:        billing.InvoiceLineTypeUsageBased,
-				Description: line.Description,
-				ManagedBy:   billing.ManuallyManagedLine,
+			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
+			Name:        line.Name,
+			Type:        billing.InvoiceLineTypeUsageBased,
+			Description: line.Description,
+			ManagedBy:   billing.ManuallyManagedLine,
 
-				Status:   billing.InvoiceLineStatusValid, // This is not settable from outside
-				Currency: currencyx.Code(line.Currency),
-				Period: billing.Period{
-					Start: line.Period.From,
-					End:   line.Period.To,
-				},
-
-				InvoiceAt:         line.InvoiceAt,
-				TaxConfig:         rateCardParsed.TaxConfig,
-				RateCardDiscounts: rateCardParsed.Discounts,
+			Status: billing.InvoiceLineStatusValid, // This is not settable from outside
+			Period: billing.Period{
+				Start: line.Period.From,
+				End:   line.Period.To,
 			},
-			UsageBased: &billing.UsageBasedLine{
-				Price:      rateCardParsed.Price,
-				FeatureKey: rateCardParsed.FeatureKey,
-			},
+
+			InvoiceAt:         line.InvoiceAt,
+			TaxConfig:         rateCardParsed.TaxConfig,
+			RateCardDiscounts: rateCardParsed.Discounts,
 		},
-		CustomerID: line.CustomerId,
+		UsageBased: &billing.UsageBasedLine{
+			Price:      rateCardParsed.Price,
+			FeatureKey: rateCardParsed.FeatureKey,
+		},
 	}, nil
 }
 

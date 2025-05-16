@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/equal"
@@ -766,45 +767,52 @@ func (i UsageBasedLine) Validate() error {
 	return errors.Join(errs...)
 }
 
-type CreateInvoiceLinesInput struct {
-	Namespace string
-	Lines     []LineWithCustomer
+type CreatePendingInvoiceLinesInput struct {
+	Customer customer.CustomerID
+	Currency currencyx.Code
+
+	Lines []*Line
 }
 
-func (c CreateInvoiceLinesInput) Validate() error {
-	// This error is internal, let's not even start validating if the namespace is missing
-	if c.Namespace == "" {
-		return errors.New("namespace is required")
+func (c CreatePendingInvoiceLinesInput) Validate() error {
+	var errs []error
+
+	if err := c.Customer.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
 
-	var errs []error
+	if err := c.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
 	for id, line := range c.Lines {
+		// Note: this is for validation purposes, as Line is copied, we are not altering the struct itself
+		line.Currency = c.Currency
+
 		if err := line.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("line.%d: %w", id, err))
+		}
+
+		if line.InvoiceID != "" {
+			errs = append(errs, fmt.Errorf("line.%d: invoice ID is not allowed for pending lines", id))
+		}
+
+		if len(line.Children.OrEmpty()) > 0 {
+			errs = append(errs, fmt.Errorf("line.%d: children are not allowed for pending lines", id))
+		}
+
+		if line.ParentLineID != nil {
+			errs = append(errs, fmt.Errorf("line.%d: parent line ID is not allowed for pending lines", id))
 		}
 	}
 
 	return errors.Join(errs...)
 }
 
-type LineWithCustomer struct {
-	Line
-
-	CustomerID string
-}
-
-func (l LineWithCustomer) Validate() error {
-	var errs []error
-
-	if l.CustomerID == "" {
-		errs = append(errs, errors.New("customer id is required"))
-	}
-
-	if err := l.Line.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	return errors.Join(errs...)
+type CreatePendingInvoiceLinesResult struct {
+	Lines        []*Line
+	Invoice      Invoice
+	IsInvoiceNew bool
 }
 
 type UpsertInvoiceLinesAdapterInput struct {
