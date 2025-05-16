@@ -430,6 +430,13 @@ model PlanSubscriptionChange {
   plan: PlanReferenceInput;
 
   /**
+   * The key of the phase to start the subscription in.
+   * If not provided, the subscription will start in the first phase of the plan.
+   */
+  @minLength(1)
+  startingPhase?: string;
+
+  /**
    * The name of the Subscription. If not provided the plan name is used.
    */
   name?: string;
