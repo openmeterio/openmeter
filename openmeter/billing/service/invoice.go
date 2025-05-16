@@ -1199,3 +1199,20 @@ func (s *Service) UpsertValidationIssues(ctx context.Context, input billing.Upse
 		return nil
 	})
 }
+
+func (s *Service) snapshotQuantity(ctx context.Context, invoice *billing.Invoice) error {
+	lineSvcs, err := s.lineService.FromEntities(invoice.Lines.OrEmpty())
+	if err != nil {
+		return fmt.Errorf("creating line services: %w", err)
+	}
+
+	for _, lineSvc := range lineSvcs {
+		if err := lineSvc.SnapshotQuantity(ctx, invoice); err != nil {
+			return fmt.Errorf("snapshotting quantity: %w", err)
+		}
+	}
+
+	invoice.QuantitySnapshotedAt = lo.ToPtr(clock.Now().UTC())
+
+	return nil
+}

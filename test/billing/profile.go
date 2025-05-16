@@ -16,7 +16,9 @@ var MinimalCreateProfileInputTemplate = billing.CreateProfileInput{
 	WorkflowConfig: billing.WorkflowConfig{
 		Collection: billing.CollectionConfig{
 			Alignment: billing.AlignmentKindSubscription,
-			Interval:  lo.Must(isodate.String("PT2H").Parse()),
+			// We set the interval to 0 so that the invoice is collected immediately, testcases
+			// validating the collection logic can set a different interval
+			Interval: lo.Must(isodate.String("PT0S").Parse()),
 		},
 		Invoicing: billing.InvoicingConfig{
 			AutoAdvance: true,
