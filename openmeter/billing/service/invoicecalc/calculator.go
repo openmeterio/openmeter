@@ -7,17 +7,29 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 )
 
-var InvoiceCalculations = []Calculation{
-	DraftUntilIfMissing,
-	RecalculateDetailedLinesAndTotals,
-	CalculateInvoicePeriod,
-	SnapshotTaxConfigIntoLines,
+type invoiceCalculatorsByType struct {
+	GatheringInvoice []Calculation
+	Invoice          []Calculation
+}
+
+var InvoiceCalculations = invoiceCalculatorsByType{
+	Invoice: []Calculation{
+		DraftUntilIfMissing,
+		UpsertDiscountCorrelationIDs,
+		RecalculateDetailedLinesAndTotals,
+		CalculateInvoicePeriod,
+		SnapshotTaxConfigIntoLines,
+	},
+	GatheringInvoice: []Calculation{
+		UpsertDiscountCorrelationIDs,
+	},
 }
 
 type Calculation func(*billing.Invoice, CalculatorDependencies) error
 
 type Calculator interface {
 	Calculate(*billing.Invoice) error
+	CalculateGatheringInvoice(*billing.Invoice) error
 }
 
 type CalculatorDependencies interface {
@@ -25,7 +37,6 @@ type CalculatorDependencies interface {
 }
 
 type calculator struct {
-	calculators []Calculation
 	lineService *lineservice.Service
 }
 
@@ -47,14 +58,17 @@ func New(c Config) (Calculator, error) {
 	}
 
 	return &calculator{
-		calculators: InvoiceCalculations,
 		lineService: c.LineService,
 	}, nil
 }
 
 func (c *calculator) Calculate(invoice *billing.Invoice) error {
+	return c.applyCalculations(invoice, InvoiceCalculations.Invoice)
+}
+
+func (c *calculator) applyCalculations(invoice *billing.Invoice, calculators []Calculation) error {
 	var outErr error
-	for _, calc := range InvoiceCalculations {
+	for _, calc := range calculators {
 		err := calc(invoice, c)
 		if err != nil {
 			outErr = errors.Join(outErr, err)
@@ -66,6 +80,14 @@ func (c *calculator) Calculate(invoice *billing.Invoice) error {
 			billing.ValidationComponentOpenMeter,
 			outErr),
 		billing.ValidationComponentOpenMeter)
+}
+
+func (c *calculator) CalculateGatheringInvoice(invoice *billing.Invoice) error {
+	if invoice.Status != billing.InvoiceStatusGathering {
+		return errors.New("invoice is not a gathering invoice")
+	}
+
+	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoice)
 }
 
 func (c *calculator) LineService() *lineservice.Service {

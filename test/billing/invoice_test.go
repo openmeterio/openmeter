@@ -957,6 +957,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				// Given that the app will return a validation error
 				mockApp.OnValidateInvoice(billing.NewValidationError("test1", "validation error"))
 				calcMock.OnCalculate(nil)
+				calcMock.OnCalculateGatheringInvoice(nil)
 
 				// When we create a draft invoice
 				invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
@@ -1187,6 +1188,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				mockApp.OnUpsertInvoice(nil)
 				mockApp.OnFinalizeInvoice(nil)
 				calcMock.OnCalculate(nil)
+				calcMock.OnCalculateGatheringInvoice(nil)
 
 				// When we create a draft invoice
 				invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
