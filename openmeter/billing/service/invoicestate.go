@@ -81,6 +81,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 	stateMachine.Configure(billing.InvoiceStatusDraftUpdating).
 		Permit(billing.TriggerNext, billing.InvoiceStatusDraftValidating).
 		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress).
+		Permit(billing.TriggerFailed, billing.InvoiceStatusDraftInvalid).
 		OnActive(
 			allOf(
 				out.calculateInvoice,

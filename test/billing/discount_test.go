@@ -197,7 +197,10 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 
 		s.Equal(discountCorrelationID, rcDiscounts.Percentage.CorrelationID)
 		s.NotEqual(discountCorrelationID, rcDiscounts.Usage.CorrelationID)
+		s.NotEmpty(rcDiscounts.Usage.CorrelationID)
 	})
+
+	// TODO: invoice ends up in waiting state
 
 	s.Run("Deleting the invoice works without errors", func() {
 		err := s.BillingService.DeleteInvoice(ctx, draftInvoiceID)
