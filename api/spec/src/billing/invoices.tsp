@@ -467,6 +467,15 @@ model InvoicePendingLinesActionInput {
    */
   @visibility(Lifecycle.Create)
   customerId: ULID;
+
+  /**
+   * Override the progressive billing setting of the customer.
+   *
+   * Can be used to disable/enable progressive billing in case the business logic
+   * requires it, if not provided the billing profile's progressive billing setting will be used.
+   */
+  @visibility(Lifecycle.Create)
+  progressiveBillingOverride?: boolean;
 }
 
 /**

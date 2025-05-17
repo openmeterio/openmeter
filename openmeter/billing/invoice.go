@@ -770,6 +770,10 @@ type InvoicePendingLinesInput struct {
 
 	IncludePendingLines mo.Option[[]string]
 	AsOf                *time.Time
+
+	// ProgressiveBillingOverride allows to override the progressive billing setting of the customer.
+	// This is used to make sure that system collection does not use progressive billing.
+	ProgressiveBillingOverride *bool
 }
 
 func (i InvoicePendingLinesInput) Validate() error {

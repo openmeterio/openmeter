@@ -260,10 +260,13 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 			// let's gather the in-scope lines and validate it
 			inScopeLines, err := s.gatherInscopeLines(ctx, gatherInScopeLineInput{
-				Customer:           input.Customer,
-				LinesToInclude:     input.IncludePendingLines,
-				AsOf:               asof,
-				ProgressiveBilling: customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling,
+				Customer:       input.Customer,
+				LinesToInclude: input.IncludePendingLines,
+				AsOf:           asof,
+				ProgressiveBilling: lo.FromPtrOr(
+					input.ProgressiveBillingOverride,
+					customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling,
+				),
 			})
 			if err != nil {
 				return nil, err

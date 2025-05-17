@@ -16257,6 +16257,13 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The customer ID for which to create the invoice.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+        progressiveBillingOverride:
+          type: boolean
+          description: |-
+            Override the progressive billing setting of the customer.
+
+            Can be used to disable/enable progressive billing in case the business logic
+            requires it, if not provided the billing profile's progressive billing setting will be used.
       description: |-
         BillingInvoiceActionInput is the input for creating an invoice.
 

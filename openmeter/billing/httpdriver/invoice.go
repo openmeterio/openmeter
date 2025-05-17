@@ -139,8 +139,9 @@ func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 					Namespace: ns,
 				},
 
-				IncludePendingLines: pendingLinesFilter,
-				AsOf:                body.AsOf,
+				IncludePendingLines:        pendingLinesFilter,
+				AsOf:                       body.AsOf,
+				ProgressiveBillingOverride: body.ProgressiveBillingOverride,
 			}, nil
 		},
 		func(ctx context.Context, request InvoicePendingLinesActionRequest) (InvoicePendingLinesActionResponse, error) {
