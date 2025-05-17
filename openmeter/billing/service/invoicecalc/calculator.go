@@ -7,11 +7,22 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 )
 
-var InvoiceCalculations = []Calculation{
-	DraftUntilIfMissing,
-	RecalculateDetailedLinesAndTotals,
-	CalculateInvoicePeriod,
-	SnapshotTaxConfigIntoLines,
+type invoiceCalculatorsByType struct {
+	GatheringInvoice []Calculation
+	Invoice          []Calculation
+}
+
+var InvoiceCalculations = invoiceCalculatorsByType{
+	Invoice: []Calculation{
+		DraftUntilIfMissing,
+		UpsertDiscountCorrelationIDs,
+		RecalculateDetailedLinesAndTotals,
+		CalculateInvoicePeriod,
+		SnapshotTaxConfigIntoLines,
+	},
+	GatheringInvoice: []Calculation{
+		UpsertDiscountCorrelationIDs,
+	},
 }
 
 type Calculation func(*billing.Invoice, CalculatorDependencies) error
@@ -25,7 +36,6 @@ type CalculatorDependencies interface {
 }
 
 type calculator struct {
-	calculators []Calculation
 	lineService *lineservice.Service
 }
 
@@ -47,14 +57,18 @@ func New(c Config) (Calculator, error) {
 	}
 
 	return &calculator{
-		calculators: InvoiceCalculations,
 		lineService: c.LineService,
 	}, nil
 }
 
 func (c *calculator) Calculate(invoice *billing.Invoice) error {
+	calculators := InvoiceCalculations.Invoice
+	if invoice.Status == billing.InvoiceStatusGathering {
+		calculators = InvoiceCalculations.GatheringInvoice
+	}
+
 	var outErr error
-	for _, calc := range InvoiceCalculations {
+	for _, calc := range calculators {
 		err := calc(invoice, c)
 		if err != nil {
 			outErr = errors.Join(outErr, err)

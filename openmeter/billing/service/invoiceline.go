@@ -124,9 +124,14 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 					"collectionInterval": collectionConfig.Interval.String(),
 				},
 			)
-			if _, err = s.adapter.UpdateInvoice(ctx, gatheringInvoice); err != nil {
-				return nil, fmt.Errorf("failed to update invoice[%s]: %w", gatheringInvoice.ID, err)
-			}
+		}
+
+		if err := s.invoiceCalculator.Calculate(&gatheringInvoice); err != nil {
+			return nil, fmt.Errorf("calculating invoice[%s]: %w", gatheringInvoice.ID, err)
+		}
+
+		if _, err = s.adapter.UpdateInvoice(ctx, gatheringInvoice); err != nil {
+			return nil, fmt.Errorf("failed to update invoice[%s]: %w", gatheringInvoice.ID, err)
 		}
 
 		// Publish system event for newly created invoices
