@@ -156,6 +156,8 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 			ID:        resp.Items[0].Customer.CustomerID,
 		},
 		AsOf: lo.ToPtr(alignedAsOf),
+		// We want to make sure that system collection does not use progressive billing.
+		ProgressiveBillingOverride: lo.ToPtr(false),
 	})
 	if err != nil {
 		if errors.Is(err, billing.ErrNamespaceLocked) {

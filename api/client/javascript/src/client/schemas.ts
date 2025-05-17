@@ -5819,6 +5819,11 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       customerId: string
+      /** @description Override the progressive billing setting of the customer.
+       *
+       *     Can be used to disable/enable progressive billing in case the business logic
+       *     requires it, if not provided the billing profile's progressive billing setting will be used. */
+      progressiveBillingOverride?: boolean
     }
     /** @description Reference to an invoice. */
     InvoiceReference: {

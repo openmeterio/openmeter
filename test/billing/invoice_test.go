@@ -3687,3 +3687,276 @@ func (s *InvoicingTestSuite) TestNamespaceLockedInvoiceProgression() {
 	s.Equal("namespace_locked", validationError.Code)
 	s.Equal(billing.ValidationIssueSeverityCritical, validationError.Severity)
 }
+
+type TestFeature struct {
+	Cleanup func()
+	Feature feature.Feature
+}
+
+func (s *InvoicingTestSuite) setupApiRequestsTotalFeature(ctx context.Context, ns string) TestFeature {
+	apiRequestsTotalMeterSlug := "api-requests-total"
+
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+		{
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: ns,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "API Requests Total",
+			},
+			Key:           apiRequestsTotalMeterSlug,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: lo.ToPtr("$.value"),
+		},
+	})
+	s.NoError(err, "Replacing meters must not return error")
+
+	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalMeterSlug, 0, time.Now())
+
+	apiRequestsTotalFeatureKey := "api-requests-total"
+
+	apiRequestsTotalFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: ns,
+		Name:      "api-requests-total",
+		Key:       apiRequestsTotalFeatureKey,
+		MeterSlug: lo.ToPtr("api-requests-total"),
+	})
+	s.NoError(err)
+
+	return TestFeature{
+		Cleanup: func() {
+			err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+			s.NoError(err, "failed to replace meters")
+
+			s.MockStreamingConnector.Reset()
+		},
+		Feature: apiRequestsTotalFeature,
+	}
+}
+
+func (s *InvoicingTestSuite) TestProgressiveBillLate() {
+	namespace := "ns-progressive-bill-late"
+	ctx := context.Background()
+
+	// Given
+	//  progressive billing is enabled
+	//  there's gathering invoice with an usage based line
+	// When
+	//  invoice now is called later than the end of the period of the lines
+	// Then
+	//  the invoice should be created with the correct period
+
+	s.InstallSandboxApp(s.T(), namespace)
+
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
+	minimalCreateProfileInput.Namespace = namespace
+	minimalCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
+
+	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), profile)
+
+	start := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
+
+	periodStart := start
+	periodEnd := start.Add(time.Minute * 4)
+
+	collecitonDoneAt := periodEnd.Add(time.Hour)
+
+	apiRequestsTotalFeature := s.setupApiRequestsTotalFeature(ctx, namespace)
+	defer apiRequestsTotalFeature.Cleanup()
+
+	customer := s.CreateTestCustomer(namespace, "test-customer")
+
+	// let's set up the feature
+
+	clock.SetTime(start)
+	defer clock.ResetTime()
+
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customer.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []*billing.Line{
+			{
+				LineBase: billing.LineBase{
+					Period:    billing.Period{Start: periodStart, End: periodEnd},
+					InvoiceAt: periodEnd,
+					ManagedBy: billing.ManuallyManagedLine,
+					Type:      billing.InvoiceLineTypeUsageBased,
+					Name:      "UBP - volume",
+				},
+				UsageBased: &billing.UsageBasedLine{
+					FeatureKey: apiRequestsTotalFeature.Feature.Key,
+					Price: productcatalog.NewPriceFrom(
+						productcatalog.TieredPrice{
+							Mode: productcatalog.VolumeTieredPrice,
+							Tiers: []productcatalog.PriceTier{
+								{
+									UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1000)),
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(1),
+									},
+								},
+								{
+									UpToAmount: nil,
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(0.5),
+									},
+								},
+							},
+						},
+					),
+				},
+			},
+		},
+	})
+
+	s.NoError(err)
+	s.Len(pendingLines.Lines, 1)
+
+	clock.SetTime(collecitonDoneAt)
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customer.GetID(),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+
+	invoice := invoices[0]
+
+	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+	lines := invoice.Lines.OrEmpty()
+	s.Len(lines, 1)
+
+	line := lines[0]
+	s.Equal(line.Name, "UBP - volume")
+	s.True(line.Period.Equal(billing.Period{Start: periodStart, End: periodEnd}), "periods should equal")
+}
+
+func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
+	namespace := "ns-progressive-bill-override"
+	ctx := context.Background()
+
+	// Given
+	//  progressive billing is enabled
+	//  there's gathering invoice with an usage based line that is billable, and one that is not yet
+	// When
+	//  invoice now is called later than the end of the period of the first line, with a progressive billing override set to false
+	// Then
+	//  the invoice should be created with the correct period, and the non-billable line should not be included
+
+	s.InstallSandboxApp(s.T(), namespace)
+
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
+	minimalCreateProfileInput.Namespace = namespace
+	minimalCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
+
+	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), profile)
+
+	start := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
+
+	periodStart := start
+	periodEnd := start.Add(time.Minute * 4)
+
+	collecitonDoneAt := periodEnd.Add(time.Hour)
+
+	apiRequestsTotalFeature := s.setupApiRequestsTotalFeature(ctx, namespace)
+	defer apiRequestsTotalFeature.Cleanup()
+
+	customer := s.CreateTestCustomer(namespace, "test-customer")
+
+	// let's set up the feature
+
+	clock.SetTime(start)
+	defer clock.ResetTime()
+
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customer.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []*billing.Line{
+			{
+				LineBase: billing.LineBase{
+					Period:    billing.Period{Start: periodStart, End: periodEnd},
+					InvoiceAt: periodEnd,
+					ManagedBy: billing.ManuallyManagedLine,
+					Type:      billing.InvoiceLineTypeUsageBased,
+					Name:      "UBP - volume",
+				},
+				UsageBased: &billing.UsageBasedLine{
+					FeatureKey: apiRequestsTotalFeature.Feature.Key,
+					Price: productcatalog.NewPriceFrom(
+						productcatalog.TieredPrice{
+							Mode: productcatalog.VolumeTieredPrice,
+							Tiers: []productcatalog.PriceTier{
+								{
+									UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1000)),
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(1),
+									},
+								},
+								{
+									UpToAmount: nil,
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(0.5),
+									},
+								},
+							},
+						},
+					),
+				},
+			},
+			{
+				LineBase: billing.LineBase{
+					Period:    billing.Period{Start: periodStart, End: periodStart.Add(24 * time.Hour)},
+					InvoiceAt: periodStart.Add(24 * time.Hour),
+					ManagedBy: billing.ManuallyManagedLine,
+					Type:      billing.InvoiceLineTypeUsageBased,
+					Name:      "UBP - unit",
+				},
+				UsageBased: &billing.UsageBasedLine{
+					FeatureKey: apiRequestsTotalFeature.Feature.Key,
+					Price: productcatalog.NewPriceFrom(
+						productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(1),
+						},
+					),
+				},
+			},
+		},
+	})
+
+	s.NoError(err)
+	s.Len(pendingLines.Lines, 2)
+
+	clock.SetTime(collecitonDoneAt)
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer:                   customer.GetID(),
+		ProgressiveBillingOverride: lo.ToPtr(false),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+
+	invoice := invoices[0]
+
+	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+	lines := invoice.Lines.OrEmpty()
+	// The unit line should not be included in the invoice
+	s.Len(lines, 1)
+
+	line := lines[0]
+	s.Equal(line.Name, "UBP - volume")
+	s.True(line.Period.Equal(billing.Period{Start: periodStart, End: periodEnd}), "periods should equal")
+}

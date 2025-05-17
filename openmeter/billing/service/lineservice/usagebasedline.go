@@ -126,6 +126,10 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, in CanBeInvoicedA
 			End:   asOfTruncated,
 		}
 
+		if candidatePeriod.End.After(l.line.Period.End) {
+			candidatePeriod.End = l.line.Period.End
+		}
+
 		if candidatePeriod.IsEmpty() {
 			return nil, nil
 		}

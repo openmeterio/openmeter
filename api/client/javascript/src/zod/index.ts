@@ -5015,6 +5015,12 @@ export const invoicePendingLinesActionBody = zod
       )
       .optional()
       .describe('Filters to apply when creating the invoice.'),
+    progressiveBillingOverride: zod
+      .boolean()
+      .optional()
+      .describe(
+        "Override the progressive billing setting of the customer.\n\nCan be used to disable/enable progressive billing in case the business logic\nrequires it, if not provided the billing profile's progressive billing setting will be used."
+      ),
   })
   .describe(
     'BillingInvoiceActionInput is the input for creating an invoice.\n\nInvoice creation is always based on already pending line items created by the billingCreateLineByCustomer\noperation. Empty invoices are not allowed.'
