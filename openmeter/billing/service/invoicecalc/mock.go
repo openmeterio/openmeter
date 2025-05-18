@@ -67,6 +67,10 @@ func (m *mockCalculator) AssertExpectations(t *testing.T) {
 	if m.calculateResult.IsPresent() && !m.calculateResultCalled {
 		t.Errorf("expected Calculate to be called")
 	}
+
+	if m.calculateGatheringInvoiceResult.IsPresent() && !m.calculateGatheringInvoiceResultCalled {
+		t.Errorf("expected CalculateGatheringInvoice to be called")
+	}
 }
 
 func (m *mockCalculator) Reset(t *testing.T) {
@@ -76,6 +80,9 @@ func (m *mockCalculator) Reset(t *testing.T) {
 
 	m.calculateResult = mo.None[error]()
 	m.calculateResultCalled = false
+
+	m.calculateGatheringInvoiceResult = mo.None[error]()
+	m.calculateGatheringInvoiceResultCalled = false
 }
 
 func NewMockableCalculator(_ *testing.T, upstream Calculator) *MockableInvoiceCalculator {

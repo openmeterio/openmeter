@@ -127,8 +127,14 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			return nil, fmt.Errorf("calculating invoice[%s]: %w", gatheringInvoice.ID, err)
 		}
 
-		if _, err = s.adapter.UpdateInvoice(ctx, gatheringInvoice); err != nil {
+		gatheringInvoice, err = s.adapter.UpdateInvoice(ctx, gatheringInvoice)
+		if err != nil {
 			return nil, fmt.Errorf("failed to update invoice[%s]: %w", gatheringInvoice.ID, err)
+		}
+
+		gatheringInvoice, err = s.resolveWorkflowApps(ctx, gatheringInvoice)
+		if err != nil {
+			return nil, fmt.Errorf("error resolving workflow apps for invoice [%s]: %w", gatheringInvoice.ID, err)
 		}
 
 		// Let's resolve the created lines from the final invoice
