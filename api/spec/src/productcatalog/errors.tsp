@@ -5,53 +5,34 @@ import "./ratecards.tsp";
 namespace OpenMeter.ProductCatalog;
 
 /**
- * ValidationResource captures the resource information attached to ValidationError.
+ * Validation errors providing details about compatibility issues between a plan and its add-on.
  */
-@friendlyName("ValidationResource")
-model ValidationResource {
+@friendlyName("ValidationError")
+model ValidationError {
   /**
-   * The key of the resource.
+   * The path to the field.
    */
   @visibility(Lifecycle.Read)
-  @example("token")
-  key: string;
+  @example("addons/pro/ratecards/token/featureKey")
+  field: string;
 
   /**
-   * The resource type.
+   * The machine readable description of the error.
    */
   @visibility(Lifecycle.Read)
-  @example("ratecard")
-  kind: string;
+  @example("invalid_feature_key")
+  code: string;
+
+  /**
+   * The human readable description of the error.
+   */
+  @visibility(Lifecycle.Read)
+  @example("not found feature by key")
+  message: string;
 
   /**
    * Additional attributes.
    */
   @visibility(Lifecycle.Read)
   attributes?: Annotations;
-}
-
-/**
- * Validation errors providing details about compatibility issues between a plan and its add-on.
- */
-@friendlyName("ValidationError")
-model ValidationError {
-  /**
-   * The resource information.
-   */
-  @visibility(Lifecycle.Read)
-  resource: ValidationResource;
-
-  /**
-   * The field of the resource the error relates to.
-   */
-  @visibility(Lifecycle.Read)
-  @example("key")
-  field: string;
-
-  /**
-   * The detailed description of the error.
-   */
-  @visibility(Lifecycle.Read)
-  @example("invalid key")
-  detail: string;
 }

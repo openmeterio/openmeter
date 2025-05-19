@@ -21677,24 +21677,29 @@ components:
     ValidationError:
       type: object
       required:
-        - resource
         - field
-        - detail
+        - code
+        - message
       properties:
-        resource:
-          allOf:
-            - $ref: '#/components/schemas/ValidationResource'
-          description: The resource information.
-          readOnly: true
         field:
           type: string
-          description: The field of the resource the error relates to.
-          example: key
+          description: The path to the field.
+          example: addons/pro/ratecards/token/featureKey
           readOnly: true
-        detail:
+        code:
           type: string
-          description: The detailed description of the error.
-          example: invalid key
+          description: The machine readable description of the error.
+          example: invalid_feature_key
+          readOnly: true
+        message:
+          type: string
+          description: The human readable description of the error.
+          example: not found feature by key
+          readOnly: true
+        attributes:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Additional attributes.
           readOnly: true
       description: Validation errors providing details about compatibility issues between a plan and its add-on.
     ValidationIssue:
@@ -21773,28 +21778,6 @@ components:
         ValidationIssueSeverity describes the severity of a validation issue.
 
         Issues with severity "critical" will prevent the invoice from being issued.
-    ValidationResource:
-      type: object
-      required:
-        - key
-        - kind
-      properties:
-        key:
-          type: string
-          description: The key of the resource.
-          example: token
-          readOnly: true
-        kind:
-          type: string
-          description: The resource type.
-          example: ratecard
-          readOnly: true
-        attributes:
-          allOf:
-            - $ref: '#/components/schemas/Annotations'
-          description: Additional attributes.
-          readOnly: true
-      description: ValidationResource captures the resource information attached to ValidationError.
     VoidInvoiceActionCreate:
       type: object
       required:
