@@ -823,6 +823,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			name: "Compatible",
 			rCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
@@ -844,6 +845,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
@@ -869,6 +871,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			name: "Incompatible Price Type",
 			rCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
@@ -890,6 +893,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(UnitPrice{
 						Commitments: Commitments{
 							MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
@@ -918,6 +922,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			name: "Mismatched Feature Key",
 			rCard: &FlatFeeRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
@@ -939,6 +944,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
@@ -964,6 +970,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			name: "Mismatched Feature ID",
 			rCard: &FlatFeeRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
@@ -985,6 +992,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
@@ -1010,6 +1018,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			name: "Incompatible Billing Cadence",
 			rCard: &FlatFeeRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
@@ -1031,6 +1040,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
@@ -1056,6 +1066,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			name: "Incompatible Entitlement Template Type",
 			rCard: &FlatFeeRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
@@ -1077,6 +1088,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
@@ -1097,6 +1109,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			name: "Incompatible Usage Period",
 			rCard: &FlatFeeRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
@@ -1118,6 +1131,7 @@ func TestRateCardsCompatible(t *testing.T) {
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
+					Key: "feature1",
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
