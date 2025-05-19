@@ -54,21 +54,21 @@ var (
 	ErrRateCardPriceTypeMismatch = models.NewValidationIssue(
 		"rate_card_price_type_mismatch",
 		"price type must match",
-		models.WithPath("price", "type"),
+		models.WithPath("price"),
 		models.WithCriticalSeverity(),
 	)
 
 	ErrRateCardPricePaymentTermMismatch = models.NewValidationIssue(
 		"rate_card_price_payment_term_mismatch",
 		"price payment term must match",
-		models.WithPath("price", "paymentTerm"),
+		models.WithPath("price"),
 		models.WithCriticalSeverity(),
 	)
 
 	ErrRateCardOnlyFlatPriceAllowed = models.NewValidationIssue(
 		"rate_card_only_flat_price_allowed",
 		"only flat price is allowed",
-		models.WithPath("price", "type"),
+		models.WithPath("price"),
 		models.WithCriticalSeverity(),
 	)
 
@@ -96,25 +96,25 @@ var (
 	ErrRateCardEntitlementTemplateTypeMismatch = models.NewValidationIssue(
 		"rate_card_entitlement_template_type_mismatch",
 		"entitlement template type must match",
-		models.WithPath("entitlementTemplate", "type"),
+		models.WithPath("entitlementTemplate"),
 		models.WithCriticalSeverity(),
 	)
 
 	ErrRateCardStaticEntitlementTemplateNotAllowed = models.NewValidationIssue(
 		"rate_card_static_entitlement_template_not_allowed",
 		"static entitlement template is not allowed",
-		models.WithPath("entitlementTemplate", "type"),
+		models.WithPath("entitlementTemplate"),
 	)
 
 	ErrRateCardMeteredEntitlementTemplateUsagePeriodMismatch = models.NewValidationIssue(
 		"rate_card_metered_entitlement_template_usage_period_mismatch",
 		"usage period for metered entitlement template must match",
-		models.WithPath("entitlementTemplate", "usagePeriod"),
+		models.WithPath("entitlementTemplate"),
 	)
 
 	ErrRateCardPercentageDiscountNotAllowed = models.NewValidationIssue(
 		"rate_card_percentage_discount_not_allowed",
 		"percentage discount is not allowed",
-		models.WithPath("discounts", "percentage"),
+		models.WithPath("discounts"),
 	)
 )

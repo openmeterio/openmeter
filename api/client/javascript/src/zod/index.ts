@@ -12126,14 +12126,10 @@ export const createPlanAddonBodyAddonIdRegExp = new RegExp(
 
 export const createPlanAddonBody = zod
   .object({
-    addon: zod
-      .object({
-        id: zod
-          .string()
-          .regex(createPlanAddonBodyAddonIdRegExp)
-          .describe('The ID of the add-on.'),
-      })
-      .describe('The add-on to create.'),
+    addonId: zod
+      .string()
+      .regex(createPlanAddonBodyAddonIdRegExp)
+      .describe('The add-on unique identifier in ULID format.'),
     fromPlanPhase: zod
       .string()
       .describe(

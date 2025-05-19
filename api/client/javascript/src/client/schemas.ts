@@ -7918,37 +7918,9 @@ export interface components {
       metadata?: components['schemas']['Metadata']
       /**
        * Addon
-       * @description Partially populated add-on properties.
+       * @description Add-on object.
        */
-      addon: {
-        /**
-         * ID
-         * @description The ID of the add-on.
-         * @example 01G65Z755AFWAKHE12NY0CQ9FH
-         */
-        id: string
-        /**
-         * Key
-         * @description User provided unique identifier for add-on.
-         */
-        readonly key: string
-        /**
-         * Display name
-         * @description Human-readable name for add-on.
-         */
-        name: string
-        /**
-         * Version
-         * @description The version of the add-on which templates this instance.
-         * @default 1
-         */
-        readonly version: number
-        /**
-         * InstanceType
-         * @description The instance type of the add-on.
-         */
-        readonly instanceType: components['schemas']['AddonInstanceType']
-      }
+      readonly addon: components['schemas']['Addon']
       /**
        * The plan phase from the add-on becomes purchasable
        * @description The key of the plan phase from the add-on becomes available for purchase.
@@ -7987,16 +7959,11 @@ export interface components {
        */
       maxQuantity?: number
       /**
-       * Addon
-       * @description The add-on to create.
+       * Add-on unique identifier
+       * @description The add-on unique identifier in ULID format.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      addon: {
-        /**
-         * @description The ID of the add-on.
-         * @example 01G65Z755AFWAKHE12NY0CQ9FH
-         */
-        id: string
-      }
+      addonId: string
     }
     /**
      * @description Order by options for plan add-on assignments.

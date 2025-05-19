@@ -26,48 +26,11 @@ model PlanAddon {
   metadata?: Metadata;
 
   /**
-   * Partially populated add-on properties.
+   * Add-on object.
    */
   @summary("Addon")
-  @visibility(Lifecycle.Read, Lifecycle.Create)
-  addon: {
-    /**
-     * The ID of the add-on.
-     */
-    @summary("ID")
-    @visibility(Lifecycle.Read, Lifecycle.Create)
-    id: ULID;
-
-    /**
-     * User provided unique identifier for add-on.
-     */
-    @visibility(Lifecycle.Read)
-    @summary("Key")
-    key: Key;
-
-    /**
-     * Human-readable name for add-on.
-     */
-    @summary("Display name")
-    @minLength(1)
-    @maxLength(256)
-    name: string;
-
-    /**
-     * The version of the add-on which templates this instance.
-     */
-    @summary("Version")
-    @minValue(1)
-    @visibility(Lifecycle.Read)
-    version: integer = 1;
-
-    /**
-     * The instance type of the add-on.
-     */
-    @visibility(Lifecycle.Read)
-    @summary("InstanceType")
-    instanceType: AddonInstanceType;
-  };
+  @visibility(Lifecycle.Read)
+  addon: Addon;
 
   /**
    * The key of the plan phase from the add-on becomes available for purchase.
@@ -113,14 +76,9 @@ model PlanAddonCreate {
   ...OmitProperties<DefaultKeyVisibility<PlanAddon, Lifecycle.Read>, "addon">;
 
   /**
-   * The add-on to create.
+   * The add-on unique identifier in ULID format.
    */
-  @summary("Addon")
+  @summary("Add-on unique identifier")
   @visibility(Lifecycle.Create)
-  addon: {
-    /**
-     * The ID of the add-on.
-     */
-    id: ULID;
-  };
+  addonId: ULID;
 }
