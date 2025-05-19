@@ -104,7 +104,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "price types must match")
+			require.ErrorContains(t, err, "price type must match")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -112,7 +112,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "price types must match")
+			require.ErrorContains(t, err, "price type must match")
 		})
 	})
 
@@ -132,7 +132,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "entitlement template types must match")
+			require.ErrorContains(t, err, "entitlement template type must match")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -140,7 +140,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "entitlement template types must match")
+			require.ErrorContains(t, err, "entitlement template type must match")
 		})
 	})
 
@@ -157,7 +157,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "keys must match")
+			require.ErrorContains(t, err, "key must match")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
@@ -165,7 +165,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{})
 			require.Error(t, err)
-			require.ErrorContains(t, err, "keys must match")
+			require.ErrorContains(t, err, "key must match")
 		})
 	})
 
@@ -193,14 +193,14 @@ func TestValidations(t *testing.T) {
 			err := rc.Apply(target, models.Annotations{})
 
 			require.Error(t, err)
-			require.ErrorContains(t, err, "price payment terms must match")
+			require.ErrorContains(t, err, "price payment term must match")
 		})
 
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(target, models.Annotations{})
 
 			require.Error(t, err)
-			require.ErrorContains(t, err, "price payment terms must match")
+			require.ErrorContains(t, err, "price payment term must match")
 		})
 	})
 
