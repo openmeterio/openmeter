@@ -174,7 +174,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-      x-internal: true
     post:
       operationId: createAddon
       summary: Create an add-on
@@ -237,7 +236,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AddonCreate'
-      x-internal: true
   /api/v1/addons/{addonId}:
     put:
       operationId: updateAddon
@@ -314,7 +312,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AddonReplaceUpdate'
-      x-internal: true
     get:
       operationId: getAddon
       summary: Get add-on
@@ -399,7 +396,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-      x-internal: true
     delete:
       operationId: deleteAddon
       summary: Delete add-on
@@ -468,7 +464,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-      x-internal: true
   /api/v1/addons/{addonId}/archive:
     post:
       operationId: archiveAddon
@@ -539,7 +534,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-      x-internal: true
   /api/v1/addons/{addonId}/publish:
     post:
       operationId: publishAddon
@@ -610,7 +604,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-      x-internal: true
   /api/v1/apps:
     get:
       operationId: listApps
@@ -7219,7 +7212,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-      x-internal: true
     post:
       operationId: createPlanAddon
       summary: Create new add-on assignment for plan
@@ -7301,7 +7293,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PlanAddonCreate'
-      x-internal: true
   /api/v1/plans/{planId}/addons/{planAddonId}:
     put:
       operationId: updatePlanAddon
@@ -7385,7 +7376,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PlanAddonReplaceUpdate'
-      x-internal: true
     get:
       operationId: getPlanAddon
       summary: Get add-on assignment for plan
@@ -7464,7 +7454,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-      x-internal: true
     delete:
       operationId: deletePlanAddon
       summary: Delete add-on assignment for plan
@@ -7540,7 +7529,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-      x-internal: true
   /api/v1/plans/{planId}/archive:
     post:
       operationId: archivePlan
@@ -9496,7 +9484,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SubscriptionAddonCreate'
-      x-internal: true
     get:
       operationId: listSubscriptionAddons
       summary: List subscription addons
@@ -9568,7 +9555,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subscriptions
-      x-internal: true
   /api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}:
     get:
       operationId: getSubscriptionAddon
@@ -9646,7 +9632,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subscriptions
-      x-internal: true
     patch:
       operationId: updateSubscriptionAddon
       summary: Update subscription addon
@@ -9729,7 +9714,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SubscriptionAddonUpdate'
-      x-internal: true
   /api/v1/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancelSubscription

@@ -172,7 +172,6 @@ interface PlanAddons {
   @get
   @operationId("listPlanAddons")
   @summary("List all available add-ons for plan")
-  @extension("x-internal", true)
   list(
     @path planId: ULIDOrKey,
 
@@ -213,7 +212,6 @@ interface PlanAddons {
   @post
   @operationId("createPlanAddon")
   @summary("Create new add-on assignment for plan")
-  @extension("x-internal", true)
   create(@path planId: ULID, @body body: PlanAddonCreate):
     | {
         @statusCode _: 201;
@@ -230,7 +228,6 @@ interface PlanAddons {
   @route("/{planAddonId}")
   @operationId("updatePlanAddon")
   @summary("Update add-on assignment for plan")
-  @extension("x-internal", true)
   update(
     @path planId: ULID,
     @path planAddonId: ULID,
@@ -244,7 +241,6 @@ interface PlanAddons {
   @route("/{planAddonId}")
   @operationId("getPlanAddon")
   @summary("Get add-on assignment for plan")
-  @extension("x-internal", true)
   get(
     @path planId: ULIDOrKey,
     @path planAddonId: ULIDOrKey,
@@ -259,7 +255,6 @@ interface PlanAddons {
   @route("/{planAddonId}")
   @operationId("deletePlanAddon")
   @summary("Delete add-on assignment for plan")
-  @extension("x-internal", true)
   delete(@path planId: ULID, @path planAddonId: ULID): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -274,7 +269,6 @@ interface Addons {
   @list
   @operationId("listAddons")
   @summary("List add-ons")
-  @extension("x-internal", true)
   list(
     /**
      * Include deleted add-ons in response.
@@ -330,7 +324,6 @@ interface Addons {
   @post
   @operationId("createAddon")
   @summary("Create an add-on")
-  @extension("x-internal", true)
   create(@body request: TypeSpec.Rest.Resource.ResourceCreateModel<Addon>): {
     @statusCode _: 201;
     @body body: Addon;
@@ -343,7 +336,6 @@ interface Addons {
   @route("/{addonId}")
   @operationId("updateAddon")
   @summary("Update add-on")
-  @extension("x-internal", true)
   update(
     @path addonId: ULID,
     @body request: TypeSpec.Rest.Resource.ResourceReplaceModel<Addon>,
@@ -356,7 +348,6 @@ interface Addons {
   @route("/{addonId}")
   @operationId("getAddon")
   @summary("Get add-on")
-  @extension("x-internal", true)
   get(
     @extension("x-go-type", "string")
     @path
@@ -381,7 +372,6 @@ interface Addons {
   @route("/{addonId}")
   @operationId("deleteAddon")
   @summary("Delete add-on")
-  @extension("x-internal", true)
   delete(@path addonId: ULID): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -393,7 +383,6 @@ interface Addons {
   @route("/{addonId}/publish")
   @operationId("publishAddon")
   @summary("Publish add-on")
-  @extension("x-internal", true)
   publish(
     @path addonId: ULID,
   ): Addon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -405,7 +394,6 @@ interface Addons {
   @route("/{addonId}/archive")
   @operationId("archiveAddon")
   @summary("Archive add-on version")
-  @extension("x-internal", true)
   archive(
     @path addonId: ULID,
   ): Addon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -574,7 +562,6 @@ interface SubscriptionAddons {
   @post
   @operationId("createSubscriptionAddon")
   @summary("Create subscription addon")
-  @extension("x-internal", true)
   create(
     @path subscriptionId: ULID,
 
@@ -595,7 +582,6 @@ interface SubscriptionAddons {
   @get
   @operationId("listSubscriptionAddons")
   @summary("List subscription addons")
-  @extension("x-internal", true)
   list(
     @path subscriptionId: ULID, // Should we implement pagination? This should never be a large list.
   ): SubscriptionAddon[] | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -607,7 +593,6 @@ interface SubscriptionAddons {
   @route("/{subscriptionAddonId}")
   @operationId("getSubscriptionAddon")
   @summary("Get subscription addon")
-  @extension("x-internal", true)
   get(
     @path subscriptionId: ULID,
     @path subscriptionAddonId: ULID,
@@ -620,7 +605,6 @@ interface SubscriptionAddons {
   @route("/{subscriptionAddonId}")
   @operationId("updateSubscriptionAddon")
   @summary("Update subscription addon")
-  @extension("x-internal", true)
   update(
     @path subscriptionId: ULID,
     @path subscriptionAddonId: ULID,
