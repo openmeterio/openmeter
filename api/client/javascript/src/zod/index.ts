@@ -5314,12 +5314,6 @@ export const updateInvoiceBody = zod
       .describe(
         'Optional description of the resource. Maximum 1024 characters.'
       ),
-    draftUntil: zod
-      .date()
-      .optional()
-      .describe(
-        'The time until the invoice is in draft status.\n\nOn draft invoice creation it is calculated from the workflow settings.\n\nIf manual approval is required, the draftUntil time is set.'
-      ),
     lines: zod
       .array(
         zod

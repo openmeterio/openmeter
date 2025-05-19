@@ -14,7 +14,7 @@ type invoiceCalculatorsByType struct {
 
 var InvoiceCalculations = invoiceCalculatorsByType{
 	Invoice: []Calculation{
-		DraftUntilIfMissing,
+		CalculateDraftUntil,
 		UpsertDiscountCorrelationIDs,
 		RecalculateDetailedLinesAndTotals,
 		CalculateInvoicePeriod,
