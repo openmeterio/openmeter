@@ -14,7 +14,28 @@ import (
 
 // Apply applies the addon rate card to the target rate card
 func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard, annotations models.Annotations) error {
-	if err := a.Validate(target, annotations); err != nil {
+	typ := reflect.TypeOf(target)
+	if typ == nil {
+		return fmt.Errorf("target must not be nil")
+	}
+
+	if typ.Kind() != reflect.Ptr {
+		return fmt.Errorf("target must be a pointer")
+	}
+
+	if annotations == nil {
+		return fmt.Errorf("annotations must not be nil")
+	}
+
+	if err := productcatalog.NewRateCardWithOverlay(a.AddonRateCard.RateCard, target).ValidateWith(
+		productcatalog.ValidateRateCardsShareSameKey,
+		productcatalog.ValidateRateCardsHaveCompatiblePrice,
+		productcatalog.ValidateRateCardsHaveCompatibleFeatureKey,
+		// productcatalog.ValidateRateCardsHaveCompatibleFeatureID, // FIXME(OM-1337): subscriptions handles feature ID incorrectly
+		productcatalog.ValidateRateCardsHaveCompatibleBillingCadence,
+		productcatalog.ValidateRateCardsHaveCompatibleEntitlementTemplate,
+		productcatalog.ValidateRateCardsHaveCompatibleDiscounts,
+	); err != nil {
 		return err
 	}
 
@@ -80,8 +101,31 @@ func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard, annotat
 }
 
 // Restore restores the addon rate card to the target rate card
-func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annotations models.Annotations) error {
-	if err := a.Validate(target, annotations); err != nil {
+// TODO(galexi): instead of instance parameter, change SubscriptionAddonInstance type
+func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annotations models.Annotations, instanceType productcatalog.AddonInstanceType) error {
+	// Target has has to be implemented by a pointer otherwise we can't use it as a receiver. Let's check that
+	typ := reflect.TypeOf(target)
+	if typ == nil {
+		return fmt.Errorf("target must not be nil")
+	}
+
+	if typ.Kind() != reflect.Ptr {
+		return fmt.Errorf("target must be a pointer")
+	}
+
+	if annotations == nil {
+		return fmt.Errorf("annotations must not be nil")
+	}
+
+	if err := productcatalog.NewRateCardWithOverlay(a.AddonRateCard.RateCard, target).ValidateWith(
+		productcatalog.ValidateRateCardsShareSameKey,
+		productcatalog.ValidateRateCardsHaveCompatiblePrice, // check if single instance, if so, set nill
+		productcatalog.ValidateRateCardsHaveCompatibleFeatureKey,
+		// productcatalog.ValidateRateCardsHaveCompatibleFeatureID, // FIXME(OM-1337): subscriptions handles feature ID incorrectly
+		productcatalog.ValidateRateCardsHaveCompatibleBillingCadence,
+		productcatalog.ValidateRateCardsHaveCompatibleEntitlementTemplate,
+		productcatalog.ValidateRateCardsHaveCompatibleDiscounts,
+	); err != nil {
 		return err
 	}
 
@@ -107,6 +151,8 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annot
 					Amount:      newAmount,
 					PaymentTerm: tFlat.PaymentTerm,
 				})
+			case instanceType == productcatalog.AddonInstanceTypeSingle:
+				m.Price = nil
 			default:
 				return m, fmt.Errorf("not supported price type: %s", tMeta.Price.Type())
 			}
@@ -165,34 +211,4 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annot
 
 		return m, nil
 	})
-}
-
-func (a SubscriptionAddonRateCard) Validate(target productcatalog.RateCard, annotations models.Annotations) error {
-	// Target has has to be implemented by a pointer otherwise we can't use it as a receiver. Let's check that
-	typ := reflect.TypeOf(target)
-	if typ == nil {
-		return fmt.Errorf("target must not be nil")
-	}
-
-	if typ.Kind() != reflect.Ptr {
-		return fmt.Errorf("target must be a pointer")
-	}
-
-	if annotations == nil {
-		return fmt.Errorf("annotations must not be nil")
-	}
-
-	if err := productcatalog.NewRateCardWithOverlay(a.AddonRateCard.RateCard, target).ValidateWith(
-		productcatalog.ValidateRateCardsShareSameKey,
-		productcatalog.ValidateRateCardsHaveCompatiblePrice,
-		productcatalog.ValidateRateCardsHaveCompatibleFeatureKey,
-		// productcatalog.ValidateRateCardsHaveCompatibleFeatureID, // FIXME(OM-1337): subscriptions handles feature ID incorrectly
-		productcatalog.ValidateRateCardsHaveCompatibleBillingCadence,
-		productcatalog.ValidateRateCardsHaveCompatibleEntitlementTemplate,
-		productcatalog.ValidateRateCardsHaveCompatibleDiscounts,
-	); err != nil {
-		return err
-	}
-
-	return nil
 }
