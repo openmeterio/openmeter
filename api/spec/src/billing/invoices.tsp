@@ -588,7 +588,7 @@ model InvoiceSimulationFlatFeeLine {
 model InvoiceReplaceUpdate {
   ...TypeSpec.Rest.Resource.ResourceReplaceModel<OmitProperties<
     Invoice.Invoice,
-    "lines" | "supplier" | "customer" | "discounts" | "workflow" // TODO: discounts is not yet implemented, then we need to enable it
+    "lines" | "supplier" | "customer" | "discounts" | "workflow" | "draftUntil"
   >>;
 
   /**

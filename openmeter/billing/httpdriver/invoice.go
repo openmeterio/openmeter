@@ -450,7 +450,6 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 					// basic fields
 					invoice.Description = request.Input.Description
 					invoice.Metadata = lo.FromPtrOr(request.Input.Metadata, map[string]string{})
-					invoice.DraftUntil = request.Input.DraftUntil
 
 					return nil
 				},

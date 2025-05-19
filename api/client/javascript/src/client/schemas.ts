@@ -5847,16 +5847,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /**
-       * Format: date-time
-       * @description The time until the invoice is in draft status.
-       *
-       *     On draft invoice creation it is calculated from the workflow settings.
-       *
-       *     If manual approval is required, the draftUntil time is set.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      draftUntil?: Date
       /** @description The supplier of the lines included in the invoice. */
       supplier: components['schemas']['BillingPartyReplaceUpdate']
       /** @description The customer the invoice is sent to. */

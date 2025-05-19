@@ -16299,16 +16299,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        draftUntil:
-          type: string
-          format: date-time
-          description: |-
-            The time until the invoice is in draft status.
-
-            On draft invoice creation it is calculated from the workflow settings.
-
-            If manual approval is required, the draftUntil time is set.
-          example: '2023-01-01T01:01:01.001Z'
         supplier:
           allOf:
             - $ref: '#/components/schemas/BillingPartyReplaceUpdate'
