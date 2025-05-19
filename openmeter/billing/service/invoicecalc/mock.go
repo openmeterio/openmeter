@@ -18,6 +18,9 @@ type MockableInvoiceCalculator struct {
 type mockCalculator struct {
 	calculateResult       mo.Option[error]
 	calculateResultCalled bool
+
+	calculateGatheringInvoiceResult       mo.Option[error]
+	calculateGatheringInvoiceResultCalled bool
 }
 
 func (m *mockCalculator) Calculate(i *billing.Invoice) error {
@@ -35,8 +38,27 @@ func (m *mockCalculator) Calculate(i *billing.Invoice) error {
 		billing.ValidationComponentOpenMeter)
 }
 
+func (m *mockCalculator) CalculateGatheringInvoice(i *billing.Invoice) error {
+	m.calculateGatheringInvoiceResultCalled = true
+
+	res := m.calculateGatheringInvoiceResult.MustGet()
+
+	// This simulates the same behavior as the calculate method for the original
+	// implementation. This way the mock can be used to inject calculation errors
+	// as if they were coming from a calculate callback.
+	return i.MergeValidationIssues(
+		billing.ValidationWithComponent(
+			billing.ValidationComponentOpenMeter,
+			res),
+		billing.ValidationComponentOpenMeter)
+}
+
 func (m *mockCalculator) OnCalculate(err error) {
 	m.calculateResult = mo.Some(err)
+}
+
+func (m *mockCalculator) OnCalculateGatheringInvoice(err error) {
+	m.calculateGatheringInvoiceResult = mo.Some(err)
 }
 
 func (m *mockCalculator) AssertExpectations(t *testing.T) {
@@ -44,6 +66,10 @@ func (m *mockCalculator) AssertExpectations(t *testing.T) {
 
 	if m.calculateResult.IsPresent() && !m.calculateResultCalled {
 		t.Errorf("expected Calculate to be called")
+	}
+
+	if m.calculateGatheringInvoiceResult.IsPresent() && !m.calculateGatheringInvoiceResultCalled {
+		t.Errorf("expected CalculateGatheringInvoice to be called")
 	}
 }
 
@@ -54,6 +80,9 @@ func (m *mockCalculator) Reset(t *testing.T) {
 
 	m.calculateResult = mo.None[error]()
 	m.calculateResultCalled = false
+
+	m.calculateGatheringInvoiceResult = mo.None[error]()
+	m.calculateGatheringInvoiceResultCalled = false
 }
 
 func NewMockableCalculator(_ *testing.T, upstream Calculator) *MockableInvoiceCalculator {
@@ -67,6 +96,19 @@ func (m *MockableInvoiceCalculator) Calculate(i *billing.Invoice) error {
 
 	if m.mock != nil {
 		err := m.mock.Calculate(i)
+		if err != nil {
+			outErr = errors.Join(outErr, err)
+		}
+	}
+
+	return outErr
+}
+
+func (m *MockableInvoiceCalculator) CalculateGatheringInvoice(i *billing.Invoice) error {
+	outErr := m.upstream.CalculateGatheringInvoice(i)
+
+	if m.mock != nil {
+		err := m.mock.CalculateGatheringInvoice(i)
 		if err != nil {
 			outErr = errors.Join(outErr, err)
 		}

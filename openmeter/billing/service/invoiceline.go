@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -77,10 +78,6 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		for i, lineSvc := range lineServices {
 			line := lineSvc.ToEntity()
 			line.InvoiceID = gatheringInvoice.ID
-			line.RateCardDiscounts, err = s.generateDiscountCorrelationIDs(line.RateCardDiscounts)
-			if err != nil {
-				return nil, fmt.Errorf("generating discount correlation IDs: %w", err)
-			}
 
 			if err := lineSvc.Validate(ctx, &gatheringInvoice); err != nil {
 				return nil, fmt.Errorf("validating line[%d]: %w", i, err)
@@ -124,8 +121,31 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 					"collectionInterval": collectionConfig.Interval.String(),
 				},
 			)
-			if _, err = s.adapter.UpdateInvoice(ctx, gatheringInvoice); err != nil {
-				return nil, fmt.Errorf("failed to update invoice[%s]: %w", gatheringInvoice.ID, err)
+		}
+
+		if err := s.invoiceCalculator.CalculateGatheringInvoice(&gatheringInvoice); err != nil {
+			return nil, fmt.Errorf("calculating invoice[%s]: %w", gatheringInvoice.ID, err)
+		}
+
+		gatheringInvoice, err = s.adapter.UpdateInvoice(ctx, gatheringInvoice)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update invoice[%s]: %w", gatheringInvoice.ID, err)
+		}
+
+		gatheringInvoice, err = s.resolveWorkflowApps(ctx, gatheringInvoice)
+		if err != nil {
+			return nil, fmt.Errorf("error resolving workflow apps for invoice [%s]: %w", gatheringInvoice.ID, err)
+		}
+
+		// Let's resolve the created lines from the final invoice
+		invoiceLinesByID, _ := slicesx.UniqueGroupBy(gatheringInvoice.Lines.OrEmpty(), func(l *billing.Line) string {
+			return l.ID
+		})
+
+		finalLines := []*billing.Line{}
+		for _, line := range createdLines {
+			if line, ok := invoiceLinesByID[line.ID]; ok {
+				finalLines = append(finalLines, line)
 			}
 		}
 
@@ -144,7 +164,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		return &billing.CreatePendingInvoiceLinesResult{
 			Invoice:      gatheringInvoice,
 			IsInvoiceNew: gatheringInvoiceUpsertResult.IsInvoiceNew,
-			Lines:        createdLines,
+			Lines:        finalLines,
 		}, nil
 	})
 }

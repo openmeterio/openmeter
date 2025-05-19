@@ -192,11 +192,14 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.NoError(err)
 		s.NotNil(editedInvoice)
 
+		s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, editedInvoice.Status)
+
 		rcDiscounts := editedInvoice.Lines.OrEmpty()[0].RateCardDiscounts
 		s.NotNil(rcDiscounts)
 
 		s.Equal(discountCorrelationID, rcDiscounts.Percentage.CorrelationID)
 		s.NotEqual(discountCorrelationID, rcDiscounts.Usage.CorrelationID)
+		s.NotEmpty(rcDiscounts.Usage.CorrelationID)
 	})
 
 	s.Run("Deleting the invoice works without errors", func() {

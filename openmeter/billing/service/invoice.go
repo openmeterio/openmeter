@@ -895,6 +895,10 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				return billing.Invoice{}, fmt.Errorf("editing invoice: %w", err)
 			}
 
+			if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
+				return billing.Invoice{}, fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)
+			}
+
 			collectionAt := invoice.CollectionAt
 			if ok := UpdateInvoiceCollectionAt(&invoice, customerProfile.MergedProfile.WorkflowConfig.Collection); ok {
 				s.logger.DebugContext(ctx, "collection time updated for invoice",
