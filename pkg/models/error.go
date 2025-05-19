@@ -3,6 +3,8 @@ package models
 import (
 	"errors"
 	"fmt"
+	"path"
+	"strings"
 )
 
 // GenericError is an interface that all generic errors must implement.
@@ -285,4 +287,84 @@ func IsGenericUnauthorizedError(err error) bool {
 	var e *GenericUnauthorizedError
 
 	return errors.As(err, &e)
+}
+
+// ComponentName is the name of an internal or external component/service the error is related to or originated from.
+type ComponentName string
+
+// ErrorCode is the machine-readable error code.
+type ErrorCode string
+
+// ErrorSeverity describes the severity of an error.
+type ErrorSeverity string
+
+func (s ErrorSeverity) Values() []string {
+	return []string{
+		string(ErrorSeverityCritical),
+		string(ErrorSeverityWarning),
+	}
+}
+
+const (
+	ErrorSeverityCritical ErrorSeverity = "critical"
+	ErrorSeverityWarning  ErrorSeverity = "warning"
+)
+
+func FieldPathFromParts(parts ...string) string {
+	s := path.Join(parts...)
+
+	if s == "" {
+		return s
+	}
+
+	return path.Clean("/" + s)
+}
+
+type fieldPrefixedWrapper struct {
+	prefix string
+	err    error
+}
+
+func (p fieldPrefixedWrapper) Error() string {
+	if prefix := strings.Trim(p.prefix, "/"); prefix != "" {
+		return "[" + prefix + "]: " + p.err.Error()
+	}
+
+	return p.err.Error()
+}
+
+func (p fieldPrefixedWrapper) Unwrap() error {
+	return p.err
+}
+
+// ErrorWithFieldPrefix wraps an error with a field prefix. It returns nil if err is also nil.
+func ErrorWithFieldPrefix(prefix string, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	return fieldPrefixedWrapper{prefix: prefix, err: err}
+}
+
+type componentWrapper struct {
+	component ComponentName
+	err       error
+}
+
+func (e componentWrapper) Error() string {
+	return string(e.component) + ": " + e.err.Error()
+}
+
+func (e componentWrapper) Unwrap() error {
+	return e.err
+}
+
+// ErrorWithComponent wraps an error with a component name. It returns nil if err is also nil.
+// This can be used to add context to an error when we are crossing service boundaries.
+func ErrorWithComponent(component ComponentName, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	return componentWrapper{component: component, err: err}
 }
