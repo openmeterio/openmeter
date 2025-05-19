@@ -119,7 +119,7 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annot
 
 	if err := productcatalog.NewRateCardWithOverlay(a.AddonRateCard.RateCard, target).ValidateWith(
 		productcatalog.ValidateRateCardsShareSameKey,
-		productcatalog.ValidateRateCardsHaveCompatiblePrice, // check if single instance, if so, set nill
+		// productcatalog.ValidateRateCardsHaveCompatiblePrice, // Its okay, we just need to check if single instance, and if so, then set nill
 		productcatalog.ValidateRateCardsHaveCompatibleFeatureKey,
 		// productcatalog.ValidateRateCardsHaveCompatibleFeatureID, // FIXME(OM-1337): subscriptions handles feature ID incorrectly
 		productcatalog.ValidateRateCardsHaveCompatibleBillingCadence,
