@@ -112,7 +112,7 @@ func (c PlanAddon) Validate() error {
 		// Validate ratecards from plan phases and addon.
 		for _, phase := range c.Plan.Phases[fromPhaseIdx:] {
 			if err := c.validateRateCardsInPhase(phase.RateCards, c.Addon.RateCards); err != nil {
-				errs = append(errs, models.ErrorWithFieldPrefix(models.FieldPathFromParts(planPrefix, "phases", phase.Key),
+				errs = append(errs, models.ErrorWithFieldPrefix(models.FieldPathFromParts(addonPrefix),
 					err),
 				)
 			}
