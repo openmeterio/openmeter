@@ -15840,11 +15840,6 @@ export const createSubscriptionAddonBodyAddonIdRegExp = new RegExp(
 
 export const createSubscriptionAddonBody = zod
   .object({
-    activeFrom: zod.date().describe('The cadence start of the resource.'),
-    activeTo: zod
-      .date()
-      .optional()
-      .describe('The cadence end of the resource.'),
     addon: zod
       .object({
         id: zod
@@ -15961,14 +15956,6 @@ export const updateSubscriptionAddonBodyQuantityMin = 0
 
 export const updateSubscriptionAddonBody = zod
   .object({
-    activeFrom: zod
-      .date()
-      .optional()
-      .describe('The cadence start of the resource.'),
-    activeTo: zod
-      .date()
-      .optional()
-      .describe('The cadence end of the resource.'),
     description: zod
       .string()
       .max(updateSubscriptionAddonBodyDescriptionMax)
