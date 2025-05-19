@@ -112,7 +112,7 @@ func TestValidations(t *testing.T) {
 				RateCardMeta: meta,
 			}, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 			require.Error(t, err)
-			require.ErrorContains(t, err, "price type must match")
+			require.ErrorContains(t, err, "billing cadence must match")
 		})
 	})
 
@@ -200,7 +200,7 @@ func TestValidations(t *testing.T) {
 			err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 			require.Error(t, err)
-			require.ErrorContains(t, err, "price payment term must match")
+			require.ErrorContains(t, err, "flat price would yield a negative amount")
 		})
 	})
 
