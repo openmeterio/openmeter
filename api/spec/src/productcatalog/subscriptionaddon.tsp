@@ -10,7 +10,18 @@ namespace OpenMeter.ProductCatalog;
 @friendlyName("SubscriptionAddon")
 model SubscriptionAddon {
   ...Resource;
-  ...global.CadencedResource;
+
+  /**
+   * The cadence start of the resource.
+   */
+  @visibility(Lifecycle.Read)
+  activeFrom: DateTime;
+
+  /**
+   * The cadence end of the resource.
+   */
+  @visibility(Lifecycle.Read)
+  activeTo?: DateTime;
 
   /**
    * Partially populated add-on properties.

@@ -9191,13 +9191,13 @@ export interface components {
        * @description The cadence start of the resource.
        * @example 2023-01-01T01:01:01.001Z
        */
-      activeFrom: Date
+      readonly activeFrom: Date
       /**
        * Format: date-time
        * @description The cadence end of the resource.
        * @example 2023-01-01T01:01:01.001Z
        */
-      activeTo?: Date
+      readonly activeTo?: Date
       /**
        * Addon
        * @description Partially populated add-on properties.
@@ -9290,18 +9290,6 @@ export interface components {
        */
       metadata?: components['schemas']['Metadata'] | null
       /**
-       * Format: date-time
-       * @description The cadence start of the resource.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      activeFrom: Date
-      /**
-       * Format: date-time
-       * @description The cadence end of the resource.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      activeTo?: Date
-      /**
        * Quantity
        * @description The quantity of the add-on. Always 1 for single instance add-ons.
        * @example 1
@@ -9375,18 +9363,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /**
-       * Format: date-time
-       * @description The cadence start of the resource.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      activeFrom?: Date
-      /**
-       * Format: date-time
-       * @description The cadence end of the resource.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      activeTo?: Date
       /**
        * Quantity
        * @description The quantity of the add-on. Always 1 for single instance add-ons.

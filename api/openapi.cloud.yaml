@@ -20758,11 +20758,13 @@ components:
           format: date-time
           description: The cadence start of the resource.
           example: '2023-01-01T01:01:01.001Z'
+          readOnly: true
         activeTo:
           type: string
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
+          readOnly: true
         addon:
           type: object
           properties:
@@ -20848,7 +20850,6 @@ components:
       type: object
       required:
         - name
-        - activeFrom
         - quantity
         - timing
         - addon
@@ -20871,16 +20872,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        activeFrom:
-          type: string
-          format: date-time
-          description: The cadence start of the resource.
-          example: '2023-01-01T01:01:01.001Z'
-        activeTo:
-          type: string
-          format: date-time
-          description: The cadence end of the resource.
-          example: '2023-01-01T01:01:01.001Z'
         quantity:
           type: integer
           minimum: 0
@@ -20972,16 +20963,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        activeFrom:
-          type: string
-          format: date-time
-          description: The cadence start of the resource.
-          example: '2023-01-01T01:01:01.001Z'
-        activeTo:
-          type: string
-          format: date-time
-          description: The cadence end of the resource.
-          example: '2023-01-01T01:01:01.001Z'
         quantity:
           type: integer
           minimum: 0
