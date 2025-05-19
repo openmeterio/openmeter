@@ -9737,6 +9737,15 @@ paths:
                 targetVersion:
                   type: integer
                   minimum: 1
+                  description: |-
+                    The version of the plan to migrate to.
+                    If not provided, the subscription will migrate to the latest version of the current plan.
+                startingPhase:
+                  type: string
+                  minLength: 1
+                  description: |-
+                    The key of the phase to start the subscription in.
+                    If not provided, the subscription will start in the first phase of the plan.
   /api/v1/subscriptions/{subscriptionId}/restore:
     post:
       operationId: restoreSubscription
@@ -19835,6 +19844,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/PlanReferenceInput'
           description: The plan reference to change to.
+        startingPhase:
+          type: string
+          minLength: 1
+          description: |-
+            The key of the phase to start the subscription in.
+            If not provided, the subscription will start in the first phase of the plan.
         name:
           type: string
           description: The name of the Subscription. If not provided the plan name is used.
@@ -19859,6 +19874,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/PlanReferenceInput'
           description: The plan reference to change to.
+        startingPhase:
+          type: string
+          minLength: 1
+          description: |-
+            The key of the phase to start the subscription in.
+            If not provided, the subscription will start in the first phase of the plan.
         name:
           type: string
           description: The name of the Subscription. If not provided the plan name is used.
