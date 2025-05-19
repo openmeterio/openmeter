@@ -19485,49 +19485,11 @@ components:
           description: Additional metadata for the resource.
           title: Metadata
         addon:
-          type: object
-          properties:
-            id:
-              type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: The ID of the add-on.
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-              title: ID
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: User provided unique identifier for add-on.
-              title: Key
-              readOnly: true
-            name:
-              type: string
-              minLength: 1
-              maxLength: 256
-              description: Human-readable name for add-on.
-              title: Display name
-            version:
-              type: integer
-              minimum: 1
-              description: The version of the add-on which templates this instance.
-              title: Version
-              default: 1
-              readOnly: true
-            instanceType:
-              allOf:
-                - $ref: '#/components/schemas/AddonInstanceType'
-              description: The instance type of the add-on.
-              title: InstanceType
-              readOnly: true
-          required:
-            - id
-            - key
-            - name
-            - version
-            - instanceType
-          description: Partially populated add-on properties.
+          allOf:
+            - $ref: '#/components/schemas/Addon'
+          description: Add-on object.
           title: Addon
+          readOnly: true
         fromPlanPhase:
           type: string
           description: The key of the plan phase from the add-on becomes available for purchase.
@@ -19551,7 +19513,7 @@ components:
       type: object
       required:
         - fromPlanPhase
-        - addon
+        - addonId
       properties:
         metadata:
           allOf:
@@ -19568,18 +19530,12 @@ components:
             The maximum number of times the add-on can be purchased for the plan.
             It is not applicable for add-ons with single instance type.
           title: Max quantity of the add-on
-        addon:
-          type: object
-          properties:
-            id:
-              type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: The ID of the add-on.
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-          required:
-            - id
-          description: The add-on to create.
-          title: Addon
+        addonId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The add-on unique identifier in ULID format.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          title: Add-on unique identifier
       description: A plan add-on assignment create request.
     PlanAddonOrderBy:
       type: string

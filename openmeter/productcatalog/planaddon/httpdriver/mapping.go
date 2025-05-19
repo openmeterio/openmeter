@@ -1,9 +1,12 @@
 package httpdriver
 
 import (
+	"fmt"
+
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	addonhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -11,20 +14,14 @@ import (
 func FromPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
 	validationIssues, _ := a.AsProductCatalogPlanAddon().ValidationErrors()
 
+	apiAddon, err := addonhttp.FromAddon(a.Addon)
+	if err != nil {
+		return api.PlanAddon{}, fmt.Errorf("failed to cast add-on [namespace=%s id=%s key=%s]: %w",
+			a.Addon.Namespace, a.Addon.ID, a.Addon.Key, err)
+	}
+
 	resp := api.PlanAddon{
-		Addon: struct {
-			Id           string                `json:"id"`
-			InstanceType api.AddonInstanceType `json:"instanceType"`
-			Key          string                `json:"key"`
-			Name         string                `json:"name"`
-			Version      int                   `json:"version"`
-		}{
-			Id:           a.Addon.ID,
-			InstanceType: api.AddonInstanceType(a.Addon.InstanceType),
-			Key:          a.Addon.Key,
-			Name:         a.Addon.Name,
-			Version:      a.Addon.Version,
-		},
+		Addon:            apiAddon,
 		FromPlanPhase:    a.PlanAddonConfig.FromPlanPhase,
 		MaxQuantity:      a.PlanAddonConfig.MaxQuantity,
 		CreatedAt:        a.CreatedAt,
@@ -105,7 +102,7 @@ func AsCreatePlanAddonRequest(a api.PlanAddonCreate, namespace string, planID st
 		},
 		Metadata:      metadata,
 		PlanID:        planID,
-		AddonID:       a.Addon.Id,
+		AddonID:       a.AddonId,
 		FromPlanPhase: a.FromPlanPhase,
 		MaxQuantity:   a.MaxQuantity,
 	}
