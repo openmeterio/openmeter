@@ -49,7 +49,7 @@ func (d *diffable) restore() subscription.AppliesToSpec {
 					}
 
 					for range d.addon.Quantity {
-						if err := affectingAddonRateCard.Restore(target, item.Annotations); err != nil {
+						if err := affectingAddonRateCard.Restore(target, item.Annotations, d.addon.Addon.InstanceType); err != nil {
 							return fmt.Errorf("failed to restore addon rate card %s: %w", affectingAddonRateCard.AddonRateCard.Key(), err)
 						}
 					}

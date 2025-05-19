@@ -43,7 +43,7 @@ func TestValidations(t *testing.T) {
 		})
 
 		t.Run("Restore", func(t *testing.T) {
-			err := rc.Restore(nil, nil)
+			err := rc.Restore(nil, nil, productcatalog.AddonInstanceTypeSingle)
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target must not be nil")
 		})
@@ -61,7 +61,7 @@ func TestValidations(t *testing.T) {
 		})
 
 		t.Run("Restore", func(t *testing.T) {
-			err := rc.Restore(nonPointerRateCard{}, nil)
+			err := rc.Restore(nonPointerRateCard{}, nil, productcatalog.AddonInstanceTypeSingle)
 			require.Error(t, err)
 			require.ErrorContains(t, err, "target must be a pointer")
 		})
@@ -83,7 +83,7 @@ func TestValidations(t *testing.T) {
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(&productcatalog.FlatFeeRateCard{
 				RateCardMeta: someMeta.Clone(),
-			}, nil)
+			}, nil, productcatalog.AddonInstanceTypeSingle)
 			require.Error(t, err)
 			require.ErrorContains(t, err, "annotations must not be nil")
 		})
@@ -110,9 +110,9 @@ func TestValidations(t *testing.T) {
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(&productcatalog.UsageBasedRateCard{
 				RateCardMeta: meta,
-			}, models.Annotations{})
+			}, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 			require.Error(t, err)
-			require.ErrorContains(t, err, "price type must match")
+			require.ErrorContains(t, err, "billing cadence must match")
 		})
 	})
 
@@ -138,7 +138,7 @@ func TestValidations(t *testing.T) {
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(&productcatalog.UsageBasedRateCard{
 				RateCardMeta: meta,
-			}, models.Annotations{})
+			}, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 			require.Error(t, err)
 			require.ErrorContains(t, err, "entitlement template type must match")
 		})
@@ -163,7 +163,7 @@ func TestValidations(t *testing.T) {
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(&productcatalog.FlatFeeRateCard{
 				RateCardMeta: meta,
-			}, models.Annotations{})
+			}, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 			require.Error(t, err)
 			require.ErrorContains(t, err, "key must match")
 		})
@@ -197,10 +197,10 @@ func TestValidations(t *testing.T) {
 		})
 
 		t.Run("Restore", func(t *testing.T) {
-			err := rc.Restore(target, models.Annotations{})
+			err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 			require.Error(t, err)
-			require.ErrorContains(t, err, "price payment term must match")
+			require.ErrorContains(t, err, "flat price would yield a negative amount")
 		})
 	})
 
@@ -493,7 +493,7 @@ func TestExtendRestore(t *testing.T) {
 
 		targetClone := target.Clone()
 
-		err := rc.Restore(target, models.Annotations{})
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 		require.NoError(t, err)
 		require.Equal(t, targetClone, target)
@@ -513,7 +513,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target, models.Annotations{})
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 		require.Error(t, err)
 		require.ErrorContains(t, err, "target price is nil, cannot restore price without addon")
@@ -535,7 +535,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: someMeta.Clone(),
 		}
 
-		err := rc.Restore(target, models.Annotations{})
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 		require.NoError(t, err)
 		fp, err := target.AsMeta().Price.AsFlat()
@@ -555,7 +555,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target, models.Annotations{})
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 		require.NoError(t, err)
 		fp, err := target.AsMeta().Price.AsFlat()
@@ -580,7 +580,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target, models.Annotations{})
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 		require.Error(t, err)
 		require.ErrorContains(t, err, "target entitlement template is nil, cannot restore entitlement template without addon")
@@ -598,7 +598,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target, models.Annotations{})
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 		require.Error(t, err)
 		require.ErrorContains(t, err, "target doesn't have boolean entitlement count annotation while has a boolean entitlement template")
@@ -621,7 +621,7 @@ func TestExtendRestore(t *testing.T) {
 			t.Fatalf("failed to set boolean entitlement count: %s", err)
 		}
 
-		err := rc.Restore(target, ann)
+		err := rc.Restore(target, ann, productcatalog.AddonInstanceTypeSingle)
 
 		require.Error(t, err)
 		require.ErrorContains(t, err, "received invalid entitlement count annotation value: -1")
@@ -644,7 +644,7 @@ func TestExtendRestore(t *testing.T) {
 			t.Fatalf("failed to set boolean entitlement count: %s", err)
 		}
 
-		err := rc.Restore(target, ann)
+		err := rc.Restore(target, ann, productcatalog.AddonInstanceTypeSingle)
 
 		require.Error(t, err)
 		require.ErrorContains(t, err, "target doesn't have boolean entitlement count annotation while has a boolean entitlement template")
@@ -667,7 +667,7 @@ func TestExtendRestore(t *testing.T) {
 			t.Fatalf("failed to set boolean entitlement count: %s", err)
 		}
 
-		err := rc.Restore(target, ann)
+		err := rc.Restore(target, ann, productcatalog.AddonInstanceTypeSingle)
 
 		require.NoError(t, err)
 		require.Nil(t, target.EntitlementTemplate)
@@ -690,7 +690,7 @@ func TestExtendRestore(t *testing.T) {
 			t.Fatalf("failed to set boolean entitlement count: %s", err)
 		}
 
-		err := rc.Restore(target, ann)
+		err := rc.Restore(target, ann, productcatalog.AddonInstanceTypeSingle)
 
 		require.NoError(t, err)
 		require.NotNil(t, target.EntitlementTemplate)
@@ -717,7 +717,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target, models.Annotations{})
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 		require.NoError(t, err)
 		me, err := target.AsMeta().EntitlementTemplate.AsMetered()
@@ -745,7 +745,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target, models.Annotations{})
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 		require.Error(t, err)
 		require.ErrorContains(t, err, "restoring entitlement template would yield a negative issue after reset: 50 - 100 = -50")
@@ -766,7 +766,7 @@ func TestExtendRestore(t *testing.T) {
 			RateCardMeta: meta.Clone(),
 		}
 
-		err := rc.Restore(target, models.Annotations{})
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 		require.NoError(t, err)
 		me, err := target.AsMeta().EntitlementTemplate.AsMetered()
@@ -798,7 +798,7 @@ func TestExtendRestore(t *testing.T) {
 			BillingCadence: testutils.GetISODuration(t, "P1M"),
 		}
 
-		err := rc.Restore(target, models.Annotations{})
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 		require.Error(t, err)
 		require.ErrorContains(t, err, "target doesn't have usage discount while addon has a usage discount")
@@ -832,7 +832,7 @@ func TestExtendRestore(t *testing.T) {
 			BillingCadence: testutils.GetISODuration(t, "P1M"),
 		}
 
-		err := rc.Restore(target, models.Annotations{})
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 		require.Error(t, err)
 		require.ErrorContains(t, err, fmt.Sprintf("target has %.0f usage discount which is less than addon's %.0f", 50.0, 100.0))
@@ -866,7 +866,7 @@ func TestExtendRestore(t *testing.T) {
 			BillingCadence: testutils.GetISODuration(t, "P1M"),
 		}
 
-		err := rc.Restore(target, models.Annotations{})
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 
 		require.NoError(t, err)
 		require.Equal(t, alpacadecimal.NewFromInt(50).InexactFloat64(), target.AsMeta().Discounts.Usage.Quantity.InexactFloat64())
