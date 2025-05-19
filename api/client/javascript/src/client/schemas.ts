@@ -9899,18 +9899,23 @@ export interface components {
     }
     /** @description Validation errors providing details about compatibility issues between a plan and its add-on. */
     ValidationError: {
-      /** @description The resource information. */
-      readonly resource: components['schemas']['ValidationResource']
       /**
-       * @description The field of the resource the error relates to.
-       * @example key
+       * @description The path to the field.
+       * @example addons/pro/ratecards/token/featureKey
        */
       readonly field: string
       /**
-       * @description The detailed description of the error.
-       * @example invalid key
+       * @description The machine readable description of the error.
+       * @example invalid_feature_key
        */
-      readonly detail: string
+      readonly code: string
+      /**
+       * @description The human readable description of the error.
+       * @example not found feature by key
+       */
+      readonly message: string
+      /** @description Additional attributes. */
+      readonly attributes?: components['schemas']['Annotations']
     }
     /** @description ValidationIssue captures any validation issues related to the invoice.
      *
@@ -9962,21 +9967,6 @@ export interface components {
      * @enum {string}
      */
     ValidationIssueSeverity: 'critical' | 'warning'
-    /** @description ValidationResource captures the resource information attached to ValidationError. */
-    ValidationResource: {
-      /**
-       * @description The key of the resource.
-       * @example token
-       */
-      readonly key: string
-      /**
-       * @description The resource type.
-       * @example ratecard
-       */
-      readonly kind: string
-      /** @description Additional attributes. */
-      readonly attributes?: components['schemas']['Annotations']
-    }
     /** @description InvoiceVoidAction describes how to handle the voided line items. */
     VoidInvoiceActionCreate: {
       /** @description How much of the total line items to be voided? (e.g. 100% means all charges are voided) */
@@ -10847,7 +10837,6 @@ export type ValidationError = components['schemas']['ValidationError']
 export type ValidationIssue = components['schemas']['ValidationIssue']
 export type ValidationIssueSeverity =
   components['schemas']['ValidationIssueSeverity']
-export type ValidationResource = components['schemas']['ValidationResource']
 export type VoidInvoiceActionCreate =
   components['schemas']['VoidInvoiceActionCreate']
 export type VoidInvoiceActionCreateItem =

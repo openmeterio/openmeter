@@ -4,12 +4,13 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func FromPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
+	validationIssues, _ := a.AsProductCatalogPlanAddon().ValidationErrors()
+
 	resp := api.PlanAddon{
 		Addon: struct {
 			Id           string                `json:"id"`
@@ -31,28 +32,24 @@ func FromPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
 		UpdatedAt:        a.UpdatedAt,
 		Annotations:      FromAnnotations(a.Annotations),
 		Metadata:         FromMetadata(a.Metadata),
-		ValidationErrors: FromValidationErrors(a.AsProductCatalogPlanAddon().ValidationErrors()),
+		ValidationErrors: FromValidationErrors(validationIssues),
 	}
 
 	return resp, nil
 }
 
-func FromValidationErrors(errs []productcatalog.InvalidResourceError) *[]api.ValidationError {
-	if len(errs) == 0 {
+func FromValidationErrors(issues models.ValidationIssues) *[]api.ValidationError {
+	if len(issues) == 0 {
 		return nil
 	}
 
 	var result []api.ValidationError
 
-	for _, err := range errs {
+	for _, issue := range issues {
 		result = append(result, api.ValidationError{
-			Detail: err.Detail,
-			Field:  err.Field,
-			Resource: api.ValidationResource{
-				Attributes: FromAnnotations(err.Resource.Attributes),
-				Key:        err.Resource.Key,
-				Kind:       err.Resource.Kind,
-			},
+			Message: issue.Message,
+			Field:   issue.Path,
+			Code:    string(issue.Code),
 		})
 	}
 

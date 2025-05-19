@@ -608,14 +608,10 @@ var ValidateRateCardsShareSameKey = models.ValidatorFunc[RateCardWithOverlay](fu
 	}
 
 	if r.base.Key() != r.overlay.Key() {
-		return InvalidResourceError{
-			Resource: Resource{
-				Key:  r.base.Key(),
-				Kind: "ratecard",
-			},
-			Field:  "key",
-			Detail: fmt.Sprintf("incompatible ratecard as keys must match: [%s, %s]", r.base.Key(), r.overlay.Key()),
-		}
+		return models.ErrorWithFieldPrefix(
+			models.FieldPathFromParts("ratecards", r.base.Key()),
+			ErrRateCardKeyMismatch,
+		)
 	}
 
 	return nil
@@ -633,14 +629,10 @@ var ValidateRateCardsHaveCompatiblePrice = models.ValidatorFunc[RateCardWithOver
 	// Validate Price
 	if rMeta.Price != nil && vMeta.Price != nil {
 		if rMeta.Price.Type() != vMeta.Price.Type() {
-			errs = append(errs, InvalidResourceError{
-				Resource: Resource{
-					Key:  r.base.Key(),
-					Kind: "ratecard",
-				},
-				Field:  "price",
-				Detail: fmt.Sprintf("incompatible ratecard as price types must match: [%s, %s]", rMeta.Price.Type(), vMeta.Price.Type()),
-			})
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.FieldPathFromParts("ratecards", r.base.Key()),
+				ErrRateCardPriceTypeMismatch,
+			))
 		}
 
 		switch rMeta.Price.Type() {
@@ -649,24 +641,16 @@ var ValidateRateCardsHaveCompatiblePrice = models.ValidatorFunc[RateCardWithOver
 			vFlat, _ := vMeta.Price.AsFlat()
 
 			if rFlat.PaymentTerm != vFlat.PaymentTerm {
-				errs = append(errs, InvalidResourceError{
-					Resource: Resource{
-						Key:  r.base.Key(),
-						Kind: "ratecard",
-					},
-					Field:  "price",
-					Detail: fmt.Sprintf("incompatible ratecard as price payment terms must match: [%s, %s]", rFlat.PaymentTerm, vFlat.PaymentTerm),
-				})
+				errs = append(errs, models.ErrorWithFieldPrefix(
+					models.FieldPathFromParts("ratecards", r.base.Key()),
+					ErrRateCardPricePaymentTermMismatch,
+				))
 			}
 		default:
-			errs = append(errs, InvalidResourceError{
-				Resource: Resource{
-					Key:  r.base.Key(),
-					Kind: "ratecard",
-				},
-				Field:  "price",
-				Detail: fmt.Sprintf("incompatible ratecard due to unsupported price type: %s", rMeta.Price.Type()),
-			})
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.FieldPathFromParts("ratecards", r.base.Key()),
+				ErrRateCardOnlyFlatPriceAllowed,
+			))
 		}
 	}
 
@@ -681,14 +665,10 @@ var ValidateRateCardsHaveCompatibleFeatureKey = models.ValidatorFunc[RateCardWit
 	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
 	if rMeta.FeatureKey != nil && vMeta.FeatureKey != nil && *rMeta.FeatureKey != *vMeta.FeatureKey {
-		return InvalidResourceError{
-			Resource: Resource{
-				Key:  r.base.Key(),
-				Kind: "ratecard",
-			},
-			Field:  "featureKey",
-			Detail: fmt.Sprintf("incompatible ratecard as feature keys must match: [%s, %s]", *rMeta.FeatureKey, *vMeta.FeatureKey),
-		}
+		return models.ErrorWithFieldPrefix(
+			models.FieldPathFromParts("ratecards", r.base.Key()),
+			ErrRateCardFeatureKeyMismatch,
+		)
 	}
 
 	return nil
@@ -702,14 +682,10 @@ var ValidateRateCardsHaveCompatibleFeatureID = models.ValidatorFunc[RateCardWith
 	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
 	if rMeta.FeatureID != nil && vMeta.FeatureID != nil && *rMeta.FeatureID != *vMeta.FeatureID {
-		return InvalidResourceError{
-			Resource: Resource{
-				Key:  r.base.Key(),
-				Kind: "ratecard",
-			},
-			Field:  "featureID",
-			Detail: fmt.Sprintf("incompatible ratecard feature ids must match: [%s, %s]", *rMeta.FeatureID, *vMeta.FeatureID),
-		}
+		return models.ErrorWithFieldPrefix(
+			models.FieldPathFromParts("ratecards", r.base.Key()),
+			ErrRateCardFeatureIDMismatch,
+		)
 	}
 
 	return nil
@@ -726,37 +702,25 @@ var ValidateRateCardsHaveCompatibleBillingCadence = models.ValidatorFunc[RateCar
 
 	if rBillingCadence != nil {
 		if vBillingCadence == nil {
-			errs = append(errs, InvalidResourceError{
-				Resource: Resource{
-					Key:  r.base.Key(),
-					Kind: "ratecard",
-				},
-				Field:  "billingCadence",
-				Detail: fmt.Sprintf("incompatible ratecard as billing cadence must match [%s,  %s]", rBillingCadence.ISOString(), "nil"),
-			})
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.FieldPathFromParts("ratecards", r.base.Key()),
+				ErrRateCardBillingCadenceMismatch,
+			))
 		}
 
 		if vBillingCadence != nil && !rBillingCadence.Equal(vBillingCadence) {
-			errs = append(errs, InvalidResourceError{
-				Resource: Resource{
-					Key:  r.base.Key(),
-					Kind: "ratecard",
-				},
-				Field:  "billingCadence",
-				Detail: fmt.Sprintf("incompatible ratecard as billing cadence must match [%s, %s]", rBillingCadence.ISOString(), vBillingCadence.ISOString()),
-			})
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.FieldPathFromParts("ratecards", r.base.Key()),
+				ErrRateCardBillingCadenceMismatch,
+			))
 		}
 	}
 
 	if rBillingCadence == nil && vBillingCadence != nil {
-		errs = append(errs, InvalidResourceError{
-			Resource: Resource{
-				Key:  r.base.Key(),
-				Kind: "ratecard",
-			},
-			Field:  "billingCadence",
-			Detail: fmt.Sprintf("incompatible ratecard as billing cadence must match [%s, %s]", "nil", vBillingCadence.ISOString()),
-		})
+		errs = append(errs, models.ErrorWithFieldPrefix(
+			models.FieldPathFromParts("ratecards", r.base.Key()),
+			ErrRateCardBillingCadenceMismatch,
+		))
 	}
 
 	return errors.Join(errs...)
@@ -773,25 +737,17 @@ var ValidateRateCardsHaveCompatibleEntitlementTemplate = models.ValidatorFunc[Ra
 
 	if rMeta.EntitlementTemplate != nil && vMeta.EntitlementTemplate != nil {
 		if rMeta.EntitlementTemplate.Type() != vMeta.EntitlementTemplate.Type() {
-			errs = append(errs, InvalidResourceError{
-				Resource: Resource{
-					Key:  r.base.Key(),
-					Kind: "ratecard",
-				},
-				Field:  "entitlementTemplate",
-				Detail: fmt.Sprintf("incompatible ratecard as entitlement template types must match: [%s, %s]", rMeta.EntitlementTemplate.Type(), vMeta.EntitlementTemplate.Type()),
-			})
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.FieldPathFromParts("ratecards", r.base.Key()),
+				ErrRateCardEntitlementTemplateTypeMismatch,
+			))
 		} else {
 			switch rMeta.EntitlementTemplate.Type() {
 			case entitlement.EntitlementTypeStatic:
-				errs = append(errs, InvalidResourceError{
-					Resource: Resource{
-						Key:  r.base.Key(),
-						Kind: "ratecard",
-					},
-					Field:  "entitlementTemplate",
-					Detail: "incompatible ratecard as static entitlement is not allowed",
-				})
+				errs = append(errs, models.ErrorWithFieldPrefix(
+					models.FieldPathFromParts("ratecards", r.base.Key()),
+					ErrRateCardStaticEntitlementTemplateNotAllowed,
+				))
 			case entitlement.EntitlementTypeMetered:
 				rMetered, err := rMeta.EntitlementTemplate.AsMetered()
 				if err != nil {
@@ -804,15 +760,10 @@ var ValidateRateCardsHaveCompatibleEntitlementTemplate = models.ValidatorFunc[Ra
 				}
 
 				if !rMetered.UsagePeriod.Equal(&vMetered.UsagePeriod) {
-					errs = append(errs, InvalidResourceError{
-						Resource: Resource{
-							Key:  r.base.Key(),
-							Kind: "ratecard",
-						},
-						Field: "entitlementTemplate",
-						Detail: fmt.Sprintf("incompatible ratecard as usage period for metered entitlement template must match: [%s, %s]",
-							rMetered.UsagePeriod.ISOString(), vMetered.UsagePeriod.ISOString()),
-					})
+					errs = append(errs, models.ErrorWithFieldPrefix(
+						models.FieldPathFromParts("ratecards", r.base.Key()),
+						ErrRateCardMeteredEntitlementTemplateUsagePeriodMismatch,
+					))
 				}
 			case entitlement.EntitlementTypeBoolean:
 			}
@@ -832,14 +783,10 @@ var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWith
 	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
 	if rMeta.Discounts.Percentage != nil && vMeta.Discounts.Percentage != nil {
-		errs = append(errs, InvalidResourceError{
-			Resource: Resource{
-				Key:  r.base.Key(),
-				Kind: "ratecard",
-			},
-			Field:  "discounts",
-			Detail: "incompatible ratecard as percentage discount is not allowed",
-		})
+		errs = append(errs, models.ErrorWithFieldPrefix(
+			models.FieldPathFromParts("ratecards", r.base.Key()),
+			ErrRateCardPercentageDiscountNotAllowed,
+		))
 	}
 
 	return errors.Join(errs...)
