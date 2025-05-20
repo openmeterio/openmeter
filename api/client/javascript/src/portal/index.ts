@@ -1,5 +1,4 @@
-import createClient from 'openapi-fetch'
-import { createQuerySerializer } from 'openapi-fetch/dist/cjs/index.cjs'
+import createClient, { createQuerySerializer } from 'openapi-fetch'
 import { encodeDates, transformResponse } from '../client/utils.js'
 import type { RequestOptions } from '../client/common.js'
 import type { operations, paths } from '../client/schemas.js'
