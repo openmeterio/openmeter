@@ -38,7 +38,7 @@ require (
 	github.com/invopop/gobl v0.216.3
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/jmattheis/goverter v1.8.3
-	github.com/lmittmann/tint v1.0.7
+	github.com/lmittmann/tint v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/nethttp-middleware v1.1.2
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.1
