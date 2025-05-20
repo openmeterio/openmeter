@@ -3,7 +3,7 @@ import createClient, {
   type Client,
   type ClientOptions,
 } from 'openapi-fetch'
-import { Addons } from './addon.js'
+import { Addons } from './addons.js'
 import { Apps } from './apps.js'
 import { Billing } from './billing.js'
 import { Customers } from './customers.js'
@@ -17,7 +17,7 @@ import { Notifications } from './notifications.js'
 import { Plans } from './plans.js'
 import { Portal } from './portal.js'
 import { Subjects } from './subjects.js'
-import { SubscriptionAddons } from './subscription-addon.js'
+import { SubscriptionAddons } from './subscription-addons.js'
 import { Subscriptions } from './subscriptions.js'
 import { encodeDates } from './utils.js'
 import type { paths } from './schemas.js'

@@ -1,6 +1,6 @@
 import { transformResponse } from './utils.js'
 import type { RequestOptions } from './common.js'
-import type { paths } from './schemas.js'
+import type { operations, paths } from './schemas.js'
 import type { Client } from 'openapi-fetch'
 
 export class SubscriptionAddons {
@@ -15,12 +15,9 @@ export class SubscriptionAddons {
    */
   public async create(
     subscriptionId: string,
-    addon: paths['/api/v1/subscriptions/{subscriptionId}/addons']['post']['requestBody']['content']['application/json'],
+    addon: operations['createSubscriptionAddon']['requestBody']['content']['application/json'],
     options?: RequestOptions
-  ): Promise<
-    | paths['/api/v1/subscriptions/{subscriptionId}/addons']['post']['responses']['201']['content']['application/json']
-    | undefined
-  > {
+  ) {
     const resp = await this.client.POST(
       '/api/v1/subscriptions/{subscriptionId}/addons',
       {
@@ -39,13 +36,7 @@ export class SubscriptionAddons {
    * @param options - Optional request options
    * @returns A list of subscription addons
    */
-  public async list(
-    subscriptionId: string,
-    options?: RequestOptions
-  ): Promise<
-    | paths['/api/v1/subscriptions/{subscriptionId}/addons']['get']['responses']['200']['content']['application/json']
-    | undefined
-  > {
+  public async list(subscriptionId: string, options?: RequestOptions) {
     const resp = await this.client.GET(
       '/api/v1/subscriptions/{subscriptionId}/addons',
       {
@@ -68,10 +59,7 @@ export class SubscriptionAddons {
     subscriptionId: string,
     subscriptionAddonId: string,
     options?: RequestOptions
-  ): Promise<
-    | paths['/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}']['get']['responses']['200']['content']['application/json']
-    | undefined
-  > {
+  ) {
     const resp = await this.client.GET(
       '/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}',
       {
@@ -94,12 +82,9 @@ export class SubscriptionAddons {
   public async update(
     subscriptionId: string,
     subscriptionAddonId: string,
-    addon: paths['/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}']['patch']['requestBody']['content']['application/json'],
+    addon: operations['updateSubscriptionAddon']['requestBody']['content']['application/json'],
     options?: RequestOptions
-  ): Promise<
-    | paths['/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}']['patch']['responses']['200']['content']['application/json']
-    | undefined
-  > {
+  ) {
     const resp = await this.client.PATCH(
       '/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}',
       {

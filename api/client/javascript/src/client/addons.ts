@@ -1,6 +1,6 @@
 import { transformResponse } from './utils.js'
 import type { RequestOptions } from './common.js'
-import type { paths, AddonCreate } from './schemas.js'
+import type { paths, AddonCreate, operations } from './schemas.js'
 import type { Client } from 'openapi-fetch'
 
 export class Addons {
@@ -12,13 +12,7 @@ export class Addons {
    * @param options - Optional request options
    * @returns The created addon
    */
-  public async create(
-    addon: AddonCreate,
-    options?: RequestOptions
-  ): Promise<
-    | paths['/api/v1/addons']['post']['responses']['201']['content']['application/json']
-    | undefined
-  > {
+  public async create(addon: AddonCreate, options?: RequestOptions) {
     const resp = await this.client.POST('/api/v1/addons', {
       body: addon,
       ...options,
@@ -34,12 +28,9 @@ export class Addons {
    * @returns A list of addons
    */
   public async list(
-    params?: paths['/api/v1/addons']['get']['parameters']['query'],
+    params?: operations['listAddons']['parameters']['query'],
     options?: RequestOptions
-  ): Promise<
-    | paths['/api/v1/addons']['get']['responses']['200']['content']['application/json']
-    | undefined
-  > {
+  ) {
     const resp = await this.client.GET('/api/v1/addons', {
       params: { query: params },
       ...options,
@@ -54,13 +45,7 @@ export class Addons {
    * @param options - Optional request options
    * @returns The addon
    */
-  public async get(
-    addonId: string,
-    options?: RequestOptions
-  ): Promise<
-    | paths['/api/v1/addons/{addonId}']['get']['responses']['200']['content']['application/json']
-    | undefined
-  > {
+  public async get(addonId: string, options?: RequestOptions) {
     const resp = await this.client.GET('/api/v1/addons/{addonId}', {
       params: { path: { addonId } },
       ...options,
@@ -78,12 +63,9 @@ export class Addons {
    */
   public async update(
     addonId: string,
-    addon: paths['/api/v1/addons/{addonId}']['put']['requestBody']['content']['application/json'],
+    addon: operations['updateAddon']['requestBody']['content']['application/json'],
     options?: RequestOptions
-  ): Promise<
-    | paths['/api/v1/addons/{addonId}']['put']['responses']['200']['content']['application/json']
-    | undefined
-  > {
+  ) {
     const resp = await this.client.PUT('/api/v1/addons/{addonId}', {
       body: addon,
       params: { path: { addonId } },
@@ -99,16 +81,7 @@ export class Addons {
    * @param options - Optional request options
    * @returns void or standard error response structure
    */
-  public async delete(
-    addonId: string,
-    options?: RequestOptions
-  ): Promise<
-    paths['/api/v1/addons/{addonId}']['delete']['responses']['204']['content'] extends
-      | infer T
-      | undefined
-      ? T
-      : undefined
-  > {
+  public async delete(addonId: string, options?: RequestOptions) {
     const resp = await this.client.DELETE('/api/v1/addons/{addonId}', {
       params: { path: { addonId } },
       ...options,
@@ -123,13 +96,7 @@ export class Addons {
    * @param options - Optional request options
    * @returns The published addon
    */
-  public async publish(
-    addonId: string,
-    options?: RequestOptions
-  ): Promise<
-    | paths['/api/v1/addons/{addonId}/publish']['post']['responses']['200']['content']['application/json']
-    | undefined
-  > {
+  public async publish(addonId: string, options?: RequestOptions) {
     const resp = await this.client.POST('/api/v1/addons/{addonId}/publish', {
       params: { path: { addonId } },
       ...options,
@@ -144,13 +111,7 @@ export class Addons {
    * @param options - Optional request options
    * @returns The archived addon
    */
-  public async archive(
-    addonId: string,
-    options?: RequestOptions
-  ): Promise<
-    | paths['/api/v1/addons/{addonId}/archive']['post']['responses']['200']['content']['application/json']
-    | undefined
-  > {
+  public async archive(addonId: string, options?: RequestOptions) {
     const resp = await this.client.POST('/api/v1/addons/{addonId}/archive', {
       params: { path: { addonId } },
       ...options,
