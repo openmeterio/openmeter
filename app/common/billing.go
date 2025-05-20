@@ -100,10 +100,11 @@ func NewBillingAutoAdvancer(logger *slog.Logger, service billing.Service) (*bill
 	})
 }
 
-func NewBillingCollector(logger *slog.Logger, service billing.Service) (*billingworkercollect.InvoiceCollector, error) {
+func NewBillingCollector(logger *slog.Logger, service billing.Service, fs config.BillingFeatureSwitchesConfiguration) (*billingworkercollect.InvoiceCollector, error) {
 	return billingworkercollect.NewInvoiceCollector(billingworkercollect.Config{
-		BillingService: service,
-		Logger:         logger,
+		BillingService:   service,
+		Logger:           logger,
+		LockedNamespaces: fs.NamespaceLockdown,
 	})
 }
 
