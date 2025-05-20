@@ -97,13 +97,12 @@ const (
 	OverlapReasonActiveToAfterActiveFrom OverlapReason = "ActiveTo is after next ActiveFrom"
 )
 
-// OverlapDetail provides detailed information about an overlap between two cadenced items.
 type OverlapDetail[T Cadenced] struct {
-	Index1 int           // Index of the first item in the original list
-	Index2 int           // Index of the second item in the original list
-	Item1  T             // The first item involved in the overlap
-	Item2  T             // The second item involved in the overlap
-	Reason OverlapReason // The reason for the overlap
+	Index1 int
+	Index2 int
+	Item1  T
+	Item2  T
+	Reason OverlapReason
 }
 
 func NewSortedCadenceList[T Cadenced](cadences []T) CadenceList[T] {
