@@ -80,6 +80,106 @@ func TestValidationIssue_JSON(t *testing.T) {
 	}
 }
 
+var errTestValidationIssue = ValidationIssue{
+	Code:     "test_validation_issue",
+	Message:  "test validation issue",
+	Path:     "field",
+	Severity: ErrorSeverityCritical,
+}
+
+func TestValidationIssue_WithAttrs(t *testing.T) {
+	tests := []struct {
+		name  string
+		issue ValidationIssue
+		attrs Attributes
+	}{
+		{
+			name:  "empty",
+			issue: errTestValidationIssue,
+			attrs: nil,
+		},
+		{
+			name:  "with attributes",
+			issue: errTestValidationIssue,
+			attrs: Attributes{
+				"key1": "value1",
+				"key2": "value2",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual := test.issue.WithAttrs(test.attrs)
+
+			assert.Emptyf(t, errTestValidationIssue.Attributes, "original attributes must be empty")
+			assert.Equalf(t, test.attrs, actual.Attributes, "attributes must match")
+		})
+	}
+}
+
+func TestValidationIssue_WithPath(t *testing.T) {
+	tests := []struct {
+		name  string
+		issue ValidationIssue
+		path  string
+	}{
+		{
+			name:  "empty",
+			issue: errTestValidationIssue,
+			path:  "",
+		},
+		{
+			name:  "new",
+			issue: errTestValidationIssue,
+			path:  "field2",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual := test.issue.WithPath(test.path)
+
+			assert.Equalf(t, "field", errTestValidationIssue.Path, "path not must be overwritten in the source error")
+			assert.Equalf(t, test.path, actual.Path, "path must match")
+		})
+	}
+}
+
+func TestValidationIssue_Clone(t *testing.T) {
+	tests := []struct {
+		name          string
+		issue         ValidationIssue
+		expectedIssue ValidationIssue
+	}{
+		{
+			name:  "clone",
+			issue: errTestValidationIssue,
+			expectedIssue: ValidationIssue{
+				Attributes: errTestValidationIssue.Attributes,
+				Code:       errTestValidationIssue.Code,
+				Component:  errTestValidationIssue.Component,
+				Message:    errTestValidationIssue.Message,
+				Path:       errTestValidationIssue.Path,
+				Severity:   errTestValidationIssue.Severity,
+			},
+		},
+		{
+			name:          "empty",
+			issue:         ValidationIssue{},
+			expectedIssue: ValidationIssue{},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual := test.issue.Clone()
+
+			assert.Equalf(t, test.expectedIssue, actual, "must match after clone")
+		})
+	}
+}
+
 func TestAsValidationIssues(t *testing.T) {
 	tests := []struct {
 		name           string
