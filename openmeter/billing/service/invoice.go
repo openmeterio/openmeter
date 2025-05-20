@@ -680,6 +680,10 @@ func (s *Service) ApproveInvoice(ctx context.Context, input billing.ApproveInvoi
 	return s.executeTriggerOnInvoice(ctx, input, billing.TriggerApprove)
 }
 
+func (s *Service) SnapshotQuantities(ctx context.Context, input billing.SnapshotQuantitiesInput) (billing.Invoice, error) {
+	return s.executeTriggerOnInvoice(ctx, input, billing.TriggerSnapshotQuantities)
+}
+
 func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceInput) (billing.Invoice, error) {
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
 		invoice, err := s.adapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{

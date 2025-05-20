@@ -234,6 +234,12 @@ model InvoiceAvailableActions {
   retry?: InvoiceAvailableActionDetails;
 
   /**
+   * Snapshot quantities for usage based line items.
+   */
+  @visibility(Lifecycle.Read)
+  snapshotQuantities?: InvoiceAvailableActionDetails;
+
+  /**
    * Void an already issued invoice.
    */
   @visibility(Lifecycle.Read)

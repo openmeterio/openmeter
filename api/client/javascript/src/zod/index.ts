@@ -6556,6 +6556,20 @@ export const retryInvoiceActionParams = zod.object({
 })
 
 /**
+ * Snapshot quantities for usage based line items.
+ * @summary Snapshot quantities for usage based line items
+ */
+export const snapshotQuantitiesInvoiceActionPathInvoiceIdRegExp = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+
+export const snapshotQuantitiesInvoiceActionParams = zod.object({
+  invoiceId: zod
+    .string()
+    .regex(snapshotQuantitiesInvoiceActionPathInvoiceIdRegExp),
+})
+
+/**
  * Recalculate an invoice's tax amounts (using the app set in the customer's billing profile)
 
 Note: charges might apply, depending on the tax provider.

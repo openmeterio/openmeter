@@ -182,6 +182,18 @@ interface InvoiceEndpoints {
     @path
     invoiceId: ULID,
   ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * Snapshot quantities for usage based line items.
+   */
+  @post
+  @route("/snapshot-quantities")
+  @summary("Snapshot quantities for usage based line items")
+  @operationId("snapshotQuantitiesInvoiceAction")
+  snapshotQuantitiesAction(
+    @path
+    invoiceId: ULID,
+  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
 @route("/api/v1/billing/customers/{customerId}/invoices")

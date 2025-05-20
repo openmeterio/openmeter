@@ -70,6 +70,15 @@ func (a *Router) GetInvoice(w http.ResponseWriter, r *http.Request, invoiceId st
 	}).ServeHTTP(w, r)
 }
 
+// Snapshot quantities for usage based line items
+// (POST /api/v1/billing/invoices/{invoiceId}/snapshot-quantities)
+func (a *Router) SnapshotQuantitiesInvoiceAction(w http.ResponseWriter, r *http.Request, invoiceId string) {
+	a.billingHandler.ProgressInvoice(httpdriver.InvoiceProgressActionSnapshotQuantities).
+		With(httpdriver.ProgressInvoiceParams{
+			InvoiceID: invoiceId,
+		}).ServeHTTP(w, r)
+}
+
 // Advance the invoice's state to the next status
 // (POST /api/v1/billing/invoices/{invoiceId}/advance)
 func (a *Router) AdvanceInvoiceAction(w http.ResponseWriter, r *http.Request, invoiceId string) {

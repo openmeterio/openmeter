@@ -484,6 +484,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/billing/invoices/{invoiceId}/snapshot-quantities': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Snapshot quantities for usage based line items
+     * @description Snapshot quantities for usage based line items.
+     */
+    post: operations['snapshotQuantitiesInvoiceAction']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/billing/invoices/{invoiceId}/taxes/recalculate': {
     parameters: {
       query?: never
@@ -2553,11 +2573,11 @@ export interface components {
     /** @description BillingProfileApps represents the applications used by a billing profile */
     BillingProfileApps: {
       /** @description The tax app used for this workflow */
-      readonly tax: Omit<components['schemas']['App'], 'type'>
+      readonly tax: components['schemas']['App']
       /** @description The invoicing app used for this workflow */
-      readonly invoicing: Omit<components['schemas']['App'], 'type'>
+      readonly invoicing: components['schemas']['App']
       /** @description The payment app used for this workflow */
-      readonly payment: Omit<components['schemas']['App'], 'type'>
+      readonly payment: components['schemas']['App']
     }
     /** @description BillingProfileAppsCreate represents the input for creating a billing profile's apps */
     BillingProfileAppsCreate: {
@@ -5263,6 +5283,8 @@ export interface components {
       readonly delete?: components['schemas']['InvoiceAvailableActionDetails']
       /** @description Retry an invoice issuing step that failed. */
       readonly retry?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Snapshot quantities for usage based line items. */
+      readonly snapshotQuantities?: components['schemas']['InvoiceAvailableActionDetails']
       /** @description Void an already issued invoice. */
       readonly void?: components['schemas']['InvoiceAvailableActionDetails']
       /** @description Invoice a gathering invoice */
@@ -5602,10 +5624,7 @@ export interface components {
        */
       readonly id: string
       /** @description Reason code. */
-      readonly reason: Omit<
-        components['schemas']['BillingDiscountReason'],
-        'type'
-      >
+      readonly reason: components['schemas']['BillingDiscountReason']
       /** @description Text description as to why the discount was applied. */
       readonly description?: string
       /** @description External IDs of the invoice in other apps such as Stripe. */
@@ -5709,10 +5728,7 @@ export interface components {
        */
       readonly id: string
       /** @description Reason code. */
-      readonly reason: Omit<
-        components['schemas']['BillingDiscountReason'],
-        'type'
-      >
+      readonly reason: components['schemas']['BillingDiscountReason']
       /** @description Text description as to why the discount was applied. */
       readonly description?: string
       /** @description External IDs of the invoice in other apps such as Stripe. */
@@ -5987,7 +6003,7 @@ export interface components {
        * @deprecated
        * @description Price of the usage-based item being sold.
        */
-      price?: Omit<components['schemas']['RateCardUsageBasedPrice'], 'type'>
+      price?: components['schemas']['RateCardUsageBasedPrice']
       /**
        * @deprecated
        * @description The feature that the usage is based on.
@@ -6154,7 +6170,7 @@ export interface components {
        * @deprecated
        * @description Price of the usage-based item being sold.
        */
-      price?: Omit<components['schemas']['RateCardUsageBasedPrice'], 'type'>
+      price?: components['schemas']['RateCardUsageBasedPrice']
       /**
        * @deprecated
        * @description The feature that the usage is based on.
@@ -6224,7 +6240,7 @@ export interface components {
        * @deprecated
        * @description Price of the usage-based item being sold.
        */
-      price?: Omit<components['schemas']['RateCardUsageBasedPrice'], 'type'>
+      price?: components['schemas']['RateCardUsageBasedPrice']
       /**
        * @deprecated
        * @description The feature that the usage is based on.
@@ -6281,7 +6297,7 @@ export interface components {
        * @deprecated
        * @description Price of the usage-based item being sold.
        */
-      price?: Omit<components['schemas']['RateCardUsageBasedPrice'], 'type'>
+      price?: components['schemas']['RateCardUsageBasedPrice']
       /**
        * @deprecated
        * @description The feature that the usage is based on.
@@ -6307,10 +6323,7 @@ export interface components {
       taxConfig?: components['schemas']['TaxConfig']
       /** @description The price of the rate card.
        *     When null, the feature or service is free. */
-      price: Omit<
-        components['schemas']['RateCardUsageBasedPrice'],
-        'type'
-      > | null
+      price: components['schemas']['RateCardUsageBasedPrice'] | null
       /** @description The discounts that are applied to the line. */
       discounts?: components['schemas']['BillingDiscounts']
     }
@@ -7062,17 +7075,14 @@ export interface components {
        */
       readonly createdAt: Date
       /** @description The nnotification rule which generated this event. */
-      readonly rule: Omit<components['schemas']['NotificationRule'], 'type'>
+      readonly rule: components['schemas']['NotificationRule']
       /**
        * Delivery Status
        * @description The delivery status of the notification event.
        */
       readonly deliveryStatus: components['schemas']['NotificationEventDeliveryStatus'][]
       /** @description Timestamp when the notification event was created in RFC 3339 format. */
-      readonly payload: Omit<
-        components['schemas']['NotificationEventPayload'],
-        'type'
-      >
+      readonly payload: components['schemas']['NotificationEventPayload']
       /**
        * Annotations
        * @description Set of key-value pairs managed by the system. Cannot be modified by user.
@@ -8358,10 +8368,7 @@ export interface components {
       featureKey?: string
       /** @description The entitlement of the rate card.
        *     Only available when featureKey is set. */
-      entitlementTemplate?: Omit<
-        components['schemas']['RateCardEntitlement'],
-        'type'
-      >
+      entitlementTemplate?: components['schemas']['RateCardEntitlement']
       /**
        * Tax config
        * @description The tax config of the rate card.
@@ -8488,10 +8495,7 @@ export interface components {
       featureKey?: string
       /** @description The entitlement of the rate card.
        *     Only available when featureKey is set. */
-      entitlementTemplate?: Omit<
-        components['schemas']['RateCardEntitlement'],
-        'type'
-      >
+      entitlementTemplate?: components['schemas']['RateCardEntitlement']
       /**
        * Tax config
        * @description The tax config of the rate card.
@@ -8506,10 +8510,7 @@ export interface components {
       billingCadence: string
       /** @description The price of the rate card.
        *     When null, the feature or service is free. */
-      price: Omit<
-        components['schemas']['RateCardUsageBasedPrice'],
-        'type'
-      > | null
+      price: components['schemas']['RateCardUsageBasedPrice'] | null
       /**
        * Discounts
        * @description The discounts of the rate card.
@@ -9310,7 +9311,7 @@ export interface components {
        * Rate card
        * @description The rate card.
        */
-      rateCard: Omit<components['schemas']['RateCard'], 'type'>
+      rateCard: components['schemas']['RateCard']
       /**
        * Affected subscription item IDs
        * @description The IDs of the subscription items that this rate card belongs to.
@@ -9571,10 +9572,7 @@ export interface components {
        *     When null, the feature or service is free.
        * @example {}
        */
-      price: Omit<
-        components['schemas']['RateCardUsageBasedPrice'],
-        'type'
-      > | null
+      price: components['schemas']['RateCardUsageBasedPrice'] | null
       /**
        * Discounts
        * @description The discounts applied to the rate card.
@@ -9594,7 +9592,7 @@ export interface components {
       /** @description The feature the customer is entitled to use. */
       feature: components['schemas']['Feature']
       /** @description The entitlement of the Subscription Item. */
-      entitlement?: Omit<components['schemas']['Entitlement'], 'type'>
+      entitlement?: components['schemas']['Entitlement']
     }
     /** @description Paginated response */
     SubscriptionPaginatedResponse: {
@@ -9943,17 +9941,14 @@ export interface components {
       /** @description How much of the total line items to be voided? (e.g. 100% means all charges are voided) */
       percentage: components['schemas']['Percentage']
       /** @description The action to take on the line items. */
-      action: Omit<components['schemas']['VoidInvoiceLineActionCreate'], 'type'>
+      action: components['schemas']['VoidInvoiceLineActionCreate']
     }
     /** @description InvoiceVoidAction describes how to handle the voided line items. */
     VoidInvoiceActionCreateItem: {
       /** @description How much of the total line items to be voided? (e.g. 100% means all charges are voided) */
       percentage: components['schemas']['Percentage']
       /** @description The action to take on the line items. */
-      action: Omit<
-        components['schemas']['VoidInvoiceLineActionCreateItem'],
-        'type'
-      >
+      action: components['schemas']['VoidInvoiceLineActionCreateItem']
     }
     /** @description Request to void an invoice */
     VoidInvoiceActionInput: {
@@ -13763,6 +13758,100 @@ export interface operations {
     }
   }
   retryInvoiceAction: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        invoiceId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Invoice']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  snapshotQuantitiesInvoiceAction: {
     parameters: {
       query?: never
       header?: never

@@ -486,11 +486,13 @@ func (i *InvoiceExternalIDs) GetInvoicingOrEmpty() string {
 }
 
 type InvoiceAvailableActions struct {
-	Advance *InvoiceAvailableActionDetails        `json:"advance,omitempty"`
-	Approve *InvoiceAvailableActionDetails        `json:"approve,omitempty"`
-	Delete  *InvoiceAvailableActionDetails        `json:"delete,omitempty"`
-	Retry   *InvoiceAvailableActionDetails        `json:"retry,omitempty"`
-	Void    *InvoiceAvailableActionDetails        `json:"void,omitempty"`
+	Advance            *InvoiceAvailableActionDetails `json:"advance,omitempty"`
+	Approve            *InvoiceAvailableActionDetails `json:"approve,omitempty"`
+	Delete             *InvoiceAvailableActionDetails `json:"delete,omitempty"`
+	Retry              *InvoiceAvailableActionDetails `json:"retry,omitempty"`
+	Void               *InvoiceAvailableActionDetails `json:"void,omitempty"`
+	SnapshotQuantities *InvoiceAvailableActionDetails `json:"snapshotQuantities,omitempty"`
+
 	Invoice *InvoiceAvailableActionInvoiceDetails `json:"invoice,omitempty"`
 }
 
@@ -808,9 +810,10 @@ type AssociatedLineCountsAdapterResponse struct {
 }
 
 type (
-	AdvanceInvoiceInput = InvoiceID
-	ApproveInvoiceInput = InvoiceID
-	RetryInvoiceInput   = InvoiceID
+	AdvanceInvoiceInput     = InvoiceID
+	ApproveInvoiceInput     = InvoiceID
+	RetryInvoiceInput       = InvoiceID
+	SnapshotQuantitiesInput = InvoiceID
 )
 
 type UpdateInvoiceAdapterInput = Invoice

@@ -1427,6 +1427,10 @@ func (n NoopBillingService) AdvanceInvoice(ctx context.Context, input billing.Ad
 	return billing.Invoice{}, nil
 }
 
+func (n NoopBillingService) SnapshotQuantities(ctx context.Context, input billing.SnapshotQuantitiesInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
 func (n NoopBillingService) ApproveInvoice(ctx context.Context, input billing.ApproveInvoiceInput) (billing.Invoice, error) {
 	return billing.Invoice{}, nil
 }
