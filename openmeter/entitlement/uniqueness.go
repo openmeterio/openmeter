@@ -68,9 +68,8 @@ func ValidateUniqueConstraint(ents []Entitlement) error {
 
 	if overlaps := timeline.GetOverlaps(); len(overlaps) > 0 {
 		// We only return the first overlap
-		overlap := overlaps[0]
 		items := timeline.Cadences()
-		return &UniquenessConstraintError{e1: items[overlap[0]].ent, e2: items[overlap[1]].ent}
+		return &UniquenessConstraintError{e1: items[overlaps[0].Index1].ent, e2: items[overlaps[0].Index2].ent}
 	}
 
 	return nil

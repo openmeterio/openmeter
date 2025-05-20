@@ -537,7 +537,21 @@ func (s SubscriptionPhaseSpec) Validate(
 		}
 
 		if overlaps := timeline.GetOverlaps(); len(overlaps) > 0 {
-			errs = append(errs, fmt.Errorf("items for key %s are overlapping: %v", key, overlaps))
+			for _, overlap := range overlaps {
+				itemSpec1 := items[overlap.Index1]
+				itemSpec2 := items[overlap.Index2]
+				errs = append(errs, fmt.Errorf(
+					"items for key %s are overlapping (indexes %d and %d): reason: %s. Item 1 Spec: %+v, Cadence: %+v. Item 2 Spec: %+v, Cadence: %+v",
+					key,
+					overlap.Index1,
+					overlap.Index2,
+					overlap.Reason,
+					itemSpec1,
+					overlap.Item1,
+					itemSpec2,
+					overlap.Item2,
+				))
+			}
 		}
 	}
 

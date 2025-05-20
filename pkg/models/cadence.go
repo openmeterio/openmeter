@@ -5,8 +5,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -92,6 +90,25 @@ func (c CadencedModel) IsZero() bool {
 // It is useful to validate the relationship between the cadences of the models, like their ordering, overlaps, continuity, etc.
 type CadenceList[T Cadenced] []T
 
+// OverlapReason defines the reason for an overlap.
+type OverlapReason string
+
+const (
+	// OverlapReasonActiveToNil indicates an overlap because the first item's ActiveTo is nil.
+	OverlapReasonActiveToNil OverlapReason = "ActiveTo is nil"
+	// OverlapReasonActiveToAfterActiveFrom indicates an overlap because the first item's ActiveTo is after the second item's ActiveFrom.
+	OverlapReasonActiveToAfterActiveFrom OverlapReason = "ActiveTo is after next ActiveFrom"
+)
+
+// OverlapDetail provides detailed information about an overlap between two cadenced items.
+type OverlapDetail[T Cadenced] struct {
+	Index1 int           // Index of the first item in the original list
+	Index2 int           // Index of the second item in the original list
+	Item1  T             // The first item involved in the overlap
+	Item2  T             // The second item involved in the overlap
+	Reason OverlapReason // The reason for the overlap
+}
+
 func NewSortedCadenceList[T Cadenced](cadences []T) CadenceList[T] {
 	local := make([]T, len(cadences))
 	copy(local, cadences)
@@ -109,33 +126,47 @@ func (t CadenceList[T]) Cadences() []T {
 
 // TODO: rewrite CadenceList helpers to use timeutil.OpenPeriod instead
 
-// GetOverlaps returns true if there is any overlap between the cadences in the timeline
-func (t CadenceList[T]) GetOverlaps() [][2]int {
-	overlaps := make(map[[2]int][2]int)
-
-	addIfNew := func(a, b int) {
-		tp := [2]int{a, b}
-		if _, exists := overlaps[tp]; !exists {
-			overlaps[tp] = tp
-		}
-	}
+// GetOverlaps returns details about any overlaps between the cadences in the timeline.
+func (t CadenceList[T]) GetOverlaps() []OverlapDetail[T] {
+	var overlaps []OverlapDetail[T]
 
 	for i := 0; i < len(t); i++ {
 		if i == 0 {
 			continue
 		}
 
-		if t[i-1].cadence().ActiveTo == nil {
-			addIfNew(i-1, i)
+		item1 := t[i-1]
+		item2 := t[i]
+		cadence1 := item1.cadence()
+		cadence2 := item2.cadence()
+
+		if cadence1.ActiveTo == nil {
+			overlaps = append(overlaps, OverlapDetail[T]{
+				Index1: i - 1,
+				Index2: i,
+				Item1:  item1,
+				Item2:  item2,
+				Reason: OverlapReasonActiveToNil,
+			})
 			continue
 		}
 
-		if t[i-1].cadence().ActiveTo != nil && t[i].cadence().ActiveFrom.Before(*t[i-1].cadence().ActiveTo) {
-			addIfNew(i-1, i)
+		if cadence1.ActiveTo != nil && cadence2.ActiveFrom.Before(*cadence1.ActiveTo) {
+			overlaps = append(overlaps, OverlapDetail[T]{
+				Index1: i - 1,
+				Index2: i,
+				Item1:  item1,
+				Item2:  item2,
+				Reason: OverlapReasonActiveToAfterActiveFrom,
+			})
 		}
 	}
 
-	return lo.Values(overlaps)
+	// The original implementation used a map to ensure uniqueness of [2]int pairs.
+	// Since we are now returning richer details, and the loop structure inherently processes pairs (i-1, i) sequentially,
+	// direct appends should be fine. If specific de-duplication logic for OverlapDetail is needed based on new criteria,
+	// it would need to be implemented here. For now, this matches the previous logic's intent of finding overlaps between adjacent elements.
+	return overlaps
 }
 
 func (t CadenceList[T]) IsSorted() bool {
