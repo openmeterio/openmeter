@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
@@ -646,4 +648,137 @@ func stripFeatureIDs(spec *subscription.SubscriptionSpec) {
 			}
 		}
 	}
+}
+
+func TestAddonCombinations(t *testing.T) {
+	now := testutils.GetRFC3339Time(t, "2025-04-01T00:00:00Z")
+
+	type testCaseDeps struct {
+		deps subscriptiontestutils.SubscriptionDependencies
+	}
+
+	runWithDeps := func(fn func(t *testing.T, deps testCaseDeps)) func(t *testing.T) {
+		return func(t *testing.T) {
+			clock.SetTime(now)
+			defer clock.ResetTime()
+
+			dbDeps := subscriptiontestutils.SetupDBDeps(t)
+			defer dbDeps.Cleanup(t)
+
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			fn(t, testCaseDeps{deps: deps})
+		}
+	}
+
+	t.Run("Should handle repeated add/remove of single instance addon with dynamic price", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+		// Create a plan with mixed rate cards
+		planInput := subscriptiontestutils.BuildTestPlan(t).
+			AddPhase(nil,
+				&subscriptiontestutils.ExampleRateCard1, // Flat price
+				&productcatalog.UsageBasedRateCard{ // Dynamic price
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "dynamic_rc_1",
+						Name: "Dynamic Rate Card 1",
+						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							Mode: productcatalog.VolumeTieredPrice,
+							Tiers: []productcatalog.PriceTier{
+								{
+									UpToAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
+									FlatPrice: &productcatalog.PriceTierFlatPrice{
+										Amount: alpacadecimal.NewFromInt(10),
+									},
+								},
+								{
+									// UpToAmount: nil for infinity
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromInt(1),
+									},
+								},
+							},
+						}),
+					},
+					BillingCadence: subscriptiontestutils.ISOMonth,
+				},
+			).
+			Build()
+		p, add := subscriptiontestutils.CreatePlanWithAddon(
+			t,
+			deps.deps,
+			planInput,
+			subscriptiontestutils.BuildAddonForTesting(t,
+				productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+					EffectiveTo:   nil,
+				},
+				productcatalog.AddonInstanceTypeSingle,
+				&productcatalog.UsageBasedRateCard{ // Dynamic price for addon
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "addon_dynamic_rc",
+						Name: "Addon Dynamic Rate Card",
+						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							Mode: productcatalog.VolumeTieredPrice,
+							Tiers: []productcatalog.PriceTier{
+								{
+									// UpToAmount: nil for infinity
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(0.5),
+									},
+								},
+							},
+						}),
+					},
+					BillingCadence: subscriptiontestutils.ISOMonth,
+				},
+			),
+		)
+
+		// Create a subscription from the plan
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+		// Add the addon initially
+		addTime := now
+		var subAdd subscriptionaddon.SubscriptionAddon
+		var err error
+		subView, subAdd, err = deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add.ID,
+			InitialQuantity: 1,
+			Timing: subscription.Timing{
+				Custom: &addTime,
+			},
+		})
+		require.NoError(t, err, "failed to add addon initially")
+		require.NotNil(t, subAdd)
+
+		// Now, repeatedly change quantity to 0 and then back to 1
+		changeToZeroTime := addTime.AddDate(0, 0, 1)
+		changeToOneTime := changeToZeroTime.AddDate(0, 0, 1)
+
+		for i := 0; i < 3; i++ {
+			// Change quantity to 0 (remove)
+			changeInpZero := subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
+				SubscriptionAddonID: subAdd.NamespacedID,
+				Quantity:            0,
+				Timing: subscription.Timing{
+					Custom: &changeToZeroTime,
+				},
+			}
+			subView, _, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInpZero)
+			require.NoError(t, err, "failed to change addon quantity to 0 on iteration %d", i)
+
+			// Change quantity back to 1 (re-add)
+			changeInpOne := subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
+				SubscriptionAddonID: subAdd.NamespacedID,
+				Quantity:            1,
+				Timing: subscription.Timing{
+					Custom: &changeToOneTime,
+				},
+			}
+			subView, subAdd, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInpOne)
+			require.NoError(t, err, "failed to change addon quantity to 1 on iteration %d", i)
+
+			// Ensure times are different for next iteration
+			changeToZeroTime = changeToOneTime.AddDate(0, 0, 1)
+			changeToOneTime = changeToZeroTime.AddDate(0, 0, 1)
+		}
+	}))
 }
