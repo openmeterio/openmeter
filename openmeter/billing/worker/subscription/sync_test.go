@@ -700,13 +700,13 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				ItemKey:   "in-advance",
 				Version:   1,
 				PeriodMin: 0,
-				PeriodMax: 4,
+				PeriodMax: 5,
 			},
 
 			Qty:       mo.Some[float64](1),
 			UnitPrice: mo.Some[float64](10),
-			Periods:   s.generatePeriods("2024-01-01T00:00:40Z", "2024-01-02T00:00:40Z", "P1D", 5),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-01T00:00:40Z", 5),
+			Periods:   s.generatePeriods("2024-01-01T00:00:40Z", "2024-01-02T00:00:40Z", "P1D", 6),
+			InvoiceAt: s.generateDailyTimestamps("2024-01-01T00:00:40Z", 6),
 		},
 	})
 }
@@ -796,13 +796,13 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				ItemKey:   "in-advance",
 				Version:   1,
 				PeriodMin: 0,
-				PeriodMax: 4,
+				PeriodMax: 5,
 			},
 
 			Qty:       mo.Some[float64](1),
 			UnitPrice: mo.Some[float64](10),
-			Periods:   s.generatePeriods("2024-01-01T00:00:40Z", "2024-01-02T00:00:40Z", "P1D", 5),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-01T00:00:40Z", 5),
+			Periods:   s.generatePeriods("2024-01-01T00:00:40Z", "2024-01-02T00:00:40Z", "P1D", 6),
+			InvoiceAt: s.generateDailyTimestamps("2024-01-01T00:00:40Z", 6),
 		},
 	})
 }
@@ -989,13 +989,13 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 				ItemKey:   "in-advance",
 				Version:   1,
 				PeriodMin: 0,
-				PeriodMax: 3,
+				PeriodMax: 4,
 			},
 
 			Qty:       mo.Some[float64](1),
 			UnitPrice: mo.Some[float64](10),
-			Periods:   s.generatePeriods("2024-01-01T12:00:00Z", "2024-01-02T12:00:00Z", "P1D", 4),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-01T12:00:00Z", 4),
+			Periods:   s.generatePeriods("2024-01-01T12:00:00Z", "2024-01-02T12:00:00Z", "P1D", 5),
+			InvoiceAt: s.generateDailyTimestamps("2024-01-01T12:00:00Z", 5),
 		},
 	})
 }
@@ -1099,13 +1099,13 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 				ItemKey:   "in-advance",
 				Version:   1,
 				PeriodMin: 0,
-				PeriodMax: 3,
+				PeriodMax: 4,
 			},
 
 			Qty:       mo.Some[float64](1),
 			UnitPrice: mo.Some[float64](10),
-			Periods:   s.generatePeriods("2024-01-01T12:00:00Z", "2024-01-02T12:00:00Z", "P1D", 4),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-01T12:00:00Z", 4),
+			Periods:   s.generatePeriods("2024-01-01T12:00:00Z", "2024-01-02T12:00:00Z", "P1D", 5),
+			InvoiceAt: s.generateDailyTimestamps("2024-01-01T12:00:00Z", 5),
 		},
 	})
 
@@ -1242,13 +1242,13 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 				ItemKey:   "in-advance",
 				Version:   1,
 				PeriodMin: 0,
-				PeriodMax: 3,
+				PeriodMax: 4,
 			},
 
 			Qty:       mo.Some[float64](1),
 			UnitPrice: mo.Some[float64](10),
-			Periods:   s.generatePeriods("2024-01-01T12:00:00Z", "2024-01-02T12:00:00Z", "P1D", 4),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-01T12:00:00Z", 4),
+			Periods:   s.generatePeriods("2024-01-01T12:00:00Z", "2024-01-02T12:00:00Z", "P1D", 5),
+			InvoiceAt: s.generateDailyTimestamps("2024-01-01T12:00:00Z", 5),
 		},
 	})
 
@@ -1510,7 +1510,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				ItemKey:   "in-advance",
 				Version:   1,
 				PeriodMin: 0,
-				PeriodMax: 0,
+				PeriodMax: 1,
 			},
 
 			Qty:       mo.Some[float64](1),
@@ -1520,9 +1520,16 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
 					End:   s.mustParseTime("2024-01-08T00:00:00Z"),
 				},
+				{
+					Start: s.mustParseTime("2024-01-08T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+				},
 			},
 			// in-advance items are invoiced immediately when change happens
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z")},
+			InvoiceAt: []time.Time{
+				s.mustParseTime("2024-01-02T00:00:00Z"),
+				s.mustParseTime("2024-01-08T00:00:00Z"),
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
