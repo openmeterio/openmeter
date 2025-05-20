@@ -158,10 +158,6 @@ func (t CadenceList[T]) GetOverlaps() []OverlapDetail[T] {
 		}
 	}
 
-	// The original implementation used a map to ensure uniqueness of [2]int pairs.
-	// Since we are now returning richer details, and the loop structure inherently processes pairs (i-1, i) sequentially,
-	// direct appends should be fine. If specific de-duplication logic for OverlapDetail is needed based on new criteria,
-	// it would need to be implemented here. For now, this matches the previous logic's intent of finding overlaps between adjacent elements.
 	return overlaps
 }
 
