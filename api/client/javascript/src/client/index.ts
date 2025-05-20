@@ -3,6 +3,7 @@ import createClient, {
   type Client,
   type ClientOptions,
 } from 'openapi-fetch'
+import { Addons } from './addons.js'
 import { Apps } from './apps.js'
 import { Billing } from './billing.js'
 import { Customers } from './customers.js'
@@ -16,6 +17,7 @@ import { Notifications } from './notifications.js'
 import { Plans } from './plans.js'
 import { Portal } from './portal.js'
 import { Subjects } from './subjects.js'
+import { SubscriptionAddons } from './subscription-addons.js'
 import { Subscriptions } from './subscriptions.js'
 import { encodeDates } from './utils.js'
 import type { paths } from './schemas.js'
@@ -46,6 +48,7 @@ export type Config = Pick<
 export class OpenMeter {
   public client: Client<paths, `${string}/${string}`>
 
+  public addons: Addons
   public apps: Apps
   public billing: Billing
   public customers: Customers
@@ -59,6 +62,7 @@ export class OpenMeter {
   public plans: Plans
   public portal: Portal
   public subjects: Subjects
+  public subscriptionAddons: SubscriptionAddons
   public subscriptions: Subscriptions
 
   constructor(public config: Config) {
@@ -81,6 +85,7 @@ export class OpenMeter {
         })(encodeDates(q)),
     })
 
+    this.addons = new Addons(this.client)
     this.apps = new Apps(this.client)
     this.billing = new Billing(this.client)
     this.customers = new Customers(this.client)
@@ -94,6 +99,7 @@ export class OpenMeter {
     this.plans = new Plans(this.client)
     this.portal = new Portal(this.client)
     this.subjects = new Subjects(this.client)
+    this.subscriptionAddons = new SubscriptionAddons(this.client)
     this.subscriptions = new Subscriptions(this.client)
   }
 }
