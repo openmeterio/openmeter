@@ -6,23 +6,105 @@ import (
 	"github.com/samber/lo"
 )
 
+type Attributes map[string]any
+
+func (a Attributes) Clone() Attributes {
+	if a == nil {
+		return nil
+	}
+
+	m := make(Attributes)
+
+	if len(a) == 0 {
+		return m
+	}
+
+	for k, v := range a {
+		m[k] = v
+	}
+
+	return m
+}
+
+func (a Attributes) Merge(m Attributes) Attributes {
+	if len(m) == 0 {
+		return a.Clone()
+	}
+
+	r := make(Attributes, len(a)+len(m))
+
+	for k, v := range a {
+		r[k] = v
+	}
+
+	for k, v := range m {
+		r[k] = v
+	}
+
+	return r
+}
+
+type ErrorExtensions map[string]any
+
 var _ error = (*ValidationIssue)(nil)
 
 type ValidationIssue struct {
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
-	Code       ErrorCode              `json:"code,omitempty"`
-	Component  ComponentName          `json:"component,omitempty"`
-	Message    string                 `json:"message"`
-	Path       string                 `json:"path,omitempty"`
-	Severity   ErrorSeverity          `json:"severity,omitempty"`
+	Attributes Attributes    `json:"attributes,omitempty"`
+	Code       ErrorCode     `json:"code,omitempty"`
+	Component  ComponentName `json:"component,omitempty"`
+	Message    string        `json:"message"`
+	Path       string        `json:"path,omitempty"`
+	Severity   ErrorSeverity `json:"severity,omitempty"`
+}
+
+func (i ValidationIssue) Clone() ValidationIssue {
+	return ValidationIssue{
+		Attributes: i.Attributes.Clone(),
+		Code:       i.Code,
+		Component:  i.Component,
+		Message:    i.Message,
+		Path:       i.Path,
+		Severity:   i.Severity,
+	}
+}
+
+func (i ValidationIssue) WithPath(path string) ValidationIssue {
+	v := i.Clone()
+	v.Path = path
+
+	return v
+}
+
+func (i ValidationIssue) WithSeverity(s ErrorSeverity) ValidationIssue {
+	v := i.Clone()
+	v.Severity = s
+
+	return v
+}
+
+func (i ValidationIssue) WithAttr(key string, value any) ValidationIssue {
+	return i.WithAttrs(Attributes{
+		key: value,
+	})
+}
+
+func (i ValidationIssue) WithAttrs(attrs Attributes) ValidationIssue {
+	if len(attrs) == 0 {
+		return i
+	}
+
+	v := i.Clone()
+	v.Attributes = i.Attributes.Merge(attrs)
+
+	return v
 }
 
 func (i ValidationIssue) Error() string {
 	return i.Message
 }
 
-func (i ValidationIssue) AsErrorExtension() map[string]interface{} {
-	m := make(map[string]interface{}, len(i.Attributes)+5)
+func (i ValidationIssue) AsErrorExtension() ErrorExtensions {
+	m := make(ErrorExtensions, len(i.Attributes)+5)
 
 	for k, v := range i.Attributes {
 		switch k {
