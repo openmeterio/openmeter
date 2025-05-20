@@ -1451,6 +1451,10 @@ func (n NoopBillingService) UpsertValidationIssues(ctx context.Context, input bi
 	return nil
 }
 
+func (n NoopBillingService) RecalculateGatheringInvoices(ctx context.Context, input billing.RecalculateGatheringInvoicesInput) error {
+	return nil
+}
+
 // SequenceService methods
 func (n NoopBillingService) GenerateInvoiceSequenceNumber(ctx context.Context, in billing.SequenceGenerationInput, def billing.SequenceDefinition) (string, error) {
 	return "", nil

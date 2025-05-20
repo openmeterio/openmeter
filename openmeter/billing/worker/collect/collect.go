@@ -95,10 +95,11 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 		}
 
 		if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
-			a.logger.WarnContext(ctx, "no invoices generated for customer during collection (possible data inconsistency)", "customer", params.CustomerID)
+			a.logger.WarnContext(ctx, "no invoices generated for customer during collection (possible data inconsistency), recalculating gathering invoices", "customer", params.CustomerID)
 
-			// TODO[later]: Perform a recalculation on the customer's gathering invoices, as we might either have collectionAt set to a wrong time
-			// or the invoice is empty.
+			if err := a.billing.RecalculateGatheringInvoices(ctx, params.CustomerID); err != nil {
+				return nil, err
+			}
 
 			return nil, nil
 		}

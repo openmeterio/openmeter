@@ -1007,3 +1007,5 @@ func (i UpdateInvoiceFieldsInput) Validate() error {
 
 	return nil
 }
+
+type RecalculateGatheringInvoicesInput = customer.CustomerID

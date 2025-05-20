@@ -69,6 +69,10 @@ type InvoiceService interface {
 	// UpsertValidationIssues upserts validation errors to the invoice bypassing the state machine, can only be
 	// used on invoices in immutable state.
 	UpsertValidationIssues(ctx context.Context, input UpsertValidationIssuesInput) error
+
+	// RecalculateGatheringInvoices recalculates the gathering invoices for a given customer, updating the
+	// collection_at attribute and deleting the gathering invoice if it has no lines.
+	RecalculateGatheringInvoices(ctx context.Context, input RecalculateGatheringInvoicesInput) error
 }
 
 type SequenceService interface {
