@@ -1662,6 +1662,8 @@ paths:
         - $ref: '#/components/parameters/InvoiceListParams.extendedStatuses'
         - $ref: '#/components/parameters/InvoiceListParams.issuedAfter'
         - $ref: '#/components/parameters/InvoiceListParams.issuedBefore'
+        - $ref: '#/components/parameters/InvoiceListParams.periodStartAfter'
+        - $ref: '#/components/parameters/InvoiceListParams.periodStartBefore'
         - $ref: '#/components/parameters/InvoiceListParams.createdAfter'
         - $ref: '#/components/parameters/InvoiceListParams.createdBefore'
         - $ref: '#/components/parameters/InvoiceListParams.expand'
@@ -10551,6 +10553,30 @@ components:
         format: date-time
         example: '2023-01-01T01:01:01.001Z'
       style: form
+    InvoiceListParams.periodStartAfter:
+      name: periodStartAfter
+      in: query
+      required: false
+      description: |-
+        Filter by period start time.
+        Inclusive.
+      schema:
+        type: string
+        format: date-time
+        example: '2023-01-01T01:01:01.001Z'
+      style: form
+    InvoiceListParams.periodStartBefore:
+      name: periodStartBefore
+      in: query
+      required: false
+      description: |-
+        Filter by period start time.
+        Inclusive.
+      schema:
+        type: string
+        format: date-time
+        example: '2023-01-01T01:01:01.001Z'
+      style: form
     InvoiceListParams.statuses:
       name: statuses
       in: query
@@ -16124,6 +16150,7 @@ components:
         - status
         - createdAt
         - updatedAt
+        - periodStart
       description: InvoiceOrderBy specifies the ordering options for invoice listing.
     InvoicePaginatedResponse:
       type: object

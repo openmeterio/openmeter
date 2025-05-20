@@ -649,6 +649,9 @@ type ListInvoicesInput struct {
 	IssuedAfter  *time.Time
 	IssuedBefore *time.Time
 
+	PeriodStartAfter  *time.Time
+	PeriodStartBefore *time.Time
+
 	// Filter by invoice creation time
 	CreatedAfter  *time.Time
 	CreatedBefore *time.Time

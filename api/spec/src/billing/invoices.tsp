@@ -243,6 +243,7 @@ enum InvoiceOrderBy {
   status: "status",
   createdAt: "createdAt",
   updatedAt: "updatedAt",
+  periodStart: "periodStart",
 }
 
 /**
@@ -392,6 +393,20 @@ model InvoiceListParams {
    */
   @query(#{ explode: true })
   issuedBefore?: DateTime;
+
+  /**
+   * Filter by period start time.
+   * Inclusive.
+   */
+  @query(#{ explode: true })
+  periodStartAfter?: DateTime;
+
+  /**
+   * Filter by period start time.
+   * Inclusive.
+   */
+  @query(#{ explode: true })
+  periodStartBefore?: DateTime;
 
   /**
    * Filter by invoice created time.
