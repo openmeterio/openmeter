@@ -962,8 +962,12 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 // updateInvoice calls the adapter to update the invoice and returns the updated invoice including any expands that are
 // the responsibility of the service
 func (s Service) updateInvoice(ctx context.Context, in billing.UpdateInvoiceAdapterInput) (billing.Invoice, error) {
-	// TODO[later]: This should include the status details too, but it's a chicken and egg problem
-	invoice, err := s.adapter.UpdateInvoice(ctx, in)
+	invoice, err := s.resolveStatusDetails(ctx, in)
+	if err != nil {
+		return billing.Invoice{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoice.ID, err)
+	}
+
+	invoice, err = s.adapter.UpdateInvoice(ctx, invoice)
 	if err != nil {
 		return billing.Invoice{}, err
 	}
@@ -971,11 +975,6 @@ func (s Service) updateInvoice(ctx context.Context, in billing.UpdateInvoiceAdap
 	invoice, err = s.resolveWorkflowApps(ctx, invoice)
 	if err != nil {
 		return billing.Invoice{}, fmt.Errorf("error resolving workflow apps for invoice [%s]: %w", invoice.ID, err)
-	}
-
-	invoice, err = s.resolveStatusDetails(ctx, invoice)
-	if err != nil {
-		return billing.Invoice{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoice.ID, err)
 	}
 
 	return invoice, nil
