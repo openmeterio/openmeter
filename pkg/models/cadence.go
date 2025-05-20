@@ -90,13 +90,10 @@ func (c CadencedModel) IsZero() bool {
 // It is useful to validate the relationship between the cadences of the models, like their ordering, overlaps, continuity, etc.
 type CadenceList[T Cadenced] []T
 
-// OverlapReason defines the reason for an overlap.
 type OverlapReason string
 
 const (
-	// OverlapReasonActiveToNil indicates an overlap because the first item's ActiveTo is nil.
-	OverlapReasonActiveToNil OverlapReason = "ActiveTo is nil"
-	// OverlapReasonActiveToAfterActiveFrom indicates an overlap because the first item's ActiveTo is after the second item's ActiveFrom.
+	OverlapReasonActiveToNil             OverlapReason = "ActiveTo is nil"
 	OverlapReasonActiveToAfterActiveFrom OverlapReason = "ActiveTo is after next ActiveFrom"
 )
 
