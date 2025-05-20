@@ -150,6 +150,9 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.AdvanceInvoiceEvent) error {
 			return w.asyncAdvanceHandler.Handle(ctx, event)
 		}),
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.InvoiceCreatedEvent) error {
+			return w.subscriptionSyncHandler.HandleInvoiceCreation(ctx, event.EventInvoice)
+		}),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event handler: %w", err)
