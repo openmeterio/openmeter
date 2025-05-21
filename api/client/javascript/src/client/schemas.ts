@@ -5218,6 +5218,12 @@ export interface components {
       readonly quantitySnapshotedAt?: Date
       /**
        * Format: date-time
+       * @description The time when the invoice will be/has been collected.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly collectionAt?: Date
+      /**
+       * Format: date-time
        * @description Due time of the fulfillment of the invoice (if available).
        * @example 2023-01-01T01:01:01.001Z
        */
