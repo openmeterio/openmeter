@@ -155,6 +155,11 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 	return minTime
 }
 
+// Generate generates the lines for the phase so that all active subscription item's are generated up to the point
+// where either the item gets deactivated or the last item's invoice_at >= iterationEnd and it's period's end is equal to
+// or after iterationEnd.
+//
+// This ensures that we always have the upcoming lines stored on the gathering invoice.
 func (it *PhaseIterator) Generate(ctx context.Context, iterationEnd time.Time) ([]subscriptionItemWithPeriod, error) {
 	ctx, span := it.tracer.Start(ctx, "billing.worker.subscription.phaseiterator.Generate", trace.WithAttributes(
 		attribute.String("phase_key", it.phase.Spec.PhaseKey),
@@ -238,15 +243,18 @@ func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item
 		return true, nil
 	}
 
-	var err error
-
 	for {
 		logger := logger.With("periodIdx", periodIdx, "periodAt", at)
 
-		periodIdx, at, err = it.generateForAlignedItemVersionPeriod(ctx, logger, item, version, periodIdx, at, items)
+		newItem, err := it.generateForAlignedItemVersionPeriod(ctx, logger, item, version, periodIdx, at)
 		if err != nil {
 			return false, err
 		}
+
+		*items = append(*items, newItem.item)
+
+		periodIdx = newItem.index + 1
+		at = newItem.period.To
 
 		// We start when the item activates, then advance until either
 		// 1. it deactivates
@@ -254,16 +262,19 @@ func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item
 			logger.DebugContext(ctx, "exiting loop due to item deactivation", slog.Time("at", at), slog.Time("activeTo", *item.SubscriptionItem.ActiveTo))
 			break
 		}
+
 		// 2. the phase ends
 		if it.phaseCadence.ActiveTo != nil && !at.Before(*it.phaseCadence.ActiveTo) {
 			logger.DebugContext(ctx, "exiting loop due to phase end", slog.Time("at", at), slog.Time("activeTo", *it.phaseCadence.ActiveTo))
 			break
 		}
+
 		// 3. we reach the iteration end
-		if !at.Before(iterationEnd) {
-			logger.DebugContext(ctx, "exiting loop due to iteration end", slog.Time("at", at), slog.Time("iterationEnd", iterationEnd))
+		if !at.Before(iterationEnd) && !newItem.invoiceAt.Before(iterationEnd) {
+			logger.DebugContext(ctx, "exiting loop due to iteration end", slog.Time("at", at), slog.Time("iterationEnd", iterationEnd), slog.Time("invoiceAt", newItem.invoiceAt))
 			break
 		}
+
 		// 4. we reach the max iterations
 		if periodIdx > maxSafeIter {
 			logger.ErrorContext(ctx, "max iterations reached", slog.Any("iterator", it), slog.String("stack", string(debug.Stack())))
@@ -276,18 +287,27 @@ func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item
 	return false, nil
 }
 
-func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context, logger *slog.Logger, item subscription.SubscriptionItemView, version int, periodIdx int, at time.Time, items *[]subscriptionItemWithPeriod) (int, time.Time, error) {
+type generatedVersionPeriodItem struct {
+	period    timeutil.ClosedPeriod
+	invoiceAt time.Time
+	index     int
+	item      subscriptionItemWithPeriod
+}
+
+func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context, logger *slog.Logger, item subscription.SubscriptionItemView, version int, periodIdx int, at time.Time) (generatedVersionPeriodItem, error) {
 	ctx, span := it.tracer.Start(ctx, "billing.worker.subscription.phaseiterator.generateForAlignedItemVersionPeriod", trace.WithAttributes(
 		attribute.Int("periodIdx", periodIdx),
 		attribute.String("periodAt", at.Format(time.RFC3339)),
 	))
 	defer span.End()
 
+	var empty generatedVersionPeriodItem
+
 	// We start when the item activates, then advance until either
 	nonTruncatedPeriod, err := it.sub.Spec.GetAlignedBillingPeriodAt(it.phase.Spec.PhaseKey, at)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to get aligned billing period", slog.Any("error", err))
-		return periodIdx, at, err
+		return empty, err
 	}
 
 	// Period otherwise is truncated by activeFrom and activeTo times
@@ -329,9 +349,17 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 		PhaseID: it.phase.SubscriptionPhase.ID,
 	}
 
-	*items = append(*items, generatedItem)
+	invoiceAt, err := it.getInvoiceAt(period, *item.SubscriptionItem.RateCard.AsMeta().Price)
+	if err != nil {
+		return empty, err
+	}
 
-	return periodIdx + 1, period.To, nil
+	return generatedVersionPeriodItem{
+		period:    period,
+		invoiceAt: invoiceAt,
+		index:     periodIdx,
+		item:      generatedItem,
+	}, nil
 }
 
 func (it *PhaseIterator) generate(iterationEnd time.Time) ([]subscriptionItemWithPeriod, error) {
@@ -346,6 +374,8 @@ func (it *PhaseIterator) generate(iterationEnd time.Time) ([]subscriptionItemWit
 			if item.Spec.RateCard.AsMeta().Price == nil {
 				continue
 			}
+
+			price := *item.Spec.RateCard.AsMeta().Price
 
 			if item.Spec.RateCard.GetBillingCadence() == nil {
 				generatedItem, err := it.generateOneTimeItem(item, versionID)
@@ -408,6 +438,14 @@ func (it *PhaseIterator) generate(iterationEnd time.Time) ([]subscriptionItemWit
 
 				out = append(out, generatedItem)
 
+				invoiceAt, err := it.getInvoiceAt(timeutil.ClosedPeriod{
+					From: start,
+					To:   end,
+				}, price)
+				if err != nil {
+					return nil, err
+				}
+
 				periodID++
 				start = end
 
@@ -422,7 +460,7 @@ func (it *PhaseIterator) generate(iterationEnd time.Time) ([]subscriptionItemWit
 				}
 
 				// Or we have reached the iteration end
-				if !start.Before(iterationEnd) {
+				if !start.Before(iterationEnd) && !invoiceAt.Before(iterationEnd) {
 					break
 				}
 			}
@@ -569,4 +607,21 @@ func (it *PhaseIterator) generateOneTimeItem(item subscription.SubscriptionItemV
 		}, "/"),
 		PhaseID: it.phase.SubscriptionPhase.ID,
 	}, nil
+}
+
+func (it *PhaseIterator) getInvoiceAt(period timeutil.ClosedPeriod, price productcatalog.Price) (time.Time, error) {
+	invoiceAt := period.To
+
+	// Calculate the expected invoice at time: we only have one in-advance item: flat fees
+	if price.Type() == productcatalog.FlatPriceType {
+		flatFee, err := price.AsFlat()
+		if err != nil {
+			return time.Time{}, err
+		}
+
+		if flatFee.PaymentTerm == productcatalog.InAdvancePaymentTerm {
+			invoiceAt = period.From
+		}
+	}
+	return invoiceAt, nil
 }

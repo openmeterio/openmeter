@@ -69,13 +69,13 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 		alignedSub      bool
 	}{
 		{
-			name:     "empty",
+			name:     "unaligned empty",
 			items:    []subscriptionItemViewMock{},
 			end:      s.mustParseTime("2021-01-01T00:00:00Z"),
 			expected: []expectedIterations{},
 		},
 		{
-			name:       "empty2",
+			name:       "aligned empty",
 			items:      []subscriptionItemViewMock{},
 			alignedSub: true,
 			end:        s.mustParseTime("2021-01-01T00:00:00Z"),
@@ -308,7 +308,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			},
 		},
 		{
-			name: "flat-fee recurring",
+			name: "unaligned flat-fee recurring",
 			items: []subscriptionItemViewMock{
 				{
 					Key:     "item-key",
@@ -327,6 +327,12 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Start: s.mustParseTime("2021-01-02T00:00:00Z"),
 					End:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					Key:   "subID/phase-test/item-key/v[0]/period[1]",
+				},
+				{
+					// Given end is >= invoice_at only at this point
+					Start: s.mustParseTime("2021-01-03T00:00:00Z"),
+					End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					Key:   "subID/phase-test/item-key/v[0]/period[2]",
 				},
 			},
 		},
@@ -382,6 +388,11 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					End:   s.mustParseTime("2021-01-03T20:00:00Z"),
 					Key:   "subID/phase-test/item-key/v[1]/period[0]",
 				},
+				{
+					Start: s.mustParseTime("2021-01-03T20:00:00Z"),
+					End:   s.mustParseTime("2021-01-04T20:00:00Z"),
+					Key:   "subID/phase-test/item-key/v[1]/period[1]",
+				},
 			},
 		},
 		{
@@ -419,6 +430,12 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					End:               s.mustParseTime("2021-01-03T00:00:00Z"),
 					Key:               "subID/phase-test/item-key/v[1]/period[0]",
 					NonTruncatedStart: s.mustParseTime("2021-01-02T00:00:00Z"),
+				},
+				// Given invoiceAt should be >= end, we have an extra in advance item
+				{
+					Start: s.mustParseTime("2021-01-03T00:00:00Z"),
+					End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					Key:   "subID/phase-test/item-key/v[1]/period[1]",
 				},
 			},
 		},
@@ -471,6 +488,12 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Start: s.mustParseTime("2021-01-02T00:00:00Z"),
 					End:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					Key:   "subID/phase-test/item-key2/v[0]/period[1]",
+				},
+				{
+					// Included as the previous line's invoiceAt is 2021-01-02T00:00:00Z which is < end
+					Start: s.mustParseTime("2021-01-03T00:00:00Z"),
+					End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					Key:   "subID/phase-test/item-key2/v[0]/period[2]",
 				},
 			},
 		},
@@ -526,6 +549,73 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Start: s.mustParseTime("2021-01-01T00:00:00Z"),
 					End:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					Key:   "subID/phase-test/item-key/v[0]/period[0]",
+				},
+			},
+		},
+		{
+			name:       "aligned subscription in advance and in arreas generation rules",
+			alignedSub: true,
+			items: []subscriptionItemViewMock{
+				{
+					Key:     "in-advance",
+					Type:    productcatalog.FlatPriceType,
+					Cadence: "P1M",
+				},
+				{
+					Key:     "in-arreas",
+					Type:    productcatalog.UnitPriceType,
+					Cadence: "P1M",
+				},
+			},
+			end: s.mustParseTime("2021-01-03T00:00:00Z"),
+			expected: []expectedIterations{
+				{
+					Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2021-02-01T00:00:00Z"),
+					Key:   "subID/phase-test/in-advance/v[0]/period[0]",
+				},
+				{
+					Start: s.mustParseTime("2021-02-01T00:00:00Z"),
+					End:   s.mustParseTime("2021-03-01T00:00:00Z"),
+					Key:   "subID/phase-test/in-advance/v[0]/period[1]",
+				},
+				{
+					Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2021-02-01T00:00:00Z"),
+					Key:   "subID/phase-test/in-arreas/v[0]/period[0]",
+				},
+			},
+		},
+		{
+			name: "unaligned subscription in advance and in arreas generation rules",
+			items: []subscriptionItemViewMock{
+				{
+					Key:     "in-advance",
+					Type:    productcatalog.FlatPriceType,
+					Cadence: "P1M",
+				},
+				{
+					Key:     "in-arreas",
+					Type:    productcatalog.UnitPriceType,
+					Cadence: "P1M",
+				},
+			},
+			end: s.mustParseTime("2021-01-03T00:00:00Z"),
+			expected: []expectedIterations{
+				{
+					Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2021-02-01T00:00:00Z"),
+					Key:   "subID/phase-test/in-advance/v[0]/period[0]",
+				},
+				{
+					Start: s.mustParseTime("2021-02-01T00:00:00Z"),
+					End:   s.mustParseTime("2021-03-01T00:00:00Z"),
+					Key:   "subID/phase-test/in-advance/v[0]/period[1]",
+				},
+				{
+					Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2021-02-01T00:00:00Z"),
+					Key:   "subID/phase-test/in-arreas/v[0]/period[0]",
 				},
 			},
 		},
