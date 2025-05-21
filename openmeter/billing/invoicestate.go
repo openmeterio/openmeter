@@ -21,6 +21,8 @@ var (
 	// TriggerUpdated is used to trigger a change in the invoice (we are using this to calculate the immutable states
 	// and trigger re-validation)
 	TriggerUpdated InvoiceTrigger = "trigger_updated"
+	// TriggerSnapshotQuantities is used to snapshot the quantities for usage based line items
+	TriggerSnapshotQuantities InvoiceTrigger = "trigger_snapshot_quantities"
 	// triggerDelete is used to delete the invoice
 	TriggerDelete InvoiceTrigger = "trigger_delete"
 

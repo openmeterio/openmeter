@@ -225,9 +225,10 @@ func (h *handler) GetInvoice() GetInvoiceHandler {
 type ProgressAction string
 
 const (
-	InvoiceProgressActionApprove ProgressAction = "approve"
-	InvoiceProgressActionRetry   ProgressAction = "retry"
-	InvoiceProgressActionAdvance ProgressAction = "advance"
+	InvoiceProgressActionApprove            ProgressAction = "approve"
+	InvoiceProgressActionRetry              ProgressAction = "retry"
+	InvoiceProgressActionAdvance            ProgressAction = "advance"
+	InvoiceProgressActionSnapshotQuantities ProgressAction = "snapshot_quantities"
 )
 
 var (
@@ -235,11 +236,13 @@ var (
 		InvoiceProgressActionApprove,
 		InvoiceProgressActionRetry,
 		InvoiceProgressActionAdvance,
+		InvoiceProgressActionSnapshotQuantities,
 	}
 	invoiceProgressOperationNames = map[ProgressAction]string{
-		InvoiceProgressActionApprove: "ApproveInvoiceAction",
-		InvoiceProgressActionRetry:   "RetryInvoiceAction",
-		InvoiceProgressActionAdvance: "AdvanceInvoiceAction",
+		InvoiceProgressActionApprove:            "ApproveInvoiceAction",
+		InvoiceProgressActionRetry:              "RetryInvoiceAction",
+		InvoiceProgressActionAdvance:            "AdvanceInvoiceAction",
+		InvoiceProgressActionSnapshotQuantities: "SnapshotQuantitiesAction",
 	}
 )
 
@@ -284,6 +287,8 @@ func (h *handler) ProgressInvoice(action ProgressAction) ProgressInvoiceHandler 
 				invoice, err = h.service.RetryInvoice(ctx, request.Invoice)
 			case InvoiceProgressActionAdvance:
 				invoice, err = h.service.AdvanceInvoice(ctx, request.Invoice)
+			case InvoiceProgressActionSnapshotQuantities:
+				invoice, err = h.service.SnapshotQuantities(ctx, request.Invoice)
 			default:
 				return ProgressInvoiceResponse{}, fmt.Errorf("invalid action: %s", action)
 			}
@@ -671,12 +676,13 @@ func mapTotalsToAPI(t billing.Totals) api.InvoiceTotals {
 
 func mapInvoiceAvailableActionsToAPI(actions billing.InvoiceAvailableActions) api.InvoiceAvailableActions {
 	return api.InvoiceAvailableActions{
-		Advance: mapInvoiceAvailableActionDetailsToAPI(actions.Advance),
-		Approve: mapInvoiceAvailableActionDetailsToAPI(actions.Approve),
-		Delete:  mapInvoiceAvailableActionDetailsToAPI(actions.Delete),
-		Retry:   mapInvoiceAvailableActionDetailsToAPI(actions.Retry),
-		Void:    mapInvoiceAvailableActionDetailsToAPI(actions.Void),
-		Invoice: lo.If(actions.Invoice != nil, &api.InvoiceAvailableActionInvoiceDetails{}).Else(nil),
+		Advance:            mapInvoiceAvailableActionDetailsToAPI(actions.Advance),
+		Approve:            mapInvoiceAvailableActionDetailsToAPI(actions.Approve),
+		Delete:             mapInvoiceAvailableActionDetailsToAPI(actions.Delete),
+		Retry:              mapInvoiceAvailableActionDetailsToAPI(actions.Retry),
+		Void:               mapInvoiceAvailableActionDetailsToAPI(actions.Void),
+		SnapshotQuantities: mapInvoiceAvailableActionDetailsToAPI(actions.SnapshotQuantities),
+		Invoice:            lo.If(actions.Invoice != nil, &api.InvoiceAvailableActionInvoiceDetails{}).Else(nil),
 	}
 }
 
