@@ -546,9 +546,7 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should apply and remove same single instance addon 4 times in a row with slightly progressive times", withDeps(func(t *testing.T, deps *tcDeps) {
-		// This is the key maybe? Restore has a bug where after the 2nd iteration (after 3rd add including initial, before the 3rd restore / set to 0) it mistakenly leaves an instance of SubscriptionItem behind (which then causes the issue in the next apply step within the set to 0)
-
-		// To do this, we need to set up a subscriptionAddon which has a series of quantities set:
+		// We will set up a subscriptionAddon which has a series of quantities set:
 		// 1st, single quantity with 1 at t1
 		// 2nd, two quantities, second with 0 at t2
 		// 3rd, single quantity with 1 at t3
