@@ -24,7 +24,7 @@ type MigrateSubscriptionRequest struct {
 	ID            models.NamespacedID
 	TargetVersion *int
 	StartingPhase *string
-	Timing        subscription.Timing
+	Timing        *subscription.Timing
 }
 
 type ChangeSubscriptionRequest struct {

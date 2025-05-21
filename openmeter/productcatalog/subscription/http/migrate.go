@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -34,9 +35,15 @@ func (h *handler) MigrateSubscription() MigrateSubscriptionHandler {
 				return MigrateSubscriptionRequest{}, err
 			}
 
-			timing, err := MapAPITimingToTiming(*body.Timing)
-			if err != nil {
-				return MigrateSubscriptionRequest{}, err
+			var timing *subscription.Timing
+
+			if body.Timing != nil {
+				t, err := MapAPITimingToTiming(*body.Timing)
+				if err != nil {
+					return MigrateSubscriptionRequest{}, err
+				}
+
+				timing = &t
 			}
 
 			return MigrateSubscriptionRequest{
