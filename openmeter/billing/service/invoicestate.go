@@ -25,6 +25,7 @@ type InvoiceStateMachine struct {
 	StateMachine        *stateless.StateMachine
 	Logger              *slog.Logger
 	Publisher           eventbus.Publisher
+	Service             *Service
 	FSNamespaceLockdown []string
 }
 
@@ -72,14 +73,36 @@ func allocateStateMachine() *InvoiceStateMachine {
 	// e.g. allowing billing.TriggerNext on the "superstate" causes all substates to have billing.TriggerNext).
 
 	stateMachine.Configure(billing.InvoiceStatusDraftCreated).
-		Permit(billing.TriggerNext, billing.InvoiceStatusDraftValidating).
+		Permit(billing.TriggerNext, billing.InvoiceStatusDraftWaitingForCollection).
 		Permit(billing.TriggerFailed, billing.InvoiceStatusDraftInvalid).
 		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerUpdated, billing.InvoiceStatusDraftUpdating).
 		OnActive(out.calculateInvoice)
 
-	stateMachine.Configure(billing.InvoiceStatusDraftUpdating).
+	stateMachine.Configure(billing.InvoiceStatusDraftWaitingForCollection).
+		Permit(
+			billing.TriggerNext,
+			billing.InvoiceStatusDraftCollecting,
+			boolFn(out.isReadyForCollection),
+		).
+		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress).
+		Permit(billing.TriggerUpdated, billing.InvoiceStatusDraftUpdating)
+
+	stateMachine.Configure(billing.InvoiceStatusDraftCollecting).
 		Permit(billing.TriggerNext, billing.InvoiceStatusDraftValidating).
+		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress).
+		Permit(billing.TriggerFailed, billing.InvoiceStatusDraftInvalid).
+		Permit(billing.TriggerUpdated, billing.InvoiceStatusDraftUpdating).
+		OnActive(
+			allOf(
+				out.snapshotQuantityAsNeeded,
+				out.calculateInvoice,
+			),
+		)
+
+	// Invoice is edited
+	stateMachine.Configure(billing.InvoiceStatusDraftUpdating).
+		Permit(billing.TriggerNext, billing.InvoiceStatusDraftWaitingForCollection).
 		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerFailed, billing.InvoiceStatusDraftInvalid).
 		OnActive(
@@ -254,10 +277,16 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.I
 	// Stateless doesn't store any state in the state machine, so it's fine to reuse the state machine itself
 	sm.Invoice = invoice
 	sm.Calculator = s.invoiceCalculator
+	sm.Service = s
 
 	defer func() {
 		sm.Invoice = billing.Invoice{}
 		sm.Calculator = nil
+		sm.Service = nil
+		sm.Logger = nil
+		sm.Publisher = nil
+		sm.FSNamespaceLockdown = nil
+
 		invoiceStateMachineCache.Put(sm)
 	}()
 
@@ -638,6 +667,38 @@ func (m *InvoiceStateMachine) shouldAutoAdvance() bool {
 	}
 
 	return !clock.Now().In(time.UTC).Before(*m.Invoice.DraftUntil)
+}
+
+func (m *InvoiceStateMachine) isReadyForCollection() bool {
+	if m.Invoice.CollectionAt == nil {
+		m.Logger.Warn("invoice has no collection at set, assuming collection is not required", "invoice", m.Invoice.ID)
+		return true
+	}
+
+	if clock.Now().Before(*m.Invoice.CollectionAt) {
+		return false
+	}
+
+	return true
+}
+
+func (m *InvoiceStateMachine) snapshotQuantityAsNeeded(ctx context.Context) error {
+	// Let's skip the snapshot if we already have the snapshot and it happened after the collection date
+	if m.Invoice.QuantitySnapshotedAt != nil && !m.Invoice.QuantitySnapshotedAt.Before(lo.FromPtrOr(m.Invoice.CollectionAt, m.Invoice.CreatedAt)) {
+		m.Logger.InfoContext(ctx, "skipping snapshot quantity as it already exists and was taken after the collection date",
+			"invoice", m.Invoice.ID,
+			"quantity_snapshoted_at", m.Invoice.QuantitySnapshotedAt,
+			"collection_at", m.Invoice.CollectionAt,
+		)
+		return nil
+	}
+
+	// We don't have the snapshot and the collection date is in the future
+	if m.Invoice.QuantitySnapshotedAt == nil && clock.Now().Before(*m.Invoice.CollectionAt) {
+		return nil
+	}
+
+	return m.Service.snapshotQuantity(ctx, &m.Invoice)
 }
 
 func (m *InvoiceStateMachine) canDraftSyncAdvance() bool {

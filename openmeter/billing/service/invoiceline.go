@@ -9,7 +9,6 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -107,20 +106,6 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		})
 		if err != nil {
 			return nil, fmt.Errorf("fetching invoice[%s]: %w", gatheringInvoice.ID, err)
-		}
-
-		// Update invoice if collectionAt field has changed
-		collectionConfig := customerProfile.MergedProfile.WorkflowConfig.Collection
-		collectionAt := gatheringInvoice.CollectionAt
-		if ok := UpdateInvoiceCollectionAt(&gatheringInvoice, collectionConfig); ok {
-			s.logger.DebugContext(ctx, "collection time updated for invoice",
-				"invoiceID", gatheringInvoice.ID,
-				"collectionAt", map[string]interface{}{
-					"from":               lo.FromPtr(collectionAt),
-					"to":                 lo.FromPtr(gatheringInvoice.CollectionAt),
-					"collectionInterval": collectionConfig.Interval.String(),
-				},
-			)
 		}
 
 		if err := s.invoiceCalculator.CalculateGatheringInvoice(&gatheringInvoice); err != nil {
@@ -298,14 +283,12 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, invoice billing.I
 		return invoice, fmt.Errorf("associating lines to invoice: %w", err)
 	}
 
-	// Let's create the sub lines as per the meters
+	// Let's create the sub lines as per the meters (we are not setting the QuantitySnapshotedAt field just now, to signal that this is not the final snapshot)
 	for _, line := range invoiceLines {
 		if err := line.SnapshotQuantity(ctx, &invoice); err != nil {
 			return invoice, fmt.Errorf("line[%s]: snapshotting quantity: %w", line.ID(), err)
 		}
 	}
-
-	invoice.QuantitySnapshotedAt = lo.ToPtr(clock.Now().UTC())
 
 	// Let's active the invoice state machine so that calculations can be done
 	return s.WithInvoiceStateMachine(ctx, invoice, func(ctx context.Context, ism *InvoiceStateMachine) error {

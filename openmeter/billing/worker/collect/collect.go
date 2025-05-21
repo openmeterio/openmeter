@@ -11,7 +11,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
@@ -58,18 +57,18 @@ func (a *InvoiceCollector) ListCollectableInvoices(ctx context.Context, params L
 }
 
 type CollectCustomerInvoiceInput struct {
-	CustomerID string
-	AsOf       *time.Time
+	CustomerID customer.CustomerID
+	AsOf       time.Time
 }
 
 func (i CollectCustomerInvoiceInput) Validate() error {
 	var errs []error
 
-	if i.CustomerID == "" {
-		errs = append(errs, fmt.Errorf("customer id must not be empty"))
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid customer id: %w", err))
 	}
 
-	if i.AsOf != nil && i.AsOf.IsZero() {
+	if i.AsOf.IsZero() {
 		errs = append(errs, fmt.Errorf("asOf time must not be zero"))
 	}
 
@@ -81,87 +80,25 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	resp, err := a.billing.ListInvoices(ctx, billing.ListInvoicesInput{
-		Customers:        []string{params.CustomerID},
-		ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
-		Expand: billing.InvoiceExpand{
-			Lines: true,
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get gathering invoice(s) for customer [customer=%s]: %w", params.CustomerID, err)
-	}
-
-	if len(resp.Items) == 0 {
-		a.logger.DebugContext(ctx, "no invoices found for customer to be collected", "customer", params.CustomerID)
-
-		return nil, nil
-	}
-
-	// Calculate asOf parameter
-	asOf := lo.FromPtr(params.AsOf)
-	if asOf.IsZero() {
-		customerProfile, err := a.billing.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-			Customer: customer.CustomerID{
-				Namespace: resp.Items[0].Namespace,
-				ID:        resp.Items[0].Customer.CustomerID,
-			},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get customer profile [customer=%s]: %w", params.CustomerID, err)
-		}
-
-		asOf, _ = customerProfile.MergedProfile.WorkflowConfig.Collection.Interval.Negate().AddTo(time.Now())
-	}
-
-	// Calculate alignedAsOf time which is set to the latest invoiceAt time which is still before the time defined by asOf.
-	var alignedAsOf time.Time
-	for _, invoice := range resp.Items {
-		if invoice.Lines.IsAbsent() {
-			a.logger.WarnContext(ctx, "skipping invoice as lines not fetched", "customer", params.CustomerID, "invoice", invoice.ID)
-
-			continue
-		}
-
-		latestInvoiceAt := billingservice.GetLatestValidInvoiceAtAsOf(invoice.Lines, asOf)
-		if latestInvoiceAt.IsZero() {
-			a.logger.DebugContext(ctx, "empty invoice found", "customer", invoice.Customer.CustomerID, "invoice", invoice.ID)
-
-			continue
-		}
-
-		if latestInvoiceAt.Before(asOf) && latestInvoiceAt.After(alignedAsOf) {
-			alignedAsOf = latestInvoiceAt
-		}
-
-		// Stop iteration as the asOf is already aligned in this case
-		if latestInvoiceAt.Equal(asOf) {
-			alignedAsOf = latestInvoiceAt
-
-			break
-		}
-	}
-
-	if alignedAsOf.IsZero() {
-		a.logger.DebugContext(ctx, "customer has no lines to be collected", "customer", params.CustomerID, "asOf", asOf.UTC().Format(time.RFC3339))
-
-		return nil, nil
-	}
-
-	a.logger.DebugContext(ctx, "collecting customer invoices", "customer", params.CustomerID, "asOf", alignedAsOf)
+	a.logger.DebugContext(ctx, "collecting customer invoices", "customer", params.CustomerID)
 
 	invoices, err := a.billing.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customer.CustomerID{
-			Namespace: resp.Items[0].Namespace,
-			ID:        resp.Items[0].Customer.CustomerID,
-		},
-		AsOf: lo.ToPtr(alignedAsOf),
+		Customer: params.CustomerID,
 		// We want to make sure that system collection does not use progressive billing.
 		ProgressiveBillingOverride: lo.ToPtr(false),
 	})
 	if err != nil {
 		if errors.Is(err, billing.ErrNamespaceLocked) {
 			a.logger.WarnContext(ctx, "namespace is locked, skipping collection", "customer", params.CustomerID)
+
+			return nil, nil
+		}
+
+		if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
+			a.logger.WarnContext(ctx, "no invoices generated for customer during collection (possible data inconsistency)", "customer", params.CustomerID)
+
+			// TODO[later]: Perform a recalculation on the customer's gathering invoices, as we might either have collectionAt set to a wrong time
+			// or the invoice is empty.
 
 			return nil, nil
 		}
@@ -205,7 +142,7 @@ func (a *InvoiceCollector) GetAsOfForCustomerAt(ctx context.Context, customer cu
 }
 
 // All runs invoice collection for all customers
-func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, customerIDs []string, batchSize int) error {
+func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, customerIDFilter []string, batchSize int) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -213,7 +150,7 @@ func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, custome
 
 	invoices, err := a.ListCollectableInvoices(ctx, ListCollectableInvoicesInput{
 		Namespaces:   namespaces,
-		Customers:    customerIDs,
+		Customers:    customerIDFilter,
 		CollectionAt: time.Now(),
 	})
 	if err != nil {
@@ -224,16 +161,25 @@ func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, custome
 		return nil
 	}
 
-	batches := [][]billing.Invoice{
-		invoices,
+	customerIDs := lo.Map(invoices, func(i billing.Invoice, _ int) customer.CustomerID {
+		return customer.CustomerID{
+			Namespace: i.Namespace,
+			ID:        i.Customer.CustomerID,
+		}
+	})
+
+	customerIDs = lo.Uniq(customerIDs)
+
+	batches := [][]customer.CustomerID{
+		customerIDs,
 	}
 	if batchSize > 0 {
-		batches = lo.Chunk(invoices, batchSize)
+		batches = lo.Chunk(customerIDs, batchSize)
 	}
 
-	a.logger.DebugContext(ctx, "found invoices to collect", "count", len(invoices), "batchSize", batchSize)
+	a.logger.DebugContext(ctx, "found customers to collect", "count", len(customerIDs), "batchSize", batchSize)
 
-	errChan := make(chan error, len(invoices))
+	errChan := make(chan error, len(customerIDs))
 	closeErrChan := sync.OnceFunc(func() {
 		close(errChan)
 	})
@@ -241,17 +187,18 @@ func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, custome
 
 	for _, batch := range batches {
 		var wg sync.WaitGroup
-		for _, invoice := range batch {
+		for _, customerID := range batch {
 			wg.Add(1)
 
 			go func() {
 				defer wg.Done()
 
 				_, err = a.CollectCustomerInvoice(ctx, CollectCustomerInvoiceInput{
-					CustomerID: invoice.Customer.CustomerID,
+					CustomerID: customerID,
+					AsOf:       time.Now(),
 				})
 				if err != nil {
-					err = fmt.Errorf("failed to collect invoice for customer [namespace=%s invoice=%s customer=%s]: %w", invoice.Namespace, invoice.ID, invoice.Customer.CustomerID, err)
+					err = fmt.Errorf("failed to collect invoice for customer [namespace=%s customer=%s]: %w", customerID.Namespace, customerID.ID, err)
 				}
 
 				errChan <- err

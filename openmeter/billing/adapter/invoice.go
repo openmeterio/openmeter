@@ -458,6 +458,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			SetNumber(in.Number).
 			SetOrClearDescription(in.Description).
 			SetOrClearDueAt(convert.SafeToUTC(in.DueAt)).
+			SetOrClearCollectionAt(convert.SafeToUTC(in.CollectionAt)).
 			SetOrClearDraftUntil(convert.SafeToUTC(in.DraftUntil)).
 			SetOrClearIssuedAt(convert.SafeToUTC(in.IssuedAt)).
 			SetOrClearDeletedAt(convert.SafeToUTC(in.DeletedAt)).
@@ -471,11 +472,6 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			SetTaxesExclusiveTotal(in.Totals.TaxesExclusiveTotal).
 			SetTaxesInclusiveTotal(in.Totals.TaxesInclusiveTotal).
 			SetTotal(in.Totals.Total)
-
-		if in.CollectionAt != nil && !in.CollectionAt.IsZero() {
-			updateQuery = updateQuery.
-				SetCollectionAt(in.CollectionAt.In(time.UTC))
-		}
 
 		if in.Period != nil {
 			updateQuery = updateQuery.

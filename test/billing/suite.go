@@ -31,6 +31,7 @@ import (
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -401,4 +402,56 @@ func (s *BaseSuite) CreateDraftInvoice(t *testing.T, ctx context.Context, in Dra
 	require.Len(t, invoice[0].Lines.MustGet(), 2)
 
 	return invoice[0]
+}
+
+type TestFeature struct {
+	Cleanup func()
+	Feature feature.Feature
+}
+
+func (s *BaseSuite) SetupApiRequestsTotalFeature(ctx context.Context, ns string) TestFeature {
+	apiRequestsTotalMeterSlug := "api-requests-total"
+
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+		{
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: ns,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "API Requests Total",
+			},
+			Key:           apiRequestsTotalMeterSlug,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: lo.ToPtr("$.value"),
+		},
+	})
+	s.NoError(err, "Replacing meters must not return error")
+
+	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalMeterSlug, 0, time.Now())
+
+	apiRequestsTotalFeatureKey := "api-requests-total"
+
+	apiRequestsTotalFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: ns,
+		Name:      "api-requests-total",
+		Key:       apiRequestsTotalFeatureKey,
+		MeterSlug: lo.ToPtr("api-requests-total"),
+	})
+	s.NoError(err)
+
+	return TestFeature{
+		Cleanup: func() {
+			err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+			s.NoError(err, "failed to replace meters")
+
+			s.MockStreamingConnector.Reset()
+		},
+		Feature: apiRequestsTotalFeature,
+	}
 }
