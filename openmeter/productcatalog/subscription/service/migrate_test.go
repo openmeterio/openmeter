@@ -114,6 +114,9 @@ func TestMigrate(t *testing.T) {
 			// Let's migrate the subscription to the new version
 			resp, err := svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
 				ID: sub.NamespacedID,
+				Timing: subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingImmediate),
+				},
 			})
 			require.Nil(t, err)
 
@@ -192,6 +195,9 @@ func TestMigrate(t *testing.T) {
 			resp, err := svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
 				ID:            sub.NamespacedID,
 				TargetVersion: &plan2.PlanMeta.Version,
+				Timing: subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingImmediate),
+				},
 			})
 			require.Nil(t, err)
 
@@ -270,6 +276,9 @@ func TestMigrate(t *testing.T) {
 			_, err = svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
 				ID:            sub.NamespacedID,
 				TargetVersion: lo.ToPtr(plan1.ToCreateSubscriptionPlanInput().Plan.Version),
+				Timing: subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingImmediate),
+				},
 			})
 			require.NotNil(t, err)
 			require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
@@ -352,6 +361,9 @@ func TestMigrate(t *testing.T) {
 					ID:            sub.NamespacedID,
 					TargetVersion: &plan2.PlanMeta.Version,
 					StartingPhase: lo.ToPtr("test_phase_NOT_FOUND"),
+					Timing: subscription.Timing{
+						Enum: lo.ToPtr(subscription.TimingImmediate),
+					},
 				})
 				require.Error(t, err)
 				require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
@@ -362,6 +374,9 @@ func TestMigrate(t *testing.T) {
 				ID:            sub.NamespacedID,
 				TargetVersion: &plan2.PlanMeta.Version,
 				StartingPhase: lo.ToPtr("test_phase_2"),
+				Timing: subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingImmediate),
+				},
 			})
 			require.Nil(t, err)
 
