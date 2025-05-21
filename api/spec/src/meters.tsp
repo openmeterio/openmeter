@@ -286,7 +286,7 @@ model Meter {
 @friendlyName("MeterAggregation")
 @extension(
   "x-enum-varnames",
-  #["Sum", "Count", "UniqueCount", "Avg", "Min", "Max"]
+  #["Sum", "Count", "UniqueCount", "Avg", "Min", "Max", "Latest"]
 )
 enum MeterAggregation {
   SUM,
@@ -295,6 +295,7 @@ enum MeterAggregation {
   AVG,
   MIN,
   MAX,
+  LATEST,
 }
 
 /**

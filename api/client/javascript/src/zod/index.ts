@@ -8865,7 +8865,7 @@ export const createMeterBodySlugRegExp = new RegExp(
 export const createMeterBody = zod
   .object({
     aggregation: zod
-      .enum(['SUM', 'COUNT', 'UNIQUE_COUNT', 'AVG', 'MIN', 'MAX'])
+      .enum(['SUM', 'COUNT', 'UNIQUE_COUNT', 'AVG', 'MIN', 'MAX', 'LATEST'])
       .describe('The aggregation type to use for the meter.')
       .describe('The aggregation type to use for the meter.'),
     description: zod

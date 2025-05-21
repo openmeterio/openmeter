@@ -6584,7 +6584,14 @@ export interface components {
      * @description The aggregation type to use for the meter.
      * @enum {string}
      */
-    MeterAggregation: 'SUM' | 'COUNT' | 'UNIQUE_COUNT' | 'AVG' | 'MIN' | 'MAX'
+    MeterAggregation:
+      | 'SUM'
+      | 'COUNT'
+      | 'UNIQUE_COUNT'
+      | 'AVG'
+      | 'MIN'
+      | 'MAX'
+      | 'LATEST'
     /**
      * @description A meter create model.
      * @example {

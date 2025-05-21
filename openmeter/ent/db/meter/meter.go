@@ -93,7 +93,7 @@ var (
 // AggregationValidator is a validator for the "aggregation" field enum values. It is called by the builders before save.
 func AggregationValidator(a meter.MeterAggregation) error {
 	switch a {
-	case "SUM", "COUNT", "AVG", "MIN", "MAX", "UNIQUE_COUNT":
+	case "SUM", "COUNT", "AVG", "MIN", "MAX", "UNIQUE_COUNT", "LATEST":
 		return nil
 	default:
 		return fmt.Errorf("dbmeter: invalid enum value for aggregation field: %q", a)

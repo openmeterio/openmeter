@@ -1493,7 +1493,7 @@ var (
 		{Name: "event_type", Type: field.TypeString},
 		{Name: "value_property", Type: field.TypeString, Nullable: true},
 		{Name: "group_by", Type: field.TypeJSON, Nullable: true},
-		{Name: "aggregation", Type: field.TypeEnum, Enums: []string{"SUM", "COUNT", "AVG", "MIN", "MAX", "UNIQUE_COUNT"}},
+		{Name: "aggregation", Type: field.TypeEnum, Enums: []string{"SUM", "COUNT", "AVG", "MIN", "MAX", "UNIQUE_COUNT", "LATEST"}},
 		{Name: "event_from", Type: field.TypeTime, Nullable: true},
 	}
 	// MetersTable holds the schema information for the "meters" table.
