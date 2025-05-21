@@ -17698,6 +17698,7 @@ components:
         - AVG
         - MIN
         - MAX
+        - LATEST
       description: The aggregation type to use for the meter.
       x-enum-varnames:
         - Sum
@@ -17706,6 +17707,7 @@ components:
         - Avg
         - Min
         - Max
+        - Latest
     MeterCreate:
       type: object
       required:

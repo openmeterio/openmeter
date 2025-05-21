@@ -22,6 +22,7 @@ const (
 	MeterAggregationMin         MeterAggregation = "MIN"
 	MeterAggregationMax         MeterAggregation = "MAX"
 	MeterAggregationUniqueCount MeterAggregation = "UNIQUE_COUNT"
+	MeterAggregationLatest      MeterAggregation = "LATEST"
 )
 
 // Values provides list valid values for Enum
@@ -33,6 +34,7 @@ func (MeterAggregation) Values() (kinds []string) {
 		MeterAggregationMin,
 		MeterAggregationMax,
 		MeterAggregationUniqueCount,
+		MeterAggregationLatest,
 	} {
 		kinds = append(kinds, string(s))
 	}

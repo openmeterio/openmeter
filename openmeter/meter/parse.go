@@ -128,8 +128,8 @@ func ParseEvent(meter Meter, data []byte) (*ParsedEvent, error) {
 		parsedEvent.ValueString = lo.ToPtr(fmt.Sprintf("%v", rawValue))
 
 		return parsedEvent, nil
-	// SUM, AVG, MIN, MAX aggregations require float64 parsable value property value
-	case MeterAggregationSum, MeterAggregationAvg, MeterAggregationMin, MeterAggregationMax:
+	// SUM, AVG, MIN, MAX, LATEST aggregations require float64 parsable value property value
+	case MeterAggregationSum, MeterAggregationAvg, MeterAggregationMin, MeterAggregationMax, MeterAggregationLatest:
 		switch v := rawValue.(type) {
 		case string:
 			parsedValue, err := strconv.ParseFloat(v, 64)

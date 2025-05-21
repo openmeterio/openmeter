@@ -172,6 +172,8 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		sqlAggregation = "uniq"
 	case meterpkg.MeterAggregationCount:
 		sqlAggregation = "count"
+	case meterpkg.MeterAggregationLatest:
+		sqlAggregation = "argMax"
 	default:
 		return "", []interface{}{}, fmt.Errorf("invalid aggregation type: %s", d.Meter.Aggregation)
 	}
@@ -181,6 +183,8 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(*)) AS value", sqlAggregation))
 	case meterpkg.MeterAggregationUniqueCount:
 		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
+	case meterpkg.MeterAggregationLatest:
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null), %s) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty), timeColumn))
 	default:
 		// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
 		selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null)) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
