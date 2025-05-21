@@ -36,6 +36,7 @@ func TestQueryEventsTable(t *testing.T) {
 	subjectFilter := "customer-1"
 	idFilter := "event-id-1"
 	from := time.Now()
+	to := time.Now().Add(time.Hour)
 
 	tests := []struct {
 		query    queryEventsTable
@@ -76,6 +77,19 @@ func TestQueryEventsTable(t *testing.T) {
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND id LIKE ? ORDER BY time DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", from.Unix(), "%event-id-1%", 100},
+		},
+		{
+			query: queryEventsTable{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				From:            from,
+				To:              &to,
+				Limit:           100,
+				ID:              &idFilter,
+			},
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND time < ? AND id LIKE ? ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", from.Unix(), to.Unix(), "%event-id-1%", 100},
 		},
 	}
 

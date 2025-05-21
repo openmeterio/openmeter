@@ -61,8 +61,9 @@ func (c *Connector) createRemainingQueryFactory(originalQueryMeter queryMeter) f
 	return func(cachedQueryMeter queryMeter) queryMeter {
 		newQueryMeter := newQueryMeter
 
-		newQueryMeter.From = nil
-		newQueryMeter.FromExclusive = cachedQueryMeter.To
+		// Cache stores data with "from" inclusive and "to" exclusive.
+		// So we query fresh data with inclusive from since last cached.
+		newQueryMeter.From = cachedQueryMeter.To
 
 		c.config.Logger.Debug("query fresh rows from events table", "from", newQueryMeter.From, "to", newQueryMeter.To)
 
@@ -108,9 +109,9 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 			}
 		}
 
-		// We query from the end of the last cached window exclusive
-		cacheableQueryMeter.From = nil
-		cacheableQueryMeter.FromExclusive = &lastCachedWindowEnd
+		// Cache stores data with "from" inclusive and "to" exclusive.
+		// So we query fresh data with inclusive from since last cached.
+		cacheableQueryMeter.From = &lastCachedWindowEnd
 
 		// If we've covered the entire range with cached data, return early
 		if lastCachedWindowEnd.Equal(*cacheableQueryMeter.To) {

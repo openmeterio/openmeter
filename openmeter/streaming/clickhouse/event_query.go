@@ -74,7 +74,7 @@ func (d queryEventsTable) toCountRowSQL() (string, []interface{}) {
 	query.Where(query.GreaterEqualThan("time", d.From.Unix()))
 
 	if d.To != nil {
-		query.Where(query.LessEqualThan("time", d.To.Unix()))
+		query.Where(query.LessThan("time", d.To.Unix()))
 	}
 	if d.Subject != nil {
 		query.Where(query.Equal("subject", *d.Subject))
@@ -95,13 +95,13 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 	query.Where(query.GreaterEqualThan("time", d.From.Unix()))
 
 	if d.To != nil {
-		query.Where(query.LessEqualThan("time", d.To.Unix()))
+		query.Where(query.LessThan("time", d.To.Unix()))
 	}
 	if d.IngestedAtFrom != nil {
 		query.Where(query.GreaterEqualThan("ingested_at", d.IngestedAtFrom.Unix()))
 	}
 	if d.IngestedAtTo != nil {
-		query.Where(query.LessEqualThan("ingested_at", d.IngestedAtTo.Unix()))
+		query.Where(query.LessThan("ingested_at", d.IngestedAtTo.Unix()))
 	}
 	if d.ID != nil {
 		query.Where(query.Like("id", fmt.Sprintf("%%%s%%", *d.ID)))
