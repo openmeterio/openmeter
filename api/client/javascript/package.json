@@ -89,7 +89,7 @@
     "eslint-plugin-unused-imports": "4.1.4",
     "eslint-plugin-vitest": "0.5.4",
     "fetch-mock": "12.5.2",
-    "openapi-typescript": "7.8.0",
+    "openapi-typescript": "7.6.1",
     "orval": "7.9.0",
     "prettier": "3.5.3",
     "react": "19.1.0",

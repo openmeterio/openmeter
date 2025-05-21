@@ -649,6 +649,9 @@ type ListInvoicesInput struct {
 	IssuedAfter  *time.Time
 	IssuedBefore *time.Time
 
+	PeriodStartAfter  *time.Time
+	PeriodStartBefore *time.Time
+
 	// Filter by invoice creation time
 	CreatedAfter  *time.Time
 	CreatedBefore *time.Time
@@ -672,21 +675,27 @@ type ListInvoicesInput struct {
 }
 
 func (i ListInvoicesInput) Validate() error {
+	var outErr []error
+
 	if i.IssuedAfter != nil && i.IssuedBefore != nil && i.IssuedAfter.After(*i.IssuedBefore) {
-		return errors.New("issuedAfter must be before issuedBefore")
+		outErr = append(outErr, errors.New("issuedAfter must be before issuedBefore"))
 	}
 
 	if i.CreatedAfter != nil && i.CreatedBefore != nil && i.CreatedAfter.After(*i.CreatedBefore) {
-		return errors.New("createdAfter must be before createdBefore")
+		outErr = append(outErr, errors.New("createdAfter must be before createdBefore"))
+	}
+
+	if i.PeriodStartAfter != nil && i.PeriodStartBefore != nil && i.PeriodStartAfter.After(*i.PeriodStartBefore) {
+		outErr = append(outErr, errors.New("periodStartAfter must be before periodStartBefore"))
 	}
 
 	if err := i.Expand.Validate(); err != nil {
-		return fmt.Errorf("expand: %w", err)
+		outErr = append(outErr, fmt.Errorf("expand: %w", err))
 	}
 
 	if i.ExternalIDs != nil {
 		if err := i.ExternalIDs.Validate(); err != nil {
-			return fmt.Errorf("external IDs: %w", err)
+			outErr = append(outErr, fmt.Errorf("external IDs: %w", err))
 		}
 	}
 
@@ -697,11 +706,11 @@ func (i ListInvoicesInput) Validate() error {
 			})...,
 		)
 		if errs != nil {
-			return errs
+			outErr = append(outErr, errs)
 		}
 	}
 
-	return nil
+	return errors.Join(outErr...)
 }
 
 type ListInvoicesResponse = pagination.PagedResponse[Invoice]

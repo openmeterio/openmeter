@@ -4929,7 +4929,14 @@ export const listInvoicesQueryParams = zod.object({
     .describe('Filter by invoice issued time.\nInclusive.'),
   order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
   orderBy: zod
-    .enum(['customer.name', 'issuedAt', 'status', 'createdAt', 'updatedAt'])
+    .enum([
+      'customer.name',
+      'issuedAt',
+      'status',
+      'createdAt',
+      'updatedAt',
+      'periodStart',
+    ])
     .optional()
     .describe('The order by field.'),
   page: zod
@@ -4943,6 +4950,14 @@ export const listInvoicesQueryParams = zod.object({
     .max(listInvoicesQueryPageSizeMax)
     .default(listInvoicesQueryPageSizeDefault)
     .describe('The maximum number of items per page.\n\nDefault is 100.'),
+  periodStartAfter: zod
+    .date()
+    .optional()
+    .describe('Filter by period start time.\nInclusive.'),
+  periodStartBefore: zod
+    .date()
+    .optional()
+    .describe('Filter by period start time.\nInclusive.'),
   statuses: zod
     .array(
       zod

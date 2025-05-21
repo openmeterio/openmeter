@@ -5744,6 +5744,7 @@ export interface components {
       | 'status'
       | 'createdAt'
       | 'updatedAt'
+      | 'periodStart'
     /** @description Paginated response */
     InvoicePaginatedResponse: {
       /**
@@ -10079,6 +10080,12 @@ export interface components {
     /** @description Filter by invoice issued time.
      *     Inclusive. */
     'InvoiceListParams.issuedBefore': Date | string
+    /** @description Filter by period start time.
+     *     Inclusive. */
+    'InvoiceListParams.periodStartAfter': Date | string
+    /** @description Filter by period start time.
+     *     Inclusive. */
+    'InvoiceListParams.periodStartBefore': Date | string
     /** @description Filter by the invoice status. */
     'InvoiceListParams.statuses': components['schemas']['InvoiceStatus'][]
     /** @description The order direction. */
@@ -10859,6 +10866,10 @@ export type ParameterInvoiceListParamsIssuedAfter =
   components['parameters']['InvoiceListParams.issuedAfter']
 export type ParameterInvoiceListParamsIssuedBefore =
   components['parameters']['InvoiceListParams.issuedBefore']
+export type ParameterInvoiceListParamsPeriodStartAfter =
+  components['parameters']['InvoiceListParams.periodStartAfter']
+export type ParameterInvoiceListParamsPeriodStartBefore =
+  components['parameters']['InvoiceListParams.periodStartBefore']
 export type ParameterInvoiceListParamsStatuses =
   components['parameters']['InvoiceListParams.statuses']
 export type ParameterInvoiceOrderByOrderingOrder =
@@ -13044,6 +13055,12 @@ export interface operations {
         /** @description Filter by invoice issued time.
          *     Inclusive. */
         issuedBefore?: components['parameters']['InvoiceListParams.issuedBefore']
+        /** @description Filter by period start time.
+         *     Inclusive. */
+        periodStartAfter?: components['parameters']['InvoiceListParams.periodStartAfter']
+        /** @description Filter by period start time.
+         *     Inclusive. */
+        periodStartBefore?: components['parameters']['InvoiceListParams.periodStartBefore']
         /** @description Filter by invoice created time.
          *     Inclusive. */
         createdAfter?: components['parameters']['InvoiceListParams.createdAfter']

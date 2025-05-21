@@ -143,6 +143,14 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Where(billinginvoice.IssuedAtLTE(*input.IssuedBefore))
 		}
 
+		if input.PeriodStartAfter != nil {
+			query = query.Where(billinginvoice.PeriodStartGTE(*input.PeriodStartAfter))
+		}
+
+		if input.PeriodStartBefore != nil {
+			query = query.Where(billinginvoice.PeriodStartLTE(*input.PeriodStartBefore))
+		}
+
 		if input.CreatedAfter != nil {
 			query = query.Where(billinginvoice.CreatedAtGTE(*input.CreatedAfter))
 		}
@@ -226,6 +234,8 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Order(billinginvoice.ByCustomerName(order...))
 		case api.InvoiceOrderByIssuedAt:
 			query = query.Order(billinginvoice.ByIssuedAt(order...))
+		case api.InvoiceOrderByPeriodStart:
+			query = query.Order(billinginvoice.ByPeriodStart(order...))
 		case api.InvoiceOrderByStatus:
 			query = query.Order(billinginvoice.ByStatus(order...))
 		case api.InvoiceOrderByUpdatedAt:
