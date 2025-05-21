@@ -3,6 +3,7 @@ package service_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
@@ -750,8 +751,8 @@ func TestAddonCombinations(t *testing.T) {
 		require.NotNil(t, subAdd)
 
 		// Now, repeatedly change quantity to 0 and then back to 1
-		changeToZeroTime := addTime.AddDate(0, 0, 1)
-		changeToOneTime := changeToZeroTime.AddDate(0, 0, 1)
+		// Let's pass time
+		clock.SetTime(clock.Now().Add(time.Minute))
 
 		for i := 0; i < 3; i++ {
 			// Change quantity to 0 (remove)
@@ -759,26 +760,28 @@ func TestAddonCombinations(t *testing.T) {
 				SubscriptionAddonID: subAdd.NamespacedID,
 				Quantity:            0,
 				Timing: subscription.Timing{
-					Custom: &changeToZeroTime,
+					Custom: lo.ToPtr(clock.Now()),
 				},
 			}
 			subView, _, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInpZero)
 			require.NoError(t, err, "failed to change addon quantity to 0 on iteration %d", i)
+
+			// Let's pass time
+			clock.SetTime(clock.Now().Add(time.Minute))
 
 			// Change quantity back to 1 (re-add)
 			changeInpOne := subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
 				SubscriptionAddonID: subAdd.NamespacedID,
 				Quantity:            1,
 				Timing: subscription.Timing{
-					Custom: &changeToOneTime,
+					Custom: lo.ToPtr(clock.Now()),
 				},
 			}
 			subView, subAdd, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInpOne)
 			require.NoError(t, err, "failed to change addon quantity to 1 on iteration %d", i)
 
-			// Ensure times are different for next iteration
-			changeToZeroTime = changeToOneTime.AddDate(0, 0, 1)
-			changeToOneTime = changeToZeroTime.AddDate(0, 0, 1)
+			// Let's pass time
+			clock.SetTime(clock.Now().Add(time.Minute))
 		}
 	}))
 }
