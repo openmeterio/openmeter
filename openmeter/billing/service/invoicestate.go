@@ -73,7 +73,6 @@ func allocateStateMachine() *InvoiceStateMachine {
 	// e.g. allowing billing.TriggerNext on the "superstate" causes all substates to have billing.TriggerNext).
 
 	stateMachine.Configure(billing.InvoiceStatusDraftCreated).
-		// TODO: skip collection steps if possible (just so that we are not generating transitions unnecessarily)
 		Permit(billing.TriggerNext, billing.InvoiceStatusDraftWaitingForCollection).
 		Permit(billing.TriggerFailed, billing.InvoiceStatusDraftInvalid).
 		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress).
@@ -96,8 +95,8 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerUpdated, billing.InvoiceStatusDraftUpdating).
 		OnActive(
 			allOf(
-				out.calculateInvoice,
 				out.snapshotQuantityAsNeeded,
+				out.calculateInvoice,
 			),
 		)
 
