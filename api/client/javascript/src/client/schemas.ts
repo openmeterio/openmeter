@@ -2553,11 +2553,11 @@ export interface components {
     /** @description BillingProfileApps represents the applications used by a billing profile */
     BillingProfileApps: {
       /** @description The tax app used for this workflow */
-      readonly tax: Omit<components['schemas']['App'], 'type'>
+      readonly tax: components['schemas']['App']
       /** @description The invoicing app used for this workflow */
-      readonly invoicing: Omit<components['schemas']['App'], 'type'>
+      readonly invoicing: components['schemas']['App']
       /** @description The payment app used for this workflow */
-      readonly payment: Omit<components['schemas']['App'], 'type'>
+      readonly payment: components['schemas']['App']
     }
     /** @description BillingProfileAppsCreate represents the input for creating a billing profile's apps */
     BillingProfileAppsCreate: {
@@ -5602,10 +5602,7 @@ export interface components {
        */
       readonly id: string
       /** @description Reason code. */
-      readonly reason: Omit<
-        components['schemas']['BillingDiscountReason'],
-        'type'
-      >
+      readonly reason: components['schemas']['BillingDiscountReason']
       /** @description Text description as to why the discount was applied. */
       readonly description?: string
       /** @description External IDs of the invoice in other apps such as Stripe. */
@@ -5709,10 +5706,7 @@ export interface components {
        */
       readonly id: string
       /** @description Reason code. */
-      readonly reason: Omit<
-        components['schemas']['BillingDiscountReason'],
-        'type'
-      >
+      readonly reason: components['schemas']['BillingDiscountReason']
       /** @description Text description as to why the discount was applied. */
       readonly description?: string
       /** @description External IDs of the invoice in other apps such as Stripe. */
@@ -5987,7 +5981,7 @@ export interface components {
        * @deprecated
        * @description Price of the usage-based item being sold.
        */
-      price?: Omit<components['schemas']['RateCardUsageBasedPrice'], 'type'>
+      price?: components['schemas']['RateCardUsageBasedPrice']
       /**
        * @deprecated
        * @description The feature that the usage is based on.
@@ -6154,7 +6148,7 @@ export interface components {
        * @deprecated
        * @description Price of the usage-based item being sold.
        */
-      price?: Omit<components['schemas']['RateCardUsageBasedPrice'], 'type'>
+      price?: components['schemas']['RateCardUsageBasedPrice']
       /**
        * @deprecated
        * @description The feature that the usage is based on.
@@ -6224,7 +6218,7 @@ export interface components {
        * @deprecated
        * @description Price of the usage-based item being sold.
        */
-      price?: Omit<components['schemas']['RateCardUsageBasedPrice'], 'type'>
+      price?: components['schemas']['RateCardUsageBasedPrice']
       /**
        * @deprecated
        * @description The feature that the usage is based on.
@@ -6281,7 +6275,7 @@ export interface components {
        * @deprecated
        * @description Price of the usage-based item being sold.
        */
-      price?: Omit<components['schemas']['RateCardUsageBasedPrice'], 'type'>
+      price?: components['schemas']['RateCardUsageBasedPrice']
       /**
        * @deprecated
        * @description The feature that the usage is based on.
@@ -6307,10 +6301,7 @@ export interface components {
       taxConfig?: components['schemas']['TaxConfig']
       /** @description The price of the rate card.
        *     When null, the feature or service is free. */
-      price: Omit<
-        components['schemas']['RateCardUsageBasedPrice'],
-        'type'
-      > | null
+      price: components['schemas']['RateCardUsageBasedPrice'] | null
       /** @description The discounts that are applied to the line. */
       discounts?: components['schemas']['BillingDiscounts']
     }
@@ -7055,17 +7046,14 @@ export interface components {
        */
       readonly createdAt: Date
       /** @description The nnotification rule which generated this event. */
-      readonly rule: Omit<components['schemas']['NotificationRule'], 'type'>
+      readonly rule: components['schemas']['NotificationRule']
       /**
        * Delivery Status
        * @description The delivery status of the notification event.
        */
       readonly deliveryStatus: components['schemas']['NotificationEventDeliveryStatus'][]
       /** @description Timestamp when the notification event was created in RFC 3339 format. */
-      readonly payload: Omit<
-        components['schemas']['NotificationEventPayload'],
-        'type'
-      >
+      readonly payload: components['schemas']['NotificationEventPayload']
       /**
        * Annotations
        * @description Set of key-value pairs managed by the system. Cannot be modified by user.
@@ -8351,10 +8339,7 @@ export interface components {
       featureKey?: string
       /** @description The entitlement of the rate card.
        *     Only available when featureKey is set. */
-      entitlementTemplate?: Omit<
-        components['schemas']['RateCardEntitlement'],
-        'type'
-      >
+      entitlementTemplate?: components['schemas']['RateCardEntitlement']
       /**
        * Tax config
        * @description The tax config of the rate card.
@@ -8481,10 +8466,7 @@ export interface components {
       featureKey?: string
       /** @description The entitlement of the rate card.
        *     Only available when featureKey is set. */
-      entitlementTemplate?: Omit<
-        components['schemas']['RateCardEntitlement'],
-        'type'
-      >
+      entitlementTemplate?: components['schemas']['RateCardEntitlement']
       /**
        * Tax config
        * @description The tax config of the rate card.
@@ -8499,10 +8481,7 @@ export interface components {
       billingCadence: string
       /** @description The price of the rate card.
        *     When null, the feature or service is free. */
-      price: Omit<
-        components['schemas']['RateCardUsageBasedPrice'],
-        'type'
-      > | null
+      price: components['schemas']['RateCardUsageBasedPrice'] | null
       /**
        * Discounts
        * @description The discounts of the rate card.
@@ -9303,7 +9282,7 @@ export interface components {
        * Rate card
        * @description The rate card.
        */
-      rateCard: Omit<components['schemas']['RateCard'], 'type'>
+      rateCard: components['schemas']['RateCard']
       /**
        * Affected subscription item IDs
        * @description The IDs of the subscription items that this rate card belongs to.
@@ -9564,10 +9543,7 @@ export interface components {
        *     When null, the feature or service is free.
        * @example {}
        */
-      price: Omit<
-        components['schemas']['RateCardUsageBasedPrice'],
-        'type'
-      > | null
+      price: components['schemas']['RateCardUsageBasedPrice'] | null
       /**
        * Discounts
        * @description The discounts applied to the rate card.
@@ -9587,7 +9563,7 @@ export interface components {
       /** @description The feature the customer is entitled to use. */
       feature: components['schemas']['Feature']
       /** @description The entitlement of the Subscription Item. */
-      entitlement?: Omit<components['schemas']['Entitlement'], 'type'>
+      entitlement?: components['schemas']['Entitlement']
     }
     /** @description Paginated response */
     SubscriptionPaginatedResponse: {
@@ -9936,17 +9912,14 @@ export interface components {
       /** @description How much of the total line items to be voided? (e.g. 100% means all charges are voided) */
       percentage: components['schemas']['Percentage']
       /** @description The action to take on the line items. */
-      action: Omit<components['schemas']['VoidInvoiceLineActionCreate'], 'type'>
+      action: components['schemas']['VoidInvoiceLineActionCreate']
     }
     /** @description InvoiceVoidAction describes how to handle the voided line items. */
     VoidInvoiceActionCreateItem: {
       /** @description How much of the total line items to be voided? (e.g. 100% means all charges are voided) */
       percentage: components['schemas']['Percentage']
       /** @description The action to take on the line items. */
-      action: Omit<
-        components['schemas']['VoidInvoiceLineActionCreateItem'],
-        'type'
-      >
+      action: components['schemas']['VoidInvoiceLineActionCreateItem']
     }
     /** @description Request to void an invoice */
     VoidInvoiceActionInput: {
