@@ -643,6 +643,8 @@ func TestRestore(t *testing.T) {
 		spec := subView.AsSpec() // We can reuse this in all iterations as if everything works as intended it always gets restored
 
 		for idx := range 8 {
+			// Lets pass time
+			clock.SetTime(clock.Now().Add(time.Minute))
 			diff, err := addondiff.GetDiffableFromAddon(subView, subsAdd)
 			require.NoError(t, err, "failed to get diffable for iteration %d", idx)
 
@@ -656,7 +658,7 @@ func TestRestore(t *testing.T) {
 
 			// Finally lets toggle the quantity
 			sAdd, err := deps.deps.SubscriptionAddonService.ChangeQuantity(context.Background(), subsAdd.NamespacedID, subscriptionaddon.CreateSubscriptionAddonQuantityInput{
-				ActiveFrom: startTime.Add(time.Minute),
+				ActiveFrom: clock.Now(),
 				Quantity:   lo.Ternary(idx%2 == 0, 1, 0),
 			})
 			require.NoError(t, err, "failed to change quantity for iteration %d", idx)
