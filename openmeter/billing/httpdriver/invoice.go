@@ -501,6 +501,7 @@ func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 		IssuedAt:             invoice.IssuedAt,
 		VoidedAt:             invoice.VoidedAt,
 		DueAt:                invoice.DueAt,
+		CollectionAt:         invoice.CollectionAt,
 		DraftUntil:           invoice.DraftUntil,
 		SentToCustomerAt:     invoice.SentToCustomerAt,
 		QuantitySnapshotedAt: invoice.QuantitySnapshotedAt,

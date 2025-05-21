@@ -145,6 +145,12 @@ model Invoice {
   quantitySnapshotedAt?: DateTime;
 
   /**
+   * The time when the invoice will be/has been collected.
+   */
+  @visibility(Lifecycle.Read)
+  collectionAt?: DateTime;
+
+  /**
    * Due time of the fulfillment of the invoice (if available).
    */
   @visibility(Lifecycle.Read)
