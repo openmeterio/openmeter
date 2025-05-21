@@ -38,4 +38,7 @@ type ChangeSubscriptionRequest struct {
 type CreateSubscriptionRequest struct {
 	WorkflowInput subscriptionworkflow.CreateSubscriptionWorkflowInput
 	PlanInput     PlanInput
+
+	// Only used if existing plan is provided
+	StartingPhase *string
 }
