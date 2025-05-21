@@ -49,7 +49,7 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 		}
 
 		if request.StartingPhase != nil {
-			if err := s.respectStartingPhase(p, *request.StartingPhase); err != nil {
+			if err := s.removePhasesBeforeStartingPhase(p, *request.StartingPhase); err != nil {
 				return def, err
 			}
 		}

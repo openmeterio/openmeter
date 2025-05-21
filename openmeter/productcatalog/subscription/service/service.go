@@ -31,7 +31,7 @@ func New(c Config) plansubscription.PlanSubscriptionService {
 	}
 }
 
-func (s *service) respectStartingPhase(p *plan.Plan, startingPhase string) error {
+func (s *service) removePhasesBeforeStartingPhase(p *plan.Plan, startingPhase string) error {
 	for idx, phase := range p.Phases {
 		if phase.Key == startingPhase {
 			// Let's filter out the phases before the starting phase
