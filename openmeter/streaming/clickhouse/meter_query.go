@@ -22,7 +22,6 @@ type queryMeter struct {
 	Subject         []string
 	FilterGroupBy   map[string][]string
 	From            *time.Time
-	FromExclusive   *time.Time
 	To              *time.Time
 	GroupBy         []string
 	WindowSize      *meterpkg.WindowSize
@@ -33,11 +32,6 @@ type queryMeter struct {
 func (d *queryMeter) from() *time.Time {
 	// If the query from time is set, use it
 	from := d.From
-
-	// If the query from time is exclusive, use it
-	if d.FromExclusive != nil {
-		from = d.FromExclusive
-	}
 
 	// If none of the from times are set, return nil
 	if from == nil && d.Meter.EventFrom == nil {
@@ -91,15 +85,11 @@ func (d *queryMeter) toCountRowSQL() (string, []interface{}) {
 	from := d.from()
 
 	if from != nil {
-		if d.FromExclusive != nil {
-			query.Where(query.GreaterThan(timeColumn, from.Unix()))
-		} else {
-			query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
-		}
+		query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
 	}
 
 	if d.To != nil {
-		query.Where(query.LessEqualThan(timeColumn, d.To.Unix()))
+		query.Where(query.LessThan(timeColumn, d.To.Unix()))
 	}
 
 	sql, args := query.Build()
@@ -259,15 +249,11 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	from := d.from()
 
 	if from != nil {
-		if d.FromExclusive != nil {
-			query.Where(query.GreaterThan(timeColumn, from.Unix()))
-		} else {
-			query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
-		}
+		query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
 	}
 
 	if d.To != nil {
-		query.Where(query.LessEqualThan(timeColumn, d.To.Unix()))
+		query.Where(query.LessThan(timeColumn, d.To.Unix()))
 	}
 
 	query.GroupBy(groupByColumns...)
@@ -376,7 +362,7 @@ func (d listMeterSubjectsQuery) toSQL() (string, []interface{}) {
 	}
 
 	if d.To != nil {
-		sb.Where(sb.LessEqualThan("time", d.To.Unix()))
+		sb.Where(sb.LessThan("time", d.To.Unix()))
 	}
 
 	sql, args := sb.Build()

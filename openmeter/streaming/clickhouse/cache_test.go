@@ -299,9 +299,7 @@ func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
 	assert.Len(t, results, 2) // Should have both cached and fresh rows
 
 	// Result query meter should have From set to the end of cached period
-	require.Nil(t, resultQueryMeter.From)
-	require.NotNil(t, resultQueryMeter.FromExclusive)
-	assert.Equal(t, cachedEnd, *resultQueryMeter.FromExclusive)
+	assert.Equal(t, cachedEnd, *resultQueryMeter.From)
 
 	// Validate combined results
 	assert.Equal(t, []meterpkg.MeterQueryRow{
@@ -339,7 +337,7 @@ func TestConnector_FetchCachedMeterRows(t *testing.T) {
 	}
 
 	// Test successful lookup
-	expectedQuery := "SELECT window_start, window_end, value, subject, group_by FROM testdb.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end <= ? ORDER BY window_start"
+	expectedQuery := "SELECT window_start, window_end, value, subject, group_by FROM testdb.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end < ? ORDER BY window_start"
 	expectedArgs := []interface{}{"test-hash", "test-namespace", fromTime.Unix(), toTime.Unix()}
 
 	// Mock query execution
@@ -445,8 +443,7 @@ func TestCreateRemainingQueryFactory(t *testing.T) {
 	resultQuery := factory(cachedQuery)
 
 	// Should have the cached To as the new From
-	require.Nil(t, resultQuery.From)
-	assert.Equal(t, cachedToTime, *resultQuery.FromExclusive)
+	assert.Equal(t, cachedToTime, *resultQuery.From)
 	// Original To should be preserved
 	assert.Equal(t, toTime, *resultQuery.To)
 }

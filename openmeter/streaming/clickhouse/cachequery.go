@@ -108,7 +108,7 @@ func (queryCache getMeterQueryRowsFromCache) toSQL() (string, []interface{}) {
 	}
 
 	if queryCache.To != nil {
-		builder.Where(builder.LessEqualThan("window_end", queryCache.To.Unix()))
+		builder.Where(builder.LessThan("window_end", queryCache.To.Unix()))
 	}
 
 	builder.OrderBy("window_start")
