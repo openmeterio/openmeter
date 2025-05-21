@@ -109,6 +109,8 @@ require (
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/authzed/authzed-go v1.2.0 // indirect
 	github.com/authzed/grpcutil v0.0.0-20240123194739-2ea1e3d2d98b // indirect
+	github.com/bhmj/jsonslice v1.1.3 // indirect
+	github.com/bhmj/xpression v0.9.4 // indirect
 	github.com/bitfield/gotestdox v0.2.2 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/certifi/gocertifi v0.0.0-20210507211836-431795d63e8d // indirect
