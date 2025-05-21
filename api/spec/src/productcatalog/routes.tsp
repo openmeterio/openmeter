@@ -475,6 +475,12 @@ interface Subscriptions {
     @path subscriptionId: ULID,
     @body body: {
       /**
+       * Timing configuration for the migration, when the migration should take effect.
+       * If not supported by the subscription, 400 will be returned.
+       */
+      timing?: SubscriptionTiming = SubscriptionTimingEnum.Immediate;
+
+      /**
        * The version of the plan to migrate to.
        * If not provided, the subscription will migrate to the latest version of the current plan.
        */

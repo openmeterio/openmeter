@@ -34,6 +34,11 @@ func (h *handler) MigrateSubscription() MigrateSubscriptionHandler {
 				return MigrateSubscriptionRequest{}, err
 			}
 
+			timing, err := MapAPITimingToTiming(*body.Timing)
+			if err != nil {
+				return MigrateSubscriptionRequest{}, err
+			}
+
 			return MigrateSubscriptionRequest{
 				ID: models.NamespacedID{
 					Namespace: ns,
@@ -41,6 +46,7 @@ func (h *handler) MigrateSubscription() MigrateSubscriptionHandler {
 				},
 				TargetVersion: body.TargetVersion,
 				StartingPhase: body.StartingPhase,
+				Timing:        timing,
 			}, nil
 		},
 		func(ctx context.Context, request MigrateSubscriptionRequest) (MigrateSubscriptionResponse, error) {

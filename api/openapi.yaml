@@ -9790,6 +9790,13 @@ paths:
             schema:
               type: object
               properties:
+                timing:
+                  allOf:
+                    - $ref: '#/components/schemas/SubscriptionTiming'
+                  description: |-
+                    Timing configuration for the migration, when the migration should take effect.
+                    If not supported by the subscription, 400 will be returned.
+                  default: immediate
                 targetVersion:
                   type: integer
                   minimum: 1

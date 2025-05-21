@@ -23658,6 +23658,12 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
+          /**
+           * @description Timing configuration for the migration, when the migration should take effect.
+           *     If not supported by the subscription, 400 will be returned.
+           * @default immediate
+           */
+          timing?: components['schemas']['SubscriptionTiming']
           /** @description The version of the plan to migrate to.
            *     If not provided, the subscription will migrate to the latest version of the current plan. */
           targetVersion?: number
