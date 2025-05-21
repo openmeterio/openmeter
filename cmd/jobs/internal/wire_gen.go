@@ -326,7 +326,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	invoiceCollector, err := common.NewBillingCollector(logger, billingService)
+	invoiceCollector, err := common.NewBillingCollector(logger, billingService, billingFeatureSwitchesConfiguration)
 	if err != nil {
 		cleanup6()
 		cleanup5()

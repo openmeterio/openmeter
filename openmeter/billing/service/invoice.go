@@ -1217,3 +1217,41 @@ func (s *Service) snapshotQuantity(ctx context.Context, invoice *billing.Invoice
 
 	return nil
 }
+
+func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billing.RecalculateGatheringInvoicesInput) error {
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		gatheringInvoices, err := s.adapter.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespaces: []string{input.Namespace},
+			Customers:  []string{input.ID},
+			Statuses:   []string{string(billing.InvoiceStatusGathering)},
+			Expand:     billing.InvoiceExpand{Lines: true},
+		})
+		if err != nil {
+			return fmt.Errorf("listing invoices: %w", err)
+		}
+
+		for _, invoice := range gatheringInvoices.Items {
+			var err error
+
+			if err = s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
+				return fmt.Errorf("calculating gathering invoice: %w", err)
+			}
+
+			invoice, err = s.updateInvoice(ctx, invoice)
+			if err != nil {
+				return fmt.Errorf("updating invoice: %w", err)
+			}
+
+			if invoice.Lines.NonDeletedLineCount() == 0 {
+				if err := s.adapter.DeleteInvoices(ctx, billing.DeleteInvoicesAdapterInput{
+					Namespace:  input.Namespace,
+					InvoiceIDs: []string{invoice.ID},
+				}); err != nil {
+					return fmt.Errorf("deleting invoice: %w", err)
+				}
+			}
+		}
+
+		return nil
+	})
+}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"time"
 
@@ -15,7 +16,8 @@ import (
 )
 
 type InvoiceCollector struct {
-	billing billing.Service
+	billing          billing.Service
+	lockedNamespaces []string
 
 	logger *slog.Logger
 }
@@ -95,10 +97,11 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 		}
 
 		if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
-			a.logger.WarnContext(ctx, "no invoices generated for customer during collection (possible data inconsistency)", "customer", params.CustomerID)
+			a.logger.WarnContext(ctx, "no invoices generated for customer during collection (possible data inconsistency), recalculating gathering invoices", "customer", params.CustomerID)
 
-			// TODO[later]: Perform a recalculation on the customer's gathering invoices, as we might either have collectionAt set to a wrong time
-			// or the invoice is empty.
+			if err := a.billing.RecalculateGatheringInvoices(ctx, params.CustomerID); err != nil {
+				return nil, err
+			}
 
 			return nil, nil
 		}
@@ -107,38 +110,6 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 	}
 
 	return invoices, nil
-}
-
-func (a *InvoiceCollector) GetCollectionConfig(ctx context.Context, customer customer.CustomerID) (billing.CollectionConfig, error) {
-	customerProfile, err := a.billing.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-		Customer: customer,
-	})
-	if err != nil {
-		return billing.CollectionConfig{}, fmt.Errorf("failed to get collection configfor customer [namespace=%s customer=%s]: %w",
-			customer.Namespace, customer.ID, err,
-		)
-	}
-
-	return customerProfile.MergedProfile.WorkflowConfig.Collection, nil
-}
-
-func (a *InvoiceCollector) GetAsOfForCustomer(ctx context.Context, customer customer.CustomerID) (time.Time, error) {
-	return a.GetAsOfForCustomerAt(ctx, customer, time.Now())
-}
-
-func (a *InvoiceCollector) GetAsOfForCustomerAt(ctx context.Context, customer customer.CustomerID, at time.Time) (time.Time, error) {
-	collectionConfig, err := a.GetCollectionConfig(ctx, customer)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	collectionInterval, ok := collectionConfig.Interval.Duration()
-	if !ok {
-		return time.Time{}, fmt.Errorf("failed to cast collection interval for customer [namespace=%s customer=%s]: %w",
-			customer.Namespace, customer.ID, err)
-	}
-
-	return at.Add(-1 * collectionInterval), nil
 }
 
 // All runs invoice collection for all customers
@@ -168,7 +139,9 @@ func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, custome
 		}
 	})
 
-	customerIDs = lo.Uniq(customerIDs)
+	customerIDs = lo.Filter(lo.Uniq(customerIDs), func(id customer.CustomerID, _ int) bool {
+		return !slices.Contains(a.lockedNamespaces, id.Namespace)
+	})
 
 	batches := [][]customer.CustomerID{
 		customerIDs,
@@ -218,8 +191,9 @@ func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, custome
 }
 
 type Config struct {
-	BillingService billing.Service
-	Logger         *slog.Logger
+	BillingService   billing.Service
+	Logger           *slog.Logger
+	LockedNamespaces []string
 }
 
 func NewInvoiceCollector(config Config) (*InvoiceCollector, error) {
@@ -232,7 +206,8 @@ func NewInvoiceCollector(config Config) (*InvoiceCollector, error) {
 	}
 
 	return &InvoiceCollector{
-		billing: config.BillingService,
-		logger:  config.Logger,
+		billing:          config.BillingService,
+		logger:           config.Logger,
+		lockedNamespaces: config.LockedNamespaces,
 	}, nil
 }
