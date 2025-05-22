@@ -65,6 +65,20 @@ func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetNillablePaymentTerm(v *produ
 	return _c
 }
 
+// SetIndex sets the "index" field.
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetIndex(v int) *BillingInvoiceFlatFeeLineConfigCreate {
+	_c.mutation.SetIndex(v)
+	return _c
+}
+
+// SetNillableIndex sets the "index" field if the given value is not nil.
+func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetNillableIndex(v *int) *BillingInvoiceFlatFeeLineConfigCreate {
+	if v != nil {
+		_c.SetIndex(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *BillingInvoiceFlatFeeLineConfigCreate) SetID(v string) *BillingInvoiceFlatFeeLineConfigCreate {
 	_c.mutation.SetID(v)
@@ -209,6 +223,10 @@ func (_c *BillingInvoiceFlatFeeLineConfigCreate) createSpec() (*BillingInvoiceFl
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPaymentTerm, field.TypeEnum, value)
 		_node.PaymentTerm = value
 	}
+	if value, ok := _c.mutation.Index(); ok {
+		_spec.SetField(billinginvoiceflatfeelineconfig.FieldIndex, field.TypeInt, value)
+		_node.Index = &value
+	}
 	return _node, _spec
 }
 
@@ -294,6 +312,30 @@ func (u *BillingInvoiceFlatFeeLineConfigUpsert) SetPaymentTerm(v productcatalog.
 // UpdatePaymentTerm sets the "payment_term" field to the value that was provided on create.
 func (u *BillingInvoiceFlatFeeLineConfigUpsert) UpdatePaymentTerm() *BillingInvoiceFlatFeeLineConfigUpsert {
 	u.SetExcluded(billinginvoiceflatfeelineconfig.FieldPaymentTerm)
+	return u
+}
+
+// SetIndex sets the "index" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsert) SetIndex(v int) *BillingInvoiceFlatFeeLineConfigUpsert {
+	u.Set(billinginvoiceflatfeelineconfig.FieldIndex, v)
+	return u
+}
+
+// UpdateIndex sets the "index" field to the value that was provided on create.
+func (u *BillingInvoiceFlatFeeLineConfigUpsert) UpdateIndex() *BillingInvoiceFlatFeeLineConfigUpsert {
+	u.SetExcluded(billinginvoiceflatfeelineconfig.FieldIndex)
+	return u
+}
+
+// AddIndex adds v to the "index" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsert) AddIndex(v int) *BillingInvoiceFlatFeeLineConfigUpsert {
+	u.Add(billinginvoiceflatfeelineconfig.FieldIndex, v)
+	return u
+}
+
+// ClearIndex clears the value of the "index" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsert) ClearIndex() *BillingInvoiceFlatFeeLineConfigUpsert {
+	u.SetNull(billinginvoiceflatfeelineconfig.FieldIndex)
 	return u
 }
 
@@ -387,6 +429,34 @@ func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) SetPaymentTerm(v productcatal
 func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) UpdatePaymentTerm() *BillingInvoiceFlatFeeLineConfigUpsertOne {
 	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
 		s.UpdatePaymentTerm()
+	})
+}
+
+// SetIndex sets the "index" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) SetIndex(v int) *BillingInvoiceFlatFeeLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
+		s.SetIndex(v)
+	})
+}
+
+// AddIndex adds v to the "index" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) AddIndex(v int) *BillingInvoiceFlatFeeLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
+		s.AddIndex(v)
+	})
+}
+
+// UpdateIndex sets the "index" field to the value that was provided on create.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) UpdateIndex() *BillingInvoiceFlatFeeLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
+		s.UpdateIndex()
+	})
+}
+
+// ClearIndex clears the value of the "index" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) ClearIndex() *BillingInvoiceFlatFeeLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
+		s.ClearIndex()
 	})
 }
 
@@ -647,6 +717,34 @@ func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) SetPaymentTerm(v productcata
 func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) UpdatePaymentTerm() *BillingInvoiceFlatFeeLineConfigUpsertBulk {
 	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
 		s.UpdatePaymentTerm()
+	})
+}
+
+// SetIndex sets the "index" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) SetIndex(v int) *BillingInvoiceFlatFeeLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
+		s.SetIndex(v)
+	})
+}
+
+// AddIndex adds v to the "index" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) AddIndex(v int) *BillingInvoiceFlatFeeLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
+		s.AddIndex(v)
+	})
+}
+
+// UpdateIndex sets the "index" field to the value that was provided on create.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) UpdateIndex() *BillingInvoiceFlatFeeLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
+		s.UpdateIndex()
+	})
+}
+
+// ClearIndex clears the value of the "index" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) ClearIndex() *BillingInvoiceFlatFeeLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
+		s.ClearIndex()
 	})
 }
 

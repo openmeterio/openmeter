@@ -191,6 +191,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			Quantity:      lo.FromPtr(dbLine.Quantity),
 			Category:      dbLine.Edges.FlatFeeLine.Category,
 			PaymentTerm:   dbLine.Edges.FlatFeeLine.PaymentTerm,
+			Index:         dbLine.Edges.FlatFeeLine.Index,
 		}
 	case billing.InvoiceLineTypeUsageBased:
 		ubpLine := dbLine.Edges.UsageBasedLine

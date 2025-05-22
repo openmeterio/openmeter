@@ -480,6 +480,9 @@ func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 	var apps *api.BillingProfileAppsOrReference
 	var err error
 
+	// Sort the lines to make the response more consistent (internally we don't care about the order)
+	invoice.SortLines()
+
 	if invoice.Workflow.Apps != nil {
 		apps, err = mapProfileAppsToAPI(invoice.Workflow.Apps)
 		if err != nil {

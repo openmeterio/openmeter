@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -471,6 +472,61 @@ func (i Invoice) RemoveCircularReferences() Invoice {
 	})
 
 	return clone
+}
+
+func (i *Invoice) SortLines() {
+	if !i.Lines.IsPresent() {
+		return
+	}
+
+	lines := i.Lines.OrEmpty()
+
+	sortLines(lines)
+
+	i.Lines = NewLineChildren(lines)
+}
+
+func sortLines(lines []*Line) {
+	sort.Slice(lines, func(a, b int) bool {
+		lineA := lines[a]
+		lineB := lines[b]
+
+		// If both lines are flat fee lines, we sort them by index if possible
+		if lineA.Type == InvoiceLineTypeFee && lineB.Type == InvoiceLineTypeFee {
+			if lineA.FlatFee.Index != nil && lineB.FlatFee.Index != nil {
+				return *lineA.FlatFee.Index < *lineB.FlatFee.Index
+			}
+
+			if lineA.FlatFee.Index != nil {
+				return true
+			}
+
+			if lineB.FlatFee.Index != nil {
+				return false
+			}
+		}
+
+		if nameOrder := strings.Compare(lineA.Name, lineB.Name); nameOrder != 0 {
+			return nameOrder < 0
+		}
+
+		if !lineA.Period.Start.Equal(lineB.Period.Start) {
+			return lineA.Period.Start.Before(lineB.Period.Start)
+		}
+
+		return strings.Compare(lineA.ID, lineB.ID) < 0
+	})
+
+	for idx, line := range lines {
+		if line.Type == InvoiceLineTypeUsageBased && line.Children.IsPresent() {
+			children := line.Children.OrEmpty()
+			sortLines(children)
+
+			line.Children = NewLineChildren(children)
+		}
+
+		lines[idx] = line
+	}
 }
 
 type InvoiceExternalIDs struct {

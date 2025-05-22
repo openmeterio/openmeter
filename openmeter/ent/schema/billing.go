@@ -474,6 +474,10 @@ func (BillingInvoiceFlatFeeLineConfig) Fields() []ent.Field {
 		field.Enum("payment_term").
 			GoType(productcatalog.PaymentTermType("")).
 			Default(string(productcatalog.InAdvancePaymentTerm)),
+		// Note: this is only used for sorting the lines in the invoice, only valid for detailed lines
+		field.Int("index").
+			Optional().
+			Nillable(),
 	}
 }
 

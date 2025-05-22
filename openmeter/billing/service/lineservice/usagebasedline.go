@@ -227,6 +227,11 @@ func (l *usageBasedLine) CalculateDetailedLines() error {
 		return fmt.Errorf("detailed lines: %w", err)
 	}
 
+	// The lines are generated in order, so we can just persist the index
+	for idx := range detailedLines {
+		detailedLines[idx].FlatFee.Index = lo.ToPtr(idx)
+	}
+
 	childrenWithIDReuse, err := l.line.ChildrenWithIDReuse(detailedLines)
 	if err != nil {
 		return fmt.Errorf("failed to reuse child IDs: %w", err)

@@ -26,7 +26,9 @@ type BillingInvoiceFlatFeeLineConfig struct {
 	// Category holds the value of the "category" field.
 	Category billing.FlatFeeCategory `json:"category,omitempty"`
 	// PaymentTerm holds the value of the "payment_term" field.
-	PaymentTerm  productcatalog.PaymentTermType `json:"payment_term,omitempty"`
+	PaymentTerm productcatalog.PaymentTermType `json:"payment_term,omitempty"`
+	// Index holds the value of the "index" field.
+	Index        *int `json:"index,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -37,6 +39,8 @@ func (*BillingInvoiceFlatFeeLineConfig) scanValues(columns []string) ([]any, err
 		switch columns[i] {
 		case billinginvoiceflatfeelineconfig.FieldPerUnitAmount:
 			values[i] = new(alpacadecimal.Decimal)
+		case billinginvoiceflatfeelineconfig.FieldIndex:
+			values[i] = new(sql.NullInt64)
 		case billinginvoiceflatfeelineconfig.FieldID, billinginvoiceflatfeelineconfig.FieldNamespace, billinginvoiceflatfeelineconfig.FieldCategory, billinginvoiceflatfeelineconfig.FieldPaymentTerm:
 			values[i] = new(sql.NullString)
 		default:
@@ -83,6 +87,13 @@ func (_m *BillingInvoiceFlatFeeLineConfig) assignValues(columns []string, values
 				return fmt.Errorf("unexpected type %T for field payment_term", values[i])
 			} else if value.Valid {
 				_m.PaymentTerm = productcatalog.PaymentTermType(value.String)
+			}
+		case billinginvoiceflatfeelineconfig.FieldIndex:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field index", values[i])
+			} else if value.Valid {
+				_m.Index = new(int)
+				*_m.Index = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -131,6 +142,11 @@ func (_m *BillingInvoiceFlatFeeLineConfig) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("payment_term=")
 	builder.WriteString(fmt.Sprintf("%v", _m.PaymentTerm))
+	builder.WriteString(", ")
+	if v := _m.Index; v != nil {
+		builder.WriteString("index=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

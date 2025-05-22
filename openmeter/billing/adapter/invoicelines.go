@@ -305,6 +305,11 @@ func (a *adapter) upsertFeeLineConfig(ctx context.Context, in diff[*billing.Line
 				SetPaymentTerm(line.FlatFee.PaymentTerm).
 				SetID(line.FlatFee.ConfigID)
 
+			if line.Status == billing.InvoiceLineStatusDetailed {
+				// TODO[later]: Detailed lines must be a separate entity, so that we don't need these hacks (like line config or type specific sets)
+				create = create.SetNillableIndex(line.FlatFee.Index)
+			}
+
 			return create, nil
 		},
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceFlatFeeLineConfigCreate) error {

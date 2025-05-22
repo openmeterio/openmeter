@@ -15659,6 +15659,8 @@ type BillingInvoiceFlatFeeLineConfigMutation struct {
 	per_unit_amount *alpacadecimal.Decimal
 	category        *billing.FlatFeeCategory
 	payment_term    *productcatalog.PaymentTermType
+	index           *int
+	addindex        *int
 	clearedFields   map[string]struct{}
 	done            bool
 	oldValue        func(context.Context) (*BillingInvoiceFlatFeeLineConfig, error)
@@ -15913,6 +15915,76 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) ResetPaymentTerm() {
 	m.payment_term = nil
 }
 
+// SetIndex sets the "index" field.
+func (m *BillingInvoiceFlatFeeLineConfigMutation) SetIndex(i int) {
+	m.index = &i
+	m.addindex = nil
+}
+
+// Index returns the value of the "index" field in the mutation.
+func (m *BillingInvoiceFlatFeeLineConfigMutation) Index() (r int, exists bool) {
+	v := m.index
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIndex returns the old "index" field's value of the BillingInvoiceFlatFeeLineConfig entity.
+// If the BillingInvoiceFlatFeeLineConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceFlatFeeLineConfigMutation) OldIndex(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIndex is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIndex requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIndex: %w", err)
+	}
+	return oldValue.Index, nil
+}
+
+// AddIndex adds i to the "index" field.
+func (m *BillingInvoiceFlatFeeLineConfigMutation) AddIndex(i int) {
+	if m.addindex != nil {
+		*m.addindex += i
+	} else {
+		m.addindex = &i
+	}
+}
+
+// AddedIndex returns the value that was added to the "index" field in this mutation.
+func (m *BillingInvoiceFlatFeeLineConfigMutation) AddedIndex() (r int, exists bool) {
+	v := m.addindex
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearIndex clears the value of the "index" field.
+func (m *BillingInvoiceFlatFeeLineConfigMutation) ClearIndex() {
+	m.index = nil
+	m.addindex = nil
+	m.clearedFields[billinginvoiceflatfeelineconfig.FieldIndex] = struct{}{}
+}
+
+// IndexCleared returns if the "index" field was cleared in this mutation.
+func (m *BillingInvoiceFlatFeeLineConfigMutation) IndexCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceflatfeelineconfig.FieldIndex]
+	return ok
+}
+
+// ResetIndex resets all changes to the "index" field.
+func (m *BillingInvoiceFlatFeeLineConfigMutation) ResetIndex() {
+	m.index = nil
+	m.addindex = nil
+	delete(m.clearedFields, billinginvoiceflatfeelineconfig.FieldIndex)
+}
+
 // Where appends a list predicates to the BillingInvoiceFlatFeeLineConfigMutation builder.
 func (m *BillingInvoiceFlatFeeLineConfigMutation) Where(ps ...predicate.BillingInvoiceFlatFeeLineConfig) {
 	m.predicates = append(m.predicates, ps...)
@@ -15947,7 +16019,7 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceFlatFeeLineConfigMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 5)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoiceflatfeelineconfig.FieldNamespace)
 	}
@@ -15959,6 +16031,9 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) Fields() []string {
 	}
 	if m.payment_term != nil {
 		fields = append(fields, billinginvoiceflatfeelineconfig.FieldPaymentTerm)
+	}
+	if m.index != nil {
+		fields = append(fields, billinginvoiceflatfeelineconfig.FieldIndex)
 	}
 	return fields
 }
@@ -15976,6 +16051,8 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) Field(name string) (ent.Value,
 		return m.Category()
 	case billinginvoiceflatfeelineconfig.FieldPaymentTerm:
 		return m.PaymentTerm()
+	case billinginvoiceflatfeelineconfig.FieldIndex:
+		return m.Index()
 	}
 	return nil, false
 }
@@ -15993,6 +16070,8 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) OldField(ctx context.Context, 
 		return m.OldCategory(ctx)
 	case billinginvoiceflatfeelineconfig.FieldPaymentTerm:
 		return m.OldPaymentTerm(ctx)
+	case billinginvoiceflatfeelineconfig.FieldIndex:
+		return m.OldIndex(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingInvoiceFlatFeeLineConfig field %s", name)
 }
@@ -16030,6 +16109,13 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) SetField(name string, value en
 		}
 		m.SetPaymentTerm(v)
 		return nil
+	case billinginvoiceflatfeelineconfig.FieldIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIndex(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceFlatFeeLineConfig field %s", name)
 }
@@ -16037,13 +16123,21 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) SetField(name string, value en
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *BillingInvoiceFlatFeeLineConfigMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addindex != nil {
+		fields = append(fields, billinginvoiceflatfeelineconfig.FieldIndex)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *BillingInvoiceFlatFeeLineConfigMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case billinginvoiceflatfeelineconfig.FieldIndex:
+		return m.AddedIndex()
+	}
 	return nil, false
 }
 
@@ -16052,6 +16146,13 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) AddedField(name string) (ent.V
 // type.
 func (m *BillingInvoiceFlatFeeLineConfigMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case billinginvoiceflatfeelineconfig.FieldIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddIndex(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceFlatFeeLineConfig numeric field %s", name)
 }
@@ -16059,7 +16160,11 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) AddField(name string, value en
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *BillingInvoiceFlatFeeLineConfigMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(billinginvoiceflatfeelineconfig.FieldIndex) {
+		fields = append(fields, billinginvoiceflatfeelineconfig.FieldIndex)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -16072,6 +16177,11 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) FieldCleared(name string) bool
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *BillingInvoiceFlatFeeLineConfigMutation) ClearField(name string) error {
+	switch name {
+	case billinginvoiceflatfeelineconfig.FieldIndex:
+		m.ClearIndex()
+		return nil
+	}
 	return fmt.Errorf("unknown BillingInvoiceFlatFeeLineConfig nullable field %s", name)
 }
 
@@ -16090,6 +16200,9 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) ResetField(name string) error 
 		return nil
 	case billinginvoiceflatfeelineconfig.FieldPaymentTerm:
 		m.ResetPaymentTerm()
+		return nil
+	case billinginvoiceflatfeelineconfig.FieldIndex:
+		m.ResetIndex()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceFlatFeeLineConfig field %s", name)
