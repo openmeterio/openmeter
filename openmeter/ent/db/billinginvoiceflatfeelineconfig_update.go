@@ -72,6 +72,33 @@ func (_u *BillingInvoiceFlatFeeLineConfigUpdate) SetNillablePaymentTerm(v *produ
 	return _u
 }
 
+// SetIndex sets the "index" field.
+func (_u *BillingInvoiceFlatFeeLineConfigUpdate) SetIndex(v int) *BillingInvoiceFlatFeeLineConfigUpdate {
+	_u.mutation.ResetIndex()
+	_u.mutation.SetIndex(v)
+	return _u
+}
+
+// SetNillableIndex sets the "index" field if the given value is not nil.
+func (_u *BillingInvoiceFlatFeeLineConfigUpdate) SetNillableIndex(v *int) *BillingInvoiceFlatFeeLineConfigUpdate {
+	if v != nil {
+		_u.SetIndex(*v)
+	}
+	return _u
+}
+
+// AddIndex adds value to the "index" field.
+func (_u *BillingInvoiceFlatFeeLineConfigUpdate) AddIndex(v int) *BillingInvoiceFlatFeeLineConfigUpdate {
+	_u.mutation.AddIndex(v)
+	return _u
+}
+
+// ClearIndex clears the value of the "index" field.
+func (_u *BillingInvoiceFlatFeeLineConfigUpdate) ClearIndex() *BillingInvoiceFlatFeeLineConfigUpdate {
+	_u.mutation.ClearIndex()
+	return _u
+}
+
 // Mutation returns the BillingInvoiceFlatFeeLineConfigMutation object of the builder.
 func (_u *BillingInvoiceFlatFeeLineConfigUpdate) Mutation() *BillingInvoiceFlatFeeLineConfigMutation {
 	return _u.mutation
@@ -140,6 +167,15 @@ func (_u *BillingInvoiceFlatFeeLineConfigUpdate) sqlSave(ctx context.Context) (_
 	if value, ok := _u.mutation.PaymentTerm(); ok {
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPaymentTerm, field.TypeEnum, value)
 	}
+	if value, ok := _u.mutation.Index(); ok {
+		_spec.SetField(billinginvoiceflatfeelineconfig.FieldIndex, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedIndex(); ok {
+		_spec.AddField(billinginvoiceflatfeelineconfig.FieldIndex, field.TypeInt, value)
+	}
+	if _u.mutation.IndexCleared() {
+		_spec.ClearField(billinginvoiceflatfeelineconfig.FieldIndex, field.TypeInt)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billinginvoiceflatfeelineconfig.Label}
@@ -199,6 +235,33 @@ func (_u *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillablePaymentTerm(v *pr
 	if v != nil {
 		_u.SetPaymentTerm(*v)
 	}
+	return _u
+}
+
+// SetIndex sets the "index" field.
+func (_u *BillingInvoiceFlatFeeLineConfigUpdateOne) SetIndex(v int) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+	_u.mutation.ResetIndex()
+	_u.mutation.SetIndex(v)
+	return _u
+}
+
+// SetNillableIndex sets the "index" field if the given value is not nil.
+func (_u *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillableIndex(v *int) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+	if v != nil {
+		_u.SetIndex(*v)
+	}
+	return _u
+}
+
+// AddIndex adds value to the "index" field.
+func (_u *BillingInvoiceFlatFeeLineConfigUpdateOne) AddIndex(v int) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+	_u.mutation.AddIndex(v)
+	return _u
+}
+
+// ClearIndex clears the value of the "index" field.
+func (_u *BillingInvoiceFlatFeeLineConfigUpdateOne) ClearIndex() *BillingInvoiceFlatFeeLineConfigUpdateOne {
+	_u.mutation.ClearIndex()
 	return _u
 }
 
@@ -299,6 +362,15 @@ func (_u *BillingInvoiceFlatFeeLineConfigUpdateOne) sqlSave(ctx context.Context)
 	}
 	if value, ok := _u.mutation.PaymentTerm(); ok {
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPaymentTerm, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Index(); ok {
+		_spec.SetField(billinginvoiceflatfeelineconfig.FieldIndex, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedIndex(); ok {
+		_spec.AddField(billinginvoiceflatfeelineconfig.FieldIndex, field.TypeInt, value)
+	}
+	if _u.mutation.IndexCleared() {
+		_spec.ClearField(billinginvoiceflatfeelineconfig.FieldIndex, field.TypeInt)
 	}
 	_node = &BillingInvoiceFlatFeeLineConfig{config: _u.config}
 	_spec.Assign = _node.assignValues

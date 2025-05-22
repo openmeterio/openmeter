@@ -264,6 +264,8 @@ type FlatFeeLine struct {
 	Category      FlatFeeCategory                `json:"category"`
 
 	Quantity alpacadecimal.Decimal `json:"quantity"`
+	// Index is the index of the line in the invoice. Only valid for detailed lines. Used for sorting the lines in the invoice.
+	Index *int `json:"index,omitempty"`
 }
 
 func (i FlatFeeLine) Clone() *FlatFeeLine {

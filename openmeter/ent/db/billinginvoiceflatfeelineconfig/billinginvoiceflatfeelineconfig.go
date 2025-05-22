@@ -23,6 +23,8 @@ const (
 	FieldCategory = "category"
 	// FieldPaymentTerm holds the string denoting the payment_term field in the database.
 	FieldPaymentTerm = "payment_term"
+	// FieldIndex holds the string denoting the index field in the database.
+	FieldIndex = "index"
 	// Table holds the table name of the billinginvoiceflatfeelineconfig in the database.
 	Table = "billing_invoice_flat_fee_line_configs"
 )
@@ -34,6 +36,7 @@ var Columns = []string{
 	FieldPerUnitAmount,
 	FieldCategory,
 	FieldPaymentTerm,
+	FieldIndex,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -103,4 +106,9 @@ func ByCategory(opts ...sql.OrderTermOption) OrderOption {
 // ByPaymentTerm orders the results by the payment_term field.
 func ByPaymentTerm(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPaymentTerm, opts...).ToFunc()
+}
+
+// ByIndex orders the results by the index field.
+func ByIndex(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIndex, opts...).ToFunc()
 }

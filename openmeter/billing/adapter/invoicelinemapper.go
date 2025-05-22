@@ -3,6 +3,8 @@ package billingadapter
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -97,7 +99,52 @@ func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, in mapInvoiceLineFro
 		result = append(result, entity)
 	}
 
+	a.sortLines(result)
+
 	return result, nil
+}
+
+func (a *adapter) sortLines(lines []*billing.Line) {
+	sort.Slice(lines, func(a, b int) bool {
+		lineA := lines[a]
+		lineB := lines[b]
+
+		// If both lines are flat fee lines, we sort them by index if possible
+		if lineA.Type == billing.InvoiceLineTypeFee && lineB.Type == billing.InvoiceLineTypeFee {
+			if lineA.FlatFee.Index != nil && lineB.FlatFee.Index != nil {
+				return *lineA.FlatFee.Index < *lineB.FlatFee.Index
+			}
+
+			if lineA.FlatFee.Index != nil {
+				return true
+			}
+
+			if lineB.FlatFee.Index != nil {
+				return false
+			}
+		}
+
+		if nameOrder := strings.Compare(lineA.Name, lineB.Name); nameOrder != 0 {
+			return nameOrder < 0
+		}
+
+		if !lineA.Period.Start.Equal(lineB.Period.Start) {
+			return lineA.Period.Start.Before(lineB.Period.Start)
+		}
+
+		return strings.Compare(lineA.ID, lineB.ID) < 0
+	})
+
+	for idx, line := range lines {
+		if line.Type == billing.InvoiceLineTypeUsageBased && line.Children.IsPresent() {
+			children := line.Children.OrEmpty()
+			a.sortLines(children)
+
+			line.Children = billing.NewLineChildren(children)
+		}
+
+		lines[idx] = line
+	}
 }
 
 func (a *adapter) fetchInvoiceLineNewReferences(ctx context.Context, parentIDs []string, childrenOf []string, includeDeletedLines bool) ([]*db.BillingInvoiceLine, error) {

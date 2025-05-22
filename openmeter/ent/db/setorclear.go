@@ -965,6 +965,20 @@ func (u *BillingInvoiceUpdateOne) SetOrClearCollectionAt(value *time.Time) *Bill
 	return u.SetCollectionAt(*value)
 }
 
+func (u *BillingInvoiceFlatFeeLineConfigUpdate) SetOrClearIndex(value *int) *BillingInvoiceFlatFeeLineConfigUpdate {
+	if value == nil {
+		return u.ClearIndex()
+	}
+	return u.SetIndex(*value)
+}
+
+func (u *BillingInvoiceFlatFeeLineConfigUpdateOne) SetOrClearIndex(value *int) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+	if value == nil {
+		return u.ClearIndex()
+	}
+	return u.SetIndex(*value)
+}
+
 func (u *BillingInvoiceLineUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearMetadata()
