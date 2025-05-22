@@ -147,7 +147,8 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 						Namespace:  ns,
 						CustomerID: customer.ID,
 					},
-					PlanInput: plan,
+					PlanInput:     plan,
+					StartingPhase: parsedBody.StartingPhase,
 				}, nil
 			}
 		},

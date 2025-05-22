@@ -68,34 +68,30 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 
 	// Let's find the starting phase
 	if request.StartingPhase != nil {
-		for idx, phase := range p.Phases {
-			if phase.Key == *request.StartingPhase {
-				// Let's filter out the phases before the starting phase
-				p.Phases = p.Phases[idx:]
-				break
-			}
-
-			if idx == len(p.Phases)-1 {
-				return def, models.NewGenericValidationError(
-					fmt.Errorf("starting phase %s not found in plan %s@%d", *request.StartingPhase, p.Key, p.Version),
-				)
-			}
+		if err := s.removePhasesBeforeStartingPhase(p, *request.StartingPhase); err != nil {
+			return def, err
 		}
 	}
 
 	pp := PlanFromPlan(*p)
 
-	currView, err := s.SubscriptionService.GetView(ctx, request.ID)
-	if err != nil {
-		return def, err
-	}
+	var timing subscription.Timing
 
-	// If we can, we want to migrate immediately.
-	timing := subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)}
+	if request.Timing != nil {
+		timing = *request.Timing
+	} else {
+		currView, err := s.SubscriptionService.GetView(ctx, request.ID)
+		if err != nil {
+			return def, err
+		}
 
-	// If we cannot, we want to migrate at the end of the current billing period
-	if err := timing.ValidateForAction(subscription.SubscriptionActionCancel, &currView); err != nil {
-		timing = subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)}
+		// If we can, we want to migrate immediately.
+		timing = subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)}
+
+		// If we cannot, we want to migrate at the end of the current billing period
+		if err := timing.ValidateForAction(subscription.SubscriptionActionCancel, &currView); err != nil {
+			timing = subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)}
+		}
 	}
 
 	// Then let's create the subscription from the plan

@@ -48,6 +48,12 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 			)
 		}
 
+		if request.StartingPhase != nil {
+			if err := s.removePhasesBeforeStartingPhase(p, *request.StartingPhase); err != nil {
+				return def, err
+			}
+		}
+
 		plan = PlanFromPlan(*p)
 	} else {
 		return def, fmt.Errorf("plan or plan reference must be provided, should have validated already")

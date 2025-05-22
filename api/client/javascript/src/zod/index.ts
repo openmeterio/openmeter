@@ -17237,6 +17237,8 @@ export const migrateSubscriptionParams = zod.object({
     .regex(migrateSubscriptionPathSubscriptionIdRegExp),
 })
 
+export const migrateSubscriptionBodyTimingDefault = 'immediate'
+
 export const migrateSubscriptionBody = zod.object({
   startingPhase: zod
     .string()
@@ -17251,6 +17253,25 @@ export const migrateSubscriptionBody = zod.object({
     .optional()
     .describe(
       'The version of the plan to migrate to.\nIf not provided, the subscription will migrate to the latest version of the current plan.'
+    ),
+  timing: zod
+    .enum(['immediate', 'next_billing_cycle'])
+    .describe(
+      'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
+    )
+    .or(
+      zod
+        .date()
+        .describe(
+          '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        )
+    )
+    .describe(
+      'Subscription edit timing defined when the changes should take effect.\nIf the provided configuration is not supported by the subscription, an error will be returned.'
+    )
+    .default(migrateSubscriptionBodyTimingDefault)
+    .describe(
+      'Timing configuration for the migration, when the migration should take effect.\nIf not supported by the subscription, 400 will be returned.'
     ),
 })
 

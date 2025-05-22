@@ -24,6 +24,7 @@ type MigrateSubscriptionRequest struct {
 	ID            models.NamespacedID
 	TargetVersion *int
 	StartingPhase *string
+	Timing        *subscription.Timing
 }
 
 type ChangeSubscriptionRequest struct {
@@ -38,4 +39,7 @@ type ChangeSubscriptionRequest struct {
 type CreateSubscriptionRequest struct {
 	WorkflowInput subscriptionworkflow.CreateSubscriptionWorkflowInput
 	PlanInput     PlanInput
+
+	// Only used if existing plan is provided
+	StartingPhase *string
 }
