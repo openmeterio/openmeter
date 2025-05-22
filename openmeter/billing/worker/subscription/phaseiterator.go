@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -164,13 +165,14 @@ func (it *PhaseIterator) Generate(ctx context.Context, iterationEnd time.Time) (
 	ctx, span := it.tracer.Start(ctx, "billing.worker.subscription.phaseiterator.Generate", trace.WithAttributes(
 		attribute.String("phase_key", it.phase.Spec.PhaseKey),
 	))
-	defer span.End()
 
-	if it.sub.Subscription.BillablesMustAlign {
-		return it.generateAligned(ctx, iterationEnd)
-	}
+	return tracex.WithSpan(ctx, span, func(ctx context.Context) ([]subscriptionItemWithPeriod, error) {
+		if it.sub.Subscription.BillablesMustAlign {
+			return it.generateAligned(ctx, iterationEnd)
+		}
 
-	return it.generate(iterationEnd)
+		return it.generate(iterationEnd)
+	})
 }
 
 func (it *PhaseIterator) generateAligned(ctx context.Context, iterationEnd time.Time) ([]subscriptionItemWithPeriod, error) {
