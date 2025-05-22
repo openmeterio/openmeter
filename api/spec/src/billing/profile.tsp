@@ -9,7 +9,11 @@ namespace OpenMeter.Billing;
 @tag("Billing")
 interface Profiles {
   /**
-   * List all billing profiles
+   * List all billing profiles matching the specified filters.
+   *
+   * The expand option can be used to include additional information (besides the billing profile)
+   * in the response. For example by adding the expand=apps option the apps used by the billing profile
+   * will be included in the response.
    */
   @get
   @operationId("listBillingProfiles")
@@ -40,7 +44,12 @@ interface Profiles {
   } | OpenMeter.CommonErrors;
 
   /**
-   * Delete a billing profile
+   * Delete a billing profile by id.
+   *
+   * Only such billing profiles can be deleted that are:
+   * - not the default one
+   * - not pinned to any customer using customer overrides
+   * - only have finalized invoices
    */
   @route("/{id}")
   @delete
@@ -54,7 +63,11 @@ interface Profiles {
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Get a billing profile by ID
+   * Get a billing profile by id.
+   *
+   * The expand option can be used to include additional information (besides the billing profile)
+   * in the response. For example by adding the expand=apps option the apps used by the billing profile
+   * will be included in the response.
    */
   @route("/{id}")
   @get
@@ -69,7 +82,10 @@ interface Profiles {
   ): BillingProfile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Update a billing profile
+   * Update a billing profile by id.
+   *
+   * The apps field cannot be updated directly, if an app change is desired a new
+   * profile should be created.
    */
   @route("/{id}")
   @put

@@ -36,7 +36,12 @@ interface InvoicesEndpoints {
   } | OpenMeter.CommonErrors;
 
   /**
-   * List invoices for a specific customer
+   * List invoices based on the specified filters.
+   *
+   * The expand option can be used to include additional information (besides the invoice header and totals)
+   * in the response. For example by adding the expand=lines option the invoice lines will be included in the response.
+   *
+   * Gathering invoices will always show the current usage calculated on the fly.
    */
   @get
   @summary("List invoices")
@@ -56,6 +61,8 @@ interface InvoicesEndpoints {
 interface InvoiceEndpoints {
   /**
    * Get an invoice by ID.
+   *
+   * Gathering invoices will always show the current usage calculated on the fly.
    */
   @get
   @summary("Get an invoice")
@@ -75,6 +82,8 @@ interface InvoiceEndpoints {
    * Delete an invoice
    *
    * Only invoices that are in the draft (or earlier) status can be deleted.
+   *
+   * Invoices that are post finalization can only be voided.
    */
   @delete
   @summary("Delete an invoice")
@@ -185,6 +194,11 @@ interface InvoiceEndpoints {
 
   /**
    * Snapshot quantities for usage based line items.
+   *
+   * This call will snapshot the quantities for all usage based line items in the invoice.
+   *
+   * This call is only valid in `draft.waiting_for_collection` status, where the collection period
+   * can be skipped using this action.
    */
   @post
   @route("/snapshot-quantities")
