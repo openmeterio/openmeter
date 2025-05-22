@@ -266,21 +266,22 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 		m.Use(func(h http.Handler) http.Handler {
 			return otelhttp.NewHandler(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					span := trace.SpanFromContext(r.Context())
-
-					span.SetAttributes(semconv.URLPath(r.URL.String()))
-
-					// Run the instrumented handler
 					h.ServeHTTP(w, r)
+
+					routePattern := chi.RouteContext(r.Context()).RoutePattern()
+
+					span := trace.SpanFromContext(r.Context())
+					span.SetName(routePattern)
+					span.SetAttributes(semconv.URLPath(r.URL.String()), semconv.HTTPRoute(routePattern))
+
+					labeler, ok := otelhttp.LabelerFromContext(r.Context())
+					if ok {
+						labeler.Add(semconv.HTTPRoute(routePattern))
+					}
 				}),
 				"",
 				otelhttp.WithMeterProvider(meterProvider),
 				otelhttp.WithTracerProvider(tracerProvider),
-				otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
-					rctx := chi.RouteContext(r.Context())
-					name := rctx.RouteMethod + " " + rctx.RoutePath
-					return name
-				}),
 			)
 		})
 	}
