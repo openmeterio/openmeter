@@ -1,63 +1,61 @@
-package billingadapter
+package billing
 
 import (
 	"testing"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSortLines(t *testing.T) {
-	lines := []*billing.Line{
+	lines := []*Line{
 		{
-			LineBase: billing.LineBase{
-				Type: billing.InvoiceLineTypeUsageBased,
+			LineBase: LineBase{
+				Type: InvoiceLineTypeUsageBased,
 				Name: "usage-based-line",
-				Period: billing.Period{
+				Period: Period{
 					Start: time.Now().Add(time.Hour * 24),
 				},
 				Description: lo.ToPtr("index=1"),
 			},
-			Children: billing.NewLineChildren([]*billing.Line{
+			Children: NewLineChildren([]*Line{
 				{
-					LineBase: billing.LineBase{
+					LineBase: LineBase{
 						ID:          "child-2",
-						Type:        billing.InvoiceLineTypeFee,
+						Type:        InvoiceLineTypeFee,
 						Description: lo.ToPtr("index=1.1"),
 					},
-					FlatFee: &billing.FlatFeeLine{
+					FlatFee: &FlatFeeLine{
 						Index: lo.ToPtr(1),
 					},
 				},
 				{
-					LineBase: billing.LineBase{
+					LineBase: LineBase{
 						ID:          "child-1",
-						Type:        billing.InvoiceLineTypeFee,
+						Type:        InvoiceLineTypeFee,
 						Description: lo.ToPtr("index=1.0"),
 					},
-					FlatFee: &billing.FlatFeeLine{
+					FlatFee: &FlatFeeLine{
 						Index: lo.ToPtr(0),
 					},
 				},
 			}),
 		},
 		{
-			LineBase: billing.LineBase{
-				Type: billing.InvoiceLineTypeUsageBased,
+			LineBase: LineBase{
+				Type: InvoiceLineTypeUsageBased,
 				Name: "usage-based-line",
-				Period: billing.Period{
+				Period: Period{
 					Start: time.Now(),
 				},
 				Description: lo.ToPtr("index=0"),
 			},
-			Children: billing.NewLineChildren(nil),
+			Children: NewLineChildren(nil),
 		},
 	}
 
-	adapter := &adapter{}
-	adapter.sortLines(lines)
+	sortLines(lines)
 
 	require.Equal(t, *lines[0].Description, "index=0")
 	require.Equal(t, *lines[1].Description, "index=1")

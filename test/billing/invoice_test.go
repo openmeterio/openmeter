@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"slices"
 	"testing"
 	"time"
@@ -3917,4 +3918,150 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 	line := lines[0]
 	s.Equal(line.Name, "UBP - volume")
 	s.True(line.Period.Equal(billing.Period{Start: periodStart, End: periodEnd}), "periods should equal")
+}
+
+func (s *InvoicingTestSuite) TestSortLines() {
+	namespace := "ns-progressive-invoice-sort"
+	ctx := context.Background()
+
+	// Given
+	//  there's an usage based line with multiple children
+	// When
+	//  fetching the invoice lines
+	// Then
+	//  the lines should be sorted by index (and index should be present)
+
+	s.InstallSandboxApp(s.T(), namespace)
+
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
+	minimalCreateProfileInput.Namespace = namespace
+
+	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), profile)
+
+	start := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
+
+	periodStart := start
+	periodEnd := start.Add(time.Minute * 4)
+
+	apiRequestsTotalFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
+	defer apiRequestsTotalFeature.Cleanup()
+
+	customer := s.CreateTestCustomer(namespace, "test-customer")
+
+	// let's set up the feature
+
+	clock.SetTime(start)
+	defer clock.ResetTime()
+
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customer.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []*billing.Line{
+			{
+				LineBase: billing.LineBase{
+					Period:    billing.Period{Start: periodStart, End: periodEnd},
+					InvoiceAt: periodEnd,
+					ManagedBy: billing.ManuallyManagedLine,
+					Type:      billing.InvoiceLineTypeUsageBased,
+					Name:      "UBP - volume",
+				},
+				UsageBased: &billing.UsageBasedLine{
+					FeatureKey: apiRequestsTotalFeature.Feature.Key,
+					Price: productcatalog.NewPriceFrom(
+						productcatalog.TieredPrice{
+							Mode: productcatalog.GraduatedTieredPrice,
+							Tiers: []productcatalog.PriceTier{
+								{
+									UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1000)),
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(1),
+									},
+								},
+								{
+									UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(0.5),
+									},
+								},
+								{
+									UpToAmount: nil,
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(0.25),
+									},
+								},
+							},
+							Commitments: productcatalog.Commitments{
+								MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100000)),
+							},
+						},
+					),
+				},
+			},
+		},
+	})
+
+	s.NoError(err)
+	s.Len(pendingLines.Lines, 1)
+
+	// Let's add some usage
+	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 2500, periodStart)
+	defer s.MockStreamingConnector.Reset()
+
+	clock.SetTime(periodEnd)
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer:                   customer.GetID(),
+		ProgressiveBillingOverride: lo.ToPtr(false),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+
+	invoice := invoices[0]
+
+	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+	lines := invoice.Lines.OrEmpty()
+	// The unit line should not be included in the invoice
+	s.Len(lines, 1)
+
+	for range 10 {
+		// Let's shuffle the lines (ULIDs usually provide a consistent order that's why we are shuffling it a few times)
+		lines := invoice.Lines.OrEmpty()
+
+		detailedLines := lines[0].Children.OrEmpty()
+
+		rand.Shuffle(len(detailedLines), func(i, j int) {
+			detailedLines[i], detailedLines[j] = detailedLines[j], detailedLines[i]
+		})
+
+		lines[0].Children = billing.NewLineChildren(detailedLines)
+
+		invoice.Lines = billing.NewLineChildren(lines)
+
+		// We expect the lines to be sorted by index
+		invoice.SortLines()
+
+		lines = invoice.Lines.OrEmpty()
+		// The unit line should not be included in the invoice
+		s.Len(lines, 1)
+
+		line := lines[0]
+		s.Equal(line.Name, "UBP - volume")
+		s.True(line.Period.Equal(billing.Period{Start: periodStart, End: periodEnd}), "periods should equal")
+
+		children := line.Children.OrEmpty()
+		s.Len(children, 4)
+
+		// There should be 4 children properly indexed
+		for idx, child := range children {
+			s.NotNil(child.FlatFee.Index)
+			s.Equal(idx, *child.FlatFee.Index)
+		}
+
+		// Let's mandate that the last child is the commitment
+		s.Equal(billing.FlatFeeCategoryCommitment, children[3].FlatFee.Category)
+	}
 }

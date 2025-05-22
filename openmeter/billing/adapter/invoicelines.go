@@ -306,7 +306,7 @@ func (a *adapter) upsertFeeLineConfig(ctx context.Context, in diff[*billing.Line
 				SetID(line.FlatFee.ConfigID)
 
 			if line.Status == billing.InvoiceLineStatusDetailed {
-				// TODO[later]: Detailed lines must be a seperate entity, so that we don't need these hacks (like line config or type specific sets)
+				// TODO[later]: Detailed lines must be a separate entity, so that we don't need these hacks (like line config or type specific sets)
 				create = create.SetNillableIndex(line.FlatFee.Index)
 			}
 
