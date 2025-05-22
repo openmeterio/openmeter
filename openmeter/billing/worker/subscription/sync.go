@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -86,144 +87,147 @@ func New(config Config) (*Handler, error) {
 }
 
 func (h *Handler) invoicePendingLines(ctx context.Context, customer customer.CustomerID) error {
-	ctx, span := h.tracer.Start(ctx, "billing.worker.subscription.sync.invoicePendingLines", trace.WithAttributes(
+	ctx, span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.invoicePendingLines", trace.WithAttributes(
 		attribute.String("customer_id", customer.ID),
 	))
-	defer span.End()
 
-	_, err := h.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer:                   customer,
-		ProgressiveBillingOverride: lo.ToPtr(false),
-	})
-	if err != nil {
-		if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
-			return nil
+	return span.Wrap(ctx, func(ctx context.Context) error {
+		_, err := h.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer:                   customer,
+			ProgressiveBillingOverride: lo.ToPtr(false),
+		})
+		if err != nil {
+			if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
+				return nil
+			}
+
+			return err
 		}
 
-		return err
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func (h *Handler) SyncronizeSubscriptionAndInvoiceCustomer(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
-	ctx, span := h.tracer.Start(ctx, "billing.worker.subscription.sync.SynchronizeSubscriptionAndInvoiceCustomer", trace.WithAttributes(
+	ctx, span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.SynchronizeSubscriptionAndInvoiceCustomer", trace.WithAttributes(
 		attribute.String("subscription_id", subs.Subscription.ID),
 		attribute.String("as_of", asOf.Format(time.RFC3339)),
 	))
-	defer span.End()
 
-	if err := h.SyncronizeSubscription(ctx, subs, asOf); err != nil {
-		return fmt.Errorf("synchronize subscription: %w", err)
-	}
+	return span.Wrap(ctx, func(ctx context.Context) error {
+		if err := h.SyncronizeSubscription(ctx, subs, asOf); err != nil {
+			return fmt.Errorf("synchronize subscription: %w", err)
+		}
 
-	customerID := customer.CustomerID{
-		Namespace: subs.Subscription.Namespace,
-		ID:        subs.Subscription.CustomerId,
-	}
-	// Invoice any pending lines invoicable now, so that any in advance fees are invoiced immediately.
-	if err := h.invoicePendingLines(ctx, customerID); err != nil {
-		return fmt.Errorf("invoice pending lines (post): %w [customer_id=%s]", err, customerID.ID)
-	}
+		customerID := customer.CustomerID{
+			Namespace: subs.Subscription.Namespace,
+			ID:        subs.Subscription.CustomerId,
+		}
+		// Invoice any pending lines invoicable now, so that any in advance fees are invoiced immediately.
+		if err := h.invoicePendingLines(ctx, customerID); err != nil {
+			return fmt.Errorf("invoice pending lines (post): %w [customer_id=%s]", err, customerID.ID)
+		}
 
-	return nil
+		return nil
+	})
 }
 
 func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
-	ctx, span := h.tracer.Start(ctx, "billing.worker.subscription.sync.SynchronizeSubscription", trace.WithAttributes(
+	ctx, span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.SynchronizeSubscription", trace.WithAttributes(
 		attribute.String("subscription_id", subs.Subscription.ID),
 		attribute.String("as_of", asOf.Format(time.RFC3339)),
 	))
-	defer span.End()
 
-	if !subs.Spec.HasBillables() {
-		h.logger.InfoContext(ctx, "subscription has no billables, skipping sync", "subscription_id", subs.Subscription.ID)
-		return nil
-	}
-
-	// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
-	// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
-	_, err := h.billingService.GetCustomerOverride(
-		ctx,
-		billing.GetCustomerOverrideInput{
-			Customer: customer.CustomerID{
-				Namespace: subs.Subscription.Namespace,
-				ID:        subs.Subscription.CustomerId,
-			},
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("getting billing profile: %w", err)
-	}
-
-	currency, err := subs.Spec.Currency.Calculator()
-	if err != nil {
-		return fmt.Errorf("getting currency calculator: %w", err)
-	}
-
-	return h.billingService.WithLock(ctx, customer.CustomerID{
-		Namespace: subs.Subscription.Namespace,
-		ID:        subs.Subscription.CustomerId,
-	}, func(ctx context.Context) error {
-		plan, err := h.calculateSyncPlan(ctx, subs, asOf)
-		if err != nil {
-			return err
-		}
-
-		if plan == nil {
+	return span.Wrap(ctx, func(ctx context.Context) error {
+		if !subs.Spec.HasBillables() {
+			h.logger.InfoContext(ctx, "subscription has no billables, skipping sync", "subscription_id", subs.Subscription.ID)
 			return nil
 		}
 
-		patches, err := h.getPatchesFromPlan(plan, subs, currency)
-		if err != nil {
-			return err
-		}
-
-		err = h.provisionPendingLines(ctx,
-			subs,
-			currency,
-			plan.NewSubscriptionItems,
+		// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
+		// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
+		_, err := h.billingService.GetCustomerOverride(
+			ctx,
+			billing.GetCustomerOverrideInput{
+				Customer: customer.CustomerID{
+					Namespace: subs.Subscription.Namespace,
+					ID:        subs.Subscription.CustomerId,
+				},
+			},
 		)
 		if err != nil {
-			return fmt.Errorf("provisioning pending lines: %w", err)
+			return fmt.Errorf("getting billing profile: %w", err)
 		}
 
-		patchesByInvoiceID := lo.GroupBy(patches, func(p linePatch) string {
-			return p.InvoiceID
-		})
+		currency, err := subs.Spec.Currency.Calculator()
+		if err != nil {
+			return fmt.Errorf("getting currency calculator: %w", err)
+		}
 
-		invoiceHeadersByID := make(map[string]billing.Invoice, len(patchesByInvoiceID))
-		for invoiceID := range patchesByInvoiceID {
-			invoice, err := h.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: billing.InvoiceID{
-					Namespace: subs.Subscription.Namespace,
-					ID:        invoiceID,
-				},
-				Expand: billing.InvoiceExpand{},
-			})
+		return h.billingService.WithLock(ctx, customer.CustomerID{
+			Namespace: subs.Subscription.Namespace,
+			ID:        subs.Subscription.CustomerId,
+		}, func(ctx context.Context) error {
+			plan, err := h.calculateSyncPlan(ctx, subs, asOf)
 			if err != nil {
-				return fmt.Errorf("getting invoice[%s]: %w", invoiceID, err)
+				return err
 			}
 
-			invoiceHeadersByID[invoiceID] = invoice
-		}
+			if plan == nil {
+				return nil
+			}
 
-		for invoiceID, patches := range patchesByInvoiceID {
-			invoice := invoiceHeadersByID[invoiceID]
+			patches, err := h.getPatchesFromPlan(plan, subs, currency)
+			if err != nil {
+				return err
+			}
 
-			if !invoice.StatusDetails.Immutable {
-				if err := h.updateMutableInvoice(ctx, invoice, patches); err != nil {
-					return fmt.Errorf("updating mutable invoice[%s]: %w", invoiceID, err)
+			err = h.provisionPendingLines(ctx,
+				subs,
+				currency,
+				plan.NewSubscriptionItems,
+			)
+			if err != nil {
+				return fmt.Errorf("provisioning pending lines: %w", err)
+			}
+
+			patchesByInvoiceID := lo.GroupBy(patches, func(p linePatch) string {
+				return p.InvoiceID
+			})
+
+			invoiceHeadersByID := make(map[string]billing.Invoice, len(patchesByInvoiceID))
+			for invoiceID := range patchesByInvoiceID {
+				invoice, err := h.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+					Invoice: billing.InvoiceID{
+						Namespace: subs.Subscription.Namespace,
+						ID:        invoiceID,
+					},
+					Expand: billing.InvoiceExpand{},
+				})
+				if err != nil {
+					return fmt.Errorf("getting invoice[%s]: %w", invoiceID, err)
 				}
-				continue
+
+				invoiceHeadersByID[invoiceID] = invoice
 			}
 
-			if err := h.updateImmutableInvoice(ctx, invoice, patches); err != nil {
-				return fmt.Errorf("updating immutable invoice[%s]: %w", invoiceID, err)
-			}
-		}
+			for invoiceID, patches := range patchesByInvoiceID {
+				invoice := invoiceHeadersByID[invoiceID]
 
-		return nil
+				if !invoice.StatusDetails.Immutable {
+					if err := h.updateMutableInvoice(ctx, invoice, patches); err != nil {
+						return fmt.Errorf("updating mutable invoice[%s]: %w", invoiceID, err)
+					}
+					continue
+				}
+
+				if err := h.updateImmutableInvoice(ctx, invoice, patches); err != nil {
+					return fmt.Errorf("updating immutable invoice[%s]: %w", invoiceID, err)
+				}
+			}
+
+			return nil
+		})
 	})
 }
 
@@ -282,91 +286,92 @@ func (h *Handler) getPatchesFromPlan(p *syncPlan, subs subscription.Subscription
 }
 
 func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) (*syncPlan, error) {
-	ctx, span := h.tracer.Start(ctx, "billing.worker.subscription.sync.calculateSyncPlan")
-	defer span.End()
+	ctx, span := tracex.Start[*syncPlan](ctx, h.tracer, "billing.worker.subscription.sync.calculateSyncPlan")
 
-	// Let's see what's in scope for the subscription
-	slices.SortFunc(subs.Phases, func(i, j subscription.SubscriptionPhaseView) int {
-		return timeutil.Compare(i.SubscriptionPhase.ActiveFrom, j.SubscriptionPhase.ActiveFrom)
-	})
-
-	inScopeLines, err := h.collectUpcomingLines(ctx, subs, asOf)
-	if err != nil {
-		return nil, fmt.Errorf("collecting upcoming lines: %w", err)
-	}
-
-	// Let's load the existing lines for the subscription
-	existingLines, err := h.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
-		Namespace:      subs.Subscription.Namespace,
-		SubscriptionID: subs.Subscription.ID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("getting existing lines: %w", err)
-	}
-
-	if len(inScopeLines) == 0 && len(existingLines) == 0 {
-		// The subscription has no invoicable items, no present lines exist, so there's nothing to do
-		return nil, nil
-	}
-
-	inScopeLinesByUniqueID, unique := slicesx.UniqueGroupBy(inScopeLines, func(i subscriptionItemWithPeriod) string {
-		return i.UniqueID
-	})
-	if !unique {
-		return nil, fmt.Errorf("duplicate unique ids in the upcoming lines")
-	}
-
-	existingLinesByUniqueID, unique := slicesx.UniqueGroupBy(
-		lo.Filter(existingLines, func(l *billing.Line, _ int) bool {
-			return l.ChildUniqueReferenceID != nil
-		}),
-		func(l *billing.Line) string {
-			return *l.ChildUniqueReferenceID
+	return span.Wrap(ctx, func(ctx context.Context) (*syncPlan, error) {
+		// Let's see what's in scope for the subscription
+		slices.SortFunc(subs.Phases, func(i, j subscription.SubscriptionPhaseView) int {
+			return timeutil.Compare(i.SubscriptionPhase.ActiveFrom, j.SubscriptionPhase.ActiveFrom)
 		})
-	if !unique {
-		return nil, fmt.Errorf("duplicate unique ids in the existing lines")
-	}
 
-	existingLineUniqueIDs := lo.Keys(existingLinesByUniqueID)
-	inScopeLineUniqueIDs := lo.Keys(inScopeLinesByUniqueID)
-	// Let's execute the synchronization
-	deletedLines, newLines := lo.Difference(existingLineUniqueIDs, inScopeLineUniqueIDs)
-	lineIDsToUpsert := lo.Intersect(existingLineUniqueIDs, inScopeLineUniqueIDs)
-
-	linesToDelete, err := slicesx.MapWithErr(deletedLines, func(id string) (*billing.Line, error) {
-		line, ok := existingLinesByUniqueID[id]
-		if !ok {
-			return nil, fmt.Errorf("existing line[%s] not found in the existing lines", id)
+		inScopeLines, err := h.collectUpcomingLines(ctx, subs, asOf)
+		if err != nil {
+			return nil, fmt.Errorf("collecting upcoming lines: %w", err)
 		}
 
-		return line, nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("mapping deleted lines: %w", err)
-	}
-
-	linesToUpsert, err := slicesx.MapWithErr(lineIDsToUpsert, func(id string) (syncPlanLineUpsert, error) {
-		existingLine, ok := existingLinesByUniqueID[id]
-		if !ok {
-			return syncPlanLineUpsert{}, fmt.Errorf("existing line[%s] not found in the existing lines", id)
+		// Let's load the existing lines for the subscription
+		existingLines, err := h.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
+			Namespace:      subs.Subscription.Namespace,
+			SubscriptionID: subs.Subscription.ID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("getting existing lines: %w", err)
 		}
 
-		return syncPlanLineUpsert{
-			Target:   inScopeLinesByUniqueID[id],
-			Existing: existingLine,
+		if len(inScopeLines) == 0 && len(existingLines) == 0 {
+			// The subscription has no invoicable items, no present lines exist, so there's nothing to do
+			return nil, nil
+		}
+
+		inScopeLinesByUniqueID, unique := slicesx.UniqueGroupBy(inScopeLines, func(i subscriptionItemWithPeriod) string {
+			return i.UniqueID
+		})
+		if !unique {
+			return nil, fmt.Errorf("duplicate unique ids in the upcoming lines")
+		}
+
+		existingLinesByUniqueID, unique := slicesx.UniqueGroupBy(
+			lo.Filter(existingLines, func(l *billing.Line, _ int) bool {
+				return l.ChildUniqueReferenceID != nil
+			}),
+			func(l *billing.Line) string {
+				return *l.ChildUniqueReferenceID
+			})
+		if !unique {
+			return nil, fmt.Errorf("duplicate unique ids in the existing lines")
+		}
+
+		existingLineUniqueIDs := lo.Keys(existingLinesByUniqueID)
+		inScopeLineUniqueIDs := lo.Keys(inScopeLinesByUniqueID)
+		// Let's execute the synchronization
+		deletedLines, newLines := lo.Difference(existingLineUniqueIDs, inScopeLineUniqueIDs)
+		lineIDsToUpsert := lo.Intersect(existingLineUniqueIDs, inScopeLineUniqueIDs)
+
+		linesToDelete, err := slicesx.MapWithErr(deletedLines, func(id string) (*billing.Line, error) {
+			line, ok := existingLinesByUniqueID[id]
+			if !ok {
+				return nil, fmt.Errorf("existing line[%s] not found in the existing lines", id)
+			}
+
+			return line, nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("mapping deleted lines: %w", err)
+		}
+
+		linesToUpsert, err := slicesx.MapWithErr(lineIDsToUpsert, func(id string) (syncPlanLineUpsert, error) {
+			existingLine, ok := existingLinesByUniqueID[id]
+			if !ok {
+				return syncPlanLineUpsert{}, fmt.Errorf("existing line[%s] not found in the existing lines", id)
+			}
+
+			return syncPlanLineUpsert{
+				Target:   inScopeLinesByUniqueID[id],
+				Existing: existingLine,
+			}, nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("mapping upsert lines: %w", err)
+		}
+
+		return &syncPlan{
+			NewSubscriptionItems: lo.Map(newLines, func(id string, _ int) subscriptionItemWithPeriod {
+				return inScopeLinesByUniqueID[id]
+			}),
+			LinesToDelete: linesToDelete,
+			LinesToUpsert: linesToUpsert,
 		}, nil
 	})
-	if err != nil {
-		return nil, fmt.Errorf("mapping upsert lines: %w", err)
-	}
-
-	return &syncPlan{
-		NewSubscriptionItems: lo.Map(newLines, func(id string, _ int) subscriptionItemWithPeriod {
-			return inScopeLinesByUniqueID[id]
-		}),
-		LinesToDelete: linesToDelete,
-		LinesToUpsert: linesToUpsert,
-	}, nil
 }
 
 // TODO[OM-1038]: manually deleted lines might come back to draft/gathering invoices (see ticket)
@@ -380,48 +385,49 @@ func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.Subsc
 // This approach allows us to not to have to poll all the subscriptions periodically, but we can act when an invoice is created or when
 // a subscription is updated.
 func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) ([]subscriptionItemWithPeriod, error) {
-	ctx, span := h.tracer.Start(ctx, "billing.worker.subscription.sync.collectUpcomingLines")
-	defer span.End()
+	ctx, span := tracex.Start[[]subscriptionItemWithPeriod](ctx, h.tracer, "billing.worker.subscription.sync.collectUpcomingLines")
 
-	inScopeLines := make([]subscriptionItemWithPeriod, 0, 128)
+	return span.Wrap(ctx, func(ctx context.Context) ([]subscriptionItemWithPeriod, error) {
+		inScopeLines := make([]subscriptionItemWithPeriod, 0, 128)
 
-	for _, phase := range subs.Phases {
-		iterator, err := NewPhaseIterator(h.logger, h.tracer, subs, phase.SubscriptionPhase.Key)
-		if err != nil {
-			return nil, fmt.Errorf("creating phase iterator: %w", err)
-		}
+		for _, phase := range subs.Phases {
+			iterator, err := NewPhaseIterator(h.logger, h.tracer, subs, phase.SubscriptionPhase.Key)
+			if err != nil {
+				return nil, fmt.Errorf("creating phase iterator: %w", err)
+			}
 
-		if !iterator.HasInvoicableItems() {
-			continue
-		}
-
-		generationLimit := asOf
-		if phaseStart := iterator.PhaseStart(); phaseStart.After(asOf) {
-			// We need to have invoicable items, so we need to advance the limit here at least to phaseStart to see
-			// if we can have any invoicable items.
-
-			generationLimit = iterator.GetMinimumBillableTime()
-
-			if generationLimit.IsZero() {
-				// This should not happen, but if it does, we should skip this phase
+			if !iterator.HasInvoicableItems() {
 				continue
+			}
+
+			generationLimit := asOf
+			if phaseStart := iterator.PhaseStart(); phaseStart.After(asOf) {
+				// We need to have invoicable items, so we need to advance the limit here at least to phaseStart to see
+				// if we can have any invoicable items.
+
+				generationLimit = iterator.GetMinimumBillableTime()
+
+				if generationLimit.IsZero() {
+					// This should not happen, but if it does, we should skip this phase
+					continue
+				}
+			}
+
+			items, err := iterator.Generate(ctx, generationLimit)
+			if err != nil {
+				return nil, fmt.Errorf("generating items: %w", err)
+			}
+
+			inScopeLines = append(inScopeLines, items...)
+
+			if phaseEnd := iterator.PhaseEnd(); phaseEnd != nil && !phaseEnd.Before(asOf) {
+				// we are done with the generation, as the phase end is after the asOf, and we have invoicable items
+				break
 			}
 		}
 
-		items, err := iterator.Generate(ctx, generationLimit)
-		if err != nil {
-			return nil, fmt.Errorf("generating items: %w", err)
-		}
-
-		inScopeLines = append(inScopeLines, items...)
-
-		if phaseEnd := iterator.PhaseEnd(); phaseEnd != nil && !phaseEnd.Before(asOf) {
-			// we are done with the generation, as the phase end is after the asOf, and we have invoicable items
-			break
-		}
-	}
-
-	return inScopeLines, nil
+		return inScopeLines, nil
+	})
 }
 
 func (h *Handler) getDeletePatchesForLine(line *billing.Line) []linePatch {
