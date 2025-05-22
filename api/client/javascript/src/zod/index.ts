@@ -2358,7 +2358,13 @@ export const appStripeWebhookBody = zod
   .describe('Stripe webhook event.')
 
 /**
- * List customer overrides
+ * List customer overrides using the specified filters.
+
+The response will include the customer override values and the merged billing profile values.
+
+If the includeAllCustomers is set to true, the list contains all customers. This mode is
+useful for getting the current effective billing workflow settings for all users regardless
+if they have customer orverrides or not.
  * @summary List customer overrides
  */
 export const listBillingProfileCustomerOverridesQueryBillingProfileItemRegExp =
@@ -2441,7 +2447,11 @@ export const listBillingProfileCustomerOverridesQueryParams = zod.object({
 })
 
 /**
- * Create a new or update an existing customer override.
+ * The customer override can be used to pin a given customer to a billing profile
+different from the default one.
+
+This can be used to test the effect of different billing profiles before making them
+the default ones or have different workflow settings for example for enterprise customers.
  * @summary Create a new or update a customer override
  */
 export const upsertBillingProfileCustomerOverridePathCustomerIdRegExp =
@@ -2472,6 +2482,11 @@ export const upsertBillingProfileCustomerOverrideBody = zod
 
 /**
  * Get a customer override by customer id.
+
+The response will include the customer override values and the merged billing profile values.
+
+If the customer override is not found, the default billing profile's values are returned. This behavior
+allows for getting a merged profile regardless of the customer override existence.
  * @summary Get a customer override
  */
 export const getBillingProfileCustomerOverridePathCustomerIdRegExp = new RegExp(
@@ -2498,6 +2513,9 @@ export const getBillingProfileCustomerOverrideQueryParams = zod.object({
 
 /**
  * Delete a customer override by customer id.
+
+This will remove the customer override and the customer will be subject to the default
+billing profile's settings again.
  * @summary Delete a customer override
  */
 export const deleteBillingProfileCustomerOverridePathCustomerIdRegExp =
@@ -4874,7 +4892,12 @@ export const simulateInvoiceBody = zod
   .describe('InvoiceSimulationInput is the input for simulating an invoice.')
 
 /**
- * List invoices for a specific customer
+ * List invoices based on the specified filters.
+
+The expand option can be used to include additional information (besides the invoice header and totals)
+in the response. For example by adding the expand=lines option the invoice lines will be included in the response.
+
+Gathering invoices will always show the current usage calculated on the fly.
  * @summary List invoices
  */
 export const listInvoicesQueryCustomersItemRegExp = new RegExp(
@@ -5043,6 +5066,8 @@ export const invoicePendingLinesActionBody = zod
 
 /**
  * Get an invoice by ID.
+
+Gathering invoices will always show the current usage calculated on the fly.
  * @summary Get an invoice
  */
 export const getInvoicePathInvoiceIdRegExp = new RegExp(
@@ -5073,6 +5098,8 @@ export const getInvoiceQueryParams = zod.object({
  * Delete an invoice
 
 Only invoices that are in the draft (or earlier) status can be deleted.
+
+Invoices that are post finalization can only be voided.
  * @summary Delete an invoice
  */
 export const deleteInvoicePathInvoiceIdRegExp = new RegExp(
@@ -6557,6 +6584,11 @@ export const retryInvoiceActionParams = zod.object({
 
 /**
  * Snapshot quantities for usage based line items.
+
+This call will snapshot the quantities for all usage based line items in the invoice.
+
+This call is only valid in `draft.waiting_for_collection` status, where the collection period
+can be skipped using this action.
  * @summary Snapshot quantities for usage based line items
  */
 export const snapshotQuantitiesInvoiceActionPathInvoiceIdRegExp = new RegExp(
@@ -6711,7 +6743,11 @@ export const voidInvoiceActionBody = zod
   .describe('Request to void an invoice')
 
 /**
- * List all billing profiles
+ * List all billing profiles matching the specified filters.
+
+The expand option can be used to include additional information (besides the billing profile)
+in the response. For example by adding the expand=apps option the apps used by the billing profile
+will be included in the response.
  * @summary List billing profiles
  */
 export const listBillingProfilesQueryIncludeArchivedDefault = false
@@ -7079,7 +7115,12 @@ export const createBillingProfileBody = zod
   )
 
 /**
- * Delete a billing profile
+ * Delete a billing profile by id.
+
+Only such billing profiles can be deleted that are:
+- not the default one
+- not pinned to any customer using customer overrides
+- only have finalized invoices
  * @summary Delete a billing profile
  */
 export const deleteBillingProfilePathIdRegExp = new RegExp(
@@ -7091,7 +7132,11 @@ export const deleteBillingProfileParams = zod.object({
 })
 
 /**
- * Get a billing profile by ID
+ * Get a billing profile by id.
+
+The expand option can be used to include additional information (besides the billing profile)
+in the response. For example by adding the expand=apps option the apps used by the billing profile
+will be included in the response.
  * @summary Get a billing profile
  */
 export const getBillingProfilePathIdRegExp = new RegExp(
@@ -7113,7 +7158,10 @@ export const getBillingProfileQueryParams = zod.object({
 })
 
 /**
- * Update a billing profile
+ * Update a billing profile by id.
+
+The apps field cannot be updated directly, if an app change is desired a new
+profile should be created.
  * @summary Update a billing profile
  */
 export const updateBillingProfilePathIdRegExp = new RegExp(

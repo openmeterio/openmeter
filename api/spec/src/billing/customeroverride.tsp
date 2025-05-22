@@ -7,7 +7,13 @@ namespace OpenMeter.Billing;
 @tag("Billing")
 interface CustomerOverrides {
   /**
-   * List customer overrides
+   * List customer overrides using the specified filters.
+   *
+   * The response will include the customer override values and the merged billing profile values.
+   *
+   * If the includeAllCustomers is set to true, the list contains all customers. This mode is
+   * useful for getting the current effective billing workflow settings for all users regardless
+   * if they have customer orverrides or not.
    */
   @get
   @summary("List customer overrides")
@@ -18,7 +24,11 @@ interface CustomerOverrides {
   ): OpenMeter.PaginatedResponse<BillingProfileCustomerOverrideWithDetails> | OpenMeter.CommonErrors;
 
   /**
-   * Create a new or update an existing customer override.
+   * The customer override can be used to pin a given customer to a billing profile
+   * different from the default one.
+   *
+   * This can be used to test the effect of different billing profiles before making them
+   * the default ones or have different workflow settings for example for enterprise customers.
    */
   @put
   @route("/{customerId}")
@@ -34,6 +44,11 @@ interface CustomerOverrides {
 
   /**
    * Get a customer override by customer id.
+   *
+   * The response will include the customer override values and the merged billing profile values.
+   *
+   * If the customer override is not found, the default billing profile's values are returned. This behavior
+   * allows for getting a merged profile regardless of the customer override existence.
    */
   @get
   @route("/{customerId}")
@@ -49,6 +64,9 @@ interface CustomerOverrides {
 
   /**
    * Delete a customer override by customer id.
+   *
+   * This will remove the customer override and the customer will be subject to the default
+   * billing profile's settings again.
    */
   @delete
   @route("/{customerId}")
