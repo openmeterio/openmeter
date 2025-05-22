@@ -212,6 +212,8 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 
 	useCache := c.canQueryBeCached(namespace, meter, params)
 
+	fmt.Println("useCache", useCache)
+
 	if useCache {
 		var err error
 

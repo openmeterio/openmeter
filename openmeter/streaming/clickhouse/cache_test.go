@@ -92,7 +92,7 @@ func TestCanQueryBeCached(t *testing.T) {
 			expectCachable: false,
 		},
 		{
-			name:      "to age is before minimum cacheable usage age",
+			name:      "from age is before minimum cacheable usage age",
 			connector: getConnector(),
 			namespace: "default",
 			meterDef: meterpkg.Meter{
@@ -100,8 +100,9 @@ func TestCanQueryBeCached(t *testing.T) {
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
-				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
-				To:       lo.ToPtr(now),
+				// Now is younger than the minimum cacheable usage age
+				From: lo.ToPtr(now),
+				To:   lo.ToPtr(now),
 			},
 			expectCachable: false,
 		},
@@ -144,6 +145,20 @@ func TestCanQueryBeCached(t *testing.T) {
 				Cachable: true,
 				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(to),
+			},
+			expectCachable: true,
+		},
+		{
+			name:      "cachable sum query with to set to now",
+			connector: getConnector(),
+			namespace: "default",
+			meterDef: meterpkg.Meter{
+				Aggregation: meterpkg.MeterAggregationSum,
+			},
+			queryParams: streaming.QueryParams{
+				Cachable: true,
+				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
+				To:       lo.ToPtr(now),
 			},
 			expectCachable: true,
 		},
