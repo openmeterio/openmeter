@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/samber/lo"
@@ -210,9 +211,18 @@ func (c *Connector) fetchCachedMeterRows(ctx context.Context, hash string, query
 
 	// Deduplicate cached values
 	// At insert time we can have duplicates for the same window due to parallel queries
-	deduplicatedValues, err := dedupeQueryRows(cachedValues, queryMeter.GroupBy)
+	deduplicatedValues, err := dedupeQueryRowsWithLogger(cachedValues, queryMeter.GroupBy, c.config.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("deduplicate cached values: %w", err)
+	}
+
+	// Log if we found and deduplicated any rows
+	if len(cachedValues) > len(deduplicatedValues) {
+		c.config.Logger.Info("deduplicated cache rows",
+			slog.String("hash", hash),
+			slog.Int("original_count", len(cachedValues)),
+			slog.Int("deduplicated_count", len(deduplicatedValues)),
+			slog.Int("duplicates_removed", len(cachedValues)-len(deduplicatedValues)))
 	}
 
 	return deduplicatedValues, nil

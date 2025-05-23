@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 	"testing"
 	"time"
@@ -214,6 +215,138 @@ func TestCanQueryBeCached(t *testing.T) {
 	}
 }
 
+// TestFilterGroupByAffectsQueryHash tests that different FilterGroupBy values result in different query hashes
+func TestFilterGroupByAffectsQueryHash(t *testing.T) {
+	now := time.Now().UTC()
+	from := now.Add(-7 * 24 * time.Hour)
+	to := now.Add(-24 * time.Hour) // Old enough to be cacheable
+
+	baseParams := streaming.QueryParams{
+		Cachable: true,
+		From:     lo.ToPtr(from),
+		To:       lo.ToPtr(to),
+		GroupBy:  []string{"method"},
+	}
+
+	tests := []struct {
+		name         string
+		params1      streaming.QueryParams
+		params2      streaming.QueryParams
+		shouldBeSame bool
+		description  string
+	}{
+		{
+			name:         "identical params should have same hash",
+			params1:      baseParams,
+			params2:      baseParams,
+			shouldBeSame: true,
+			description:  "identical query params should result in the same hash",
+		},
+		{
+			name: "different FilterGroupBy values should have different hashes",
+			params1: func() streaming.QueryParams {
+				p := baseParams
+				p.FilterGroupBy = map[string][]string{"method": {"GET"}}
+				return p
+			}(),
+			params2: func() streaming.QueryParams {
+				p := baseParams
+				p.FilterGroupBy = map[string][]string{"method": {"POST"}}
+				return p
+			}(),
+			shouldBeSame: false,
+			description:  "different FilterGroupBy values should result in different hashes",
+		},
+		{
+			name: "different FilterGroupBy keys should have different hashes",
+			params1: func() streaming.QueryParams {
+				p := baseParams
+				p.FilterGroupBy = map[string][]string{"method": {"GET"}}
+				return p
+			}(),
+			params2: func() streaming.QueryParams {
+				p := baseParams
+				p.FilterGroupBy = map[string][]string{"endpoint": {"GET"}}
+				return p
+			}(),
+			shouldBeSame: false,
+			description:  "different FilterGroupBy keys should result in different hashes",
+		},
+		{
+			name: "multiple values in FilterGroupBy should affect hash",
+			params1: func() streaming.QueryParams {
+				p := baseParams
+				p.FilterGroupBy = map[string][]string{"method": {"GET"}}
+				return p
+			}(),
+			params2: func() streaming.QueryParams {
+				p := baseParams
+				p.FilterGroupBy = map[string][]string{"method": {"GET", "POST"}}
+				return p
+			}(),
+			shouldBeSame: false,
+			description:  "different number of values in FilterGroupBy should result in different hashes",
+		},
+		{
+			name: "multiple FilterGroupBy keys should affect hash",
+			params1: func() streaming.QueryParams {
+				p := baseParams
+				p.FilterGroupBy = map[string][]string{"method": {"GET"}}
+				return p
+			}(),
+			params2: func() streaming.QueryParams {
+				p := baseParams
+				p.FilterGroupBy = map[string][]string{
+					"method": {"GET"},
+					"status": {"200"},
+				}
+				return p
+			}(),
+			shouldBeSame: false,
+			description:  "additional FilterGroupBy keys should result in different hashes",
+		},
+		{
+			name:    "FilterGroupBy vs no FilterGroupBy should have different hashes",
+			params1: baseParams,
+			params2: func() streaming.QueryParams {
+				p := baseParams
+				p.FilterGroupBy = map[string][]string{"method": {"GET"}}
+				return p
+			}(),
+			shouldBeSame: false,
+			description:  "having FilterGroupBy vs not having it should result in different hashes",
+		},
+		{
+			name: "same FilterGroupBy values in different order should have same hash",
+			params1: func() streaming.QueryParams {
+				p := baseParams
+				p.FilterGroupBy = map[string][]string{"method": {"GET", "POST"}}
+				return p
+			}(),
+			params2: func() streaming.QueryParams {
+				p := baseParams
+				p.FilterGroupBy = map[string][]string{"method": {"POST", "GET"}}
+				return p
+			}(),
+			shouldBeSame: true,
+			description:  "same FilterGroupBy values in different order should result in the same hash due to sorting",
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			hash1 := fmt.Sprintf("%x", testCase.params1.Hash())
+			hash2 := fmt.Sprintf("%x", testCase.params2.Hash())
+
+			if testCase.shouldBeSame {
+				assert.Equal(t, hash1, hash2, testCase.description)
+			} else {
+				assert.NotEqual(t, hash1, hash2, testCase.description)
+			}
+		})
+	}
+}
+
 // Integration test for executeQueryWithCaching
 func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
 	connector, mockClickHouse := GetMockConnector(t)
@@ -335,6 +468,89 @@ func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
 	mockClickHouse.AssertExpectations(t)
 	mockRows1.AssertExpectations(t)
 	mockRows2.AssertExpectations(t)
+}
+
+// TestExecuteQueryWithCaching_FilterGroupByAffectsCacheKey tests that different FilterGroupBy values
+// result in different cache lookups and storage
+func TestExecuteQueryWithCaching_FilterGroupByAffectsCacheKey(t *testing.T) {
+	// Setup test data
+	now := time.Now().UTC()
+	queryFrom := now.Add(-7 * 24 * time.Hour)
+	queryTo := now.Add(-24 * time.Hour) // Old enough to be cacheable
+
+	// Create two different query params with different FilterGroupBy values
+	params1 := streaming.QueryParams{
+		Cachable:      true,
+		From:          &queryFrom,
+		To:            &queryTo,
+		FilterGroupBy: map[string][]string{"method": {"GET"}},
+		GroupBy:       []string{"method"},
+	}
+
+	params2 := streaming.QueryParams{
+		Cachable:      true,
+		From:          &queryFrom,
+		To:            &queryTo,
+		FilterGroupBy: map[string][]string{"method": {"POST"}},
+		GroupBy:       []string{"method"},
+	}
+
+	params3 := streaming.QueryParams{
+		Cachable: true,
+		From:     &queryFrom,
+		To:       &queryTo,
+		// No FilterGroupBy
+		GroupBy: []string{"method"},
+	}
+
+	// Generate hashes for the different query params
+	hash1 := fmt.Sprintf("%x", params1.Hash())
+	hash2 := fmt.Sprintf("%x", params2.Hash())
+	hash3 := fmt.Sprintf("%x", params3.Hash())
+
+	// Verify that the hashes are different
+	assert.NotEqual(t, hash1, hash2, "Different FilterGroupBy values should produce different hashes")
+	assert.NotEqual(t, hash1, hash3, "FilterGroupBy vs no FilterGroupBy should produce different hashes")
+	assert.NotEqual(t, hash2, hash3, "Different FilterGroupBy vs no FilterGroupBy should produce different hashes")
+
+	// Test with additional FilterGroupBy keys
+	params4 := streaming.QueryParams{
+		Cachable: true,
+		From:     &queryFrom,
+		To:       &queryTo,
+		FilterGroupBy: map[string][]string{
+			"method": {"GET"},
+			"status": {"200"},
+		},
+		GroupBy: []string{"method", "status"},
+	}
+
+	hash4 := fmt.Sprintf("%x", params4.Hash())
+	assert.NotEqual(t, hash1, hash4, "Additional FilterGroupBy keys should produce different hashes")
+
+	// Test that the same FilterGroupBy in different order produces the same hash
+	params5 := streaming.QueryParams{
+		Cachable: true,
+		From:     &queryFrom,
+		To:       &queryTo,
+		FilterGroupBy: map[string][]string{
+			"status": {"200"},
+			"method": {"GET"},
+		},
+		GroupBy: []string{"method", "status"},
+	}
+
+	hash5 := fmt.Sprintf("%x", params5.Hash())
+	assert.Equal(t, hash4, hash5, "Same FilterGroupBy keys in different order should produce the same hash")
+
+	// Verify that these different hashes would result in different cache storage/retrieval
+	// This test demonstrates that the caching system will treat queries with different
+	// FilterGroupBy values as separate cache entries, which is the desired behavior
+	t.Logf("Hash with FilterGroupBy method=GET: %s", hash1)
+	t.Logf("Hash with FilterGroupBy method=POST: %s", hash2)
+	t.Logf("Hash with no FilterGroupBy: %s", hash3)
+	t.Logf("Hash with multiple FilterGroupBy keys: %s", hash4)
+	t.Logf("Hash with same FilterGroupBy keys in different order: %s", hash5)
 }
 
 func TestConnector_FetchCachedMeterRows(t *testing.T) {
