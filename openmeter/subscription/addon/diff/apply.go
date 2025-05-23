@@ -179,7 +179,7 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 				for range d.addon.Quantity - 1 {
 					err := rc.Apply(inst.RateCard, inst.Annotations)
 					if err != nil {
-						return fmt.Errorf("failed to extend rate card %s: %w", rc.AddonRateCard.Key(), err)
+						return fmt.Errorf("failed to extend gap rate card %s: %w", rc.AddonRateCard.Key(), err)
 					}
 				}
 

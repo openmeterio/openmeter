@@ -3,7 +3,9 @@ package addondiff_test
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -541,6 +543,130 @@ func TestRestore(t *testing.T) {
 
 		// Let's check it was properly removed
 		require.Equal(t, 100.0, *mt.IssueAfterReset)
+	}))
+
+	t.Run("Should apply and remove same single instance addon 4 times in a row with slightly progressive times", withDeps(func(t *testing.T, deps *tcDeps) {
+		// We will set up a subscriptionAddon which has a series of quantities set:
+		// 1st, single quantity with 1 at t1
+		// 2nd, two quantities, second with 0 at t2
+		// 3rd, single quantity with 1 at t3
+		// 4th, two quantities, second with 0 at t4
+		// 5th, single quantity with 1 at t5
+		// 6th, two quantities, second with 0 at t6
+		// 7th, single quantity with 1 at t7
+		// 8th, two quantities, second with 0 at t8
+
+		// Each new quantity will only be added after a round of apply and restore
+
+		// Let's start by creating a sub with some addon
+		p, add := subscriptiontestutils.CreatePlanWithAddon(
+			t,
+			deps.deps,
+			subscriptiontestutils.BuildTestPlan(t).
+				AddPhase(nil,
+					&subscriptiontestutils.ExampleRateCard1, // Flat price
+					&productcatalog.UsageBasedRateCard{ // Dynamic price
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:  "dynamic_rc_1",
+							Name: "Dynamic Rate Card 1",
+							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+								Mode: productcatalog.VolumeTieredPrice,
+								Tiers: []productcatalog.PriceTier{
+									{
+										UpToAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
+										FlatPrice: &productcatalog.PriceTierFlatPrice{
+											Amount: alpacadecimal.NewFromInt(10),
+										},
+									},
+									{
+										// UpToAmount: nil for infinity
+										UnitPrice: &productcatalog.PriceTierUnitPrice{
+											Amount: alpacadecimal.NewFromInt(1),
+										},
+									},
+								},
+							}),
+						},
+						BillingCadence: subscriptiontestutils.ISOMonth,
+					},
+				).
+				Build(),
+			subscriptiontestutils.BuildAddonForTesting(t,
+				productcatalog.EffectivePeriod{
+					EffectiveFrom: &now,
+					EffectiveTo:   nil,
+				},
+				productcatalog.AddonInstanceTypeSingle,
+				&productcatalog.UsageBasedRateCard{ // Dynamic price for addon
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "addon_dynamic_rc",
+						Name: "Addon Dynamic Rate Card",
+						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							Mode: productcatalog.VolumeTieredPrice,
+							Tiers: []productcatalog.PriceTier{
+								{
+									// UpToAmount: nil for infinity
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(0.5),
+									},
+								},
+							},
+						}),
+					},
+					BillingCadence: subscriptiontestutils.ISOMonth,
+				},
+			),
+		)
+
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+		subViewCopy, err := deps.deps.SubscriptionService.GetView(context.Background(), subView.Subscription.NamespacedID)
+		require.NoError(t, err)
+
+		ogSpec := subViewCopy.AsSpec()
+
+		startTime := clock.Now()
+
+		subsAdd := subscriptiontestutils.CreateMultiInstanceAddonForSubscription(
+			t,
+			&deps.deps,
+			subView.Subscription.NamespacedID,
+			add.NamespacedID,
+			[]subscriptionaddon.CreateSubscriptionAddonQuantityInput{
+				{
+					ActiveFrom: startTime,
+					Quantity:   1,
+				},
+			},
+		)
+
+		spec := subView.AsSpec() // We can reuse this in all iterations as if everything works as intended it always gets restored
+
+		for idx := range 8 {
+			// Lets pass time
+			clock.SetTime(clock.Now().Add(time.Minute))
+			diff, err := addondiff.GetDiffableFromAddon(subView, subsAdd)
+			require.NoError(t, err, "failed to get diffable for iteration %d", idx)
+
+			err = spec.Apply(diff.GetApplies(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err, "failed to apply for iteration %d", idx)
+
+			err = spec.Apply(diff.GetRestores(), subscription.ApplyContext{CurrentTime: now})
+			require.NoError(t, err, "failed to restore for iteration %d", idx)
+
+			clock.SetTime(clock.Now().Add(time.Minute))
+
+			// Finally lets toggle the quantity
+			sAdd, err := deps.deps.SubscriptionAddonService.ChangeQuantity(context.Background(), subsAdd.NamespacedID, subscriptionaddon.CreateSubscriptionAddonQuantityInput{
+				ActiveFrom: clock.Now(),
+				Quantity:   lo.Ternary(idx%2 == 0, 1, 0),
+			})
+			require.NoError(t, err, "failed to change quantity for iteration %d", idx)
+
+			subsAdd = *sAdd
+		}
+
+		subscriptiontestutils.SpecsEqual(t, ogSpec, spec)
 	}))
 }
 

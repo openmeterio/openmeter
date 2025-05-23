@@ -96,6 +96,7 @@ func (d *diffable) restore() subscription.AppliesToSpec {
 					testCadence := testItem.GetCadence(pCad)
 
 					canMerge := func() bool {
+						// First, lets check that the rate cards are identical
 						if !targetItem.RateCard.Equal(testItem.RateCard) {
 							return false
 						}
@@ -109,6 +110,11 @@ func (d *diffable) restore() subscription.AppliesToSpec {
 						}
 
 						if !reflect.DeepEqual(targetItem.BillingBehaviorOverride, testItem.BillingBehaviorOverride) {
+							return false
+						}
+
+						// Second, lets check that they are subsequent
+						if targetCadence.ActiveTo == nil || !targetCadence.ActiveTo.Equal(testCadence.ActiveFrom) {
 							return false
 						}
 
