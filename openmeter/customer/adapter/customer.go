@@ -66,8 +66,15 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 				query = query.Where(customerdb.PrimaryEmailContainsFold(*input.PrimaryEmail))
 			}
 
-			if input.Subject != nil {
-				query = query.Where(customerdb.HasSubjectsWith(customersubjectsdb.SubjectKeyContainsFold(*input.Subject)))
+			if input.Subjects != nil {
+				query = query.Where(
+					customerdb.Or(lo.Map(
+						*input.Subjects,
+						func(subject string, _ int) predicate.Customer {
+							return customerdb.HasSubjectsWith(customersubjectsdb.SubjectKeyContainsFold(subject))
+						},
+					)...),
+				)
 			}
 
 			if input.PlanKey != nil {
