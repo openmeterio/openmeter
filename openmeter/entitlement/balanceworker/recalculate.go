@@ -131,7 +131,6 @@ func (r *Recalculator) Recalculate(ctx context.Context, ns string) error {
 	page := 1
 
 	for {
-
 		affectedEntitlementsPage, err := r.opts.Entitlement.EntitlementRepo.ListEntitlements(
 			ctx,
 			entitlement.ListEntitlementsParams{
