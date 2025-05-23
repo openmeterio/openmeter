@@ -239,6 +239,16 @@ func FeatureKeyHasSuffix(v string) predicate.BillingInvoiceUsageBasedLineConfig 
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldHasSuffix(FieldFeatureKey, v))
 }
 
+// FeatureKeyIsNil applies the IsNil predicate on the "feature_key" field.
+func FeatureKeyIsNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldIsNull(FieldFeatureKey))
+}
+
+// FeatureKeyNotNil applies the NotNil predicate on the "feature_key" field.
+func FeatureKeyNotNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotNull(FieldFeatureKey))
+}
+
 // FeatureKeyEqualFold applies the EqualFold predicate on the "feature_key" field.
 func FeatureKeyEqualFold(v string) predicate.BillingInvoiceUsageBasedLineConfig {
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEqualFold(FieldFeatureKey, v))

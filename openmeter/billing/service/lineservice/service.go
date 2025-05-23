@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -78,6 +79,12 @@ func (s *Service) FromEntity(line *billing.Line) (Line, error) {
 			lineBase: base,
 		}, nil
 	case billing.InvoiceLineTypeUsageBased:
+		if line.UsageBased.Price.Type() == productcatalog.FlatPriceType {
+			return &ubpFlatFeeLine{
+				lineBase: base,
+			}, nil
+		}
+
 		return &usageBasedLine{
 			lineBase: base,
 		}, nil
@@ -142,6 +149,47 @@ func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billing.
 	invoice.Lines = billing.NewLineChildren(append(invoice.Lines.OrEmpty(), lineEntities...))
 
 	return s.FromEntities(lineEntities)
+}
+
+// UpdateTotalsFromDetailedLines is a helper method to update the totals of a line from its detailed lines.
+func (s *Service) UpdateTotalsFromDetailedLines(line *billing.Line) error {
+	// Calculate the line totals
+	for _, line := range line.Children.OrEmpty() {
+		if line.DeletedAt != nil {
+			continue
+		}
+
+		lineSvc, err := s.FromEntity(line)
+		if err != nil {
+			return fmt.Errorf("creating line service: %w", err)
+		}
+
+		if err := lineSvc.UpdateTotals(); err != nil {
+			return fmt.Errorf("updating totals for line[%s]: %w", line.ID, err)
+		}
+	}
+
+	// WARNING: Even if tempting to add discounts etc. here to the totals, we should always keep the logic as is.
+	// The usageBasedLine will never be syncorinzed directly to stripe or other apps, only the detailed lines.
+	//
+	// Given that the external systems will have their own logic for calculating the totals, we cannot expect
+	// any custom logic implemented here to be carried over to the external systems.
+
+	// UBP line's value is the sum of all the children
+	res := billing.Totals{}
+
+	res = res.Add(lo.Map(line.Children.OrEmpty(), func(l *billing.Line, _ int) billing.Totals {
+		// Deleted lines are not contributing to the totals
+		if l.DeletedAt != nil {
+			return billing.Totals{}
+		}
+
+		return l.Totals
+	})...)
+
+	line.LineBase.Totals = res
+
+	return nil
 }
 
 type InvoicingCapabilityQueryInput struct {

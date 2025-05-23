@@ -21783,7 +21783,7 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) FeatureKey() (r string, exi
 // OldFeatureKey returns the old "feature_key" field's value of the BillingInvoiceUsageBasedLineConfig entity.
 // If the BillingInvoiceUsageBasedLineConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceUsageBasedLineConfigMutation) OldFeatureKey(ctx context.Context) (v string, err error) {
+func (m *BillingInvoiceUsageBasedLineConfigMutation) OldFeatureKey(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldFeatureKey is only allowed on UpdateOne operations")
 	}
@@ -21797,9 +21797,22 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) OldFeatureKey(ctx context.C
 	return oldValue.FeatureKey, nil
 }
 
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) ClearFeatureKey() {
+	m.feature_key = nil
+	m.clearedFields[billinginvoiceusagebasedlineconfig.FieldFeatureKey] = struct{}{}
+}
+
+// FeatureKeyCleared returns if the "feature_key" field was cleared in this mutation.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) FeatureKeyCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceusagebasedlineconfig.FieldFeatureKey]
+	return ok
+}
+
 // ResetFeatureKey resets all changes to the "feature_key" field.
 func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetFeatureKey() {
 	m.feature_key = nil
+	delete(m.clearedFields, billinginvoiceusagebasedlineconfig.FieldFeatureKey)
 }
 
 // SetPrice sets the "price" field.
@@ -22174,6 +22187,9 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) AddField(name string, value
 // mutation.
 func (m *BillingInvoiceUsageBasedLineConfigMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(billinginvoiceusagebasedlineconfig.FieldFeatureKey) {
+		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldFeatureKey)
+	}
 	if m.FieldCleared(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity) {
 		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity)
 	}
@@ -22197,6 +22213,9 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) FieldCleared(name string) b
 // error if the field is not defined in the schema.
 func (m *BillingInvoiceUsageBasedLineConfigMutation) ClearField(name string) error {
 	switch name {
+	case billinginvoiceusagebasedlineconfig.FieldFeatureKey:
+		m.ClearFeatureKey()
+		return nil
 	case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
 		m.ClearPreLinePeriodQuantity()
 		return nil

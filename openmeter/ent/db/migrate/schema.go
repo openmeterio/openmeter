@@ -969,7 +969,7 @@ var (
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "price_type", Type: field.TypeEnum, Enums: []string{"flat", "unit", "tiered", "dynamic", "package"}},
-		{Name: "feature_key", Type: field.TypeString},
+		{Name: "feature_key", Type: field.TypeString, Nullable: true},
 		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "pre_line_period_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "metered_pre_line_period_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},

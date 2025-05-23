@@ -42,6 +42,14 @@ func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetFeatureKey(v string) *Bil
 	return _c
 }
 
+// SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetNillableFeatureKey(v *string) *BillingInvoiceUsageBasedLineConfigCreate {
+	if v != nil {
+		_c.SetFeatureKey(*v)
+	}
+	return _c
+}
+
 // SetPrice sets the "price" field.
 func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetPrice(v *productcatalog.Price) *BillingInvoiceUsageBasedLineConfigCreate {
 	_c.mutation.SetPrice(v)
@@ -163,14 +171,6 @@ func (_c *BillingInvoiceUsageBasedLineConfigCreate) check() error {
 			return &ValidationError{Name: "price_type", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.price_type": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.FeatureKey(); !ok {
-		return &ValidationError{Name: "feature_key", err: errors.New(`db: missing required field "BillingInvoiceUsageBasedLineConfig.feature_key"`)}
-	}
-	if v, ok := _c.mutation.FeatureKey(); ok {
-		if err := billinginvoiceusagebasedlineconfig.FeatureKeyValidator(v); err != nil {
-			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.feature_key": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.Price(); !ok {
 		return &ValidationError{Name: "price", err: errors.New(`db: missing required field "BillingInvoiceUsageBasedLineConfig.price"`)}
 	}
@@ -228,7 +228,7 @@ func (_c *BillingInvoiceUsageBasedLineConfigCreate) createSpec() (*BillingInvoic
 	}
 	if value, ok := _c.mutation.FeatureKey(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldFeatureKey, field.TypeString, value)
-		_node.FeatureKey = value
+		_node.FeatureKey = &value
 	}
 	if value, ok := _c.mutation.Price(); ok {
 		vv, err := billinginvoiceusagebasedlineconfig.ValueScanner.Price.Value(value)

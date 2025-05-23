@@ -581,9 +581,7 @@ type NewFlatFeeLineInput struct {
 
 	PerUnitAmount alpacadecimal.Decimal
 	PaymentTerm   productcatalog.PaymentTermType
-	// TODO: Is this needed?
-	// Category      FlatFeeCategory
-	Quantity alpacadecimal.Decimal
+	Quantity      alpacadecimal.Decimal
 
 	RateCardDiscounts Discounts
 }
@@ -616,9 +614,64 @@ func NewFlatFeeLine(input NewFlatFeeLineInput) *Line {
 		FlatFee: &FlatFeeLine{
 			PerUnitAmount: input.PerUnitAmount,
 			PaymentTerm:   input.PaymentTerm,
-			// Category:      lo.CoalesceOrEmpty(input.Category, FlatFeeCategoryRegular),
-			Category: FlatFeeCategoryRegular,
-			Quantity: input.Quantity,
+			Category:      FlatFeeCategoryRegular,
+			Quantity:      input.Quantity,
+		},
+	}
+}
+
+type usageBasedLineOptions struct {
+	featureKey string
+}
+
+type usageBasedLineOption func(*usageBasedLineOptions)
+
+func WithFeatureKey(fk string) usageBasedLineOption {
+	return func(ublo *usageBasedLineOptions) {
+		ublo.featureKey = fk
+	}
+}
+
+// Note: this is temporary in it's current form until we validate the usage based flat fee schema
+func NewUsageBasedFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) *Line {
+	ubpOptions := usageBasedLineOptions{}
+
+	for _, opt := range opts {
+		opt(&ubpOptions)
+	}
+
+	return &Line{
+		LineBase: LineBase{
+			Namespace: input.Namespace,
+			ID:        input.ID,
+			CreatedAt: input.CreatedAt,
+			UpdatedAt: input.UpdatedAt,
+
+			Period:    input.Period,
+			InvoiceAt: input.InvoiceAt,
+			InvoiceID: input.InvoiceID,
+
+			Name:        input.Name,
+			Metadata:    input.Metadata,
+			Description: input.Description,
+
+			Status: InvoiceLineStatusValid,
+
+			Type: InvoiceLineTypeUsageBased,
+
+			ManagedBy: lo.CoalesceOrEmpty(input.ManagedBy, SystemManagedLine),
+
+			Currency:          input.Currency,
+			RateCardDiscounts: input.RateCardDiscounts,
+		},
+		UsageBased: &UsageBasedLine{
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      input.PerUnitAmount,
+				PaymentTerm: input.PaymentTerm,
+			}),
+
+			Quantity:   lo.EmptyableToPtr(input.Quantity),
+			FeatureKey: ubpOptions.featureKey,
 		},
 	}
 }
@@ -826,8 +879,10 @@ func (i UsageBasedLine) Validate() error {
 		errs = append(errs, fmt.Errorf("price: %w", err))
 	}
 
-	if i.FeatureKey == "" {
-		errs = append(errs, errors.New("featureKey is required"))
+	if i.Price.Type() != productcatalog.FlatPriceType {
+		if i.FeatureKey == "" {
+			errs = append(errs, errors.New("featureKey is required"))
+		}
 	}
 
 	return errors.Join(errs...)

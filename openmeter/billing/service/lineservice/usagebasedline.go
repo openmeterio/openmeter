@@ -10,8 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 var _ Line = (*usageBasedLine)(nil)
@@ -145,43 +143,7 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, in CanBeInvoicedA
 }
 
 func (l *usageBasedLine) UpdateTotals() error {
-	// Calculate the line totals
-	for _, line := range l.line.Children.OrEmpty() {
-		if line.DeletedAt != nil {
-			continue
-		}
-
-		lineSvc, err := l.service.FromEntity(line)
-		if err != nil {
-			return fmt.Errorf("creating line service: %w", err)
-		}
-
-		if err := lineSvc.UpdateTotals(); err != nil {
-			return fmt.Errorf("updating totals for line[%s]: %w", line.ID, err)
-		}
-	}
-
-	// WARNING: Even if tempting to add discounts etc. here to the totals, we should always keep the logic as is.
-	// The usageBasedLine will never be syncorinzed directly to stripe or other apps, only the detailed lines.
-	//
-	// Given that the external systems will have their own logic for calculating the totals, we cannot expect
-	// any custom logic implemented here to be carried over to the external systems.
-
-	// UBP line's value is the sum of all the children
-	res := billing.Totals{}
-
-	res = res.Add(lo.Map(l.line.Children.OrEmpty(), func(l *billing.Line, _ int) billing.Totals {
-		// Deleted lines are not contributing to the totals
-		if l.DeletedAt != nil {
-			return billing.Totals{}
-		}
-
-		return l.Totals
-	})...)
-
-	l.line.LineBase.Totals = res
-
-	return nil
+	return l.service.UpdateTotalsFromDetailedLines(l.line)
 }
 
 func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billing.Invoice) error {
@@ -222,22 +184,9 @@ func (l *usageBasedLine) CalculateDetailedLines() error {
 		return err
 	}
 
-	detailedLines, err := l.newDetailedLines(newDetailedLinesInput...)
-	if err != nil {
-		return fmt.Errorf("detailed lines: %w", err)
+	if err := mergeDetailedLines(l.line, newDetailedLinesInput); err != nil {
+		return fmt.Errorf("merging detailed lines: %w", err)
 	}
-
-	// The lines are generated in order, so we can just persist the index
-	for idx := range detailedLines {
-		detailedLines[idx].FlatFee.Index = lo.ToPtr(idx)
-	}
-
-	childrenWithIDReuse, err := l.line.ChildrenWithIDReuse(detailedLines)
-	if err != nil {
-		return fmt.Errorf("failed to reuse child IDs: %w", err)
-	}
-
-	l.line.Children = childrenWithIDReuse
 
 	return nil
 }
@@ -246,8 +195,6 @@ func (l usageBasedLine) getPricer() (Pricer, error) {
 	var basePricer Pricer
 
 	switch l.line.UsageBased.Price.Type() {
-	case productcatalog.FlatPriceType:
-		basePricer = flatPricer{}
 	case productcatalog.UnitPriceType:
 		basePricer = unitPricer{}
 	case productcatalog.TieredPriceType:
@@ -282,172 +229,6 @@ func (l usageBasedLine) calculateDetailedLines() (newDetailedLinesInput, error) 
 	}
 
 	return pricer.Calculate(PricerCalculateInput(l))
-}
-
-type newDetailedLinesInput []newDetailedLineInput
-
-func (i newDetailedLinesInput) Sum(currency currencyx.Calculator) alpacadecimal.Decimal {
-	sum := alpacadecimal.Zero
-
-	for _, in := range i {
-		sum = sum.Add(in.TotalAmount(currency))
-	}
-
-	return sum
-}
-
-type newDetailedLineInput struct {
-	Name                   string                `json:"name"`
-	Quantity               alpacadecimal.Decimal `json:"quantity"`
-	PerUnitAmount          alpacadecimal.Decimal `json:"perUnitAmount"`
-	ChildUniqueReferenceID string                `json:"childUniqueReferenceID"`
-	Period                 *billing.Period       `json:"period,omitempty"`
-	// PaymentTerm is the payment term for the detailed line, defaults to arrears
-	PaymentTerm productcatalog.PaymentTermType `json:"paymentTerm,omitempty"`
-	Category    billing.FlatFeeCategory        `json:"category,omitempty"`
-
-	Discounts billing.LineDiscounts `json:"discounts,omitempty"`
-}
-
-func (i newDetailedLineInput) Validate() error {
-	if i.Quantity.IsNegative() {
-		return fmt.Errorf("quantity must be zero or positive")
-	}
-
-	if i.PerUnitAmount.IsNegative() {
-		return fmt.Errorf("amount must be zero or positive")
-	}
-
-	if i.ChildUniqueReferenceID == "" {
-		return fmt.Errorf("child unique ID is required")
-	}
-
-	if i.Name == "" {
-		return fmt.Errorf("name is required")
-	}
-
-	return nil
-}
-
-func (i newDetailedLineInput) TotalAmount(currency currencyx.Calculator) alpacadecimal.Decimal {
-	return TotalAmount(getTotalAmountInput{
-		Currency:      currency,
-		PerUnitAmount: i.PerUnitAmount,
-		Quantity:      i.Quantity,
-		Discounts:     i.Discounts,
-	})
-}
-
-type getTotalAmountInput struct {
-	Currency      currencyx.Calculator
-	PerUnitAmount alpacadecimal.Decimal
-	Quantity      alpacadecimal.Decimal
-	Discounts     billing.LineDiscounts
-}
-
-func TotalAmount(in getTotalAmountInput) alpacadecimal.Decimal {
-	total := in.Currency.RoundToPrecision(in.PerUnitAmount.Mul(in.Quantity))
-
-	total = total.Sub(in.Discounts.Amount.SumAmount(in.Currency))
-
-	return total
-}
-
-type addDiscountInput struct {
-	BilledAmountBeforeLine alpacadecimal.Decimal
-	MaxSpend               alpacadecimal.Decimal
-	Currency               currencyx.Calculator
-}
-
-func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDetailedLineInput {
-	normalizedPreUsage := in.Currency.RoundToPrecision(in.BilledAmountBeforeLine)
-
-	lineTotal := i.TotalAmount(in.Currency)
-
-	totalBillableAmount := normalizedPreUsage.Add(lineTotal)
-
-	normalizedMaxSpend := in.Currency.RoundToPrecision(in.MaxSpend)
-
-	if totalBillableAmount.LessThanOrEqual(normalizedMaxSpend) {
-		// Nothing to do here
-		return i
-	}
-
-	if totalBillableAmount.GreaterThanOrEqual(normalizedMaxSpend) && in.BilledAmountBeforeLine.GreaterThanOrEqual(normalizedMaxSpend) {
-		// 100% discount
-		i.Discounts.Amount = append(i.Discounts.Amount, billing.AmountLineDiscountManaged{
-			AmountLineDiscount: billing.AmountLineDiscount{
-				Amount: lineTotal,
-				LineDiscountBase: billing.LineDiscountBase{
-					Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
-					ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-					Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
-				},
-			},
-		})
-		return i
-	}
-
-	discountAmount := totalBillableAmount.Sub(normalizedMaxSpend)
-	i.Discounts.Amount = append(i.Discounts.Amount, billing.AmountLineDiscountManaged{
-		AmountLineDiscount: billing.AmountLineDiscount{
-			Amount: discountAmount,
-			LineDiscountBase: billing.LineDiscountBase{
-				Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
-				ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-				Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
-			},
-		},
-	})
-
-	return i
-}
-
-func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]*billing.Line, error) {
-	return slicesx.MapWithErr(inputs, func(in newDetailedLineInput) (*billing.Line, error) {
-		if err := in.Validate(); err != nil {
-			return nil, err
-		}
-
-		period := l.line.Period
-		if in.Period != nil {
-			period = *in.Period
-		}
-
-		if in.Category == "" {
-			in.Category = billing.FlatFeeCategoryRegular
-		}
-
-		line := &billing.Line{
-			LineBase: billing.LineBase{
-				Namespace:              l.line.Namespace,
-				Type:                   billing.InvoiceLineTypeFee,
-				Status:                 billing.InvoiceLineStatusDetailed,
-				Period:                 period,
-				Name:                   in.Name,
-				ManagedBy:              billing.SystemManagedLine,
-				InvoiceAt:              l.line.InvoiceAt,
-				InvoiceID:              l.line.InvoiceID,
-				Currency:               l.line.Currency,
-				ChildUniqueReferenceID: &in.ChildUniqueReferenceID,
-				ParentLineID:           lo.ToPtr(l.line.ID),
-				TaxConfig:              l.line.TaxConfig,
-			},
-			FlatFee: &billing.FlatFeeLine{
-				PaymentTerm:   lo.CoalesceOrEmpty(in.PaymentTerm, productcatalog.InArrearsPaymentTerm),
-				PerUnitAmount: in.PerUnitAmount,
-				Quantity:      in.Quantity,
-				Category:      in.Category,
-			},
-			Discounts: in.Discounts,
-		}
-
-		if err := line.Validate(); err != nil {
-			return nil, err
-		}
-
-		return line, nil
-	})
 }
 
 func formatMaximumSpendDiscountDescription(amount alpacadecimal.Decimal) *string {
