@@ -5,7 +5,6 @@ import (
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -28,6 +27,12 @@ func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 		flatPrice.PaymentTerm) {
 		return nil, billing.ValidationError{
 			Err: fmt.Errorf("flat price payment term %s is not supported", flatPrice.PaymentTerm),
+		}
+	}
+
+	if l.line.UsageBased.Quantity == nil {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("usage based flat price quantity is not set"),
 		}
 	}
 

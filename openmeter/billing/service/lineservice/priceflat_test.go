@@ -111,7 +111,7 @@ func TestFlatLineCalculation(t *testing.T) {
 				{
 					Name:                   "feature",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
-					Quantity:               alpacadecimal.NewFromFloat(1),
+					Quantity:               alpacadecimal.NewFromFloat(10),
 					ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
