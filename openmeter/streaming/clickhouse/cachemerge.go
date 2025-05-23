@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"fmt"
+	"log/slog"
 	"math"
 	"slices"
 	"sort"
@@ -99,23 +100,102 @@ func createRowKey(row meterpkg.MeterQueryRow, groupByFields []string) string {
 
 // dedupeQueryRows deduplicates rows based on group key
 func dedupeQueryRows(rows []meterpkg.MeterQueryRow, groupByFields []string) ([]meterpkg.MeterQueryRow, error) {
+	return dedupeQueryRowsWithLogger(rows, groupByFields, nil)
+}
+
+// dedupeQueryRowsWithLogger deduplicates rows based on group key with optional logging
+func dedupeQueryRowsWithLogger(rows []meterpkg.MeterQueryRow, groupByFields []string, logger *slog.Logger) ([]meterpkg.MeterQueryRow, error) {
 	deduplicatedValues := []meterpkg.MeterQueryRow{}
 	seen := map[string]meterpkg.MeterQueryRow{}
 
 	for _, row := range rows {
 		key := createRowKey(row, groupByFields)
 
-		if _, ok := seen[key]; !ok {
+		if existingRow, exists := seen[key]; !exists {
+			// First time seeing this key
 			deduplicatedValues = append(deduplicatedValues, row)
 			seen[key] = row
 		} else {
-			if row.Value != seen[key].Value {
-				return nil, fmt.Errorf("duplicate row found with different value: %s", key)
+			// Duplicate found - need to decide which value to keep
+			if row.Value != existingRow.Value {
+				// Choose the best value using smart deduplication logic
+				bestRow := chooseBestDuplicateRow(existingRow, row, key, logger)
+
+				// Update the stored row if we chose the new one
+				if bestRow.Value == row.Value {
+					// Replace the existing row in the deduplicatedValues slice
+					for i := range deduplicatedValues {
+						if createRowKey(deduplicatedValues[i], groupByFields) == key {
+							deduplicatedValues[i] = bestRow
+							break
+						}
+					}
+					seen[key] = bestRow
+				}
+				// If we kept the existing row, no changes needed
 			}
+			// If values are identical, nothing to do
 		}
 	}
 
 	return deduplicatedValues, nil
+}
+
+// chooseBestDuplicateRow selects the best row when duplicates are found
+// Priority: non-zero > zero, higher precision > lower precision
+func chooseBestDuplicateRow(existing, new meterpkg.MeterQueryRow, key string, logger *slog.Logger) meterpkg.MeterQueryRow {
+	// Log the duplicate for debugging
+	if logger != nil {
+		logger.Warn("duplicate cache row found, choosing best value",
+			slog.String("key", key),
+			slog.Float64("existing_value", existing.Value),
+			slog.Float64("new_value", new.Value))
+	}
+
+	// Rule 1: Non-zero values are preferred over zero values
+	// This handles the case where some queries return no data (0) while others find actual data
+	if existing.Value == 0 && new.Value != 0 {
+		if logger != nil {
+			logger.Debug("choosing non-zero value over zero",
+				slog.Float64("chosen", new.Value),
+				slog.Float64("rejected", existing.Value))
+		}
+		return new // Choose non-zero value
+	}
+	if new.Value == 0 && existing.Value != 0 {
+		if logger != nil {
+			logger.Debug("keeping non-zero value over zero",
+				slog.Float64("kept", existing.Value),
+				slog.Float64("rejected", new.Value))
+		}
+		return existing // Keep non-zero value
+	}
+
+	// Rule 2: If both are non-zero, choose the one with higher absolute value
+	// This assumes that floating point precision issues usually result in slightly smaller values
+	if existing.Value != 0 && new.Value != 0 {
+		if math.Abs(new.Value) > math.Abs(existing.Value) {
+			if logger != nil {
+				logger.Debug("choosing higher absolute value",
+					slog.Float64("chosen", new.Value),
+					slog.Float64("rejected", existing.Value))
+			}
+			return new
+		}
+		if logger != nil {
+			logger.Debug("keeping higher absolute value",
+				slog.Float64("kept", existing.Value),
+				slog.Float64("rejected", new.Value))
+		}
+		return existing
+	}
+
+	// Rule 3: If both are zero, keep the existing one
+	if logger != nil {
+		logger.Debug("both values are zero, keeping existing",
+			slog.Float64("value", existing.Value))
+	}
+	return existing
 }
 
 // aggregateRowsByAggregationType combines rows into a single row based on the meter aggregation type
