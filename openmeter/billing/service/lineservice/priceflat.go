@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/alpacahq/alpacadecimal"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -31,12 +29,18 @@ func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 		}
 	}
 
+	if l.line.UsageBased.Quantity == nil {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("usage based flat price quantity is not set"),
+		}
+	}
+
 	switch {
 	case flatPrice.PaymentTerm == productcatalog.InAdvancePaymentTerm && l.IsFirstInPeriod():
 		return newDetailedLinesInput{
 			{
 				Name:                   l.line.Name,
-				Quantity:               alpacadecimal.NewFromFloat(1),
+				Quantity:               *l.line.UsageBased.Quantity,
 				PerUnitAmount:          flatPrice.Amount,
 				ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
 				PaymentTerm:            productcatalog.InAdvancePaymentTerm,
@@ -46,7 +50,7 @@ func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 		return newDetailedLinesInput{
 			{
 				Name:                   l.line.Name,
-				Quantity:               alpacadecimal.NewFromFloat(1),
+				Quantity:               *l.line.UsageBased.Quantity,
 				PerUnitAmount:          flatPrice.Amount,
 				ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
 				PaymentTerm:            productcatalog.InArrearsPaymentTerm,

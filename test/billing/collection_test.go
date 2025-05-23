@@ -473,8 +473,10 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 						Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(3)}),
 
 						// Note: this emulates a per line quantity snapshot, that would be done by a normal edit flow
-						Quantity:              lo.ToPtr(alpacadecimal.NewFromFloat(0)),
-						PreLinePeriodQuantity: lo.ToPtr(alpacadecimal.NewFromFloat(0)),
+						Quantity:                     lo.ToPtr(alpacadecimal.NewFromFloat(0)),
+						MeteredQuantity:              lo.ToPtr(alpacadecimal.NewFromFloat(0)),
+						PreLinePeriodQuantity:        lo.ToPtr(alpacadecimal.NewFromFloat(0)),
+						MeteredPreLinePeriodQuantity: lo.ToPtr(alpacadecimal.NewFromFloat(0)),
 					},
 				})
 				return nil

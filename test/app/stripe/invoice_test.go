@@ -365,6 +365,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 								Amount:      alpacadecimal.NewFromFloat(100),
 								PaymentTerm: productcatalog.InArrearsPaymentTerm,
 							}),
+							Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(1)),
 						},
 					},
 					{

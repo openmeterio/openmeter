@@ -455,3 +455,47 @@ func (s *BaseSuite) SetupApiRequestsTotalFeature(ctx context.Context, ns string)
 		Feature: apiRequestsTotalFeature,
 	}
 }
+
+type BillingProfileEditFn func(p *billing.CreateProfileInput)
+
+type BillingProfileProvisionOptions struct {
+	editFn BillingProfileEditFn
+}
+
+type BillingProfileProvisionOption func(*BillingProfileProvisionOptions)
+
+func WithBillingProfileEditFn(editFn BillingProfileEditFn) BillingProfileProvisionOption {
+	return func(opts *BillingProfileProvisionOptions) {
+		opts.editFn = editFn
+	}
+}
+
+func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, opts ...BillingProfileProvisionOption) {
+	provisionOpts := BillingProfileProvisionOptions{}
+
+	for _, opt := range opts {
+		opt(&provisionOpts)
+	}
+
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
+	minimalCreateProfileInput.Namespace = ns
+
+	if provisionOpts.editFn != nil {
+		provisionOpts.editFn(&minimalCreateProfileInput)
+	}
+
+	_, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+	s.NoError(err)
+}
+
+func ExpectJSONEqual(t *testing.T, exp, actual any) {
+	t.Helper()
+
+	aJSON, err := json.Marshal(exp)
+	require.NoError(t, err)
+
+	bJSON, err := json.Marshal(actual)
+	require.NoError(t, err)
+
+	require.JSONEq(t, string(aJSON), string(bJSON))
+}
