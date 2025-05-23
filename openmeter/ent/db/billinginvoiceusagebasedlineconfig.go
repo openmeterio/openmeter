@@ -23,7 +23,7 @@ type BillingInvoiceUsageBasedLineConfig struct {
 	// PriceType holds the value of the "price_type" field.
 	PriceType productcatalog.PriceType `json:"price_type,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
-	FeatureKey string `json:"feature_key,omitempty"`
+	FeatureKey *string `json:"feature_key,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// PreLinePeriodQuantity holds the value of the "pre_line_period_quantity" field.
@@ -83,7 +83,8 @@ func (_m *BillingInvoiceUsageBasedLineConfig) assignValues(columns []string, val
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_key", values[i])
 			} else if value.Valid {
-				_m.FeatureKey = value.String
+				_m.FeatureKey = new(string)
+				*_m.FeatureKey = value.String
 			}
 		case billinginvoiceusagebasedlineconfig.FieldPrice:
 			if value, err := billinginvoiceusagebasedlineconfig.ValueScanner.Price.FromValue(values[i]); err != nil {
@@ -154,8 +155,10 @@ func (_m *BillingInvoiceUsageBasedLineConfig) String() string {
 	builder.WriteString("price_type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.PriceType))
 	builder.WriteString(", ")
-	builder.WriteString("feature_key=")
-	builder.WriteString(_m.FeatureKey)
+	if v := _m.FeatureKey; v != nil {
+		builder.WriteString("feature_key=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("price=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Price))

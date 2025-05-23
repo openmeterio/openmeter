@@ -365,6 +365,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 								Amount:      alpacadecimal.NewFromFloat(100),
 								PaymentTerm: productcatalog.InArrearsPaymentTerm,
 							}),
+							Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(1)),
 						},
 					},
 					{
@@ -588,8 +589,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Description: lo.ToPtr("UBP - FLAT per any usage"),
 				Customer:    lo.ToPtr(customerData.StripeCustomerID),
 				Period: &stripe.InvoiceItemPeriodParams{
-					Start: lo.ToPtr(expectedPeriodStart.Unix()),
-					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+					Start: lo.ToPtr(periodStart.Unix()),
+					End:   lo.ToPtr(periodEnd.Unix()),
 				},
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - FLAT per any usage"),

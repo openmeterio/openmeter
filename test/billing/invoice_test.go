@@ -1343,23 +1343,6 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 					CreatedAt: time.Now(),
 					UpdatedAt: time.Now(),
 				},
-				Name: "Flat per usage",
-			},
-			Key:           "flat-per-usage",
-			Aggregation:   meter.MeterAggregationSum,
-			EventType:     "test",
-			ValueProperty: lo.ToPtr("$.value"),
-		},
-		{
-			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
-				NamespacedModel: models.NamespacedModel{
-					Namespace: namespace,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
 				Name: "Tiered graduated",
 			},
 			Key:           "tiered-graduated",
@@ -1394,7 +1377,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 	// Let's initialize the mock streaming connector with data that is out of the period so that we
 	// can start with empty values
-	for _, slug := range []string{"flat-per-unit", "flat-per-usage", "tiered-graduated", "tiered-volume"} {
+	for _, slug := range []string{"flat-per-unit", "tiered-graduated", "tiered-volume"} {
 		s.MockStreamingConnector.AddSimpleEvent(slug, 0, periodStart.Add(-time.Minute))
 	}
 
@@ -1409,12 +1392,6 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			Name:      "flat-per-unit",
 			Key:       "flat-per-unit",
 			MeterSlug: lo.ToPtr("flat-per-unit"),
-		})),
-		flatPerUsage: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
-			Namespace: namespace,
-			Name:      "flat-per-usage",
-			Key:       "flat-per-usage",
-			MeterSlug: lo.ToPtr("flat-per-usage"),
 		})),
 		tieredGraduated: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: namespace,
@@ -1432,30 +1409,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 	// Given we have a test customer
 
-	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
-		Namespace: namespace,
-
-		CustomerMutate: customer.CustomerMutate{
-			Name:         "Test Customer",
-			PrimaryEmail: lo.ToPtr("test@test.com"),
-			BillingAddress: &models.Address{
-				Country:     lo.ToPtr(models.CountryCode("US")),
-				PostalCode:  lo.ToPtr("12345"),
-				State:       lo.ToPtr("NY"),
-				City:        lo.ToPtr("New York"),
-				Line1:       lo.ToPtr("1234 Test St"),
-				Line2:       lo.ToPtr("Apt 1"),
-				PhoneNumber: lo.ToPtr("1234567890"),
-			},
-			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: []string{"test"},
-			},
-		},
-	})
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), customerEntity)
-	require.NotEmpty(s.T(), customerEntity.ID)
+	customerEntity := s.CreateTestCustomer(namespace, "test")
 
 	// Given we have a default profile for the namespace
 	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
@@ -1502,11 +1456,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 							Name:      "UBP - FLAT per any usage",
 						},
 						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.flatPerUsage.Key,
 							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 								Amount:      alpacadecimal.NewFromFloat(100),
 								PaymentTerm: productcatalog.InArrearsPaymentTerm,
 							}),
+							Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(1)),
 						},
 					},
 					{
@@ -1586,8 +1540,30 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.NoError(s.T(), err)
 		require.Len(s.T(), pendingLines.Lines, 4)
 
+		lines = ubpPendingLines{
+			flatPerUnit:     pendingLines.Lines[0],
+			flatFee:         pendingLines.Lines[1],
+			tieredGraduated: pendingLines.Lines[2],
+			tieredVolume:    pendingLines.Lines[3],
+		}
+
+		// The flat fee line should not be truncated
+		require.Equal(s.T(),
+			billing.Period{
+				Start: periodStart,
+				End:   periodEnd,
+			},
+			lines.flatFee.Period,
+			"period should not be truncated",
+		)
+		require.Equal(s.T(),
+			lines.flatFee.InvoiceAt,
+			periodEnd,
+			"invoice at should be unchanged",
+		)
+
 		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
-		for _, line := range pendingLines.Lines {
+		for _, line := range []*billing.Line{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume} {
 			require.Equal(s.T(),
 				billing.Period{
 					Start: lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:00Z")),
@@ -1602,13 +1578,6 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				periodEnd,
 				"invoice at should be unchanged",
 			)
-		}
-
-		lines = ubpPendingLines{
-			flatPerUnit:     pendingLines.Lines[0],
-			flatPerUsage:    pendingLines.Lines[1],
-			tieredGraduated: pendingLines.Lines[2],
-			tieredVolume:    pendingLines.Lines[3],
 		}
 	})
 
@@ -2169,13 +2138,13 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		// Flat prices are not yet pro-rated, thus there will be no parent, the original line will be
 		// reused
-		flatPerUsage := s.lineByID(invoiceLines, lines.flatPerUsage.ID)
+		flatFee := s.lineByID(invoiceLines, lines.flatFee.ID)
 
 		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billing.Line, _ int) string {
 			return l.ID
 		}), []string{
 			flatPerUnit.ID,
-			flatPerUsage.ID,
+			flatFee.ID,
 			tieredGraduated.ID,
 			lines.tieredVolume.ID,
 		})
@@ -2188,7 +2157,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
 		require.True(s.T(), tieredVolume.Period.Equal(lines.tieredVolume.Period), "period should be unchanged for the tiered volume line")
-		require.True(s.T(), flatPerUsage.Period.Equal(lines.flatPerUsage.Period), "period should be unchanged for the flat line")
+		require.True(s.T(), flatFee.Period.Equal(lines.flatFee.Period), "period should be unchanged for the flat line")
 
 		// Let's validate the output of the split itself: no new split should have occurred
 		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, lines.tieredGraduated.ID)
@@ -2234,7 +2203,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		}
 
 		// Details
-		requireDetailedLines(s.T(), flatPerUsage, lineExpectations{
+		requireDetailedLines(s.T(), flatFee, lineExpectations{
 			Details: map[string]feeLineExpect{
 				lineservice.FlatPriceChildUniqueReferenceID: {
 					Quantity:      1,
@@ -2246,7 +2215,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		requireTotals(s.T(), expectedTotals{
 			Amount: 100,
 			Total:  100,
-		}, flatPerUsage.Totals)
+		}, flatFee.Totals)
 
 		requireDetailedLines(s.T(), tieredVolume, lineExpectations{
 			Details: map[string]feeLineExpect{
@@ -2344,7 +2313,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 
 	// Let's initialize the mock streaming connector with data that is out of the period so that we
 	// can start with empty values
-	for _, slug := range []string{"flat-per-unit", "flat-per-usage", "tiered-graduated", "tiered-volume"} {
+	for _, slug := range []string{"flat-per-unit", "tiered-graduated", "tiered-volume"} {
 		s.MockStreamingConnector.AddSimpleEvent(slug, 0, periodStart.Add(-time.Minute))
 	}
 
@@ -2586,23 +2555,6 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 					CreatedAt: time.Now(),
 					UpdatedAt: time.Now(),
 				},
-				Name: "Flat per usage",
-			},
-			Key:           "flat-per-usage",
-			Aggregation:   meter.MeterAggregationSum,
-			EventType:     "test",
-			ValueProperty: lo.ToPtr("$.value"),
-		},
-		{
-			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
-				NamespacedModel: models.NamespacedModel{
-					Namespace: namespace,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
 				Name: "Tiered graduated",
 			},
 			Key:           "tiered-graduated",
@@ -2637,7 +2589,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 	// Let's initialize the mock streaming connector with data that is out of the period so that we
 	// can start with empty values
-	for _, slug := range []string{"flat-per-unit", "flat-per-usage", "tiered-graduated", "tiered-volume"} {
+	for _, slug := range []string{"flat-per-unit", "tiered-graduated", "tiered-volume"} {
 		s.MockStreamingConnector.AddSimpleEvent(slug, 0, periodStart.Add(-time.Minute))
 	}
 
@@ -2652,12 +2604,6 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 			Name:      "flat-per-unit",
 			Key:       "flat-per-unit",
 			MeterSlug: lo.ToPtr("flat-per-unit"),
-		})),
-		flatPerUsage: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
-			Namespace: namespace,
-			Name:      "flat-per-usage",
-			Key:       "flat-per-usage",
-			MeterSlug: lo.ToPtr("flat-per-usage"),
 		})),
 		tieredGraduated: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: namespace,
@@ -2744,11 +2690,11 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 							Name:      "UBP - FLAT per any usage",
 						},
 						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.flatPerUsage.Key,
 							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 								Amount:      alpacadecimal.NewFromFloat(100),
 								PaymentTerm: productcatalog.InArrearsPaymentTerm,
 							}),
+							Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(1)),
 						},
 					},
 					{
@@ -2828,8 +2774,30 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		require.NoError(s.T(), err)
 		require.Len(s.T(), pendingLines.Lines, 4)
 
+		lines = ubpPendingLines{
+			flatPerUnit:     pendingLines.Lines[0],
+			flatFee:         pendingLines.Lines[1],
+			tieredGraduated: pendingLines.Lines[2],
+			tieredVolume:    pendingLines.Lines[3],
+		}
+
+		// The flat fee line should not be truncated
+		require.Equal(s.T(),
+			billing.Period{
+				Start: periodStart,
+				End:   periodEnd,
+			},
+			lines.flatFee.Period,
+			"period should not be truncated",
+		)
+		require.Equal(s.T(),
+			lines.flatFee.InvoiceAt,
+			periodEnd,
+			"invoice at should be unchanged",
+		)
+
 		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
-		for _, line := range pendingLines.Lines {
+		for _, line := range []*billing.Line{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume} {
 			require.Equal(s.T(),
 				billing.Period{
 					Start: lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:00Z")),
@@ -2844,13 +2812,6 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 				periodEnd,
 				"invoice at should be unchanged",
 			)
-		}
-
-		lines = ubpPendingLines{
-			flatPerUnit:     pendingLines.Lines[0],
-			flatPerUsage:    pendingLines.Lines[1],
-			tieredGraduated: pendingLines.Lines[2],
-			tieredVolume:    pendingLines.Lines[3],
 		}
 	})
 
@@ -2900,7 +2861,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 		// Given that we didn't have to do a split the line IDs should be the same as the original lines
 		flatPerUnit := s.lineByID(invoiceLines, lines.flatPerUnit.ID)
-		flatPerUsage := s.lineByID(invoiceLines, lines.flatPerUsage.ID)
+		flatFee := s.lineByID(invoiceLines, lines.flatFee.ID)
 		tieredGraduated := s.lineByID(invoiceLines, lines.tieredGraduated.ID)
 		tieredVolume := s.lineByID(invoiceLines, lines.tieredVolume.ID)
 
@@ -2908,12 +2869,21 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 			Start: periodStart.Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}
-		for _, line := range []*billing.Line{flatPerUnit, flatPerUsage, tieredGraduated, tieredVolume} {
+		for _, line := range []*billing.Line{flatPerUnit, tieredGraduated, tieredVolume} {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should not be changed for the line items")
 		}
 
+		require.Equal(s.T(),
+			billing.Period{
+				Start: periodStart,
+				End:   periodEnd,
+			},
+			flatFee.Period,
+			"period should be unchanged",
+		)
+
 		// Details
-		requireDetailedLines(s.T(), flatPerUsage, lineExpectations{
+		requireDetailedLines(s.T(), flatFee, lineExpectations{
 			Details: map[string]feeLineExpect{
 				lineservice.FlatPriceChildUniqueReferenceID: {
 					Quantity:      1,
@@ -2925,7 +2895,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		requireTotals(s.T(), expectedTotals{
 			Amount: 100,
 			Total:  100,
-		}, flatPerUsage.Totals)
+		}, flatFee.Totals)
 
 		requireDetailedLines(s.T(), flatPerUnit, lineExpectations{
 			Details: map[string]feeLineExpect{
@@ -3064,14 +3034,14 @@ func (s *InvoicingTestSuite) getLineChildLines(ctx context.Context, ns string, p
 
 type ubpPendingLines struct {
 	flatPerUnit     *billing.Line
-	flatPerUsage    *billing.Line
+	flatFee         *billing.Line
 	tieredGraduated *billing.Line
 	tieredVolume    *billing.Line
 }
 
 type ubpFeatures struct {
 	flatPerUnit     feature.Feature
-	flatPerUsage    feature.Feature
+	flatFee         feature.Feature
 	tieredGraduated feature.Feature
 	tieredVolume    feature.Feature
 }

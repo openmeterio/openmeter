@@ -37,7 +37,7 @@ func StandardInvoiceCollectionAt(i *billing.Invoice, _ CalculatorDependencies) e
 
 	maxInvoiceAt := time.Time{}
 	for _, line := range i.Lines.OrEmpty() {
-		if line.Type != billing.InvoiceLineTypeUsageBased {
+		if !line.DependsOnMeteredQuantity() {
 			// No collection required for non-usage based lines
 			continue
 		}

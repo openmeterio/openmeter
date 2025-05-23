@@ -227,30 +227,19 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 }
 
 func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
-	namespace := "ns-collection-flow-flat-fee"
-	ctx := context.Background()
-
-	// Given a gathering invoice with a flat fee only line
-	// When the invoice is created
-	// Then the freshly created invoice should skip the collection period
-
-	res := s.setupNS(ctx, namespace)
-	defer res.Cleanup()
-
-	customer := res.customer
-
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
 	periodEnd := periodStart.Add(time.Hour * 12)
 
-	clock.SetTime(periodStart)
-	defer clock.ResetTime()
-
-	// Given
-	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
-		Currency: currencyx.Code(currency.USD),
-		Lines: []*billing.Line{
-			billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+	// TODO[later]: When flat_fee on invoice is deprecated, we can remove the multiple testcase approach here and test UBP only
+	tcs := []struct {
+		name      string
+		namespace string
+		line      *billing.Line
+	}{
+		{
+			name:      "flat fee only",
+			namespace: "ns-collection-flow-flat-fee",
+			line: billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: periodStart, End: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
@@ -260,26 +249,65 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 			}),
 		},
-	})
-	s.NoError(err)
-	s.Len(pendingLineResult.Lines, 1)
-	s.NotNil(pendingLineResult.Invoice.CollectionAt)
+		{
+			name:      "flat fee only",
+			namespace: "ns-collection-flow-ubp-flat-fee",
+			line: billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
+				Period:    billing.Period{Start: periodStart, End: periodEnd},
+				InvoiceAt: periodStart,
+				Name:      "Flat fee",
 
-	// When
-	clock.SetTime(periodStart.Add(time.Hour * 1))
-	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customer.GetID(),
-	})
-	s.NoError(err)
-	s.Len(invoices, 1)
+				PerUnitAmount: alpacadecimal.NewFromFloat(10),
+				Quantity:      alpacadecimal.NewFromFloat(1),
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+	}
 
-	invoice := invoices[0]
+	for _, tc := range tcs {
+		s.Run(tc.name, func() {
+			namespace := tc.namespace
+			ctx := context.Background()
 
-	// Then
-	s.NotNil(invoice.CollectionAt)
-	s.NotNil(invoice.QuantitySnapshotedAt)
-	s.Equal(invoice.CreatedAt, *invoice.CollectionAt)
-	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+			// Given a gathering invoice with a flat fee only line
+			// When the invoice is created
+			// Then the freshly created invoice should skip the collection period
+
+			res := s.setupNS(ctx, namespace)
+			defer res.Cleanup()
+
+			customer := res.customer
+
+			clock.SetTime(periodStart)
+			defer clock.ResetTime()
+
+			// Given
+			pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+				Customer: customer.GetID(),
+				Currency: currencyx.Code(currency.USD),
+				Lines:    []*billing.Line{tc.line},
+			})
+			s.NoError(err)
+			s.Len(pendingLineResult.Lines, 1)
+			s.NotNil(pendingLineResult.Invoice.CollectionAt)
+
+			// When
+			clock.SetTime(periodStart.Add(time.Hour * 1))
+			invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+				Customer: customer.GetID(),
+			})
+			s.NoError(err)
+			s.Len(invoices, 1)
+
+			invoice := invoices[0]
+
+			// Then
+			s.NotNil(invoice.CollectionAt)
+			s.NotNil(invoice.QuantitySnapshotedAt)
+			s.Equal(invoice.CreatedAt, *invoice.CollectionAt)
+			s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+		})
+	}
 }
 
 func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
@@ -473,8 +501,10 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 						Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(3)}),
 
 						// Note: this emulates a per line quantity snapshot, that would be done by a normal edit flow
-						Quantity:              lo.ToPtr(alpacadecimal.NewFromFloat(0)),
-						PreLinePeriodQuantity: lo.ToPtr(alpacadecimal.NewFromFloat(0)),
+						Quantity:                     lo.ToPtr(alpacadecimal.NewFromFloat(0)),
+						MeteredQuantity:              lo.ToPtr(alpacadecimal.NewFromFloat(0)),
+						PreLinePeriodQuantity:        lo.ToPtr(alpacadecimal.NewFromFloat(0)),
+						MeteredPreLinePeriodQuantity: lo.ToPtr(alpacadecimal.NewFromFloat(0)),
 					},
 				})
 				return nil
