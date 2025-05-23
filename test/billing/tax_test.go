@@ -286,28 +286,21 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, namesp
 			Customer: customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
 			Lines: []*billing.Line{
-				{
-					LineBase: billing.LineBase{
-						Period: billing.Period{Start: now, End: now.Add(time.Hour * 24)},
+				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+					Period: billing.Period{Start: now, End: now.Add(time.Hour * 24)},
 
-						InvoiceAt: now,
-						ManagedBy: billing.ManuallyManagedLine,
+					InvoiceAt: now,
+					ManagedBy: billing.ManuallyManagedLine,
 
-						Type: billing.InvoiceLineTypeFee,
+					Name: "Test item - USD",
 
-						Name: "Test item - USD",
-
-						Metadata: map[string]string{
-							"key": "value",
-						},
+					Metadata: map[string]string{
+						"key": "value",
 					},
-					FlatFee: &billing.FlatFeeLine{
-						PerUnitAmount: alpacadecimal.NewFromFloat(100),
-						Quantity:      alpacadecimal.NewFromFloat(1),
-						Category:      billing.FlatFeeCategoryRegular,
-						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-					},
-				},
+					PerUnitAmount: alpacadecimal.NewFromFloat(100),
+					Quantity:      alpacadecimal.NewFromFloat(1),
+					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+				}),
 			},
 		},
 	)

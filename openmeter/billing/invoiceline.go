@@ -559,6 +559,70 @@ func (i *Line) DisassociateChildren() {
 	}
 }
 
+// helper functions for generating new lines
+type NewFlatFeeLineInput struct {
+	ID        string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+
+	Namespace string
+	Period    Period
+	InvoiceAt time.Time
+
+	InvoiceID string
+
+	Name        string
+	Metadata    map[string]string
+	Description *string
+
+	Currency currencyx.Code
+
+	ManagedBy InvoiceLineManagedBy
+
+	PerUnitAmount alpacadecimal.Decimal
+	PaymentTerm   productcatalog.PaymentTermType
+	// TODO: Is this needed?
+	// Category      FlatFeeCategory
+	Quantity alpacadecimal.Decimal
+
+	RateCardDiscounts Discounts
+}
+
+func NewFlatFeeLine(input NewFlatFeeLineInput) *Line {
+	return &Line{
+		LineBase: LineBase{
+			Namespace: input.Namespace,
+			ID:        input.ID,
+			CreatedAt: input.CreatedAt,
+			UpdatedAt: input.UpdatedAt,
+
+			Period:    input.Period,
+			InvoiceAt: input.InvoiceAt,
+			InvoiceID: input.InvoiceID,
+
+			Name:        input.Name,
+			Metadata:    input.Metadata,
+			Description: input.Description,
+
+			Status: InvoiceLineStatusValid,
+
+			Type: InvoiceLineTypeFee,
+
+			ManagedBy: lo.CoalesceOrEmpty(input.ManagedBy, SystemManagedLine),
+
+			Currency:          input.Currency,
+			RateCardDiscounts: input.RateCardDiscounts,
+		},
+		FlatFee: &FlatFeeLine{
+			PerUnitAmount: input.PerUnitAmount,
+			PaymentTerm:   input.PaymentTerm,
+			// Category:      lo.CoalesceOrEmpty(input.Category, FlatFeeCategoryRegular),
+			Category: FlatFeeCategoryRegular,
+			Quantity: input.Quantity,
+		},
+	}
+}
+
 // TODO[OM-1016]: For events we need a json marshaler
 type LineChildren struct {
 	mo.Option[[]*Line]

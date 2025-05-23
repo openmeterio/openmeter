@@ -182,24 +182,18 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.HUF),
 				Lines: []*billing.Line{
-					{
-						LineBase: billing.LineBase{
-							Period: billing.Period{Start: periodStart, End: periodEnd},
+					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+						Period: billing.Period{Start: periodStart, End: periodEnd},
 
-							InvoiceAt: issueAt,
-							ManagedBy: billing.ManuallyManagedLine,
+						InvoiceAt: issueAt,
+						ManagedBy: billing.ManuallyManagedLine,
 
-							Type: billing.InvoiceLineTypeFee,
+						Name: "Test item - HUF",
 
-							Name: "Test item - HUF",
-						},
-						FlatFee: &billing.FlatFeeLine{
-							PerUnitAmount: alpacadecimal.NewFromFloat(200),
-							Quantity:      alpacadecimal.NewFromFloat(3),
-							Category:      billing.FlatFeeCategoryRegular,
-							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-						},
-					},
+						PerUnitAmount: alpacadecimal.NewFromFloat(200),
+						Quantity:      alpacadecimal.NewFromFloat(3),
+						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+					}),
 					{
 						LineBase: billing.LineBase{
 							Period: billing.Period{Start: periodStart, End: periodEnd},
@@ -357,24 +351,18 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.HUF),
 				Lines: []*billing.Line{
-					{
-						LineBase: billing.LineBase{
-							Period: billing.Period{Start: periodStart, End: periodEnd},
+					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+						Period: billing.Period{Start: periodStart, End: periodEnd},
 
-							InvoiceAt: issueAt,
-							ManagedBy: billing.ManuallyManagedLine,
+						InvoiceAt: issueAt,
+						ManagedBy: billing.ManuallyManagedLine,
 
-							Type: billing.InvoiceLineTypeFee,
+						Name: "Test item - HUF",
 
-							Name: "Test item - HUF",
-						},
-						FlatFee: &billing.FlatFeeLine{
-							PerUnitAmount: alpacadecimal.NewFromFloat(200),
-							Quantity:      alpacadecimal.NewFromFloat(3),
-							Category:      billing.FlatFeeCategoryRegular,
-							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-						},
-					},
+						PerUnitAmount: alpacadecimal.NewFromFloat(200),
+						Quantity:      alpacadecimal.NewFromFloat(3),
+						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+					}),
 				},
 			})
 		s.NoError(err, "failed to create pending invoice lines")

@@ -185,32 +185,25 @@ func (t *TestEventGenerator) newTestInvoicePayload(ctx context.Context, namespac
 		Number:   lo.ToPtr("TEST-INV-1"),
 		Currency: currencyx.Code(currency.USD),
 		Lines: billing.NewLineChildren([]*billing.Line{
-			{
-				LineBase: billing.LineBase{
-					Namespace: namespace,
-					ID:        ulid.Make().String(),
-					CreatedAt: now,
-					UpdatedAt: now,
+			billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+				Namespace: namespace,
+				ID:        ulid.Make().String(),
+				CreatedAt: now,
+				UpdatedAt: now,
 
-					ManagedBy: billing.ManuallyManagedLine,
+				ManagedBy: billing.ManuallyManagedLine,
 
-					Name: "test flat fee",
-					Type: billing.InvoiceLineTypeFee,
-					Period: billing.Period{
-						Start: now.Add(-time.Hour * 24 * 30),
-						End:   now,
-					},
-					InvoiceAt: now,
-
-					Status: billing.InvoiceLineStatusValid,
+				Name: "test flat fee",
+				Period: billing.Period{
+					Start: now.Add(-time.Hour * 24 * 30),
+					End:   now,
 				},
-				FlatFee: &billing.FlatFeeLine{
-					PerUnitAmount: alpacadecimal.NewFromInt(1000),
-					Quantity:      alpacadecimal.NewFromInt(1),
-					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-					Category:      billing.FlatFeeCategoryRegular,
-				},
-			},
+				InvoiceAt: now,
+
+				PerUnitAmount: alpacadecimal.NewFromInt(1000),
+				Quantity:      alpacadecimal.NewFromInt(1),
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			}),
 		}),
 	})
 	if err != nil {

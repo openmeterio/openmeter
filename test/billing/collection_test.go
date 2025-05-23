@@ -250,21 +250,15 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
-			{
-				LineBase: billing.LineBase{
-					Period:    billing.Period{Start: periodStart, End: periodEnd},
-					InvoiceAt: periodStart,
-					ManagedBy: billing.ManuallyManagedLine,
-					Type:      billing.InvoiceLineTypeFee,
-					Name:      "Flat fee",
-				},
-				FlatFee: &billing.FlatFeeLine{
-					PerUnitAmount: alpacadecimal.NewFromFloat(10),
-					Quantity:      alpacadecimal.NewFromFloat(1),
-					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-					Category:      billing.FlatFeeCategoryRegular,
-				},
-			},
+			billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+				Period:    billing.Period{Start: periodStart, End: periodEnd},
+				InvoiceAt: periodStart,
+				Name:      "Flat fee",
+
+				PerUnitAmount: alpacadecimal.NewFromFloat(10),
+				Quantity:      alpacadecimal.NewFromFloat(1),
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			}),
 		},
 	})
 	s.NoError(err)
@@ -362,25 +356,20 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 				End:   periodEnd.Add(time.Hour * 2),
 			}
 
-			invoice.Lines.Append(&billing.Line{
-				LineBase: billing.LineBase{
+			invoice.Lines.Append(
+				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 					Namespace: namespace,
 					Currency:  currencyx.Code(currency.USD),
 					InvoiceID: invoice.ID,
-					Status:    billing.InvoiceLineStatusValid,
 					Period:    linePeriod,
 					InvoiceAt: linePeriod.End,
-					ManagedBy: billing.ManuallyManagedLine,
-					Type:      billing.InvoiceLineTypeFee,
 					Name:      "Flat fee",
-				},
-				FlatFee: &billing.FlatFeeLine{
+
 					PerUnitAmount: alpacadecimal.NewFromFloat(10),
 					Quantity:      alpacadecimal.NewFromFloat(1),
 					PaymentTerm:   productcatalog.InArrearsPaymentTerm,
-					Category:      billing.FlatFeeCategoryRegular,
-				},
-			})
+				}),
+			)
 			return nil
 		},
 	})
