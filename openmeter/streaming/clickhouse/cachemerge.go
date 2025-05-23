@@ -5,6 +5,7 @@ import (
 	"math"
 	"slices"
 	"sort"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -58,13 +59,13 @@ func mergeMeterQueryRows(meterDef meterpkg.Meter, queryParams streaming.QueryPar
 }
 
 // createGroupKeyFromRowWithQueryParams creates a unique key for grouping rows based on subject and group by fields
-// We don't include window start and end because we assume query window size is not set
+// We don't include window start and end because we assume query window size is not set (when it is set, we don't merge cached and fresh rows)
 func createGroupKeyFromRowWithQueryParams(row meterpkg.MeterQueryRow, queryParams streaming.QueryParams) string {
 	return createGroupKeyFromRow(row, queryParams.GroupBy)
 }
 
 // createGroupKeyFromRow creates a unique key for grouping rows based on subject and group by fields
-// We don't include window start and end because we assume query window size is not set
+// We don't include window start and end because we assume query window size is not set (when it is set, we don't merge cached and fresh rows)
 func createGroupKeyFromRow(row meterpkg.MeterQueryRow, groupByFields []string) string {
 	groupByFieldsCopy := append([]string(nil), groupByFields...)
 	groupKey := ""
@@ -88,13 +89,21 @@ func createGroupKeyFromRow(row meterpkg.MeterQueryRow, groupByFields []string) s
 	return groupKey
 }
 
+// createRowKey creates a unique key for a row based on group key and window start and end
+func createRowKey(row meterpkg.MeterQueryRow, groupByFields []string) string {
+	groupKey := createGroupKeyFromRow(row, groupByFields)
+
+	// `row.subject` is already included in the group key
+	return fmt.Sprintf("%s-%s-%s", groupKey, row.WindowStart.UTC().Format(time.RFC3339), row.WindowEnd.UTC().Format(time.RFC3339))
+}
+
 // dedupeQueryRows deduplicates rows based on group key
 func dedupeQueryRows(rows []meterpkg.MeterQueryRow, groupByFields []string) ([]meterpkg.MeterQueryRow, error) {
 	deduplicatedValues := []meterpkg.MeterQueryRow{}
 	seen := map[string]meterpkg.MeterQueryRow{}
 
 	for _, row := range rows {
-		key := createGroupKeyFromRow(row, groupByFields)
+		key := createRowKey(row, groupByFields)
 
 		if _, ok := seen[key]; !ok {
 			deduplicatedValues = append(deduplicatedValues, row)

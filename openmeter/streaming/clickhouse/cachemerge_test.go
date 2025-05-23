@@ -359,10 +359,20 @@ func TestDedupeQueryRows(t *testing.T) {
 				group2Key: &group2Value,
 			},
 		},
-		// Row with different subject
+		// Row with different time
 		{
 			WindowStart: windowStart2,
 			WindowEnd:   windowEnd2,
+			Value:       10,
+			Subject:     &subject1,
+			GroupBy: map[string]*string{
+				group1Key: &group1Value,
+			},
+		},
+		// Row with different subject
+		{
+			WindowStart: windowStart1,
+			WindowEnd:   windowEnd1,
 			Value:       10,
 			Subject:     &subject2,
 			GroupBy: map[string]*string{
@@ -374,7 +384,13 @@ func TestDedupeQueryRows(t *testing.T) {
 	deduplicatedRows, err := dedupeQueryRows(rows, []string{group1Key, group2Key})
 	require.NoError(t, err)
 
-	assert.Equal(t, 3, len(deduplicatedRows))
+	assert.Equal(t, 4, len(deduplicatedRows))
+	assert.Equal(t, deduplicatedRows, []meterpkg.MeterQueryRow{
+		rows[0],
+		rows[2],
+		rows[3],
+		rows[4],
+	})
 
 	// Test duplicates with inconsistent value
 	rows[0].Value = 20
