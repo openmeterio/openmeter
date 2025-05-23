@@ -76,8 +76,8 @@ func (c *Connector) createRemainingQueryFactory(originalQueryMeter queryMeter) f
 // 1. Look up cached rows
 // 2. Query new rows for the uncached time period
 // 3. Cache the new results
-// It returns the cached rows and the updated query meter.
-func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, originalQueryMeter queryMeter) (queryMeter, []meterpkg.MeterQueryRow, error) {
+// It returns if we covered the entire period, the cached rows and the updated query meter.
+func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, originalQueryMeter queryMeter) (bool, queryMeter, []meterpkg.MeterQueryRow, error) {
 	var values []meterpkg.MeterQueryRow
 
 	createRemainingQuery := c.createRemainingQueryFactory(originalQueryMeter)
@@ -85,13 +85,13 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	// Calculate the period to query from the cache
 	cacheableQueryMeter, err := c.prepareCacheableQueryPeriod(originalQueryMeter)
 	if err != nil {
-		return originalQueryMeter, values, err
+		return false, originalQueryMeter, values, err
 	}
 
 	// Step 1: Look up cached rows
 	cachedValues, err := c.fetchCachedMeterRows(ctx, hash, cacheableQueryMeter)
 	if err != nil {
-		return originalQueryMeter, values, fmt.Errorf("failed to lookup cached meter rows: %w", err)
+		return false, originalQueryMeter, values, fmt.Errorf("failed to lookup cached meter rows: %w", err)
 	}
 
 	// If we have cached values, add them to the results
@@ -118,7 +118,7 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 		if lastCachedWindowEnd.Equal(*cacheableQueryMeter.To) {
 			c.config.Logger.Debug("no new rows to query for cache period, returning cached data", "count", len(values))
 
-			return createRemainingQuery(cacheableQueryMeter), values, nil
+			return true, createRemainingQuery(cacheableQueryMeter), values, nil
 		}
 	}
 
@@ -126,7 +126,7 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	// If there is no cached data found, we query the entire time period
 	newRows, err := c.queryMeter(ctx, cacheableQueryMeter)
 	if err != nil {
-		return originalQueryMeter, values, fmt.Errorf("query new meter rows: %w", err)
+		return false, originalQueryMeter, values, fmt.Errorf("query new meter rows: %w", err)
 	}
 
 	values = append(values, newRows...)
@@ -146,7 +146,10 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	// Result
 	c.config.Logger.Debug("returning cached and new rows", "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(values))
 
-	return createRemainingQuery(cacheableQueryMeter), values, nil
+	// If the query is covered, we return true
+	queryCovered := originalQueryMeter.To != nil && cacheableQueryMeter.To.Equal(*originalQueryMeter.To)
+
+	return queryCovered, createRemainingQuery(cacheableQueryMeter), values, nil
 }
 
 // prepareCacheableQueryPeriod prepares the time range for cacheable queries

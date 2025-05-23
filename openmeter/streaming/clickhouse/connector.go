@@ -209,6 +209,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 
 	// Load cached rows if any
 	var cached []meterpkg.MeterQueryRow
+	var queryCovered bool
 
 	useCache := c.canQueryBeCached(namespace, meter, params)
 
@@ -217,7 +218,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 
 		hash := fmt.Sprintf("%x", params.Hash())
 
-		query, cached, err = c.executeQueryWithCaching(ctx, hash, query)
+		queryCovered, query, cached, err = c.executeQueryWithCaching(ctx, hash, query)
 		if err != nil {
 			return cached, fmt.Errorf("query cached rows: %w", err)
 		}
@@ -227,22 +228,27 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	var err error
 	var values []meterpkg.MeterQueryRow
 
-	// If the client ID is set, we track track the progress of the query
-	if params.ClientID != nil {
-		values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
-		if err != nil {
-			return values, fmt.Errorf("query meter with progress: %w", err)
+	// If the query is not covered, we need to query the fresh rows
+	// This is always the case if the query is not cached.
+	// It is also the case if the query is cached but the cached data is not enough to cover the entire period.
+	if !queryCovered {
+		// If the client ID is set, we track track the progress of the query
+		if params.ClientID != nil {
+			values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
+			if err != nil {
+				return values, fmt.Errorf("query meter with progress: %w", err)
+			}
+		} else {
+			values, err = c.queryMeter(ctx, query)
+			if err != nil {
+				return values, fmt.Errorf("query meter: %w", err)
+			}
 		}
-	} else {
-		values, err = c.queryMeter(ctx, query)
-		if err != nil {
-			return values, fmt.Errorf("query meter: %w", err)
-		}
-	}
 
-	// Merge cached rows if any
-	if useCache {
-		values = mergeMeterQueryRows(meter, params, cached, values)
+		// Merge cached rows if any
+		if useCache {
+			values = mergeMeterQueryRows(meter, params, cached, values)
+		}
 	}
 
 	// If the total usage is queried for a single period (no window size),

@@ -308,10 +308,11 @@ func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
 	}).Return(nil).Once()
 
 	// Execute query with caching
-	resultQueryMeter, results, err := connector.executeQueryWithCaching(context.Background(), queryHash, originalQueryMeter)
+	queryCovered, resultQueryMeter, results, err := connector.executeQueryWithCaching(context.Background(), queryHash, originalQueryMeter)
 
 	require.NoError(t, err)
-	assert.Len(t, results, 2) // Should have both cached and fresh rows
+	assert.Len(t, results, 2)     // Should have both cached and fresh rows
+	assert.False(t, queryCovered) // We didn't cover the entire period (to < cachedEnd)
 
 	// Result query meter should have From set to the end of cached period
 	assert.Equal(t, cachedEnd, *resultQueryMeter.From)
@@ -335,6 +336,212 @@ func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
 	mockClickHouse.AssertExpectations(t)
 	mockRows1.AssertExpectations(t)
 	mockRows2.AssertExpectations(t)
+}
+
+// Integration test for executeQueryWithCaching when the query is covered by the cache with remaining query
+func TestConnector_ExecuteQueryWithCaching_QueryCovered_RemainingQuery(t *testing.T) {
+	connector, mockClickHouse := GetMockConnector(t)
+
+	// Setup test data
+	now := time.Now().UTC()
+	queryFrom := now.Add(-7 * 24 * time.Hour)
+	queryTo := now.Add(-2 * 24 * time.Hour).Truncate(time.Hour * 24)
+
+	queryHash := "test-hash"
+
+	testMeter := meterpkg.Meter{
+		ManagedResource: models.ManagedResource{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "test-namespace",
+			},
+			ID:   "test-meter",
+			Name: "test-meter",
+		},
+		Key:           "test-meter",
+		Aggregation:   meterpkg.MeterAggregationSum,
+		ValueProperty: lo.ToPtr("$.value"),
+	}
+
+	originalQueryMeter := queryMeter{
+		Database:  "testdb",
+		Namespace: "test-namespace",
+		Meter:     testMeter,
+		From:      &queryFrom,
+		To:        &queryTo,
+	}
+
+	// Mock for fetchCachedMeterRows
+	cachedStart := queryFrom
+	currentCacheEnd := queryTo.Add(-5 * 24 * time.Hour).Truncate(time.Hour * 24)
+	cachedEnd := queryTo
+
+	mockRows1 := NewMockRows()
+	mockClickHouse.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
+		"test-hash",
+		"test-namespace",
+		// We query for the full cached period
+		cachedStart.Unix(),
+		cachedEnd.Unix(),
+	}).Return(mockRows1, nil).Once()
+
+	// Setup rows to return from cache
+	mockRows1.On("Next").Return(true).Once()
+	mockRows1.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
+		dest := args.Get(0).([]interface{})
+		*(dest[0].(*time.Time)) = cachedStart
+		*(dest[1].(*time.Time)) = currentCacheEnd
+		*(dest[2].(*float64)) = 100.0
+	}).Return(nil)
+	mockRows1.On("Next").Return(false)
+	mockRows1.On("Err").Return(nil)
+	mockRows1.On("Close").Return(nil)
+
+	// Mock the SQL query for loading new data to the cache
+	mockRows2 := NewMockRows()
+	mockClickHouse.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
+		"test-namespace",
+		"",
+		// We query for the period we don't have cache but could have
+		currentCacheEnd.Unix(),
+		cachedEnd.Unix(),
+	}).Return(mockRows2, nil).Once()
+
+	// Setup rows to return new data that can be cached
+	mockRows2.On("Next").Return(true).Once()
+	mockRows2.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
+		dest := args.Get(0).([]interface{})
+
+		*(dest[0].(*time.Time)) = currentCacheEnd
+		*(dest[1].(*time.Time)) = cachedEnd
+		*(dest[2].(**float64)) = lo.ToPtr(50.0)
+	}).Return(nil)
+	mockRows2.On("Next").Return(false)
+	mockRows2.On("Err").Return(nil)
+	mockRows2.On("Close").Return(nil)
+
+	// Store new cachable data in cache
+	mockClickHouse.On("Exec", mock.Anything, mock.AnythingOfType("string"), []interface{}{
+		// Called with the new data
+		"test-hash",
+		"test-namespace",
+		currentCacheEnd,
+		cachedEnd,
+		50.0,
+		"", // subject
+		map[string]string{},
+	}).Return(nil).Once()
+
+	// Execute query with caching
+	queryCovered, resultQueryMeter, results, err := connector.executeQueryWithCaching(context.Background(), queryHash, originalQueryMeter)
+
+	require.NoError(t, err)
+	assert.Len(t, results, 2)    // Should have both cached and fresh rows
+	assert.True(t, queryCovered) // We covered the entire period (to == cachedEnd)
+
+	// Result query meter should have From set to the end of cached period
+	assert.Equal(t, cachedEnd, *resultQueryMeter.From)
+
+	// Validate combined results
+	assert.Equal(t, []meterpkg.MeterQueryRow{
+		{
+			WindowStart: cachedStart,
+			WindowEnd:   currentCacheEnd,
+			Value:       100.0,
+			GroupBy:     map[string]*string{},
+		},
+		{
+			WindowStart: currentCacheEnd,
+			WindowEnd:   cachedEnd,
+			Value:       50.0,
+			GroupBy:     map[string]*string{},
+		},
+	}, results)
+
+	mockClickHouse.AssertExpectations(t)
+	mockRows1.AssertExpectations(t)
+	mockRows2.AssertExpectations(t)
+}
+
+// Integration test for executeQueryWithCaching when the query is covered by the cache and no remaining query is needed
+func TestConnector_ExecuteQueryWithCaching_QueryCovered_NoRemainingQuery(t *testing.T) {
+	connector, mockClickHouse := GetMockConnector(t)
+
+	// Setup test data
+	now := time.Now().UTC()
+	queryFrom := now.Add(-7 * 24 * time.Hour).Truncate(time.Hour * 24)
+	queryTo := now.Add(-2 * 24 * time.Hour).Truncate(time.Hour * 24)
+
+	queryHash := "test-hash"
+
+	testMeter := meterpkg.Meter{
+		ManagedResource: models.ManagedResource{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "test-namespace",
+			},
+			ID:   "test-meter",
+			Name: "test-meter",
+		},
+		Key:           "test-meter",
+		Aggregation:   meterpkg.MeterAggregationSum,
+		ValueProperty: lo.ToPtr("$.value"),
+	}
+
+	originalQueryMeter := queryMeter{
+		Database:  "testdb",
+		Namespace: "test-namespace",
+		Meter:     testMeter,
+		From:      &queryFrom,
+		To:        &queryTo,
+	}
+
+	// Mock for fetchCachedMeterRows
+	cachedStart := queryFrom
+	currentCacheEnd := queryTo
+	cachedEnd := currentCacheEnd
+
+	mockRows1 := NewMockRows()
+	mockClickHouse.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
+		"test-hash",
+		"test-namespace",
+		// We query for the full cached period
+		cachedStart.Unix(),
+		cachedEnd.Unix(),
+	}).Return(mockRows1, nil).Once()
+
+	// Setup rows to return from cache
+	mockRows1.On("Next").Return(true).Once()
+	mockRows1.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
+		dest := args.Get(0).([]interface{})
+		*(dest[0].(*time.Time)) = cachedStart
+		*(dest[1].(*time.Time)) = currentCacheEnd
+		*(dest[2].(*float64)) = 100.0
+	}).Return(nil)
+	mockRows1.On("Next").Return(false)
+	mockRows1.On("Err").Return(nil)
+	mockRows1.On("Close").Return(nil)
+
+	// Execute query with caching
+	queryCovered, resultQueryMeter, results, err := connector.executeQueryWithCaching(context.Background(), queryHash, originalQueryMeter)
+
+	require.NoError(t, err)
+	assert.Len(t, results, 1)    // Should have cached rows only
+	assert.True(t, queryCovered) // We didn't cover the entire period (to == cachedEnd)
+
+	// Result query meter should have From set to the end of cached period
+	assert.Equal(t, cachedEnd, *resultQueryMeter.From)
+
+	// Validate combined results
+	assert.Equal(t, []meterpkg.MeterQueryRow{
+		{
+			WindowStart: cachedStart,
+			WindowEnd:   currentCacheEnd,
+			Value:       100.0,
+			GroupBy:     map[string]*string{},
+		},
+	}, results)
+
+	mockClickHouse.AssertExpectations(t)
+	mockRows1.AssertExpectations(t)
 }
 
 func TestConnector_FetchCachedMeterRows(t *testing.T) {
