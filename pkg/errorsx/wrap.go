@@ -6,15 +6,12 @@ import (
 	"strings"
 )
 
-// Join joins multiple errors into a single error with nice formatting.
-// It uses errors.Join and then formats the result nicely while preserving error chains.
 func Join(errs ...error) error {
 	joined := errors.Join(errs...)
 	return FormatJoinedError(joined)
 }
 
 // FormatJoinedError formats an already-joined error nicely while preserving error chains.
-// This is useful when you already have a joined error from errors.Join.
 func FormatJoinedError(err error) error {
 	if err == nil {
 		return nil
