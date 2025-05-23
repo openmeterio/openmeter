@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 const (
@@ -28,6 +29,7 @@ const (
 	DefaultIncludeDeletedDuration = 24 * time.Hour
 
 	defaultLRUCacheSize = 10_000
+	defaultPageSize     = 20_000
 
 	metricNameRecalculationTime               = "balance_worker.entitlement_recalculation_time_ms"
 	metricNameRecalculationJobCalculationTime = "balance_worker.entitlement_recalculation_job_calculation_time_ms"
@@ -121,18 +123,43 @@ func (r *Recalculator) Recalculate(ctx context.Context, ns string) error {
 		return errors.New("namespace is required")
 	}
 
-	affectedEntitlements, err := r.opts.Entitlement.EntitlementRepo.ListEntitlements(
-		ctx,
-		entitlement.ListEntitlementsParams{
-			Namespaces:          []string{ns},
-			IncludeDeleted:      true,
-			IncludeDeletedAfter: time.Now().Add(-DefaultIncludeDeletedDuration),
-		})
-	if err != nil {
-		return err
+	// Note: this is to support namesapces with more than 64k entitlements, as the subqueries
+	// to expand the edges uses IN statements in ent. We should rather fix ent to actually chunk
+	// the subqueries.
+	affectedEntitlements := []entitlement.Entitlement{}
+
+	page := 1
+
+	for {
+		affectedEntitlementsPage, err := r.opts.Entitlement.EntitlementRepo.ListEntitlements(
+			ctx,
+			entitlement.ListEntitlementsParams{
+				Namespaces:          []string{ns},
+				IncludeDeleted:      true,
+				IncludeDeletedAfter: time.Now().Add(-DefaultIncludeDeletedDuration),
+				Page: pagination.Page{
+					PageNumber: page,
+					PageSize:   defaultPageSize,
+				},
+			})
+		if err != nil {
+			return err
+		}
+
+		if len(affectedEntitlementsPage.Items) == 0 {
+			break
+		}
+
+		affectedEntitlements = append(affectedEntitlements, affectedEntitlementsPage.Items...)
+
+		if len(affectedEntitlements) >= affectedEntitlementsPage.TotalCount {
+			break
+		}
+
+		page++
 	}
 
-	return r.processEntitlements(ctx, affectedEntitlements.Items)
+	return r.processEntitlements(ctx, affectedEntitlements)
 }
 
 func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []entitlement.Entitlement) error {
