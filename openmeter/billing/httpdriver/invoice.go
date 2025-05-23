@@ -443,6 +443,8 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 				EditFn: func(invoice *billing.Invoice) error {
 					var err error
 
+					// TODO[later]: add support for ubp flat fee line editing (quantity can be set only for these lines or default to 1)
+
 					invoice.Supplier = mergeInvoiceSupplierFromAPI(invoice.Supplier, request.Input.Supplier)
 					invoice.Customer = mergeInvoiceCustomerFromAPI(invoice.Customer, request.Input.Customer)
 					invoice.Workflow, err = mergeInvoiceWorkflowFromAPI(invoice.Workflow, request.Input.Workflow)
