@@ -89,14 +89,21 @@ func createGroupKeyFromRow(row meterpkg.MeterQueryRow, groupByFields []string) s
 	return groupKey
 }
 
+// createRowKey creates a unique key for a row based on group key and window start and end
+func createRowKey(row meterpkg.MeterQueryRow, groupByFields []string) string {
+	groupKey := createGroupKeyFromRow(row, groupByFields)
+
+	// `row.subject` is already included in the group key
+	return fmt.Sprintf("%s-%s-%s", groupKey, row.WindowStart.UTC().Format(time.RFC3339), row.WindowEnd.UTC().Format(time.RFC3339))
+}
+
 // dedupeQueryRows deduplicates rows based on group key
 func dedupeQueryRows(rows []meterpkg.MeterQueryRow, groupByFields []string) ([]meterpkg.MeterQueryRow, error) {
 	deduplicatedValues := []meterpkg.MeterQueryRow{}
 	seen := map[string]meterpkg.MeterQueryRow{}
 
 	for _, row := range rows {
-		groupKey := createGroupKeyFromRow(row, groupByFields)
-		key := fmt.Sprintf("%s-%s-%s", groupKey, row.WindowStart.Format(time.RFC3339), row.WindowEnd.Format(time.RFC3339))
+		key := createRowKey(row, groupByFields)
 
 		if _, ok := seen[key]; !ok {
 			deduplicatedValues = append(deduplicatedValues, row)
