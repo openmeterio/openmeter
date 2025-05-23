@@ -13,10 +13,27 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/dedupe"
 )
 
+type DedupeMode string
+
+const (
+	DedupeModeRawKey           DedupeMode = "rawkey"
+	DedupeModeKeyHash          DedupeMode = "keyhash"
+	DedupeModeKeyHashMigration DedupeMode = "keyhash-migration"
+)
+
+func (m DedupeMode) Validate() error {
+	switch m {
+	case DedupeModeRawKey, DedupeModeKeyHash, DedupeModeKeyHashMigration:
+		return nil
+	}
+	return fmt.Errorf("invalid dedupe mode: %s", m)
+}
+
 // Deduplicator implements event deduplication using Redis.
 type Deduplicator struct {
 	Redis      *redis.Client
 	Expiration time.Duration
+	Mode       DedupeMode
 }
 
 // IsUnique checks if an event is unique AND adds it to the deduplication index.
@@ -31,7 +48,39 @@ func (d Deduplicator) IsUnique(ctx context.Context, namespace string, ev event.E
 		Source:    ev.Source(),
 	}
 
-	status, err := d.Redis.SetArgs(ctx, item.Key(), "", redis.SetArgs{
+	switch d.Mode {
+	case DedupeModeRawKey:
+		return d.setKey(ctx, item.Key())
+	case DedupeModeKeyHash:
+		keyHash := getKeyHash(item.Key())
+		return d.setKey(ctx, keyHash)
+	case DedupeModeKeyHashMigration:
+		keyHash := getKeyHash(item.Key())
+		isUnique, err := d.setKey(ctx, keyHash)
+		if err != nil {
+			return false, err
+		}
+
+		// Migration to the new hashing format
+		if isUnique {
+			// We might have succeeded setting the key only because the key just exist in the old format
+			// Let's check if the old key exists
+			isSet, err := d.Redis.Exists(ctx, item.Key()).Result()
+			if err != nil {
+				return false, err
+			}
+
+			keyExists := isSet == 1
+
+			return !keyExists, nil
+		}
+	}
+
+	return false, fmt.Errorf("unknown status")
+}
+
+func (d Deduplicator) setKey(ctx context.Context, key string) (bool, error) {
+	status, err := d.Redis.SetArgs(ctx, key, "", redis.SetArgs{
 		TTL:  d.Expiration,
 		Mode: "nx",
 	}).Result()
@@ -56,10 +105,21 @@ func (d Deduplicator) IsUnique(ctx context.Context, namespace string, ev event.E
 
 // CheckUnique checks if the event is unique based on the key
 func (d Deduplicator) CheckUnique(ctx context.Context, item dedupe.Item) (bool, error) {
-	isSet, err := d.Redis.Exists(ctx, item.Key()).Result()
+	keysToCheck := make([]string, 0, 2)
+	switch d.Mode {
+	case DedupeModeRawKey:
+		keysToCheck = append(keysToCheck, item.Key())
+	case DedupeModeKeyHash:
+		keysToCheck = append(keysToCheck, getKeyHash(item.Key()))
+	case DedupeModeKeyHashMigration:
+		keysToCheck = append(keysToCheck, item.Key(), getKeyHash(item.Key()))
+	}
+
+	isSet, err := d.Redis.Exists(ctx, keysToCheck...).Result()
 	if err != nil {
 		return false, err
 	}
+
 	return isSet == 0, nil
 }
 
@@ -67,7 +127,12 @@ func (d Deduplicator) CheckUnique(ctx context.Context, item dedupe.Item) (bool, 
 func (d Deduplicator) Set(ctx context.Context, items ...dedupe.Item) error {
 	keys := make([]string, 0, len(items))
 	for _, item := range items {
-		keys = append(keys, item.Key())
+		switch d.Mode {
+		case DedupeModeRawKey:
+			keys = append(keys, item.Key())
+		case DedupeModeKeyHash, DedupeModeKeyHashMigration:
+			keys = append(keys, getKeyHash(item.Key()))
+		}
 	}
 
 	// We use a lua script to set multiple keys at once, this is more efficient than calling redis one by one

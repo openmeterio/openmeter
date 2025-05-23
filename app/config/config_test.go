@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/dedupe/redisdedupe"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
@@ -196,6 +197,7 @@ func TestComplete(t *testing.T) {
 						},
 					},
 					Expiration: 768 * time.Hour,
+					Mode:       redisdedupe.DedupeModeRawKey,
 				},
 			},
 			IngestNotifications: IngestNotificationsConfiguration{
@@ -255,6 +257,7 @@ func TestComplete(t *testing.T) {
 					},
 				},
 				Expiration: 768 * time.Hour,
+				Mode:       redisdedupe.DedupeModeRawKey,
 			},
 		},
 		Portal: PortalConfiguration{
