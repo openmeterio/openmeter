@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -289,6 +290,7 @@ func (s *SubscriptionSpec) SyncAnnotations() error {
 func (s *SubscriptionSpec) Validate() error {
 	// All consistency checks should happen here
 	var errs []error
+
 	for _, phase := range s.Phases {
 		cadence, err := s.GetPhaseCadence(phase.PhaseKey)
 		if err != nil {
@@ -300,7 +302,7 @@ func (s *SubscriptionSpec) Validate() error {
 			errs = append(errs, fmt.Errorf("phase %s validation failed: %w", phase.PhaseKey, err))
 		}
 	}
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errorsx.Join(errs...))
 }
 
 type CreateSubscriptionPhasePlanInput struct {
@@ -999,7 +1001,7 @@ type SpecValidationError struct {
 }
 
 func (e *SpecValidationError) Error() string {
-	return e.Msg
+	return fmt.Sprintf("spec validation error on paths [%+v]: %s", e.AffectedKeys, e.Msg)
 }
 
 // AlignmentError is an error that occurs when the spec is not aligned but we expect it to be.
