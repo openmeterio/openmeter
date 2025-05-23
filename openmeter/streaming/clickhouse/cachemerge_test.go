@@ -385,6 +385,12 @@ func TestDedupeQueryRows(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 4, len(deduplicatedRows))
+	assert.Equal(t, deduplicatedRows, []meterpkg.MeterQueryRow{
+		rows[0],
+		rows[2],
+		rows[3],
+		rows[4],
+	})
 
 	// Test duplicates with inconsistent value
 	rows[0].Value = 20
