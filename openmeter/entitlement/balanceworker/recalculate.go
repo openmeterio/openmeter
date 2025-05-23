@@ -135,7 +135,6 @@ func (r *Recalculator) Recalculate(ctx context.Context, ns string) error {
 			ctx,
 			entitlement.ListEntitlementsParams{
 				Namespaces:          []string{ns},
-				IncludeDeleted:      true,
 				IncludeDeletedAfter: time.Now().Add(-DefaultIncludeDeletedDuration),
 				Page: pagination.Page{
 					PageNumber: page,
