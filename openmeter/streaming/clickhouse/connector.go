@@ -208,41 +208,34 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	}
 
 	// Load cached rows if any
-	var cached []meterpkg.MeterQueryRow
-
-	useCache := c.canQueryBeCached(namespace, meter, params)
-
-	if useCache {
-		var err error
-
-		hash := fmt.Sprintf("%x", params.Hash())
-
-		query, cached, err = c.executeQueryWithCaching(ctx, hash, query)
-		if err != nil {
-			return cached, fmt.Errorf("query cached rows: %w", err)
-		}
-	}
-
-	//  Load fresh rows from events table
 	var err error
 	var values []meterpkg.MeterQueryRow
 
-	// If the client ID is set, we track track the progress of the query
-	if params.ClientID != nil {
-		values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
-		if err != nil {
-			return values, fmt.Errorf("query meter with progress: %w", err)
-		}
-	} else {
-		values, err = c.queryMeter(ctx, query)
-		if err != nil {
-			return values, fmt.Errorf("query meter: %w", err)
-		}
-	}
+	useCache := c.canQueryBeCached(namespace, meter, params)
 
-	// Merge cached rows if any
+	// If the query is cached, we load the cached rows
 	if useCache {
-		values = mergeMeterQueryRows(meter, params, cached, values)
+		hash := fmt.Sprintf("%x", params.Hash())
+
+		cachedRows, newRows, err := c.executeQueryWithCaching(ctx, hash, query)
+		if err != nil {
+			return values, fmt.Errorf("query cached rows: %w", err)
+		}
+
+		values = mergeMeterQueryRows(meter, params, cachedRows, newRows)
+	} else {
+		// If the client ID is set, we track track the progress of the query
+		if params.ClientID != nil {
+			values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
+			if err != nil {
+				return values, fmt.Errorf("query meter with progress: %w", err)
+			}
+		} else {
+			values, err = c.queryMeter(ctx, query)
+			if err != nil {
+				return values, fmt.Errorf("query meter: %w", err)
+			}
+		}
 	}
 
 	// If the total usage is queried for a single period (no window size),

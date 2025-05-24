@@ -30,11 +30,6 @@ type QueryParams struct {
 func (p *QueryParams) Hash() hasher.Hash {
 	h := xxhash.New()
 
-	// Hash ClientID
-	if p.ClientID != nil {
-		_, _ = h.WriteString(*p.ClientID)
-	}
-
 	// Hash From
 	if p.From != nil {
 		_, _ = h.WriteString(p.From.UTC().Format(time.RFC3339))
