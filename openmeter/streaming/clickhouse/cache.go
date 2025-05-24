@@ -83,7 +83,7 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	createRemainingQuery := c.createRemainingQueryFactory(originalQueryMeter)
 
 	// Calculate the period to query from the cache
-	cacheableQueryMeter, err := c.prepareCacheableQueryPeriod(originalQueryMeter)
+	cacheableQueryMeter, _, err := c.prepareCacheableQueryPeriod(originalQueryMeter)
 	if err != nil {
 		return false, originalQueryMeter, values, err
 	}
@@ -153,12 +153,13 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 }
 
 // prepareCacheableQueryPeriod prepares the time range for cacheable queries
-func (c *Connector) prepareCacheableQueryPeriod(originalQueryMeter queryMeter) (queryMeter, error) {
+func (c *Connector) prepareCacheableQueryPeriod(originalQueryMeter queryMeter) (queryMeter, queryMeter, error) {
 	cacheableQueryMeter := originalQueryMeter
+	remainingQuery := originalQueryMeter
 	now := time.Now().UTC()
 
 	if originalQueryMeter.From == nil {
-		return cacheableQueryMeter, fmt.Errorf("from is required for cached queries")
+		return cacheableQueryMeter, remainingQuery, fmt.Errorf("from is required for cached queries")
 	}
 
 	// Set the end time to now if not provided
@@ -186,7 +187,10 @@ func (c *Connector) prepareCacheableQueryPeriod(originalQueryMeter queryMeter) (
 	// Align To time to the end of the window
 	cacheableQueryMeter.To = lo.ToPtr(cacheableQueryMeter.To.UTC().Truncate(windowDuration))
 
-	return cacheableQueryMeter, nil
+	// Remaining query is the time period after the last cached window
+	remainingQuery.From = cacheableQueryMeter.To
+
+	return cacheableQueryMeter, remainingQuery, nil
 }
 
 // fetchCachedMeterRows queries the meter_query_hash table for cached results

@@ -742,7 +742,7 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			result, err := connector.prepareCacheableQueryPeriod(testCase.originalQuery)
+			cachedQuery, remainingQuery, err := connector.prepareCacheableQueryPeriod(testCase.originalQuery)
 
 			if testCase.expectError {
 				assert.Error(t, err)
@@ -752,26 +752,37 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 			assert.NoError(t, err)
 
 			if testCase.expectedFrom != nil {
-				assert.Equal(t, testCase.expectedFrom.Truncate(time.Second), result.From.Truncate(time.Second))
+				assert.Equal(t, testCase.expectedFrom.Truncate(time.Second), cachedQuery.From.Truncate(time.Second))
 			} else {
-				assert.Nil(t, result.From)
+				assert.Nil(t, cachedQuery.From)
 			}
 
 			if testCase.expectedTo != nil {
-				assert.Equal(t, testCase.expectedTo.Truncate(time.Second), result.To.Truncate(time.Second))
+				assert.Equal(t, testCase.expectedTo.Truncate(time.Second), cachedQuery.To.Truncate(time.Second))
 			} else {
-				assert.Nil(t, result.To)
+				assert.Nil(t, cachedQuery.To)
 			}
 
 			if testCase.expectedWindow != nil {
-				assert.Equal(t, *testCase.expectedWindow, *result.WindowSize)
+				assert.Equal(t, *testCase.expectedWindow, *cachedQuery.WindowSize)
 			} else {
-				assert.Nil(t, result.WindowSize)
+				assert.Nil(t, cachedQuery.WindowSize)
 			}
 
 			// Verify To is truncated
-			assert.Equal(t, result.To.Minute(), 0)
-			assert.Equal(t, result.To.Second(), 0)
+			assert.Equal(t, cachedQuery.To.Minute(), 0)
+			assert.Equal(t, cachedQuery.To.Second(), 0)
+
+			// Verify remaining query
+			assert.Equal(t, testCase.expectedTo, remainingQuery.From)
+			assert.Equal(t, testCase.originalQuery.To, remainingQuery.To)
+
+			// Verify that the whole original query is covered by the cached and remaining queries
+			diffOriginal := testCase.originalQuery.To.Sub(*testCase.originalQuery.From)
+			diffCached := cachedQuery.To.Sub(*cachedQuery.From)
+			diffRemaining := remainingQuery.To.Sub(*remainingQuery.From)
+
+			assert.Equal(t, diffOriginal, diffCached+diffRemaining)
 		})
 	}
 }
