@@ -54,102 +54,86 @@ func (c *Connector) canQueryBeCached(namespace string, meterDef meterpkg.Meter, 
 	return meterDef.Aggregation == meterpkg.MeterAggregationSum || meterDef.Aggregation == meterpkg.MeterAggregationCount || meterDef.Aggregation == meterpkg.MeterAggregationMin || meterDef.Aggregation == meterpkg.MeterAggregationMax
 }
 
-// createRemainingQueryFactory returns a function that creates a new query meter starting from the end of the cached query meter
-// It is used to query the fresh rows for the remaining time period from the events table directly
-func (c *Connector) createRemainingQueryFactory(originalQueryMeter queryMeter) func(cachedQueryMeter queryMeter) queryMeter {
-	newQueryMeter := originalQueryMeter
-
-	return func(cachedQueryMeter queryMeter) queryMeter {
-		newQueryMeter := newQueryMeter
-
-		// Cache stores data with "from" inclusive and "to" exclusive.
-		// So we query fresh data with inclusive from since last cached.
-		newQueryMeter.From = cachedQueryMeter.To
-
-		c.config.Logger.Debug("query fresh rows from events table", "from", newQueryMeter.From, "to", newQueryMeter.To)
-
-		return newQueryMeter
-	}
-}
-
 // executeQueryWithCaching queries the meter view and manages the cache, as:
 // 1. Look up cached rows
-// 2. Query new rows for the uncached time period
-// 3. Cache the new results
-// It returns if we covered the entire period, the cached rows and the updated query meter.
-func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, originalQueryMeter queryMeter) (bool, queryMeter, []meterpkg.MeterQueryRow, error) {
-	var values []meterpkg.MeterQueryRow
-
-	createRemainingQuery := c.createRemainingQueryFactory(originalQueryMeter)
+// 2. Query rows for the period not in cache
+// 3. Store the new cachable rows in the cache
+// It returns the cached rows and the new rows.
+func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, originalQueryMeter queryMeter) ([]meterpkg.MeterQueryRow, []meterpkg.MeterQueryRow, error) {
+	var lastCachedWindowEnd *time.Time
 
 	// Calculate the period to query from the cache
-	cacheableQueryMeter, _, err := c.prepareCacheableQueryPeriod(originalQueryMeter)
+	cacheableQueryMeter, remainingQueryMeter, err := c.prepareCacheableQueryPeriod(originalQueryMeter)
 	if err != nil {
-		return false, originalQueryMeter, values, err
+		return nil, nil, err
 	}
 
 	// Step 1: Look up cached rows
-	cachedValues, err := c.fetchCachedMeterRows(ctx, hash, cacheableQueryMeter)
+	cachedRows, err := c.fetchCachedMeterRows(ctx, hash, cacheableQueryMeter)
 	if err != nil {
-		return false, originalQueryMeter, values, fmt.Errorf("failed to lookup cached meter rows: %w", err)
+		return nil, nil, fmt.Errorf("failed to lookup cached meter rows: %w", err)
 	}
 
 	// If we have cached values, add them to the results
 	// Also, update the query range to query uncached periods
-	if len(cachedValues) > 0 {
-		c.config.Logger.Debug("cached rows found", "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(cachedValues))
+	if len(cachedRows) > 0 {
+		c.config.Logger.Debug("cached rows found", "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(cachedRows))
 
-		values = append(values, cachedValues...)
-
+		// The cached values don't neccesarly cover the entire cached query period so we need to find the latest cached window
 		// We find the latest already cached window and use it as the start of the new query period
-		lastCachedWindowEnd := cachedValues[0].WindowEnd
+		lastCachedWindowEnd = lo.ToPtr(cachedRows[0].WindowEnd)
 
-		for _, cachedValue := range cachedValues {
-			if cachedValue.WindowEnd.After(lastCachedWindowEnd) {
-				lastCachedWindowEnd = cachedValue.WindowEnd
+		for _, cachedValue := range cachedRows {
+			if cachedValue.WindowEnd.After(*lastCachedWindowEnd) {
+				lastCachedWindowEnd = lo.ToPtr(cachedValue.WindowEnd)
 			}
 		}
 
 		// Cache stores data with "from" inclusive and "to" exclusive.
 		// So we query fresh data with inclusive from since last cached.
-		cacheableQueryMeter.From = &lastCachedWindowEnd
+		remainingQueryMeter.From = lastCachedWindowEnd
+	} else {
+		// If there is no cached data, we query the entire time period
+		remainingQueryMeter.From = cacheableQueryMeter.From
+	}
 
-		// If we've covered the entire range with cached data, return early
-		if lastCachedWindowEnd.Equal(*cacheableQueryMeter.To) {
-			c.config.Logger.Debug("no new rows to query for cache period, returning cached data", "count", len(values))
+	// Step 2: Query new rows for the uncached time period, if there is any
+	var newRows []meterpkg.MeterQueryRow
 
-			return true, createRemainingQuery(cacheableQueryMeter), values, nil
+	if originalQueryMeter.To == nil || originalQueryMeter.To.After(*remainingQueryMeter.From) {
+		newRows, err = c.queryMeter(ctx, remainingQueryMeter)
+		if err != nil {
+			return nil, nil, fmt.Errorf("query new meter rows: %w", err)
 		}
 	}
 
-	// Step 2: Query new rows for the uncached time period
-	// If there is no cached data found, we query the entire time period
-	newRows, err := c.queryMeter(ctx, cacheableQueryMeter)
-	if err != nil {
-		return false, originalQueryMeter, values, fmt.Errorf("query new meter rows: %w", err)
+	// Step 3: Store the new rows in the cache
+	var newRowsNotInCache []meterpkg.MeterQueryRow
+
+	// We filter out rows that are after the cacheable query period
+	for _, row := range newRows {
+		if row.WindowEnd.After(*cacheableQueryMeter.To) {
+			continue
+		}
+
+		newRowsNotInCache = append(newRowsNotInCache, row)
 	}
 
-	values = append(values, newRows...)
-
-	// Step 3: Cache the new results
 	// Results can be double cached in the case of parallel queries to handle this,
 	// we deduplicate the results while retrieving them from the cache
-	if len(newRows) > 0 {
-		if err := c.storeCachedMeterRows(ctx, hash, cacheableQueryMeter, newRows); err != nil {
+	if len(newRowsNotInCache) > 0 {
+		if err := c.storeCachedMeterRows(ctx, hash, cacheableQueryMeter, newRowsNotInCache); err != nil {
 			// Log the error but don't fail the query
-			c.config.Logger.Error("failed to store new rows in cache", "error", err, "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(newRows))
+			c.config.Logger.Error("failed to store new rows in cache", "error", err, "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(newRowsNotInCache))
 		} else {
-			c.config.Logger.Debug("new rows stored in cache", "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(newRows))
+			c.config.Logger.Debug("new rows stored in cache", "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(newRowsNotInCache))
 		}
 	}
 
 	// Result
-	c.config.Logger.Debug("returning cached and new rows", "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(values))
+	c.config.Logger.Debug("returning cached and new rows", "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(cachedRows)+len(newRows))
 
-	// If the query is covered, we return true
-	queryCovered := originalQueryMeter.To != nil && cacheableQueryMeter.To.Equal(*originalQueryMeter.To)
-
-	return queryCovered, createRemainingQuery(cacheableQueryMeter), values, nil
+	return cachedRows, newRows, nil
 }
 
 // prepareCacheableQueryPeriod prepares the time range for cacheable queries

@@ -208,30 +208,22 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	}
 
 	// Load cached rows if any
-	var cached []meterpkg.MeterQueryRow
-	var queryCovered bool
-
-	useCache := c.canQueryBeCached(namespace, meter, params)
-
-	if useCache {
-		var err error
-
-		hash := fmt.Sprintf("%x", params.Hash())
-
-		queryCovered, query, cached, err = c.executeQueryWithCaching(ctx, hash, query)
-		if err != nil {
-			return cached, fmt.Errorf("query cached rows: %w", err)
-		}
-	}
-
-	//  Load fresh rows from events table
 	var err error
 	var values []meterpkg.MeterQueryRow
 
-	// If the query is not covered, we need to query the fresh rows
-	// This is always the case if the query is not cached.
-	// It is also the case if the query is cached but the cached data is not enough to cover the entire period.
-	if !queryCovered {
+	useCache := c.canQueryBeCached(namespace, meter, params)
+
+	// If the query is cached, we load the cached rows
+	if useCache {
+		hash := fmt.Sprintf("%x", params.Hash())
+
+		cachedRows, newRows, err := c.executeQueryWithCaching(ctx, hash, query)
+		if err != nil {
+			return values, fmt.Errorf("query cached rows: %w", err)
+		}
+
+		values = mergeMeterQueryRows(meter, params, cachedRows, newRows)
+	} else {
 		// If the client ID is set, we track track the progress of the query
 		if params.ClientID != nil {
 			values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
@@ -243,11 +235,6 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 			if err != nil {
 				return values, fmt.Errorf("query meter: %w", err)
 			}
-		}
-
-		// Merge cached rows if any
-		if useCache {
-			values = mergeMeterQueryRows(meter, params, cached, values)
 		}
 	}
 
