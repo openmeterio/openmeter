@@ -279,7 +279,7 @@ func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
 		"",
 		// We query for the period we don't have cache but could have
 		currentCacheEnd.Unix(),
-		cachedEnd.Unix(),
+		queryTo.Unix(),
 	}).Return(mockRows2, nil).Once()
 
 	// Setup rows to return new data that can be cached
@@ -308,16 +308,10 @@ func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
 	}).Return(nil).Once()
 
 	// Execute query with caching
-	queryCovered, resultQueryMeter, results, err := connector.executeQueryWithCaching(context.Background(), queryHash, originalQueryMeter)
-
+	cachedRows, newRows, err := connector.executeQueryWithCaching(context.Background(), queryHash, originalQueryMeter)
 	require.NoError(t, err)
-	assert.Len(t, results, 2)     // Should have both cached and fresh rows
-	assert.False(t, queryCovered) // We didn't cover the entire period (to < cachedEnd)
 
-	// Result query meter should have From set to the end of cached period
-	assert.Equal(t, cachedEnd, *resultQueryMeter.From)
-
-	// Validate combined results
+	// Validate rows returned
 	assert.Equal(t, []meterpkg.MeterQueryRow{
 		{
 			WindowStart: cachedStart,
@@ -325,140 +319,16 @@ func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
 			Value:       100.0,
 			GroupBy:     map[string]*string{},
 		},
-		{
-			WindowStart: currentCacheEnd,
-			WindowEnd:   cachedEnd,
-			Value:       50.0,
-			GroupBy:     map[string]*string{},
-		},
-	}, results)
+	}, cachedRows)
 
-	mockClickHouse.AssertExpectations(t)
-	mockRows1.AssertExpectations(t)
-	mockRows2.AssertExpectations(t)
-}
-
-// Integration test for executeQueryWithCaching when the query is covered by the cache with remaining query
-func TestConnector_ExecuteQueryWithCaching_QueryCovered_RemainingQuery(t *testing.T) {
-	connector, mockClickHouse := GetMockConnector(t)
-
-	// Setup test data
-	anchor, err := time.Parse(time.RFC3339, "2025-01-10T00:00:00Z")
-	require.NoError(t, err)
-	anchor = anchor.UTC()
-
-	queryFrom := anchor.Add(-7 * 24 * time.Hour)
-	queryTo := anchor.Add(-2 * 24 * time.Hour).Truncate(time.Hour * 24)
-
-	queryHash := "test-hash"
-
-	testMeter := meterpkg.Meter{
-		ManagedResource: models.ManagedResource{
-			NamespacedModel: models.NamespacedModel{
-				Namespace: "test-namespace",
-			},
-			ID:   "test-meter",
-			Name: "test-meter",
-		},
-		Key:           "test-meter",
-		Aggregation:   meterpkg.MeterAggregationSum,
-		ValueProperty: lo.ToPtr("$.value"),
-	}
-
-	originalQueryMeter := queryMeter{
-		Database:  "testdb",
-		Namespace: "test-namespace",
-		Meter:     testMeter,
-		From:      &queryFrom,
-		To:        &queryTo,
-	}
-
-	// Mock for fetchCachedMeterRows
-	cachedStart := queryFrom
-	currentCacheEnd := queryTo.Add(-5 * 24 * time.Hour).Truncate(time.Hour * 24)
-	cachedEnd := queryTo
-
-	mockRows1 := NewMockRows()
-	mockClickHouse.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
-		"test-hash",
-		"test-namespace",
-		// We query for the full cached period
-		cachedStart.Unix(),
-		cachedEnd.Unix(),
-	}).Return(mockRows1, nil).Once()
-
-	// Setup rows to return from cache
-	mockRows1.On("Next").Return(true).Once()
-	mockRows1.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
-		dest := args.Get(0).([]interface{})
-		*(dest[0].(*time.Time)) = cachedStart
-		*(dest[1].(*time.Time)) = currentCacheEnd
-		*(dest[2].(*float64)) = 100.0
-	}).Return(nil)
-	mockRows1.On("Next").Return(false)
-	mockRows1.On("Err").Return(nil)
-	mockRows1.On("Close").Return(nil)
-
-	// Mock the SQL query for loading new data to the cache
-	mockRows2 := NewMockRows()
-	mockClickHouse.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
-		"test-namespace",
-		"",
-		// We query for the period we don't have cache but could have
-		currentCacheEnd.Unix(),
-		cachedEnd.Unix(),
-	}).Return(mockRows2, nil).Once()
-
-	// Setup rows to return new data that can be cached
-	mockRows2.On("Next").Return(true).Once()
-	mockRows2.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
-		dest := args.Get(0).([]interface{})
-
-		*(dest[0].(*time.Time)) = currentCacheEnd
-		*(dest[1].(*time.Time)) = cachedEnd
-		*(dest[2].(**float64)) = lo.ToPtr(50.0)
-	}).Return(nil)
-	mockRows2.On("Next").Return(false)
-	mockRows2.On("Err").Return(nil)
-	mockRows2.On("Close").Return(nil)
-
-	// Store new cachable data in cache
-	mockClickHouse.On("Exec", mock.Anything, mock.AnythingOfType("string"), []interface{}{
-		// Called with the new data
-		"test-hash",
-		"test-namespace",
-		currentCacheEnd,
-		cachedEnd,
-		50.0,
-		"", // subject
-		map[string]string{},
-	}).Return(nil).Once()
-
-	// Execute query with caching
-	queryCovered, resultQueryMeter, results, err := connector.executeQueryWithCaching(context.Background(), queryHash, originalQueryMeter)
-
-	require.NoError(t, err)
-	assert.Len(t, results, 2)    // Should have both cached and fresh rows
-	assert.True(t, queryCovered) // We covered the entire period (to == cachedEnd)
-
-	// Result query meter should have From set to the end of cached period
-	assert.Equal(t, cachedEnd, *resultQueryMeter.From)
-
-	// Validate combined results
 	assert.Equal(t, []meterpkg.MeterQueryRow{
 		{
-			WindowStart: cachedStart,
-			WindowEnd:   currentCacheEnd,
-			Value:       100.0,
-			GroupBy:     map[string]*string{},
-		},
-		{
 			WindowStart: currentCacheEnd,
 			WindowEnd:   cachedEnd,
 			Value:       50.0,
 			GroupBy:     map[string]*string{},
 		},
-	}, results)
+	}, newRows)
 
 	mockClickHouse.AssertExpectations(t)
 	mockRows1.AssertExpectations(t)
@@ -524,14 +394,8 @@ func TestConnector_ExecuteQueryWithCaching_QueryCovered_NoRemainingQuery(t *test
 	mockRows1.On("Close").Return(nil)
 
 	// Execute query with caching
-	queryCovered, resultQueryMeter, results, err := connector.executeQueryWithCaching(context.Background(), queryHash, originalQueryMeter)
-
+	cachedRows, newRows, err := connector.executeQueryWithCaching(context.Background(), queryHash, originalQueryMeter)
 	require.NoError(t, err)
-	assert.Len(t, results, 1)    // Should have cached rows only
-	assert.True(t, queryCovered) // We didn't cover the entire period (to == cachedEnd)
-
-	// Result query meter should have From set to the end of cached period
-	assert.Equal(t, cachedEnd, *resultQueryMeter.From)
 
 	// Validate combined results
 	assert.Equal(t, []meterpkg.MeterQueryRow{
@@ -541,7 +405,9 @@ func TestConnector_ExecuteQueryWithCaching_QueryCovered_NoRemainingQuery(t *test
 			Value:       100.0,
 			GroupBy:     map[string]*string{},
 		},
-	}, results)
+	}, cachedRows)
+
+	assert.Len(t, newRows, 0)
 
 	mockClickHouse.AssertExpectations(t)
 	mockRows1.AssertExpectations(t)
@@ -643,36 +509,6 @@ func TestConnector_StoreCachedMeterRows(t *testing.T) {
 	mockClickHouse.AssertExpectations(t)
 }
 
-// TestCreateRemainingQueryFactory tests the createRemainingQueryFactory function
-func TestCreateRemainingQueryFactory(t *testing.T) {
-	connector, _ := GetMockConnector(t)
-
-	now := time.Now().UTC()
-	fromTime := now.Add(-4 * 24 * time.Hour)
-	toTime := now
-
-	originalQuery := queryMeter{
-		From: &fromTime,
-		To:   &toTime,
-	}
-
-	factory := connector.createRemainingQueryFactory(originalQuery)
-
-	// Test the factory with a cached query meter
-	cachedToTime := now.Add(-1 * 24 * time.Hour)
-	cachedQuery := queryMeter{
-		From: &fromTime,
-		To:   &cachedToTime,
-	}
-
-	resultQuery := factory(cachedQuery)
-
-	// Should have the cached To as the new From
-	assert.Equal(t, cachedToTime, *resultQuery.From)
-	// Original To should be preserved
-	assert.Equal(t, toTime, *resultQuery.To)
-}
-
 // TestPrepareCacheableQueryPeriod tests the prepareCacheableQueryPeriod function
 func TestPrepareCacheableQueryPeriod(t *testing.T) {
 	connector, _ := GetMockConnector(t)
@@ -742,7 +578,7 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			result, err := connector.prepareCacheableQueryPeriod(testCase.originalQuery)
+			cachedQuery, remainingQuery, err := connector.prepareCacheableQueryPeriod(testCase.originalQuery)
 
 			if testCase.expectError {
 				assert.Error(t, err)
@@ -752,26 +588,37 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 			assert.NoError(t, err)
 
 			if testCase.expectedFrom != nil {
-				assert.Equal(t, testCase.expectedFrom.Truncate(time.Second), result.From.Truncate(time.Second))
+				assert.Equal(t, testCase.expectedFrom.Truncate(time.Second), cachedQuery.From.Truncate(time.Second))
 			} else {
-				assert.Nil(t, result.From)
+				assert.Nil(t, cachedQuery.From)
 			}
 
 			if testCase.expectedTo != nil {
-				assert.Equal(t, testCase.expectedTo.Truncate(time.Second), result.To.Truncate(time.Second))
+				assert.Equal(t, testCase.expectedTo.Truncate(time.Second), cachedQuery.To.Truncate(time.Second))
 			} else {
-				assert.Nil(t, result.To)
+				assert.Nil(t, cachedQuery.To)
 			}
 
 			if testCase.expectedWindow != nil {
-				assert.Equal(t, *testCase.expectedWindow, *result.WindowSize)
+				assert.Equal(t, *testCase.expectedWindow, *cachedQuery.WindowSize)
 			} else {
-				assert.Nil(t, result.WindowSize)
+				assert.Nil(t, cachedQuery.WindowSize)
 			}
 
 			// Verify To is truncated
-			assert.Equal(t, result.To.Minute(), 0)
-			assert.Equal(t, result.To.Second(), 0)
+			assert.Equal(t, cachedQuery.To.Minute(), 0)
+			assert.Equal(t, cachedQuery.To.Second(), 0)
+
+			// Verify remaining query
+			assert.Equal(t, testCase.expectedTo, remainingQuery.From)
+			assert.Equal(t, testCase.originalQuery.To, remainingQuery.To)
+
+			// Verify that the whole original query is covered by the cached and remaining queries
+			diffOriginal := testCase.originalQuery.To.Sub(*testCase.originalQuery.From)
+			diffCached := cachedQuery.To.Sub(*cachedQuery.From)
+			diffRemaining := remainingQuery.To.Sub(*remainingQuery.From)
+
+			assert.Equal(t, diffOriginal, diffCached+diffRemaining)
 		})
 	}
 }
