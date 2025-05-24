@@ -343,9 +343,12 @@ func TestConnector_ExecuteQueryWithCaching_QueryCovered_RemainingQuery(t *testin
 	connector, mockClickHouse := GetMockConnector(t)
 
 	// Setup test data
-	now := time.Now().UTC()
-	queryFrom := now.Add(-7 * 24 * time.Hour)
-	queryTo := now.Add(-2 * 24 * time.Hour).Truncate(time.Hour * 24)
+	anchor, err := time.Parse(time.RFC3339, "2025-01-10T00:00:00Z")
+	require.NoError(t, err)
+	anchor = anchor.UTC()
+
+	queryFrom := anchor.Add(-7 * 24 * time.Hour)
+	queryTo := anchor.Add(-2 * 24 * time.Hour).Truncate(time.Hour * 24)
 
 	queryHash := "test-hash"
 
@@ -724,7 +727,7 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 			expectedWindow: lo.ToPtr(meterpkg.WindowSizeDay),
 		},
 		{
-			name: "use provided window size",
+			name: "use provided window size should round down to the window size",
 			originalQuery: queryMeter{
 				From:       lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 				To:         lo.ToPtr(now.Add(-12 * time.Hour)),
@@ -732,7 +735,7 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 			},
 			expectError:    false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
-			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour * 24)),
+			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour)),
 			expectedWindow: lo.ToPtr(meterpkg.WindowSizeHour),
 		},
 	}
@@ -766,8 +769,7 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 				assert.Nil(t, result.WindowSize)
 			}
 
-			// Verify To is truncated to complete days
-			assert.Equal(t, result.To.Hour(), 0)
+			// Verify To is truncated
 			assert.Equal(t, result.To.Minute(), 0)
 			assert.Equal(t, result.To.Second(), 0)
 		})

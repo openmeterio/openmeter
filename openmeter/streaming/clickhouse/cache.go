@@ -166,22 +166,25 @@ func (c *Connector) prepareCacheableQueryPeriod(originalQueryMeter queryMeter) (
 		cacheableQueryMeter.To = &now
 	}
 
-	// We do not cache data that is less than 24 hours old
+	// We do not cache data that is less than minimum cacheable usage age old
 	toFreshness := now.Sub(*cacheableQueryMeter.To)
-
 	if toFreshness < c.config.QueryCacheMinimumCacheableUsageAge {
 		delta := c.config.QueryCacheMinimumCacheableUsageAge - toFreshness
-
 		cacheableQueryMeter.To = lo.ToPtr(cacheableQueryMeter.To.Add(-delta))
 	}
 
-	// We truncate to complete days to avoid partial days in the cache
-	cacheableQueryMeter.To = lo.ToPtr(cacheableQueryMeter.To.Truncate(time.Hour * 24))
-
-	// This is the window size that the cache will use if no window size is provided
+	// Set the window size to day if not provided
+	// this window size is the granularity of the cache
 	if cacheableQueryMeter.WindowSize == nil {
 		cacheableQueryMeter.WindowSize = lo.ToPtr(meterpkg.WindowSizeDay)
 	}
+
+	// Align To time to window boundaries
+	// This ensures consistent caching periods regardless of query timing
+	windowDuration := cacheableQueryMeter.WindowSize.Duration()
+
+	// Align To time to the end of the window
+	cacheableQueryMeter.To = lo.ToPtr(cacheableQueryMeter.To.UTC().Truncate(windowDuration))
 
 	return cacheableQueryMeter, nil
 }
