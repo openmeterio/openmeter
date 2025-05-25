@@ -60,14 +60,17 @@ func (c *Connector) canQueryBeCached(namespace string, meterDef meterpkg.Meter, 
 // 3. Store the new cachable rows in the cache
 // It returns the cached rows and the new rows.
 func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, originalQueryMeter queryMeter) ([]meterpkg.MeterQueryRow, []meterpkg.MeterQueryRow, error) {
-	var firstCachedWindowStart *time.Time
-	var lastCachedWindowEnd *time.Time
+	var firstCachedWindowStart, lastCachedWindowEnd *time.Time
+
+	logger := c.config.Logger.With("hash", hash, "from", originalQueryMeter.From, "to", originalQueryMeter.To)
 
 	// Calculate the period to query from the cache
 	cacheableQueryMeter, remainingQueryMeter, err := c.prepareCacheableQueryPeriod(originalQueryMeter)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	logger = logger.With("cacheableFrom", cacheableQueryMeter.From, "cacheableTo", cacheableQueryMeter.To)
 
 	// Step 1: Look up cached rows
 	cachedRows, err := c.fetchCachedMeterRows(ctx, hash, cacheableQueryMeter)
@@ -78,20 +81,14 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	// If we have cached values, add them to the results
 	// Also, update the query range to query uncached periods
 	if len(cachedRows) > 0 {
-		c.config.Logger.Debug("cached rows found", "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(cachedRows))
-
 		// The cached values don't neccesarly cover the entire cached query period so we need to find the latest cached window
-		// We find the latest already cached window and use it as the start of the new query period
-		for _, cachedValue := range cachedRows {
-			if firstCachedWindowStart == nil || cachedValue.WindowStart.Before(*firstCachedWindowStart) {
-				firstCachedWindowStart = lo.ToPtr(cachedValue.WindowStart)
-			}
+		firstCachedWindowStart, lastCachedWindowEnd = findMinMaxWindows(cachedRows)
 
-			if lastCachedWindowEnd == nil || cachedValue.WindowEnd.After(*lastCachedWindowEnd) {
-				lastCachedWindowEnd = lo.ToPtr(cachedValue.WindowEnd)
-			}
-		}
+		logger = logger.With("firstCachedWindowStart", firstCachedWindowStart, "lastCachedWindowEnd", lastCachedWindowEnd, "cachedRowsCount", len(cachedRows))
 
+		logger.Debug("cached rows found")
+
+		// We use the latest already cached window and use it as the start of the new query period
 		// Cache stores data with "from" inclusive and "to" exclusive.
 		// So we query fresh data with inclusive from since last cached.
 		remainingQueryMeter.From = lastCachedWindowEnd
@@ -115,21 +112,12 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	// Step 2: Query new rows for the uncached time period, if there is any
 	var newRows []meterpkg.MeterQueryRow
 
+	logger = logger.With("remainingFrom", remainingQueryMeter.From, "remainingTo", remainingQueryMeter.To)
+
 	if periodCoveredByCache {
-		c.config.Logger.Debug("no new rows to query, cache covers the entire query period",
-			"remainingFrom", remainingQueryMeter.From,
-			"remainingTo", remainingQueryMeter.To,
-			"firstCachedWindowStart", firstCachedWindowStart,
-			"lastCachedWindowEnd", lastCachedWindowEnd,
-		)
+		logger.Debug("no new rows to query, cache covers the entire query period")
 	} else {
-		c.config.Logger.Debug(
-			"querying new rows for period not covered by cache",
-			"remainingFrom", remainingQueryMeter.From,
-			"remainingTo", remainingQueryMeter.To,
-			"firstCachedWindowStart", firstCachedWindowStart,
-			"lastCachedWindowEnd", lastCachedWindowEnd,
-		)
+		logger.Debug("querying new rows for period not covered by cache")
 
 		newRows, err = c.queryMeter(ctx, remainingQueryMeter)
 		if err != nil {
@@ -152,16 +140,18 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	// Results can be double cached in the case of parallel queries to handle this,
 	// we deduplicate the results while retrieving them from the cache
 	if len(newRowsNotInCache) > 0 {
+		logger := logger.With("newRowsNotInCacheCount", len(newRowsNotInCache))
+
 		if err := c.storeCachedMeterRows(ctx, hash, cacheableQueryMeter, newRowsNotInCache); err != nil {
 			// Log the error but don't fail the query
-			c.config.Logger.Error("failed to store new rows in cache", "error", err, "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(newRowsNotInCache))
+			logger.Error("failed to store new rows in cache", "error", err)
 		} else {
-			c.config.Logger.Debug("new rows stored in cache", "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(newRowsNotInCache))
+			logger.Debug("new rows stored in cache")
 		}
 	}
 
 	// Result
-	c.config.Logger.Debug("returning cached and new rows", "from", cacheableQueryMeter.From, "to", cacheableQueryMeter.To, "count", len(cachedRows)+len(newRows))
+	logger.Debug("returning cached and new rows", "rowsCount", len(cachedRows)+len(newRows))
 
 	return cachedRows, newRows, nil
 }
@@ -323,4 +313,21 @@ func (c *Connector) invalidateCache(ctx context.Context, namespaces []string) er
 	}
 
 	return nil
+}
+
+// findMinMaxWindows finds the min and max window start and end times from a list of rows
+func findMinMaxWindows(rows []meterpkg.MeterQueryRow) (*time.Time, *time.Time) {
+	var min, max *time.Time
+
+	for _, value := range rows {
+		if min == nil || value.WindowStart.Before(*min) {
+			min = lo.ToPtr(value.WindowStart)
+		}
+
+		if max == nil || value.WindowEnd.After(*max) {
+			max = lo.ToPtr(value.WindowEnd)
+		}
+	}
+
+	return min, max
 }
