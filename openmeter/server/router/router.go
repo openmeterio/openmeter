@@ -386,6 +386,7 @@ func NewRouter(config Config) (*Router, error) {
 			SubscriptionWorkflowService: config.SubscriptionWorkflowService,
 			SubscriptionService:         config.SubscriptionService,
 			PlanSubscriptionService:     config.PlanSubscriptionService,
+			PlanService:                 config.Plan,
 			NamespaceDecoder:            staticNamespaceDecoder,
 			CustomerService:             config.Customer,
 			Logger:                      config.Logger,

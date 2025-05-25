@@ -55,3 +55,10 @@ func (p Plan) AsProductCatalogPlan() productcatalog.Plan {
 		Phases:   lo.Map(p.Phases, func(phase Phase, _ int) productcatalog.Phase { return phase.AsProductCatalogPhase() }),
 	}
 }
+
+const (
+	MetadataKeyCustomPlan = "openmeter.custom_plan"
+	// TODO(tothandras): add base plan key and version that was customized
+	// MetadataKeyCustomPlanBasePlanKey     = "openmeter.custom_plan.base_plan_key"
+	// MetadataKeyCustomPlanBasePlanVersion = "openmeter.custom_plan.base_plan_version"
+)

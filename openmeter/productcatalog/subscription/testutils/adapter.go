@@ -7,7 +7,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -20,9 +19,6 @@ type PlanSubscriptionAdapter interface {
 	//
 	// If the Plan is Not Found, it should return a PlanNotFoundError.
 	GetVersion(ctx context.Context, namespace string, ref plansubscription.PlanRefInput) (subscription.Plan, error)
-
-	// Converts a plan.CreatePlanInput to a subscription.Plan.
-	FromInput(ctx context.Context, namespace string, input plan.CreatePlanInput) (subscription.Plan, error)
 }
 
 type PlanSubscriptionAdapterConfig struct {
@@ -70,8 +66,4 @@ func (a *adapter) GetVersion(ctx context.Context, namespace string, ref plansubs
 		Plan: p.AsProductCatalogPlan(),
 		Ref:  &p.NamespacedID,
 	}, nil
-}
-
-func (a *adapter) FromInput(ctx context.Context, namespace string, input plan.CreatePlanInput) (subscription.Plan, error) {
-	return service.PlanFromPlanInput(input)
 }

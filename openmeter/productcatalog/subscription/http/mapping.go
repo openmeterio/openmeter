@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/invopop/gobl/currency"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
@@ -13,11 +14,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plandriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -260,7 +263,7 @@ func MapAPITimingToTiming(apiTiming api.SubscriptionTiming) (subscription.Timing
 	if err != nil {
 		e, err := apiTiming.AsSubscriptionTimingEnum()
 		if err != nil {
-			return res, fmt.Errorf("failed to cast to SubscriptionChangeTiming: %w", err)
+			return res, models.NewGenericValidationError(fmt.Errorf("failed to cast to SubscriptionChangeTiming: %w", err))
 		}
 
 		res.Enum = lo.ToPtr(subscription.TimingEnum(e))
@@ -439,46 +442,53 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 	return base, nil
 }
 
-func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (plandriver.CreatePlanRequest, error) {
-	var err error
+// AsCustomPlanCreateInput converts API custom plan input to plan creation input
+func AsCustomPlanCreateInput(customPlan api.CustomPlanInput, namespace string) (plan.CreatePlanInput, error) {
+	metadata := lo.FromPtrOr(customPlan.Metadata, make(map[string]string))
+	// TODO(tothandras): use annotations instead
+	metadata[plan.MetadataKeyCustomPlan] = "true"
 
-	req := plandriver.CreatePlanRequest{
+	planInput := plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:        a.Name,
-				Description: a.Description,
-				Metadata:    lo.FromPtr(a.Metadata),
+				Key:         fmt.Sprintf("custom_plan_%s", ulid.Make().String()),
+				Version:     1,
+				Name:        defaultx.IfZero(customPlan.Name, "Custom Plan"),
+				Description: customPlan.Description,
+				Metadata:    metadata,
 			},
-			Phases: nil,
 		},
 	}
 
-	if a.Alignment != nil && a.Alignment.BillablesMustAlign != nil {
-		req.Plan.PlanMeta.Alignment = productcatalog.Alignment{
-			BillablesMustAlign: *a.Alignment.BillablesMustAlign,
+	// Set alignment if provided
+	if customPlan.Alignment != nil && customPlan.Alignment.BillablesMustAlign != nil {
+		planInput.Plan.PlanMeta.Alignment = productcatalog.Alignment{
+			BillablesMustAlign: *customPlan.Alignment.BillablesMustAlign,
 		}
 	}
 
-	req.Currency = currency.Code(a.Currency)
-	if err = req.Currency.Validate(); err != nil {
-		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
+	// Set currency
+	planInput.Currency = currency.Code(customPlan.Currency)
+	if err := planInput.Currency.Validate(); err != nil {
+		return planInput, fmt.Errorf("invalid currency code: %w", err)
 	}
 
-	if len(a.Phases) > 0 {
-		req.Phases = make([]productcatalog.Phase, 0, len(a.Phases))
+	// Convert phases
+	if len(customPlan.Phases) > 0 {
+		planInput.Phases = make([]productcatalog.Phase, 0, len(customPlan.Phases))
 
-		for _, phase := range a.Phases {
+		for _, phase := range customPlan.Phases {
 			planPhase, err := plandriver.AsPlanPhase(phase)
 			if err != nil {
-				return req, fmt.Errorf("failed to cast PlanPhase: %w", err)
+				return planInput, fmt.Errorf("failed to convert plan phase: %w", err)
 			}
 
-			req.Phases = append(req.Phases, planPhase)
+			planInput.Phases = append(planInput.Phases, planPhase)
 		}
 	}
 
-	return req, nil
+	return planInput, nil
 }

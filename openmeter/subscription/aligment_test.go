@@ -16,26 +16,20 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/isodate"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestAlignedBillingPeriodCalculation(t *testing.T) {
-	ns := subscriptiontestutils.ExampleNamespace
-
-	planInp := plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: ns,
-		},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Currency: currency.USD,
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: true,
-				},
+	p := plan.Plan{
+		PlanMeta: productcatalog.PlanMeta{
+			Name:     "Test Plan",
+			Currency: currency.USD,
+			Alignment: productcatalog.Alignment{
+				BillablesMustAlign: true,
 			},
-			Phases: []productcatalog.Phase{
-				{
+		},
+		Phases: []plan.Phase{
+			{
+				Phase: productcatalog.Phase{
 					PhaseMeta: productcatalog.PhaseMeta{
 						Name:     "trial",
 						Key:      "trial",
@@ -55,7 +49,9 @@ func TestAlignedBillingPeriodCalculation(t *testing.T) {
 						},
 					},
 				},
-				{
+			},
+			{
+				Phase: productcatalog.Phase{
 					PhaseMeta: productcatalog.PhaseMeta{
 						Name:     "default",
 						Key:      "default",
@@ -81,8 +77,7 @@ func TestAlignedBillingPeriodCalculation(t *testing.T) {
 		},
 	}
 
-	subPlan, err := pcsubscriptionservice.PlanFromPlanInput(planInp)
-	require.NoError(t, err)
+	subPlan := pcsubscriptionservice.PlanFromPlan(p)
 
 	t.Run("Should error if the subscription is canceled or inactive", func(t *testing.T) {
 		spec, err := subscription.NewSpecFromPlan(subPlan, subscription.CreateSubscriptionCustomerInput{

@@ -13,6 +13,9 @@ import (
 	entcustomervalidator "github.com/openmeterio/openmeter/openmeter/entitlement/validators/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
+	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -29,6 +32,7 @@ const (
 type TestEnv interface {
 	Customer() customer.Service
 	Subscription() subscription.Service
+	Plan() plan.Service
 
 	Close() error
 }
@@ -38,6 +42,7 @@ var _ TestEnv = (*testEnv)(nil)
 type testEnv struct {
 	customer     customer.Service
 	subscription subscription.Service
+	plan         plan.Service
 
 	closerFunc func() error
 }
@@ -52,6 +57,10 @@ func (n testEnv) Customer() customer.Service {
 
 func (n testEnv) Subscription() subscription.Service {
 	return n.subscription
+}
+
+func (n testEnv) Plan() plan.Service {
+	return n.plan
 }
 
 const (
@@ -84,6 +93,25 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 			GracePeriod: isodate.String("P1D"),
 		},
 	})
+
+	// Plan
+	planRepo, err := planrepo.New(planrepo.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create plan adapter: %w", err)
+	}
+
+	planService, err := planservice.New(planservice.Config{
+		Feature:   entitlementRegistry.Feature,
+		Logger:    logger,
+		Adapter:   planRepo,
+		Publisher: eventbus.NewMock(t),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create plan service: %w", err)
+	}
 
 	// Customer
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
@@ -126,7 +154,8 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 
 	return &testEnv{
 		customer:     customerService,
-		closerFunc:   closerFunc,
 		subscription: subsDeps.SubscriptionService,
+		plan:         planService,
+		closerFunc:   closerFunc,
 	}, nil
 }
