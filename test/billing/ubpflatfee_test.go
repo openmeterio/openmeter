@@ -53,7 +53,6 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 			Name:          "test in arrears",
 			PerUnitAmount: alpacadecimal.NewFromInt(100),
 			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
-			Quantity:      alpacadecimal.NewFromInt(2),
 		})
 
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
@@ -116,7 +115,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		detailedLine := detailedLines[0]
 
 		// Let's validate the detailed line
-		s.Equal(float64(2), detailedLine.FlatFee.Quantity.InexactFloat64())
+		s.Equal(float64(1), detailedLine.FlatFee.Quantity.InexactFloat64())
 		s.Equal(float64(100), detailedLine.FlatFee.PerUnitAmount.InexactFloat64())
 		s.Equal(productcatalog.InArrearsPaymentTerm, detailedLine.FlatFee.PaymentTerm)
 		s.Equal("test in arrears", detailedLine.Name)
@@ -124,13 +123,13 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 
 		// Let's validate the totals
 		requireTotals(s.T(), expectedTotals{
-			Amount: 200,
-			Total:  200,
+			Amount: 100,
+			Total:  100,
 		}, line.Totals)
 
 		requireTotals(s.T(), expectedTotals{
-			Amount: 200,
-			Total:  200,
+			Amount: 100,
+			Total:  100,
 		}, detailedLine.Totals)
 	})
 }
@@ -165,9 +164,8 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 				InvoiceAt: period.End,
 
 				Name:          "test in arrears",
-				PerUnitAmount: alpacadecimal.NewFromInt(100),
+				PerUnitAmount: alpacadecimal.NewFromInt(200),
 				PaymentTerm:   productcatalog.InArrearsPaymentTerm,
-				Quantity:      alpacadecimal.NewFromInt(2),
 
 				RateCardDiscounts: billing.Discounts{
 					Percentage: &billing.PercentageDiscount{
@@ -236,7 +234,7 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 		End:   clock.Now().Add(time.Hour * 24),
 	}
 
-	s.Run("should not create a line with a negative quantity", func() {
+	s.Run("should not create line with usage discount", func() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
@@ -248,44 +246,6 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 					Name:          "test in arrears",
 					PerUnitAmount: alpacadecimal.NewFromInt(100),
 					PaymentTerm:   productcatalog.InArrearsPaymentTerm,
-					Quantity:      alpacadecimal.NewFromInt(-1),
-				}),
-			},
-		})
-		s.Error(err)
-	})
-
-	s.Run("should not create with missing quantity", func() {
-		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: cust.GetID(),
-			Currency: "USD",
-			Lines: []*billing.Line{
-				billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
-					Period:    period,
-					InvoiceAt: period.End,
-
-					Name:          "test in arrears",
-					PerUnitAmount: alpacadecimal.NewFromInt(100),
-					PaymentTerm:   productcatalog.InArrearsPaymentTerm,
-				}),
-			},
-		})
-		s.Error(err)
-	})
-
-	s.Run("should not line with usage discount", func() {
-		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: cust.GetID(),
-			Currency: "USD",
-			Lines: []*billing.Line{
-				billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
-					Period:    period,
-					InvoiceAt: period.End,
-
-					Name:          "test in arrears",
-					PerUnitAmount: alpacadecimal.NewFromInt(100),
-					PaymentTerm:   productcatalog.InArrearsPaymentTerm,
-					Quantity:      alpacadecimal.NewFromInt(-1),
 
 					RateCardDiscounts: billing.Discounts{
 						Usage: &billing.UsageDiscount{
@@ -315,7 +275,6 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 					Name:          "test in arrears",
 					PerUnitAmount: alpacadecimal.NewFromInt(100),
 					PaymentTerm:   productcatalog.InArrearsPaymentTerm,
-					Quantity:      alpacadecimal.NewFromInt(1),
 				}),
 			},
 		})

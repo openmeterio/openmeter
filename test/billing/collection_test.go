@@ -245,12 +245,11 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 				Name:      "Flat fee",
 
 				PerUnitAmount: alpacadecimal.NewFromFloat(10),
-				Quantity:      alpacadecimal.NewFromFloat(1),
 				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 			}),
 		},
 		{
-			name:      "flat fee only",
+			name:      "ubp flat fee only",
 			namespace: "ns-collection-flow-ubp-flat-fee",
 			line: billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: periodStart, End: periodEnd},
@@ -258,7 +257,6 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 				Name:      "Flat fee",
 
 				PerUnitAmount: alpacadecimal.NewFromFloat(10),
-				Quantity:      alpacadecimal.NewFromFloat(1),
 				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 			}),
 		},
@@ -394,7 +392,6 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 					Name:      "Flat fee",
 
 					PerUnitAmount: alpacadecimal.NewFromFloat(10),
-					Quantity:      alpacadecimal.NewFromFloat(1),
 					PaymentTerm:   productcatalog.InArrearsPaymentTerm,
 				}),
 			)

@@ -625,14 +625,28 @@ func mapUsageBasedSimulationLineToEntity(line api.InvoiceSimulationUsageBasedLin
 		return nil, err
 	}
 
-	qty, err := alpacadecimal.NewFromString(line.Quantity)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse quantity: %w", err)
+	if rateCardParsed.Price == nil {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("price is required for usage based lines"),
+		}
 	}
 
-	prePeriodQty, err := alpacadecimal.NewFromString(lo.FromPtrOr(line.PreLinePeriodQuantity, "0"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse preLinePeriodQuantity: %w", err)
+	var qty, prePeriodQty alpacadecimal.Decimal
+	if rateCardParsed.Price.Type() == productcatalog.FlatPriceType {
+		qty = alpacadecimal.NewFromInt(1)
+		prePeriodQty = alpacadecimal.Zero
+	} else {
+		var err error
+
+		qty, err = alpacadecimal.NewFromString(line.Quantity)
+		if err != nil {
+			return nil, billing.ValidationError{Err: fmt.Errorf("failed to parse quantity: %w", err)}
+		}
+
+		prePeriodQty, err = alpacadecimal.NewFromString(lo.FromPtrOr(line.PreLinePeriodQuantity, "0"))
+		if err != nil {
+			return nil, billing.ValidationError{Err: fmt.Errorf("failed to parse preLinePeriodQuantity: %w", err)}
+		}
 	}
 
 	return &billing.Line{

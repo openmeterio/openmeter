@@ -515,19 +515,8 @@ func (i Line) ValidateFee() error {
 		errs = append(errs, errors.New("price should be positive or zero"))
 	}
 
-	if i.Status == InvoiceLineStatusValid {
-		// Valid lines (top level invoice lines must have qty=1)
-		// Given product catalog only supports 1 as quantity, let's restrict ourselves to 1 too
-		// as the product catalog spec drives billing behavior
-		if !i.FlatFee.Quantity.Equal(alpacadecimal.NewFromInt(1)) {
-			errs = append(errs, errors.New("quantity should be 1 for invoice's flat fee lines"))
-		}
-	} else {
-		// detailed lines can have any quantity, but not negative (e.g. unit based price's qty is the
-		// usage)
-		if !i.FlatFee.Quantity.IsPositive() {
-			errs = append(errs, errors.New("quantity should be positive"))
-		}
+	if !i.FlatFee.Quantity.IsPositive() {
+		errs = append(errs, errors.New("quantity should be positive required"))
 	}
 
 	if !slices.Contains(FlatFeeCategory("").Values(), string(i.FlatFee.Category)) {
@@ -604,7 +593,6 @@ type NewFlatFeeLineInput struct {
 
 	PerUnitAmount alpacadecimal.Decimal
 	PaymentTerm   productcatalog.PaymentTermType
-	Quantity      alpacadecimal.Decimal
 
 	RateCardDiscounts Discounts
 }
@@ -638,7 +626,7 @@ func NewFlatFeeLine(input NewFlatFeeLineInput) *Line {
 			PerUnitAmount: input.PerUnitAmount,
 			PaymentTerm:   input.PaymentTerm,
 			Category:      FlatFeeCategoryRegular,
-			Quantity:      input.Quantity,
+			Quantity:      alpacadecimal.NewFromInt(1),
 		},
 	}
 }
@@ -696,7 +684,6 @@ func NewUsageBasedFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineO
 				PaymentTerm: input.PaymentTerm,
 			}),
 
-			Quantity:   lo.EmptyableToPtr(input.Quantity),
 			FeatureKey: ubpOptions.featureKey,
 		},
 	}

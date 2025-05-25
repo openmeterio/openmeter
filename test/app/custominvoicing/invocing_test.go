@@ -191,7 +191,6 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 						Name: "Test item - HUF",
 
 						PerUnitAmount: alpacadecimal.NewFromFloat(200),
-						Quantity:      alpacadecimal.NewFromFloat(1),
 						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 					}),
 					{
@@ -360,7 +359,6 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 						Name: "Test item - HUF",
 
 						PerUnitAmount: alpacadecimal.NewFromFloat(600),
-						Quantity:      alpacadecimal.NewFromFloat(1),
 						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 					}),
 				},

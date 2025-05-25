@@ -10,7 +10,7 @@ import (
 
 func TestFlatLineCalculation(t *testing.T) {
 	// Flat price tests
-	t.Run("flat price, in advance, usage present", func(t *testing.T) {
+	t.Run("flat price, in advance", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(100),
@@ -33,7 +33,7 @@ func TestFlatLineCalculation(t *testing.T) {
 		})
 	})
 
-	t.Run("flat price, in arrears, usage present", func(t *testing.T) {
+	t.Run("flat price, in arrears", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(100),
@@ -77,14 +77,11 @@ func TestFlatLineCalculation(t *testing.T) {
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			}),
 			lineMode: singlePerPeriodLineMode,
-			usage: featureUsageResponse{
-				LinePeriodQty: alpacadecimal.NewFromFloat(2),
-			},
 			expect: newDetailedLinesInput{
 				{
 					Name:                   "feature",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
-					Quantity:               alpacadecimal.NewFromFloat(2),
+					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
@@ -99,10 +96,7 @@ func TestFlatLineCalculation(t *testing.T) {
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			}),
 			lineMode: midPeriodSplitLineMode,
-			usage: featureUsageResponse{
-				LinePeriodQty: alpacadecimal.NewFromFloat(2),
-			},
-			expect: newDetailedLinesInput{}, // It will be billed in the last period
+			expect:   newDetailedLinesInput{}, // It will be billed in the last period
 		})
 	})
 
@@ -113,14 +107,11 @@ func TestFlatLineCalculation(t *testing.T) {
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			}),
 			lineMode: lastInPeriodSplitLineMode,
-			usage: featureUsageResponse{
-				LinePeriodQty: alpacadecimal.NewFromFloat(10),
-			},
 			expect: newDetailedLinesInput{
 				{
 					Name:                   "feature",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
-					Quantity:               alpacadecimal.NewFromFloat(10),
+					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},

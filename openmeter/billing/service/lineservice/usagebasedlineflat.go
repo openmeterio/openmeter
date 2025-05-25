@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
@@ -29,29 +32,6 @@ func (l ubpFlatFeeLine) Validate(ctx context.Context, targetInvoice *billing.Inv
 
 	if err := l.lineBase.Validate(ctx, targetInvoice); err != nil {
 		outErr = append(outErr, err)
-	}
-
-	// Metered fields are not allowed
-
-	if l.line.UsageBased.MeteredPreLinePeriodQuantity != nil {
-		outErr = append(outErr, errors.New("metered pre line period quantity is not supported for usage based flat fee lines"))
-	}
-
-	if l.line.UsageBased.PreLinePeriodQuantity != nil {
-		outErr = append(outErr, errors.New("pre line period quantity is not supported for usage based flat fee lines"))
-	}
-
-	if l.line.UsageBased.MeteredQuantity != nil {
-		outErr = append(outErr, errors.New("metered quantity is not supported for usage based flat fee lines"))
-	}
-
-	// Quantity must be pre-set, as it's the only way to know how much to charge for the line
-	if l.line.UsageBased.Quantity == nil {
-		outErr = append(outErr, errors.New("quantity is required for usage based flat fee lines"))
-	} else {
-		if l.line.UsageBased.Quantity.IsNegative() {
-			outErr = append(outErr, errors.New("quantity must be positive"))
-		}
 	}
 
 	// Usage discounts are not allowed
@@ -79,7 +59,10 @@ func (l ubpFlatFeeLine) CanBeInvoicedAsOf(_ context.Context, in CanBeInvoicedAsO
 }
 
 func (l ubpFlatFeeLine) SnapshotQuantity(context.Context, *billing.Invoice) error {
-	// Flat fee lines already have a quantity set, so we don't need to snapshot anything
+	l.line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
+	l.line.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
+	l.line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+	l.line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
 
 	return nil
 }

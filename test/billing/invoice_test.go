@@ -152,7 +152,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 						},
 
 						PerUnitAmount: alpacadecimal.NewFromFloat(100),
-						Quantity:      alpacadecimal.NewFromFloat(1),
 						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 					}),
 				},
@@ -178,7 +177,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 						Name: "Test item - HUF",
 
 						PerUnitAmount: alpacadecimal.NewFromFloat(200),
-						Quantity:      alpacadecimal.NewFromFloat(1),
 						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 					}),
 					{
@@ -479,7 +477,6 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 					},
 
 					PerUnitAmount: alpacadecimal.NewFromFloat(100),
-					Quantity:      alpacadecimal.NewFromFloat(1),
 					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 				}),
 				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
@@ -493,7 +490,6 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 					Name: "Test item2",
 
 					PerUnitAmount: alpacadecimal.NewFromFloat(200),
-					Quantity:      alpacadecimal.NewFromFloat(1),
 					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 				}),
 			},

@@ -477,14 +477,14 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, opts
 		opt(&provisionOpts)
 	}
 
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = ns
+	clonedCreateProfileInput := MinimalCreateProfileInputTemplate
+	clonedCreateProfileInput.Namespace = ns
 
 	if provisionOpts.editFn != nil {
-		provisionOpts.editFn(&minimalCreateProfileInput)
+		provisionOpts.editFn(&clonedCreateProfileInput)
 	}
 
-	_, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+	_, err := s.BillingService.CreateProfile(ctx, clonedCreateProfileInput)
 	s.NoError(err)
 }
 
