@@ -32,7 +32,7 @@ func (s *ProfileTestSuite) createProfileFixture(isDefault bool) *billing.Profile
 	ns := s.GetUniqueNamespace("test_billing_profile")
 
 	// Create a profile input
-	input := MinimalCreateProfileInputTemplate
+	input := minimalCreateProfileInputTemplate
 	input.Namespace = ns
 	input.Default = isDefault
 
@@ -101,7 +101,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 		profile1 := s.createProfileFixture(true)
 
 		// Create a second default profile in the same namespace
-		input := MinimalCreateProfileInputTemplate
+		input := minimalCreateProfileInputTemplate
 		input.Namespace = profile1.Namespace
 		input.Default = true
 
@@ -357,7 +357,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 		Name: "Awesome Default Profile",
 
-		Apps: MinimalCreateProfileInputTemplate.Apps,
+		Apps: minimalCreateProfileInputTemplate.Apps,
 
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{

@@ -86,24 +86,20 @@ func (s *CustomInvoicingTestSuite) setupDefaultBillingProfile(ctx context.Contex
 	s.NoError(err, "failed to upsert custom invoicing config")
 
 	// Create billing profile
-	billingProfile := billingtest.MinimalCreateProfileInputTemplate
-	billingProfile.Namespace = namespace
-	billingProfile.WorkflowConfig.Invoicing.DraftPeriod = lo.Must(isodate.String("P0D").Parse())
-	billingProfile.Apps = billing.ProfileAppReferences{
-		Invoicing: billing.AppReference{
-			ID: customInvoicingApp.GetID().ID,
-		},
-		Payment: billing.AppReference{
-			ID: customInvoicingApp.GetID().ID,
-		},
-		Tax: billing.AppReference{
-			ID: customInvoicingApp.GetID().ID,
-		},
-	}
-	billingProfile.Default = true
-
-	_, err = s.BillingService.CreateProfile(ctx, billingProfile)
-	s.NoError(err, "failed to create billing profile")
+	s.ProvisionBillingProfile(ctx, namespace, billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+		profile.WorkflowConfig.Invoicing.DraftPeriod = lo.Must(isodate.String("P0D").Parse())
+		profile.Apps = billing.ProfileAppReferences{
+			Invoicing: billing.AppReference{
+				ID: customInvoicingApp.GetID().ID,
+			},
+			Payment: billing.AppReference{
+				ID: customInvoicingApp.GetID().ID,
+			},
+			Tax: billing.AppReference{
+				ID: customInvoicingApp.GetID().ID,
+			},
+		}
+	}))
 }
 
 func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {

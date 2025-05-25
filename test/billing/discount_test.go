@@ -32,16 +32,9 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	namespace := "ns-discounts-correlation-id"
 	ctx := context.Background()
 
-	defaultProfileSettings := MinimalCreateProfileInputTemplate
-	defaultProfileSettings.Default = true
-	defaultProfileSettings.Namespace = namespace
-	defaultProfileSettings.WorkflowConfig.Invoicing.ProgressiveBilling = true
-
 	s.InstallSandboxApp(s.T(), namespace)
 
-	defaultProfile, err := s.BillingService.CreateProfile(ctx, defaultProfileSettings)
-	s.NoError(err)
-	s.NotNil(defaultProfile)
+	s.ProvisionBillingProfile(ctx, namespace, WithProgressiveBilling())
 
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 	s.NotNil(customerEntity)
@@ -75,7 +68,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(time.Minute))
 
 	defer func() {
-		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
 		require.NoError(s.T(), err, "meter adapter replace meters")
 	}()
 
@@ -235,16 +228,11 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 	namespace := "ns-discounts-usage-progressive"
 	ctx := context.Background()
 
-	defaultProfileSettings := MinimalCreateProfileInputTemplate
-	defaultProfileSettings.Default = true
-	defaultProfileSettings.Namespace = namespace
-	defaultProfileSettings.WorkflowConfig.Invoicing.ProgressiveBilling = true
-
 	s.InstallSandboxApp(s.T(), namespace)
 
-	defaultProfile, err := s.BillingService.CreateProfile(ctx, defaultProfileSettings)
-	s.NoError(err)
-	s.NotNil(defaultProfile)
+	s.ProvisionBillingProfile(ctx, namespace, WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+		profile.WorkflowConfig.Invoicing.ProgressiveBilling = true
+	}))
 
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 	s.NotNil(customerEntity)
@@ -276,7 +264,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 0, periodStart.Add(-time.Minute))
 
 	defer func() {
-		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
 		require.NoError(s.T(), err, "meter adapter replace meters")
 	}()
 

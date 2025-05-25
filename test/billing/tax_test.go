@@ -37,19 +37,14 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 	cust := s.CreateTestCustomer(namespace, "test")
 
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-	minimalCreateProfileInput.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		Stripe: &productcatalog.StripeTaxConfig{
-			Code: "txcd_10000000",
-		},
-	}
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	s.NoError(err)
-	s.NotNil(profile)
+	profile := s.ProvisionBillingProfile(ctx, namespace, WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+		profile.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
+			Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			Stripe: &productcatalog.StripeTaxConfig{
+				Code: "txcd_10000000",
+			},
+		}
+	}))
 
 	s.Run("Profile default tax config is inclusive in billing profile", func() {
 		draftInvoice := s.generateDraftInvoice(ctx, namespace, cust)
@@ -62,7 +57,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 	s.Run("Profile default tax config is not set in billing profile, set in override", func() {
 		profile.WorkflowConfig.Invoicing.DefaultTaxConfig = nil
 		profile.AppReferences = nil
-		_, err = s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(profile.BaseProfile))
+		_, err := s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(profile.BaseProfile))
 		s.NoError(err)
 
 		// Let's validate db persisting
@@ -83,7 +78,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 			},
 		}
 
-		_, err := s.BillingService.UpsertCustomerOverride(ctx, override)
+		_, err = s.BillingService.UpsertCustomerOverride(ctx, override)
 		s.NoError(err)
 
 		customerOverride, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
@@ -156,18 +151,11 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	customer := s.CreateTestCustomer(namespace, "test")
 
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-	minimalCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	s.NoError(err)
-	s.NotNil(profile)
+	s.ProvisionBillingProfile(ctx, namespace, WithProgressiveBilling())
 
 	meterSlug := "flat-per-unit"
 
-	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
 				ID: ulid.Make().String(),
