@@ -108,6 +108,8 @@ func (queryCache getMeterQueryRowsFromCache) toSQL() (string, []interface{}) {
 	}
 
 	if queryCache.To != nil {
+		// This is inclusive of the to time even if we usually query up to the end of the previous window
+		// This is because we query window_ends not the row data.
 		builder.Where(builder.LessEqualThan("window_end", queryCache.To.Unix()))
 	}
 
