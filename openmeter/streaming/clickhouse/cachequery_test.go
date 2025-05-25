@@ -103,7 +103,7 @@ func TestGetMeterQueryRowsFromCache_ToSQL(t *testing.T) {
 				From:      &from,
 				To:        &to,
 			},
-			wantSQL: "SELECT window_start, window_end, value, subject, group_by FROM openmeter.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end < ? ORDER BY window_start",
+			wantSQL: "SELECT window_start, window_end, value, subject, group_by FROM openmeter.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end <= ? ORDER BY window_start",
 		},
 		{
 			name: "without from",
@@ -114,7 +114,7 @@ func TestGetMeterQueryRowsFromCache_ToSQL(t *testing.T) {
 				Namespace: "test-namespace",
 				To:        &to,
 			},
-			wantSQL: "SELECT window_start, window_end, value, subject, group_by FROM openmeter.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_end < ? ORDER BY window_start",
+			wantSQL: "SELECT window_start, window_end, value, subject, group_by FROM openmeter.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_end <= ? ORDER BY window_start",
 		},
 		{
 			name: "without to",
@@ -157,7 +157,7 @@ func TestGetMeterQueryRowsFromCache_ToSQL(t *testing.T) {
 			}
 
 			if tt.queryParams.To != nil {
-				assert.Contains(t, sql, "window_end < ?")
+				assert.Contains(t, sql, "window_end <= ?")
 			} else {
 				assert.NotContains(t, sql, "window_end < ?")
 			}

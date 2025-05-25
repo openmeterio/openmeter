@@ -215,7 +215,12 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 
 	// If the query is cached, we load the cached rows
 	if useCache {
-		hash := fmt.Sprintf("%x", params.Hash())
+		cacheKey, err := params.Hash()
+		if err != nil {
+			return nil, fmt.Errorf("cache key: %w", err)
+		}
+
+		hash := fmt.Sprintf("%x", cacheKey)
 
 		cachedRows, newRows, err := c.executeQueryWithCaching(ctx, hash, query)
 		if err != nil {

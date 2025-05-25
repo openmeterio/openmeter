@@ -27,18 +27,25 @@ type QueryParams struct {
 
 // Hash returns a deterministic hash for the QueryParams.
 // It implements the hasher.Hasher interface.
-func (p *QueryParams) Hash() hasher.Hash {
+func (p *QueryParams) Hash() (hasher.Hash, error) {
 	h := xxhash.New()
 
 	// Hash From
-	if p.From != nil {
+	if p.From == nil {
+		return 0, errors.New("from cannot be nil for cachable queries")
+	}
+
+	// If we have a window size check if the `from`` is aligned with the window size
+	// If it's not aligned we need to hash the `from` so it will be a different hash key for the cache
+	// If it's aligned we can skip the `from` from the hash
+	if p.WindowSize != nil && isAligned(*p.From, *p.WindowSize) {
+		// If the `from` is aligned with the window size we can skip the `from` from the hash
+	} else {
 		_, _ = h.WriteString(p.From.UTC().Format(time.RFC3339))
 	}
 
-	// Hash To
-	if p.To != nil {
-		_, _ = h.WriteString(p.To.UTC().Format(time.RFC3339))
-	}
+	// We don't add the `to` to the hash so we have higher cache hit rate
+	// This is fine because we query the missing data range for the `to`
 
 	// Hash FilterSubject (sort for determinism)
 	if len(p.FilterSubject) > 0 {
@@ -82,7 +89,7 @@ func (p *QueryParams) Hash() hasher.Hash {
 		_, _ = h.WriteString(p.WindowTimeZone.String())
 	}
 
-	return h.Sum64()
+	return h.Sum64(), nil
 }
 
 // Validate validates query params focusing on `from` and `to` being aligned with query and meter window sizes
@@ -108,4 +115,9 @@ func (p *QueryParams) Validate() error {
 	}
 
 	return nil
+}
+
+// isAligned checks if the time is aligned with the window size
+func isAligned(t time.Time, windowSize meter.WindowSize) bool {
+	return t.Truncate(windowSize.Duration()).Equal(t)
 }

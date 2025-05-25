@@ -60,6 +60,7 @@ func (c *Connector) canQueryBeCached(namespace string, meterDef meterpkg.Meter, 
 // 3. Store the new cachable rows in the cache
 // It returns the cached rows and the new rows.
 func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, originalQueryMeter queryMeter) ([]meterpkg.MeterQueryRow, []meterpkg.MeterQueryRow, error) {
+	var firstCachedWindowStart *time.Time
 	var lastCachedWindowEnd *time.Time
 
 	// Calculate the period to query from the cache
@@ -81,10 +82,12 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 
 		// The cached values don't neccesarly cover the entire cached query period so we need to find the latest cached window
 		// We find the latest already cached window and use it as the start of the new query period
-		lastCachedWindowEnd = lo.ToPtr(cachedRows[0].WindowEnd)
-
 		for _, cachedValue := range cachedRows {
-			if cachedValue.WindowEnd.After(*lastCachedWindowEnd) {
+			if firstCachedWindowStart == nil || cachedValue.WindowStart.Before(*firstCachedWindowStart) {
+				firstCachedWindowStart = lo.ToPtr(cachedValue.WindowStart)
+			}
+
+			if lastCachedWindowEnd == nil || cachedValue.WindowEnd.After(*lastCachedWindowEnd) {
 				lastCachedWindowEnd = lo.ToPtr(cachedValue.WindowEnd)
 			}
 		}
@@ -97,10 +100,37 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 		remainingQueryMeter.From = cacheableQueryMeter.From
 	}
 
+	// Check if the query period is covered by the cache
+	periodCoveredByCache := false
+
+	// If there is no cached data or there is no to the query period is not covered by the cache
+	// When there is no to time we always have to query new rows
+	if originalQueryMeter.To != nil && lastCachedWindowEnd != nil {
+		// Let's see if we are right at the end of the last cached window
+		if originalQueryMeter.To.Equal(*lastCachedWindowEnd) {
+			periodCoveredByCache = true
+		}
+	}
+
 	// Step 2: Query new rows for the uncached time period, if there is any
 	var newRows []meterpkg.MeterQueryRow
 
-	if originalQueryMeter.To == nil || originalQueryMeter.To.After(*remainingQueryMeter.From) {
+	if periodCoveredByCache {
+		c.config.Logger.Debug("no new rows to query, cache covers the entire query period",
+			"remainingFrom", remainingQueryMeter.From,
+			"remainingTo", remainingQueryMeter.To,
+			"firstCachedWindowStart", firstCachedWindowStart,
+			"lastCachedWindowEnd", lastCachedWindowEnd,
+		)
+	} else {
+		c.config.Logger.Debug(
+			"querying new rows for period not covered by cache",
+			"remainingFrom", remainingQueryMeter.From,
+			"remainingTo", remainingQueryMeter.To,
+			"firstCachedWindowStart", firstCachedWindowStart,
+			"lastCachedWindowEnd", lastCachedWindowEnd,
+		)
+
 		newRows, err = c.queryMeter(ctx, remainingQueryMeter)
 		if err != nil {
 			return nil, nil, fmt.Errorf("query new meter rows: %w", err)
