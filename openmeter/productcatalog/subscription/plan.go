@@ -79,10 +79,11 @@ func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPl
 func (p *Plan) GetPhases() []subscription.PlanPhase {
 	ps := make([]subscription.PlanPhase, 0, len(p.Phases))
 	startAfter := isodate.Period{}
-	for _, ph := range p.Phases {
+	for idx, ph := range p.Phases {
 		ps = append(ps, &Phase{
 			Phase:      ph,
 			StartAfter: startAfter,
+			Index:      idx,
 		})
 
 		startAfter, _ = startAfter.Add(lo.FromPtr(ph.Duration))
@@ -98,6 +99,7 @@ func (p *Plan) Currency() currencyx.Code {
 type Phase struct {
 	productcatalog.Phase
 	StartAfter isodate.Period
+	Index      int
 }
 
 var _ subscription.PlanPhase = &Phase{}
@@ -108,6 +110,7 @@ func (p *Phase) ToCreateSubscriptionPhasePlanInput() subscription.CreateSubscrip
 		StartAfter:  p.StartAfter,
 		Name:        p.Name,
 		Description: p.Description,
+		SortHint:    lo.ToPtr(uint8(p.Index)),
 	}
 }
 

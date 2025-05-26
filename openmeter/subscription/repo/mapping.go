@@ -79,6 +79,7 @@ func MapDBSubscripitonPhase(phase *db.SubscriptionPhase) (subscription.Subscript
 		Key:            phase.Key,
 		Name:           phase.Name,
 		Description:    phase.Description,
+		SortHint:       phase.SortHint,
 	}, nil
 }
 

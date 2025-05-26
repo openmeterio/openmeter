@@ -34,6 +34,8 @@ const (
 	FieldDescription = "description"
 	// FieldActiveFrom holds the string denoting the active_from field in the database.
 	FieldActiveFrom = "active_from"
+	// FieldSortHint holds the string denoting the sort_hint field in the database.
+	FieldSortHint = "sort_hint"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
 	EdgeSubscription = "subscription"
 	// EdgeItems holds the string denoting the items edge name in mutations.
@@ -78,6 +80,7 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldActiveFrom,
+	FieldSortHint,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -160,6 +163,11 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByActiveFrom orders the results by the active_from field.
 func ByActiveFrom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldActiveFrom, opts...).ToFunc()
+}
+
+// BySortHint orders the results by the sort_hint field.
+func BySortHint(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSortHint, opts...).ToFunc()
 }
 
 // BySubscriptionField orders the results by subscription field.

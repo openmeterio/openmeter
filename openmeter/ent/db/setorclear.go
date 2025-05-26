@@ -2897,6 +2897,20 @@ func (u *SubscriptionPhaseUpdateOne) SetOrClearDescription(value *string) *Subsc
 	return u.SetDescription(*value)
 }
 
+func (u *SubscriptionPhaseUpdate) SetOrClearSortHint(value *uint8) *SubscriptionPhaseUpdate {
+	if value == nil {
+		return u.ClearSortHint()
+	}
+	return u.SetSortHint(*value)
+}
+
+func (u *SubscriptionPhaseUpdateOne) SetOrClearSortHint(value *uint8) *SubscriptionPhaseUpdateOne {
+	if value == nil {
+		return u.ClearSortHint()
+	}
+	return u.SetSortHint(*value)
+}
+
 func (u *UsageResetUpdate) SetOrClearDeletedAt(value *time.Time) *UsageResetUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

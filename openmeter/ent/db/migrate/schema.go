@@ -2205,6 +2205,7 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "active_from", Type: field.TypeTime},
+		{Name: "sort_hint", Type: field.TypeUint8, Nullable: true},
 		{Name: "subscription_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// SubscriptionPhasesTable holds the schema information for the "subscription_phases" table.
@@ -2215,7 +2216,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscription_phases_subscriptions_phases",
-				Columns:    []*schema.Column{SubscriptionPhasesColumns[10]},
+				Columns:    []*schema.Column{SubscriptionPhasesColumns[11]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2239,12 +2240,12 @@ var (
 			{
 				Name:    "subscriptionphase_namespace_subscription_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionPhasesColumns[1], SubscriptionPhasesColumns[10]},
+				Columns: []*schema.Column{SubscriptionPhasesColumns[1], SubscriptionPhasesColumns[11]},
 			},
 			{
 				Name:    "subscriptionphase_namespace_subscription_id_key",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionPhasesColumns[1], SubscriptionPhasesColumns[10], SubscriptionPhasesColumns[6]},
+				Columns: []*schema.Column{SubscriptionPhasesColumns[1], SubscriptionPhasesColumns[11], SubscriptionPhasesColumns[6]},
 			},
 		},
 	}
