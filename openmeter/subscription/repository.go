@@ -70,6 +70,9 @@ type CreateSubscriptionPhaseEntityInput struct {
 
 	// StartAfter
 	StartAfter isodate.Period `json:"interval"`
+
+	// SortHint
+	SortHint *uint8 `json:"sortHint,omitempty"`
 }
 
 func (i CreateSubscriptionPhaseEntityInput) Equal(other CreateSubscriptionPhaseEntityInput) bool {

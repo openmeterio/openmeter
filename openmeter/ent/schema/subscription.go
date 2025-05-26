@@ -80,6 +80,7 @@ func (SubscriptionPhase) Fields() []ent.Field {
 		field.String("name").NotEmpty(),
 		field.String("description").Optional().Nillable(),
 		field.Time("active_from").Immutable(),
+		field.Uint8("sort_hint").Optional().Nillable().Comment("Used to sort phases when they have the same active_from time (happens for 0 length phases)"),
 	}
 }
 

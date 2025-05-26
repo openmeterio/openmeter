@@ -304,6 +304,7 @@ func NewSubscriptionView(
 				StartAfter:  phaseStartAfter,
 				Name:        phase.Name,
 				Description: phase.Description,
+				SortHint:    phase.SortHint,
 			},
 			CreateSubscriptionPhaseCustomerInput: CreateSubscriptionPhaseCustomerInput{
 				MetadataModel: phase.MetadataModel,
