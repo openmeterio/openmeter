@@ -39,6 +39,8 @@ type SubscriptionPhase struct {
 	Description *string `json:"description,omitempty"`
 	// ActiveFrom holds the value of the "active_from" field.
 	ActiveFrom time.Time `json:"active_from,omitempty"`
+	// Used to sort phases when they have the same active_from time (happens for 0 length phases)
+	SortHint *uint8 `json:"sort_hint,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionPhaseQuery when eager-loading is set.
 	Edges        SubscriptionPhaseEdges `json:"edges"`
@@ -94,6 +96,8 @@ func (*SubscriptionPhase) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case subscriptionphase.FieldMetadata:
 			values[i] = new([]byte)
+		case subscriptionphase.FieldSortHint:
+			values[i] = new(sql.NullInt64)
 		case subscriptionphase.FieldID, subscriptionphase.FieldNamespace, subscriptionphase.FieldSubscriptionID, subscriptionphase.FieldKey, subscriptionphase.FieldName, subscriptionphase.FieldDescription:
 			values[i] = new(sql.NullString)
 		case subscriptionphase.FieldCreatedAt, subscriptionphase.FieldUpdatedAt, subscriptionphase.FieldDeletedAt, subscriptionphase.FieldActiveFrom:
@@ -183,6 +187,13 @@ func (_m *SubscriptionPhase) assignValues(columns []string, values []any) error 
 			} else if value.Valid {
 				_m.ActiveFrom = value.Time
 			}
+		case subscriptionphase.FieldSortHint:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field sort_hint", values[i])
+			} else if value.Valid {
+				_m.SortHint = new(uint8)
+				*_m.SortHint = uint8(value.Int64)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -267,6 +278,11 @@ func (_m *SubscriptionPhase) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("active_from=")
 	builder.WriteString(_m.ActiveFrom.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.SortHint; v != nil {
+		builder.WriteString("sort_hint=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

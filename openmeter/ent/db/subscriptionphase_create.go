@@ -118,6 +118,20 @@ func (_c *SubscriptionPhaseCreate) SetActiveFrom(v time.Time) *SubscriptionPhase
 	return _c
 }
 
+// SetSortHint sets the "sort_hint" field.
+func (_c *SubscriptionPhaseCreate) SetSortHint(v uint8) *SubscriptionPhaseCreate {
+	_c.mutation.SetSortHint(v)
+	return _c
+}
+
+// SetNillableSortHint sets the "sort_hint" field if the given value is not nil.
+func (_c *SubscriptionPhaseCreate) SetNillableSortHint(v *uint8) *SubscriptionPhaseCreate {
+	if v != nil {
+		_c.SetSortHint(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *SubscriptionPhaseCreate) SetID(v string) *SubscriptionPhaseCreate {
 	_c.mutation.SetID(v)
@@ -334,6 +348,10 @@ func (_c *SubscriptionPhaseCreate) createSpec() (*SubscriptionPhase, *sqlgraph.C
 		_spec.SetField(subscriptionphase.FieldActiveFrom, field.TypeTime, value)
 		_node.ActiveFrom = value
 	}
+	if value, ok := _c.mutation.SortHint(); ok {
+		_spec.SetField(subscriptionphase.FieldSortHint, field.TypeUint8, value)
+		_node.SortHint = &value
+	}
 	if nodes := _c.mutation.SubscriptionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -513,6 +531,30 @@ func (u *SubscriptionPhaseUpsert) ClearDescription() *SubscriptionPhaseUpsert {
 	return u
 }
 
+// SetSortHint sets the "sort_hint" field.
+func (u *SubscriptionPhaseUpsert) SetSortHint(v uint8) *SubscriptionPhaseUpsert {
+	u.Set(subscriptionphase.FieldSortHint, v)
+	return u
+}
+
+// UpdateSortHint sets the "sort_hint" field to the value that was provided on create.
+func (u *SubscriptionPhaseUpsert) UpdateSortHint() *SubscriptionPhaseUpsert {
+	u.SetExcluded(subscriptionphase.FieldSortHint)
+	return u
+}
+
+// AddSortHint adds v to the "sort_hint" field.
+func (u *SubscriptionPhaseUpsert) AddSortHint(v uint8) *SubscriptionPhaseUpsert {
+	u.Add(subscriptionphase.FieldSortHint, v)
+	return u
+}
+
+// ClearSortHint clears the value of the "sort_hint" field.
+func (u *SubscriptionPhaseUpsert) ClearSortHint() *SubscriptionPhaseUpsert {
+	u.SetNull(subscriptionphase.FieldSortHint)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -664,6 +706,34 @@ func (u *SubscriptionPhaseUpsertOne) UpdateDescription() *SubscriptionPhaseUpser
 func (u *SubscriptionPhaseUpsertOne) ClearDescription() *SubscriptionPhaseUpsertOne {
 	return u.Update(func(s *SubscriptionPhaseUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (u *SubscriptionPhaseUpsertOne) SetSortHint(v uint8) *SubscriptionPhaseUpsertOne {
+	return u.Update(func(s *SubscriptionPhaseUpsert) {
+		s.SetSortHint(v)
+	})
+}
+
+// AddSortHint adds v to the "sort_hint" field.
+func (u *SubscriptionPhaseUpsertOne) AddSortHint(v uint8) *SubscriptionPhaseUpsertOne {
+	return u.Update(func(s *SubscriptionPhaseUpsert) {
+		s.AddSortHint(v)
+	})
+}
+
+// UpdateSortHint sets the "sort_hint" field to the value that was provided on create.
+func (u *SubscriptionPhaseUpsertOne) UpdateSortHint() *SubscriptionPhaseUpsertOne {
+	return u.Update(func(s *SubscriptionPhaseUpsert) {
+		s.UpdateSortHint()
+	})
+}
+
+// ClearSortHint clears the value of the "sort_hint" field.
+func (u *SubscriptionPhaseUpsertOne) ClearSortHint() *SubscriptionPhaseUpsertOne {
+	return u.Update(func(s *SubscriptionPhaseUpsert) {
+		s.ClearSortHint()
 	})
 }
 
@@ -985,6 +1055,34 @@ func (u *SubscriptionPhaseUpsertBulk) UpdateDescription() *SubscriptionPhaseUpse
 func (u *SubscriptionPhaseUpsertBulk) ClearDescription() *SubscriptionPhaseUpsertBulk {
 	return u.Update(func(s *SubscriptionPhaseUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (u *SubscriptionPhaseUpsertBulk) SetSortHint(v uint8) *SubscriptionPhaseUpsertBulk {
+	return u.Update(func(s *SubscriptionPhaseUpsert) {
+		s.SetSortHint(v)
+	})
+}
+
+// AddSortHint adds v to the "sort_hint" field.
+func (u *SubscriptionPhaseUpsertBulk) AddSortHint(v uint8) *SubscriptionPhaseUpsertBulk {
+	return u.Update(func(s *SubscriptionPhaseUpsert) {
+		s.AddSortHint(v)
+	})
+}
+
+// UpdateSortHint sets the "sort_hint" field to the value that was provided on create.
+func (u *SubscriptionPhaseUpsertBulk) UpdateSortHint() *SubscriptionPhaseUpsertBulk {
+	return u.Update(func(s *SubscriptionPhaseUpsert) {
+		s.UpdateSortHint()
+	})
+}
+
+// ClearSortHint clears the value of the "sort_hint" field.
+func (u *SubscriptionPhaseUpsertBulk) ClearSortHint() *SubscriptionPhaseUpsertBulk {
+	return u.Update(func(s *SubscriptionPhaseUpsert) {
+		s.ClearSortHint()
 	})
 }
 

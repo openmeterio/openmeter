@@ -68,8 +68,9 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 				ManagedModel: models.ManagedModel{
 					CreatedAt: activeFromTime,
 				},
-				ActiveFrom: input.ActiveFrom,
-				ActiveTo:   input.ActiveTo,
+				ActiveFrom:  input.ActiveFrom,
+				ActiveTo:    input.ActiveTo,
+				Annotations: input.Annotations,
 			},
 		}
 
@@ -84,6 +85,7 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 				if conflict.ID == newEntitlementId {
 					conflict = cErr.e2
 				}
+
 				return nil, &AlreadyExistsError{EntitlementID: conflict.ID, FeatureID: conflict.FeatureID, SubjectKey: conflict.SubjectKey}
 			} else {
 				return nil, err

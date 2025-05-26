@@ -64,6 +64,7 @@ func (r *subscriptionPhaseRepo) Create(ctx context.Context, phase subscription.C
 			SetMetadata(phase.Metadata).
 			SetNamespace(phase.Namespace).
 			SetSubscriptionID(phase.SubscriptionID).
+			SetNillableSortHint(phase.SortHint).
 			Save(ctx)
 		if err != nil {
 			return def, err
