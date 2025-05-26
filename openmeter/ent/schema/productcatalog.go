@@ -38,6 +38,9 @@ func (Plan) Fields() []ent.Field {
 		field.Time("effective_to").
 			Optional().
 			Nillable(),
+		field.Bool("is_custom").
+			Default(false).
+			Comment("Whether this is a custom plan created for a specific customer."),
 	}
 }
 

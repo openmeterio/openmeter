@@ -38652,6 +38652,7 @@ type PlanMutation struct {
 	currency             *string
 	effective_from       *time.Time
 	effective_to         *time.Time
+	is_custom            *bool
 	clearedFields        map[string]struct{}
 	phases               map[string]struct{}
 	removedphases        map[string]struct{}
@@ -39324,6 +39325,42 @@ func (m *PlanMutation) ResetEffectiveTo() {
 	delete(m.clearedFields, plan.FieldEffectiveTo)
 }
 
+// SetIsCustom sets the "is_custom" field.
+func (m *PlanMutation) SetIsCustom(b bool) {
+	m.is_custom = &b
+}
+
+// IsCustom returns the value of the "is_custom" field in the mutation.
+func (m *PlanMutation) IsCustom() (r bool, exists bool) {
+	v := m.is_custom
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsCustom returns the old "is_custom" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldIsCustom(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsCustom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsCustom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsCustom: %w", err)
+	}
+	return oldValue.IsCustom, nil
+}
+
+// ResetIsCustom resets all changes to the "is_custom" field.
+func (m *PlanMutation) ResetIsCustom() {
+	m.is_custom = nil
+}
+
 // AddPhaseIDs adds the "phases" edge to the PlanPhase entity by ids.
 func (m *PlanMutation) AddPhaseIDs(ids ...string) {
 	if m.phases == nil {
@@ -39520,7 +39557,7 @@ func (m *PlanMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.namespace != nil {
 		fields = append(fields, plan.FieldNamespace)
 	}
@@ -39560,6 +39597,9 @@ func (m *PlanMutation) Fields() []string {
 	if m.effective_to != nil {
 		fields = append(fields, plan.FieldEffectiveTo)
 	}
+	if m.is_custom != nil {
+		fields = append(fields, plan.FieldIsCustom)
+	}
 	return fields
 }
 
@@ -39594,6 +39634,8 @@ func (m *PlanMutation) Field(name string) (ent.Value, bool) {
 		return m.EffectiveFrom()
 	case plan.FieldEffectiveTo:
 		return m.EffectiveTo()
+	case plan.FieldIsCustom:
+		return m.IsCustom()
 	}
 	return nil, false
 }
@@ -39629,6 +39671,8 @@ func (m *PlanMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldEffectiveFrom(ctx)
 	case plan.FieldEffectiveTo:
 		return m.OldEffectiveTo(ctx)
+	case plan.FieldIsCustom:
+		return m.OldIsCustom(ctx)
 	}
 	return nil, fmt.Errorf("unknown Plan field %s", name)
 }
@@ -39728,6 +39772,13 @@ func (m *PlanMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEffectiveTo(v)
+		return nil
+	case plan.FieldIsCustom:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsCustom(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Plan field %s", name)
@@ -39864,6 +39915,9 @@ func (m *PlanMutation) ResetField(name string) error {
 		return nil
 	case plan.FieldEffectiveTo:
 		m.ResetEffectiveTo()
+		return nil
+	case plan.FieldIsCustom:
+		m.ResetIsCustom()
 		return nil
 	}
 	return fmt.Errorf("unknown Plan field %s", name)

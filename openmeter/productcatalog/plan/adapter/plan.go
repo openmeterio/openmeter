@@ -6,7 +6,6 @@ import (
 	"slices"
 
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqljson"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
@@ -60,10 +59,8 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			query = query.Where(plandb.DeletedAtIsNil())
 		}
 
-		// Filter out custom plans from the list (plans with custom plan metadata)
-		query = query.Where(func(s *sql.Selector) {
-			s.Where(sql.Not(sqljson.HasKey(plandb.FieldMetadata, sqljson.Path(plan.MetadataKeyCustomPlan))))
-		})
+		// Filter out custom plans from the list
+		query = query.Where(plandb.IsCustom(false))
 
 		if len(params.Status) > 0 {
 			var predicates []predicate.Plan
@@ -188,6 +185,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			SetBillablesMustAlign(params.BillablesMustAlign).
 			SetMetadata(params.Metadata).
 			SetVersion(params.Version).
+			SetIsCustom(params.IsCustom).
 			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Plan: %w", err)

@@ -445,8 +445,6 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 // AsCustomPlanCreateInput converts API custom plan input to plan creation input
 func AsCustomPlanCreateInput(customPlan api.CustomPlanInput, namespace string) (plan.CreatePlanInput, error) {
 	metadata := lo.FromPtrOr(customPlan.Metadata, make(map[string]string))
-	// TODO(tothandras): use annotations instead
-	metadata[plan.MetadataKeyCustomPlan] = "true"
 
 	planInput := plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
@@ -461,6 +459,7 @@ func AsCustomPlanCreateInput(customPlan api.CustomPlanInput, namespace string) (
 				Metadata:    metadata,
 			},
 		},
+		IsCustom: true,
 	}
 
 	// Set alignment if provided

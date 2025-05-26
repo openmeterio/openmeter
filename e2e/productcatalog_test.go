@@ -828,16 +828,7 @@ func TestPlan(t *testing.T) {
 		plans := listPlansAPIRes.JSON200
 		require.NotNil(t, plans)
 		require.NotNil(t, plans.Items)
-
-		// Verify that all returned plans are not custom plans
-		for _, plan := range plans.Items {
-			if plan.Metadata != nil {
-				metadata := lo.FromPtrOr(plan.Metadata, map[string]string{})
-				customPlanValue, exists := metadata["openmeter.custom_plan"]
-				assert.False(t, exists && customPlanValue == "true",
-					"Plan %s should not be a custom plan in the list response", plan.Id)
-			}
-		}
+		require.Len(t, plans.Items, 1)
 
 		// Verify that non-custom plans are still in the list
 		planFound := false

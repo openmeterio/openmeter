@@ -44,6 +44,8 @@ type Plan struct {
 	EffectiveFrom *time.Time `json:"effective_from,omitempty"`
 	// EffectiveTo holds the value of the "effective_to" field.
 	EffectiveTo *time.Time `json:"effective_to,omitempty"`
+	// Whether this is a custom plan created for a specific customer.
+	IsCustom bool `json:"is_custom,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PlanQuery when eager-loading is set.
 	Edges        PlanEdges `json:"edges"`
@@ -97,7 +99,7 @@ func (*Plan) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case plan.FieldMetadata:
 			values[i] = new([]byte)
-		case plan.FieldBillablesMustAlign:
+		case plan.FieldBillablesMustAlign, plan.FieldIsCustom:
 			values[i] = new(sql.NullBool)
 		case plan.FieldVersion:
 			values[i] = new(sql.NullInt64)
@@ -210,6 +212,12 @@ func (_m *Plan) assignValues(columns []string, values []any) error {
 				_m.EffectiveTo = new(time.Time)
 				*_m.EffectiveTo = value.Time
 			}
+		case plan.FieldIsCustom:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_custom", values[i])
+			} else if value.Valid {
+				_m.IsCustom = value.Bool
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -307,6 +315,9 @@ func (_m *Plan) String() string {
 		builder.WriteString("effective_to=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("is_custom=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsCustom))
 	builder.WriteByte(')')
 	return builder.String()
 }

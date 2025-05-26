@@ -98,6 +98,9 @@ var _ models.Validator = (*CreatePlanInput)(nil)
 type CreatePlanInput struct {
 	models.NamespacedModel
 	productcatalog.Plan
+
+	// IsCustom indicates whether this is a custom plan created for a specific customer
+	IsCustom bool
 }
 
 func (i CreatePlanInput) Validate() error {

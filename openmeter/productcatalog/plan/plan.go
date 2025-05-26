@@ -56,9 +56,8 @@ func (p Plan) AsProductCatalogPlan() productcatalog.Plan {
 	}
 }
 
-const (
-	MetadataKeyCustomPlan = "openmeter.custom_plan"
-	// TODO(tothandras): add base plan key and version that was customized
-	// MetadataKeyCustomPlanBasePlanKey     = "openmeter.custom_plan.base_plan_key"
-	// MetadataKeyCustomPlanBasePlanVersion = "openmeter.custom_plan.base_plan_version"
-)
+// TODO(tothandras): add base plan key and version that was customized
+// const (
+// 	MetadataKeyCustomPlanBasePlanKey     = "openmeter.custom_plan.base_plan_key"
+// 	MetadataKeyCustomPlanBasePlanVersion = "openmeter.custom_plan.base_plan_version"
+// )

@@ -168,6 +168,20 @@ func (_c *PlanCreate) SetNillableEffectiveTo(v *time.Time) *PlanCreate {
 	return _c
 }
 
+// SetIsCustom sets the "is_custom" field.
+func (_c *PlanCreate) SetIsCustom(v bool) *PlanCreate {
+	_c.mutation.SetIsCustom(v)
+	return _c
+}
+
+// SetNillableIsCustom sets the "is_custom" field if the given value is not nil.
+func (_c *PlanCreate) SetNillableIsCustom(v *bool) *PlanCreate {
+	if v != nil {
+		_c.SetIsCustom(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *PlanCreate) SetID(v string) *PlanCreate {
 	_c.mutation.SetID(v)
@@ -278,6 +292,10 @@ func (_c *PlanCreate) defaults() {
 		v := plan.DefaultCurrency
 		_c.mutation.SetCurrency(v)
 	}
+	if _, ok := _c.mutation.IsCustom(); !ok {
+		v := plan.DefaultIsCustom
+		_c.mutation.SetIsCustom(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := plan.DefaultID()
 		_c.mutation.SetID(v)
@@ -329,6 +347,9 @@ func (_c *PlanCreate) check() error {
 		if err := plan.CurrencyValidator(v); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Plan.currency": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.IsCustom(); !ok {
+		return &ValidationError{Name: "is_custom", err: errors.New(`db: missing required field "Plan.is_custom"`)}
 	}
 	return nil
 }
@@ -417,6 +438,10 @@ func (_c *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.EffectiveTo(); ok {
 		_spec.SetField(plan.FieldEffectiveTo, field.TypeTime, value)
 		_node.EffectiveTo = &value
+	}
+	if value, ok := _c.mutation.IsCustom(); ok {
+		_spec.SetField(plan.FieldIsCustom, field.TypeBool, value)
+		_node.IsCustom = value
 	}
 	if nodes := _c.mutation.PhasesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -662,6 +687,18 @@ func (u *PlanUpsert) ClearEffectiveTo() *PlanUpsert {
 	return u
 }
 
+// SetIsCustom sets the "is_custom" field.
+func (u *PlanUpsert) SetIsCustom(v bool) *PlanUpsert {
+	u.Set(plan.FieldIsCustom, v)
+	return u
+}
+
+// UpdateIsCustom sets the "is_custom" field to the value that was provided on create.
+func (u *PlanUpsert) UpdateIsCustom() *PlanUpsert {
+	u.SetExcluded(plan.FieldIsCustom)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -887,6 +924,20 @@ func (u *PlanUpsertOne) UpdateEffectiveTo() *PlanUpsertOne {
 func (u *PlanUpsertOne) ClearEffectiveTo() *PlanUpsertOne {
 	return u.Update(func(s *PlanUpsert) {
 		s.ClearEffectiveTo()
+	})
+}
+
+// SetIsCustom sets the "is_custom" field.
+func (u *PlanUpsertOne) SetIsCustom(v bool) *PlanUpsertOne {
+	return u.Update(func(s *PlanUpsert) {
+		s.SetIsCustom(v)
+	})
+}
+
+// UpdateIsCustom sets the "is_custom" field to the value that was provided on create.
+func (u *PlanUpsertOne) UpdateIsCustom() *PlanUpsertOne {
+	return u.Update(func(s *PlanUpsert) {
+		s.UpdateIsCustom()
 	})
 }
 
@@ -1282,6 +1333,20 @@ func (u *PlanUpsertBulk) UpdateEffectiveTo() *PlanUpsertBulk {
 func (u *PlanUpsertBulk) ClearEffectiveTo() *PlanUpsertBulk {
 	return u.Update(func(s *PlanUpsert) {
 		s.ClearEffectiveTo()
+	})
+}
+
+// SetIsCustom sets the "is_custom" field.
+func (u *PlanUpsertBulk) SetIsCustom(v bool) *PlanUpsertBulk {
+	return u.Update(func(s *PlanUpsert) {
+		s.SetIsCustom(v)
+	})
+}
+
+// UpdateIsCustom sets the "is_custom" field to the value that was provided on create.
+func (u *PlanUpsertBulk) UpdateIsCustom() *PlanUpsertBulk {
+	return u.Update(func(s *PlanUpsert) {
+		s.UpdateIsCustom()
 	})
 }
 
