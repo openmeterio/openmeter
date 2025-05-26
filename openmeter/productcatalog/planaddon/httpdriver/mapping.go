@@ -44,9 +44,10 @@ func FromValidationErrors(issues models.ValidationIssues) *[]api.ValidationError
 
 	for _, issue := range issues {
 		result = append(result, api.ValidationError{
-			Message: issue.Message,
-			Field:   issue.Path,
-			Code:    string(issue.Code),
+			Message:    issue.Message(),
+			Field:      issue.Field().JSONPath(),
+			Code:       string(issue.Code()),
+			Attributes: FromAnnotations(issue.Attributes()),
 		})
 	}
 

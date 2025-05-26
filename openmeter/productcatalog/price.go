@@ -227,6 +227,10 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 }
 
 func (p *Price) Validate() error {
+	if p == nil {
+		return errors.New("invalid price: not initialized")
+	}
+
 	switch p.t {
 	case FlatPriceType:
 		return p.flat.Validate()
@@ -239,7 +243,7 @@ func (p *Price) Validate() error {
 	case PackagePriceType:
 		return p.packagePrice.Validate()
 	default:
-		return errors.New("invalid Price: not initialized")
+		return fmt.Errorf("invalid price type: %q", p.t)
 	}
 }
 

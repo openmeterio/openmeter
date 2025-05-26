@@ -2,7 +2,6 @@ package productcatalog
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/samber/lo"
 
@@ -62,21 +61,21 @@ func (p PhaseMeta) Validate() error {
 	var errs []error
 
 	if p.Key == "" {
-		errs = append(errs, errors.New("missing Key"))
+		errs = append(errs, ErrResourceKeyEmpty)
 	}
 
 	if p.Name == "" {
-		errs = append(errs, errors.New("missing Name"))
+		errs = append(errs, ErrResourceNameEmpty)
 	}
 
 	if p.Duration != nil {
 		if p.Duration.IsNegative() {
-			errs = append(errs, fmt.Errorf("the Duration period must not be negative"))
+			errs = append(errs, ErrPlanPhaseWithNegativeDuration)
 		}
 
 		// The duration must be at least 1 hour.
 		if per, err := p.Duration.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
-			errs = append(errs, fmt.Errorf("the Duration period must be at least 1 hour"))
+			errs = append(errs, ErrPlanPhaseDurationLessThenAnHour)
 		}
 	}
 
@@ -84,8 +83,9 @@ func (p PhaseMeta) Validate() error {
 }
 
 var (
-	_ models.Validator      = (*Phase)(nil)
-	_ models.Equaler[Phase] = (*Phase)(nil)
+	_ models.Validator              = (*Phase)(nil)
+	_ models.Equaler[Phase]         = (*Phase)(nil)
+	_ models.CustomValidator[Phase] = (*Phase)(nil)
 )
 
 type Phase struct {
@@ -93,6 +93,10 @@ type Phase struct {
 
 	// RateCards
 	RateCards RateCards `json:"rateCards"`
+}
+
+func (p Phase) ValidateWith(v ...models.ValidatorFunc[Phase]) error {
+	return models.Validate(p, v...)
 }
 
 // Equal returns true if the two Phases are equal.
@@ -106,28 +110,39 @@ func (p Phase) Equal(v Phase) bool {
 
 // Validate validates the Phase.
 func (p Phase) Validate() error {
-	var errs []error
+	return p.ValidateWith(
+		ValidatePhaseMeta(),
+		ValidatePhaseRateCards(),
+	)
+}
 
-	if err := p.PhaseMeta.Validate(); err != nil {
-		errs = append(errs, err)
+// ValidatePhaseMeta returns a validation function can be passed to the object
+// which implements models.CustomValidator interface. It validates attributes in PhaseMeta of Phase.
+func ValidatePhaseMeta() models.ValidatorFunc[Phase] {
+	return func(p Phase) error {
+		return p.PhaseMeta.Validate()
 	}
+}
 
-	// Check for
-	// * duplicated rate card keys
-	// * namespace mismatch
-	// * invalid RateCards
-	rateCardKeys := make(map[string]RateCard)
-	for _, rateCard := range p.RateCards {
-		if _, ok := rateCardKeys[rateCard.Key()]; ok {
-			errs = append(errs, fmt.Errorf("duplicated RateCard: %s", rateCard.Key()))
-		} else {
-			rateCardKeys[rateCard.Key()] = rateCard
+// ValidatePhaseRateCards returns a validation function can be passed to the object
+// which implements models.CustomValidator interface.
+// It checks for invalid and duplicated ratecards in Phase.
+func ValidatePhaseRateCards() models.ValidatorFunc[Phase] {
+	return func(p Phase) error {
+		return ValidateRateCards()(p.RateCards)
+	}
+}
+
+func ValidatePhaseHasBillingCadenceAligned() models.ValidatorFunc[Phase] {
+	return func(p Phase) error {
+		if p.RateCards.BillingCadenceAligned() {
+			return nil
 		}
 
-		if err := rateCard.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid RateCard: %w", err))
-		}
+		return models.ErrorWithFieldPrefix(
+			models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+				WithExpression(models.WildCard)),
+			ErrRateCardBillingCadenceUnaligned,
+		)
 	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

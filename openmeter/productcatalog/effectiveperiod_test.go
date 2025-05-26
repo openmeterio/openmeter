@@ -6,16 +6,20 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestEffectivePeriod_Validate(t *testing.T) {
 	now := time.Now()
+	yesterday := now.Add(-24 * time.Hour)
 
 	tests := []struct {
 		Name string
 
-		EffectivePeriod EffectivePeriod
-		ExpectedError   bool
+		EffectivePeriod          EffectivePeriod
+		ExpectedError            bool
+		ExpectedValidationIssues models.ValidationIssues
 	}{
 		{
 			Name: "Valid/Zero",
@@ -28,7 +32,7 @@ func TestEffectivePeriod_Validate(t *testing.T) {
 		{
 			Name: "Valid/OpenEnded",
 			EffectivePeriod: EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now.Add(-24 * time.Hour)),
+				EffectiveFrom: lo.ToPtr(yesterday),
 				EffectiveTo:   nil,
 			},
 			ExpectedError: false,
@@ -36,7 +40,7 @@ func TestEffectivePeriod_Validate(t *testing.T) {
 		{
 			Name: "Valid/Range",
 			EffectivePeriod: EffectivePeriod{
-				EffectiveFrom: lo.ToPtr(now.Add(-24 * time.Hour)),
+				EffectiveFrom: lo.ToPtr(yesterday),
 				EffectiveTo:   lo.ToPtr(now),
 			},
 			ExpectedError: false,
@@ -45,9 +49,15 @@ func TestEffectivePeriod_Validate(t *testing.T) {
 			Name: "Invalid/Flipped",
 			EffectivePeriod: EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
-				EffectiveTo:   lo.ToPtr(now.Add(-24 * time.Hour)),
+				EffectiveTo:   lo.ToPtr(yesterday),
 			},
 			ExpectedError: true,
+			ExpectedValidationIssues: models.ValidationIssues{
+				ErrEffectivePeriodFromAfterTo.WithAttrs(map[string]interface{}{
+					"effectiveFrom": lo.ToPtr(now),
+					"effectiveTo":   lo.ToPtr(yesterday),
+				}),
+			},
 		},
 		{
 			Name: "Invalid/OpenStart",
@@ -56,13 +66,24 @@ func TestEffectivePeriod_Validate(t *testing.T) {
 				EffectiveTo:   lo.ToPtr(now),
 			},
 			ExpectedError: true,
+			ExpectedValidationIssues: models.ValidationIssues{
+				ErrEffectivePeriodFromNotSet.WithAttrs(map[string]interface{}{
+					"effectiveFrom": nil,
+					"effectiveTo":   lo.ToPtr(now),
+				}),
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			if test.ExpectedError {
-				assert.Errorf(t, test.EffectivePeriod.Validate(), "expected invalid effective period")
+				err := test.EffectivePeriod.Validate()
+				assert.Errorf(t, err, "expected invalid effective period")
+
+				issues, err := models.AsValidationIssues(err)
+				assert.NoError(t, err)
+				assert.Equalf(t, test.ExpectedValidationIssues, issues, "expected validation issues %v, got %v", test.ExpectedValidationIssues, issues)
 			} else {
 				assert.NoErrorf(t, test.EffectivePeriod.Validate(), "expected valid effective period")
 			}

@@ -9,7 +9,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -44,84 +43,70 @@ type Plan struct {
 	Phases []Phase `json:"phases"`
 }
 
+// ValidationErrors returns a list of possible validation errors for the plan.
+// It returns nil if the plan has no validation issues.
+func (p Plan) ValidationErrors() (models.ValidationIssues, error) {
+	return models.AsValidationIssues(p.Validate())
+}
+
 func (p Plan) ValidateWith(validators ...models.ValidatorFunc[Plan]) error {
 	return models.Validate(p, validators...)
 }
 
-func (p Plan) Validate() error {
-	var errs []error
-
-	if err := p.PlanMeta.Validate(); err != nil {
-		errs = append(errs, err)
+func ValidatePlanMeta() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		return p.PlanMeta.Validate()
 	}
-
-	for _, phase := range p.Phases {
-		if err := phase.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid PlanPhase %q: %s", phase.Name, err))
-		}
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// FIXME: rename to publishable
-// ValidForCreatingSubscriptions checks if the Plan is valid for creating Subscriptions, a stricter version of Validate
-func (p Plan) ValidForCreatingSubscriptions() error {
-	var errs []error
+func ValidatePlanPhases() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		var errs []error
 
-	if err := p.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	// FIXME:
-
-	if len(p.Phases) == 0 {
-		return models.NewGenericValidationError(errors.New("invalid Plan: at least one PlanPhase is required"))
-	}
-
-	// Check if only the last phase has no duration
-	for i, phase := range p.Phases {
-		if phase.Duration == nil && i != len(p.Phases)-1 {
-			errs = append(errs, models.NewGenericValidationError(
-				fmt.Errorf("invalid Plan: the duration must be set for the phase %s (index %d)", phase.Name, i),
-			))
+		if len(p.Phases) == 0 {
+			return ErrPlanWithNoPhases
 		}
 
-		if phase.Duration != nil && i == len(p.Phases)-1 {
-			errs = append(errs, models.NewGenericValidationError(
-				fmt.Errorf("invalid Plan: the duration must not be set for the last phase (index %d)", i),
-			))
-		}
+		lastPhaseIdx := len(p.Phases) - 1
 
-		if len(phase.RateCards) < 1 {
-			errs = append(errs, models.NewGenericValidationError(
-				fmt.Errorf("invalid Plan: at least one RateCards in PlanPhase is required [phase_key=%s]", phase.Key),
-			))
-		}
-	}
+		for idx, phase := range p.Phases {
+			phaseFieldSelector := models.NewFieldSelectors(
+				models.NewFieldSelector("phases").
+					WithExpression(
+						models.NewFieldAttrValue("key", phase.Key),
+					),
+			)
 
-	// Let's check Alignment
-	if p.Alignment.BillablesMustAlign {
-		for i, phase := range p.Phases {
-			periods := make(map[isodate.String]bool)
-
-			// For each phase, all RateCards that have a price associated must align
-			for _, rc := range phase.RateCards.Billables() {
-				// 1 time prices are excluded
-				if d := rc.GetBillingCadence(); d != nil {
-					periods[d.Normalise(true).ISOString()] = true
+			if idx != lastPhaseIdx {
+				if phase.Duration == nil {
+					errs = append(errs, models.ErrorWithFieldPrefix(phaseFieldSelector, ErrPlanHasNonLastPhaseWithNoDuration))
+				}
+			} else {
+				if phase.Duration != nil {
+					errs = append(errs, models.ErrorWithFieldPrefix(phaseFieldSelector, ErrPlanHasLastPhaseWithDuration))
 				}
 			}
 
-			if len(periods) > 1 {
-				errs = append(errs, models.NewGenericValidationError(
-					fmt.Errorf("invalid Plan: all RateCards with prices in the phase %s (index %d) must have the same billing cadence, found: %v", phase.Name, i, lo.Keys(periods)),
-				))
+			if err := phase.Validate(); err != nil {
+				errs = append(errs, models.ErrorWithFieldPrefix(phaseFieldSelector, err))
+			}
+
+			if p.BillablesMustAlign {
+				if err := phase.ValidateWith(ValidatePhaseHasBillingCadenceAligned()); err != nil {
+					errs = append(errs, models.ErrorWithFieldPrefix(phaseFieldSelector, err))
+				}
 			}
 		}
-	}
 
-	return errors.Join(errs...)
+		return errors.Join(errs...)
+	}
+}
+
+func (p Plan) Validate() error {
+	return p.ValidateWith(
+		ValidatePlanMeta(),
+		ValidatePlanPhases(),
+	)
 }
 
 // Equal returns true if the two Plans are equal.
@@ -177,19 +162,19 @@ func (p PlanMeta) Validate() error {
 	var errs []error
 
 	if err := p.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid Currency: %s", err))
+		errs = append(errs, ErrCurrencyInvalid)
 	}
 
 	if err := p.EffectivePeriod.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid EffectivePeriod: %s", err))
+		errs = append(errs, fmt.Errorf("invalid effective period: %w", err))
 	}
 
 	if p.Key == "" {
-		errs = append(errs, fmt.Errorf("invalid Key: must not be empty"))
+		errs = append(errs, ErrResourceKeyEmpty)
 	}
 
 	if p.Name == "" {
-		errs = append(errs, fmt.Errorf("invalid Name: must not be empty"))
+		errs = append(errs, ErrResourceNameEmpty)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -261,15 +246,4 @@ func (p PlanMeta) StatusAt(t time.Time) PlanStatus {
 	}
 
 	return PlanStatusInvalid
-}
-
-func PlanWithAllowedStatus(allowed ...PlanStatus) models.ValidatorFunc[Plan] {
-	return func(p Plan) error {
-		status := p.Status()
-		if lo.Contains(allowed, status) {
-			return nil
-		}
-
-		return fmt.Errorf("plan status %s is not valid, must be one of %+v", status, allowed)
-	}
 }

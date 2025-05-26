@@ -21,8 +21,12 @@ type Addon struct {
 func (a Addon) Validate() error {
 	var errs []error
 
-	if err := a.NamespacedID.Validate(); err != nil {
-		errs = append(errs, err)
+	if a.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
+	}
+
+	if a.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
 	}
 
 	if err := a.Addon.Validate(); err != nil {

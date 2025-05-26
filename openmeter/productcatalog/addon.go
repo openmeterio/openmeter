@@ -67,23 +67,23 @@ func (m AddonMeta) Validate() error {
 	var errs []error
 
 	if err := m.EffectivePeriod.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid EffectivePeriod: %s", err))
+		errs = append(errs, fmt.Errorf("invalid effective period: %w", err))
 	}
 
 	if m.Key == "" {
-		errs = append(errs, fmt.Errorf("invalid Key: must not be empty"))
+		errs = append(errs, ErrAddonKeyEmpty)
 	}
 
 	if m.Name == "" {
-		errs = append(errs, fmt.Errorf("invalid Name: must not be empty"))
+		errs = append(errs, ErrAddonNameEmpty)
 	}
 
 	if err := m.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid Currency: %s", err))
+		errs = append(errs, ErrCurrencyInvalid)
 	}
 
 	if err := m.InstanceType.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid InstanceType: %s", err))
+		errs = append(errs, err)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -175,41 +175,29 @@ func (a Addon) ValidateWith(validators ...models.ValidatorFunc[Addon]) error {
 	return models.Validate(a, validators...)
 }
 
+// ValidationErrors returns a list of possible validation errors for the add-on.
+// It returns nil if the add-on has no validation issues.
+func (a Addon) ValidationErrors() (models.ValidationIssues, error) {
+	return models.AsValidationIssues(a.Validate())
+}
+
 func (a Addon) Validate() error {
-	var errs []error
-
-	if err := a.AddonMeta.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	// Check for
-	// * duplicated rate card keys
-	// * namespace mismatch
-	// * invalid RateCards
-	rateCardKeys := make(map[string]RateCard)
-	for _, rateCard := range a.RateCards {
-		if _, ok := rateCardKeys[rateCard.Key()]; ok {
-			errs = append(errs, fmt.Errorf("duplicated ratecard: %s", rateCard.Key()))
-		} else {
-			rateCardKeys[rateCard.Key()] = rateCard
-		}
-
-		if err := rateCard.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid ratecard: %w", err))
-		}
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	return a.ValidateWith(
+		ValidateAddonMeta(),
+		ValidateAddonRateCards(),
+	)
 }
 
 // Publishable validates the Addon to ensure that it meets all requirements needed for being published.
-// It is a stricter version of Validate. It is the caller responsibility to handle managed resource specific parameters
+// It is a stricter version of Validate. It is the caller's responsibility to handle managed resource-specific parameters
 // to ensure the Addon is eligible for publishing. E.g. checking the DeletedAt attribute of the addon.Addon.
 func (a Addon) Publishable() error {
 	return a.ValidateWith(
-		AddonWithAllowedStatus(AddonStatusDraft),
-		AddonWithBillingCadenceAligned(),
-		AddonWithCompatiblePrices(),
+		ValidateAddonMeta(),
+		ValidateAddonRateCards(),
+		ValidateAddonStatusPublishable(),
+		ValidateAddonHasBillingCadenceAligned(),
+		ValidateAddonHasCompatiblePrices(),
 	)
 }
 
@@ -233,7 +221,7 @@ func (a AddonInstanceType) Validate() error {
 	case AddonInstanceTypeSingle, AddonInstanceTypeMultiple:
 		return nil
 	default:
-		return fmt.Errorf("invalid AddonInstanceType: %s", a)
+		return ErrAddonInvalidInstanceType
 	}
 }
 
@@ -244,28 +232,57 @@ func (a AddonInstanceType) Values() []string {
 	}
 }
 
-func AddonWithAllowedStatus(allowed ...AddonStatus) models.ValidatorFunc[Addon] {
+// ValidateAddonMeta returns a validation function can be passed to the object
+// which implements models.CustomValidator interface. It validates attributes in AddonMeta of Addon.
+func ValidateAddonMeta() models.ValidatorFunc[Addon] {
+	return func(a Addon) error {
+		return a.AddonMeta.Validate()
+	}
+}
+
+// ValidateAddonRateCards returns a validation function can be passed to the object
+// which implements models.CustomValidator interface. It checks for invalid and duplicated ratecards.
+func ValidateAddonRateCards() models.ValidatorFunc[Addon] {
+	return func(a Addon) error {
+		return ValidateRateCards()(a.RateCards)
+	}
+}
+
+func ValidateAddonStatusPublishable() models.ValidatorFunc[Addon] {
+	return func(a Addon) error {
+		if err := ValidateAddonWithStatus(AddonStatusDraft)(a); err != nil {
+			return ErrAddonInvalidStatusForPublish
+		}
+
+		return nil
+	}
+}
+
+func ValidateAddonWithStatus(allowed ...AddonStatus) models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
 		status := a.Status()
 		if lo.Contains(allowed, status) {
 			return nil
 		}
 
-		return fmt.Errorf("addon status %s is not valid, must be one of %+v", status, allowed)
+		return ErrAddonInvalidStatus
 	}
 }
 
-func AddonWithBillingCadenceAligned() models.ValidatorFunc[Addon] {
+func ValidateAddonHasBillingCadenceAligned() models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
 		if a.RateCards.BillingCadenceAligned() {
 			return nil
 		}
 
-		return errors.New("the billing cadence of the ratecards in add-on must be aligned")
+		return models.ErrorWithFieldPrefix(
+			models.NewFieldSelectors(models.NewFieldSelector("ratecards").WithExpression(models.WildCard)),
+			ErrRateCardBillingCadenceUnaligned,
+		)
 	}
 }
 
-func AddonWithCompatiblePrices() models.ValidatorFunc[Addon] {
+func ValidateAddonHasCompatiblePrices() models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
 		switch a.InstanceType {
 		case AddonInstanceTypeSingle:
@@ -273,15 +290,17 @@ func AddonWithCompatiblePrices() models.ValidatorFunc[Addon] {
 		case AddonInstanceTypeMultiple:
 			for _, rc := range a.RateCards {
 				if price := rc.AsMeta().Price; price != nil && price.Type() != FlatPriceType {
-					return fmt.Errorf(
-						"invalid ratecard for add-on with multiple instance type [ratecard.key=%s]: no price or flat price are allowed, got: %s",
-						rc.Key(), price.Type())
+					return models.ErrorWithFieldPrefix(
+						models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+							WithExpression(models.NewFieldAttrValue("key", rc.Key()))),
+						ErrAddonInvalidPriceForMultiInstance,
+					)
 				}
 			}
 
 			return nil
 		default:
-			return fmt.Errorf("invalid add-on instance type: %s", a.InstanceType)
+			return ErrAddonInvalidInstanceType
 		}
 	}
 }

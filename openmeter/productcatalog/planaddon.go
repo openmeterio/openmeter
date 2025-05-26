@@ -3,7 +3,6 @@ package productcatalog
 import (
 	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/samber/lo"
 
@@ -59,26 +58,32 @@ func (c PlanAddon) Validate() error {
 	var errs []error
 
 	// Validate plan
-	planPrefix := models.FieldPathFromParts("plans", c.Plan.Key, "versions", strconv.Itoa(c.Plan.Version))
 
 	// Check plan status
 	allowedPlanStatuses := []PlanStatus{PlanStatusDraft, PlanStatusActive, PlanStatusScheduled}
 	if !lo.Contains(allowedPlanStatuses, c.Plan.Status()) {
-		errs = append(errs, models.ErrorWithFieldPrefix(planPrefix,
+		errs = append(errs, models.ErrorWithFieldPrefix(
+			models.NewFieldSelectors(models.NewFieldSelector("plans").
+				WithExpression(models.NewMultiFieldAttrValue(
+					models.NewFieldAttrValue("key", c.Plan.Key),
+					models.NewFieldAttrValue("version", c.Plan.Version),
+				))),
 			ErrPlanAddonIncompatibleStatus,
 		))
 	}
 
 	// Validate add-on
 
-	addonPrefix := models.FieldPathFromParts("addons", c.Addon.Key, "versions", strconv.Itoa(c.Addon.Version))
+	addonPrefix := models.NewFieldSelectors(models.NewFieldSelector("addons").
+		WithExpression(models.NewMultiFieldAttrValue(
+			models.NewFieldAttrValue("key", c.Addon.Key),
+			models.NewFieldAttrValue("version", c.Addon.Version),
+		)))
 
 	// Add-on must be active and the effective period of add-on must be open-ended
 	// as we do not support scheduled changes for add-ons.
 	if c.Addon.Status() != AddonStatusActive || c.Addon.EffectiveTo != nil {
-		errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix,
-			ErrPlanAddonIncompatibleStatus,
-		))
+		errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrPlanAddonIncompatibleStatus))
 	}
 
 	// Validate add-on assignment
@@ -86,22 +91,16 @@ func (c PlanAddon) Validate() error {
 	switch c.Addon.InstanceType {
 	case AddonInstanceTypeMultiple:
 		if c.MaxQuantity != nil && *c.MaxQuantity <= 0 {
-			errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix,
-				ErrPlanAddonMaxQuantityMustBeSet,
-			))
+			errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrPlanAddonMaxQuantityMustBeSet))
 		}
 	case AddonInstanceTypeSingle:
 		if c.MaxQuantity != nil {
-			errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix,
-				ErrPlanAddonMaxQuantityMustNotBeSet,
-			))
+			errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrPlanAddonMaxQuantityMustNotBeSet))
 		}
 	}
 
 	if c.Addon.Currency != c.Plan.Currency {
-		errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix,
-			ErrPlanAddonCurrencyMismatch,
-		))
+		errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrPlanAddonCurrencyMismatch))
 	}
 
 	_, fromPhaseIdx, ok := lo.FindIndexOf(c.Plan.Phases, func(item Phase) bool {
@@ -112,15 +111,11 @@ func (c PlanAddon) Validate() error {
 		// Validate ratecards from plan phases and addon.
 		for _, phase := range c.Plan.Phases[fromPhaseIdx:] {
 			if err := c.validateRateCardsInPhase(phase.RateCards, c.Addon.RateCards); err != nil {
-				errs = append(errs, models.ErrorWithFieldPrefix(models.FieldPathFromParts(addonPrefix),
-					err),
-				)
+				errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, err))
 			}
 		}
 	} else {
-		errs = append(errs, models.ErrorWithFieldPrefix(models.FieldPathFromParts(addonPrefix),
-			ErrPlanAddonUnknownPlanPhaseKey,
-		))
+		errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrPlanAddonUnknownPlanPhaseKey))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -142,9 +137,7 @@ func (c PlanAddon) validateRateCardsInPhase(phaseRateCards, addonRateCards RateC
 		}
 
 		if err := NewRateCardWithOverlay(phaseRateCard, addonRateCard).Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("plan ratecard is not compatible with add-on ratecard [key=%s]: %w",
-				phaseRateCard.Key(), err),
-			)
+			errs = append(errs, fmt.Errorf("plan ratecard is not compatible with add-on ratecard: %w", err))
 		}
 	}
 

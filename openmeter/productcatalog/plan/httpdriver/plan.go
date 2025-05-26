@@ -124,6 +124,8 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 				Namespace: ns,
 			}
 
+			req.IgnoreNonCriticalIssues = true
+
 			return req, nil
 		},
 		func(ctx context.Context, request CreatePlanRequest) (CreatePlanResponse, error) {
