@@ -809,11 +809,12 @@ func TestPlan(t *testing.T) {
 		ct := &api.SubscriptionTiming{}
 		require.NoError(t, ct.FromSubscriptionTiming1(startTime))
 
-		body.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
+		err = body.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
 			CustomerId: lo.ToPtr(customer4.Id),
 			CustomPlan: customPlanInput,
 			Timing:     ct,
 		})
+		require.Nil(t, err)
 		// Create a subscription with a custom plan
 		customSubAPIRes, err := client.CreateSubscriptionWithResponse(ctx, body)
 		require.Nil(t, err)

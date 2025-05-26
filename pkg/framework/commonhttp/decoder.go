@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/render"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 

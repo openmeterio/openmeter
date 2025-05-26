@@ -42,7 +42,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				return ChangeSubscriptionRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			workflowInput := subscriptionworkflow.ChangeSubscriptionWorkflowInput{}
+			var workflowInput subscriptionworkflow.ChangeSubscriptionWorkflowInput
 
 			var planInput plansubscription.PlanInput
 			var startingPhase *string
