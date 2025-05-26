@@ -103,6 +103,8 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 			SetNamespace(sub.Namespace).
 			SetCustomerID(sub.CustomerId).
 			SetCurrency(sub.Currency).
+			SetBillingCadence(sub.BillingCadence.ISOString()).
+			SetProRatingConfig(sub.ProRatingConfig).
 			SetActiveFrom(sub.ActiveFrom).
 			SetName(sub.Name).
 			SetNillableDescription(sub.Description).

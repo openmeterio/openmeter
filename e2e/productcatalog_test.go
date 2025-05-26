@@ -208,10 +208,11 @@ func TestPlan(t *testing.T) {
 	require.Nil(t, err)
 
 	planCreate := api.PlanCreate{
-		Currency:    api.CurrencyCode("USD"),
-		Name:        "Test Plan",
-		Description: lo.ToPtr("Test Plan Description"),
-		Key:         PlanKey,
+		Currency:       api.CurrencyCode("USD"),
+		Name:           "Test Plan",
+		Description:    lo.ToPtr("Test Plan Description"),
+		Key:            PlanKey,
+		BillingCadence: "P1M",
 		Phases: []api.PlanPhase{
 			{
 				Name:        "Test Plan Phase 1",
@@ -231,10 +232,15 @@ func TestPlan(t *testing.T) {
 	}
 
 	customPlanInput := api.CustomPlanInput{
-		Currency:    planCreate.Currency,
-		Name:        planCreate.Name,
-		Description: planCreate.Description,
-		Phases:      planCreate.Phases,
+		Currency:       planCreate.Currency,
+		Name:           planCreate.Name,
+		Description:    planCreate.Description,
+		BillingCadence: planCreate.BillingCadence,
+		Phases:         planCreate.Phases,
+		ProRatingConfig: &api.ProRatingConfig{
+			Mode:    "prorate_prices",
+			Enabled: true,
+		},
 	}
 
 	t.Run("Should create a plan on happy path", func(t *testing.T) {
@@ -380,7 +386,8 @@ func TestPlan(t *testing.T) {
 
 		// Now let's update the plan to remove the alignment requirement
 		updateRes, err := client.UpdatePlanWithResponse(ctx, plan.Id, api.UpdatePlanJSONRequestBody{
-			Name: plan.Name,
+			Name:           plan.Name,
+			BillingCadence: "P1M",
 			Alignment: &api.Alignment{
 				BillablesMustAlign: lo.ToPtr(false),
 			},
@@ -429,6 +436,9 @@ func TestPlan(t *testing.T) {
 		assert.Nil(t, subscription.Plan)
 
 		customSubscriptionId = subscription.Id
+		require.Equal(t, "P1M", subscription.BillingCadence)
+		require.Equal(t, api.ProRatingModeProratePrices, subscription.ProRatingConfig.Mode)
+		require.True(t, subscription.ProRatingConfig.Enabled)
 	})
 
 	t.Run("Should list customer subscriptions", func(t *testing.T) {
@@ -484,6 +494,9 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, planId, subscription.Plan.Id)
 
 		subscriptionId = subscription.Id
+		require.Equal(t, "P1M", subscription.BillingCadence)
+		require.Equal(t, api.ProRatingModeProratePrices, subscription.ProRatingConfig.Mode)
+		require.True(t, subscription.ProRatingConfig.Enabled)
 	})
 
 	t.Run("Should retrieve the subscription", func(t *testing.T) {
@@ -624,9 +637,10 @@ func TestPlan(t *testing.T) {
 		}
 
 		planAPIRes, err := client.CreatePlanWithResponse(ctx, api.CreatePlanJSONRequestBody{
-			Name:     "Test Plan New Version",
-			Key:      PlanKey,
-			Currency: api.CurrencyCode("USD"),
+			Name:           "Test Plan New Version",
+			Key:            PlanKey,
+			Currency:       api.CurrencyCode("USD"),
+			BillingCadence: "P1M",
 			// Let's add a new phase
 			Phases: newPhases,
 		})

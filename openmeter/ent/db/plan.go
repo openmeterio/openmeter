@@ -11,6 +11,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // Plan is the model entity for the Plan schema.
@@ -40,6 +42,10 @@ type Plan struct {
 	Version int `json:"version,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency string `json:"currency,omitempty"`
+	// The default billing cadence for subscriptions using this plan.
+	BillingCadence isodate.String `json:"billing_cadence,omitempty"`
+	// Default pro-rating configuration for subscriptions using this plan.
+	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config,omitempty"`
 	// EffectiveFrom holds the value of the "effective_from" field.
 	EffectiveFrom *time.Time `json:"effective_from,omitempty"`
 	// EffectiveTo holds the value of the "effective_to" field.
@@ -101,10 +107,12 @@ func (*Plan) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case plan.FieldVersion:
 			values[i] = new(sql.NullInt64)
-		case plan.FieldID, plan.FieldNamespace, plan.FieldName, plan.FieldDescription, plan.FieldKey, plan.FieldCurrency:
+		case plan.FieldID, plan.FieldNamespace, plan.FieldName, plan.FieldDescription, plan.FieldKey, plan.FieldCurrency, plan.FieldBillingCadence:
 			values[i] = new(sql.NullString)
 		case plan.FieldCreatedAt, plan.FieldUpdatedAt, plan.FieldDeletedAt, plan.FieldEffectiveFrom, plan.FieldEffectiveTo:
 			values[i] = new(sql.NullTime)
+		case plan.FieldProRatingConfig:
+			values[i] = plan.ValueScanner.ProRatingConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -195,6 +203,18 @@ func (_m *Plan) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				_m.Currency = value.String
+			}
+		case plan.FieldBillingCadence:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field billing_cadence", values[i])
+			} else if value.Valid {
+				_m.BillingCadence = isodate.String(value.String)
+			}
+		case plan.FieldProRatingConfig:
+			if value, err := plan.ValueScanner.ProRatingConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.ProRatingConfig = value
 			}
 		case plan.FieldEffectiveFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -297,6 +317,12 @@ func (_m *Plan) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(_m.Currency)
+	builder.WriteString(", ")
+	builder.WriteString("billing_cadence=")
+	builder.WriteString(fmt.Sprintf("%v", _m.BillingCadence))
+	builder.WriteString(", ")
+	builder.WriteString("pro_rating_config=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ProRatingConfig))
 	builder.WriteString(", ")
 	if v := _m.EffectiveFrom; v != nil {
 		builder.WriteString("effective_from=")

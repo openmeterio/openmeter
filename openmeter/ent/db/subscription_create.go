@@ -18,7 +18,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // SubscriptionCreate is the builder for creating a Subscription entity.
@@ -171,6 +173,26 @@ func (_c *SubscriptionCreate) SetCurrency(v currencyx.Code) *SubscriptionCreate 
 	return _c
 }
 
+// SetBillingCadence sets the "billing_cadence" field.
+func (_c *SubscriptionCreate) SetBillingCadence(v isodate.String) *SubscriptionCreate {
+	_c.mutation.SetBillingCadence(v)
+	return _c
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (_c *SubscriptionCreate) SetProRatingConfig(v productcatalog.ProRatingConfig) *SubscriptionCreate {
+	_c.mutation.SetProRatingConfig(v)
+	return _c
+}
+
+// SetNillableProRatingConfig sets the "pro_rating_config" field if the given value is not nil.
+func (_c *SubscriptionCreate) SetNillableProRatingConfig(v *productcatalog.ProRatingConfig) *SubscriptionCreate {
+	if v != nil {
+		_c.SetProRatingConfig(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *SubscriptionCreate) SetID(v string) *SubscriptionCreate {
 	_c.mutation.SetID(v)
@@ -291,6 +313,10 @@ func (_c *SubscriptionCreate) defaults() {
 		v := subscription.DefaultName
 		_c.mutation.SetName(v)
 	}
+	if _, ok := _c.mutation.ProRatingConfig(); !ok {
+		v := subscription.DefaultProRatingConfig()
+		_c.mutation.SetProRatingConfig(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := subscription.DefaultID()
 		_c.mutation.SetID(v)
@@ -343,6 +369,17 @@ func (_c *SubscriptionCreate) check() error {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Subscription.currency": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.BillingCadence(); !ok {
+		return &ValidationError{Name: "billing_cadence", err: errors.New(`db: missing required field "Subscription.billing_cadence"`)}
+	}
+	if _, ok := _c.mutation.ProRatingConfig(); !ok {
+		return &ValidationError{Name: "pro_rating_config", err: errors.New(`db: missing required field "Subscription.pro_rating_config"`)}
+	}
+	if v, ok := _c.mutation.ProRatingConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "pro_rating_config", err: fmt.Errorf(`db: validator failed for field "Subscription.pro_rating_config": %w`, err)}
+		}
+	}
 	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "Subscription.customer"`)}
 	}
@@ -353,7 +390,10 @@ func (_c *SubscriptionCreate) sqlSave(ctx context.Context) (*Subscription, error
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -372,7 +412,7 @@ func (_c *SubscriptionCreate) sqlSave(ctx context.Context) (*Subscription, error
 	return _node, nil
 }
 
-func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec) {
+func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &Subscription{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(subscription.Table, sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString))
@@ -425,6 +465,18 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(subscription.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
+	}
+	if value, ok := _c.mutation.BillingCadence(); ok {
+		_spec.SetField(subscription.FieldBillingCadence, field.TypeString, value)
+		_node.BillingCadence = value
+	}
+	if value, ok := _c.mutation.ProRatingConfig(); ok {
+		vv, err := subscription.ValueScanner.ProRatingConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(subscription.FieldProRatingConfig, field.TypeString, vv)
+		_node.ProRatingConfig = value
 	}
 	if nodes := _c.mutation.PlanIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -508,7 +560,7 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -683,6 +735,30 @@ func (u *SubscriptionUpsert) UpdatePlanID() *SubscriptionUpsert {
 // ClearPlanID clears the value of the "plan_id" field.
 func (u *SubscriptionUpsert) ClearPlanID() *SubscriptionUpsert {
 	u.SetNull(subscription.FieldPlanID)
+	return u
+}
+
+// SetBillingCadence sets the "billing_cadence" field.
+func (u *SubscriptionUpsert) SetBillingCadence(v isodate.String) *SubscriptionUpsert {
+	u.Set(subscription.FieldBillingCadence, v)
+	return u
+}
+
+// UpdateBillingCadence sets the "billing_cadence" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdateBillingCadence() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldBillingCadence)
+	return u
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (u *SubscriptionUpsert) SetProRatingConfig(v productcatalog.ProRatingConfig) *SubscriptionUpsert {
+	u.Set(subscription.FieldProRatingConfig, v)
+	return u
+}
+
+// UpdateProRatingConfig sets the "pro_rating_config" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdateProRatingConfig() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldProRatingConfig)
 	return u
 }
 
@@ -896,6 +972,34 @@ func (u *SubscriptionUpsertOne) ClearPlanID() *SubscriptionUpsertOne {
 	})
 }
 
+// SetBillingCadence sets the "billing_cadence" field.
+func (u *SubscriptionUpsertOne) SetBillingCadence(v isodate.String) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetBillingCadence(v)
+	})
+}
+
+// UpdateBillingCadence sets the "billing_cadence" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdateBillingCadence() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateBillingCadence()
+	})
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (u *SubscriptionUpsertOne) SetProRatingConfig(v productcatalog.ProRatingConfig) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetProRatingConfig(v)
+	})
+}
+
+// UpdateProRatingConfig sets the "pro_rating_config" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdateProRatingConfig() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateProRatingConfig()
+	})
+}
+
 // Exec executes the query.
 func (u *SubscriptionUpsertOne) Exec(ctx context.Context) error {
 	if len(u.create.conflict) == 0 {
@@ -964,7 +1068,10 @@ func (_c *SubscriptionCreateBulk) Save(ctx context.Context) ([]*Subscription, er
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -1270,6 +1377,34 @@ func (u *SubscriptionUpsertBulk) UpdatePlanID() *SubscriptionUpsertBulk {
 func (u *SubscriptionUpsertBulk) ClearPlanID() *SubscriptionUpsertBulk {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearPlanID()
+	})
+}
+
+// SetBillingCadence sets the "billing_cadence" field.
+func (u *SubscriptionUpsertBulk) SetBillingCadence(v isodate.String) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetBillingCadence(v)
+	})
+}
+
+// UpdateBillingCadence sets the "billing_cadence" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdateBillingCadence() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateBillingCadence()
+	})
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (u *SubscriptionUpsertBulk) SetProRatingConfig(v productcatalog.ProRatingConfig) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetProRatingConfig(v)
+	})
+}
+
+// UpdateProRatingConfig sets the "pro_rating_config" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdateProRatingConfig() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateProRatingConfig()
 	})
 }
 

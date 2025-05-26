@@ -14,6 +14,11 @@ import (
 )
 
 func FromPlanRow(p entdb.Plan) (*plan.Plan, error) {
+	billingCadence, err := p.BillingCadence.Parse()
+	if err != nil {
+		return nil, fmt.Errorf("invalid billing cadence %s: %w", p.BillingCadence, err)
+	}
+
 	pp := &plan.Plan{
 		NamespacedID: models.NamespacedID{
 			Namespace: p.Namespace,
@@ -25,12 +30,14 @@ func FromPlanRow(p entdb.Plan) (*plan.Plan, error) {
 			DeletedAt: p.DeletedAt,
 		},
 		PlanMeta: productcatalog.PlanMeta{
-			Key:         p.Key,
-			Name:        p.Name,
-			Description: p.Description,
-			Metadata:    p.Metadata,
-			Version:     p.Version,
-			Currency:    currency.Code(p.Currency),
+			Key:             p.Key,
+			Name:            p.Name,
+			Description:     p.Description,
+			Metadata:        p.Metadata,
+			Version:         p.Version,
+			Currency:        currency.Code(p.Currency),
+			BillingCadence:  billingCadence,
+			ProRatingConfig: p.ProRatingConfig,
 			EffectivePeriod: productcatalog.EffectivePeriod{
 				EffectiveFrom: p.EffectiveFrom,
 				EffectiveTo:   p.EffectiveTo,
