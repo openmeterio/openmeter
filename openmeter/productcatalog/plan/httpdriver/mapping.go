@@ -18,18 +18,20 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 	validationIssues, _ := p.AsProductCatalogPlan().ValidationErrors()
 
 	resp := api.Plan{
-		CreatedAt:     p.CreatedAt,
-		Currency:      p.Currency.String(),
-		DeletedAt:     p.DeletedAt,
-		Description:   p.Description,
-		EffectiveFrom: p.EffectiveFrom,
-		EffectiveTo:   p.EffectiveTo,
-		Id:            p.ID,
-		Key:           p.Key,
-		Metadata:      http.FromMetadata(p.Metadata),
-		Name:          p.Name,
-		UpdatedAt:     p.UpdatedAt,
-		Version:       p.Version,
+		CreatedAt:       p.CreatedAt,
+		Currency:        p.Currency.String(),
+		DeletedAt:       p.DeletedAt,
+		Description:     p.Description,
+		EffectiveFrom:   p.EffectiveFrom,
+		EffectiveTo:     p.EffectiveTo,
+		Id:              p.ID,
+		Key:             p.Key,
+		Metadata:        lo.EmptyableToPtr(api.Metadata(p.Metadata)),
+		Name:            p.Name,
+		UpdatedAt:       p.UpdatedAt,
+		Version:         p.Version,
+		BillingCadence:  p.BillingCadence.String(),
+		ProRatingConfig: fromProRatingConfig(p.ProRatingConfig),
 		Alignment: &api.Alignment{
 			BillablesMustAlign: lo.ToPtr(p.Alignment.BillablesMustAlign),
 		},
@@ -96,10 +98,11 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Key:         a.Key,
-				Name:        a.Name,
-				Description: a.Description,
-				Metadata:    lo.FromPtr(a.Metadata),
+				Key:             a.Key,
+				Name:            a.Name,
+				Description:     a.Description,
+				Metadata:        lo.FromPtr(a.Metadata),
+				ProRatingConfig: asProRatingConfig(a.ProRatingConfig),
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: func() bool {
 						if a.Alignment != nil {
@@ -120,6 +123,11 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}
 
+	req.PlanMeta.BillingCadence, err = isodate.String(a.BillingCadence).Parse()
+	if err != nil {
+		return req, fmt.Errorf("invalid BillingCadence: %w", err)
+	}
+
 	if len(a.Phases) > 0 {
 		req.Phases = make([]productcatalog.Phase, 0, len(a.Phases))
 
@@ -134,6 +142,30 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 	}
 
 	return req, nil
+}
+
+// fromProRatingConfig converts domain ProRatingConfig to API ProRatingConfig
+func fromProRatingConfig(p productcatalog.ProRatingConfig) *api.ProRatingConfig {
+	return &api.ProRatingConfig{
+		Enabled: p.Enabled,
+		Mode:    api.ProRatingMode(p.Mode),
+	}
+}
+
+// asProRatingConfig converts API ProRatingConfig to domain ProRatingConfig
+func asProRatingConfig(p *api.ProRatingConfig) productcatalog.ProRatingConfig {
+	if p == nil {
+		// Return default configuration when not provided
+		return productcatalog.ProRatingConfig{
+			Enabled: true,
+			Mode:    productcatalog.ProRatingModeProratePrices,
+		}
+	}
+
+	return productcatalog.ProRatingConfig{
+		Enabled: p.Enabled,
+		Mode:    productcatalog.ProRatingMode(p.Mode),
+	}
 }
 
 func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
@@ -167,15 +199,25 @@ func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID strin
 			Namespace: namespace,
 			ID:        planID,
 		},
-		Name:        lo.ToPtr(a.Name),
-		Description: a.Description,
-		Metadata:    (*models.Metadata)(a.Metadata),
+		Name:            lo.ToPtr(a.Name),
+		Description:     a.Description,
+		Metadata:        (*models.Metadata)(a.Metadata),
+		ProRatingConfig: lo.ToPtr(asProRatingConfig(a.ProRatingConfig)),
 	}
 
 	if a.Alignment != nil {
 		if a.Alignment.BillablesMustAlign != nil {
 			req.AlignmentUpdate.BillablesMustAlign = a.Alignment.BillablesMustAlign
 		}
+	}
+
+	if a.BillingCadence != "" {
+		billingCadence, err := isodate.String(a.BillingCadence).Parse()
+		if err != nil {
+			return req, fmt.Errorf("invalid BillingCadence: %w", err)
+		}
+
+		req.BillingCadence = lo.ToPtr(billingCadence)
 	}
 
 	phases := make([]productcatalog.Phase, 0, len(a.Phases))

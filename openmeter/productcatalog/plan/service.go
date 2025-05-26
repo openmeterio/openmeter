@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -151,6 +152,12 @@ type UpdatePlanInput struct {
 	// Metadata
 	Metadata *models.Metadata `json:"metadata,omitempty"`
 
+	// BillingCadence is the default billing cadence for subscriptions using this plan
+	BillingCadence *isodate.Period `json:"billingCadence,omitempty"`
+
+	// ProRatingConfig is the default pro-rating configuration for subscriptions using this plan
+	ProRatingConfig *productcatalog.ProRatingConfig `json:"proRatingConfig,omitempty"`
+
 	// Phases
 	Phases *[]productcatalog.Phase `json:"phases"`
 
@@ -186,6 +193,14 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 	}
 
 	if i.AlignmentUpdate.BillablesMustAlign != nil && *i.AlignmentUpdate.BillablesMustAlign != p.BillablesMustAlign {
+		return false
+	}
+
+	if i.BillingCadence != nil && i.BillingCadence.String() != p.BillingCadence.String() {
+		return false
+	}
+
+	if i.ProRatingConfig != nil && !i.ProRatingConfig.Equal(p.ProRatingConfig) {
 		return false
 	}
 

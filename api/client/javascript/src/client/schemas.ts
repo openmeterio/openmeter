@@ -3505,6 +3505,24 @@ export interface components {
        */
       currency: components['schemas']['CurrencyCode']
       /**
+       * Billing cadence
+       * Format: duration
+       * @description The default billing cadence for subscriptions using this plan.
+       *     Defines how often customers are billed using ISO8601 duration format.
+       *     Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+       * @example P1M
+       */
+      billingCadence: string
+      /**
+       * Pro-rating configuration
+       * @description Default pro-rating configuration for subscriptions using this plan.
+       * @default {
+       *       "enabled": true,
+       *       "mode": "prorate_prices"
+       *     }
+       */
+      proRatingConfig?: components['schemas']['ProRatingConfig']
+      /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
        *     A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
@@ -7706,6 +7724,24 @@ export interface components {
        */
       currency: components['schemas']['CurrencyCode']
       /**
+       * Billing cadence
+       * Format: duration
+       * @description The default billing cadence for subscriptions using this plan.
+       *     Defines how often customers are billed using ISO8601 duration format.
+       *     Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+       * @example P1M
+       */
+      billingCadence: string
+      /**
+       * Pro-rating configuration
+       * @description Default pro-rating configuration for subscriptions using this plan.
+       * @default {
+       *       "enabled": true,
+       *       "mode": "prorate_prices"
+       *     }
+       */
+      proRatingConfig?: components['schemas']['ProRatingConfig']
+      /**
        * Effective start date
        * Format: date-time
        * @description The date and time when the plan becomes effective. When not specified, the plan is a draft.
@@ -7900,6 +7936,24 @@ export interface components {
        */
       currency: components['schemas']['CurrencyCode']
       /**
+       * Billing cadence
+       * Format: duration
+       * @description The default billing cadence for subscriptions using this plan.
+       *     Defines how often customers are billed using ISO8601 duration format.
+       *     Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+       * @example P1M
+       */
+      billingCadence: string
+      /**
+       * Pro-rating configuration
+       * @description Default pro-rating configuration for subscriptions using this plan.
+       * @default {
+       *       "enabled": true,
+       *       "mode": "prorate_prices"
+       *     }
+       */
+      proRatingConfig?: components['schemas']['ProRatingConfig']
+      /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
        *     A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
@@ -8004,6 +8058,24 @@ export interface components {
       metadata?: components['schemas']['Metadata'] | null
       /** @description Alignment configuration for the plan. */
       alignment?: components['schemas']['Alignment']
+      /**
+       * Billing cadence
+       * Format: duration
+       * @description The default billing cadence for subscriptions using this plan.
+       *     Defines how often customers are billed using ISO8601 duration format.
+       *     Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+       * @example P1M
+       */
+      billingCadence: string
+      /**
+       * Pro-rating configuration
+       * @description Default pro-rating configuration for subscriptions using this plan.
+       * @default {
+       *       "enabled": true,
+       *       "mode": "prorate_prices"
+       *     }
+       */
+      proRatingConfig?: components['schemas']['ProRatingConfig']
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -8130,6 +8202,26 @@ export interface components {
        */
       unitPrice: components['schemas']['UnitPrice'] | null
     }
+    /** @description Configuration for pro-rating behavior. */
+    ProRatingConfig: {
+      /**
+       * Enable pro-rating
+       * @description Whether pro-rating is enabled for this plan.
+       * @default true
+       */
+      enabled: boolean
+      /**
+       * Pro-rating mode
+       * @description How to handle pro-rating for billing period changes.
+       * @default prorate_prices
+       */
+      mode: components['schemas']['ProRatingMode']
+    }
+    /**
+     * @description Pro-rating mode options for handling billing period changes.
+     * @enum {string}
+     */
+    ProRatingMode: 'prorate_prices'
     /** @description Progress describes a progress of a task. */
     Progress: {
       /**
@@ -8994,6 +9086,24 @@ export interface components {
        * @default USD
        */
       currency: components['schemas']['CurrencyCode']
+      /**
+       * Billing cadence
+       * Format: duration
+       * @description The billing cadence for the subscriptions.
+       *     Defines how often customers are billed using ISO8601 duration format.
+       *     Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+       * @example P1M
+       */
+      readonly billingCadence: string
+      /**
+       * Pro-rating configuration
+       * @description The pro-rating configuration for the subscriptions.
+       * @default {
+       *       "enabled": true,
+       *       "mode": "prorate_prices"
+       *     }
+       */
+      readonly proRatingConfig?: components['schemas']['ProRatingConfig']
     }
     /** @description A subscription add-on, represents concrete instances of an add-on for a given subscription. */
     SubscriptionAddon: {
@@ -9345,6 +9455,24 @@ export interface components {
        * @default USD
        */
       currency: components['schemas']['CurrencyCode']
+      /**
+       * Billing cadence
+       * Format: duration
+       * @description The billing cadence for the subscriptions.
+       *     Defines how often customers are billed using ISO8601 duration format.
+       *     Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+       * @example P1M
+       */
+      readonly billingCadence: string
+      /**
+       * Pro-rating configuration
+       * @description The pro-rating configuration for the subscriptions.
+       * @default {
+       *       "enabled": true,
+       *       "mode": "prorate_prices"
+       *     }
+       */
+      readonly proRatingConfig?: components['schemas']['ProRatingConfig']
       /** @description Alignment details enriched with the current billing period. */
       alignment?: components['schemas']['SubscriptionAlignment']
       /** @description The phases of the subscription. */
@@ -10562,6 +10690,8 @@ export type PreconditionFailedProblemResponse =
   components['schemas']['PreconditionFailedProblemResponse']
 export type PricePaymentTerm = components['schemas']['PricePaymentTerm']
 export type PriceTier = components['schemas']['PriceTier']
+export type ProRatingConfig = components['schemas']['ProRatingConfig']
+export type ProRatingMode = components['schemas']['ProRatingMode']
 export type Progress = components['schemas']['Progress']
 export type RateCard = components['schemas']['RateCard']
 export type RateCardBooleanEntitlement =

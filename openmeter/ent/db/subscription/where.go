@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // ID filters vertices based on their ID field.
@@ -125,6 +126,12 @@ func CustomerID(v string) predicate.Subscription {
 func Currency(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
 	return predicate.Subscription(sql.FieldEQ(FieldCurrency, vc))
+}
+
+// BillingCadence applies equality check predicate on the "billing_cadence" field. It's identical to BillingCadenceEQ.
+func BillingCadence(v isodate.String) predicate.Subscription {
+	vc := string(v)
+	return predicate.Subscription(sql.FieldEQ(FieldBillingCadence, vc))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -794,6 +801,90 @@ func CurrencyEqualFold(v currencyx.Code) predicate.Subscription {
 func CurrencyContainsFold(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
 	return predicate.Subscription(sql.FieldContainsFold(FieldCurrency, vc))
+}
+
+// BillingCadenceEQ applies the EQ predicate on the "billing_cadence" field.
+func BillingCadenceEQ(v isodate.String) predicate.Subscription {
+	vc := string(v)
+	return predicate.Subscription(sql.FieldEQ(FieldBillingCadence, vc))
+}
+
+// BillingCadenceNEQ applies the NEQ predicate on the "billing_cadence" field.
+func BillingCadenceNEQ(v isodate.String) predicate.Subscription {
+	vc := string(v)
+	return predicate.Subscription(sql.FieldNEQ(FieldBillingCadence, vc))
+}
+
+// BillingCadenceIn applies the In predicate on the "billing_cadence" field.
+func BillingCadenceIn(vs ...isodate.String) predicate.Subscription {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.Subscription(sql.FieldIn(FieldBillingCadence, v...))
+}
+
+// BillingCadenceNotIn applies the NotIn predicate on the "billing_cadence" field.
+func BillingCadenceNotIn(vs ...isodate.String) predicate.Subscription {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.Subscription(sql.FieldNotIn(FieldBillingCadence, v...))
+}
+
+// BillingCadenceGT applies the GT predicate on the "billing_cadence" field.
+func BillingCadenceGT(v isodate.String) predicate.Subscription {
+	vc := string(v)
+	return predicate.Subscription(sql.FieldGT(FieldBillingCadence, vc))
+}
+
+// BillingCadenceGTE applies the GTE predicate on the "billing_cadence" field.
+func BillingCadenceGTE(v isodate.String) predicate.Subscription {
+	vc := string(v)
+	return predicate.Subscription(sql.FieldGTE(FieldBillingCadence, vc))
+}
+
+// BillingCadenceLT applies the LT predicate on the "billing_cadence" field.
+func BillingCadenceLT(v isodate.String) predicate.Subscription {
+	vc := string(v)
+	return predicate.Subscription(sql.FieldLT(FieldBillingCadence, vc))
+}
+
+// BillingCadenceLTE applies the LTE predicate on the "billing_cadence" field.
+func BillingCadenceLTE(v isodate.String) predicate.Subscription {
+	vc := string(v)
+	return predicate.Subscription(sql.FieldLTE(FieldBillingCadence, vc))
+}
+
+// BillingCadenceContains applies the Contains predicate on the "billing_cadence" field.
+func BillingCadenceContains(v isodate.String) predicate.Subscription {
+	vc := string(v)
+	return predicate.Subscription(sql.FieldContains(FieldBillingCadence, vc))
+}
+
+// BillingCadenceHasPrefix applies the HasPrefix predicate on the "billing_cadence" field.
+func BillingCadenceHasPrefix(v isodate.String) predicate.Subscription {
+	vc := string(v)
+	return predicate.Subscription(sql.FieldHasPrefix(FieldBillingCadence, vc))
+}
+
+// BillingCadenceHasSuffix applies the HasSuffix predicate on the "billing_cadence" field.
+func BillingCadenceHasSuffix(v isodate.String) predicate.Subscription {
+	vc := string(v)
+	return predicate.Subscription(sql.FieldHasSuffix(FieldBillingCadence, vc))
+}
+
+// BillingCadenceEqualFold applies the EqualFold predicate on the "billing_cadence" field.
+func BillingCadenceEqualFold(v isodate.String) predicate.Subscription {
+	vc := string(v)
+	return predicate.Subscription(sql.FieldEqualFold(FieldBillingCadence, vc))
+}
+
+// BillingCadenceContainsFold applies the ContainsFold predicate on the "billing_cadence" field.
+func BillingCadenceContainsFold(v isodate.String) predicate.Subscription {
+	vc := string(v)
+	return predicate.Subscription(sql.FieldContainsFold(FieldBillingCadence, vc))
 }
 
 // HasPlan applies the HasEdge predicate on the "plan" edge.

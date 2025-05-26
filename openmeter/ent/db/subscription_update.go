@@ -18,6 +18,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // SubscriptionUpdate is the builder for updating Subscription entities.
@@ -156,6 +158,34 @@ func (_u *SubscriptionUpdate) SetNillablePlanID(v *string) *SubscriptionUpdate {
 // ClearPlanID clears the value of the "plan_id" field.
 func (_u *SubscriptionUpdate) ClearPlanID() *SubscriptionUpdate {
 	_u.mutation.ClearPlanID()
+	return _u
+}
+
+// SetBillingCadence sets the "billing_cadence" field.
+func (_u *SubscriptionUpdate) SetBillingCadence(v isodate.String) *SubscriptionUpdate {
+	_u.mutation.SetBillingCadence(v)
+	return _u
+}
+
+// SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
+func (_u *SubscriptionUpdate) SetNillableBillingCadence(v *isodate.String) *SubscriptionUpdate {
+	if v != nil {
+		_u.SetBillingCadence(*v)
+	}
+	return _u
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (_u *SubscriptionUpdate) SetProRatingConfig(v productcatalog.ProRatingConfig) *SubscriptionUpdate {
+	_u.mutation.SetProRatingConfig(v)
+	return _u
+}
+
+// SetNillableProRatingConfig sets the "pro_rating_config" field if the given value is not nil.
+func (_u *SubscriptionUpdate) SetNillableProRatingConfig(v *productcatalog.ProRatingConfig) *SubscriptionUpdate {
+	if v != nil {
+		_u.SetProRatingConfig(*v)
+	}
 	return _u
 }
 
@@ -362,6 +392,11 @@ func (_u *SubscriptionUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Subscription.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ProRatingConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "pro_rating_config", err: fmt.Errorf(`db: validator failed for field "Subscription.pro_rating_config": %w`, err)}
+		}
+	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Subscription.customer"`)
 	}
@@ -412,6 +447,16 @@ func (_u *SubscriptionUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.BillingCadence(); ok {
+		_spec.SetField(subscription.FieldBillingCadence, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ProRatingConfig(); ok {
+		vv, err := subscription.ValueScanner.ProRatingConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(subscription.FieldProRatingConfig, field.TypeString, vv)
 	}
 	if _u.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -768,6 +813,34 @@ func (_u *SubscriptionUpdateOne) ClearPlanID() *SubscriptionUpdateOne {
 	return _u
 }
 
+// SetBillingCadence sets the "billing_cadence" field.
+func (_u *SubscriptionUpdateOne) SetBillingCadence(v isodate.String) *SubscriptionUpdateOne {
+	_u.mutation.SetBillingCadence(v)
+	return _u
+}
+
+// SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
+func (_u *SubscriptionUpdateOne) SetNillableBillingCadence(v *isodate.String) *SubscriptionUpdateOne {
+	if v != nil {
+		_u.SetBillingCadence(*v)
+	}
+	return _u
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (_u *SubscriptionUpdateOne) SetProRatingConfig(v productcatalog.ProRatingConfig) *SubscriptionUpdateOne {
+	_u.mutation.SetProRatingConfig(v)
+	return _u
+}
+
+// SetNillableProRatingConfig sets the "pro_rating_config" field if the given value is not nil.
+func (_u *SubscriptionUpdateOne) SetNillableProRatingConfig(v *productcatalog.ProRatingConfig) *SubscriptionUpdateOne {
+	if v != nil {
+		_u.SetProRatingConfig(*v)
+	}
+	return _u
+}
+
 // SetPlan sets the "plan" edge to the Plan entity.
 func (_u *SubscriptionUpdateOne) SetPlan(v *Plan) *SubscriptionUpdateOne {
 	return _u.SetPlanID(v.ID)
@@ -984,6 +1057,11 @@ func (_u *SubscriptionUpdateOne) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Subscription.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ProRatingConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "pro_rating_config", err: fmt.Errorf(`db: validator failed for field "Subscription.pro_rating_config": %w`, err)}
+		}
+	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Subscription.customer"`)
 	}
@@ -1051,6 +1129,16 @@ func (_u *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscripti
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.BillingCadence(); ok {
+		_spec.SetField(subscription.FieldBillingCadence, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ProRatingConfig(); ok {
+		vv, err := subscription.ValueScanner.ProRatingConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(subscription.FieldProRatingConfig, field.TypeString, vv)
 	}
 	if _u.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{

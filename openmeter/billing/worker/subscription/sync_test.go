@@ -154,10 +154,15 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test-plan",
-				Version:  1,
-				Currency: currency.USD,
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 
 			Phases: []productcatalog.Phase{
@@ -556,10 +561,15 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test-plan",
-				Version:  1,
-				Currency: currency.USD,
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 
 			Phases: []productcatalog.Phase{
@@ -1368,6 +1378,11 @@ func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
 				},
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: []productcatalog.Phase{
 				{
@@ -1438,6 +1453,11 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				Currency: currency.USD,
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
+				},
+				BillingCadence: isodate.MustParse(s.T(), "P2W"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
 				},
 			},
 			Phases: []productcatalog.Phase{
@@ -1657,6 +1677,11 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
 				},
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: []productcatalog.Phase{
 				{
@@ -1820,6 +1845,11 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 				Currency: currency.USD,
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
+				},
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
 				},
 			},
 			Phases: []productcatalog.Phase{
@@ -3763,10 +3793,15 @@ func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlanPhases(phases [
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test-plan",
-				Version:  1,
-				Currency: currency.USD,
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: phases,
 		},

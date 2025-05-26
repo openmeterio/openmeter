@@ -33,6 +33,11 @@ func TestAlignedBillingPeriodCalculation(t *testing.T) {
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
 				},
+				BillingCadence: isodate.MustParse(t, "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: []productcatalog.Phase{
 				{
