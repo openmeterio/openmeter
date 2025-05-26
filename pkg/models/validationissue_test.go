@@ -19,53 +19,53 @@ func TestValidationIssue_JSON(t *testing.T) {
 		{
 			name:         "empty",
 			issue:        ValidationIssue{},
-			expectedJSON: `{"message":""}`,
+			expectedJSON: `{"message":"", "severity":"critical"}`,
 		},
 		{
 			name: "bare",
 			issue: ValidationIssue{
-				Message: "error message",
+				message: "error message",
 			},
-			expectedJSON: `{"message":"error message"}`,
+			expectedJSON: `{"message":"error message", "severity":"critical"}`,
 		},
 		{
 			name: "generic",
 			issue: ValidationIssue{
-				Message:   "error message",
-				Path:      "field_name",
-				Code:      "invalid_param",
-				Component: "openmeter",
-				Severity:  ErrorSeverityCritical,
+				message:   "error message",
+				field:     NewFieldSelectors(NewFieldSelector("field_name")),
+				code:      "invalid_param",
+				component: "openmeter",
+				severity:  ErrorSeverityCritical,
 			},
 			expectedJSON: `{
 				"code":"invalid_param",
 				"component":"openmeter",
 				"message":"error message",
-				"path":"field_name",
+				"field":"$.field_name",
 				"severity":"critical"
 			}`,
 		},
 		{
 			name: "with attributes",
 			issue: ValidationIssue{
-				Message:   "error message",
-				Path:      "field_name",
-				Code:      "invalid_param",
-				Component: "openmeter",
-				Severity:  ErrorSeverityWarning,
-				Attributes: map[string]interface{}{
-					"severity": "critical",
+				message: "error message",
+				field: NewFieldSelectors(NewFieldSelector("field_name").WithExpression(
+					NewFieldAttrValue("key", "value"),
+				)),
+				code:      "invalid_param",
+				component: "openmeter",
+				severity:  ErrorSeverityWarning,
+				attributes: map[string]interface{}{
+					"attr1": "value1",
 				},
 			},
 			expectedJSON: `{
 				"code":"invalid_param",
 				"component":"openmeter",
 				"message":"error message",
-				"path":"field_name",
+				"field":"$.field_name[?(@.key=='value')]",
 				"severity":"warning",
-				"attributes":{
-					"severity":"critical"
-				}
+				"attr1": "value1"
 			}`,
 		},
 	}
@@ -81,10 +81,10 @@ func TestValidationIssue_JSON(t *testing.T) {
 }
 
 var errTestValidationIssue = ValidationIssue{
-	Code:     "test_validation_issue",
-	Message:  "test validation issue",
-	Path:     "field",
-	Severity: ErrorSeverityCritical,
+	code:     "test_validation_issue",
+	message:  "test validation issue",
+	field:    NewFieldSelectors(NewFieldSelector("field")),
+	severity: ErrorSeverityCritical,
 }
 
 func TestValidationIssue_WithAttrs(t *testing.T) {
@@ -112,36 +112,36 @@ func TestValidationIssue_WithAttrs(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			actual := test.issue.WithAttrs(test.attrs)
 
-			assert.Emptyf(t, errTestValidationIssue.Attributes, "original attributes must be empty")
-			assert.Equalf(t, test.attrs, actual.Attributes, "attributes must match")
+			assert.Emptyf(t, errTestValidationIssue.Attributes(), "original attributes must be empty")
+			assert.Equalf(t, test.attrs, actual.Attributes(), "attributes must match")
 		})
 	}
 }
 
-func TestValidationIssue_WithPath(t *testing.T) {
+func TestValidationIssue_WithField(t *testing.T) {
 	tests := []struct {
 		name  string
 		issue ValidationIssue
-		path  string
+		path  FieldSelectors
 	}{
 		{
 			name:  "empty",
 			issue: errTestValidationIssue,
-			path:  "",
+			path:  nil,
 		},
 		{
 			name:  "new",
 			issue: errTestValidationIssue,
-			path:  "field2",
+			path:  NewFieldSelectors(NewFieldSelector("field_name")),
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual := test.issue.WithPath(test.path)
+			actual := test.issue.WithField(test.path...)
 
-			assert.Equalf(t, "field", errTestValidationIssue.Path, "path not must be overwritten in the source error")
-			assert.Equalf(t, test.path, actual.Path, "path must match")
+			assert.Equalf(t, "field", errTestValidationIssue.Field().String(), "path not must be overwritten in the source error")
+			assert.Equalf(t, test.path, actual.Field(), "path must match")
 		})
 	}
 }
@@ -156,12 +156,12 @@ func TestValidationIssue_Clone(t *testing.T) {
 			name:  "clone",
 			issue: errTestValidationIssue,
 			expectedIssue: ValidationIssue{
-				Attributes: errTestValidationIssue.Attributes,
-				Code:       errTestValidationIssue.Code,
-				Component:  errTestValidationIssue.Component,
-				Message:    errTestValidationIssue.Message,
-				Path:       errTestValidationIssue.Path,
-				Severity:   errTestValidationIssue.Severity,
+				attributes: errTestValidationIssue.attributes,
+				code:       errTestValidationIssue.code,
+				component:  errTestValidationIssue.component,
+				message:    errTestValidationIssue.message,
+				field:      errTestValidationIssue.field,
+				severity:   errTestValidationIssue.severity,
 			},
 		},
 		{
@@ -243,19 +243,19 @@ func TestAsValidationIssues(t *testing.T) {
 			expectError: false,
 			expectedIssues: ValidationIssues{
 				ValidationIssue{
-					Component: "component1",
-					Message:   "error 1",
-					Severity:  ErrorSeverityCritical,
+					component: "component1",
+					message:   "error 1",
+					severity:  ErrorSeverityCritical,
 				},
 				ValidationIssue{
-					Code:     "errcode1",
-					Message:  "error message 1",
-					Severity: ErrorSeverityCritical,
+					code:     "errcode1",
+					message:  "error message 1",
+					severity: ErrorSeverityCritical,
 				},
 				ValidationIssue{
-					Code:     "errcode2",
-					Message:  "error message 2",
-					Severity: ErrorSeverityWarning,
+					code:     "errcode2",
+					message:  "error message 2",
+					severity: ErrorSeverityWarning,
 				},
 			},
 		},
@@ -267,25 +267,28 @@ func TestAsValidationIssues(t *testing.T) {
 						errors.New("error 1"),
 					),
 					ErrorWithComponent("component2",
-						ErrorWithFieldPrefix("prefix",
+						ErrorWithFieldPrefix(NewFieldSelectors(NewFieldSelector("prefix")),
 							errors.Join(
 								NewValidationIssue("errcode1", "error message 1",
-									WithPath("field1"),
+									WithFieldString("field1"),
 									WithCriticalSeverity(),
 								),
 								NewValidationIssue("errcode2", "error message 2",
-									WithPath("field2"),
+									WithFieldString("field2"),
 									WithWarningSeverity(),
 								),
-								ErrorWithFieldPrefix("prefix2",
+								ErrorWithFieldPrefix(NewFieldSelectors(NewFieldSelector("prefix2")),
 									ErrorWithComponent("component3",
 										errors.Join(
 											NewValidationIssue("errcode3", "error message 3",
-												WithPath("field3"),
+												WithFieldString("field3"),
 												WithCriticalSeverity(),
 											),
 											NewValidationIssue("errcode4", "error message 4",
-												WithPath("prefix3", "field4"),
+												WithField(
+													NewFieldSelector("prefix3"),
+													NewFieldSelector("field4"),
+												),
 												WithWarningSeverity(),
 												WithAttributes(map[string]interface{}{
 													"attr1": "value1",
@@ -298,7 +301,7 @@ func TestAsValidationIssues(t *testing.T) {
 						),
 					),
 					NewValidationIssue("errcode5", "error message 5",
-						WithPath("field6"),
+						WithField(NewFieldSelector("field5")),
 						WithCriticalSeverity(),
 						WithComponent("component4"),
 					),
@@ -307,47 +310,64 @@ func TestAsValidationIssues(t *testing.T) {
 			expectError: false,
 			expectedIssues: ValidationIssues{
 				ValidationIssue{
-					Component: "component1",
-					Message:   "error 1",
-					Severity:  ErrorSeverityCritical,
+					component: "component1",
+					message:   "error 1",
+					severity:  ErrorSeverityCritical,
 				},
 				ValidationIssue{
-					Code:      "errcode1",
-					Component: "component2",
-					Message:   "error message 1",
-					Path:      "/prefix/field1",
-					Severity:  ErrorSeverityCritical,
+					code:      "errcode1",
+					component: "component2",
+					message:   "error message 1",
+					field: NewFieldSelectors(
+						NewFieldSelector("prefix"),
+						NewFieldSelector("field1"),
+					),
+					severity: ErrorSeverityCritical,
 				},
 				ValidationIssue{
-					Code:      "errcode2",
-					Component: "component2",
-					Message:   "error message 2",
-					Path:      "/prefix/field2",
-					Severity:  ErrorSeverityWarning,
+					code:      "errcode2",
+					component: "component2",
+					message:   "error message 2",
+					field: NewFieldSelectors(
+						NewFieldSelector("prefix"),
+						NewFieldSelector("field2"),
+					),
+					severity: ErrorSeverityWarning,
 				},
 				ValidationIssue{
-					Code:      "errcode3",
-					Component: "component3",
-					Message:   "error message 3",
-					Path:      "/prefix/prefix2/field3",
-					Severity:  ErrorSeverityCritical,
+					code:      "errcode3",
+					component: "component3",
+					message:   "error message 3",
+					field: NewFieldSelectors(
+						NewFieldSelector("prefix"),
+						NewFieldSelector("prefix2"),
+						NewFieldSelector("field3"),
+					),
+					severity: ErrorSeverityCritical,
 				},
 				ValidationIssue{
-					Code:      "errcode4",
-					Component: "component3",
-					Message:   "error message 4",
-					Path:      "/prefix/prefix2/prefix3/field4",
-					Severity:  ErrorSeverityWarning,
-					Attributes: map[string]interface{}{
+					code:      "errcode4",
+					component: "component3",
+					message:   "error message 4",
+					field: NewFieldSelectors(
+						NewFieldSelector("prefix"),
+						NewFieldSelector("prefix2"),
+						NewFieldSelector("prefix3"),
+						NewFieldSelector("field4"),
+					),
+					severity: ErrorSeverityWarning,
+					attributes: map[string]interface{}{
 						"attr1": "value1",
 					},
 				},
 				ValidationIssue{
-					Code:      "errcode5",
-					Component: "component4",
-					Message:   "error message 5",
-					Path:      "/field6",
-					Severity:  ErrorSeverityCritical,
+					code:      "errcode5",
+					component: "component4",
+					message:   "error message 5",
+					field: NewFieldSelectors(
+						NewFieldSelector("field5"),
+					),
+					severity: ErrorSeverityCritical,
 				},
 			},
 		},
@@ -371,10 +391,10 @@ func TestAsValidationIssues(t *testing.T) {
 func TestValidationIssues_AsError(t *testing.T) {
 	issues := ValidationIssues{
 		{
-			Severity:  ErrorSeverityCritical,
-			Message:   "error1",
-			Component: "component1",
-			Path:      "/some/path/from/component1",
+			severity:  ErrorSeverityCritical,
+			message:   "error1",
+			component: "component1",
+			field:     NewFieldSelectors(NewFieldSelector("field1")),
 		},
 	}
 

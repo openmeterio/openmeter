@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/samber/lo"
@@ -44,40 +45,79 @@ func (a Attributes) Merge(m Attributes) Attributes {
 	return r
 }
 
-type ErrorExtensions map[string]any
+type ErrorExtension map[string]any
 
-var _ error = (*ValidationIssue)(nil)
+var (
+	_ error          = (*ValidationIssue)(nil)
+	_ json.Marshaler = (*ValidationIssue)(nil)
+)
 
 type ValidationIssue struct {
-	Attributes Attributes    `json:"attributes,omitempty"`
-	Code       ErrorCode     `json:"code,omitempty"`
-	Component  ComponentName `json:"component,omitempty"`
-	Message    string        `json:"message"`
-	Path       string        `json:"path,omitempty"`
-	Severity   ErrorSeverity `json:"severity,omitempty"`
+	attributes Attributes
+	code       ErrorCode
+	component  ComponentName
+	message    string
+	field      FieldSelectors
+	severity   ErrorSeverity
+}
+
+func (i ValidationIssue) MarshalJSON() ([]byte, error) {
+	m := i.AsErrorExtension()
+
+	return json.Marshal(m)
 }
 
 func (i ValidationIssue) Clone() ValidationIssue {
 	return ValidationIssue{
-		Attributes: i.Attributes.Clone(),
-		Code:       i.Code,
-		Component:  i.Component,
-		Message:    i.Message,
-		Path:       i.Path,
-		Severity:   i.Severity,
+		attributes: i.attributes.Clone(),
+		code:       i.code,
+		component:  i.component,
+		message:    i.message,
+		field:      i.field,
+		severity:   i.severity,
 	}
 }
 
-func (i ValidationIssue) WithPath(path string) ValidationIssue {
+func (i ValidationIssue) Attributes() Attributes {
+	return i.attributes
+}
+
+func (i ValidationIssue) Code() ErrorCode {
+	return i.code
+}
+
+func (i ValidationIssue) Component() ComponentName {
+	return i.component
+}
+
+func (i ValidationIssue) Message() string {
+	return i.message
+}
+
+func (i ValidationIssue) Field() FieldSelectors {
+	return i.field
+}
+
+func (i ValidationIssue) Severity() ErrorSeverity {
+	return i.severity
+}
+
+func (i ValidationIssue) WithField(parts ...FieldSelector) ValidationIssue {
 	v := i.Clone()
-	v.Path = path
+	v.field = parts
 
 	return v
 }
 
+func (i ValidationIssue) WithPathString(parts ...string) ValidationIssue {
+	return i.WithField(lo.Map(parts, func(item string, _ int) FieldSelector {
+		return NewFieldSelector(item)
+	})...)
+}
+
 func (i ValidationIssue) WithSeverity(s ErrorSeverity) ValidationIssue {
 	v := i.Clone()
-	v.Severity = s
+	v.severity = s
 
 	return v
 }
@@ -94,44 +134,41 @@ func (i ValidationIssue) WithAttrs(attrs Attributes) ValidationIssue {
 	}
 
 	v := i.Clone()
-	v.Attributes = i.Attributes.Merge(attrs)
+	v.attributes = i.attributes.Merge(attrs)
 
 	return v
 }
 
 func (i ValidationIssue) Error() string {
-	return i.Message
+	return i.message
 }
 
-func (i ValidationIssue) AsErrorExtension() ErrorExtensions {
-	m := make(ErrorExtensions, len(i.Attributes)+5)
+func (i ValidationIssue) AsErrorExtension() ErrorExtension {
+	m := make(ErrorExtension, len(i.attributes)+5)
 
-	for k, v := range i.Attributes {
+	for k, v := range i.attributes {
 		switch k {
 		// NOTE: skip reserved keys
-		case "path", "code", "component", "severity", "message":
+		case "field", "code", "component", "severity", "message":
 		default:
 			m[k] = v
 		}
 	}
 
-	if i.Path != "" {
-		m["path"] = i.Path
+	if path := i.field.JSONPath(); path != "" {
+		m["field"] = i.field
 	}
 
-	if i.Code != "" {
-		m["code"] = i.Code
+	if i.code != "" {
+		m["code"] = i.code
 	}
 
-	if i.Component != "" {
-		m["component"] = string(i.Component)
+	if i.component != "" {
+		m["component"] = string(i.component)
 	}
 
-	if i.Severity != "" {
-		m["severity"] = string(i.Severity)
-	}
-
-	m["message"] = i.Message
+	m["message"] = i.message
+	m["severity"] = i.severity.String()
 
 	return m
 }
@@ -140,25 +177,33 @@ type ValidationIssueOption func(*ValidationIssue)
 
 func WithAttributes(attrs map[string]interface{}) ValidationIssueOption {
 	return func(i *ValidationIssue) {
-		i.Attributes = attrs
+		i.attributes = attrs
 	}
 }
 
 func WithComponent(component ComponentName) ValidationIssueOption {
 	return func(i *ValidationIssue) {
-		i.Component = component
+		i.component = component
 	}
 }
 
-func WithPath(parts ...string) ValidationIssueOption {
+func WithField(parts ...FieldSelector) ValidationIssueOption {
 	return func(i *ValidationIssue) {
-		i.Path = FieldPathFromParts(parts...)
+		i.field = parts
+	}
+}
+
+func WithFieldString(parts ...string) ValidationIssueOption {
+	return func(i *ValidationIssue) {
+		i.field = lo.Map(parts, func(item string, _ int) FieldSelector {
+			return NewFieldSelector(item)
+		})
 	}
 }
 
 func WithSeverity(severity ErrorSeverity) ValidationIssueOption {
 	return func(i *ValidationIssue) {
-		i.Severity = severity
+		i.severity = severity
 	}
 }
 
@@ -173,8 +218,8 @@ func WithWarningSeverity() ValidationIssueOption {
 // NewValidationIssue returns a new ValidationIssue with code and message.
 func NewValidationIssue(code ErrorCode, message string, opts ...ValidationIssueOption) ValidationIssue {
 	i := ValidationIssue{
-		Message: message,
-		Code:    code,
+		message: message,
+		code:    code,
 	}
 
 	for _, opt := range opts {
@@ -210,15 +255,32 @@ func (v ValidationIssues) AsError() error {
 	})...)
 }
 
+func (v ValidationIssues) AsErrorExtensions() []ErrorExtension {
+	return lo.Map(v, func(issue ValidationIssue, _ int) ErrorExtension {
+		return issue.AsErrorExtension()
+	})
+}
+
+func (v ValidationIssues) Error() string {
+	return v.AsError().Error()
+}
+
+func (v ValidationIssues) WithSeverityOrHigher(severity ErrorSeverity) ValidationIssues {
+	// NOTE: lower numeric values correspond to more severe errors.
+	return lo.Filter(v, func(issue ValidationIssue, _ int) bool {
+		return issue.Severity() <= severity
+	})
+}
+
 // AsValidationIssues returns a list of ValidationIssue from the input error or the errIn error in case:
 // * the errIn is `nil`
-// * any errors in the error tree that are not wrapped with WrapWithComponent or WrapWithFieldPrefix functions which are treated as critical errors
+// * any leaf errors in the error tree that are not wrapped with WrapWithComponent or WrapWithFieldPrefix functions are treated as critical errors
 func AsValidationIssues(errIn error) (ValidationIssues, error) {
 	if errIn == nil {
 		return nil, nil
 	}
 
-	issues, err := asValidationIssues(errIn, "", "", false)
+	issues, err := asValidationIssues(errIn, NewFieldSelectors(), "", false)
 	if err != nil {
 		return nil, errIn
 	}
@@ -226,7 +288,7 @@ func AsValidationIssues(errIn error) (ValidationIssues, error) {
 	return issues, nil
 }
 
-func asValidationIssues(err error, prefix string, component ComponentName, unknownAsValidationIssue bool) (ValidationIssues, error) {
+func asValidationIssues(err error, prefix FieldSelectors, component ComponentName, unknownAsValidationIssue bool) (ValidationIssues, error) {
 	if err == nil {
 		return nil, nil
 	}
@@ -235,22 +297,22 @@ func asValidationIssues(err error, prefix string, component ComponentName, unkno
 	case componentWrapper:
 		return asValidationIssues(e.err, prefix, e.component, true)
 	case fieldPrefixedWrapper:
-		return asValidationIssues(e.err, FieldPathFromParts(prefix, e.prefix), component, true)
+		return asValidationIssues(e.err, e.prefix.WithPrefix(prefix), component, true)
 	case ValidationIssue:
 		return ValidationIssues{
 			ValidationIssue{
-				Attributes: e.Attributes,
-				Code:       e.Code,
-				Component: func() ComponentName {
+				attributes: e.attributes,
+				code:       e.code,
+				component: func() ComponentName {
 					if component == "" {
-						return e.Component
+						return e.component
 					}
 
 					return component
 				}(),
-				Message:  e.Message,
-				Path:     FieldPathFromParts(prefix, e.Path),
-				Severity: e.Severity,
+				message:  e.message,
+				field:    e.field.WithPrefix(prefix),
+				severity: e.severity,
 			},
 		}, nil
 	}
@@ -279,10 +341,10 @@ func asValidationIssues(err error, prefix string, component ComponentName, unkno
 		if unknownAsValidationIssue {
 			return ValidationIssues{
 				ValidationIssue{
-					Component: component,
-					Message:   err.Error(),
-					Path:      prefix,
-					Severity:  ErrorSeverityCritical,
+					component: component,
+					message:   err.Error(),
+					field:     prefix,
+					severity:  ErrorSeverityCritical,
 				},
 			}, nil
 		}

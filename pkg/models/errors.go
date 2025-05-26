@@ -3,8 +3,6 @@ package models
 import (
 	"errors"
 	"fmt"
-	"path"
-	"strings"
 )
 
 // GenericError is an interface that all generic errors must implement.
@@ -295,39 +293,40 @@ type ComponentName string
 // ErrorCode is the machine-readable error code.
 type ErrorCode string
 
+const (
+	ErrorSeverityCritical ErrorSeverity = iota
+	ErrorSeverityWarning
+)
+
 // ErrorSeverity describes the severity of an error.
-type ErrorSeverity string
+type ErrorSeverity int8
+
+func (s ErrorSeverity) String() string {
+	switch s {
+	case ErrorSeverityCritical:
+		return "critical"
+	case ErrorSeverityWarning:
+		return "warning"
+	default:
+		return "invalid"
+	}
+}
 
 func (s ErrorSeverity) Values() []string {
 	return []string{
-		string(ErrorSeverityCritical),
-		string(ErrorSeverityWarning),
+		ErrorSeverityCritical.String(),
+		ErrorSeverityWarning.String(),
 	}
-}
-
-const (
-	ErrorSeverityCritical ErrorSeverity = "critical"
-	ErrorSeverityWarning  ErrorSeverity = "warning"
-)
-
-func FieldPathFromParts(parts ...string) string {
-	s := path.Join(parts...)
-
-	if s == "" {
-		return s
-	}
-
-	return path.Clean("/" + s)
 }
 
 type fieldPrefixedWrapper struct {
-	prefix string
+	prefix FieldSelectors
 	err    error
 }
 
 func (p fieldPrefixedWrapper) Error() string {
-	if prefix := strings.Trim(p.prefix, "/"); prefix != "" {
-		return "[" + prefix + "]: " + p.err.Error()
+	if p.prefix != nil {
+		return p.prefix.String() + ": " + p.err.Error()
 	}
 
 	return p.err.Error()
@@ -338,7 +337,7 @@ func (p fieldPrefixedWrapper) Unwrap() error {
 }
 
 // ErrorWithFieldPrefix wraps an error with a field prefix. It returns nil if err is also nil.
-func ErrorWithFieldPrefix(prefix string, err error) error {
+func ErrorWithFieldPrefix(prefix FieldSelectors, err error) error {
 	if err == nil {
 		return nil
 	}
@@ -352,7 +351,11 @@ type componentWrapper struct {
 }
 
 func (e componentWrapper) Error() string {
-	return string(e.component) + ": " + e.err.Error()
+	if e.component != "" {
+		return string(e.component) + ": " + e.err.Error()
+	}
+
+	return e.err.Error()
 }
 
 func (e componentWrapper) Unwrap() error {
