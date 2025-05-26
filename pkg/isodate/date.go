@@ -3,10 +3,10 @@
 package isodate
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
+	"github.com/govalues/decimal"
 	"github.com/rickb777/period"
 	"github.com/samber/lo"
 )
@@ -54,6 +54,41 @@ func (p Period) Normalise(exact bool) Period {
 	return Period{p.Period.Normalise(exact)}
 }
 
+func (p Period) Simplify(exact bool) Period {
+	return Period{p.Period.Simplify(exact)}
+}
+
+// InDays returns the value of the period in days
+func (p Period) InDays(daysInMonth int) (decimal.Decimal, error) {
+	years, err := p.Period.YearsDecimal().Mul(decimal.MustNew(int64(daysInMonth*12), 0))
+	if err != nil {
+		return decimal.Zero, err
+	}
+	months, err := p.Period.MonthsDecimal().Mul(decimal.MustNew(int64(daysInMonth), 0))
+	if err != nil {
+		return decimal.Zero, err
+	}
+	weeks, err := p.Period.WeeksDecimal().Mul(decimal.MustNew(7, 0))
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	v, err := years.Add(months)
+	if err != nil {
+		return decimal.Zero, err
+	}
+	v, err = v.Add(weeks)
+	if err != nil {
+		return decimal.Zero, err
+	}
+	v, err = v.Add(p.Period.DaysDecimal())
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	return v, nil
+}
+
 func (p Period) Add(p2 Period) (Period, error) {
 	s2 := period.ISOString(p2.String())
 	per2, err := period.Parse(string(s2))
@@ -74,41 +109,38 @@ func (p Period) Subtract(p2 Period) (Period, error) {
 	return Period{p3}, err
 }
 
-// FromDuration creates a Period from a time.Duration
-func PeriodsAlign(larger Period, smaller Period) (bool, error) {
-	p, err := larger.Subtract(smaller)
-	if err != nil {
-		return false, err
+// Compare returns -1 if p is less than p2, 0 if they are equal, and 1 if p is greater than p2
+func (p Period) Compare(p2 Period) int {
+	diff, _ := p.Period.Subtract(p2.Period)
+	return diff.Sign()
+}
+
+// DivisibleBy returns true if the period is divisible by the smaller period (in days).
+func (larger Period) DivisibleBy(smaller Period) (bool, error) {
+	l := larger.Simplify(true)
+	s := smaller.Simplify(true)
+
+	if l.IsZero() || s.IsZero() || l.Compare(s) < 0 {
+		return false, nil
 	}
 
-	if p.Sign() == -1 {
-		return false, fmt.Errorf("smaller period is larger than larger period")
-	}
-
-	per := smaller
-	for i := 1; i < MAX_SAFE_ITERATION_COUNT; i++ {
-		per, err = per.Add(smaller)
+	testDaysInMonth := []int{28, 29, 30, 31}
+	for _, daysInMonth := range testDaysInMonth {
+		// replace months with days
+		ldays, err := l.InDays(daysInMonth)
 		if err != nil {
 			return false, err
 		}
-
-		diff, err := larger.Subtract(per)
+		sdays, err := s.InDays(daysInMonth)
 		if err != nil {
 			return false, err
 		}
-
-		// It's an exact match
-		if diff.Sign() == 0 {
-			return true, nil
-		}
-
-		// We've overshot without a match
-		if diff.Sign() == -1 {
-			return false, nil
+		if _, r, err := ldays.QuoRem(sdays); err != nil || !r.IsZero() {
+			return false, err
 		}
 	}
 
-	return false, nil
+	return true, nil
 }
 
 func Between(start time.Time, end time.Time) Period {

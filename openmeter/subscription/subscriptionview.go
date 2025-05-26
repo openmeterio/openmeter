@@ -238,7 +238,12 @@ func NewSubscriptionView(
 	itemFeats []feature.Feature,
 ) (*SubscriptionView, error) {
 	spec := SubscriptionSpec{
-		CreateSubscriptionPlanInput: CreateSubscriptionPlanInput{Plan: sub.PlanRef, Alignment: sub.Alignment},
+		CreateSubscriptionPlanInput: CreateSubscriptionPlanInput{
+			Plan:            sub.PlanRef,
+			Alignment:       sub.Alignment,
+			BillingCadence:  sub.BillingCadence,
+			ProRatingConfig: sub.ProRatingConfig,
+		},
 		CreateSubscriptionCustomerInput: CreateSubscriptionCustomerInput{
 			CustomerId:    sub.CustomerId,
 			Currency:      sub.Currency,

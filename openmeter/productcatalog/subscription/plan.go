@@ -71,8 +71,10 @@ func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPl
 	}
 
 	return subscription.CreateSubscriptionPlanInput{
-		Plan:      ref,
-		Alignment: p.Alignment,
+		Plan:            ref,
+		Alignment:       p.Alignment,
+		BillingCadence:  p.BillingCadence,
+		ProRatingConfig: p.ProRatingConfig,
 	}
 }
 

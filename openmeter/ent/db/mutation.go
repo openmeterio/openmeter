@@ -38671,6 +38671,8 @@ type PlanMutation struct {
 	version              *int
 	addversion           *int
 	currency             *string
+	billing_cadence      *isodate.String
+	pro_rating_config    *productcatalog.ProRatingConfig
 	effective_from       *time.Time
 	effective_to         *time.Time
 	clearedFields        map[string]struct{}
@@ -39247,6 +39249,78 @@ func (m *PlanMutation) ResetCurrency() {
 	m.currency = nil
 }
 
+// SetBillingCadence sets the "billing_cadence" field.
+func (m *PlanMutation) SetBillingCadence(i isodate.String) {
+	m.billing_cadence = &i
+}
+
+// BillingCadence returns the value of the "billing_cadence" field in the mutation.
+func (m *PlanMutation) BillingCadence() (r isodate.String, exists bool) {
+	v := m.billing_cadence
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillingCadence returns the old "billing_cadence" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldBillingCadence(ctx context.Context) (v isodate.String, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillingCadence is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillingCadence requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillingCadence: %w", err)
+	}
+	return oldValue.BillingCadence, nil
+}
+
+// ResetBillingCadence resets all changes to the "billing_cadence" field.
+func (m *PlanMutation) ResetBillingCadence() {
+	m.billing_cadence = nil
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (m *PlanMutation) SetProRatingConfig(prc productcatalog.ProRatingConfig) {
+	m.pro_rating_config = &prc
+}
+
+// ProRatingConfig returns the value of the "pro_rating_config" field in the mutation.
+func (m *PlanMutation) ProRatingConfig() (r productcatalog.ProRatingConfig, exists bool) {
+	v := m.pro_rating_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProRatingConfig returns the old "pro_rating_config" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldProRatingConfig(ctx context.Context) (v productcatalog.ProRatingConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProRatingConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProRatingConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProRatingConfig: %w", err)
+	}
+	return oldValue.ProRatingConfig, nil
+}
+
+// ResetProRatingConfig resets all changes to the "pro_rating_config" field.
+func (m *PlanMutation) ResetProRatingConfig() {
+	m.pro_rating_config = nil
+}
+
 // SetEffectiveFrom sets the "effective_from" field.
 func (m *PlanMutation) SetEffectiveFrom(t time.Time) {
 	m.effective_from = &t
@@ -39541,7 +39615,7 @@ func (m *PlanMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 15)
 	if m.namespace != nil {
 		fields = append(fields, plan.FieldNamespace)
 	}
@@ -39574,6 +39648,12 @@ func (m *PlanMutation) Fields() []string {
 	}
 	if m.currency != nil {
 		fields = append(fields, plan.FieldCurrency)
+	}
+	if m.billing_cadence != nil {
+		fields = append(fields, plan.FieldBillingCadence)
+	}
+	if m.pro_rating_config != nil {
+		fields = append(fields, plan.FieldProRatingConfig)
 	}
 	if m.effective_from != nil {
 		fields = append(fields, plan.FieldEffectiveFrom)
@@ -39611,6 +39691,10 @@ func (m *PlanMutation) Field(name string) (ent.Value, bool) {
 		return m.Version()
 	case plan.FieldCurrency:
 		return m.Currency()
+	case plan.FieldBillingCadence:
+		return m.BillingCadence()
+	case plan.FieldProRatingConfig:
+		return m.ProRatingConfig()
 	case plan.FieldEffectiveFrom:
 		return m.EffectiveFrom()
 	case plan.FieldEffectiveTo:
@@ -39646,6 +39730,10 @@ func (m *PlanMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldVersion(ctx)
 	case plan.FieldCurrency:
 		return m.OldCurrency(ctx)
+	case plan.FieldBillingCadence:
+		return m.OldBillingCadence(ctx)
+	case plan.FieldProRatingConfig:
+		return m.OldProRatingConfig(ctx)
 	case plan.FieldEffectiveFrom:
 		return m.OldEffectiveFrom(ctx)
 	case plan.FieldEffectiveTo:
@@ -39735,6 +39823,20 @@ func (m *PlanMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
+		return nil
+	case plan.FieldBillingCadence:
+		v, ok := value.(isodate.String)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillingCadence(v)
+		return nil
+	case plan.FieldProRatingConfig:
+		v, ok := value.(productcatalog.ProRatingConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProRatingConfig(v)
 		return nil
 	case plan.FieldEffectiveFrom:
 		v, ok := value.(time.Time)
@@ -39879,6 +39981,12 @@ func (m *PlanMutation) ResetField(name string) error {
 		return nil
 	case plan.FieldCurrency:
 		m.ResetCurrency()
+		return nil
+	case plan.FieldBillingCadence:
+		m.ResetBillingCadence()
+		return nil
+	case plan.FieldProRatingConfig:
+		m.ResetProRatingConfig()
 		return nil
 	case plan.FieldEffectiveFrom:
 		m.ResetEffectiveFrom()
@@ -44421,6 +44529,8 @@ type SubscriptionMutation struct {
 	name                 *string
 	description          *string
 	currency             *currencyx.Code
+	billing_cadence      *isodate.String
+	pro_rating_config    *productcatalog.ProRatingConfig
 	clearedFields        map[string]struct{}
 	plan                 *string
 	clearedplan          bool
@@ -45077,6 +45187,78 @@ func (m *SubscriptionMutation) ResetCurrency() {
 	m.currency = nil
 }
 
+// SetBillingCadence sets the "billing_cadence" field.
+func (m *SubscriptionMutation) SetBillingCadence(i isodate.String) {
+	m.billing_cadence = &i
+}
+
+// BillingCadence returns the value of the "billing_cadence" field in the mutation.
+func (m *SubscriptionMutation) BillingCadence() (r isodate.String, exists bool) {
+	v := m.billing_cadence
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillingCadence returns the old "billing_cadence" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldBillingCadence(ctx context.Context) (v isodate.String, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillingCadence is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillingCadence requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillingCadence: %w", err)
+	}
+	return oldValue.BillingCadence, nil
+}
+
+// ResetBillingCadence resets all changes to the "billing_cadence" field.
+func (m *SubscriptionMutation) ResetBillingCadence() {
+	m.billing_cadence = nil
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (m *SubscriptionMutation) SetProRatingConfig(prc productcatalog.ProRatingConfig) {
+	m.pro_rating_config = &prc
+}
+
+// ProRatingConfig returns the value of the "pro_rating_config" field in the mutation.
+func (m *SubscriptionMutation) ProRatingConfig() (r productcatalog.ProRatingConfig, exists bool) {
+	v := m.pro_rating_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProRatingConfig returns the old "pro_rating_config" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldProRatingConfig(ctx context.Context) (v productcatalog.ProRatingConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProRatingConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProRatingConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProRatingConfig: %w", err)
+	}
+	return oldValue.ProRatingConfig, nil
+}
+
+// ResetProRatingConfig resets all changes to the "pro_rating_config" field.
+func (m *SubscriptionMutation) ResetProRatingConfig() {
+	m.pro_rating_config = nil
+}
+
 // ClearPlan clears the "plan" edge to the Plan entity.
 func (m *SubscriptionMutation) ClearPlan() {
 	m.clearedplan = true
@@ -45327,7 +45509,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 15)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -45367,6 +45549,12 @@ func (m *SubscriptionMutation) Fields() []string {
 	if m.currency != nil {
 		fields = append(fields, subscription.FieldCurrency)
 	}
+	if m.billing_cadence != nil {
+		fields = append(fields, subscription.FieldBillingCadence)
+	}
+	if m.pro_rating_config != nil {
+		fields = append(fields, subscription.FieldProRatingConfig)
+	}
 	return fields
 }
 
@@ -45401,6 +45589,10 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.CustomerID()
 	case subscription.FieldCurrency:
 		return m.Currency()
+	case subscription.FieldBillingCadence:
+		return m.BillingCadence()
+	case subscription.FieldProRatingConfig:
+		return m.ProRatingConfig()
 	}
 	return nil, false
 }
@@ -45436,6 +45628,10 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldCustomerID(ctx)
 	case subscription.FieldCurrency:
 		return m.OldCurrency(ctx)
+	case subscription.FieldBillingCadence:
+		return m.OldBillingCadence(ctx)
+	case subscription.FieldProRatingConfig:
+		return m.OldProRatingConfig(ctx)
 	}
 	return nil, fmt.Errorf("unknown Subscription field %s", name)
 }
@@ -45535,6 +45731,20 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
+		return nil
+	case subscription.FieldBillingCadence:
+		v, ok := value.(isodate.String)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillingCadence(v)
+		return nil
+	case subscription.FieldProRatingConfig:
+		v, ok := value.(productcatalog.ProRatingConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProRatingConfig(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription field %s", name)
@@ -45656,6 +45866,12 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 		return nil
 	case subscription.FieldCurrency:
 		m.ResetCurrency()
+		return nil
+	case subscription.FieldBillingCadence:
+		m.ResetBillingCadence()
+		return nil
+	case subscription.FieldProRatingConfig:
+		m.ResetProRatingConfig()
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription field %s", name)
