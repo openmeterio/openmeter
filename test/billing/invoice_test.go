@@ -178,7 +178,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 						Name: "Test item - HUF",
 
 						PerUnitAmount: alpacadecimal.NewFromFloat(200),
-						Quantity:      alpacadecimal.NewFromFloat(3),
+						Quantity:      alpacadecimal.NewFromFloat(1),
 						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 					}),
 					{
@@ -493,7 +493,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 					Name: "Test item2",
 
 					PerUnitAmount: alpacadecimal.NewFromFloat(200),
-					Quantity:      alpacadecimal.NewFromFloat(3),
+					Quantity:      alpacadecimal.NewFromFloat(1),
 					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 				}),
 			},

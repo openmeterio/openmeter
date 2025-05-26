@@ -367,7 +367,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 					},
 					FlatFee: &billing.FlatFeeLine{
 						PerUnitAmount: alpacadecimal.NewFromFloat(200),
-						Quantity:      alpacadecimal.NewFromFloat(3),
+						Quantity:      alpacadecimal.NewFromFloat(1),
 						Category:      billing.FlatFeeCategoryRegular,
 						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 					},
