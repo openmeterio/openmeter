@@ -32,6 +32,7 @@ const (
 type FeatureFlags struct {
 	EnableFlatFeeInAdvanceProrating bool
 	EnableFlatFeeInArrearsProrating bool
+	UseUsageBasedFlatFeeLines       bool
 }
 
 type Config struct {
@@ -515,12 +516,20 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			return nil, nil
 		}
 
-		line.Type = billing.InvoiceLineTypeFee
-		line.FlatFee = &billing.FlatFeeLine{
-			PerUnitAmount: perUnitAmount,
-			Quantity:      alpacadecimal.NewFromInt(1),
-			PaymentTerm:   price.PaymentTerm,
-			Category:      billing.FlatFeeCategoryRegular,
+		if !h.featureFlags.UseUsageBasedFlatFeeLines {
+			line.Type = billing.InvoiceLineTypeFee
+			line.FlatFee = &billing.FlatFeeLine{
+				PerUnitAmount: perUnitAmount,
+				Quantity:      alpacadecimal.NewFromInt(1),
+				PaymentTerm:   price.PaymentTerm,
+				Category:      billing.FlatFeeCategoryRegular,
+			}
+		} else {
+			line.Type = billing.InvoiceLineTypeUsageBased
+			line.UsageBased = &billing.UsageBasedLine{
+				Price:      item.SubscriptionItem.RateCard.AsMeta().Price,
+				FeatureKey: lo.FromPtr(item.SubscriptionItem.RateCard.AsMeta().FeatureKey),
+			}
 		}
 
 	default:
@@ -613,13 +622,17 @@ func (h *Handler) inScopeLinePatches(existingLine *billing.Line, expectedLine *b
 			return nil, nil
 		}
 
-		mergedLine, wasChange := h.mergeChangesFromLine(h.cloneLineForUpsert(existingLine), expectedLine)
-		if !wasChange {
+		mergeResult, err := h.mergeChangesFromLine(h.cloneLineForUpsert(existingLine), expectedLine)
+		if err != nil {
+			return nil, fmt.Errorf("merging changes from line: %w", err)
+		}
+
+		if !mergeResult.WasChange {
 			return nil, nil
 		}
 
 		return []linePatch{
-			patchFromLine(patchOpUpdate, mergedLine),
+			patchFromLine(patchOpUpdate, mergeResult.Line),
 		}, nil
 	}
 
@@ -740,7 +753,12 @@ func setIfDoesNotEqual[T typeWithEqual[T]](existing *T, expected T, wasChange *b
 	}
 }
 
-func (h *Handler) mergeChangesFromLine(existingLine *billing.Line, expectedLine *billing.Line) (*billing.Line, bool) {
+type mergeLineResult struct {
+	Line      *billing.Line
+	WasChange bool
+}
+
+func (h *Handler) mergeChangesFromLine(existingLine *billing.Line, expectedLine *billing.Line) (mergeLineResult, error) {
 	// We assume that only the period can change, maybe some pricing data due to prorating (for flat lines)
 
 	wasChange := false
@@ -753,12 +771,34 @@ func (h *Handler) mergeChangesFromLine(existingLine *billing.Line, expectedLine 
 		wasChange = true
 	}
 
-	// Let's handle the flat fee prorating
-	if existingLine.Type == billing.InvoiceLineTypeFee {
-		setIfDoesNotEqual(&existingLine.FlatFee.PerUnitAmount, expectedLine.FlatFee.PerUnitAmount, &wasChange)
+	// Let's handle the flat fee prorating (e.g. syncronizing the amount maybe in retrospect)
+	if isFlatFee(existingLine) {
+		if !isFlatFee(expectedLine) {
+			return mergeLineResult{}, errors.New("cannot merge flat fee line with usage based line")
+		}
+
+		perUnitAmountExisting, err := getFlatFeePerUnitAmount(existingLine)
+		if err != nil {
+			return mergeLineResult{}, fmt.Errorf("getting flat fee per unit amount: %w", err)
+		}
+
+		perUnitAmountExpected, err := getFlatFeePerUnitAmount(expectedLine)
+		if err != nil {
+			return mergeLineResult{}, fmt.Errorf("getting flat fee per unit amount: %w", err)
+		}
+
+		if !perUnitAmountExisting.Equal(perUnitAmountExpected) {
+			if err := setFlatFeePerUnitAmount(existingLine, perUnitAmountExpected); err != nil {
+				return mergeLineResult{}, fmt.Errorf("setting flat fee per unit amount: %w", err)
+			}
+			wasChange = true
+		}
 	}
 
-	return existingLine, wasChange
+	return mergeLineResult{
+		Line:      existingLine,
+		WasChange: wasChange,
+	}, nil
 }
 
 func (h *Handler) updateMutableInvoice(ctx context.Context, invoice billing.Invoice, patches []linePatch) error {
