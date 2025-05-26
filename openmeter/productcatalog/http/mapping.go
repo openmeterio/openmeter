@@ -67,7 +67,7 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			EntitlementTemplate: lo.EmptyableToPtr(tmpl),
 			FeatureKey:          featureKey,
 			Key:                 meta.Key,
-			Metadata:            lo.EmptyableToPtr(api.Metadata(meta.Metadata)),
+			Metadata:            FromMetadata(meta.Metadata),
 			Name:                meta.Name,
 			Price:               price,
 			TaxConfig:           taxConfig,
@@ -885,4 +885,53 @@ func AsTaxConfig(c api.TaxConfig) productcatalog.TaxConfig {
 	}
 
 	return tc
+}
+
+func FromMetadata(metadata models.Metadata) *api.Metadata {
+	if len(metadata) == 0 {
+		return nil
+	}
+
+	result := make(api.Metadata)
+	if len(metadata) > 0 {
+		for k, v := range metadata {
+			result[k] = v
+		}
+	}
+
+	return &result
+}
+
+func FromAnnotations(annotations models.Annotations) *api.Annotations {
+	if len(annotations) == 0 {
+		return nil
+	}
+
+	result := make(api.Annotations)
+	if len(annotations) > 0 {
+		for k, v := range annotations {
+			result[k] = v
+		}
+	}
+
+	return &result
+}
+
+func FromValidationErrors(issues models.ValidationIssues) *[]api.ValidationError {
+	if len(issues) == 0 {
+		return nil
+	}
+
+	var result []api.ValidationError
+
+	for _, issue := range issues {
+		result = append(result, api.ValidationError{
+			Message:    issue.Message(),
+			Field:      issue.Field().JSONPath(),
+			Code:       string(issue.Code()),
+			Attributes: FromAnnotations(issue.Attributes()),
+		})
+	}
+
+	return &result
 }

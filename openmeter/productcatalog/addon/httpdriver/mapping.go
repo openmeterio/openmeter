@@ -14,21 +14,24 @@ import (
 )
 
 func FromAddon(a addon.Addon) (api.Addon, error) {
+	validationIssues, _ := a.AsProductCatalogAddon().ValidationErrors()
+
 	resp := api.Addon{
-		CreatedAt:     a.CreatedAt,
-		Currency:      a.Currency.String(),
-		DeletedAt:     a.DeletedAt,
-		Description:   a.Description,
-		InstanceType:  api.AddonInstanceType(a.InstanceType),
-		EffectiveFrom: a.EffectiveFrom,
-		EffectiveTo:   a.EffectiveTo,
-		Id:            a.ID,
-		Key:           a.Key,
-		Metadata:      lo.EmptyableToPtr(api.Metadata(a.Metadata)),
-		Annotations:   lo.EmptyableToPtr(api.Annotations(a.Annotations)),
-		Name:          a.Name,
-		UpdatedAt:     a.UpdatedAt,
-		Version:       a.Version,
+		CreatedAt:        a.CreatedAt,
+		Currency:         a.Currency.String(),
+		DeletedAt:        a.DeletedAt,
+		Description:      a.Description,
+		InstanceType:     api.AddonInstanceType(a.InstanceType),
+		EffectiveFrom:    a.EffectiveFrom,
+		EffectiveTo:      a.EffectiveTo,
+		Id:               a.ID,
+		Key:              a.Key,
+		Metadata:         http.FromMetadata(a.Metadata),
+		Annotations:      http.FromAnnotations(a.Annotations),
+		Name:             a.Name,
+		UpdatedAt:        a.UpdatedAt,
+		Version:          a.Version,
+		ValidationErrors: http.FromValidationErrors(validationIssues),
 	}
 
 	resp.RateCards = make([]api.RateCard, 0, len(a.RateCards))

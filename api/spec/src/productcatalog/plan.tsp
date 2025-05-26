@@ -116,6 +116,13 @@ model Plan {
   @summary("Plan phases")
   @minItems(1)
   phases: PlanPhase[];
+
+  /**
+   * List of validation errors.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Validation errors")
+  validationErrors: ValidationError[] | null;
 }
 
 /**

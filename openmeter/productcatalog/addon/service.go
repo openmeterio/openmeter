@@ -93,25 +93,42 @@ type ListAddonsStatusFilter struct {
 	Archived bool
 }
 
+type inputOptions struct {
+	// ignoreNonCriticalIssues makes Validate() return errors with critical severity or higher.
+	// This allows creating resource with expected validation issues.
+	IgnoreNonCriticalIssues bool
+}
+
 var _ models.Validator = (*CreateAddonInput)(nil)
 
 type CreateAddonInput struct {
 	models.NamespacedModel
 	productcatalog.Addon
+
+	inputOptions
 }
 
 func (i CreateAddonInput) Validate() error {
 	var errs []error
 
-	if err := i.NamespacedModel.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid namespace: %w", err))
+	if i.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
 	if err := i.Addon.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("invalid add-on: %w", err))
 	}
 
-	return errors.Join(errs...)
+	issues, err := models.AsValidationIssues(errors.Join(errs...))
+	if err != nil {
+		return models.NewGenericValidationError(err)
+	}
+
+	if i.IgnoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
 var (
@@ -142,6 +159,8 @@ type UpdateAddonInput struct {
 
 	// RateCards
 	RateCards *productcatalog.RateCards `json:"rateCards,omitempty"`
+
+	inputOptions
 }
 
 func (i UpdateAddonInput) Equal(p Addon) bool {
@@ -184,11 +203,15 @@ func (i UpdateAddonInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
-		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
+	}
+
+	if i.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
 	}
 
 	if i.Name != nil && *i.Name == "" {
-		return errors.New("invalid Name: must not be empty")
+		errs = append(errs, productcatalog.ErrResourceNameEmpty)
 	}
 
 	if i.EffectiveFrom != nil || i.EffectiveTo != nil {
@@ -199,29 +222,26 @@ func (i UpdateAddonInput) Validate() error {
 
 	if i.InstanceType != nil {
 		if err := i.InstanceType.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid InstanceType: %w", err))
+			errs = append(errs, err)
 		}
 	}
 
 	if i.RateCards != nil {
-		// Check for
-		// * duplicated rate card keys
-		// * invalid RateCards
-		rateCardKeys := make(map[string]productcatalog.RateCard)
-		for _, rateCard := range *i.RateCards {
-			if _, ok := rateCardKeys[rateCard.Key()]; ok {
-				errs = append(errs, fmt.Errorf("duplicated ratecard: %s", rateCard.Key()))
-			} else {
-				rateCardKeys[rateCard.Key()] = rateCard
-			}
-
-			if err := rateCard.Validate(); err != nil {
-				errs = append(errs, fmt.Errorf("invalid ratecard: %w", err))
-			}
+		if err := i.RateCards.Validate(); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	issues, err := models.AsValidationIssues(errors.Join(errs...))
+	if err != nil {
+		return models.NewGenericValidationError(err)
+	}
+
+	if i.IgnoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
 type ExpandFields struct {
@@ -249,18 +269,14 @@ func (i GetAddonInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
-		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
 	if i.ID == "" && i.Key == "" {
-		errs = append(errs, errors.New("either ID or Key must be provided"))
+		errs = append(errs, errors.New("either add-on id or key must be provided"))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type DeleteAddonInput struct {
@@ -270,11 +286,15 @@ type DeleteAddonInput struct {
 func (i DeleteAddonInput) Validate() error {
 	var errs []error
 
-	if err := i.NamespacedID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid Namespace: %w", err))
+	if i.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
-	return errors.Join(errs...)
+	if i.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type PublishAddonInput struct {
@@ -287,8 +307,12 @@ type PublishAddonInput struct {
 func (i PublishAddonInput) Validate() error {
 	var errs []error
 
-	if err := i.NamespacedID.Validate(); err != nil {
-		errs = append(errs, err)
+	if i.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
+	}
+
+	if i.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
 	}
 
 	now := clock.Now()
@@ -331,8 +355,12 @@ type ArchiveAddonInput struct {
 func (i ArchiveAddonInput) Validate() error {
 	var errs []error
 
-	if err := i.NamespacedID.Validate(); err != nil {
-		errs = append(errs, err)
+	if i.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
+	}
+
+	if i.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
 	}
 
 	if i.EffectiveTo.IsZero() {
