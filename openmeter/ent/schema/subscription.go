@@ -37,6 +37,22 @@ func (Subscription) Fields() []ent.Field {
 		field.String("plan_id").Optional().Nillable(),
 		field.String("customer_id").NotEmpty().Immutable(),
 		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).NotEmpty().Immutable(),
+		field.String("billing_cadence").
+			GoType(isodate.String("")).
+			Comment("The default billing cadence for subscriptions."),
+		field.String("pro_rating_config").
+			GoType(productcatalog.ProRatingConfig{}).
+			ValueScanner(ProRatingConfigValueScanner).
+			DefaultFunc(func() productcatalog.ProRatingConfig {
+				return productcatalog.ProRatingConfig{
+					Mode:    productcatalog.ProRatingModeProratePrices,
+					Enabled: true,
+				}
+			}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Comment("Default pro-rating configuration for subscriptions."),
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -102,10 +103,66 @@ func ValidatePlanPhases() models.ValidatorFunc[Plan] {
 	}
 }
 
+// ValidatePlanHasAlignedBillingCadences validates that the billing cadence of the plan is aligned with the billing cadence of the rate cards.
+func ValidatePlanHasAlignedBillingCadences() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		var errs []error
+
+		// TODO: remove this once we remove alignment setting
+		// We skip this validation if the alignment is not enabled
+		if !p.BillablesMustAlign {
+			return nil
+		}
+
+		for _, phase := range p.Phases {
+			for _, rateCard := range phase.RateCards.Billables() {
+				rateCardFieldSelector := models.NewFieldSelectors(
+					models.NewFieldSelector("phases").
+						WithExpression(
+							models.NewFieldAttrValue("key", phase.Key),
+						),
+					models.NewFieldSelector("rateCards").
+						WithExpression(
+							models.NewFieldAttrValue("key", rateCard.Key()),
+						),
+				)
+
+				if rateCard.GetBillingCadence() != nil {
+					rateCardBillingCadence := lo.FromPtr(rateCard.GetBillingCadence())
+
+					switch p.BillingCadence.Compare(rateCardBillingCadence) {
+					case 0:
+						continue
+					case 1:
+						d, err := p.BillingCadence.DivisibleBy(rateCardBillingCadence)
+						if err != nil {
+							errs = append(errs, err)
+						}
+						if !d {
+							errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrPlanBillingCadenceNotCompatible))
+						}
+					case -1:
+						d, err := rateCardBillingCadence.DivisibleBy(p.BillingCadence)
+						if err != nil {
+							errs = append(errs, err)
+						}
+						if !d {
+							errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrPlanBillingCadenceNotCompatible))
+						}
+					}
+				}
+			}
+		}
+
+		return errors.Join(errs...)
+	}
+}
+
 func (p Plan) Validate() error {
 	return p.ValidateWith(
 		ValidatePlanMeta(),
 		ValidatePlanPhases(),
+		ValidatePlanHasAlignedBillingCadences(),
 	)
 }
 
@@ -153,6 +210,12 @@ type PlanMeta struct {
 	// Currency
 	Currency currency.Code `json:"currency"`
 
+	// BillingCadence is the default billing cadence for subscriptions using this plan.
+	BillingCadence isodate.Period `json:"billing_cadence"`
+
+	// ProRatingConfig is the default pro-rating configuration for subscriptions using this plan.
+	ProRatingConfig ProRatingConfig `json:"pro_rating_config"`
+
 	// Metadata
 	Metadata models.Metadata `json:"metadata,omitempty"`
 }
@@ -177,6 +240,14 @@ func (p PlanMeta) Validate() error {
 		errs = append(errs, ErrResourceNameEmpty)
 	}
 
+	if p.BillingCadence.IsZero() {
+		errs = append(errs, fmt.Errorf("invalid BillingCadence: must not be empty"))
+	}
+
+	if err := p.ProRatingConfig.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid ProRatingConfig: %s", err))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -199,6 +270,14 @@ func (p PlanMeta) Equal(o PlanMeta) bool {
 	}
 
 	if p.Currency != o.Currency {
+		return false
+	}
+
+	if p.BillingCadence != o.BillingCadence {
+		return false
+	}
+
+	if !p.ProRatingConfig.Equal(o.ProRatingConfig) {
 		return false
 	}
 

@@ -141,6 +141,15 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 
+	aligned, err := spec.HasAlignedBillingCadences()
+	if err != nil {
+		return subscription.SubscriptionView{}, fmt.Errorf("failed to validate billing cadences: %w", err)
+	}
+
+	if !aligned {
+		return subscription.SubscriptionView{}, models.NewGenericValidationError(fmt.Errorf("billing cadences are not aligned"))
+	}
+
 	// Finally, let's update the subscription
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
 		sub, err := s.Service.Update(ctx, subscriptionID, spec)

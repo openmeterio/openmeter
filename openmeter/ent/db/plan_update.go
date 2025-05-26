@@ -16,6 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // PlanUpdate is the builder for updating Plan entities.
@@ -135,6 +137,34 @@ func (_u *PlanUpdate) SetNillableVersion(v *int) *PlanUpdate {
 // AddVersion adds value to the "version" field.
 func (_u *PlanUpdate) AddVersion(v int) *PlanUpdate {
 	_u.mutation.AddVersion(v)
+	return _u
+}
+
+// SetBillingCadence sets the "billing_cadence" field.
+func (_u *PlanUpdate) SetBillingCadence(v isodate.String) *PlanUpdate {
+	_u.mutation.SetBillingCadence(v)
+	return _u
+}
+
+// SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
+func (_u *PlanUpdate) SetNillableBillingCadence(v *isodate.String) *PlanUpdate {
+	if v != nil {
+		_u.SetBillingCadence(*v)
+	}
+	return _u
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (_u *PlanUpdate) SetProRatingConfig(v productcatalog.ProRatingConfig) *PlanUpdate {
+	_u.mutation.SetProRatingConfig(v)
+	return _u
+}
+
+// SetNillableProRatingConfig sets the "pro_rating_config" field if the given value is not nil.
+func (_u *PlanUpdate) SetNillableProRatingConfig(v *productcatalog.ProRatingConfig) *PlanUpdate {
+	if v != nil {
+		_u.SetProRatingConfig(*v)
+	}
 	return _u
 }
 
@@ -334,6 +364,11 @@ func (_u *PlanUpdate) check() error {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`db: validator failed for field "Plan.version": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ProRatingConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "pro_rating_config", err: fmt.Errorf(`db: validator failed for field "Plan.pro_rating_config": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -381,6 +416,16 @@ func (_u *PlanUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedVersion(); ok {
 		_spec.AddField(plan.FieldVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.BillingCadence(); ok {
+		_spec.SetField(plan.FieldBillingCadence, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ProRatingConfig(); ok {
+		vv, err := plan.ValueScanner.ProRatingConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(plan.FieldProRatingConfig, field.TypeString, vv)
 	}
 	if value, ok := _u.mutation.EffectiveFrom(); ok {
 		_spec.SetField(plan.FieldEffectiveFrom, field.TypeTime, value)
@@ -656,6 +701,34 @@ func (_u *PlanUpdateOne) AddVersion(v int) *PlanUpdateOne {
 	return _u
 }
 
+// SetBillingCadence sets the "billing_cadence" field.
+func (_u *PlanUpdateOne) SetBillingCadence(v isodate.String) *PlanUpdateOne {
+	_u.mutation.SetBillingCadence(v)
+	return _u
+}
+
+// SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
+func (_u *PlanUpdateOne) SetNillableBillingCadence(v *isodate.String) *PlanUpdateOne {
+	if v != nil {
+		_u.SetBillingCadence(*v)
+	}
+	return _u
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (_u *PlanUpdateOne) SetProRatingConfig(v productcatalog.ProRatingConfig) *PlanUpdateOne {
+	_u.mutation.SetProRatingConfig(v)
+	return _u
+}
+
+// SetNillableProRatingConfig sets the "pro_rating_config" field if the given value is not nil.
+func (_u *PlanUpdateOne) SetNillableProRatingConfig(v *productcatalog.ProRatingConfig) *PlanUpdateOne {
+	if v != nil {
+		_u.SetProRatingConfig(*v)
+	}
+	return _u
+}
+
 // SetEffectiveFrom sets the "effective_from" field.
 func (_u *PlanUpdateOne) SetEffectiveFrom(v time.Time) *PlanUpdateOne {
 	_u.mutation.SetEffectiveFrom(v)
@@ -865,6 +938,11 @@ func (_u *PlanUpdateOne) check() error {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`db: validator failed for field "Plan.version": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ProRatingConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "pro_rating_config", err: fmt.Errorf(`db: validator failed for field "Plan.pro_rating_config": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -929,6 +1007,16 @@ func (_u *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) {
 	}
 	if value, ok := _u.mutation.AddedVersion(); ok {
 		_spec.AddField(plan.FieldVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.BillingCadence(); ok {
+		_spec.SetField(plan.FieldBillingCadence, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ProRatingConfig(); ok {
+		vv, err := plan.ValueScanner.ProRatingConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(plan.FieldProRatingConfig, field.TypeString, vv)
 	}
 	if value, ok := _u.mutation.EffectiveFrom(); ok {
 		_spec.SetField(plan.FieldEffectiveFrom, field.TypeTime, value)

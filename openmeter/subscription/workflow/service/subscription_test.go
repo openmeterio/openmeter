@@ -25,6 +25,7 @@ import (
 	workflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -859,10 +860,15 @@ func TestChangeToPlan(t *testing.T) {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan 2",
-				Key:      "test_plan_2",
-				Version:  1,
-				Currency: currency.USD,
+				Name:           "Test Plan 2",
+				Key:            "test_plan_2",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(t, "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: []productcatalog.Phase{
 				{

@@ -28,6 +28,11 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		ref.Id = sub.Edges.Plan.ID
 	}
 
+	billingCadence, err := sub.BillingCadence.Parse()
+	if err != nil {
+		return subscription.Subscription{}, fmt.Errorf("failed to parse billing cadence: %w", err)
+	}
+
 	return subscription.Subscription{
 		NamespacedID: models.NamespacedID{
 			ID:        sub.ID,
@@ -48,11 +53,13 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		Alignment: productcatalog.Alignment{
 			BillablesMustAlign: sub.BillablesMustAlign,
 		},
-		PlanRef:     ref,
-		Name:        sub.Name,
-		Description: sub.Description,
-		CustomerId:  sub.CustomerID,
-		Currency:    sub.Currency,
+		PlanRef:         ref,
+		Name:            sub.Name,
+		Description:     sub.Description,
+		CustomerId:      sub.CustomerID,
+		Currency:        sub.Currency,
+		BillingCadence:  billingCadence,
+		ProRatingConfig: sub.ProRatingConfig,
 	}, nil
 }
 

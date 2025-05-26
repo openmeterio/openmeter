@@ -60,7 +60,8 @@ func PlanFromPlanInput(input plan.CreatePlanInput) (subscription.Plan, error) {
 	p.Version = 1
 
 	if err := p.Validate(); err != nil {
-		return nil, models.NewGenericValidationError(fmt.Errorf("invalid plan: %v", err))
+		return nil, models.ErrorWithFieldPrefix(models.NewFieldSelectors(
+			models.NewFieldSelector("plan")), err)
 	}
 
 	// Let's unset the fields

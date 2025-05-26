@@ -180,6 +180,8 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			SetNillableDescription(params.Description).
 			SetCurrency(params.Currency.String()).
 			SetBillablesMustAlign(params.BillablesMustAlign).
+			SetBillingCadence(params.BillingCadence.ISOString()).
+			SetProRatingConfig(params.ProRatingConfig).
 			SetMetadata(params.Metadata).
 			SetVersion(params.Version).
 			Save(ctx)
@@ -423,7 +425,9 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 				SetNillableDescription(params.Description).
 				SetNillableEffectiveFrom(params.EffectiveFrom).
 				SetNillableEffectiveTo(params.EffectiveTo).
-				SetNillableBillablesMustAlign(params.BillablesMustAlign)
+				SetNillableBillablesMustAlign(params.BillablesMustAlign).
+				SetNillableBillingCadence(params.BillingCadence.ISOStringPtrOrNil()).
+				SetNillableProRatingConfig(params.ProRatingConfig)
 
 			if params.Metadata != nil {
 				query = query.SetMetadata(*params.Metadata)

@@ -31,6 +31,12 @@ import (
 type CreateSubscriptionPlanInput struct {
 	Plan *PlanRef `json:"plan"`
 	productcatalog.Alignment
+
+	// BillingCadence is the default billing cadence for subscriptions.
+	BillingCadence isodate.Period `json:"billing_cadence"`
+
+	// ProRatingConfig is the default pro-rating configuration for subscriptions.
+	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config"`
 }
 
 type CreateSubscriptionCustomerInput struct {
@@ -56,13 +62,15 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 		NamespacedModel: models.NamespacedModel{
 			Namespace: ns,
 		},
-		Alignment:     s.Alignment,
-		Plan:          s.Plan,
-		CustomerId:    s.CustomerId,
-		Currency:      s.Currency,
-		MetadataModel: s.MetadataModel,
-		Name:          s.Name,
-		Description:   s.Description,
+		Alignment:       s.Alignment,
+		Plan:            s.Plan,
+		CustomerId:      s.CustomerId,
+		Currency:        s.Currency,
+		BillingCadence:  s.BillingCadence,
+		ProRatingConfig: s.ProRatingConfig,
+		MetadataModel:   s.MetadataModel,
+		Name:            s.Name,
+		Description:     s.Description,
 		CadencedModel: models.CadencedModel{
 			ActiveFrom: s.ActiveFrom,
 			ActiveTo:   s.ActiveTo,
@@ -301,6 +309,41 @@ func (s *SubscriptionSpec) Validate() error {
 		}
 	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// HasAlignedBillingCadences validates that the billing cadence of the subscription is aligned with the billing cadence of the rate cards.
+func (s *SubscriptionSpec) HasAlignedBillingCadences() (bool, error) {
+	for _, phase := range s.GetSortedPhases() {
+		for _, itemsByKey := range phase.GetBillableItemsByKey() {
+			for _, item := range itemsByKey {
+				rateCard := item.RateCard
+				if rateCard.GetBillingCadence() != nil {
+					switch s.BillingCadence.Compare(*rateCard.GetBillingCadence()) {
+					case 0:
+						continue
+					case 1:
+						d, err := s.BillingCadence.DivisibleBy(*rateCard.GetBillingCadence())
+						if err != nil {
+							return false, err
+						}
+						if !d {
+							return false, nil
+						}
+					case -1:
+						d, err := rateCard.GetBillingCadence().DivisibleBy(s.BillingCadence)
+						if err != nil {
+							return false, err
+						}
+						if !d {
+							return false, nil
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return true, nil
 }
 
 type CreateSubscriptionPhasePlanInput struct {

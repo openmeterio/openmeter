@@ -7,6 +7,8 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -40,6 +42,10 @@ const (
 	FieldCustomerID = "customer_id"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldBillingCadence holds the string denoting the billing_cadence field in the database.
+	FieldBillingCadence = "billing_cadence"
+	// FieldProRatingConfig holds the string denoting the pro_rating_config field in the database.
+	FieldProRatingConfig = "pro_rating_config"
 	// EdgePlan holds the string denoting the plan edge name in mutations.
 	EdgePlan = "plan"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
@@ -105,6 +111,8 @@ var Columns = []string{
 	FieldPlanID,
 	FieldCustomerID,
 	FieldCurrency,
+	FieldBillingCadence,
+	FieldProRatingConfig,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -136,8 +144,14 @@ var (
 	CustomerIDValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
+	// DefaultProRatingConfig holds the default value on creation for the "pro_rating_config" field.
+	DefaultProRatingConfig func() productcatalog.ProRatingConfig
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all Subscription fields.
+	ValueScanner struct {
+		ProRatingConfig field.TypeValueScanner[productcatalog.ProRatingConfig]
+	}
 )
 
 // OrderOption defines the ordering options for the Subscription queries.
@@ -206,6 +220,16 @@ func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByBillingCadence orders the results by the billing_cadence field.
+func ByBillingCadence(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBillingCadence, opts...).ToFunc()
+}
+
+// ByProRatingConfig orders the results by the pro_rating_config field.
+func ByProRatingConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProRatingConfig, opts...).ToFunc()
 }
 
 // ByPlanField orders the results by plan field.

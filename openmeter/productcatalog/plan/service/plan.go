@@ -751,12 +751,15 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 			},
 			Plan: productcatalog.Plan{
 				PlanMeta: productcatalog.PlanMeta{
-					Key:         sourcePlan.Key,
-					Version:     nextVersion,
-					Name:        sourcePlan.Name,
-					Description: sourcePlan.Description,
-					Metadata:    sourcePlan.Metadata,
-					Currency:    sourcePlan.Currency,
+					Key:             sourcePlan.Key,
+					Version:         nextVersion,
+					Name:            sourcePlan.Name,
+					Description:     sourcePlan.Description,
+					Metadata:        sourcePlan.Metadata,
+					Currency:        sourcePlan.Currency,
+					Alignment:       sourcePlan.Alignment,
+					BillingCadence:  sourcePlan.BillingCadence,
+					ProRatingConfig: sourcePlan.ProRatingConfig,
 				},
 				Phases: func() []productcatalog.Phase {
 					var phases []productcatalog.Phase

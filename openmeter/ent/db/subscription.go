@@ -13,7 +13,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // Subscription is the model entity for the Subscription schema.
@@ -47,6 +49,10 @@ type Subscription struct {
 	CustomerID string `json:"customer_id,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
+	// The default billing cadence for subscriptions.
+	BillingCadence isodate.String `json:"billing_cadence,omitempty"`
+	// Default pro-rating configuration for subscriptions.
+	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionQuery when eager-loading is set.
 	Edges        SubscriptionEdges `json:"edges"`
@@ -128,10 +134,12 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case subscription.FieldBillablesMustAlign:
 			values[i] = new(sql.NullBool)
-		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency:
+		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency, subscription.FieldBillingCadence:
 			values[i] = new(sql.NullString)
 		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo:
 			values[i] = new(sql.NullTime)
+		case subscription.FieldProRatingConfig:
+			values[i] = subscription.ValueScanner.ProRatingConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -236,6 +244,18 @@ func (_m *Subscription) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				_m.Currency = currencyx.Code(value.String)
+			}
+		case subscription.FieldBillingCadence:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field billing_cadence", values[i])
+			} else if value.Valid {
+				_m.BillingCadence = isodate.String(value.String)
+			}
+		case subscription.FieldProRatingConfig:
+			if value, err := subscription.ValueScanner.ProRatingConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.ProRatingConfig = value
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -344,6 +364,12 @@ func (_m *Subscription) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	builder.WriteString(", ")
+	builder.WriteString("billing_cadence=")
+	builder.WriteString(fmt.Sprintf("%v", _m.BillingCadence))
+	builder.WriteString(", ")
+	builder.WriteString("pro_rating_config=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ProRatingConfig))
 	builder.WriteByte(')')
 	return builder.String()
 }
