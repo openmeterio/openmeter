@@ -122,6 +122,7 @@ type queryCountEvents struct {
 	EventsTableName string
 	Namespace       string
 	From            time.Time
+	To              *time.Time
 }
 
 func (d queryCountEvents) toSQL() (string, []interface{}) {
@@ -133,6 +134,9 @@ func (d queryCountEvents) toSQL() (string, []interface{}) {
 
 	query.Where(query.Equal("namespace", d.Namespace))
 	query.Where(query.GreaterEqualThan("time", d.From.Unix()))
+	if d.To != nil {
+		query.Where(query.LTE("time", d.To.Unix()))
+	}
 	query.GroupBy("subject")
 
 	sql, args := query.Build()

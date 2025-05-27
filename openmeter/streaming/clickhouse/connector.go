@@ -502,6 +502,7 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 		EventsTableName: c.config.EventsTableName,
 		Namespace:       namespace,
 		From:            params.From,
+		To:              params.To,
 	}
 
 	sql, args := table.toSQL()

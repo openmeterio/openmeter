@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -17,10 +18,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/registry"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 const (
@@ -46,10 +50,14 @@ var (
 )
 
 type RecalculatorOptions struct {
-	Entitlement     *registry.Entitlement
-	SubjectResolver SubjectResolver
-	EventBus        eventbus.Publisher
-	MetricMeter     metric.Meter
+	Entitlement        *registry.Entitlement
+	SubjectResolver    SubjectResolver
+	EventBus           eventbus.Publisher
+	MetricMeter        metric.Meter
+	StreamingConnector streaming.Connector
+
+	OnlyRecalculateEntitlementsWithChanges bool
+	Logger                                 *slog.Logger
 }
 
 func (o RecalculatorOptions) Validate() error {
@@ -63,6 +71,14 @@ func (o RecalculatorOptions) Validate() error {
 
 	if o.MetricMeter == nil {
 		return errors.New("missing metric meter")
+	}
+
+	if o.StreamingConnector == nil {
+		return errors.New("missing streaming connector")
+	}
+
+	if o.Logger == nil {
+		return errors.New("missing logger")
 	}
 
 	return nil
@@ -159,7 +175,148 @@ func (r *Recalculator) Recalculate(ctx context.Context, ns string) error {
 		page++
 	}
 
+	if r.opts.OnlyRecalculateEntitlementsWithChanges {
+		var err error
+		// Recalculation avoidance
+		affectedEntitlements, err = r.entitlementsWithChanges(ctx, ns, affectedEntitlements)
+		if err != nil {
+			return err
+		}
+	}
+
 	return r.processEntitlements(ctx, affectedEntitlements)
+}
+
+func (r *Recalculator) entitlementsWithChanges(ctx context.Context, namespace string, entitlements []entitlement.Entitlement) ([]entitlement.Entitlement, error) {
+	now := time.Now()
+	eventsByNamespace, err := r.opts.StreamingConnector.CountEvents(ctx, namespace, streaming.CountEventsParams{
+		From: now.Add(-DefaultIncludeDeletedDuration),
+		To:   &now,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	subjectsWithIngestedEvents, _ := slicesx.UniqueGroupBy(eventsByNamespace, func(e streaming.CountEventRow) string {
+		return e.Subject
+	})
+
+	nrSubjectsWithIngestedEvents := 0
+	nrDeleted := 0
+	nrActivatingDeactivating := 0
+	nrGrantActive := 0
+	nrReseting := 0
+
+	out := make([]entitlement.Entitlement, 0, len(entitlements))
+	for _, ent := range entitlements {
+		// If he subject has any events, let's recalculate
+		if _, ok := subjectsWithIngestedEvents[ent.SubjectKey]; ok {
+			out = append(out, ent)
+			nrSubjectsWithIngestedEvents++
+			break
+		}
+
+		// If the entitlement is deleted, let's recalculate (cheap, and ensures consistency)
+		if ent.DeletedAt != nil {
+			out = append(out, ent)
+			nrDeleted++
+			break
+		}
+
+		checkPeriod := timeutil.ClosedPeriod{
+			From: now.Add(-DefaultIncludeDeletedDuration),
+			To:   now,
+		}
+
+		/// If the entilement has been actived/deactivated recently, let's recalculate
+		if checkPeriod.Contains(ent.ActiveFromTime()) {
+			out = append(out, ent)
+			nrActivatingDeactivating++
+			break
+		}
+
+		if ent.ActiveToTime() != nil && checkPeriod.Contains(*ent.ActiveToTime()) {
+			out = append(out, ent)
+			nrActivatingDeactivating++
+			break
+		}
+
+		// If the entitlement is not active, let's skip it
+		if !ent.IsActive(now) {
+			continue
+		}
+
+		// If the entitlement has been reset recently and active, let's recalculate
+		if ent.CurrentUsagePeriod != nil &&
+			(checkPeriod.Contains(ent.CurrentUsagePeriod.From) || checkPeriod.Contains(ent.CurrentUsagePeriod.To)) {
+			out = append(out, ent)
+			nrReseting++
+			break
+		}
+
+		// If the entitlement has recent grants, let's recalculate
+		canChange, err := r.hasEntitlementGrantInducedChanges(ctx, now, ent)
+		if err != nil {
+			return nil, err
+		}
+
+		if canChange {
+			out = append(out, ent)
+			nrActivatingDeactivating++
+			break
+		}
+	}
+
+	r.opts.Logger.Info("recalculation build avoidance stats for namespace",
+		slog.String("namespace", namespace),
+		slog.Int("stat.subjectsWithIngestedEvents", nrSubjectsWithIngestedEvents),
+		slog.Int("stat.deleted", nrDeleted),
+		slog.Int("stat.activatingDeactivating", nrActivatingDeactivating),
+		slog.Int("stat.grantActive", nrGrantActive),
+		slog.Int("stat.reseting", nrReseting),
+		slog.Int("stat.totalEntitlements", len(entitlements)),
+	)
+
+	return out, nil
+}
+
+func (r *Recalculator) hasEntitlementGrantInducedChanges(ctx context.Context, at time.Time, ent entitlement.Entitlement) (bool, error) {
+	grants, err := r.opts.Entitlement.MeteredEntitlement.ListEntitlementGrants(ctx, ent.Namespace, ent.SubjectKey, ent.ID)
+	if err != nil {
+		return false, err
+	}
+
+	// Let's check if we have any grants that might affect the balance
+	checkPeriod := timeutil.ClosedPeriod{
+		From: at.Add(-DefaultIncludeDeletedDuration),
+		To:   at,
+	}
+
+	for _, grant := range grants {
+		effectivePeriod := grant.GetEffectivePeriod()
+
+		if effectivePeriod.Overlaps(checkPeriod) {
+			continue
+		}
+
+		// non-recurring grant => let's check if it got activted or expired
+		if grant.Recurrence == nil {
+			if checkPeriod.Contains(effectivePeriod.From) || checkPeriod.Contains(effectivePeriod.To) {
+				return true, nil
+			}
+		} else {
+			next, err := grant.Recurrence.GetPeriodAt(at)
+			if err != nil {
+				return false, err
+			}
+
+			if next.Overlaps(checkPeriod) {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }
 
 func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []entitlement.Entitlement) error {

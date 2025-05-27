@@ -13,6 +13,7 @@ import (
 
 type CountEventsParams struct {
 	From time.Time
+	To   *time.Time
 }
 
 // CountEventRow represents a row in the count events response.
