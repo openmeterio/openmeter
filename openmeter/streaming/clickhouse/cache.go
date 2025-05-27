@@ -162,6 +162,7 @@ func (c *Connector) prepareCacheableQueryPeriod(originalQueryMeter queryMeter) (
 	// this window size is the granularity of the cache
 	if cacheableQueryMeter.WindowSize == nil {
 		cacheableQueryMeter.WindowSize = lo.ToPtr(meterpkg.WindowSizeDay)
+		remainingQuery.WindowSize = lo.ToPtr(meterpkg.WindowSizeDay)
 	}
 
 	// Align To time to window boundaries

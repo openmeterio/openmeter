@@ -609,6 +609,9 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 			assert.Equal(t, cachedQuery.To.Minute(), 0)
 			assert.Equal(t, cachedQuery.To.Second(), 0)
 
+			// Verify that window size equals between cached and remaining query
+			assert.Equal(t, cachedQuery.WindowSize, remainingQuery.WindowSize)
+
 			// Verify remaining query
 			assert.Equal(t, testCase.expectedTo, remainingQuery.From)
 			assert.Equal(t, testCase.originalQuery.To, remainingQuery.To)
