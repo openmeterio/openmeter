@@ -24,6 +24,7 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 	GatheringInvoice: []Calculation{
 		UpsertDiscountCorrelationIDs,
 		GatheringInvoiceCollectionAt,
+		CalculateInvoicePeriod,
 	},
 }
 
