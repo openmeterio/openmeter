@@ -219,7 +219,7 @@ func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
 	connector, mockClickHouse := GetMockConnector(t)
 
 	// Setup test data
-	now := time.Now().UTC()
+	now := time.Now().UTC().Truncate(time.Hour * 24)
 	queryFrom := now.Add(-7 * 24 * time.Hour)
 	queryTo := now
 
@@ -340,7 +340,7 @@ func TestConnector_ExecuteQueryWithCaching_QueryCovered_NoRemainingQuery(t *test
 	connector, mockClickHouse := GetMockConnector(t)
 
 	// Setup test data
-	now := time.Now().UTC()
+	now := time.Now().UTC().Truncate(time.Hour * 24)
 	queryFrom := now.Add(-7 * 24 * time.Hour).Truncate(time.Hour * 24)
 	queryTo := now.Add(-2 * 24 * time.Hour).Truncate(time.Hour * 24)
 
@@ -416,7 +416,7 @@ func TestConnector_ExecuteQueryWithCaching_QueryCovered_NoRemainingQuery(t *test
 func TestConnector_FetchCachedMeterRows(t *testing.T) {
 	connector, mockClickHouse := GetMockConnector(t)
 
-	now := time.Now().UTC()
+	now := time.Now().UTC().Truncate(time.Hour * 24)
 	fromTime := now.Add(-24 * time.Hour)
 	toTime := now
 
@@ -428,7 +428,7 @@ func TestConnector_FetchCachedMeterRows(t *testing.T) {
 	}
 
 	// Test successful lookup
-	expectedQuery := "SELECT window_start, window_end, value, subject, group_by FROM testdb.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end < ? ORDER BY window_start"
+	expectedQuery := "SELECT window_start, window_end, value, subject, group_by FROM testdb.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end <= ? ORDER BY window_start"
 	expectedArgs := []interface{}{"test-hash", "test-namespace", fromTime.Unix(), toTime.Unix()}
 
 	// Mock query execution
@@ -536,7 +536,7 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 				To:   lo.ToPtr(now.Add(-12 * time.Hour)), // Less than config.minCacheableToAge
 			},
 			expectError:    false,
-			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
+			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour).Truncate(time.Hour * 24)),
 			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour * 24)),
 			expectedWindow: lo.ToPtr(meterpkg.WindowSizeDay),
 		},
@@ -547,7 +547,7 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 				To:   lo.ToPtr(now.Add(-36 * time.Hour)), // Less than minCacheableToAge
 			},
 			expectError:    false,
-			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
+			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour).Truncate(time.Hour * 24)),
 			expectedTo:     lo.ToPtr(now.Add(-36 * time.Hour).Truncate(time.Hour * 24)),
 			expectedWindow: lo.ToPtr(meterpkg.WindowSizeDay),
 		},
@@ -558,19 +558,19 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 				To:   lo.ToPtr(now.Add(-12 * time.Hour)),
 			},
 			expectError:    false,
-			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
+			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour).Truncate(time.Hour * 24)),
 			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour * 24)),
 			expectedWindow: lo.ToPtr(meterpkg.WindowSizeDay),
 		},
 		{
 			name: "use provided window size should round down to the window size",
 			originalQuery: queryMeter{
-				From:       lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
+				From:       lo.ToPtr(now.Add(-7 * 24 * time.Hour).Truncate(time.Hour * 24)),
 				To:         lo.ToPtr(now.Add(-12 * time.Hour)),
 				WindowSize: lo.ToPtr(meterpkg.WindowSizeHour),
 			},
 			expectError:    false,
-			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
+			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour).Truncate(time.Hour * 24)),
 			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour)),
 			expectedWindow: lo.ToPtr(meterpkg.WindowSizeHour),
 		},
@@ -578,7 +578,7 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			cachedQuery, remainingQuery, err := connector.prepareCacheableQueryPeriod(testCase.originalQuery)
+			cachedQuery, err := connector.prepareCacheableQueryPeriod(testCase.originalQuery)
 
 			if testCase.expectError {
 				assert.Error(t, err)
@@ -608,20 +608,6 @@ func TestPrepareCacheableQueryPeriod(t *testing.T) {
 			// Verify To is truncated
 			assert.Equal(t, cachedQuery.To.Minute(), 0)
 			assert.Equal(t, cachedQuery.To.Second(), 0)
-
-			// Verify that window size equals between cached and remaining query
-			assert.Equal(t, cachedQuery.WindowSize, remainingQuery.WindowSize)
-
-			// Verify remaining query
-			assert.Equal(t, testCase.expectedTo, remainingQuery.From)
-			assert.Equal(t, testCase.originalQuery.To, remainingQuery.To)
-
-			// Verify that the whole original query is covered by the cached and remaining queries
-			diffOriginal := testCase.originalQuery.To.Sub(*testCase.originalQuery.From)
-			diffCached := cachedQuery.To.Sub(*cachedQuery.From)
-			diffRemaining := remainingQuery.To.Sub(*remainingQuery.From)
-
-			assert.Equal(t, diffOriginal, diffCached+diffRemaining)
 		})
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -12,25 +13,13 @@ import (
 )
 
 func TestMergeMeterQueryRows(t *testing.T) {
-	subject1 := "subject1"
-	subject2 := "subject2"
-	group1Value := "group1_value"
-	group2Value := "group2_value"
-
-	windowStart1, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00Z")
-	windowEnd1, _ := time.Parse(time.RFC3339, "2023-01-01T01:00:00Z")
-	windowStart2, _ := time.Parse(time.RFC3339, "2023-01-01T01:00:00Z")
-	windowEnd2, _ := time.Parse(time.RFC3339, "2023-01-01T02:00:00Z")
-
-	windowSize := meterpkg.WindowSizeHour
-
 	tests := []struct {
 		name        string
 		meterDef    meterpkg.Meter
 		queryParams streaming.QueryParams
 		cachedRows  []meterpkg.MeterQueryRow
 		freshRows   []meterpkg.MeterQueryRow
-		wantCount   int
+		wants       []meterpkg.MeterQueryRow
 	}{
 		{
 			name: "empty cached rows",
@@ -41,13 +30,20 @@ func TestMergeMeterQueryRows(t *testing.T) {
 			cachedRows:  []meterpkg.MeterQueryRow{},
 			freshRows: []meterpkg.MeterQueryRow{
 				{
-					WindowStart: windowStart1,
-					WindowEnd:   windowEnd1,
+					WindowStart: parseTime(t, "2023-01-01T00:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T01:00:00Z"),
 					Value:       10,
-					Subject:     &subject1,
+					Subject:     lo.ToPtr("subject1"),
 				},
 			},
-			wantCount: 1,
+			wants: []meterpkg.MeterQueryRow{
+				{
+					WindowStart: parseTime(t, "2023-01-01T00:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T01:00:00Z"),
+					Value:       10,
+					Subject:     lo.ToPtr("subject1"),
+				},
+			},
 		},
 		{
 			name: "with window size, rows are concatenated",
@@ -55,25 +51,38 @@ func TestMergeMeterQueryRows(t *testing.T) {
 				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{
-				WindowSize: &windowSize,
+				WindowSize: lo.ToPtr(meterpkg.WindowSizeHour),
 			},
 			cachedRows: []meterpkg.MeterQueryRow{
 				{
-					WindowStart: windowStart1,
-					WindowEnd:   windowEnd1,
+					WindowStart: parseTime(t, "2023-01-01T00:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T01:00:00Z"),
 					Value:       10,
-					Subject:     &subject1,
+					Subject:     lo.ToPtr("subject1"),
 				},
 			},
 			freshRows: []meterpkg.MeterQueryRow{
 				{
-					WindowStart: windowStart2,
-					WindowEnd:   windowEnd2,
+					WindowStart: parseTime(t, "2023-01-01T01:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T02:00:00Z"),
 					Value:       20,
-					Subject:     &subject1,
+					Subject:     lo.ToPtr("subject1"),
 				},
 			},
-			wantCount: 2,
+			wants: []meterpkg.MeterQueryRow{
+				{
+					WindowStart: parseTime(t, "2023-01-01T00:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T01:00:00Z"),
+					Value:       10,
+					Subject:     lo.ToPtr("subject1"),
+				},
+				{
+					WindowStart: parseTime(t, "2023-01-01T01:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T02:00:00Z"),
+					Value:       20,
+					Subject:     lo.ToPtr("subject1"),
+				},
+			},
 		},
 		{
 			name: "without window size, sum aggregation",
@@ -85,21 +94,28 @@ func TestMergeMeterQueryRows(t *testing.T) {
 			},
 			cachedRows: []meterpkg.MeterQueryRow{
 				{
-					WindowStart: windowStart1,
-					WindowEnd:   windowEnd1,
+					WindowStart: parseTime(t, "2023-01-01T00:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T01:00:00Z"),
 					Value:       10,
-					Subject:     &subject1,
+					Subject:     lo.ToPtr("subject1"),
 				},
 			},
 			freshRows: []meterpkg.MeterQueryRow{
 				{
-					WindowStart: windowStart2,
-					WindowEnd:   windowEnd2,
+					WindowStart: parseTime(t, "2023-01-01T01:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T02:00:00Z"),
 					Value:       20,
-					Subject:     &subject1,
+					Subject:     lo.ToPtr("subject1"),
 				},
 			},
-			wantCount: 1, // Aggregated to a single row
+			wants: []meterpkg.MeterQueryRow{
+				{
+					WindowStart: parseTime(t, "2023-01-01T00:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T02:00:00Z"),
+					Value:       30,
+					Subject:     lo.ToPtr("subject1"),
+				},
+			},
 		},
 		{
 			name: "without window size, different subjects",
@@ -111,21 +127,34 @@ func TestMergeMeterQueryRows(t *testing.T) {
 			},
 			cachedRows: []meterpkg.MeterQueryRow{
 				{
-					WindowStart: windowStart1,
-					WindowEnd:   windowEnd1,
+					WindowStart: parseTime(t, "2023-01-01T00:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T01:00:00Z"),
 					Value:       10,
-					Subject:     &subject1,
+					Subject:     lo.ToPtr("subject1"),
 				},
 			},
 			freshRows: []meterpkg.MeterQueryRow{
 				{
-					WindowStart: windowStart2,
-					WindowEnd:   windowEnd2,
+					WindowStart: parseTime(t, "2023-01-01T01:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T02:00:00Z"),
 					Value:       20,
-					Subject:     &subject2,
+					Subject:     lo.ToPtr("subject2"),
 				},
 			},
-			wantCount: 2, // One row per subject
+			wants: []meterpkg.MeterQueryRow{
+				{
+					WindowStart: parseTime(t, "2023-01-01T00:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T01:00:00Z"),
+					Value:       10,
+					Subject:     lo.ToPtr("subject1"),
+				},
+				{
+					WindowStart: parseTime(t, "2023-01-01T01:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T02:00:00Z"),
+					Value:       20,
+					Subject:     lo.ToPtr("subject2"),
+				},
+			},
 		},
 		{
 			name: "without window size, with group by values",
@@ -137,36 +166,47 @@ func TestMergeMeterQueryRows(t *testing.T) {
 			},
 			cachedRows: []meterpkg.MeterQueryRow{
 				{
-					WindowStart: windowStart1,
-					WindowEnd:   windowEnd1,
+					WindowStart: parseTime(t, "2023-01-01T00:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T01:00:00Z"),
 					Value:       10,
-					Subject:     &subject1,
+					Subject:     lo.ToPtr("subject1"),
 					GroupBy: map[string]*string{
-						"group1": &group1Value,
-						"group2": &group2Value,
+						"group1": lo.ToPtr("group1-value"),
+						"group2": lo.ToPtr("group2-value"),
 					},
 				},
 			},
 			freshRows: []meterpkg.MeterQueryRow{
 				{
-					WindowStart: windowStart2,
-					WindowEnd:   windowEnd2,
+					WindowStart: parseTime(t, "2023-01-01T01:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T02:00:00Z"),
 					Value:       20,
-					Subject:     &subject1,
+					Subject:     lo.ToPtr("subject1"),
 					GroupBy: map[string]*string{
-						"group1": &group1Value,
-						"group2": &group2Value,
+						"group1": lo.ToPtr("group1-value"),
+						"group2": lo.ToPtr("group2-value"),
 					},
 				},
 			},
-			wantCount: 1, // Aggregated by groups
+			wants: []meterpkg.MeterQueryRow{
+				{
+					WindowStart: parseTime(t, "2023-01-01T00:00:00Z"),
+					WindowEnd:   parseTime(t, "2023-01-01T02:00:00Z"),
+					Value:       30,
+					Subject:     lo.ToPtr("subject1"),
+					GroupBy: map[string]*string{
+						"group1": lo.ToPtr("group1-value"),
+						"group2": lo.ToPtr("group2-value"),
+					},
+				},
+			},
 		},
 	}
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			result := mergeMeterQueryRows(testCase.meterDef, testCase.queryParams, testCase.cachedRows, testCase.freshRows)
-			assert.Equal(t, testCase.wantCount, len(result))
+			result := mergeMeterQueryRows(testCase.meterDef, testCase.queryParams, append(testCase.cachedRows, testCase.freshRows...))
+			assert.Equal(t, testCase.wants, result)
 
 			if testCase.meterDef.Aggregation == meterpkg.MeterAggregationSum && len(testCase.queryParams.GroupBy) > 0 && testCase.queryParams.WindowSize == nil {
 				// If we're aggregating, check that values are summed
@@ -181,14 +221,12 @@ func TestMergeMeterQueryRows(t *testing.T) {
 
 func TestCreateGroupKeyFromRow(t *testing.T) {
 	subject := "test-subject"
-	group1Value := "group1-value"
-	group2Value := "group2-value"
 
 	testRow := meterpkg.MeterQueryRow{
 		Subject: &subject,
 		GroupBy: map[string]*string{
-			"group1": &group1Value,
-			"group2": &group2Value,
+			"group1": lo.ToPtr("group1-value"),
+			"group2": lo.ToPtr("group2-value"),
 		},
 	}
 
@@ -228,6 +266,10 @@ func TestCreateGroupKeyFromRow(t *testing.T) {
 	}
 }
 
+// TODO: implement
+func TestCreateGroupKeyFromRowWithQueryParams(t *testing.T) {
+}
+
 func TestAggregateRowsByAggregationType(t *testing.T) {
 	subject := "test-subject"
 	group1Value := "group1-value"
@@ -245,7 +287,7 @@ func TestAggregateRowsByAggregationType(t *testing.T) {
 			Value:       10,
 			Subject:     &subject,
 			GroupBy: map[string]*string{
-				"group1": &group1Value,
+				"group1": lo.ToPtr("group1-value"),
 			},
 		},
 		{
@@ -254,7 +296,7 @@ func TestAggregateRowsByAggregationType(t *testing.T) {
 			Value:       20,
 			Subject:     &subject,
 			GroupBy: map[string]*string{
-				"group1": &group1Value,
+				"group1": lo.ToPtr("group1-value"),
 			},
 		},
 	}
@@ -317,12 +359,8 @@ func TestAggregateRowsByAggregationType(t *testing.T) {
 }
 
 func TestDedupeQueryRows(t *testing.T) {
-	subject1 := "test-subject"
-	subject2 := "test-subject-2"
 	group1Key := "group1"
-	group1Value := "group1-value"
 	group2Key := "group2"
-	group2Value := "group2-value"
 
 	windowStart1, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00Z")
 	windowEnd1, _ := time.Parse(time.RFC3339, "2023-01-01T01:00:00Z")
@@ -334,9 +372,9 @@ func TestDedupeQueryRows(t *testing.T) {
 			WindowStart: windowStart1,
 			WindowEnd:   windowEnd1,
 			Value:       10,
-			Subject:     &subject1,
+			Subject:     lo.ToPtr("subject1"),
 			GroupBy: map[string]*string{
-				group1Key: &group1Value,
+				group1Key: lo.ToPtr("group-1"),
 			},
 		},
 		// Duplicate row
@@ -344,9 +382,9 @@ func TestDedupeQueryRows(t *testing.T) {
 			WindowStart: windowStart1,
 			WindowEnd:   windowEnd1,
 			Value:       10,
-			Subject:     &subject1,
+			Subject:     lo.ToPtr("subject1"),
 			GroupBy: map[string]*string{
-				group1Key: &group1Value,
+				group1Key: lo.ToPtr("group-1"),
 			},
 		},
 		// Row with different group by value
@@ -354,9 +392,9 @@ func TestDedupeQueryRows(t *testing.T) {
 			WindowStart: windowStart1,
 			WindowEnd:   windowEnd1,
 			Value:       10,
-			Subject:     &subject1,
+			Subject:     lo.ToPtr("subject1"),
 			GroupBy: map[string]*string{
-				group2Key: &group2Value,
+				group2Key: lo.ToPtr("group-2"),
 			},
 		},
 		// Row with different time
@@ -364,9 +402,9 @@ func TestDedupeQueryRows(t *testing.T) {
 			WindowStart: windowStart2,
 			WindowEnd:   windowEnd2,
 			Value:       10,
-			Subject:     &subject1,
+			Subject:     lo.ToPtr("subject1"),
 			GroupBy: map[string]*string{
-				group1Key: &group1Value,
+				group1Key: lo.ToPtr("group-1"),
 			},
 		},
 		// Row with different subject
@@ -374,9 +412,9 @@ func TestDedupeQueryRows(t *testing.T) {
 			WindowStart: windowStart1,
 			WindowEnd:   windowEnd1,
 			Value:       10,
-			Subject:     &subject2,
+			Subject:     lo.ToPtr("subject2"),
 			GroupBy: map[string]*string{
-				group1Key: &group1Value,
+				group1Key: lo.ToPtr("group-1"),
 			},
 		},
 	}
@@ -396,4 +434,10 @@ func TestDedupeQueryRows(t *testing.T) {
 	rows[0].Value = 20
 	_, err = dedupeQueryRows(rows, []string{group1Key, group2Key})
 	require.Error(t, err)
+}
+
+func parseTime(t *testing.T, timeStr string) time.Time {
+	time, err := time.Parse(time.RFC3339, timeStr)
+	require.NoError(t, err)
+	return time
 }
