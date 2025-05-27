@@ -336,7 +336,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	handler, err := common.NewBillingSubscriptionHandler(logger, subscriptionServiceWithWorkflow, billingService, billingAdapter, tracer)
+	handler, err := common.NewBillingSubscriptionHandler(logger, subscriptionServiceWithWorkflow, billingService, billingAdapter, tracer, billingFeatureSwitchesConfiguration)
 	if err != nil {
 		cleanup6()
 		cleanup5()
