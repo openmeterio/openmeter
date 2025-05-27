@@ -37,28 +37,27 @@ type ubpCalculationTestCase struct {
 	previousBilledAmount alpacadecimal.Decimal
 }
 
+type ubpLineCalculator interface {
+	calculateDetailedLines() (newDetailedLinesInput, error)
+}
+
 func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 	t.Helper()
 
 	usdCurrencyCalc, err := currencyx.Code(currency.USD).Calculator()
 	require.NoError(t, err)
 
-	l := usageBasedLine{
-		lineBase: lineBase{
-			line: &billing.Line{
-				LineBase: billing.LineBase{
-					Currency:          "USD",
-					ID:                "fake-line",
-					Type:              billing.InvoiceLineTypeUsageBased,
-					Status:            billing.InvoiceLineStatusValid,
-					Name:              "feature",
-					RateCardDiscounts: tc.discounts,
-				},
-				UsageBased: &billing.UsageBasedLine{
-					Price: lo.ToPtr(tc.price),
-				},
-			},
-			currency: usdCurrencyCalc,
+	line := &billing.Line{
+		LineBase: billing.LineBase{
+			Currency:          "USD",
+			ID:                "fake-line",
+			Type:              billing.InvoiceLineTypeUsageBased,
+			Status:            billing.InvoiceLineStatusValid,
+			Name:              "feature",
+			RateCardDiscounts: tc.discounts,
+		},
+		UsageBased: &billing.UsageBasedLine{
+			Price: lo.ToPtr(tc.price),
 		},
 	}
 
@@ -90,34 +89,51 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 
 	switch tc.lineMode {
 	case singlePerPeriodLineMode:
-		l.line.Period = ubpTestFullPeriod
+		line.Period = ubpTestFullPeriod
 	case midPeriodSplitLineMode:
-		l.line.Period = billing.Period{
+		line.Period = billing.Period{
 			Start: ubpTestFullPeriod.Start.Add(time.Hour * 12),
 			End:   ubpTestFullPeriod.End.Add(-time.Hour),
 		}
-		l.line.ParentLine = &fakeParentLine
-		l.line.ParentLineID = &fakeParentLine.ID
-		l.line.ProgressiveLineHierarchy = &fakeHierarchy
+		line.ParentLine = &fakeParentLine
+		line.ParentLineID = &fakeParentLine.ID
+		line.ProgressiveLineHierarchy = &fakeHierarchy
 
 	case lastInPeriodSplitLineMode:
-		l.line.Period = billing.Period{
+		line.Period = billing.Period{
 			Start: ubpTestFullPeriod.Start.Add(time.Hour * 12),
 			End:   ubpTestFullPeriod.End,
 		}
 
-		l.line.ParentLine = &fakeParentLine
-		l.line.ParentLineID = &fakeParentLine.ID
-		l.line.ProgressiveLineHierarchy = &fakeHierarchy
+		line.ParentLine = &fakeParentLine
+		line.ParentLineID = &fakeParentLine.ID
+		line.ProgressiveLineHierarchy = &fakeHierarchy
 	}
 
 	// Let's set the usage on the line
-	l.line.UsageBased.Quantity = &tc.usage.LinePeriodQty
-	l.line.UsageBased.MeteredQuantity = &tc.usage.LinePeriodQty
-	l.line.UsageBased.PreLinePeriodQuantity = &tc.usage.PreLinePeriodQty
-	l.line.UsageBased.MeteredPreLinePeriodQuantity = &tc.usage.PreLinePeriodQty
+	line.UsageBased.Quantity = &tc.usage.LinePeriodQty
+	line.UsageBased.MeteredQuantity = &tc.usage.LinePeriodQty
+	line.UsageBased.PreLinePeriodQuantity = &tc.usage.PreLinePeriodQty
+	line.UsageBased.MeteredPreLinePeriodQuantity = &tc.usage.PreLinePeriodQty
 
-	res, err := l.calculateDetailedLines()
+	lineBase := lineBase{
+		line:     line,
+		currency: usdCurrencyCalc,
+	}
+
+	var lineImpl ubpLineCalculator
+	switch line.UsageBased.Price.Type() {
+	case productcatalog.FlatPriceType:
+		lineImpl = &ubpFlatFeeLine{
+			lineBase: lineBase,
+		}
+	default:
+		lineImpl = &usageBasedLine{
+			lineBase: lineBase,
+		}
+	}
+
+	res, err := lineImpl.calculateDetailedLines()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

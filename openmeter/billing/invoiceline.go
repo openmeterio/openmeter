@@ -515,19 +515,8 @@ func (i Line) ValidateFee() error {
 		errs = append(errs, errors.New("price should be positive or zero"))
 	}
 
-	if i.Status == InvoiceLineStatusValid {
-		// Valid lines (top level invoice lines must have qty=1)
-		// Given product catalog only supports 1 as quantity, let's restrict ourselves to 1 too
-		// as the product catalog spec drives billing behavior
-		if !i.FlatFee.Quantity.Equal(alpacadecimal.NewFromInt(1)) {
-			errs = append(errs, errors.New("quantity should be 1 for invoice's flat fee lines"))
-		}
-	} else {
-		// detailed lines can have any quantity, but not negative (e.g. unit based price's qty is the
-		// usage)
-		if !i.FlatFee.Quantity.IsPositive() {
-			errs = append(errs, errors.New("quantity should be positive"))
-		}
+	if !i.FlatFee.Quantity.IsPositive() {
+		errs = append(errs, errors.New("quantity should be positive required"))
 	}
 
 	if !slices.Contains(FlatFeeCategory("").Values(), string(i.FlatFee.Category)) {
@@ -548,7 +537,7 @@ func (i Line) ValidateUsageBased() error {
 		errs = append(errs, err)
 	}
 
-	if i.InvoiceAt.Before(i.Period.Truncate(DefaultMeterResolution).End) {
+	if i.DependsOnMeteredQuantity() && i.InvoiceAt.Before(i.Period.Truncate(DefaultMeterResolution).End) {
 		errs = append(errs, errors.New("invoice at must be after period end for usage based line"))
 	}
 
@@ -568,6 +557,18 @@ func (i *Line) DisassociateChildren() {
 	if i.DBState != nil {
 		i.DBState.Children = LineChildren{}
 	}
+}
+
+func (i Line) DependsOnMeteredQuantity() bool {
+	if i.Type != InvoiceLineTypeUsageBased {
+		return false
+	}
+
+	if i.UsageBased.Price.Type() == productcatalog.FlatPriceType {
+		return false
+	}
+
+	return true
 }
 
 // helper functions for generating new lines
@@ -592,9 +593,6 @@ type NewFlatFeeLineInput struct {
 
 	PerUnitAmount alpacadecimal.Decimal
 	PaymentTerm   productcatalog.PaymentTermType
-	// TODO: Is this needed?
-	// Category      FlatFeeCategory
-	Quantity alpacadecimal.Decimal
 
 	RateCardDiscounts Discounts
 }
@@ -627,9 +625,66 @@ func NewFlatFeeLine(input NewFlatFeeLineInput) *Line {
 		FlatFee: &FlatFeeLine{
 			PerUnitAmount: input.PerUnitAmount,
 			PaymentTerm:   input.PaymentTerm,
-			// Category:      lo.CoalesceOrEmpty(input.Category, FlatFeeCategoryRegular),
-			Category: FlatFeeCategoryRegular,
-			Quantity: input.Quantity,
+			Category:      FlatFeeCategoryRegular,
+			Quantity:      alpacadecimal.NewFromInt(1),
+		},
+	}
+}
+
+type usageBasedLineOptions struct {
+	featureKey string
+}
+
+type usageBasedLineOption func(*usageBasedLineOptions)
+
+func WithFeatureKey(fk string) usageBasedLineOption {
+	return func(ublo *usageBasedLineOptions) {
+		ublo.featureKey = fk
+	}
+}
+
+// NewUsageBasedFlatFeeLine creates a new usage based flat fee line (which is semantically equivalent to the line returned by
+// NewFlatFeeLine, but based on the usage based line semantic).
+//
+// Note: this is temporary in it's current form until we validate the usage based flat fee schema
+func NewUsageBasedFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) *Line {
+	ubpOptions := usageBasedLineOptions{}
+
+	for _, opt := range opts {
+		opt(&ubpOptions)
+	}
+
+	return &Line{
+		LineBase: LineBase{
+			Namespace: input.Namespace,
+			ID:        input.ID,
+			CreatedAt: input.CreatedAt,
+			UpdatedAt: input.UpdatedAt,
+
+			Period:    input.Period,
+			InvoiceAt: input.InvoiceAt,
+			InvoiceID: input.InvoiceID,
+
+			Name:        input.Name,
+			Metadata:    input.Metadata,
+			Description: input.Description,
+
+			Status: InvoiceLineStatusValid,
+
+			Type: InvoiceLineTypeUsageBased,
+
+			ManagedBy: lo.CoalesceOrEmpty(input.ManagedBy, SystemManagedLine),
+
+			Currency:          input.Currency,
+			RateCardDiscounts: input.RateCardDiscounts,
+		},
+		UsageBased: &UsageBasedLine{
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      input.PerUnitAmount,
+				PaymentTerm: input.PaymentTerm,
+			}),
+
+			FeatureKey: ubpOptions.featureKey,
 		},
 	}
 }
@@ -837,8 +892,10 @@ func (i UsageBasedLine) Validate() error {
 		errs = append(errs, fmt.Errorf("price: %w", err))
 	}
 
-	if i.FeatureKey == "" {
-		errs = append(errs, errors.New("featureKey is required"))
+	if i.Price.Type() != productcatalog.FlatPriceType {
+		if i.FeatureKey == "" {
+			errs = append(errs, errors.New("featureKey is required"))
+		}
 	}
 
 	return errors.Join(errs...)

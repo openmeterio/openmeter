@@ -298,7 +298,6 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, namesp
 						"key": "value",
 					},
 					PerUnitAmount: alpacadecimal.NewFromFloat(100),
-					Quantity:      alpacadecimal.NewFromFloat(1),
 					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 				}),
 			},

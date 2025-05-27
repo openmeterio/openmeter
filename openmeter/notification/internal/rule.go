@@ -201,7 +201,6 @@ func (t *TestEventGenerator) newTestInvoicePayload(ctx context.Context, namespac
 				InvoiceAt: now,
 
 				PerUnitAmount: alpacadecimal.NewFromInt(1000),
-				Quantity:      alpacadecimal.NewFromInt(1),
 				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 			}),
 		}),

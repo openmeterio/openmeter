@@ -607,10 +607,6 @@ func init() {
 	billinginvoiceusagebasedlineconfigDescNamespace := billinginvoiceusagebasedlineconfigMixinFields0[0].Descriptor()
 	// billinginvoiceusagebasedlineconfig.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	billinginvoiceusagebasedlineconfig.NamespaceValidator = billinginvoiceusagebasedlineconfigDescNamespace.Validators[0].(func(string) error)
-	// billinginvoiceusagebasedlineconfigDescFeatureKey is the schema descriptor for feature_key field.
-	billinginvoiceusagebasedlineconfigDescFeatureKey := billinginvoiceusagebasedlineconfigFields[1].Descriptor()
-	// billinginvoiceusagebasedlineconfig.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
-	billinginvoiceusagebasedlineconfig.FeatureKeyValidator = billinginvoiceusagebasedlineconfigDescFeatureKey.Validators[0].(func(string) error)
 	// billinginvoiceusagebasedlineconfigDescPrice is the schema descriptor for price field.
 	billinginvoiceusagebasedlineconfigDescPrice := billinginvoiceusagebasedlineconfigFields[2].Descriptor()
 	billinginvoiceusagebasedlineconfig.ValueScanner.Price = billinginvoiceusagebasedlineconfigDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])

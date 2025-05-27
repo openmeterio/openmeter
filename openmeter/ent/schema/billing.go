@@ -498,7 +498,8 @@ func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 			GoType(productcatalog.PriceType("")),
 		field.String("feature_key").
 			Immutable().
-			NotEmpty(),
+			Optional().
+			Nillable(),
 		field.String("price").
 			GoType(&productcatalog.Price{}).
 			ValueScanner(PriceValueScanner).

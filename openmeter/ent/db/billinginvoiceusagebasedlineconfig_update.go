@@ -171,6 +171,9 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdate) sqlSave(ctx context.Context)
 	if value, ok := _u.mutation.PriceType(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPriceType, field.TypeEnum, value)
 	}
+	if _u.mutation.FeatureKeyCleared() {
+		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldFeatureKey, field.TypeString)
+	}
 	if value, ok := _u.mutation.Price(); ok {
 		vv, err := billinginvoiceusagebasedlineconfig.ValueScanner.Price.Value(value)
 		if err != nil {
@@ -387,6 +390,9 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) sqlSave(ctx context.Conte
 	}
 	if value, ok := _u.mutation.PriceType(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldPriceType, field.TypeEnum, value)
+	}
+	if _u.mutation.FeatureKeyCleared() {
+		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldFeatureKey, field.TypeString)
 	}
 	if value, ok := _u.mutation.Price(); ok {
 		vv, err := billinginvoiceusagebasedlineconfig.ValueScanner.Price.Value(value)

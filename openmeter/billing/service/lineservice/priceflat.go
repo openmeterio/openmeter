@@ -36,7 +36,7 @@ func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 		return newDetailedLinesInput{
 			{
 				Name:                   l.line.Name,
-				Quantity:               alpacadecimal.NewFromFloat(1),
+				Quantity:               alpacadecimal.NewFromInt(1),
 				PerUnitAmount:          flatPrice.Amount,
 				ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
 				PaymentTerm:            productcatalog.InAdvancePaymentTerm,
@@ -46,7 +46,7 @@ func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 		return newDetailedLinesInput{
 			{
 				Name:                   l.line.Name,
-				Quantity:               alpacadecimal.NewFromFloat(1),
+				Quantity:               alpacadecimal.NewFromInt(1),
 				PerUnitAmount:          flatPrice.Amount,
 				ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
 				PaymentTerm:            productcatalog.InArrearsPaymentTerm,

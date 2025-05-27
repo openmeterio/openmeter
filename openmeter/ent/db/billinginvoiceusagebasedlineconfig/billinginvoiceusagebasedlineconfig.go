@@ -58,8 +58,6 @@ func ValidColumn(column string) bool {
 var (
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
-	// FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
-	FeatureKeyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all BillingInvoiceUsageBasedLineConfig fields.
