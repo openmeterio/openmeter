@@ -3453,6 +3453,90 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 	s.Equal(float64(6), line.Discounts.Amount[0].Amount.InexactFloat64())
 }
 
+func (s *SubscriptionHandlerTestSuite) TestUseUsageBasedFlatFeeLinesCompatibility() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("first-phase", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "in-advance",
+						Name: "in-advance",
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(6),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
+				},
+			},
+		},
+	})
+
+	// Given:
+	// - a flat fee has been created as part of the synchronization
+	// When:
+	// - we enable the new feature flag
+	// Then
+	// - the resynchronization should not replace existing usage based lines
+	// - new lines syncronized should receive the usage based line approach
+
+	featureFlagSwitchoverAt := s.mustParseTime("2024-01-03T00:00:00Z")
+	clock.FreezeTime(featureFlagSwitchoverAt)
+
+	// let provision the lines in the old way
+	s.Handler.featureFlags.UseUsageBasedFlatFeeLines = false
+	defer func() {
+		s.Handler.featureFlags.UseUsageBasedFlatFeeLines = false
+	}()
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, clock.Now()))
+
+	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", invoice)
+
+	lines := invoice.Lines.OrEmpty()
+	s.Len(lines, 3)
+	s.Equal(billing.InvoiceLineTypeFee, lines[0].Type)
+	s.Equal(float64(6), lines[0].FlatFee.PerUnitAmount.InexactFloat64())
+
+	// When we enable the new feature flag
+	s.Handler.featureFlags.UseUsageBasedFlatFeeLines = true
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, clock.Now()))
+
+	invoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", invoice)
+
+	lines = invoice.Lines.OrEmpty()
+	s.Len(lines, 3)
+	s.Equal(billing.InvoiceLineTypeFee, lines[0].Type)
+	s.Equal(float64(6), lines[0].FlatFee.PerUnitAmount.InexactFloat64())
+	firstSyncLineIDs := lo.Map(lines, func(line *billing.Line, _ int) string {
+		return line.ID
+	})
+
+	// The new line should usage based
+	clock.FreezeTime(featureFlagSwitchoverAt.Add(24 * 3 * time.Hour))
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, clock.Now()))
+	invoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice - mixed line setup", invoice)
+
+	linesByType := lo.GroupBy(invoice.Lines.OrEmpty(), func(line *billing.Line) billing.InvoiceLineType {
+		return line.Type
+	})
+
+	s.Len(linesByType[billing.InvoiceLineTypeFee], 3)
+	s.ElementsMatch(firstSyncLineIDs, lo.Map(linesByType[billing.InvoiceLineTypeFee], func(line *billing.Line, _ int) string {
+		return line.ID
+	}))
+	s.Len(linesByType[billing.InvoiceLineTypeUsageBased], 3)
+}
+
 type expectedLine struct {
 	Matcher   lineMatcher
 	Qty       mo.Option[float64]
