@@ -216,37 +216,7 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 	require.Equal(t, TestName, originalCustomer.Name, "Customer name must match")
 	require.Equal(t, TestSubjectKeys, originalCustomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
 
-	emptyExamplePlan := plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: s.namespace,
-		},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Empty Plan",
-				Currency: currency.Code("USD"),
-			},
-			Phases: []productcatalog.Phase{
-				{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:  "empty-phase",
-						Name: "Empty Phase",
-					},
-					RateCards: []productcatalog.RateCard{
-						&productcatalog.FlatFeeRateCard{
-							RateCardMeta: productcatalog.RateCardMeta{
-								Key:  "empty-rate-card",
-								Name: "Empty Rate Card",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// Let's create a subscription for the customer
-	p, err := plansubscriptionservice.PlanFromPlanInput(emptyExamplePlan)
-	require.Nil(t, err)
+	p := s.createTestPlan(ctx, t)
 
 	spec, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
 		CustomerId: originalCustomer.ID,
@@ -545,37 +515,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 		ID:        originalCustomer.ID,
 	}
 
-	// Let's create a subscription for the customer
-	emptyExamplePlan := plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: s.namespace,
-		},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Empty Plan",
-				Currency: currency.Code("USD"),
-			},
-			Phases: []productcatalog.Phase{
-				{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:  "empty-phase",
-						Name: "Empty Phase",
-					},
-					RateCards: []productcatalog.RateCard{
-						&productcatalog.FlatFeeRateCard{
-							RateCardMeta: productcatalog.RateCardMeta{
-								Key:  "empty-rate-card",
-								Name: "Empty Rate Card",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	p, err := plansubscriptionservice.PlanFromPlanInput(emptyExamplePlan)
-	require.Nil(t, err)
+	p := s.createTestPlan(ctx, t)
 
 	spec, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
 		CustomerId: originalCustomer.ID,
@@ -589,7 +529,6 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 
 	sub, err := subService.Create(ctx, s.namespace, spec)
 	require.Nil(t, err)
-
 	// Delete the customer
 	require.Equal(t, sub.CustomerId, customerId.ID, "Subscription customer ID must match")
 	err = custService.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
@@ -625,4 +564,59 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	// Should allow to create a customer with the same subject keys
 	_, err = custService.CreateCustomer(ctx, input)
 	require.NoError(t, err, "Creating a customer with the same subject keys must not return error")
+}
+
+// createTestPlan creates and publishes a plan that can be used in tests
+func (s *CustomerHandlerTestSuite) createTestPlan(ctx context.Context, t *testing.T) subscription.Plan {
+	t.Helper()
+
+	planService := s.Env.Plan()
+
+	input := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Key:      "empty-plan",
+				Name:     "Empty Plan",
+				Version:  1,
+				Currency: currency.Code("USD"),
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:  "empty-phase",
+						Name: "Empty Phase",
+					},
+					RateCards: []productcatalog.RateCard{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "empty-rate-card",
+								Name: "Empty Rate Card",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Create the plan
+	p, err := planService.CreatePlan(ctx, input)
+	require.NoError(t, err, "Creating plan must not return error")
+	require.NotNil(t, p, "Plan must not be nil")
+
+	// Publish the plan
+	p, err = planService.PublishPlan(ctx, plan.PublishPlanInput{
+		NamespacedID: p.NamespacedID,
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: lo.ToPtr(clock.Now()),
+			EffectiveTo:   lo.ToPtr(clock.Now().Add(365 * 24 * time.Hour)), // 1 year from now
+		},
+	})
+	require.NoError(t, err, "Publishing plan must not return error")
+	require.NotNil(t, p, "Published plan must not be nil")
+
+	return plansubscriptionservice.PlanFromPlan(*p)
 }

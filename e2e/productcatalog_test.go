@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"slices"
 	"testing"
-	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -12,6 +11,7 @@ import (
 	"golang.org/x/net/context"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -397,7 +397,7 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, 200, publishRes.StatusCode(), "received the following body: %s", publishRes.Body)
 	})
 
-	startTime := time.Now()
+	startTime := clock.Now()
 
 	var subscriptionId string
 	var customSubscriptionId string
@@ -426,7 +426,9 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, subscription)
 		require.NotNil(t, subscription.Id)
 		assert.Equal(t, api.SubscriptionStatusActive, subscription.Status)
-		assert.Nil(t, subscription.Plan)
+		// Custom subscriptions now have a plan reference since we create and publish the custom plan
+		assert.NotNil(t, subscription.Plan)
+		assert.Contains(t, subscription.Plan.Key, "custom_plan_")
 
 		customSubscriptionId = subscription.Id
 	})
@@ -775,5 +777,68 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, res.JSON200.Entitlements)
 		require.NotNil(t, res.JSON200.Entitlements[PlanFeatureKey])
 		require.True(t, res.JSON200.Entitlements[PlanFeatureKey].HasAccess)
+	})
+
+	t.Run("Should filter out custom plans from list", func(t *testing.T) {
+		// Create a new customer for this test to avoid conflicts
+		customer4APIRes, err := client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
+			Name:         "Test Customer 4",
+			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
+			Description:  lo.ToPtr("Test Customer Description"),
+			PrimaryEmail: lo.ToPtr("customer4@mail.com"),
+			BillingAddress: &api.Address{
+				City:        lo.ToPtr("City"),
+				Country:     lo.ToPtr("US"),
+				Line1:       lo.ToPtr("Line 1"),
+				Line2:       lo.ToPtr("Line 2"),
+				State:       lo.ToPtr("State"),
+				PhoneNumber: lo.ToPtr("1234567890"),
+				PostalCode:  lo.ToPtr("12345"),
+			},
+			UsageAttribution: api.CustomerUsageAttribution{
+				SubjectKeys: []string{"test_customer_subject_4"},
+			},
+		})
+		require.Nil(t, err)
+		require.Equal(t, 201, customer4APIRes.StatusCode(), "received the following body: %s", customer4APIRes.Body)
+		customer4 := customer4APIRes.JSON201
+		require.NotNil(t, customer4)
+
+		body := api.CreateSubscriptionJSONRequestBody{}
+
+		ct := &api.SubscriptionTiming{}
+		require.NoError(t, ct.FromSubscriptionTiming1(startTime))
+
+		err = body.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
+			CustomerId: lo.ToPtr(customer4.Id),
+			CustomPlan: customPlanInput,
+			Timing:     ct,
+		})
+		require.Nil(t, err)
+		// Create a subscription with a custom plan
+		customSubAPIRes, err := client.CreateSubscriptionWithResponse(ctx, body)
+		require.Nil(t, err)
+		require.Equal(t, 201, customSubAPIRes.StatusCode(), "received the following body: %s", customSubAPIRes.Body)
+
+		// List all plans - custom plans should be filtered out
+		listPlansAPIRes, err := client.ListPlansWithResponse(ctx, &api.ListPlansParams{})
+		require.Nil(t, err)
+		require.Equal(t, 200, listPlansAPIRes.StatusCode(), "received the following body: %s", listPlansAPIRes.Body)
+
+		plans := listPlansAPIRes.JSON200
+		require.NotNil(t, plans)
+		require.NotNil(t, plans.Items)
+		require.Len(t, plans.Items, 1)
+
+		// Verify that non-custom plans are still in the list
+		planFound := false
+		for _, plan := range plans.Items {
+			t.Logf("Found plan: key=%s, version=%d, status=%s", plan.Key, plan.Version, plan.Status)
+			if plan.Key == PlanKey {
+				planFound = true
+				break
+			}
+		}
+		assert.True(t, planFound, "Non-custom plans should still be in the list")
 	})
 }

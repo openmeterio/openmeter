@@ -40,6 +40,8 @@ const (
 	FieldEffectiveFrom = "effective_from"
 	// FieldEffectiveTo holds the string denoting the effective_to field in the database.
 	FieldEffectiveTo = "effective_to"
+	// FieldIsCustom holds the string denoting the is_custom field in the database.
+	FieldIsCustom = "is_custom"
 	// EdgePhases holds the string denoting the phases edge name in mutations.
 	EdgePhases = "phases"
 	// EdgeAddons holds the string denoting the addons edge name in mutations.
@@ -87,6 +89,7 @@ var Columns = []string{
 	FieldCurrency,
 	FieldEffectiveFrom,
 	FieldEffectiveTo,
+	FieldIsCustom,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -118,6 +121,8 @@ var (
 	DefaultCurrency string
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
+	// DefaultIsCustom holds the default value on creation for the "is_custom" field.
+	DefaultIsCustom bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -188,6 +193,11 @@ func ByEffectiveFrom(opts ...sql.OrderTermOption) OrderOption {
 // ByEffectiveTo orders the results by the effective_to field.
 func ByEffectiveTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEffectiveTo, opts...).ToFunc()
+}
+
+// ByIsCustom orders the results by the is_custom field.
+func ByIsCustom(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsCustom, opts...).ToFunc()
 }
 
 // ByPhasesCount orders the results by phases count.

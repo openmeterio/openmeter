@@ -1729,6 +1729,7 @@ var (
 		{Name: "currency", Type: field.TypeString, Default: "USD"},
 		{Name: "effective_from", Type: field.TypeTime, Nullable: true},
 		{Name: "effective_to", Type: field.TypeTime, Nullable: true},
+		{Name: "is_custom", Type: field.TypeBool, Default: false},
 	}
 	// PlansTable holds the schema information for the "plans" table.
 	PlansTable = &schema.Table{

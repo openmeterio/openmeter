@@ -178,6 +178,20 @@ func (_u *PlanUpdate) ClearEffectiveTo() *PlanUpdate {
 	return _u
 }
 
+// SetIsCustom sets the "is_custom" field.
+func (_u *PlanUpdate) SetIsCustom(v bool) *PlanUpdate {
+	_u.mutation.SetIsCustom(v)
+	return _u
+}
+
+// SetNillableIsCustom sets the "is_custom" field if the given value is not nil.
+func (_u *PlanUpdate) SetNillableIsCustom(v *bool) *PlanUpdate {
+	if v != nil {
+		_u.SetIsCustom(*v)
+	}
+	return _u
+}
+
 // AddPhaseIDs adds the "phases" edge to the PlanPhase entity by IDs.
 func (_u *PlanUpdate) AddPhaseIDs(ids ...string) *PlanUpdate {
 	_u.mutation.AddPhaseIDs(ids...)
@@ -393,6 +407,9 @@ func (_u *PlanUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.EffectiveToCleared() {
 		_spec.ClearField(plan.FieldEffectiveTo, field.TypeTime)
+	}
+	if value, ok := _u.mutation.IsCustom(); ok {
+		_spec.SetField(plan.FieldIsCustom, field.TypeBool, value)
 	}
 	if _u.mutation.PhasesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -696,6 +713,20 @@ func (_u *PlanUpdateOne) ClearEffectiveTo() *PlanUpdateOne {
 	return _u
 }
 
+// SetIsCustom sets the "is_custom" field.
+func (_u *PlanUpdateOne) SetIsCustom(v bool) *PlanUpdateOne {
+	_u.mutation.SetIsCustom(v)
+	return _u
+}
+
+// SetNillableIsCustom sets the "is_custom" field if the given value is not nil.
+func (_u *PlanUpdateOne) SetNillableIsCustom(v *bool) *PlanUpdateOne {
+	if v != nil {
+		_u.SetIsCustom(*v)
+	}
+	return _u
+}
+
 // AddPhaseIDs adds the "phases" edge to the PlanPhase entity by IDs.
 func (_u *PlanUpdateOne) AddPhaseIDs(ids ...string) *PlanUpdateOne {
 	_u.mutation.AddPhaseIDs(ids...)
@@ -941,6 +972,9 @@ func (_u *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) {
 	}
 	if _u.mutation.EffectiveToCleared() {
 		_spec.ClearField(plan.FieldEffectiveTo, field.TypeTime)
+	}
+	if value, ok := _u.mutation.IsCustom(); ok {
+		_spec.SetField(plan.FieldIsCustom, field.TypeBool, value)
 	}
 	if _u.mutation.PhasesCleared() {
 		edge := &sqlgraph.EdgeSpec{

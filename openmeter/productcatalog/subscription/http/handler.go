@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -33,6 +34,7 @@ type HandlerConfig struct {
 	SubscriptionService         subscription.Service
 	CustomerService             customer.Service
 	PlanSubscriptionService     plansubscription.PlanSubscriptionService
+	PlanService                 plan.Service
 	NamespaceDecoder            namespacedriver.NamespaceDecoder
 	Logger                      *slog.Logger
 }

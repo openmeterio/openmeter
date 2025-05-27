@@ -1169,6 +1169,10 @@ func init() {
 	plan.DefaultCurrency = planDescCurrency.Default.(string)
 	// plan.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	plan.CurrencyValidator = planDescCurrency.Validators[0].(func(string) error)
+	// planDescIsCustom is the schema descriptor for is_custom field.
+	planDescIsCustom := planFields[4].Descriptor()
+	// plan.DefaultIsCustom holds the default value on creation for the is_custom field.
+	plan.DefaultIsCustom = planDescIsCustom.Default.(bool)
 	// planDescID is the schema descriptor for id field.
 	planDescID := planMixinFields0[0].Descriptor()
 	// plan.DefaultID holds the default value on creation for the id field.

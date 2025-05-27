@@ -125,6 +125,11 @@ func EffectiveTo(v time.Time) predicate.Plan {
 	return predicate.Plan(sql.FieldEQ(FieldEffectiveTo, v))
 }
 
+// IsCustom applies equality check predicate on the "is_custom" field. It's identical to IsCustomEQ.
+func IsCustom(v bool) predicate.Plan {
+	return predicate.Plan(sql.FieldEQ(FieldIsCustom, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Plan {
 	return predicate.Plan(sql.FieldEQ(FieldNamespace, v))
@@ -748,6 +753,16 @@ func EffectiveToIsNil() predicate.Plan {
 // EffectiveToNotNil applies the NotNil predicate on the "effective_to" field.
 func EffectiveToNotNil() predicate.Plan {
 	return predicate.Plan(sql.FieldNotNull(FieldEffectiveTo))
+}
+
+// IsCustomEQ applies the EQ predicate on the "is_custom" field.
+func IsCustomEQ(v bool) predicate.Plan {
+	return predicate.Plan(sql.FieldEQ(FieldIsCustom, v))
+}
+
+// IsCustomNEQ applies the NEQ predicate on the "is_custom" field.
+func IsCustomNEQ(v bool) predicate.Plan {
+	return predicate.Plan(sql.FieldNEQ(FieldIsCustom, v))
 }
 
 // HasPhases applies the HasEdge predicate on the "phases" edge.

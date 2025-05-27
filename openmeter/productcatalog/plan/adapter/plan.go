@@ -59,6 +59,9 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			query = query.Where(plandb.DeletedAtIsNil())
 		}
 
+		// Filter out custom plans from the list
+		query = query.Where(plandb.IsCustom(false))
+
 		if len(params.Status) > 0 {
 			var predicates []predicate.Plan
 
@@ -182,6 +185,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			SetBillablesMustAlign(params.BillablesMustAlign).
 			SetMetadata(params.Metadata).
 			SetVersion(params.Version).
+			SetIsCustom(params.IsCustom).
 			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Plan: %w", err)
