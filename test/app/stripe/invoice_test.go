@@ -284,13 +284,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 	s.NotEmpty(customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	minimalCreateProfileInput := billingtest.MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	s.NoError(err)
-	s.NotNil(profile)
+	s.ProvisionBillingProfile(ctx, namespace)
 
 	s.Run("create pending invoice items", func() {
 		// When we create pending invoice items
@@ -1061,26 +1055,22 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.NoError(err)
 
 	// Given we have a default profile for the namespace
-	minimalCreateProfileInput := billingtest.MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-	minimalCreateProfileInput.Apps = billing.CreateProfileAppsInput{
-		Tax: billing.AppReference{
-			ID: app.GetID().ID,
-		},
-		Invoicing: billing.AppReference{
-			ID: app.GetID().ID,
-		},
-		Payment: billing.AppReference{
-			ID: app.GetID().ID,
-		},
-	}
-	// manual advancement for testing the update invoice flow
-	minimalCreateProfileInput.WorkflowConfig.Invoicing.AutoAdvance = false
+	s.ProvisionBillingProfile(ctx, namespace, billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+		// manual advancement for testing the update invoice flow
+		profile.WorkflowConfig.Invoicing.AutoAdvance = false
 
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	s.NoError(err)
-	s.NotNil(profile)
+		profile.Apps = billing.CreateProfileAppsInput{
+			Tax: billing.AppReference{
+				ID: app.GetID().ID,
+			},
+			Invoicing: billing.AppReference{
+				ID: app.GetID().ID,
+			},
+			Payment: billing.AppReference{
+				ID: app.GetID().ID,
+			},
+		}
+	}))
 
 	// Setup the app with the customer
 

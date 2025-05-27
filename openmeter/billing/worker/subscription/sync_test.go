@@ -73,16 +73,11 @@ func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
 
 	_ = s.InstallSandboxApp(s.T(), s.Namespace)
 
-	minimalCreateProfileInput := billingtest.MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = s.Namespace
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-	s.NoError(err)
-	s.NotNil(profile)
+	s.ProvisionBillingProfile(ctx, s.Namespace)
 
 	apiRequestsTotalMeterSlug := "api-requests-total"
 
-	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
 				ID: ulid.Make().String(),
@@ -491,12 +486,7 @@ func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.NotNil(customer)
 
-	minimalCreateProfileInput := billingtest.MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-	s.NoError(err)
-	s.NotNil(profile)
+	s.ProvisionBillingProfile(ctx, namespace)
 
 	// Test no gathering invoice state
 	s.Run("no gathering invoice", func() {
@@ -564,12 +554,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
-	minimalCreateProfileInput := billingtest.MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-	s.NoError(err)
-	s.NotNil(profile)
+	s.ProvisionBillingProfile(ctx, namespace)
 
 	customerEntity := s.CreateTestCustomer(namespace, "test")
 	require.NotNil(s.T(), customerEntity)

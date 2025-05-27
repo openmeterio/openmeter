@@ -25,11 +25,8 @@ func (s *InvoicingEventTestSuite) TestCreateInvoiceEvent() {
 
 	s.InstallSandboxApp(s.T(), namespace)
 
-	createProfileInput := MinimalCreateProfileInputTemplate
-	createProfileInput.Namespace = namespace
+	s.ProvisionBillingProfile(ctx, namespace)
 
-	_, err := s.BillingService.CreateProfile(ctx, createProfileInput)
-	s.NoError(err)
 	invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
 		Namespace: namespace,
 		Customer:  s.CreateTestCustomer(namespace, "test-customer"),

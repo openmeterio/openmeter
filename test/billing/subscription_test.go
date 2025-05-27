@@ -60,7 +60,7 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 
 	// Given we have a default profile
 
-	defaultProfileSettings := MinimalCreateProfileInputTemplate
+	defaultProfileSettings := minimalCreateProfileInputTemplate
 	defaultProfileSettings.Default = true
 	defaultProfileSettings.Namespace = namespace
 
@@ -92,7 +92,7 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 		ID: otherApp.ID,
 	}
 
-	otherProfileSettings := MinimalCreateProfileInputTemplate
+	otherProfileSettings := minimalCreateProfileInputTemplate
 	otherProfileSettings.Namespace = namespace
 	otherProfileSettings.Apps = billing.CreateProfileAppsInput{
 		Tax:       otherAppReference,

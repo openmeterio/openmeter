@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var MinimalCreateProfileInputTemplate = billing.CreateProfileInput{
+var minimalCreateProfileInputTemplate = billing.CreateProfileInput{
 	Name:    "Awesome Profile",
 	Default: true,
 

@@ -41,13 +41,10 @@ func (s *CollectionTestSuite) setupNS(ctx context.Context, namespace string) col
 
 	apiRequestsTotalFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
 
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-	minimalCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
-	minimalCreateProfileInput.WorkflowConfig.Collection.Interval = isodate.MustParse(s.T(), "PT1H")
-
-	_, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-	s.NoError(err)
+	s.ProvisionBillingProfile(ctx, namespace,
+		WithProgressiveBilling(),
+		WithCollectionInterval(isodate.MustParse(s.T(), "PT1H")),
+	)
 
 	return collectionNSResult{
 		TestFeature: apiRequestsTotalFeature,

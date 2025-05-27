@@ -470,22 +470,36 @@ func WithBillingProfileEditFn(editFn BillingProfileEditFn) BillingProfileProvisi
 	}
 }
 
-func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, opts ...BillingProfileProvisionOption) {
+func WithProgressiveBilling() BillingProfileProvisionOption {
+	return WithBillingProfileEditFn(func(p *billing.CreateProfileInput) {
+		p.WorkflowConfig.Invoicing.ProgressiveBilling = true
+	})
+}
+
+func WithCollectionInterval(period isodate.Period) BillingProfileProvisionOption {
+	return WithBillingProfileEditFn(func(p *billing.CreateProfileInput) {
+		p.WorkflowConfig.Collection.Interval = period
+	})
+}
+
+func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, opts ...BillingProfileProvisionOption) *billing.Profile {
 	provisionOpts := BillingProfileProvisionOptions{}
 
 	for _, opt := range opts {
 		opt(&provisionOpts)
 	}
 
-	clonedCreateProfileInput := MinimalCreateProfileInputTemplate
+	clonedCreateProfileInput := minimalCreateProfileInputTemplate
 	clonedCreateProfileInput.Namespace = ns
 
 	if provisionOpts.editFn != nil {
 		provisionOpts.editFn(&clonedCreateProfileInput)
 	}
 
-	_, err := s.BillingService.CreateProfile(ctx, clonedCreateProfileInput)
+	profile, err := s.BillingService.CreateProfile(ctx, clonedCreateProfileInput)
 	s.NoError(err)
+
+	return profile
 }
 
 func ExpectJSONEqual(t *testing.T, exp, actual any) {

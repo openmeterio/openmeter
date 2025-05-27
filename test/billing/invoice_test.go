@@ -115,17 +115,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	// Given we have a default profile for the namespace
 
-	var billingProfile billing.Profile
-	s.T().Run("create default profile", func(t *testing.T) {
-		minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-		minimalCreateProfileInput.Namespace = namespace
-
-		profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-		require.NoError(t, err)
-		require.NotNil(t, profile)
-		billingProfile = *profile
-	})
+	billingProfile := s.ProvisionBillingProfile(ctx, namespace)
 
 	var items []*billing.Line
 	var HUFItem *billing.Line
@@ -448,14 +438,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), profile)
+	s.ProvisionBillingProfile(ctx, namespace)
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
@@ -864,14 +847,9 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 			require.NotEmpty(s.T(), customerEntity.ID)
 
 			// Given we have a billing profile
-			minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-			minimalCreateProfileInput.Namespace = namespace
-			minimalCreateProfileInput.WorkflowConfig = tc.workflowConfig
-
-			profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-			require.NoError(s.T(), err)
-			require.NotNil(s.T(), profile)
+			s.ProvisionBillingProfile(ctx, namespace, WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+				profile.WorkflowConfig = tc.workflowConfig
+			}))
 
 			invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
 				Namespace: namespace,
@@ -1223,14 +1201,9 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 			require.NotEmpty(s.T(), customerEntity.ID)
 
 			// Given we have a billing profile
-			minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-			minimalCreateProfileInput.Namespace = namespace
-			minimalCreateProfileInput.WorkflowConfig = tc.workflowConfig
-
-			profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-			require.NoError(s.T(), err)
-			require.NotNil(s.T(), profile)
+			s.ProvisionBillingProfile(ctx, namespace, WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+				profile.WorkflowConfig = tc.workflowConfig
+			}))
 
 			// When we advance the invoice
 			invoice := tc.advance(t, ctx, namespace, customerEntity, mockApp)
@@ -1258,7 +1231,7 @@ func (s *InvoicingTestSuite) TestBillingProfileChange() {
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
-	oldCreateProfileInput := MinimalCreateProfileInputTemplate
+	oldCreateProfileInput := minimalCreateProfileInputTemplate
 	oldCreateProfileInput.Namespace = namespace
 	oldCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
 
@@ -1266,7 +1239,7 @@ func (s *InvoicingTestSuite) TestBillingProfileChange() {
 	s.NoError(err)
 	s.NotNil(oldBillingProfile)
 
-	newCreateProfileInput := MinimalCreateProfileInputTemplate
+	newCreateProfileInput := minimalCreateProfileInputTemplate
 	newCreateProfileInput.Namespace = namespace
 	newCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
 
@@ -1408,14 +1381,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 	customerEntity := s.CreateTestCustomer(namespace, "test")
 
 	// Given we have a default profile for the namespace
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-	minimalCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), profile)
+	s.ProvisionBillingProfile(ctx, namespace, WithProgressiveBilling())
 
 	lines := ubpPendingLines{}
 	s.Run("create pending invoice items", func() {
@@ -2332,14 +2298,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-	minimalCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), profile)
+	s.ProvisionBillingProfile(ctx, namespace, WithProgressiveBilling())
 
 	var pendingLine *billing.Line
 	s.Run("create pending invoice items", func() {
@@ -2643,13 +2602,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), profile)
+	s.ProvisionBillingProfile(ctx, namespace)
 
 	lines := ubpPendingLines{}
 	s.Run("create pending invoice items", func() {
@@ -3204,13 +3157,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), profile)
+	s.ProvisionBillingProfile(ctx, namespace)
 
 	s.Run("create pending invoice items", func() {
 		// When we create pending invoice items
@@ -3377,13 +3324,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.NotEmpty(customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	s.NoError(err)
-	s.NotNil(profile)
+	s.ProvisionBillingProfile(ctx, namespace)
 
 	// Given we have pending invoice items without usage
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
@@ -3502,13 +3443,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 	s.NotEmpty(customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	s.NoError(err)
-	s.NotNil(profile)
+	s.ProvisionBillingProfile(ctx, namespace)
 
 	// Given we have pending invoice items without usage
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
@@ -3577,11 +3512,7 @@ func (s *InvoicingTestSuite) TestNamespaceLockedGatheringInvoiceCreation() {
 
 	s.InstallSandboxApp(s.T(), namespace)
 
-	createProfileInput := MinimalCreateProfileInputTemplate
-	createProfileInput.Namespace = namespace
-
-	_, err := s.BillingService.CreateProfile(ctx, createProfileInput)
-	s.NoError(err)
+	s.ProvisionBillingProfile(ctx, namespace)
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 
@@ -3603,11 +3534,7 @@ func (s *InvoicingTestSuite) TestNamespaceLockedInvoiceProgression() {
 
 	s.InstallSandboxApp(s.T(), namespace)
 
-	createProfileInput := MinimalCreateProfileInputTemplate
-	createProfileInput.Namespace = namespace
-
-	_, err := s.BillingService.CreateProfile(ctx, createProfileInput)
-	s.NoError(err)
+	s.ProvisionBillingProfile(ctx, namespace)
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 
@@ -3657,14 +3584,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 
 	s.InstallSandboxApp(s.T(), namespace)
 
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-	minimalCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), profile)
+	s.ProvisionBillingProfile(ctx, namespace, WithProgressiveBilling())
 
 	start := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
 
@@ -3758,14 +3678,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 
 	s.InstallSandboxApp(s.T(), namespace)
 
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-	minimalCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), profile)
+	s.ProvisionBillingProfile(ctx, namespace, WithProgressiveBilling())
 
 	start := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
 
@@ -3877,13 +3790,7 @@ func (s *InvoicingTestSuite) TestSortLines() {
 
 	s.InstallSandboxApp(s.T(), namespace)
 
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = namespace
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), profile)
+	s.ProvisionBillingProfile(ctx, namespace)
 
 	start := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
 

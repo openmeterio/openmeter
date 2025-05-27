@@ -54,13 +54,7 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 	// Given we have a profile
 	_ = s.InstallSandboxApp(s.T(), ns)
 
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = ns
-
-	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), profile)
+	profile := s.ProvisionBillingProfile(ctx, ns)
 
 	// Given we have an invoice
 	invoice, err := s.BillingAdapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
