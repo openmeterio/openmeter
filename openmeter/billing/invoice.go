@@ -631,7 +631,7 @@ func (i genericMultiInvoiceInput) Validate() error {
 }
 
 type (
-	DeleteInvoicesAdapterInput       = genericMultiInvoiceInput
+	DeleteGatheringInvoicesInput     = genericMultiInvoiceInput
 	LockInvoicesForUpdateInput       = genericMultiInvoiceInput
 	AssociatedLineCountsAdapterInput = genericMultiInvoiceInput
 )

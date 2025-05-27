@@ -83,7 +83,7 @@ func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand b
 	})
 }
 
-func (a *adapter) DeleteInvoices(ctx context.Context, input billing.DeleteInvoicesAdapterInput) error {
+func (a *adapter) DeleteGatheringInvoices(ctx context.Context, input billing.DeleteGatheringInvoicesInput) error {
 	if err := input.Validate(); err != nil {
 		return billing.ValidationError{
 			Err: err,
@@ -94,6 +94,9 @@ func (a *adapter) DeleteInvoices(ctx context.Context, input billing.DeleteInvoic
 		nAffected, err := tx.db.BillingInvoice.Update().
 			Where(billinginvoice.IDIn(input.InvoiceIDs...)).
 			Where(billinginvoice.Namespace(input.Namespace)).
+			Where(billinginvoice.StatusEQ(billing.InvoiceStatusGathering)).
+			ClearPeriodStart().
+			ClearPeriodEnd().
 			SetDeletedAt(clock.Now()).
 			Save(ctx)
 		if err != nil {

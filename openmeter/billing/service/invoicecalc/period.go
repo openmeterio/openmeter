@@ -28,9 +28,7 @@ func CalculateInvoicePeriod(invoice *billing.Invoice, deps CalculatorDependencie
 		}
 	}
 
-	if period != nil {
-		invoice.Period = period
-	}
+	invoice.Period = period
 
 	return nil
 }

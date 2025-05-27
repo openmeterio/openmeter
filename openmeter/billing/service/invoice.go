@@ -388,12 +388,12 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 			// Delete empty gathering invoices
 			if len(emptyGatheringInvoiceIDs) > 0 {
-				err = s.adapter.DeleteInvoices(ctx, billing.DeleteInvoicesAdapterInput{
+				err = s.adapter.DeleteGatheringInvoices(ctx, billing.DeleteGatheringInvoicesInput{
 					Namespace:  input.Customer.Namespace,
 					InvoiceIDs: emptyGatheringInvoiceIDs,
 				})
 				if err != nil {
-					return nil, fmt.Errorf("cleanup invoices: %w", err)
+					return nil, fmt.Errorf("cleanup gathering invoices: %w", err)
 				}
 			}
 
@@ -929,11 +929,11 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 			// TranscationForGatheringInvoiceManipulation
 
 			if invoice.Lines.NonDeletedLineCount() == 0 {
-				if err := s.adapter.DeleteInvoices(ctx, billing.DeleteInvoicesAdapterInput{
+				if err := s.adapter.DeleteGatheringInvoices(ctx, billing.DeleteGatheringInvoicesInput{
 					Namespace:  input.Invoice.Namespace,
 					InvoiceIDs: []string{invoice.ID},
 				}); err != nil {
-					return billing.Invoice{}, fmt.Errorf("deleting invoice: %w", err)
+					return billing.Invoice{}, fmt.Errorf("deleting gathering invoice: %w", err)
 				}
 			}
 
@@ -1247,11 +1247,11 @@ func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billin
 			}
 
 			if invoice.Lines.NonDeletedLineCount() == 0 {
-				if err := s.adapter.DeleteInvoices(ctx, billing.DeleteInvoicesAdapterInput{
+				if err := s.adapter.DeleteGatheringInvoices(ctx, billing.DeleteGatheringInvoicesInput{
 					Namespace:  input.Namespace,
 					InvoiceIDs: []string{invoice.ID},
 				}); err != nil {
-					return fmt.Errorf("deleting invoice: %w", err)
+					return fmt.Errorf("deleting gathering invoice: %w", err)
 				}
 			}
 		}

@@ -268,6 +268,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				Number:   "GATHER-TECU-USD-1",
 				Currency: currencyx.Code(currency.USD),
 				Status:   billing.InvoiceStatusGathering,
+				Period:   &billing.Period{Start: periodStart.Truncate(time.Microsecond), End: periodEnd.Truncate(time.Microsecond)},
 
 				CreatedAt: usdInvoice.CreatedAt,
 				UpdatedAt: usdInvoice.UpdatedAt,
@@ -3915,4 +3916,105 @@ func (s *InvoicingTestSuite) TestSortLines() {
 		// Let's mandate that the last child is the commitment
 		s.Equal(billing.FlatFeeCategoryCommitment, children[3].FlatFee.Category)
 	}
+}
+
+func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
+	// When a gathering invoice has been created
+	// Then the period is persisted into the database (so that we can filter/sort by it)
+
+	namespace := "ns-gathering-invoice-period-persisting"
+	ctx := context.Background()
+
+	s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace)
+
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
+	periodEnd := periodStart.Add(time.Hour * 24)
+
+	clock.SetTime(periodStart)
+	defer clock.ResetTime()
+
+	customer := s.CreateTestCustomer(namespace, "test-customer")
+
+	// When
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customer.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []*billing.Line{
+			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
+				Period:    billing.Period{Start: periodStart, End: periodEnd},
+				InvoiceAt: periodStart,
+				Name:      "Flat fee",
+
+				PerUnitAmount: alpacadecimal.NewFromFloat(10),
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(pendingLines.Lines, 1)
+
+	// Then
+	adapterInvoice, err := s.BillingAdapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+		Invoice: pendingLines.Invoice.InvoiceID(),
+	})
+	s.NoError(err)
+	s.Equal(periodStart, adapterInvoice.Period.Start)
+	s.Equal(periodEnd, adapterInvoice.Period.End)
+
+	// Given an existing gathering invoice
+	// When adding a new line with different period
+	// Then the period is updated
+
+	newPeriodStart := periodStart.Add(-time.Hour * 24)
+	newPeriodEnd := periodEnd.Add(time.Hour * 24)
+
+	pendingLines, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customer.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []*billing.Line{
+			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
+				Period:    billing.Period{Start: newPeriodStart, End: newPeriodEnd},
+				InvoiceAt: newPeriodStart,
+				Name:      "Flat fee",
+
+				PerUnitAmount: alpacadecimal.NewFromFloat(10),
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(pendingLines.Lines, 1)
+
+	// Then
+	adapterInvoice, err = s.BillingAdapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+		Invoice: pendingLines.Invoice.InvoiceID(),
+	})
+	s.NoError(err)
+	s.Equal(newPeriodStart, adapterInvoice.Period.Start)
+	s.Equal(newPeriodEnd, adapterInvoice.Period.End)
+
+	// When a gathering invoice is deleted
+	// Then the period is empty
+
+	gatheringInvoiceID := pendingLines.Invoice.InvoiceID()
+
+	clock.SetTime(newPeriodEnd)
+	res, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer:                   customer.GetID(),
+		ProgressiveBillingOverride: lo.ToPtr(false),
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+
+	// The new invoice contains all the pending lines => gathering invoice has been deleted
+	invoice := res[0]
+	s.Len(invoice.Lines.OrEmpty(), 2)
+
+	gatheringInvoice, err := s.BillingAdapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+		Invoice: gatheringInvoiceID,
+	})
+	s.NoError(err)
+	s.Nil(gatheringInvoice.Period)
+	s.NotNil(gatheringInvoice.DeletedAt)
 }
