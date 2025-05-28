@@ -44,6 +44,55 @@ func (tableCreation createMeterQueryRowsCacheTable) toSQL() string {
 	return sql
 }
 
+// cacheRow is a struct that represents a row in the cache table
+type cacheRow struct {
+	WindowStart time.Time
+	WindowEnd   time.Time
+	Value       float64
+	Subject     string
+	GroupBy     map[string]string
+}
+
+// toMeterQueryRow converts a cacheRow to a meterpkg.MeterQueryRow
+func (row cacheRow) toMeterQueryRow() meterpkg.MeterQueryRow {
+	currentRow := meterpkg.MeterQueryRow{
+		GroupBy:     map[string]*string{},
+		WindowStart: row.WindowStart,
+		WindowEnd:   row.WindowEnd,
+		Value:       row.Value,
+	}
+
+	if row.Subject != "" {
+		currentRow.Subject = &row.Subject
+	}
+
+	for groupKey, groupValue := range row.GroupBy {
+		if groupValue != "" {
+			currentRow.GroupBy[groupKey] = &groupValue
+		} else {
+			currentRow.GroupBy[groupKey] = nil
+		}
+	}
+
+	return currentRow
+}
+
+// newCacheRowFromMeterQueryRow creates a cacheRow from a meterpkg.MeterQueryRow
+func newCacheRowFromMeterQueryRow(row meterpkg.MeterQueryRow) cacheRow {
+	groupBy := make(map[string]string)
+	for key, value := range row.GroupBy {
+		groupBy[key] = lo.FromPtrOr(value, "")
+	}
+
+	return cacheRow{
+		WindowStart: row.WindowStart,
+		WindowEnd:   row.WindowEnd,
+		Value:       row.Value,
+		Subject:     lo.FromPtrOr(row.Subject, ""),
+		GroupBy:     groupBy,
+	}
+}
+
 // insertMeterQueryRowsToCache is a query to insert rows into the cache table
 type insertMeterQueryRowsToCache struct {
 	Database  string
@@ -61,11 +110,8 @@ func (insertQuery insertMeterQueryRowsToCache) toSQL() (string, []interface{}) {
 	builder.Cols("hash", "namespace", "window_start", "window_end", "value", "subject", "group_by")
 
 	var args []interface{}
-	for _, row := range insertQuery.QueryRows {
-		groupBy := make(map[string]string)
-		for key, value := range row.GroupBy {
-			groupBy[key] = lo.FromPtrOr(value, "")
-		}
+	for _, queryRow := range insertQuery.QueryRows {
+		row := newCacheRowFromMeterQueryRow(queryRow)
 
 		args = append(args,
 			insertQuery.Hash,
@@ -73,8 +119,8 @@ func (insertQuery insertMeterQueryRowsToCache) toSQL() (string, []interface{}) {
 			row.WindowStart,
 			row.WindowEnd,
 			row.Value,
-			lo.FromPtrOr(row.Subject, ""),
-			groupBy,
+			row.Subject,
+			row.GroupBy,
 		)
 
 		builder.Values("?", "?", "?", "?", "?", "?", "?")
@@ -122,30 +168,12 @@ func (queryCache getMeterQueryRowsFromCache) scanRows(rows driver.Rows) ([]meter
 	queryRows := []meterpkg.MeterQueryRow{}
 
 	for rows.Next() {
-		currentRow := meterpkg.MeterQueryRow{
-			GroupBy: map[string]*string{},
-		}
-
-		var rowSubject string
-		var rowGroupBy map[string]string
-
-		if err := rows.Scan(&currentRow.WindowStart, &currentRow.WindowEnd, &currentRow.Value, &rowSubject, &rowGroupBy); err != nil {
+		cacheRow := cacheRow{}
+		if err := rows.Scan(&cacheRow.WindowStart, &cacheRow.WindowEnd, &cacheRow.Value, &cacheRow.Subject, &cacheRow.GroupBy); err != nil {
 			return queryRows, fmt.Errorf("scan meter query hash row: %w", err)
 		}
 
-		if rowSubject != "" {
-			currentRow.Subject = &rowSubject
-		}
-
-		for groupKey, groupValue := range rowGroupBy {
-			if groupValue != "" {
-				currentRow.GroupBy[groupKey] = &groupValue
-			} else {
-				currentRow.GroupBy[groupKey] = nil
-			}
-		}
-
-		queryRows = append(queryRows, currentRow)
+		queryRows = append(queryRows, cacheRow.toMeterQueryRow())
 	}
 
 	err := rows.Err()

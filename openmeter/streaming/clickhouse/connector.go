@@ -217,12 +217,12 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	if useCache {
 		hash := fmt.Sprintf("%x", QueryParamsHash(params))
 
-		cachedRows, newRows, err := c.executeQueryWithCaching(ctx, hash, query)
+		resultRows, err := c.executeQueryWithCaching(ctx, hash, query)
 		if err != nil {
 			return values, fmt.Errorf("query cached rows: %w", err)
 		}
 
-		values = mergeMeterQueryRows(meter, params, append(cachedRows, newRows...))
+		values = mergeMeterQueryRows(meter, params, resultRows)
 	} else {
 		// If the client ID is set, we track track the progress of the query
 		if params.ClientID != nil {
