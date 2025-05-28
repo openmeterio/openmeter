@@ -9,8 +9,9 @@ import (
 	"testing"
 
 	"github.com/oklog/ulid/v2"
-	flatfeetoubpflatfeedb "github.com/openmeterio/openmeter/tools/migrate/testdata/billing/flatfeetoubpflatfee/db"
 	"github.com/stretchr/testify/require"
+
+	flatfeetoubpflatfeedb "github.com/openmeterio/openmeter/tools/migrate/testdata/billing/flatfeetoubpflatfee/db"
 )
 
 func TestMigrateFlatFeesToUBPFlatFees(t *testing.T) {
@@ -90,9 +91,9 @@ func TestMigrateFlatFeesToUBPFlatFees(t *testing.T) {
 					// other fields
 					require.Equal(t, ubpLine.PriceType, "flat", "price type should be flat")
 					require.Equal(t, ubpLine.Quantity.String, "1", "quantity should be 1")
-					require.Equal(t, ubpLine.PreLinePeriodQuantity.String, "0", "pre line period quantity should be 1")
+					require.Equal(t, ubpLine.PreLinePeriodQuantity.String, "0", "pre line period quantity should be 0")
 					require.Equal(t, ubpLine.MeteredQuantity.String, "1", "metered quantity should be 1")
-					require.Equal(t, ubpLine.MeteredPreLinePeriodQuantity.String, "0", "metered pre line period quantity should be 1")
+					require.Equal(t, ubpLine.MeteredPreLinePeriodQuantity.String, "0", "metered pre line period quantity should be 0")
 					require.False(t, ubpLine.ParentLineID.Valid, "there should be no parent line for the ubp one")
 					require.NotEmpty(t, ubpLine.InvoiceID, "the invoice id should be valid")
 

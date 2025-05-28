@@ -20,7 +20,7 @@ func (q *Queries) GetLineHierarchyByDetailedLineID(ctx context.Context, detailed
 		return LineHierarchy{}, fmt.Errorf("line parent not found")
 	}
 
-	ubpLine, err := q.GetUsageBasedLineByID(context.Background(), lineParent.String)
+	ubpLine, err := q.GetUsageBasedLineByID(ctx, lineParent.String)
 	if err != nil {
 		return LineHierarchy{}, err
 	}
@@ -29,7 +29,7 @@ func (q *Queries) GetLineHierarchyByDetailedLineID(ctx context.Context, detailed
 		return LineHierarchy{}, fmt.Errorf("ubp line id does not match line parent id")
 	}
 
-	detailedLines, err := q.GetFlatFeeLinesByParentID(context.Background(), lineParent.String)
+	detailedLines, err := q.GetFlatFeeLinesByParentID(ctx, lineParent.String)
 	if err != nil {
 		return LineHierarchy{}, err
 	}
