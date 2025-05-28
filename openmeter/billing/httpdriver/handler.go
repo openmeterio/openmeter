@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/openmeterio/openmeter/app/config"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -52,6 +53,7 @@ type CustomerOverrideHandler interface {
 type handler struct {
 	service          billing.Service
 	namespaceDecoder namespacedriver.NamespaceDecoder
+	featureSwitches  config.BillingFeatureSwitchesConfiguration
 	options          []httptransport.HandlerOption
 }
 
@@ -67,6 +69,7 @@ func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
 func New(
 	logger *slog.Logger,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
+	featureSwitches config.BillingFeatureSwitchesConfiguration,
 	service billing.Service,
 	stripeAppService appstripe.Service,
 	options ...httptransport.HandlerOption,
@@ -75,5 +78,6 @@ func New(
 		service:          service,
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
+		featureSwitches:  featureSwitches,
 	}
 }

@@ -69,6 +69,16 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				}
 			}
 
+			if h.featureSwitches.UseUsageBasedFlatFeeLines {
+				for _, line := range lineEntities {
+					if line.Type == billing.InvoiceLineTypeFee {
+						return CreatePendingLineRequest{}, billing.ValidationError{
+							Err: fmt.Errorf("creating flat fee lines is not supported, please use usage based lines instead"),
+						}
+					}
+				}
+			}
+
 			return CreatePendingLineRequest{
 				Customer: customer.CustomerID{
 					Namespace: ns,
@@ -942,6 +952,12 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 				return billing.LineChildren{}, fmt.Errorf("failed to create new line: %w", err)
 			}
 
+			if h.featureSwitches.UseUsageBasedFlatFeeLines && newLine.Type == billing.InvoiceLineTypeFee {
+				return billing.LineChildren{}, billing.ValidationError{
+					Err: fmt.Errorf("creating flat fee lines is not supported, please use usage based lines instead"),
+				}
+			}
+
 			if invoice.Status != billing.InvoiceStatusGathering {
 				newLine, err = h.service.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
 					Invoice: invoice,
@@ -960,6 +976,12 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 		mergedLine, changed, err := mergeLineFromInvoiceLineReplaceUpdate(existingLine, line)
 		if err != nil {
 			return billing.LineChildren{}, fmt.Errorf("failed to merge line: %w", err)
+		}
+
+		if h.featureSwitches.UseUsageBasedFlatFeeLines && changed && mergedLine.Type == billing.InvoiceLineTypeFee {
+			return billing.LineChildren{}, billing.ValidationError{
+				Err: fmt.Errorf("updating flat fee lines is not supported, please use usage based lines instead"),
+			}
 		}
 
 		if changed && invoice.Status != billing.InvoiceStatusGathering {
