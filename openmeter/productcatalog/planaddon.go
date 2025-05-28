@@ -63,22 +63,14 @@ func (c PlanAddon) Validate() error {
 	allowedPlanStatuses := []PlanStatus{PlanStatusDraft, PlanStatusActive, PlanStatusScheduled}
 	if !lo.Contains(allowedPlanStatuses, c.Plan.Status()) {
 		errs = append(errs, models.ErrorWithFieldPrefix(
-			models.NewFieldSelectors(models.NewFieldSelector("plans").
-				WithExpression(models.NewMultiFieldAttrValue(
-					models.NewFieldAttrValue("key", c.Plan.Key),
-					models.NewFieldAttrValue("version", c.Plan.Version),
-				))),
+			models.NewFieldSelectors(models.NewFieldSelector("plan")),
 			ErrPlanAddonIncompatibleStatus,
 		))
 	}
 
 	// Validate add-on
 
-	addonPrefix := models.NewFieldSelectors(models.NewFieldSelector("addons").
-		WithExpression(models.NewMultiFieldAttrValue(
-			models.NewFieldAttrValue("key", c.Addon.Key),
-			models.NewFieldAttrValue("version", c.Addon.Version),
-		)))
+	addonPrefix := models.NewFieldSelectors(models.NewFieldSelector("addon"))
 
 	// Add-on must be active and the effective period of add-on must be open-ended
 	// as we do not support scheduled changes for add-ons.
@@ -91,11 +83,11 @@ func (c PlanAddon) Validate() error {
 	switch c.Addon.InstanceType {
 	case AddonInstanceTypeMultiple:
 		if c.MaxQuantity != nil && *c.MaxQuantity <= 0 {
-			errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrPlanAddonMaxQuantityMustBeSet))
+			errs = append(errs, ErrPlanAddonMaxQuantityMustBeSet)
 		}
 	case AddonInstanceTypeSingle:
 		if c.MaxQuantity != nil {
-			errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrPlanAddonMaxQuantityMustNotBeSet))
+			errs = append(errs, ErrPlanAddonMaxQuantityMustNotBeSet)
 		}
 	}
 
@@ -115,7 +107,7 @@ func (c PlanAddon) Validate() error {
 			}
 		}
 	} else {
-		errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrPlanAddonUnknownPlanPhaseKey))
+		errs = append(errs, ErrPlanAddonUnknownPlanPhaseKey)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

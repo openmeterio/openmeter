@@ -352,56 +352,29 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 			expectedIssues: models.ValidationIssues{
 				models.NewValidationIssue(ErrPlanAddonIncompatibleStatus.Code(), ErrPlanAddonIncompatibleStatus.Message()).
 					WithField(
-						models.NewFieldSelector("plans").WithExpression(
-							models.NewMultiFieldAttrValue(
-								models.NewFieldAttrValue("key", "pro"),
-								models.NewFieldAttrValue("version", 2),
-							),
-						),
+						models.NewFieldSelector("plan"),
 						models.NewFieldSelector("status"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
 				models.NewValidationIssue(ErrPlanAddonIncompatibleStatus.Code(), ErrPlanAddonIncompatibleStatus.Message()).
 					WithField(
-						models.NewFieldSelector("addons").WithExpression(
-							models.NewMultiFieldAttrValue(
-								models.NewFieldAttrValue("key", "storage"),
-								models.NewFieldAttrValue("version", 1),
-							),
-						),
+						models.NewFieldSelector("addon"),
 						models.NewFieldSelector("status"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
 				models.NewValidationIssue(ErrPlanAddonMaxQuantityMustNotBeSet.Code(), ErrPlanAddonMaxQuantityMustNotBeSet.Message()).
 					WithField(
-						models.NewFieldSelector("addons").WithExpression(
-							models.NewMultiFieldAttrValue(
-								models.NewFieldAttrValue("key", "storage"),
-								models.NewFieldAttrValue("version", 1),
-							),
-						),
 						models.NewFieldSelector("maxQuantity"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
 				models.NewValidationIssue(ErrPlanAddonCurrencyMismatch.Code(), ErrPlanAddonCurrencyMismatch.Message()).
 					WithField(
-						models.NewFieldSelector("addons").WithExpression(
-							models.NewMultiFieldAttrValue(
-								models.NewFieldAttrValue("key", "storage"),
-								models.NewFieldAttrValue("version", 1),
-							),
-						),
+						models.NewFieldSelector("addon"),
 						models.NewFieldSelector("currency"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
 				models.NewValidationIssue(ErrPlanAddonUnknownPlanPhaseKey.Code(), ErrPlanAddonUnknownPlanPhaseKey.Message()).
 					WithField(
-						models.NewFieldSelector("addons").WithExpression(
-							models.NewMultiFieldAttrValue(
-								models.NewFieldAttrValue("key", "storage"),
-								models.NewFieldAttrValue("version", 1),
-							),
-						),
 						models.NewFieldSelector("fromPlanPhase"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
@@ -564,12 +537,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 			expectedIssues: models.ValidationIssues{
 				models.NewValidationIssue(ErrRateCardPriceTypeMismatch.Code(), ErrRateCardPriceTypeMismatch.Message()).
 					WithField(
-						models.NewFieldSelector("addons").WithExpression(
-							models.NewMultiFieldAttrValue(
-								models.NewFieldAttrValue("key", "storage"),
-								models.NewFieldAttrValue("version", 1),
-							),
-						),
+						models.NewFieldSelector("addon"),
 						models.NewFieldSelector("ratecards").WithExpression(
 							models.NewFieldAttrValue("key", "storage_capacity"),
 						),
@@ -578,12 +546,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 					WithSeverity(models.ErrorSeverityWarning),
 				models.NewValidationIssue(ErrRateCardOnlyFlatPriceAllowed.Code(), ErrRateCardOnlyFlatPriceAllowed.Message()).
 					WithField(
-						models.NewFieldSelector("addons").WithExpression(
-							models.NewMultiFieldAttrValue(
-								models.NewFieldAttrValue("key", "storage"),
-								models.NewFieldAttrValue("version", 1),
-							),
-						),
+						models.NewFieldSelector("addon"),
 						models.NewFieldSelector("ratecards").WithExpression(
 							models.NewFieldAttrValue("key", "storage_capacity"),
 						),
@@ -592,12 +555,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 					WithSeverity(models.ErrorSeverityWarning),
 				models.NewValidationIssue(ErrRateCardFeatureKeyMismatch.Code(), ErrRateCardFeatureKeyMismatch.Message()).
 					WithField(
-						models.NewFieldSelector("addons").WithExpression(
-							models.NewMultiFieldAttrValue(
-								models.NewFieldAttrValue("key", "storage"),
-								models.NewFieldAttrValue("version", 1),
-							),
-						),
+						models.NewFieldSelector("addon"),
 						models.NewFieldSelector("ratecards").WithExpression(
 							models.NewFieldAttrValue("key", "storage_capacity"),
 						),
@@ -606,12 +564,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 					WithSeverity(models.ErrorSeverityWarning),
 				models.NewValidationIssue(ErrRateCardBillingCadenceMismatch.Code(), ErrRateCardBillingCadenceMismatch.Message()).
 					WithField(
-						models.NewFieldSelector("addons").WithExpression(
-							models.NewMultiFieldAttrValue(
-								models.NewFieldAttrValue("key", "storage"),
-								models.NewFieldAttrValue("version", 1),
-							),
-						),
+						models.NewFieldSelector("addon"),
 						models.NewFieldSelector("ratecards").WithExpression(
 							models.NewFieldAttrValue("key", "storage_capacity"),
 						),
@@ -620,12 +573,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 					WithSeverity(models.ErrorSeverityWarning),
 				models.NewValidationIssue(ErrRateCardEntitlementTemplateTypeMismatch.Code(), ErrRateCardEntitlementTemplateTypeMismatch.Message()).
 					WithField(
-						models.NewFieldSelector("addons").WithExpression(
-							models.NewMultiFieldAttrValue(
-								models.NewFieldAttrValue("key", "storage"),
-								models.NewFieldAttrValue("version", 1),
-							),
-						),
+						models.NewFieldSelector("addon"),
 						models.NewFieldSelector("ratecards").WithExpression(
 							models.NewFieldAttrValue("key", "storage_capacity"),
 						),
