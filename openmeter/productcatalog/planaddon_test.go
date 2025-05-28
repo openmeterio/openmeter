@@ -581,6 +581,13 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						models.NewFieldSelector("type"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
+				models.NewValidationIssue(ErrRateCardBillingCadenceUnaligned.Code(), ErrRateCardBillingCadenceUnaligned.Message()).
+					WithField(
+						models.NewFieldSelector("addon"),
+						models.NewFieldSelector("ratecards").WithExpression(models.WildCard),
+						models.NewFieldSelector("billingCadence"),
+					).
+					WithSeverity(models.ErrorSeverityWarning),
 			},
 		},
 	}

@@ -244,6 +244,10 @@ func ValidateAddonMeta() models.ValidatorFunc[Addon] {
 // which implements models.CustomValidator interface. It checks for invalid and duplicated ratecards.
 func ValidateAddonRateCards() models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
+		if len(a.RateCards) == 0 {
+			return ErrAddonHasNoRateCards
+		}
+
 		return ValidateRateCards()(a.RateCards)
 	}
 }

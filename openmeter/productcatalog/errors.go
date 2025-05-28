@@ -335,8 +335,17 @@ const ErrCodeAddonInvalidPriceForMultiInstance models.ErrorCode = "addon_invalid
 
 var ErrAddonInvalidPriceForMultiInstance = models.NewValidationIssue(
 	ErrCodeAddonInvalidPriceForMultiInstance,
-	"only free or falt price ratecards are allowed for add-on with multiple instance type",
+	"only free or flat price ratecards are allowed for add-on with multiple instance type",
 	models.WithFieldString("price"),
+	models.WithWarningSeverity(),
+)
+
+const ErrCodeAddonHasNoRateCards models.ErrorCode = "addon_has_no_rate_cards"
+
+var ErrAddonHasNoRateCards = models.NewValidationIssue(
+	ErrCodeAddonHasNoRateCards,
+	"add-on must have at least one rate card",
+	models.WithFieldString("ratecards"),
 	models.WithWarningSeverity(),
 )
 
