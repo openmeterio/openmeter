@@ -294,19 +294,7 @@ func TestConnector_ExecuteQueryWithCachingWithBeforeCachedWindow(t *testing.T) {
 	mockRows2.On("Err").Return(nil)
 	mockRows2.On("Close").Return(nil)
 
-	// FIXME: materialize all the 49 rows with zero values
-	// Store new cachable data in cache
-	// mockClickHouse.On("Exec", mock.Anything, mock.AnythingOfType("string"), []interface{}{
-	// 	// Called with the new data
-	// 	"test-hash",
-	// 	"test-namespace",
-	// 	currentCacheEnd,
-	// 	cachedEnd,
-	// 	50.0,
-	// 	"", // subject
-	// 	map[string]string{},
-	// }).Return(nil).Once()
-
+	// Store new cachable data in cache, see assert below for the expected arguments
 	mockClickHouse.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil).Once()
 
 	// Execute query with caching
@@ -332,6 +320,21 @@ func TestConnector_ExecuteQueryWithCachingWithBeforeCachedWindow(t *testing.T) {
 	mockClickHouse.AssertExpectations(t)
 	mockRows1.AssertExpectations(t)
 	mockRows2.AssertExpectations(t)
+
+	// Validate that the new data was stored in the cache
+	insertArgs, ok := mockClickHouse.Calls[2].Arguments[2].([]interface{})
+	require.True(t, ok)
+
+	// Insert args is an array of arguments where each row is a 5 group of arguments
+	firstInsertArgs := insertArgs[0:5]
+
+	assert.Equal(t, []interface{}{
+		"test-hash",
+		"test-namespace",
+		queryFrom,
+		queryFrom.Add(time.Hour * 24),
+		50.0,
+	}, firstInsertArgs)
 }
 
 // Integration test for executeQueryWithCaching with after cached window
@@ -415,19 +418,7 @@ func TestConnector_ExecuteQueryWithCachingWithAfterCachedWindow(t *testing.T) {
 	mockRows2.On("Err").Return(nil)
 	mockRows2.On("Close").Return(nil)
 
-	// FIXME: materialize all the 49 rows with zero values
 	// Store new cachable data in cache
-	// mockClickHouse.On("Exec", mock.Anything, mock.AnythingOfType("string"), []interface{}{
-	// 	// Called with the new data
-	// 	"test-hash",
-	// 	"test-namespace",
-	// 	currentCacheEnd,
-	// 	cachedEnd,
-	// 	50.0,
-	// 	"", // subject
-	// 	map[string]string{},
-	// }).Return(nil).Once()
-
 	mockClickHouse.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil).Once()
 
 	// Execute query with caching
@@ -453,6 +444,21 @@ func TestConnector_ExecuteQueryWithCachingWithAfterCachedWindow(t *testing.T) {
 	mockClickHouse.AssertExpectations(t)
 	mockRows1.AssertExpectations(t)
 	mockRows2.AssertExpectations(t)
+
+	// Validate that the new data was stored in the cache
+	insertArgs, ok := mockClickHouse.Calls[2].Arguments[2].([]interface{})
+	require.True(t, ok)
+
+	// Insert args is an array of arguments where each row is a 5 group of arguments
+	firstInsertArgs := insertArgs[0:5]
+
+	assert.Equal(t, []interface{}{
+		"test-hash",
+		"test-namespace",
+		currentCacheEnd,
+		cachedEnd,
+		50.0,
+	}, firstInsertArgs)
 }
 
 // Integration test for executeQueryWithCaching when the query is covered by the cache and no remaining query is needed
