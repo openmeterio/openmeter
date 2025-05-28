@@ -1,21 +1,21 @@
 # Billing migration checks
 
-Given billing depends on a lot of things (such as customer, billing profile, subscription etc.), it's easier to generate data using tests. This guide shows how we can create testcases based on sql dumps for faster validation.
+Given billing depends on many entities (such as customer, billing profile, subscription etc.), it's easier to generate data using tests. This guide shows how we can create testcases based on sql dumps for faster validation.
 
-We cannot use ent here, as the schema evolves, so we need a point in time snapshot. SQLC is a great codegenerator to generate ad-hoc queries, that we can persist to the db.
+We cannot use ent here, as the schema evolves, so we need a point-in-time snapshot. SQLC is a great codegenerator to generate ad-hoc queries, that we can persist to the db.
 
 SQLC requires the DB schema to generate the queries, for now, I would just commit those alongside the tests in case we would need to tweak the test to understand what have happened with a faulty migration.
 
 ## How to generate a new testcase
 
-Write an unit test that generates the required data. Make it fail with `t.FailNow()` so that the database snapshot is retained.
+Write a unit test that generates the required data. Make it fail with `t.FailNow()` so that the database snapshot is retained.
 
 Dump the schema and the data:
 - Schema dump: `pg_dump -s 'postgres://pgtdbuser:pgtdbpass@127.0.0.1:5432/testdb_tpl_92d6cc3e2b7979388fd8f7b12aad9c7b_inst_6aaae321?sslmode=disable' > tools/migrate/testdata/billing/flatfeetoubpflatfee/sqlc/db-schema.sql`
 - Data dump: `pg_dump --exclude-table-data=schema_om --column-inserts -n public --inserts -a 'postgres://pgtdbuser:pgtdbpass@127.0.0.1:5432/testdb_tpl_92d6cc3e2b7979388fd8f7b12aad9c7b_inst_bf480b8a?sslmode=disable' > tools/migrate/testdata/billing/flatfeetoubpflatfee/fixture.sql`
 
 Create sqlc.yaml:
-```
+```yaml
 version: "2"
 sql:
   - engine: "postgresql"
