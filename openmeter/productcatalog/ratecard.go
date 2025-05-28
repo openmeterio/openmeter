@@ -45,8 +45,9 @@ type RateCardSerde struct {
 }
 
 var (
-	_ models.Validator             = (*RateCardMeta)(nil)
-	_ models.Equaler[RateCardMeta] = (*RateCardMeta)(nil)
+	_ models.Validator                     = (*RateCardMeta)(nil)
+	_ models.Equaler[RateCardMeta]         = (*RateCardMeta)(nil)
+	_ models.CustomValidator[RateCardMeta] = (*RateCardMeta)(nil)
 )
 
 type RateCardMeta struct {
@@ -172,34 +173,46 @@ func (r RateCardMeta) Equal(v RateCardMeta) bool {
 	return r.Price.Equal(v.Price)
 }
 
+func (r RateCardMeta) ValidateWith(v ...models.ValidatorFunc[RateCardMeta]) error {
+	return models.Validate(r, v...)
+}
+
 func (r RateCardMeta) Validate() error {
 	var errs []error
 
 	if r.EntitlementTemplate != nil {
 		if r.FeatureKey == nil {
-			errs = append(errs, errors.New("feature key is required for entitlement template"))
+			errs = append(errs, ErrRateCardEntitlementTemplateWithNoFeature)
 		}
 
 		if err := r.EntitlementTemplate.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid EntitlementTemplate: %w", err))
+			errs = append(errs, fmt.Errorf("invalid entitlement template: %w", err))
 		}
 	}
 
 	if r.TaxConfig != nil {
 		if err := r.TaxConfig.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid TaxConfig: %w", err))
+			errs = append(errs, fmt.Errorf("invalid tax config: %w",
+				models.ErrorWithFieldPrefix(
+					models.NewFieldSelectors(models.NewFieldSelector("taxConfig")),
+					err),
+			))
 		}
 	}
 
 	if r.Price != nil {
 		if err := r.Price.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid Price: %w", err))
+			errs = append(errs, fmt.Errorf("invalid price: %w",
+				models.ErrorWithFieldPrefix(
+					models.NewFieldSelectors(models.NewFieldSelector("price")),
+					err),
+			))
 		}
 	}
 
 	if r.FeatureKey != nil {
 		if r.Key != *r.FeatureKey {
-			errs = append(errs, errors.New("invalid Feature: key mismatch"))
+			errs = append(errs, ErrRateCardKeyFeatureKeyMismatch)
 		}
 	}
 
@@ -210,7 +223,10 @@ func (r RateCardMeta) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-var _ RateCard = (*FlatFeeRateCard)(nil)
+var (
+	_ RateCard                                 = (*FlatFeeRateCard)(nil)
+	_ models.CustomValidator[*FlatFeeRateCard] = (*FlatFeeRateCard)(nil)
+)
 
 type FlatFeeRateCard struct {
 	RateCardMeta
@@ -291,6 +307,10 @@ func (r *FlatFeeRateCard) AsMeta() RateCardMeta {
 	return r.RateCardMeta
 }
 
+func (r *FlatFeeRateCard) ValidateWith(v ...models.ValidatorFunc[*FlatFeeRateCard]) error {
+	return models.Validate(r, v...)
+}
+
 func (r *FlatFeeRateCard) Validate() error {
 	var errs []error
 
@@ -300,12 +320,12 @@ func (r *FlatFeeRateCard) Validate() error {
 
 	if r.BillingCadence != nil {
 		if r.BillingCadence.IsNegative() || r.BillingCadence.IsZero() {
-			errs = append(errs, errors.New("invalid BillingCadence: must not be negative or zero"))
+			errs = append(errs, ErrBillingCadenceInvalidValue)
 		}
 
-		// Billing Cadence has to be at least 1 ohur
+		// Billing Cadence has to be at least 1 hour
 		if per, err := r.BillingCadence.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
-			errs = append(errs, errors.New("invalid BillingCadence: must be at least 1 hour"))
+			errs = append(errs, ErrBillingCadenceInvalidValue)
 		}
 	}
 
@@ -314,7 +334,7 @@ func (r *FlatFeeRateCard) Validate() error {
 	}
 
 	if r.Discounts.Usage != nil {
-		errs = append(errs, errors.New("discounts: usage discount is not allowed for flat fee rate card"))
+		errs = append(errs, ErrUsageDiscountWithFlatPrice)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -349,7 +369,10 @@ func (r *FlatFeeRateCard) MarshalJSON() ([]byte, error) {
 	return json.Marshal(serde)
 }
 
-var _ RateCard = (*UsageBasedRateCard)(nil)
+var (
+	_ RateCard                                    = (*UsageBasedRateCard)(nil)
+	_ models.CustomValidator[*UsageBasedRateCard] = (*UsageBasedRateCard)(nil)
+)
 
 type UsageBasedRateCard struct {
 	RateCardMeta
@@ -438,6 +461,10 @@ func (r *UsageBasedRateCard) AsMeta() RateCardMeta {
 	return r.RateCardMeta
 }
 
+func (r *UsageBasedRateCard) ValidateWith(v ...models.ValidatorFunc[*UsageBasedRateCard]) error {
+	return models.Validate(r, v...)
+}
+
 func (r *UsageBasedRateCard) Validate() error {
 	var errs []error
 
@@ -446,16 +473,16 @@ func (r *UsageBasedRateCard) Validate() error {
 	}
 
 	if r.BillingCadence.IsNegative() || r.BillingCadence.IsZero() {
-		errs = append(errs, errors.New("invalid BillingCadence: must not be negative or zero"))
+		errs = append(errs, ErrBillingCadenceInvalidValue)
 	}
 
-	// Billing Cadence has to be at least 1 ohur
+	// Billing Cadence has to be at least 1 hour
 	if per, err := r.BillingCadence.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
-		errs = append(errs, errors.New("invalid BillingCadence: must be at least 1 hour"))
+		errs = append(errs, ErrBillingCadenceInvalidValue)
 	}
 
 	if r.Price != nil && r.Price.Type() == FlatPriceType && r.Discounts.Usage != nil {
-		errs = append(errs, errors.New("discounts.usage: usage discount is not allowed for flat fee rate card"))
+		errs = append(errs, ErrUsageDiscountWithFlatPrice)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -477,7 +504,10 @@ func (r *UsageBasedRateCard) MarshalJSON() ([]byte, error) {
 	return json.Marshal(serde)
 }
 
-var _ models.Equaler[RateCards] = (*RateCards)(nil)
+var (
+	_ models.Equaler[RateCards]         = (*RateCards)(nil)
+	_ models.CustomValidator[RateCards] = (*RateCards)(nil)
+)
 
 type RateCards []RateCard
 
@@ -558,16 +588,42 @@ func (c RateCards) Equal(v RateCards) bool {
 	return visited == len(rightSet)
 }
 
-func (c RateCards) Validate() error {
-	var errs []error
+func (c RateCards) ValidateWith(v ...models.ValidatorFunc[RateCards]) error {
+	return models.Validate(c, v...)
+}
 
-	for _, rc := range c {
-		if err := rc.Validate(); err != nil {
-			errs = append(errs, err)
+// ValidateRateCards returns a validation function can be passed to the object
+// which implements models.CustomValidator interface.
+// It checks for invalid and duplicated ratecards in the RateCards collection.
+func ValidateRateCards() models.ValidatorFunc[RateCards] {
+	return func(ratecards RateCards) error {
+		var errs []error
+
+		rateCardKeys := make(map[string]RateCard)
+
+		for _, rateCard := range ratecards {
+			fieldSelector := models.NewFieldSelectors(
+				models.NewFieldSelector("ratecards").WithExpression(
+					models.NewFieldAttrValue("key", rateCard.Key())),
+			)
+
+			if _, ok := rateCardKeys[rateCard.Key()]; ok {
+				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardDuplicatedKey))
+			} else {
+				rateCardKeys[rateCard.Key()] = rateCard
+			}
+
+			if err := rateCard.Validate(); err != nil {
+				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, err))
+			}
 		}
-	}
 
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+		return errors.Join(errs...)
+	}
+}
+
+func (c RateCards) Validate() error {
+	return c.ValidateWith(ValidateRateCards())
 }
 
 type RateCardWithOverlay struct {
@@ -607,11 +663,11 @@ var ValidateRateCardsShareSameKey = models.ValidatorFunc[RateCardWithOverlay](fu
 		return nil
 	}
 
+	fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
+
 	if r.base.Key() != r.overlay.Key() {
-		return models.ErrorWithFieldPrefix(
-			models.FieldPathFromParts("ratecards", r.base.Key()),
-			ErrRateCardKeyMismatch,
-		)
+		return models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardKeyMismatch)
 	}
 
 	return nil
@@ -626,13 +682,13 @@ var ValidateRateCardsHaveCompatiblePrice = models.ValidatorFunc[RateCardWithOver
 
 	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
+	fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
+
 	// Validate Price
 	if rMeta.Price != nil && vMeta.Price != nil {
 		if rMeta.Price.Type() != vMeta.Price.Type() {
-			errs = append(errs, models.ErrorWithFieldPrefix(
-				models.FieldPathFromParts("ratecards", r.base.Key()),
-				ErrRateCardPriceTypeMismatch,
-			))
+			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardPriceTypeMismatch))
 		}
 
 		switch rMeta.Price.Type() {
@@ -641,16 +697,10 @@ var ValidateRateCardsHaveCompatiblePrice = models.ValidatorFunc[RateCardWithOver
 			vFlat, _ := vMeta.Price.AsFlat()
 
 			if rFlat.PaymentTerm != vFlat.PaymentTerm {
-				errs = append(errs, models.ErrorWithFieldPrefix(
-					models.FieldPathFromParts("ratecards", r.base.Key()),
-					ErrRateCardPricePaymentTermMismatch,
-				))
+				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardPricePaymentTermMismatch))
 			}
 		default:
-			errs = append(errs, models.ErrorWithFieldPrefix(
-				models.FieldPathFromParts("ratecards", r.base.Key()),
-				ErrRateCardOnlyFlatPriceAllowed,
-			))
+			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardOnlyFlatPriceAllowed))
 		}
 	}
 
@@ -664,11 +714,11 @@ var ValidateRateCardsHaveCompatibleFeatureKey = models.ValidatorFunc[RateCardWit
 
 	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
+	fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
+
 	if rMeta.FeatureKey != nil && vMeta.FeatureKey != nil && *rMeta.FeatureKey != *vMeta.FeatureKey {
-		return models.ErrorWithFieldPrefix(
-			models.FieldPathFromParts("ratecards", r.base.Key()),
-			ErrRateCardFeatureKeyMismatch,
-		)
+		return models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardFeatureKeyMismatch)
 	}
 
 	return nil
@@ -681,11 +731,11 @@ var ValidateRateCardsHaveCompatibleFeatureID = models.ValidatorFunc[RateCardWith
 
 	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
+	fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
+
 	if rMeta.FeatureID != nil && vMeta.FeatureID != nil && *rMeta.FeatureID != *vMeta.FeatureID {
-		return models.ErrorWithFieldPrefix(
-			models.FieldPathFromParts("ratecards", r.base.Key()),
-			ErrRateCardFeatureIDMismatch,
-		)
+		return models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardFeatureIDMismatch)
 	}
 
 	return nil
@@ -700,27 +750,21 @@ var ValidateRateCardsHaveCompatibleBillingCadence = models.ValidatorFunc[RateCar
 
 	rBillingCadence, vBillingCadence := r.base.GetBillingCadence(), r.overlay.GetBillingCadence()
 
+	fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
+
 	if rBillingCadence != nil {
 		if vBillingCadence == nil {
-			errs = append(errs, models.ErrorWithFieldPrefix(
-				models.FieldPathFromParts("ratecards", r.base.Key()),
-				ErrRateCardBillingCadenceMismatch,
-			))
+			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardBillingCadenceMismatch))
 		}
 
 		if vBillingCadence != nil && !rBillingCadence.Equal(vBillingCadence) {
-			errs = append(errs, models.ErrorWithFieldPrefix(
-				models.FieldPathFromParts("ratecards", r.base.Key()),
-				ErrRateCardBillingCadenceMismatch,
-			))
+			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardBillingCadenceMismatch))
 		}
 	}
 
 	if rBillingCadence == nil && vBillingCadence != nil {
-		errs = append(errs, models.ErrorWithFieldPrefix(
-			models.FieldPathFromParts("ratecards", r.base.Key()),
-			ErrRateCardBillingCadenceMismatch,
-		))
+		errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardBillingCadenceMismatch))
 	}
 
 	return errors.Join(errs...)
@@ -737,17 +781,11 @@ var ValidateRateCardsHaveCompatibleEntitlementTemplate = models.ValidatorFunc[Ra
 
 	if rMeta.EntitlementTemplate != nil && vMeta.EntitlementTemplate != nil {
 		if rMeta.EntitlementTemplate.Type() != vMeta.EntitlementTemplate.Type() {
-			errs = append(errs, models.ErrorWithFieldPrefix(
-				models.FieldPathFromParts("ratecards", r.base.Key()),
-				ErrRateCardEntitlementTemplateTypeMismatch,
-			))
+			errs = append(errs, ErrRateCardEntitlementTemplateTypeMismatch)
 		} else {
 			switch rMeta.EntitlementTemplate.Type() {
 			case entitlement.EntitlementTypeStatic:
-				errs = append(errs, models.ErrorWithFieldPrefix(
-					models.FieldPathFromParts("ratecards", r.base.Key()),
-					ErrRateCardStaticEntitlementTemplateNotAllowed,
-				))
+				errs = append(errs, ErrRateCardStaticEntitlementTemplateNotAllowed)
 			case entitlement.EntitlementTypeMetered:
 				rMetered, err := rMeta.EntitlementTemplate.AsMetered()
 				if err != nil {
@@ -760,17 +798,25 @@ var ValidateRateCardsHaveCompatibleEntitlementTemplate = models.ValidatorFunc[Ra
 				}
 
 				if !rMetered.UsagePeriod.Equal(&vMetered.UsagePeriod) {
-					errs = append(errs, models.ErrorWithFieldPrefix(
-						models.FieldPathFromParts("ratecards", r.base.Key()),
-						ErrRateCardMeteredEntitlementTemplateUsagePeriodMismatch,
-					))
+					errs = append(errs, ErrRateCardMeteredEntitlementTemplateUsagePeriodMismatch)
 				}
 			case entitlement.EntitlementTypeBoolean:
 			}
 		}
 	}
 
-	return errors.Join(errs...)
+	err := errors.Join(errs...)
+	if err != nil {
+		fieldSelector := models.NewFieldSelectors(
+			models.NewFieldSelector("ratecards").
+				WithExpression(models.NewFieldAttrValue("key", r.base.Key())),
+			models.NewFieldSelector("entitlementTemplate"),
+		)
+
+		return models.ErrorWithFieldPrefix(fieldSelector, err)
+	}
+
+	return nil
 })
 
 var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
@@ -783,11 +829,20 @@ var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWith
 	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
 	if rMeta.Discounts.Percentage != nil && vMeta.Discounts.Percentage != nil {
-		errs = append(errs, models.ErrorWithFieldPrefix(
-			models.FieldPathFromParts("ratecards", r.base.Key()),
-			ErrRateCardPercentageDiscountNotAllowed,
-		))
+		fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("discounts"))
+
+		errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardPercentageDiscountNotAllowed))
 	}
 
-	return errors.Join(errs...)
+	err := errors.Join(errs...)
+	if err != nil {
+		fieldSelector := models.NewFieldSelectors(
+			models.NewFieldSelector("ratecards").
+				WithExpression(models.NewFieldAttrValue("key", r.base.Key())),
+		)
+
+		return models.ErrorWithFieldPrefix(fieldSelector, err)
+	}
+
+	return nil
 })

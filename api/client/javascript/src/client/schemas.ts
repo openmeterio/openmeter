@@ -2224,6 +2224,13 @@ export interface components {
        * @description The rate cards of the add-on.
        */
       rateCards: components['schemas']['RateCard'][]
+      /**
+       * Validation errors
+       * @description List of validation errors.
+       */
+      readonly validationErrors:
+        | components['schemas']['ValidationError'][]
+        | null
     }
     /** @description Resource create operation model. */
     AddonCreate: {
@@ -7956,6 +7963,13 @@ export interface components {
        *     A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
        */
       phases: components['schemas']['PlanPhase'][]
+      /**
+       * Validation errors
+       * @description List of validation errors.
+       */
+      readonly validationErrors:
+        | components['schemas']['ValidationError'][]
+        | null
     }
     /** @description The PlanAddon describes the association between a plan and add-on. */
     PlanAddon: {

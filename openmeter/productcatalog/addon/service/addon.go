@@ -338,7 +338,7 @@ func (s service) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput)
 
 		// Run validations prior deleting add-on.
 		if err = add.AsProductCatalogAddon().ValidateWith(
-			productcatalog.AddonWithAllowedStatus(productcatalog.AddonStatusDraft, productcatalog.AddonStatusArchived),
+			productcatalog.ValidateAddonWithStatus(productcatalog.AddonStatusDraft, productcatalog.AddonStatusArchived),
 		); err != nil {
 			return nil, err
 		}
@@ -437,7 +437,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 
 		// Run validations prior updating add-on.
 		if err = add.AsProductCatalogAddon().ValidateWith(
-			productcatalog.AddonWithAllowedStatus(productcatalog.AddonStatusDraft),
+			productcatalog.ValidateAddonWithStatus(productcatalog.AddonStatusDraft),
 		); err != nil {
 			return nil, err
 		}
@@ -597,7 +597,7 @@ func (s service) ArchiveAddon(ctx context.Context, params addon.ArchiveAddonInpu
 
 		// Run validations prior archiving add-on.
 		if err = add.AsProductCatalogAddon().ValidateWith(
-			productcatalog.AddonWithAllowedStatus(productcatalog.AddonStatusActive),
+			productcatalog.ValidateAddonWithStatus(productcatalog.AddonStatusActive),
 		); err != nil {
 			return nil, err
 		}

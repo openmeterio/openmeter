@@ -36,15 +36,15 @@ func (m PhaseManagedFields) Validate() error {
 	var errs []error
 
 	if m.Namespace == "" {
-		errs = append(errs, errors.New("namespace must not be empty"))
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
 	if m.ID == "" {
-		errs = append(errs, errors.New("unique identifier must not be empty"))
+		errs = append(errs, productcatalog.ErrIDEmpty)
 	}
 
 	if m.PlanID == "" {
-		errs = append(errs, errors.New("planID must not be empty"))
+		errs = append(errs, errors.New("managed plan phase must have plan reference set"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -55,8 +55,9 @@ type ManagedPhase interface {
 }
 
 var (
-	_ models.Validator      = (*Phase)(nil)
-	_ models.Equaler[Phase] = (*Phase)(nil)
+	_ models.Validator              = (*Phase)(nil)
+	_ models.Equaler[Phase]         = (*Phase)(nil)
+	_ models.CustomValidator[Phase] = (*Phase)(nil)
 )
 
 type Phase struct {
@@ -87,20 +88,29 @@ func (p Phase) Equal(v Phase) bool {
 	}
 }
 
+func (p Phase) ValidateWith(validators ...models.ValidatorFunc[Phase]) error {
+	return models.Validate(p, validators...)
+}
+
 func (p Phase) Validate() error {
-	var errs []error
-
-	if err := p.PhaseManagedFields.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := p.Phase.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	return p.ValidateWith(
+		ValidatePhaseManagedFields(),
+		ValidatePhase(),
+	)
 }
 
 func (p Phase) AsProductCatalogPhase() productcatalog.Phase {
 	return p.Phase
+}
+
+func ValidatePhaseManagedFields() models.ValidatorFunc[Phase] {
+	return func(p Phase) error {
+		return p.PhaseManagedFields.Validate()
+	}
+}
+
+func ValidatePhase() models.ValidatorFunc[Phase] {
+	return func(p Phase) error {
+		return p.Phase.Validate()
+	}
 }

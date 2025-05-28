@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	addonhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -27,66 +28,12 @@ func FromPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
 		CreatedAt:        a.CreatedAt,
 		DeletedAt:        a.DeletedAt,
 		UpdatedAt:        a.UpdatedAt,
-		Annotations:      FromAnnotations(a.Annotations),
-		Metadata:         FromMetadata(a.Metadata),
-		ValidationErrors: FromValidationErrors(validationIssues),
+		Annotations:      http.FromAnnotations(a.Annotations),
+		Metadata:         http.FromMetadata(a.Metadata),
+		ValidationErrors: http.FromValidationErrors(validationIssues),
 	}
 
 	return resp, nil
-}
-
-func FromValidationErrors(issues models.ValidationIssues) *[]api.ValidationError {
-	if len(issues) == 0 {
-		return nil
-	}
-
-	var result []api.ValidationError
-
-	for _, issue := range issues {
-		result = append(result, api.ValidationError{
-			Message: issue.Message,
-			Field:   issue.Path,
-			Code:    string(issue.Code),
-		})
-	}
-
-	return &result
-}
-
-func FromAnnotations(annotations models.Annotations) *api.Annotations {
-	if len(annotations) == 0 {
-		return nil
-	}
-
-	var result api.Annotations
-
-	if len(annotations) > 0 {
-		result = make(api.Annotations)
-
-		for k, v := range annotations {
-			result[k] = v
-		}
-	}
-
-	return &result
-}
-
-func FromMetadata(metadata models.Metadata) *api.Metadata {
-	if len(metadata) == 0 {
-		return nil
-	}
-
-	var result api.Metadata
-
-	if len(metadata) > 0 {
-		result = make(api.Metadata)
-
-		for k, v := range metadata {
-			result[k] = v
-		}
-	}
-
-	return &result
 }
 
 func AsCreatePlanAddonRequest(a api.PlanAddonCreate, namespace string, planID string) (CreatePlanAddonRequest, error) {

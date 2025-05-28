@@ -59,7 +59,7 @@ func PlanFromPlanInput(input plan.CreatePlanInput) (subscription.Plan, error) {
 	p.Key = "cheat"
 	p.Version = 1
 
-	if err := p.ValidForCreatingSubscriptions(); err != nil {
+	if err := p.Validate(); err != nil {
 		return nil, models.NewGenericValidationError(fmt.Errorf("invalid plan: %v", err))
 	}
 

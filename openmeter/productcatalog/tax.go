@@ -32,7 +32,7 @@ func (t TaxBehavior) Validate() error {
 	return nil
 }
 
-// TaxConfig stores the provider specific tax configs.
+// TaxConfig stores the provider-specific tax configs.
 type TaxConfig struct {
 	Behavior *TaxBehavior     `json:"behavior,omitempty"`
 	Stripe   *StripeTaxConfig `json:"stripe,omitempty"`

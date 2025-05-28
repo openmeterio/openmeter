@@ -15,6 +15,8 @@ import (
 )
 
 func FromPlan(p plan.Plan) (api.Plan, error) {
+	validationIssues, _ := p.AsProductCatalogPlan().ValidationErrors()
+
 	resp := api.Plan{
 		CreatedAt:     p.CreatedAt,
 		Currency:      p.Currency.String(),
@@ -24,13 +26,14 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 		EffectiveTo:   p.EffectiveTo,
 		Id:            p.ID,
 		Key:           p.Key,
-		Metadata:      lo.EmptyableToPtr(api.Metadata(p.Metadata)),
+		Metadata:      http.FromMetadata(p.Metadata),
 		Name:          p.Name,
 		UpdatedAt:     p.UpdatedAt,
 		Version:       p.Version,
 		Alignment: &api.Alignment{
 			BillablesMustAlign: lo.ToPtr(p.Alignment.BillablesMustAlign),
 		},
+		ValidationErrors: http.FromValidationErrors(validationIssues),
 	}
 
 	resp.Phases = make([]api.PlanPhase, 0, len(p.Phases))
@@ -66,7 +69,7 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 	resp := api.PlanPhase{
 		Description: p.Description,
 		Key:         p.Key,
-		Metadata:    lo.EmptyableToPtr(api.Metadata(p.Metadata)),
+		Metadata:    http.FromMetadata(p.Metadata),
 		Name:        p.Name,
 		Duration:    (*string)(p.Duration.ISOStringPtrOrNil()),
 	}

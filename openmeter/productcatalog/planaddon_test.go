@@ -350,36 +350,61 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 				},
 			},
 			expectedIssues: models.ValidationIssues{
-				{
-					Code:     "plan_addon_incompatible_status",
-					Message:  "plan status is incompatible with the addon status",
-					Path:     "/plans/pro/versions/2/status",
-					Severity: "critical",
-				},
-				{
-					Code:     "plan_addon_incompatible_status",
-					Message:  "plan status is incompatible with the addon status",
-					Path:     "/addons/storage/versions/1/status",
-					Severity: "critical",
-				},
-				{
-					Code:     "plan_addon_max_quantity_must_not_be_set",
-					Message:  "maximum quantity must not be set for add-on with single instance type",
-					Path:     "/addons/storage/versions/1/maxQuantity",
-					Severity: "critical",
-				},
-				{
-					Code:     "plan_addon_currency_mismatch",
-					Message:  "currency of the plan and addon must match",
-					Path:     "/addons/storage/versions/1/currency",
-					Severity: "critical",
-				},
-				{
-					Code:     "plan_addon_unknown_plan_phase_key",
-					Message:  "add-on must define valid/existing plan phase key from which the add-on is available for purchase",
-					Path:     "/addons/storage/versions/1/fromPlanPhase",
-					Severity: "critical",
-				},
+				models.NewValidationIssue(ErrPlanAddonIncompatibleStatus.Code(), ErrPlanAddonIncompatibleStatus.Message()).
+					WithField(
+						models.NewFieldSelector("plans").WithExpression(
+							models.NewMultiFieldAttrValue(
+								models.NewFieldAttrValue("key", "pro"),
+								models.NewFieldAttrValue("version", 2),
+							),
+						),
+						models.NewFieldSelector("status"),
+					).
+					WithSeverity(models.ErrorSeverityWarning),
+				models.NewValidationIssue(ErrPlanAddonIncompatibleStatus.Code(), ErrPlanAddonIncompatibleStatus.Message()).
+					WithField(
+						models.NewFieldSelector("addons").WithExpression(
+							models.NewMultiFieldAttrValue(
+								models.NewFieldAttrValue("key", "storage"),
+								models.NewFieldAttrValue("version", 1),
+							),
+						),
+						models.NewFieldSelector("status"),
+					).
+					WithSeverity(models.ErrorSeverityWarning),
+				models.NewValidationIssue(ErrPlanAddonMaxQuantityMustNotBeSet.Code(), ErrPlanAddonMaxQuantityMustNotBeSet.Message()).
+					WithField(
+						models.NewFieldSelector("addons").WithExpression(
+							models.NewMultiFieldAttrValue(
+								models.NewFieldAttrValue("key", "storage"),
+								models.NewFieldAttrValue("version", 1),
+							),
+						),
+						models.NewFieldSelector("maxQuantity"),
+					).
+					WithSeverity(models.ErrorSeverityWarning),
+				models.NewValidationIssue(ErrPlanAddonCurrencyMismatch.Code(), ErrPlanAddonCurrencyMismatch.Message()).
+					WithField(
+						models.NewFieldSelector("addons").WithExpression(
+							models.NewMultiFieldAttrValue(
+								models.NewFieldAttrValue("key", "storage"),
+								models.NewFieldAttrValue("version", 1),
+							),
+						),
+						models.NewFieldSelector("currency"),
+					).
+					WithSeverity(models.ErrorSeverityWarning),
+				models.NewValidationIssue(ErrPlanAddonUnknownPlanPhaseKey.Code(), ErrPlanAddonUnknownPlanPhaseKey.Message()).
+					WithField(
+						models.NewFieldSelector("addons").WithExpression(
+							models.NewMultiFieldAttrValue(
+								models.NewFieldAttrValue("key", "storage"),
+								models.NewFieldAttrValue("version", 1),
+							),
+						),
+						models.NewFieldSelector("fromPlanPhase"),
+					).
+					WithSeverity(models.ErrorSeverityWarning),
 			},
 		},
 		{
@@ -537,36 +562,77 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 				},
 			},
 			expectedIssues: models.ValidationIssues{
-				{
-					Code:     "rate_card_price_type_mismatch",
-					Message:  "price type must match",
-					Path:     "/addons/storage/versions/1/ratecards/storage_capacity/price",
-					Severity: "critical",
-				},
-				{
-					Code:     "rate_card_only_flat_price_allowed",
-					Message:  "only flat price is allowed",
-					Path:     "/addons/storage/versions/1/ratecards/storage_capacity/price",
-					Severity: "critical",
-				},
-				{
-					Code:     "rate_card_feature_key_mismatch",
-					Message:  "feature key must match",
-					Path:     "/addons/storage/versions/1/ratecards/storage_capacity/featureKey",
-					Severity: "critical",
-				},
-				{
-					Code:     "rate_card_billing_cadence_mismatch",
-					Message:  "billing cadence must match",
-					Path:     "/addons/storage/versions/1/ratecards/storage_capacity/billingCadence",
-					Severity: "critical",
-				},
-				{
-					Code:     "rate_card_entitlement_template_type_mismatch",
-					Message:  "entitlement template type must match",
-					Path:     "/addons/storage/versions/1/ratecards/storage_capacity/entitlementTemplate",
-					Severity: "critical",
-				},
+				models.NewValidationIssue(ErrRateCardPriceTypeMismatch.Code(), ErrRateCardPriceTypeMismatch.Message()).
+					WithField(
+						models.NewFieldSelector("addons").WithExpression(
+							models.NewMultiFieldAttrValue(
+								models.NewFieldAttrValue("key", "storage"),
+								models.NewFieldAttrValue("version", 1),
+							),
+						),
+						models.NewFieldSelector("ratecards").WithExpression(
+							models.NewFieldAttrValue("key", "storage_capacity"),
+						),
+						models.NewFieldSelector("price"),
+					).
+					WithSeverity(models.ErrorSeverityWarning),
+				models.NewValidationIssue(ErrRateCardOnlyFlatPriceAllowed.Code(), ErrRateCardOnlyFlatPriceAllowed.Message()).
+					WithField(
+						models.NewFieldSelector("addons").WithExpression(
+							models.NewMultiFieldAttrValue(
+								models.NewFieldAttrValue("key", "storage"),
+								models.NewFieldAttrValue("version", 1),
+							),
+						),
+						models.NewFieldSelector("ratecards").WithExpression(
+							models.NewFieldAttrValue("key", "storage_capacity"),
+						),
+						models.NewFieldSelector("price"),
+					).
+					WithSeverity(models.ErrorSeverityWarning),
+				models.NewValidationIssue(ErrRateCardFeatureKeyMismatch.Code(), ErrRateCardFeatureKeyMismatch.Message()).
+					WithField(
+						models.NewFieldSelector("addons").WithExpression(
+							models.NewMultiFieldAttrValue(
+								models.NewFieldAttrValue("key", "storage"),
+								models.NewFieldAttrValue("version", 1),
+							),
+						),
+						models.NewFieldSelector("ratecards").WithExpression(
+							models.NewFieldAttrValue("key", "storage_capacity"),
+						),
+						models.NewFieldSelector("featureKey"),
+					).
+					WithSeverity(models.ErrorSeverityWarning),
+				models.NewValidationIssue(ErrRateCardBillingCadenceMismatch.Code(), ErrRateCardBillingCadenceMismatch.Message()).
+					WithField(
+						models.NewFieldSelector("addons").WithExpression(
+							models.NewMultiFieldAttrValue(
+								models.NewFieldAttrValue("key", "storage"),
+								models.NewFieldAttrValue("version", 1),
+							),
+						),
+						models.NewFieldSelector("ratecards").WithExpression(
+							models.NewFieldAttrValue("key", "storage_capacity"),
+						),
+						models.NewFieldSelector("billingCadence"),
+					).
+					WithSeverity(models.ErrorSeverityWarning),
+				models.NewValidationIssue(ErrRateCardEntitlementTemplateTypeMismatch.Code(), ErrRateCardEntitlementTemplateTypeMismatch.Message()).
+					WithField(
+						models.NewFieldSelector("addons").WithExpression(
+							models.NewMultiFieldAttrValue(
+								models.NewFieldAttrValue("key", "storage"),
+								models.NewFieldAttrValue("version", 1),
+							),
+						),
+						models.NewFieldSelector("ratecards").WithExpression(
+							models.NewFieldAttrValue("key", "storage_capacity"),
+						),
+						models.NewFieldSelector("entitlementTemplate"),
+						models.NewFieldSelector("type"),
+					).
+					WithSeverity(models.ErrorSeverityWarning),
 			},
 		},
 	}

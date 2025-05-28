@@ -11,100 +11,122 @@ import (
 
 func TestFieldSelector(t *testing.T) {
 	tests := []struct {
-		name           string
-		selector       FieldSelector
-		expectedString string
+		name             string
+		selector         FieldSelector
+		expectedString   string
+		expectedJSONPath string
 	}{
 		{
-			name:           "empty",
-			selector:       FieldSelector{},
-			expectedString: "",
+			name:             "empty",
+			selector:         FieldSelector{},
+			expectedString:   "",
+			expectedJSONPath: "",
 		},
 		{
-			name:           "field",
-			selector:       NewFieldSelector("test"),
-			expectedString: "test",
+			name:             "field",
+			selector:         NewFieldSelector("test"),
+			expectedString:   `test`,
+			expectedJSONPath: `test`,
 		},
 		{
 			name: "with attribute",
-			selector: NewFieldSelector("test",
-				FieldValue{"key", "value"},
-			),
-			expectedString: "test[?(@.key=='value')]",
+			selector: NewFieldSelector("test").
+				WithExpression(
+					NewFieldAttrValue("key", "value"),
+				),
+			expectedString:   `test[key=value]`,
+			expectedJSONPath: `test[?(@.key=='value')]`,
 		},
 		{
 			name: "with multiple attributes",
-			selector: NewFieldSelector("test",
-				FieldValue{"key", "value"},
-				FieldValue{"key2", "value2"},
-			),
-			expectedString: "test[?(@.key=='value' && @.key2=='value2')]",
+			selector: NewFieldSelector("test").
+				WithExpression(NewMultiFieldAttrValue(
+					NewFieldAttrValue("key", "value"),
+					NewFieldAttrValue("key2", "value2"),
+				)),
+			expectedString:   `test[key=value, key2=value2]`,
+			expectedJSONPath: `test[?(@.key=='value' && @.key2=='value2')]`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual := test.selector.JSONPath()
-			assert.Equalf(t, test.expectedString, actual, "selector must be equal")
+			actualString := test.selector.String()
+			assert.Equalf(t, test.expectedString, actualString, "string must be equal")
+
+			actualJSONPath := test.selector.JSONPath()
+			assert.Equalf(t, test.expectedJSONPath, actualJSONPath, "JSONPath must be equal")
 		})
 	}
 }
 
 func TestFieldSelectors(t *testing.T) {
 	tests := []struct {
-		name           string
-		selector       FieldSelectors
-		expectedString string
+		name             string
+		selector         FieldSelectors
+		expectedString   string
+		expectedJSONPath string
 	}{
 		{
-			name:           "empty",
-			selector:       FieldSelectors{},
-			expectedString: "",
+			name:     "empty",
+			selector: FieldSelectors{},
 		},
 		{
-			name: "single",
-			selector: FieldSelectors{
-				NewFieldSelector("test"),
-			},
-			expectedString: "$.test",
+			name:             "single",
+			selector:         NewFieldSelectors(NewFieldSelector("test")),
+			expectedString:   `test`,
+			expectedJSONPath: `$.test`,
 		},
 		{
 			name: "multiple",
-			selector: FieldSelectors{
-				NewFieldSelector("test1"),
-				NewFieldSelector("test2",
-					FieldValue{"key", "value"},
-				),
-				NewFieldSelector("test3",
-					FieldValue{"key", "value"},
-					FieldValue{"key2", "value2"},
-				),
+			selector: NewFieldSelectors(
+				NewFieldSelector("test1").WithExpression(WildCard),
+				NewFieldSelector("test2").
+					WithExpression(
+						NewFieldAttrValue("key", "value"),
+					),
+				NewFieldSelector("test3").
+					WithExpression(
+						NewMultiFieldAttrValue(
+							NewFieldAttrValue("key", "value"),
+							NewFieldAttrValue("key2", "value2"),
+						),
+					),
 				NewFieldSelector("test4"),
-			},
-			expectedString: "$.test1.test2[?(@.key=='value')].test3[?(@.key=='value' && @.key2=='value2')].test4",
+			),
+			expectedString:   `test1.test2[key=value].test3[key=value, key2=value2].test4`,
+			expectedJSONPath: `$.test1[*].test2[?(@.key=='value')].test3[?(@.key=='value' && @.key2=='value2')].test4`,
 		},
 		{
-			name: "merge",
-			selector: FieldSelectors{
-				NewFieldSelector("test3",
-					FieldValue{"key", "value"},
-					FieldValue{"key2", "value2"},
-				),
+			name: "prefix",
+			selector: NewFieldSelectors(
+				NewFieldSelector("test3").
+					WithExpression(
+						NewMultiFieldAttrValue(
+							NewFieldAttrValue("key", "value"),
+							NewFieldAttrValue("key2", "value2"),
+						),
+					),
 				NewFieldSelector("test4"),
-			}.WithPrefix(FieldSelectors{
+			).WithPrefix(NewFieldSelectors(
 				NewFieldSelector("test1"),
-				NewFieldSelector("test2",
-					FieldValue{"key", "value"},
-				),
-			}),
-			expectedString: "$.test1.test2[?(@.key=='value')].test3[?(@.key=='value' && @.key2=='value2')].test4",
+				NewFieldSelector("test2").
+					WithExpression(
+						NewFieldAttrValue("key2", "value2"),
+					),
+			)),
+			expectedString:   `test1.test2[key2=value2].test3[key=value, key2=value2].test4`,
+			expectedJSONPath: `$.test1.test2[?(@.key2=='value2')].test3[?(@.key=='value' && @.key2=='value2')].test4`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual := test.selector.JSONPath()
-			assert.Equalf(t, test.expectedString, actual, "selector must be equal")
+			actualString := test.selector.String()
+			assert.Equalf(t, test.expectedString, actualString, "string must be equal")
+
+			actualJSONPath := test.selector.JSONPath()
+			assert.Equalf(t, test.expectedJSONPath, actualJSONPath, "JSONPath must be equal")
 		})
 	}
 }
@@ -147,17 +169,19 @@ var testJSON = `
 }
 `
 
-func TestFieldSelectors_JSONPath(t *testing.T) {
+func TestFieldSelectors_JSONPathQuery(t *testing.T) {
 	tests := []struct {
 		name           string
 		selector       FieldSelectors
 		expectedResult string
 	}{
 		{
-			name: "empty",
+			name: "single",
 			selector: FieldSelectors{
 				NewFieldSelector("store"),
-				NewFieldSelector("book", FieldValue{"category", "reference"}),
+				NewFieldSelector("book").WithExpression(
+					NewFieldAttrValue("category", "reference"),
+				),
 				NewFieldSelector("author"),
 			},
 			expectedResult: `["Nigel Rees"]`,
@@ -166,9 +190,11 @@ func TestFieldSelectors_JSONPath(t *testing.T) {
 			name: "multi",
 			selector: FieldSelectors{
 				NewFieldSelector("store"),
-				NewFieldSelector("book",
-					FieldValue{"category", "fiction"},
-					FieldValue{"isbn", "0-395-19395-8"},
+				NewFieldSelector("book").WithExpression(
+					NewMultiFieldAttrValue(
+						NewFieldAttrValue("category", "fiction"),
+						NewFieldAttrValue("isbn", "0-395-19395-8"),
+					),
 				),
 				NewFieldSelector("author"),
 			},
@@ -190,45 +216,6 @@ func TestFieldSelectors_JSONPath(t *testing.T) {
 			t.Logf("result: %s", v)
 
 			assert.Equalf(t, test.expectedResult, string(v), "must be equal")
-		})
-	}
-}
-
-func TestFieldSelectors_String(t *testing.T) {
-	tests := []struct {
-		name           string
-		selector       FieldSelectors
-		expectedResult string
-	}{
-		{
-			name: "empty",
-			selector: FieldSelectors{
-				NewFieldSelector("store"),
-				NewFieldSelector("book", FieldValue{"category", "reference"}),
-				NewFieldSelector("author"),
-			},
-			expectedResult: `/store/book[category='reference']/author`,
-		},
-		{
-			name: "multi",
-			selector: FieldSelectors{
-				NewFieldSelector("store"),
-				NewFieldSelector("book",
-					FieldValue{"category", "fiction"},
-					FieldValue{"isbn", "0-395-19395-8"},
-				),
-				NewFieldSelector("author"),
-			},
-			expectedResult: `/store/book[category='fiction', isbn='0-395-19395-8']/author`,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			q := test.selector.String()
-			t.Logf("selector: %s", q)
-
-			assert.Equalf(t, test.expectedResult, q, "must be equal")
 		})
 	}
 }

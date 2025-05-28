@@ -159,7 +159,7 @@ func (e *EntitlementTemplate) Validate() error {
 	case entitlement.EntitlementTypeBoolean:
 		return e.boolean.Validate()
 	default:
-		return fmt.Errorf("invalid entitlement type: %q", e.t)
+		return fmt.Errorf("invalid entitlement template type: %q", e.t)
 	}
 }
 
@@ -328,17 +328,27 @@ func (t *MeteredEntitlementTemplate) Equal(v *MeteredEntitlementTemplate) bool {
 }
 
 func (t *MeteredEntitlementTemplate) Validate() error {
+	var errs []error
+
 	if t.IssueAfterResetPriority != nil && t.IssueAfterReset == nil {
-		return models.NewGenericValidationError(errors.New("IssueAfterReset is required for IssueAfterResetPriority"))
+		errs = append(errs, ErrEntitlementTemplateInvalidIssueAfterResetWithPriority)
 	}
 
 	if t.UsagePeriod.Sign() != 1 {
-		return models.NewGenericValidationError(errors.New("UsagePeriod must be positive"))
+		errs = append(errs, ErrEntitlementTemplateNegativeUsagePeriod)
 	}
 
 	hour := isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)
 	if diff, err := t.UsagePeriod.Subtract(hour); err == nil && diff.Sign() == -1 {
-		return models.NewGenericValidationError(errors.New("UsagePeriod must be at least 1 hour"))
+		errs = append(errs, ErrEntitlementTemplateUsagePeriodLessThenAnHour)
+	}
+
+	if err := errors.Join(errs...); err != nil {
+		return models.NewGenericValidationError(
+			models.ErrorWithFieldPrefix(
+				models.NewFieldSelectors(models.NewFieldSelector("entitlementTemplate")),
+				err),
+		)
 	}
 
 	return nil
@@ -378,7 +388,7 @@ func (t *StaticEntitlementTemplate) Equal(v *StaticEntitlementTemplate) bool {
 func (t *StaticEntitlementTemplate) Validate() error {
 	if len(t.Config) > 0 {
 		if ok := json.Valid(t.Config); !ok {
-			return models.NewGenericValidationError(errors.New("invalid JSON in config"))
+			return models.NewGenericValidationError(ErrEntitlementTemplateInvalidJSONConfig)
 		}
 	}
 

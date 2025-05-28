@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -74,7 +75,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 
 				item, err = FromPlan(p)
 				if err != nil {
-					return ListPlansResponse{}, fmt.Errorf("failed to cast plan pahse: %w", err)
+					return ListPlansResponse{}, fmt.Errorf("failed to cast plan: %w", err)
 				}
 
 				items = append(items, item)
@@ -91,7 +92,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listPlans"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)),
 		)...,
 	)
 }
@@ -124,6 +125,8 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 				Namespace: ns,
 			}
 
+			req.IgnoreNonCriticalIssues = true
+
 			return req, nil
 		},
 		func(ctx context.Context, request CreatePlanRequest) (CreatePlanResponse, error) {
@@ -138,7 +141,7 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createPlan"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)),
 		)...,
 	)
 }
@@ -172,6 +175,8 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 				ID:        planID,
 			}
 
+			req.IgnoreNonCriticalIssues = true
+
 			return req, nil
 		},
 		func(ctx context.Context, request UpdatePlanRequest) (UpdatePlanResponse, error) {
@@ -186,7 +191,7 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("updatePlan"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)),
 		)...,
 	)
 }
@@ -224,7 +229,7 @@ func (h *handler) DeletePlan() DeletePlanHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("deletePlan"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)),
 		)...,
 	)
 }
@@ -280,7 +285,7 @@ func (h *handler) GetPlan() GetPlanHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getPlan"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)),
 		)...,
 	)
 }
@@ -325,7 +330,7 @@ func (h *handler) PublishPlan() PublishPlanHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("publishPlan"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)),
 		)...,
 	)
 }
@@ -368,7 +373,7 @@ func (h *handler) ArchivePlan() ArchivePlanHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("archivePlan"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)),
 		)...,
 	)
 }
@@ -417,7 +422,7 @@ func (h *handler) NextPlan() NextPlanHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("nextPlan"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)),
 		)...,
 	)
 }

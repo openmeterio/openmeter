@@ -93,29 +93,42 @@ type ListPlansStatusFilter struct {
 	Archived bool
 }
 
+type inputOptions struct {
+	// ignoreNonCriticalIssues makes Validate() return errors with critical severity or higher.
+	// This allows creating resource with expected validation issues.
+	IgnoreNonCriticalIssues bool
+}
+
 var _ models.Validator = (*CreatePlanInput)(nil)
 
 type CreatePlanInput struct {
 	models.NamespacedModel
 	productcatalog.Plan
+
+	inputOptions
 }
 
 func (i CreatePlanInput) Validate() error {
 	var errs []error
 
-	if err := i.NamespacedModel.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid Namespace: %w", err))
+	if i.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
 	if err := i.Plan.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid Plan: %w", err))
+		errs = append(errs, fmt.Errorf("invalid plan: %w", err))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
+	issues, err := models.AsValidationIssues(errors.Join(errs...))
+	if err != nil {
+		return models.NewGenericValidationError(err)
 	}
 
-	return nil
+	if i.IgnoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
 var (
@@ -143,6 +156,8 @@ type UpdatePlanInput struct {
 
 	// Alignment
 	productcatalog.AlignmentUpdate
+
+	inputOptions
 }
 
 func (i UpdatePlanInput) Equal(p Plan) bool {
@@ -193,32 +208,41 @@ func (i UpdatePlanInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
-		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
+	}
+
+	if i.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
 	}
 
 	if i.Name != nil && *i.Name == "" {
-		return errors.New("invalid Name: must not be empty")
+		errs = append(errs, productcatalog.ErrResourceNameEmpty)
 	}
 
 	if i.EffectiveFrom != nil || i.EffectiveTo != nil {
 		if err := i.EffectivePeriod.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid EffectivePeriod: %w", err))
+			errs = append(errs, fmt.Errorf("invalid effective period: %w", err))
 		}
 	}
 
 	if i.Phases != nil {
 		for _, phase := range *i.Phases {
 			if err := phase.Validate(); err != nil {
-				errs = append(errs, fmt.Errorf("invalid PlanPhase: %w", err))
+				errs = append(errs, fmt.Errorf("invalid plan phase: %w", err))
 			}
 		}
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
+	issues, err := models.AsValidationIssues(errors.Join(errs...))
+	if err != nil {
+		return models.NewGenericValidationError(err)
 	}
 
-	return nil
+	if i.IgnoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
 // ExpandFields defines which fields to expand when returning the Plan.
@@ -247,18 +271,14 @@ func (i GetPlanInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
-		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
 	if i.ID == "" && i.Key == "" {
-		errs = append(errs, errors.New("either ID or Key must be provided"))
+		errs = append(errs, errors.New("either plan id or key must be provided"))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type DeletePlanInput struct {
@@ -266,11 +286,17 @@ type DeletePlanInput struct {
 }
 
 func (i DeletePlanInput) Validate() error {
-	if err := i.NamespacedID.Validate(); err != nil {
-		return fmt.Errorf("invalid Namespace: %w", err)
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
-	return nil
+	if i.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type PublishPlanInput struct {
@@ -283,8 +309,12 @@ type PublishPlanInput struct {
 func (i PublishPlanInput) Validate() error {
 	var errs []error
 
-	if err := i.NamespacedID.Validate(); err != nil {
-		errs = append(errs, err)
+	if i.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
+	}
+
+	if i.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
 	}
 
 	now := clock.Now()
@@ -313,11 +343,7 @@ func (i PublishPlanInput) Validate() error {
 		errs = append(errs, errors.New("invalid EffectivePeriod: period start must not be later than period end"))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ArchivePlanInput struct {
@@ -331,10 +357,13 @@ type ArchivePlanInput struct {
 func (i ArchivePlanInput) Validate() error {
 	var errs []error
 
-	if err := i.NamespacedID.Validate(); err != nil {
-		errs = append(errs, err)
+	if i.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
+	if i.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
+	}
 	if i.EffectiveTo.IsZero() {
 		errs = append(errs, errors.New("invalid EffectiveTo: must not be empty"))
 	}
@@ -345,11 +374,7 @@ func (i ArchivePlanInput) Validate() error {
 		errs = append(errs, errors.New("invalid EffectiveTo: period end must not be in the past"))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type NextPlanInput struct {
@@ -368,16 +393,12 @@ func (i NextPlanInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
-		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
 	if i.ID == "" && i.Key == "" {
 		errs = append(errs, errors.New("invalid: either ID or Key pair must be provided"))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

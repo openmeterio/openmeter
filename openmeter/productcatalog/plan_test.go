@@ -185,7 +185,7 @@ func TestAlignmentEnforcement(t *testing.T) {
 			},
 		}
 
-		err := p.ValidForCreatingSubscriptions()
+		err := p.Validate()
 		assert.NoError(t, err)
 	})
 
@@ -235,7 +235,7 @@ func TestAlignmentEnforcement(t *testing.T) {
 			},
 		}
 
-		err := p.ValidForCreatingSubscriptions()
+		err := p.Validate()
 		assert.NoError(t, err)
 	})
 
@@ -285,8 +285,8 @@ func TestAlignmentEnforcement(t *testing.T) {
 			},
 		}
 
-		err := p.ValidForCreatingSubscriptions()
+		err := p.Validate()
 		assert.Error(t, err)
-		assert.ErrorContains(t, err, "must have the same billing cadence")
+		assert.ErrorContains(t, err, "must have the exact same billing cadence")
 	})
 }

@@ -94,6 +94,13 @@ model Addon {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Rate cards")
   rateCards: RateCard[];
+
+  /**
+   * List of validation errors.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Validation errors")
+  validationErrors: ValidationError[] | null;
 }
 
 /**

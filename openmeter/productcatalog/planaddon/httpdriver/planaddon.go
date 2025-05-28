@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -90,7 +91,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listPlanAddons"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),
 		)...,
 	)
 }
@@ -135,7 +136,7 @@ func (h *handler) CreatePlanAddon() CreatePlanAddonHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createPlanAddon"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),
 		)...,
 	)
 }
@@ -184,7 +185,7 @@ func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("updatePlanAddon"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),
 		)...,
 	)
 }
@@ -228,7 +229,7 @@ func (h *handler) DeletePlanAddon() DeletePlanAddonHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("deletePlanAddon"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),
 		)...,
 	)
 }
@@ -272,7 +273,7 @@ func (h *handler) GetPlanAddon() GetPlanAddonHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getPlanAddon"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),
 		)...,
 	)
 }

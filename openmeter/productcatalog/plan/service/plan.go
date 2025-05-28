@@ -513,8 +513,11 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 
 		// Validate that the Subscription can successfully be created from this Plan
 
-		if err := pp.ValidForCreatingSubscriptions(); err != nil {
-			return nil, models.NewGenericValidationError(fmt.Errorf("invalid Plan for creating subscriptions: %w", err))
+		if err = pp.Validate(); err != nil {
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("invalid plan [namespace=%s plan.id=%s plan.key=%s]: %w",
+					p.Namespace, p.ID, p.Key, err),
+			)
 		}
 
 		//

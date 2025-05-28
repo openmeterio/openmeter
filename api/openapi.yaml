@@ -10961,6 +10961,7 @@ components:
         - currency
         - status
         - rateCards
+        - validationErrors
       properties:
         id:
           type: string
@@ -11070,6 +11071,14 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the add-on.
           title: Rate cards
+        validationErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          nullable: true
+          description: List of validation errors.
+          title: Validation errors
+          readOnly: true
       description: Add-on allows extending subscriptions with compatible plans with additional ratecards.
     AddonCreate:
       type: object
@@ -19495,6 +19504,7 @@ components:
         - currency
         - status
         - phases
+        - validationErrors
       properties:
         id:
           type: string
@@ -19601,6 +19611,14 @@ components:
             The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
             A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
           title: Plan phases
+        validationErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          nullable: true
+          description: List of validation errors.
+          title: Validation errors
+          readOnly: true
       description: Plans provide a template for subscriptions.
     PlanAddon:
       type: object

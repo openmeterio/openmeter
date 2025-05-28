@@ -30,26 +30,22 @@ func (i createPhaseInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace must not be empty"))
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
 	if i.Key == "" || i.PlanID == "" {
-		errs = append(errs, errors.New("key and planID must be provided"))
+		errs = append(errs, errors.New("phase key or plan id must be provided"))
 	}
 
 	if i.Name == "" {
-		errs = append(errs, errors.New("name must not be empty"))
+		errs = append(errs, productcatalog.ErrResourceNameEmpty)
 	}
 
 	if i.Index < 0 {
-		errs = append(errs, errors.New("index must be greater than or equal to 0"))
+		errs = append(errs, errors.New("phase index must be greater than or equal to 0"))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (a *adapter) createPhase(ctx context.Context, params createPhaseInput) (*plan.Phase, error) {

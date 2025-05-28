@@ -1,104 +1,193 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
 
-var _ FieldExpression = (*FieldValue)(nil)
+type FieldExpression interface {
+	fmt.Stringer
 
-type FieldValue struct {
-	Field string
-	Value string
+	JSONPathExpression() string
+	IsCondition() bool
 }
 
-func (f FieldValue) String() string {
-	return f.Field + "='" + f.Value + "'"
+var _ FieldExpression = (*FieldAttrValue)(nil)
+
+type FieldAttrValue struct {
+	field string
+	value any
 }
 
-func (f FieldValue) JSONPath() string {
+func (f FieldAttrValue) IsCondition() bool {
+	return true
+}
+
+func (f FieldAttrValue) valueString() string {
+	b := strings.Builder{}
+
+	switch v := f.value.(type) {
+	case int, int32, int64, float32, float64:
+		b.WriteString(fmt.Sprintf("%v", v))
+	case string:
+		b.WriteString(v)
+	case fmt.Stringer:
+		b.WriteString(v.String())
+	default:
+		b.WriteString("!UNSUPPORTED")
+	}
+
+	return b.String()
+}
+
+func (f FieldAttrValue) String() string {
+	return f.field + "=" + f.valueString()
+}
+
+func (f FieldAttrValue) JSONPathExpression() string {
 	b := strings.Builder{}
 	b.WriteString("@.")
-	b.WriteString(f.Field)
+	b.WriteString(f.field)
 	b.WriteString("=='")
-	b.WriteString(f.Value)
+	b.WriteString(f.valueString())
 	b.WriteString("'")
 
 	return b.String()
 }
 
-type FieldExpression interface {
-	fmt.Stringer
+func NewFieldAttrValue(field string, value any) FieldAttrValue {
+	return FieldAttrValue{field: field, value: value}
+}
 
-	JSONPath() string
+var _ FieldExpression = (*FieldAttrValue)(nil)
+
+type MultiFieldAttrValue struct {
+	values []FieldAttrValue
+}
+
+func (m MultiFieldAttrValue) IsCondition() bool {
+	return true
+}
+
+func (m MultiFieldAttrValue) String() string {
+	b := strings.Builder{}
+
+	for idx, attr := range m.values {
+		if idx > 0 {
+			b.WriteString(", ")
+		}
+
+		b.WriteString(attr.String())
+	}
+
+	return b.String()
+}
+
+func (m MultiFieldAttrValue) JSONPathExpression() string {
+	b := strings.Builder{}
+
+	if len(m.values) > 0 {
+		for idx, attr := range m.values {
+			if idx > 0 {
+				b.WriteString(" && ")
+			}
+
+			b.WriteString(attr.JSONPathExpression())
+		}
+	}
+
+	return b.String()
+}
+
+func NewMultiFieldAttrValue(values ...FieldAttrValue) MultiFieldAttrValue {
+	return MultiFieldAttrValue{values: values}
+}
+
+var _ FieldExpression = (*wildCard)(nil)
+
+var WildCard = wildCard{}
+
+type wildCard struct{}
+
+func (w wildCard) IsCondition() bool {
+	return false
+}
+
+func (w wildCard) String() string {
+	return ""
+}
+
+func (w wildCard) JSONPathExpression() string {
+	return "*"
 }
 
 var _ fmt.Stringer = (*FieldSelector)(nil)
 
 type FieldSelector struct {
 	field string
-	exps  []FieldExpression
+	exp   FieldExpression
+}
+
+func (p FieldSelector) WithExpression(exp FieldExpression) FieldSelector {
+	return FieldSelector{
+		field: p.field,
+		exp:   exp,
+	}
 }
 
 func (p FieldSelector) String() string {
 	b := strings.Builder{}
 	b.WriteString(p.field)
 
-	if len(p.exps) > 0 {
-		b.WriteString("[")
-
-		for idx, exp := range p.exps {
-			if idx > 0 {
-				b.WriteString(", ")
-			}
-
-			b.WriteString(exp.String())
+	if p.exp != nil {
+		if exp := p.exp.String(); exp != "" {
+			b.WriteString("[")
+			b.WriteString(exp)
+			b.WriteString("]")
 		}
-
-		b.WriteString("]")
 	}
 
 	return b.String()
-}
-
-func (p FieldSelector) WithFilter(exps ...FieldExpression) FieldSelector {
-	return FieldSelector{
-		field: p.field,
-		exps:  append(p.exps, exps...),
-	}
 }
 
 func (p FieldSelector) JSONPath() string {
 	b := strings.Builder{}
 	b.WriteString(p.field)
 
-	if len(p.exps) > 0 {
-		b.WriteString("[?(")
+	if p.exp != nil {
+		expOpen := "["
+		expClose := "]"
 
-		for idx, filter := range p.exps {
-			if idx > 0 {
-				b.WriteString(" && ")
-			}
-
-			b.WriteString(filter.JSONPath())
+		if p.exp.IsCondition() {
+			expOpen = "[?("
+			expClose = ")]"
 		}
 
-		b.WriteString(")]")
+		if exp := p.exp.JSONPathExpression(); exp != "" {
+			b.WriteString(expOpen)
+			b.WriteString(exp)
+			b.WriteString(expClose)
+		}
 	}
 
 	return b.String()
 }
 
-func NewFieldSelector(field string, exps ...FieldExpression) FieldSelector {
-	return FieldSelector{
-		field: field,
-		exps:  exps,
-	}
+func NewFieldSelector(field string) FieldSelector {
+	return FieldSelector{field: field}
 }
 
-var _ fmt.Stringer = (*FieldSelector)(nil)
+var (
+	_ fmt.Stringer   = (*FieldSelectors)(nil)
+	_ json.Marshaler = (*FieldSelectors)(nil)
+)
 
 type FieldSelectors []FieldSelector
+
+func (s FieldSelectors) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.JSONPath())
+}
 
 func (s FieldSelectors) JSONPath() string {
 	if len(s) == 0 {
@@ -122,8 +211,11 @@ func (s FieldSelectors) String() string {
 	}
 
 	b := strings.Builder{}
-	for _, selector := range s {
-		b.WriteString("/")
+	for idx, selector := range s {
+		if idx > 0 {
+			b.WriteString(".")
+		}
+
 		b.WriteString(selector.String())
 	}
 
@@ -132,4 +224,8 @@ func (s FieldSelectors) String() string {
 
 func (s FieldSelectors) WithPrefix(prefix FieldSelectors) FieldSelectors {
 	return append(prefix, s...)
+}
+
+func NewFieldSelectors(selectors ...FieldSelector) FieldSelectors {
+	return selectors
 }

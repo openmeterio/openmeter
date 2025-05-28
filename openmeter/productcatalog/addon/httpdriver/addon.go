@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -91,7 +92,7 @@ func (h *handler) ListAddons() ListAddonsHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listAddons"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),
 		)...,
 	)
 }
@@ -124,6 +125,8 @@ func (h *handler) CreateAddon() CreateAddonHandler {
 				Namespace: ns,
 			}
 
+			req.IgnoreNonCriticalIssues = true
+
 			return req, nil
 		},
 		func(ctx context.Context, request CreateAddonRequest) (CreateAddonResponse, error) {
@@ -138,7 +141,7 @@ func (h *handler) CreateAddon() CreateAddonHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createAddon"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),
 		)...,
 	)
 }
@@ -172,6 +175,8 @@ func (h *handler) UpdateAddon() UpdateAddonHandler {
 				ID:        addonID,
 			}
 
+			req.IgnoreNonCriticalIssues = true
+
 			return req, nil
 		},
 		func(ctx context.Context, request UpdateAddonRequest) (UpdateAddonResponse, error) {
@@ -186,7 +191,7 @@ func (h *handler) UpdateAddon() UpdateAddonHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("updateAddon"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),
 		)...,
 	)
 }
@@ -224,7 +229,7 @@ func (h *handler) DeleteAddon() DeleteAddonHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("deleteAddon"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),
 		)...,
 	)
 }
@@ -280,7 +285,7 @@ func (h *handler) GetAddon() GetAddonHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getAddon"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),
 		)...,
 	)
 }
@@ -325,7 +330,7 @@ func (h *handler) PublishAddon() PublishAddonHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("publishAddon"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),
 		)...,
 	)
 }
@@ -368,7 +373,7 @@ func (h *handler) ArchiveAddon() ArchiveAddonHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("archiveAddon"),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),
 		)...,
 	)
 }

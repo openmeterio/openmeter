@@ -2,7 +2,6 @@ package productcatalog
 
 import (
 	"errors"
-	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -13,9 +12,10 @@ import (
 )
 
 var (
-	_ models.Validator                    = (*PercentageDiscount)(nil)
-	_ hasher.Hasher                       = (*PercentageDiscount)(nil)
-	_ models.Clonable[PercentageDiscount] = (*PercentageDiscount)(nil)
+	_ models.Validator                           = (*PercentageDiscount)(nil)
+	_ hasher.Hasher                              = (*PercentageDiscount)(nil)
+	_ models.Clonable[PercentageDiscount]        = (*PercentageDiscount)(nil)
+	_ models.CustomValidator[PercentageDiscount] = (*PercentageDiscount)(nil)
 )
 
 type PercentageDiscount struct {
@@ -31,17 +31,25 @@ func (d PercentageDiscount) Hash() hasher.Hash {
 	return hasher.NewHash([]byte(content))
 }
 
-func (d PercentageDiscount) Validate() error {
-	var errs []error
-
-	if d.Percentage.LessThan(decimal.Zero) || d.Percentage.GreaterThan(decimal.NewFromInt(100)) {
-		errs = append(errs, errors.New("discount percentage must be between 0 and 100"))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+func (d PercentageDiscount) ValidateWith(v ...models.ValidatorFunc[PercentageDiscount]) error {
+	return models.Validate(d, v...)
 }
 
-func (d PercentageDiscount) ValidateForPrice(price *Price) error {
+func PercentageDiscountWithValidValue() models.ValidatorFunc[PercentageDiscount] {
+	return func(d PercentageDiscount) error {
+		if d.Percentage.LessThan(decimal.Zero) || d.Percentage.GreaterThan(decimal.NewFromInt(100)) {
+			return ErrPercentageDiscountInvalidValue
+		}
+
+		return nil
+	}
+}
+
+func (d PercentageDiscount) Validate() error {
+	return d.ValidateWith(PercentageDiscountWithValidValue())
+}
+
+func (d PercentageDiscount) ValidateForPrice(_ *Price) error {
 	return d.Validate()
 }
 
@@ -52,9 +60,10 @@ func (d PercentageDiscount) Clone() PercentageDiscount {
 }
 
 var (
-	_ models.Validator               = (*UsageDiscount)(nil)
-	_ hasher.Hasher                  = (*UsageDiscount)(nil)
-	_ models.Clonable[UsageDiscount] = (*UsageDiscount)(nil)
+	_ models.Validator                      = (*UsageDiscount)(nil)
+	_ hasher.Hasher                         = (*UsageDiscount)(nil)
+	_ models.Clonable[UsageDiscount]        = (*UsageDiscount)(nil)
+	_ models.CustomValidator[UsageDiscount] = (*UsageDiscount)(nil)
 )
 
 type UsageDiscount struct {
@@ -69,33 +78,47 @@ func (d UsageDiscount) Hash() hasher.Hash {
 	return hasher.NewHash([]byte(content))
 }
 
-func (d UsageDiscount) Validate() error {
-	var errs []error
+func (d UsageDiscount) ValidateWith(v ...models.ValidatorFunc[UsageDiscount]) error {
+	return models.Validate(d, v...)
+}
 
-	if d.Quantity.LessThan(decimal.Zero) {
-		errs = append(errs, errors.New("usage must be greater than 0"))
+func UsageDiscountWithValidValue() models.ValidatorFunc[UsageDiscount] {
+	return func(d UsageDiscount) error {
+		if d.Quantity.LessThan(decimal.Zero) {
+			return ErrUsageDiscountNegativeQuantity
+		}
+
+		return nil
 	}
+}
 
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+func UsageDiscountWithPrice(price *Price) models.ValidatorFunc[UsageDiscount] {
+	return func(d UsageDiscount) error {
+		var errs []error
+
+		if price == nil {
+			// We cannot validate usage discount without a price.
+			return errors.New("price is required for usage discount")
+		}
+
+		if err := d.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+
+		if price.Type() == FlatPriceType {
+			errs = append(errs, ErrUsageDiscountWithFlatPrice)
+		}
+
+		return errors.Join(errs...)
+	}
+}
+
+func (d UsageDiscount) Validate() error {
+	return d.ValidateWith(UsageDiscountWithValidValue())
 }
 
 func (d UsageDiscount) ValidateForPrice(price *Price) error {
-	var errs []error
-
-	if price == nil {
-		// We cannot validate usage discount without a price.
-		return errors.New("price is required for usage discount")
-	}
-
-	if err := d.Validate(); err != nil {
-		return err
-	}
-
-	if price.Type() == FlatPriceType {
-		errs = append(errs, errors.New("usage discount is not supported for flat price"))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	return d.ValidateWith(UsageDiscountWithPrice(price))
 }
 
 func (d UsageDiscount) Clone() UsageDiscount {
@@ -150,17 +173,30 @@ func (d *Discounts) Validate() error {
 
 	if d.Percentage != nil {
 		if err := d.Percentage.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("percentage discount: %w", err))
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.NewFieldSelectors(models.NewFieldSelector("percentage")),
+				err),
+			)
 		}
 	}
 
 	if d.Usage != nil {
 		if err := d.Usage.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("usage discount: %w", err))
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.NewFieldSelectors(models.NewFieldSelector("usage")),
+				err),
+			)
 		}
 	}
 
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	if err := errors.Join(errs...); err != nil {
+		return models.NewGenericValidationError(models.ErrorWithFieldPrefix(
+			models.NewFieldSelectors(models.NewFieldSelector("discounts")),
+			err),
+		)
+	}
+
+	return nil
 }
 
 func (d Discounts) ValidateForPrice(price *Price) error {
@@ -172,17 +208,30 @@ func (d Discounts) ValidateForPrice(price *Price) error {
 
 	if d.Percentage != nil {
 		if err := d.Percentage.ValidateForPrice(price); err != nil {
-			errs = append(errs, fmt.Errorf("percentage discount: %w", err))
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.NewFieldSelectors(models.NewFieldSelector("percentage")),
+				err),
+			)
 		}
 	}
 
 	if d.Usage != nil {
 		if err := d.Usage.ValidateForPrice(price); err != nil {
-			errs = append(errs, fmt.Errorf("usage discount: %w", err))
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.NewFieldSelectors(models.NewFieldSelector("usage")),
+				err),
+			)
 		}
 	}
 
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	if err := errors.Join(errs...); err != nil {
+		return models.NewGenericValidationError(models.ErrorWithFieldPrefix(
+			models.NewFieldSelectors(models.NewFieldSelector("discounts")),
+			err),
+		)
+	}
+
+	return nil
 }
 
 func (d Discounts) IsEmpty() bool {

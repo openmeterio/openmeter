@@ -38,15 +38,15 @@ func (m RateCardManagedFields) Validate() error {
 	var errs []error
 
 	if m.Namespace == "" {
-		errs = append(errs, errors.New("namespace must not be empty"))
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
 	if m.ID == "" {
-		errs = append(errs, errors.New("id must not be empty"))
+		errs = append(errs, productcatalog.ErrIDEmpty)
 	}
 
 	if m.PhaseID == "" {
-		errs = append(errs, errors.New("phaseID must not be empty"))
+		errs = append(errs, errors.New("managed ratecard must have plan phase reference set"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -93,10 +93,6 @@ func (r *RateCard) Validate() error {
 
 	if err := r.RateCardManagedFields.Validate(); err != nil {
 		errs = append(errs, err)
-	}
-
-	if r.PhaseID == "" {
-		errs = append(errs, errors.New("phaseId must not be empty"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
