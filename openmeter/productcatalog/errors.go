@@ -433,3 +433,20 @@ var ErrPlanHasLastPhaseWithDuration = models.NewValidationIssue(
 	models.WithFieldString("duration"),
 	models.WithWarningSeverity(),
 )
+
+const ErrCodePlanPhaseHasNoRateCards models.ErrorCode = "plan_phase_has_no_rate_cards"
+
+var ErrPlanPhaseHasNoRateCards = models.NewValidationIssue(
+	ErrCodePlanPhaseHasNoRateCards,
+	"plan phase must have at least one rate card",
+	models.WithFieldString("ratecards"),
+	models.WithWarningSeverity(),
+)
+
+const ErrCodePlanHasIncompatibleAddon models.ErrorCode = "plan_has_incompatible_addon"
+
+var ErrPlanHasIncompatibleAddon = models.NewValidationIssue(
+	ErrCodePlanHasIncompatibleAddon,
+	"plan has incompatible add-on assignment",
+	models.WithWarningSeverity(),
+)

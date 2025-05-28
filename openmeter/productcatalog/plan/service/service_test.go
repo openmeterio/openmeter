@@ -490,6 +490,8 @@ func TestPlanService(t *testing.T) {
 							})),
 						}
 
+						updateInput.IgnoreNonCriticalIssues = true
+
 						updatedPlanV1, err = env.Plan.UpdatePlan(ctx, updateInput)
 						require.NoErrorf(t, err, "updating draft Plan must not fail")
 						require.NotNil(t, updatedPlanV1, "updated draft Plan must not be empty")
