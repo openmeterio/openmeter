@@ -48,7 +48,7 @@ func newHandler[Request any, Response any](
 		encodeResponse: responseEncoder,
 	}
 
-	options = append(defaultHandlerOptions, options...)
+	options = append(options, defaultHandlerOptions...)
 
 	h.apply(options)
 
