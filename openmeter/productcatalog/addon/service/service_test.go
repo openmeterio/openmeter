@@ -152,8 +152,76 @@ func TestAddonService(t *testing.T) {
 			t.Run("Update", func(t *testing.T) {
 				updateInput := addon.UpdateAddonInput{
 					NamespacedID: addonV1.NamespacedID,
-					RateCards:    &productcatalog.RateCards{},
+					RateCards: &productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:         features[0].Key,
+								Name:        features[0].Name,
+								Description: lo.ToPtr("RateCard 1"),
+								Metadata:    models.Metadata{"name": features[0].Name},
+								FeatureKey:  lo.ToPtr(features[0].Key),
+								FeatureID:   lo.ToPtr(features[0].ID),
+								TaxConfig: &productcatalog.TaxConfig{
+									Stripe: &productcatalog.StripeTaxConfig{
+										Code: "txcd_10000000",
+									},
+								},
+								Price: productcatalog.NewPriceFrom(
+									productcatalog.FlatPrice{
+										Amount:      decimal.NewFromInt(0),
+										PaymentTerm: productcatalog.InArrearsPaymentTerm,
+									}),
+							},
+							BillingCadence: &MonthPeriod,
+						},
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:                 features[1].Key,
+								Name:                features[1].Name,
+								Description:         lo.ToPtr(features[1].Name),
+								Metadata:            models.Metadata{"name": features[1].Name},
+								FeatureKey:          lo.ToPtr(features[1].Key),
+								FeatureID:           lo.ToPtr(features[1].ID),
+								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
+								TaxConfig: &productcatalog.TaxConfig{
+									Stripe: &productcatalog.StripeTaxConfig{
+										Code: "txcd_10000000",
+									},
+								},
+								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+									Mode: productcatalog.VolumeTieredPrice,
+									Tiers: []productcatalog.PriceTier{
+										{
+											UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+											FlatPrice: &productcatalog.PriceTierFlatPrice{
+												Amount: decimal.NewFromInt(100),
+											},
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: decimal.NewFromInt(50),
+											},
+										},
+										{
+											UpToAmount: nil,
+											FlatPrice: &productcatalog.PriceTierFlatPrice{
+												Amount: decimal.NewFromInt(5),
+											},
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: decimal.NewFromInt(25),
+											},
+										},
+									},
+									Commitments: productcatalog.Commitments{
+										MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+										MaximumAmount: nil,
+									},
+								}),
+							},
+							BillingCadence: MonthPeriod,
+						},
+					},
 				}
+
+				updateInput.IgnoreNonCriticalIssues = true
 
 				updatedAddon, err := env.Addon.UpdateAddon(ctx, updateInput)
 				require.NoErrorf(t, err, "updating draft add-on must not fail")

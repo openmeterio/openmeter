@@ -340,6 +340,15 @@ var ErrAddonInvalidPriceForMultiInstance = models.NewValidationIssue(
 	models.WithWarningSeverity(),
 )
 
+const ErrCodeAddonHasNoRateCards models.ErrorCode = "addon_has_no_rate_cards"
+
+var ErrAddonHasNoRateCards = models.NewValidationIssue(
+	ErrCodeAddonHasNoRateCards,
+	"add-on must have at least one rate card",
+	models.WithFieldString("ratecards"),
+	models.WithWarningSeverity(),
+)
+
 // Generic errors
 
 const ErrCodeResourceKeyEmpty models.ErrorCode = "resource_key_empty"
