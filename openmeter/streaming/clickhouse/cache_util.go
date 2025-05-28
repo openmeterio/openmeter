@@ -4,8 +4,9 @@ import (
 	"math"
 	"time"
 
-	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/samber/lo"
+
+	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 )
 
 // filterOutNaNValues filters out rows with a value of NaN

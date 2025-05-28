@@ -215,8 +215,127 @@ func TestCanQueryBeCached(t *testing.T) {
 	}
 }
 
-// Integration test for executeQueryWithCaching
-func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
+// Integration test for executeQueryWithCaching with before cached window
+func TestConnector_ExecuteQueryWithCachingWithBeforeCachedWindow(t *testing.T) {
+	connector, mockClickHouse := GetMockConnector(t)
+
+	// Setup test data
+	now := time.Now().UTC().Truncate(time.Hour * 24)
+	queryFrom := now.Add(-7 * 24 * time.Hour)
+	queryTo := now.Add(-2 * 24 * time.Hour)
+
+	queryHash := "test-hash"
+
+	testMeter := meterpkg.Meter{
+		ManagedResource: models.ManagedResource{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "test-namespace",
+			},
+			ID:   "test-meter",
+			Name: "test-meter",
+		},
+		Key:           "test-meter",
+		Aggregation:   meterpkg.MeterAggregationSum,
+		ValueProperty: lo.ToPtr("$.value"),
+	}
+
+	originalQueryMeter := queryMeter{
+		Database:  "testdb",
+		Namespace: "test-namespace",
+		Meter:     testMeter,
+		From:      &queryFrom,
+		To:        &queryTo,
+	}
+
+	// Mock for fetchCachedMeterRows
+	mockRows1 := NewMockRows()
+	mockClickHouse.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
+		"test-hash",
+		"test-namespace",
+		// We query for the full cached period which is the same as the query period
+		// The returned rows are the cached rows for the query period and the first window is missing from cache
+		queryFrom.Unix(),
+		queryTo.Unix(),
+	}).Return(mockRows1, nil).Once()
+
+	// Setup rows to return from cache
+	mockRows1.On("Next").Return(true).Once()
+	mockRows1.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
+		dest := args.Get(0).([]interface{})
+		// Cache starts 24 hour after from, so first window is missing form cache
+		*(dest[0].(*time.Time)) = queryFrom.Add(time.Hour * 24)
+		*(dest[1].(*time.Time)) = queryTo
+		*(dest[2].(*float64)) = 100.0
+	}).Return(nil)
+	mockRows1.On("Next").Return(false)
+	mockRows1.On("Err").Return(nil)
+	mockRows1.On("Close").Return(nil)
+
+	// Mock the SQL query for loading new data to the cache
+	mockRows2 := NewMockRows()
+	mockClickHouse.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
+		"test-namespace",
+		"",
+		// We query for the period we don't have cache but could have
+		queryFrom.Unix(),
+		queryFrom.Add(time.Hour * 24).Unix(),
+	}).Return(mockRows2, nil).Once()
+
+	// Setup rows to return new data that can be cached
+	mockRows2.On("Next").Return(true).Once()
+	mockRows2.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
+		dest := args.Get(0).([]interface{})
+
+		*(dest[0].(*time.Time)) = queryFrom
+		*(dest[1].(*time.Time)) = queryFrom.Add(time.Hour * 24)
+		*(dest[2].(**float64)) = lo.ToPtr(50.0)
+	}).Return(nil)
+	mockRows2.On("Next").Return(false)
+	mockRows2.On("Err").Return(nil)
+	mockRows2.On("Close").Return(nil)
+
+	// FIXME: materialize all the 49 rows with zero values
+	// Store new cachable data in cache
+	// mockClickHouse.On("Exec", mock.Anything, mock.AnythingOfType("string"), []interface{}{
+	// 	// Called with the new data
+	// 	"test-hash",
+	// 	"test-namespace",
+	// 	currentCacheEnd,
+	// 	cachedEnd,
+	// 	50.0,
+	// 	"", // subject
+	// 	map[string]string{},
+	// }).Return(nil).Once()
+
+	mockClickHouse.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil).Once()
+
+	// Execute query with caching
+	resultRows, err := connector.executeQueryWithCaching(context.Background(), queryHash, originalQueryMeter)
+	require.NoError(t, err)
+
+	// Validate rows returned
+	assert.Equal(t, []meterpkg.MeterQueryRow{
+		{
+			WindowStart: queryFrom,
+			WindowEnd:   queryFrom.Add(time.Hour * 24),
+			Value:       50.0,
+			GroupBy:     map[string]*string{},
+		},
+		{
+			WindowStart: queryFrom.Add(time.Hour * 24),
+			WindowEnd:   queryTo,
+			Value:       100.0,
+			GroupBy:     map[string]*string{},
+		},
+	}, resultRows)
+
+	mockClickHouse.AssertExpectations(t)
+	mockRows1.AssertExpectations(t)
+	mockRows2.AssertExpectations(t)
+}
+
+// Integration test for executeQueryWithCaching with after cached window
+func TestConnector_ExecuteQueryWithCachingWithAfterCachedWindow(t *testing.T) {
 	connector, mockClickHouse := GetMockConnector(t)
 
 	// Setup test data
