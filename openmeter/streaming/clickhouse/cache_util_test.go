@@ -121,9 +121,14 @@ func TestIsTimeWindowGap(t *testing.T) {
 			to:         now.Add(2 * time.Hour),
 			windowSize: meterpkg.WindowSizeHour,
 			rows: []meterpkg.MeterQueryRow{
+				// Gap at start:
+				// {
+				// 	WindowStart: now.Add(0 * time.Hour),
+				// 	WindowEnd:   now.Add(1 * time.Hour),
+				// },
 				{
-					WindowStart: now.Add(time.Hour),
-					WindowEnd:   now.Add(1 * time.Hour),
+					WindowStart: now.Add(1 * time.Hour),
+					WindowEnd:   now.Add(2 * time.Hour),
 				},
 			},
 			expected: false,
@@ -135,9 +140,14 @@ func TestIsTimeWindowGap(t *testing.T) {
 			windowSize: meterpkg.WindowSizeHour,
 			rows: []meterpkg.MeterQueryRow{
 				{
-					WindowStart: now.Add(2 * time.Hour),
-					WindowEnd:   now.Add(3 * time.Hour),
+					WindowStart: now.Add(0 * time.Hour),
+					WindowEnd:   now.Add(1 * time.Hour),
 				},
+				// Gap at end:
+				// {
+				// 	WindowStart: now.Add(1 * time.Hour),
+				// 	WindowEnd:   now.Add(2 * time.Hour),
+				// },
 			},
 			expected: false,
 		},
