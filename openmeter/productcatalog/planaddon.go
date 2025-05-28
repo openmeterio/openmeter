@@ -102,7 +102,10 @@ func (c PlanAddon) Validate() error {
 	if ok {
 		// Validate ratecards from plan phases and addon.
 		for _, phase := range c.Plan.Phases[fromPhaseIdx:] {
-			if err := c.validateRateCardsInPhase(phase.RateCards, c.Addon.RateCards); err != nil {
+			if err := phase.ValidateWith(
+				ValidatePlanPhaseAndAddonBillingCadenceAreAligned(c.Addon.RateCards),
+				ValidatePlanPhaseAndAddonRateCardsAreCompatible(c.Addon.RateCards),
+			); err != nil {
 				errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, err))
 			}
 		}
@@ -113,25 +116,42 @@ func (c PlanAddon) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (c PlanAddon) validateRateCardsInPhase(phaseRateCards, addonRateCards RateCards) error {
-	var errs []error
+func ValidatePlanPhaseAndAddonBillingCadenceAreAligned(ratecards RateCards) models.ValidatorFunc[Phase] {
+	return func(p Phase) error {
+		v := append(p.RateCards, ratecards...)
 
-	phaseRateCardsByKey := lo.SliceToMap(phaseRateCards, func(item RateCard) (string, RateCard) {
-		return item.Key(), item
-	})
-
-	for _, addonRateCard := range addonRateCards {
-		phaseRateCard, ok := phaseRateCardsByKey[addonRateCard.Key()]
-
-		// Add-on ratecard is not present in plan phase ratecards, it is safe to skip.
-		if !ok {
-			continue
+		if v.BillingCadenceAligned() {
+			return nil
 		}
 
-		if err := NewRateCardWithOverlay(phaseRateCard, addonRateCard).Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("plan ratecard is not compatible with add-on ratecard: %w", err))
-		}
+		return models.ErrorWithFieldPrefix(
+			models.NewFieldSelectors(models.NewFieldSelector("ratecards").WithExpression(models.WildCard)),
+			ErrRateCardBillingCadenceUnaligned,
+		)
 	}
+}
 
-	return errors.Join(errs...)
+func ValidatePlanPhaseAndAddonRateCardsAreCompatible(addonRateCards RateCards) models.ValidatorFunc[Phase] {
+	return func(p Phase) error {
+		var errs []error
+
+		phaseRateCardsByKey := lo.SliceToMap(p.RateCards, func(item RateCard) (string, RateCard) {
+			return item.Key(), item
+		})
+
+		for _, addonRateCard := range addonRateCards {
+			phaseRateCard, ok := phaseRateCardsByKey[addonRateCard.Key()]
+
+			// Add-on ratecard is not present in plan phase ratecards, it is safe to skip.
+			if !ok {
+				continue
+			}
+
+			if err := NewRateCardWithOverlay(phaseRateCard, addonRateCard).Validate(); err != nil {
+				errs = append(errs, fmt.Errorf("plan ratecard is not compatible with add-on ratecard: %w", err))
+			}
+		}
+
+		return errors.Join(errs...)
+	}
 }
