@@ -563,23 +563,13 @@ model InvoiceSimulationInput {
 }
 
 /**
- * InvoiceSimulationInput represents a line item that can be input to the simulation endpoint.
+ * InvoiceSimulationLine represents a usage-based line item that can be input to the simulation endpoint.
  */
 @friendlyName("InvoiceSimulationLine")
-@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
-union InvoiceSimulationLine {
-  usage_based: InvoiceSimulationUsageBasedLine,
-  flat_fee: InvoiceSimulationFlatFeeLine,
-}
-
-/**
- * InvoiceSimulationUsageBasedLine represents a usage-based line item that can be input to the simulation endpoint.
- */
-@friendlyName("InvoiceSimulationUsageBasedLine")
-model InvoiceSimulationUsageBasedLine {
+model InvoiceSimulationLine {
   ...TypeSpec.Rest.Resource.ResourceCreateModel<OmitProperties<
-    Invoice.InvoiceUsageBasedLine,
-    "invoice" | "currency"
+    Invoice.InvoiceLine,
+    "invoice" | "currency" | "children"
   >>;
 
   /**
@@ -593,25 +583,6 @@ model InvoiceSimulationUsageBasedLine {
    */
   @visibility(Lifecycle.Create)
   preLinePeriodQuantity?: Numeric;
-
-  /**
-   * ID of the line. If not specified it will be auto-generated.
-   *
-   * When discounts are specified, this must be provided, so that the discount can reference it.
-   */
-  @visibility(Lifecycle.Create)
-  id?: ULID;
-}
-
-/**
- * InvoiceSimulationFlatFeeLine represents a flat fee line item that can be input to the simulation endpoint.
- */
-@friendlyName("InvoiceSimulationFlatFeeLine")
-model InvoiceSimulationFlatFeeLine {
-  ...TypeSpec.Rest.Resource.ResourceCreateModel<OmitProperties<
-    Invoice.InvoiceFlatFeeLine,
-    "invoice" | "currency"
-  >>;
 
   /**
    * ID of the line. If not specified it will be auto-generated.
