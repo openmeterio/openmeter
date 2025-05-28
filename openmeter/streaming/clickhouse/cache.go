@@ -95,12 +95,6 @@ func (c *Connector) canQueryBeCached(namespace string, meterDef meterpkg.Meter, 
 		return false
 	}
 
-	// We don't cache min and max aggregations for now
-	// TODO: this is a temporary solution until we store materialized rows with zero values in the cache
-	if meterDef.Aggregation == meterpkg.MeterAggregationMin || meterDef.Aggregation == meterpkg.MeterAggregationMax {
-		return false
-	}
-
 	// We can only cache queries that have a from time
 	if queryParams.From == nil {
 		return false
@@ -324,7 +318,7 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 
 	logger.Debug("returning cached and new rows", "resultRowsCount", len(resultRows))
 
-	return resultRows, nil
+	return filterOutNaNValues(resultRows), nil
 }
 
 // prepareCacheableQueryPeriod prepares the time range for cacheable queries

@@ -1,12 +1,17 @@
 package clickhouse
 
 import (
+	"math"
 	"time"
 
 	"github.com/samber/lo"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 )
+
+// We mark in the cache with NaN if the value is not available
+// We use NaN to avoid storing 0 values in the cache which impacts min and max aggregations
+var cacheNoValue = math.NaN()
 
 // materializeRows materializes rows for windows that does not have value
 func (c *Connector) materializeCacheRows(from time.Time, to time.Time, windowSize meterpkg.WindowSize, rows []meterpkg.MeterQueryRow) ([]meterpkg.MeterQueryRow, error) {
@@ -77,6 +82,7 @@ func (c *Connector) materializeCacheRows(from time.Time, to time.Time, windowSiz
 					WindowStart: windowStart,
 					WindowEnd:   windowEnd,
 					Subject:     subject,
+					Value:       cacheNoValue,
 				}
 
 				key := createKeyFromRow(materializedRow, &windowSize, groupByFields)
@@ -91,6 +97,7 @@ func (c *Connector) materializeCacheRows(from time.Time, to time.Time, windowSiz
 						WindowEnd:   windowEnd,
 						Subject:     subject,
 						GroupBy:     groupBy,
+						Value:       cacheNoValue,
 					}
 
 					key := createKeyFromRow(materializedRow, &windowSize, groupByFields)

@@ -189,7 +189,7 @@ func TestCanQueryBeCached(t *testing.T) {
 				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(to),
 			},
-			expectCachable: false,
+			expectCachable: true,
 		},
 		{
 			name:      "cachable max query",
@@ -203,7 +203,7 @@ func TestCanQueryBeCached(t *testing.T) {
 				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(to),
 			},
-			expectCachable: false,
+			expectCachable: true,
 		},
 	}
 

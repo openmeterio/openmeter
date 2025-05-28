@@ -1,10 +1,20 @@
 package clickhouse
 
 import (
+	"math"
 	"time"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/samber/lo"
 )
+
+// filterOutNaNValues filters out rows with a value of NaN
+// We mark in the cache with NaN if the value is not available
+func filterOutNaNValues(rows []meterpkg.MeterQueryRow) []meterpkg.MeterQueryRow {
+	return lo.Filter(rows, func(row meterpkg.MeterQueryRow, _ int) bool {
+		return !math.IsNaN(row.Value)
+	})
+}
 
 // isTimeWindowGap checks if there is a gap in the time windows for a given period
 // it only counts as a gap if the gap is in between the existing windows, not at the start or end of the period
