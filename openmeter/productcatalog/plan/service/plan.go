@@ -481,6 +481,16 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			)
 		}
 
+		// Validate that the Subscription can successfully be created from this Plan
+
+		var errs []error
+
+		if err = pp.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid plan [id=%s key=%s version=%d]: %w",
+				p.ID, p.Key, p.Version, err),
+			)
+		}
+
 		// Check for incompatible add-ons assigned to this plan
 
 		if p.Addons == nil {
@@ -488,8 +498,6 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		}
 
 		if len(*p.Addons) > 0 {
-			var errs []error
-
 			for _, addon := range *p.Addons {
 				planAddon := productcatalog.PlanAddon{
 					PlanAddonMeta: addon.PlanAddonMeta,
@@ -498,26 +506,15 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 				}
 
 				if err = planAddon.Validate(); err != nil {
-					errs = append(errs,
-						fmt.Errorf("incompatible add-on [namespace=%s addon.id=%s, addon.key=%s]: %w", addon.Namespace, addon.ID, addon.Key, err),
+					errs = append(errs, fmt.Errorf("incompatible add-on assignement [id=%s, key=%s, version=%d]: %w",
+						addon.ID, addon.Key, addon.Version, productcatalog.ErrPlanHasIncompatibleAddon),
 					)
 				}
 			}
-
-			if err = errors.Join(errs...); err != nil {
-				return nil, models.NewGenericValidationError(
-					fmt.Errorf("invalid Plan [namespace=%s plan.id=%s plan.key=%s]: incompatible add-on assignements: %w", p.Namespace, p.ID, p.Key, err),
-				)
-			}
 		}
 
-		// Validate that the Subscription can successfully be created from this Plan
-
-		if err = pp.Validate(); err != nil {
-			return nil, models.NewGenericValidationError(
-				fmt.Errorf("invalid plan [namespace=%s plan.id=%s plan.key=%s]: %w",
-					p.Namespace, p.ID, p.Key, err),
-			)
+		if err = errors.Join(errs...); err != nil {
+			return nil, models.NewGenericValidationError(err)
 		}
 
 		//

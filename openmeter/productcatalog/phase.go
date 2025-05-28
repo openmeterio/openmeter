@@ -129,6 +129,10 @@ func ValidatePhaseMeta() models.ValidatorFunc[Phase] {
 // It checks for invalid and duplicated ratecards in Phase.
 func ValidatePhaseRateCards() models.ValidatorFunc[Phase] {
 	return func(p Phase) error {
+		if len(p.RateCards) == 0 {
+			return ErrPlanPhaseHasNoRateCards
+		}
+
 		return ValidateRateCards()(p.RateCards)
 	}
 }
