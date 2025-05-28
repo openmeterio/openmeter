@@ -35,7 +35,7 @@ func TestMaterializeCacheRows(t *testing.T) {
 		{
 			name:       "no gaps does not materialize",
 			from:       windowStart1,
-			to:         windowEnd2,
+			to:         windowEnd3,
 			windowSize: meterpkg.WindowSizeHour,
 			rows: []meterpkg.MeterQueryRow{
 				{
