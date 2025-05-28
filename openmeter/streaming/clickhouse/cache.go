@@ -181,6 +181,8 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 		if err != nil {
 			return nil, fmt.Errorf("query rows: %w", err)
 		}
+
+		logger.Debug("query the entire time period", "count", len(beforeCacheRows))
 	}
 
 	// Step 2: Query new rows for the uncached time period, if there is any
@@ -205,15 +207,13 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 			beforeCacheQueryMeter.To = firstCachedWindowStart
 			beforeCacheQueryMeter.WindowSize = cacheableQueryMeter.WindowSize
 
-			logger.Debug("querying before first cached window", "queryFrom", beforeCacheQueryMeter.From, "queryFrom", beforeCacheQueryMeter.To)
-
 			beforeCacheRows, err = c.queryMeter(ctx, beforeCacheQueryMeter)
 			if err != nil {
 				errChan <- fmt.Errorf("query rows before first cached window: %w", err)
 				return
 			}
 
-			logger.Debug("before cache rows", "count", len(beforeCacheRows))
+			logger.Debug("querying before first cached window", "queryFrom", beforeCacheQueryMeter.From, "queryTo", beforeCacheQueryMeter.To, "countBeforeRows", len(beforeCacheRows))
 		}()
 	}
 
@@ -229,15 +229,13 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 			afterCacheQueryMeter.To = originalQueryMeter.To
 			afterCacheQueryMeter.WindowSize = cacheableQueryMeter.WindowSize
 
-			logger.Debug("querying after last cached window", "queryFrom", afterCacheQueryMeter.From, "queryTo", afterCacheQueryMeter.To)
-
 			afterCacheRows, err = c.queryMeter(ctx, afterCacheQueryMeter)
 			if err != nil {
 				errChan <- fmt.Errorf("query rows after last cached window: %w", err)
 				return
 			}
 
-			logger.Debug("after cache rows", "count", len(afterCacheRows))
+			logger.Debug("querying after last cached window", "queryFrom", afterCacheQueryMeter.From, "queryTo", afterCacheQueryMeter.To, "countAfterRows", len(afterCacheRows))
 		}()
 	}
 
