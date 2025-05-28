@@ -39,6 +39,8 @@ func isTimeWindowGap(from time.Time, to time.Time, windowSize meterpkg.WindowSiz
 		if firstWindow == nil || row.WindowStart.Before(*firstWindow) {
 			firstWindow = &row.WindowStart
 		}
+
+		// We use the window start window because we care about when the last window started
 		if lastWindow == nil || row.WindowStart.After(*lastWindow) {
 			lastWindow = &row.WindowStart
 		}
@@ -49,20 +51,32 @@ func isTimeWindowGap(from time.Time, to time.Time, windowSize meterpkg.WindowSiz
 		return false
 	}
 
+	// TODO: refactor me to be more elegant
+	wasExisting := false
+	existingToNonExisting := false
+
 	// Check for gaps between the first and last window
 	current := *firstWindow
-	for current.Before(*lastWindow) {
+	for {
 		next := current.Add(windowSize.Duration())
 
 		// Skip if we're at the start or end of the period
-		if current.Equal(*firstWindow) || next.Equal(*lastWindow) {
-			current = next
-			continue
+		if _, exists := existingWindows[current]; exists {
+			wasExisting = true
+
+			// If we're switching pattern again it's a gap
+			if existingToNonExisting {
+				return true
+			}
+		} else {
+			// Switching from existing to non-existing is a potential gap
+			if wasExisting {
+				existingToNonExisting = true
+			}
 		}
 
-		// If the next window doesn't exist, we found a gap
-		if _, exists := existingWindows[next]; !exists {
-			return true
+		if current.Equal(*lastWindow) {
+			break
 		}
 
 		current = next
@@ -73,7 +87,7 @@ func isTimeWindowGap(from time.Time, to time.Time, windowSize meterpkg.WindowSiz
 
 // concatAppend concatenates slices of any type
 func concatAppend[T any](slices [][]T) []T {
-	var tmp []T
+	tmp := []T{}
 	for _, s := range slices {
 		tmp = append(tmp, s...)
 	}
