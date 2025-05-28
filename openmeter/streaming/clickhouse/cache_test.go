@@ -55,7 +55,7 @@ func TestCanQueryBeCached(t *testing.T) {
 			connector: getConnector(WithQueryCacheNamespaceTemplate("^test-")),
 			namespace: "default",
 			meterDef: meterpkg.Meter{
-				Aggregation: meterpkg.MeterAggregationMax,
+				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
@@ -69,7 +69,7 @@ func TestCanQueryBeCached(t *testing.T) {
 			connector: getConnector(WithQueryCacheNamespaceTemplate("^test-[a-z]+$")),
 			namespace: "test-namespace",
 			meterDef: meterpkg.Meter{
-				Aggregation: meterpkg.MeterAggregationMax,
+				Aggregation: meterpkg.MeterAggregationSum,
 			},
 			queryParams: streaming.QueryParams{
 				Cachable: true,
@@ -188,7 +188,7 @@ func TestCanQueryBeCached(t *testing.T) {
 				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(to),
 			},
-			expectCachable: true,
+			expectCachable: false,
 		},
 		{
 			name:      "cachable max query",
@@ -202,7 +202,7 @@ func TestCanQueryBeCached(t *testing.T) {
 				From:     lo.ToPtr(to.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(to),
 			},
-			expectCachable: true,
+			expectCachable: false,
 		},
 	}
 
