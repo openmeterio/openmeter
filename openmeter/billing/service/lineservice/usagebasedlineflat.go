@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
 var _ Line = (*ubpFlatFeeLine)(nil)
@@ -25,8 +26,14 @@ func (l ubpFlatFeeLine) Validate(ctx context.Context, targetInvoice *billing.Inv
 	var outErr []error
 
 	if l.line.UsageBased.FeatureKey != "" {
-		if _, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey); err != nil {
-			outErr = append(outErr, err)
+		_, err := l.service.FeatureService.GetFeature(
+			ctx,
+			l.line.Namespace,
+			l.line.UsageBased.FeatureKey,
+			feature.IncludeArchivedFeatureTrue,
+		)
+		if err != nil {
+			outErr = append(outErr, fmt.Errorf("fetching feature[%s]: %w", l.line.UsageBased.FeatureKey, err))
 		}
 	}
 
