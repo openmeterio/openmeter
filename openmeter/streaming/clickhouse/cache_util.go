@@ -71,6 +71,7 @@ func isTimeWindowGap(from time.Time, to time.Time, windowSize meterpkg.WindowSiz
 	return false
 }
 
+// concatAppend concatenates slices of any type
 func concatAppend[T any](slices [][]T) []T {
 	var tmp []T
 	for _, s := range slices {
