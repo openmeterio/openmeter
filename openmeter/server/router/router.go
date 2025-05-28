@@ -12,6 +12,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appcustominvoicinghttpdriver "github.com/openmeterio/openmeter/openmeter/app/custominvoicing/httpdriver"
@@ -86,6 +87,7 @@ type Config struct {
 	AppStripe                   appstripe.Service
 	AppCustomInvoicing          appcustominvoicing.SyncService
 	Billing                     billing.Service
+	BillingFeatureSwitches      config.BillingFeatureSwitchesConfiguration
 	Customer                    customer.Service
 	DebugConnector              debug.DebugConnector
 	EntitlementConnector        entitlement.Connector
@@ -344,6 +346,7 @@ func NewRouter(config Config) (*Router, error) {
 	router.billingHandler = billinghttpdriver.New(
 		config.Logger,
 		staticNamespaceDecoder,
+		config.BillingFeatureSwitches,
 		config.Billing,
 		config.AppStripe,
 		httptransport.WithErrorHandler(config.ErrorHandler),
