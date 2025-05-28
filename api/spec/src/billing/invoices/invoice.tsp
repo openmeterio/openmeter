@@ -420,35 +420,15 @@ enum InvoiceType {
 }
 
 /**
- * BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
- */
-@friendlyName("InvoiceLine")
-@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
-union InvoiceLine {
-  usage_based: InvoiceUsageBasedLine,
-  flat_fee: InvoiceFlatFeeLine,
-}
-
-/**
- * InvoiceLineReplaceUpdate represents the update model for an invoice line.
+ * InvoiceLineReplaceUpdate represents the update model for an UBP invoice line.
+ *
+ * This type makes ID optional to allow for creating new lines as part of the update.
  */
 @friendlyName("InvoiceLineReplaceUpdate")
-@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
-union InvoiceLineReplaceUpdate {
-  usage_based: InvoiceUsageBasedLineReplaceUpdate,
-  flat_fee: InvoiceFlatFeeLineReplaceUpdate,
-}
-
-/**
- * InvoiceUpdateUsageBasedLineReplaceUpdate represents the update model for an UBP invoice line.
- *
- * This type makes ID optional to allow for creating new lines as part of the update.
- */
-@friendlyName("InvoiceUsageBasedLineReplaceUpdate")
-model InvoiceUsageBasedLineReplaceUpdate {
+model InvoiceLineReplaceUpdate {
   ...TypeSpec.Rest.Resource.ResourceReplaceModel<OmitProperties<
-    InvoiceUsageBasedLine,
-    "id"
+    InvoiceLine,
+    "id" | "children"
   >>;
 
   /**
@@ -459,61 +439,21 @@ model InvoiceUsageBasedLineReplaceUpdate {
 }
 
 /**
- * InvoiceFlatFeeLineReplaceUpdate represents the update model for a flat fee invoice line.
- *
- * This type makes ID optional to allow for creating new lines as part of the update.
- */
-@friendlyName("InvoiceFlatFeeLineReplaceUpdate")
-model InvoiceFlatFeeLineReplaceUpdate {
-  ...TypeSpec.Rest.Resource.ResourceReplaceModel<OmitProperties<
-    InvoiceFlatFeeLine,
-    "id"
-  >>;
-
-  /**
-   * The ID of the line.
-   */
-  @visibility(Lifecycle.Update)
-  id?: ULID;
-}
-
-/**
- * InvoiceLineCreate represents the create model for an invoice line.
+ * InvoicePendingLineCreate represents the create model for an invoice line that is sold to the customer based on usage.
  */
 @friendlyName("InvoicePendingLineCreate")
-@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
-union InvoicePendingLineCreate {
-  usage_based: InvoiceUsageBasedPendingLineCreate,
-  flat_fee: InvoiceFlatFeePendingLineCreate,
-}
-
-/**
- * InvoiceUsageBasedLineCreateWithCustomer represents the create model for an invoice line that is sold to the customer based on usage.
- */
-@friendlyName("InvoiceUsageBasedPendingLineCreate")
-model InvoiceUsageBasedPendingLineCreate {
+model InvoicePendingLineCreate {
   // Note: invoice is omitted as the line is assigned a new or existing gathering invoice
   ...TypeSpec.Rest.Resource.ResourceCreateModel<OmitProperties<
-    InvoiceUsageBasedLine,
-    "invoice" | "currency"
-  >>;
-}
-
-/**
- * InvoiceFlatFeePendingLineCreate represents the create model for an invoice line that is sold to the customer as a manually added fee.
- */
-@friendlyName("InvoiceFlatFeePendingLineCreate")
-model InvoiceFlatFeePendingLineCreate {
-  // Note: invoice is omitted as the line is assigned a new or existing gathering invoice
-  ...TypeSpec.Rest.Resource.ResourceCreateModel<OmitProperties<
-    InvoiceFlatFeeLine,
-    "invoice" | "currency"
+    InvoiceLine,
+    "invoice" | "currency" | "children"
   >>;
 }
 
 /**
  * LineTypes represents the different types of lines that can be used in an invoice.
  */
+#deprecated "We are moving to a coherent invoice line structure"
 @friendlyName("InvoiceLineTypes")
 enum InvoiceLineTypes {
   flatFee: "flat_fee",
@@ -594,7 +534,8 @@ model InvoiceLineBase {
    *
    * A line's type cannot be changed after creation.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  #deprecated "We are moving to a coherent invoice line structure"
+  @visibility(Lifecycle.Read)
   type: InvoiceLineTypes;
 
   /**
@@ -645,12 +586,6 @@ model InvoiceLineBase {
   #deprecated "Use rateCard.taxConfig instead"
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   taxConfig?: OpenMeter.ProductCatalog.TaxConfig;
-
-  /**
-   * The lines detailing the item or service sold.
-   */
-  @visibility(Lifecycle.Read)
-  children?: InvoiceLine[];
 
   /**
    * Totals for this line.
@@ -723,19 +658,22 @@ model InvoiceUsageBasedRateCard {
 
 /**
  * InvoiceUsageBasedLine represents a line item that is sold to the customer based on usage. */
-@friendlyName("InvoiceUsageBasedLine")
-model InvoiceUsageBasedLine {
+@friendlyName("InvoiceLine")
+model InvoiceLine {
   ...OmitProperties<InvoiceLineBase, "type">;
 
   /**
    * Type of the line.
    */
+  #deprecated "Invoice always has usage-based line children"
+  @visibility(Lifecycle.Read)
   type: InvoiceLineTypes.usageBased;
 
   /**
    * Price of the usage-based item being sold.
    */
   #deprecated "Use rateCard.price instead"
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   price?: OpenMeter.ProductCatalog.RateCardUsageBasedPrice;
 
   /**
@@ -744,6 +682,12 @@ model InvoiceUsageBasedLine {
   #deprecated "Use rateCard.featureKey instead"
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   featureKey?: Key;
+
+  /**
+   * The lines detailing the item or service sold.
+   */
+  @visibility(Lifecycle.Read)
+  children?: InvoiceDetailedLine[];
 
   /**
    * The rate card that is used for this line.
@@ -788,11 +732,11 @@ model InvoiceUsageBasedLine {
 }
 
 /**
- * InvoiceFlatFeeRateCard represents the rate card (intent) for a flat fee line.
+ * InvoiceDetailedLineRateCard represents the rate card (intent) for a flat fee line.
  */
-@friendlyName("InvoiceFlatFeeRateCard")
-model InvoiceFlatFeeRateCard {
-  // TODO: Once the deprecation is done, let's make price required
+@friendlyName("InvoiceDetailedLineRateCard")
+model InvoiceDetailedLineRateCard {
+  // TODO[v2]: Once the deprecation is done, let's make price required
   ...PickProperties<
     OpenMeter.ProductCatalog.RateCardFlatFee,
     "taxConfig" | "price"
@@ -814,15 +758,17 @@ model InvoiceFlatFeeRateCard {
 }
 
 /**
- * InvoiceFlatFeeLine represents a line item that is sold to the customer as a manually added fee.
+ * InvoiceDetailedLine represents a line item that is sold to the customer as a manually added fee.
  */
-@friendlyName("InvoiceFlatFeeLine")
-model InvoiceFlatFeeLine {
+@friendlyName("InvoiceDetailedLine")
+model InvoiceDetailedLine {
   ...OmitProperties<InvoiceLineBase, "type">;
 
   /**
    * Type of the line.
    */
+  #deprecated "Invoice line's children are always detailed lines"
+  @visibility(Lifecycle.Read)
   type: InvoiceLineTypes.flatFee;
 
   /**
@@ -849,23 +795,23 @@ model InvoiceFlatFeeLine {
   /**
    * The rate card that is used for this line.
    */
-  // TODO: Once the deprecation is done, let's make rateCard required
+  // TODO[v2]: Once the deprecation is done, let's make rateCard required
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  rateCard?: InvoiceFlatFeeRateCard;
+  rateCard?: InvoiceDetailedLineRateCard;
 
   /**
    * Category of the flat fee.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  category?: InvoiceFlatFeeCategory = InvoiceFlatFeeCategory.regular;
+  @visibility(Lifecycle.Read)
+  category?: InvoiceDetailedLineCostCategory = InvoiceDetailedLineCostCategory.regular;
 }
 
 /**
- * InvoiceFlatFeeCategory determines if the flat fee is a regular fee due to use due to a
+ * InvoiceDetailedLineCostCategory determines if the flat fee is a regular fee due to use due to a
  * commitment.
  */
-@friendlyName("InvoiceFlatFeeCategory")
-union InvoiceFlatFeeCategory {
+@friendlyName("InvoiceDetailedLineCostCategory")
+union InvoiceDetailedLineCostCategory {
   /**
    * The fee is a regular fee due to usage.
    */
