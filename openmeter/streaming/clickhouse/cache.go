@@ -12,14 +12,13 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/hasher"
 )
 
 var (
-	defaultCacheWindowSize     = meter.WindowSizeDay
+	defaultCacheWindowSize     = meterpkg.WindowSizeDay
 	defaultCacheWindowTimeZone = time.UTC
 )
 
@@ -175,7 +174,6 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 		logger = logger.With("firstCachedWindowStart", firstCachedWindowStart, "lastCachedWindowEnd", lastCachedWindowEnd)
 
 		logger.Debug("cached rows found")
-
 	} else {
 		// If there is no cached data, we query the entire time period
 		// We add it to the before cache rows to be returned but it doesn't matter if we add to before or after cache rows variable
@@ -247,19 +245,8 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	var newRowsNotInCache []meterpkg.MeterQueryRow
 	var errs []error
 
-	for {
-		select {
-		case err, ok := <-errChan:
-			if !ok {
-				errChan = nil
-			} else {
-				errs = append(errs, err)
-			}
-		}
-
-		if errChan == nil {
-			break
-		}
+	for err := range errChan {
+		errs = append(errs, err)
 	}
 
 	if len(errs) > 0 {

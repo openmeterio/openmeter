@@ -3,13 +3,13 @@ package clickhouse
 import (
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
-	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/samber/lo"
+
+	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 )
 
 // materializeRows materializes rows for windows that does not have value
-func (c *Connector) materializeCacheRows(from time.Time, to time.Time, windowSize meter.WindowSize, rows []meterpkg.MeterQueryRow) ([]meterpkg.MeterQueryRow, error) {
+func (c *Connector) materializeCacheRows(from time.Time, to time.Time, windowSize meterpkg.WindowSize, rows []meterpkg.MeterQueryRow) ([]meterpkg.MeterQueryRow, error) {
 	// Collect group by fields
 	groupByFields := []string{}
 

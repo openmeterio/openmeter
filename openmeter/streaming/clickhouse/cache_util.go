@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 )
 
 // isTimeWindowGap checks if there is a gap in the time windows for a given period
-func isTimeWindowGap(from time.Time, to time.Time, windowSize meter.WindowSize, rows []meterpkg.MeterQueryRow) bool {
+func isTimeWindowGap(from time.Time, to time.Time, windowSize meterpkg.WindowSize, rows []meterpkg.MeterQueryRow) bool {
 	existingWindows := map[time.Time]time.Time{}
 	for _, row := range rows {
 		existingWindows[row.WindowStart] = row.WindowEnd

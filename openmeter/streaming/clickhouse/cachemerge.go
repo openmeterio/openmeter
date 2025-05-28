@@ -9,7 +9,6 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
@@ -61,12 +60,12 @@ func createGroupKeyFromRowWithQueryParams(row meterpkg.MeterQueryRow, queryParam
 
 // createGroupKeyFromRowWithQueryParams creates a unique key for grouping rows based on subject and group by fields
 // We don't include window start and end because we assume query window size is not set (when it is set, we don't merge cached and fresh rows)
-func createKeyFromRow(row meterpkg.MeterQueryRow, windowSize *meter.WindowSize, groupByFields []string) string {
+func createKeyFromRow(row meterpkg.MeterQueryRow, windowSize *meterpkg.WindowSize, groupByFields []string) string {
 	groupKey := createGroupKeyFromRow(row, groupByFields)
 
 	// Window key is used to group rows by window size
 	if windowSize != nil {
-		return fmt.Sprintf("%s;%s", row.WindowStart.UTC().Format(time.RFC3339), row.WindowEnd.UTC().Format(time.RFC3339))
+		return fmt.Sprintf("%s;%s%s", row.WindowStart.UTC().Format(time.RFC3339), row.WindowEnd.UTC().Format(time.RFC3339), groupKey)
 	}
 
 	return groupKey
