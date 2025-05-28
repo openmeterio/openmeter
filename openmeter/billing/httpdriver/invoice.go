@@ -556,7 +556,7 @@ func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 	}
 
 	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line *billing.Line) (api.InvoiceLine, error) {
-		mappedLine, err := mapBillingLineToAPI(line)
+		mappedLine, err := mapInvoiceLineToAPI(line)
 		if err != nil {
 			return api.InvoiceLine{}, fmt.Errorf("failed to map billing line[%s] to API: %w", line.ID, err)
 		}

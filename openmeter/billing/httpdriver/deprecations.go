@@ -5,189 +5,15 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 )
 
-// Deprecation handlers for flat fee line's rateCard
+// Deprecation handlers for invoice line's rateCard
 
-type flatFeeRateCardItems struct {
-	RateCard *api.InvoiceFlatFeeRateCard
-
-	// Deprecated fields
-	PerUnitAmount *string
-	PaymentTerm   *api.PricePaymentTerm
-	Quantity      *string
-	TaxConfig     *api.TaxConfig
-}
-
-func (i *flatFeeRateCardItems) ValidateDeprecatedFields() error {
-	var errs []error
-
-	if i.PerUnitAmount == nil {
-		errs = append(errs, errors.New("perUnitAmount is required"))
-	}
-
-	if i.Quantity == nil {
-		errs = append(errs, errors.New("quantity is required"))
-	}
-
-	return errors.Join(errs...)
-}
-
-func (i *flatFeeRateCardItems) ValidateRateCard() error {
-	if i.RateCard == nil {
-		return errors.New("rateCard is required")
-	}
-
-	var errs []error
-
-	// Price validations
-
-	if i.RateCard.Price == nil {
-		return errors.New("rateCard.price is required")
-	}
-
-	if i.RateCard.Price.Type != api.FlatPriceWithPaymentTermTypeFlat {
-		errs = append(errs, errors.New("rateCard.price.type must be flat"))
-	}
-
-	// Deprecated fields vs rateCard.price validations
-	if i.PerUnitAmount != nil && i.RateCard.Price.Amount != *i.PerUnitAmount {
-		errs = append(errs, errors.New("rateCard.price.amount must be equal to perUnitAmount"))
-	}
-
-	rateCardPaymentTerm := lo.FromPtrOr(i.RateCard.Price.PaymentTerm, api.PricePaymentTerm(defaultFlatFeePaymentTerm))
-	if i.PaymentTerm != nil && rateCardPaymentTerm != *i.PaymentTerm {
-		errs = append(errs, errors.New("rateCard.price.paymentTerm must be equal to paymentTerm"))
-	}
-
-	rateCardQuantityString := lo.FromPtrOr(i.RateCard.Quantity, defaultFlatFeeQuantity)
-	rateCardQuantity, err := alpacadecimal.NewFromString(rateCardQuantityString)
-	if err != nil {
-		errs = append(errs, fmt.Errorf("failed to parse rateCard.quantity: %w", err))
-	}
-
-	if i.Quantity != nil {
-		deprecatedQuantity, err := alpacadecimal.NewFromString(*i.Quantity)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("failed to parse quantity: %w", err))
-		}
-
-		if !deprecatedQuantity.Equal(rateCardQuantity) {
-			errs = append(errs, errors.New("quantity must be equal to rateCard.quantity"))
-		}
-	}
-
-	// TaxConfig validations
-
-	if i.TaxConfig != nil && i.RateCard.TaxConfig != nil && !reflect.DeepEqual(*i.TaxConfig, *i.RateCard.TaxConfig) {
-		errs = append(errs, errors.New("taxConfig must be equal to rateCard.taxConfig"))
-	}
-
-	return errors.Join(errs...)
-}
-
-type flatFeeRateCardParsed struct {
-	PerUnitAmount alpacadecimal.Decimal
-	PaymentTerm   productcatalog.PaymentTermType
-	Quantity      alpacadecimal.Decimal
-	TaxConfig     *productcatalog.TaxConfig
-	Discounts     billing.Discounts
-}
-
-func mapAndValidateFlatFeeRateCardDeprecatedFields(in flatFeeRateCardItems) (*flatFeeRateCardParsed, error) {
-	if in.RateCard == nil {
-		// No rate card, so let's use the deprecated fields
-
-		if err := in.ValidateDeprecatedFields(); err != nil {
-			return nil, billing.ValidationError{
-				Err: err,
-			}
-		}
-
-		perUnitAmount, err := alpacadecimal.NewFromString(*in.PerUnitAmount)
-		if err != nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("failed to parse perUnitAmount: %w", err),
-			}
-		}
-
-		quantity, err := alpacadecimal.NewFromString(*in.Quantity)
-		if err != nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("failed to parse quantity: %w", err),
-			}
-		}
-
-		var taxConfig *productcatalog.TaxConfig
-		if in.TaxConfig != nil {
-			taxConfig = mapTaxConfigToEntity(in.TaxConfig)
-		}
-
-		return &flatFeeRateCardParsed{
-			PerUnitAmount: perUnitAmount,
-			PaymentTerm:   lo.FromPtrOr((*productcatalog.PaymentTermType)(in.PaymentTerm), productcatalog.InAdvancePaymentTerm),
-			Quantity:      quantity,
-			TaxConfig:     taxConfig,
-		}, nil
-	}
-
-	// Rate card is set, so we should rely on that
-	if err := in.ValidateRateCard(); err != nil {
-		return nil, billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	var taxConfig *productcatalog.TaxConfig
-	if in.TaxConfig != nil {
-		taxConfig = mapTaxConfigToEntity(in.TaxConfig)
-	}
-
-	perUnitAmount, err := alpacadecimal.NewFromString(in.RateCard.Price.Amount)
-	if err != nil {
-		return nil, billing.ValidationError{
-			Err: fmt.Errorf("failed to parse perUnitAmount: %w", err),
-		}
-	}
-
-	paymentTerm := lo.FromPtrOr(in.RateCard.Price.PaymentTerm, api.PricePaymentTerm(defaultFlatFeePaymentTerm))
-
-	qty, err := alpacadecimal.NewFromString(lo.FromPtrOr(in.RateCard.Quantity, defaultFlatFeeQuantity))
-	if err != nil {
-		return nil, billing.ValidationError{
-			Err: fmt.Errorf("failed to parse quantity: %w", err),
-		}
-	}
-
-	var discounts billing.Discounts
-	if in.RateCard.Discounts != nil {
-		discounts, err = AsDiscounts(in.RateCard.Discounts)
-		if err != nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("failed to parse discounts: %w", err),
-			}
-		}
-	}
-
-	return &flatFeeRateCardParsed{
-		PerUnitAmount: perUnitAmount,
-		PaymentTerm:   productcatalog.PaymentTermType(paymentTerm),
-		Quantity:      qty,
-		TaxConfig:     taxConfig,
-		Discounts:     discounts,
-	}, nil
-}
-
-// Deprecation handlers for usage based line's rateCard
-
-type usageBasedRateCardItems struct {
+type invoiceLineRateCardItems struct {
 	RateCard *api.InvoiceUsageBasedRateCard
 
 	// Deprecated fields
@@ -196,7 +22,7 @@ type usageBasedRateCardItems struct {
 	FeatureKey *string
 }
 
-func (i *usageBasedRateCardItems) ValidateDeprecatedFields() error {
+func (i *invoiceLineRateCardItems) ValidateDeprecatedFields() error {
 	var errs []error
 
 	if i.Price == nil {
@@ -216,7 +42,7 @@ func (i *usageBasedRateCardItems) ValidateDeprecatedFields() error {
 	return errors.Join(errs...)
 }
 
-func (i *usageBasedRateCardItems) ValidateRateCard() error {
+func (i *invoiceLineRateCardItems) ValidateRateCard() error {
 	if i.RateCard == nil {
 		return errors.New("rateCard is required")
 	}
@@ -264,14 +90,14 @@ func (i *usageBasedRateCardItems) ValidateRateCard() error {
 	return errors.Join(errs...)
 }
 
-type usageBasedRateCardParsed struct {
+type invoiceLineRateCardParsed struct {
 	Price      *productcatalog.Price
 	TaxConfig  *productcatalog.TaxConfig
 	FeatureKey string
 	Discounts  billing.Discounts
 }
 
-func mapAndValidateUsageBasedRateCardDeprecatedFields(in usageBasedRateCardItems) (*usageBasedRateCardParsed, error) {
+func mapAndValidateInvoiceLineRateCardDeprecatedFields(in invoiceLineRateCardItems) (*invoiceLineRateCardParsed, error) {
 	if in.RateCard == nil {
 		// No rate card, so let's use the deprecated fields
 
@@ -288,7 +114,7 @@ func mapAndValidateUsageBasedRateCardDeprecatedFields(in usageBasedRateCardItems
 			}
 		}
 
-		return &usageBasedRateCardParsed{
+		return &invoiceLineRateCardParsed{
 			Price:      price,
 			TaxConfig:  mapTaxConfigToEntity(in.TaxConfig),
 			FeatureKey: lo.FromPtr(in.FeatureKey),
@@ -320,7 +146,7 @@ func mapAndValidateUsageBasedRateCardDeprecatedFields(in usageBasedRateCardItems
 		}
 	}
 
-	return &usageBasedRateCardParsed{
+	return &invoiceLineRateCardParsed{
 		Price:      price,
 		TaxConfig:  mapTaxConfigToEntity(in.RateCard.TaxConfig),
 		FeatureKey: lo.FromPtr(in.RateCard.FeatureKey),
