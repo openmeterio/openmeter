@@ -444,7 +444,7 @@ func (i Line) Validate() error {
 		errs = append(errs, fmt.Errorf("discounts: %w", err))
 	}
 
-	if i.Children.IsPresent() {
+	if i.Children.IsPresent() && len(i.Children.OrEmpty()) > 0 {
 		if i.Status == InvoiceLineStatusDetailed {
 			errs = append(errs, errors.New("detailed lines are not allowed for detailed lines (e.g. no nesting is allowed)"))
 		} else {
