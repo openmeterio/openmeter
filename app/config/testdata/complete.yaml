@@ -78,7 +78,6 @@ sink:
       address: 127.0.0.1:6379
       username: default
       password: pass
-      mode: rawkey
       tls:
         enabled: true
   kafka:

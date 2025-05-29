@@ -209,5 +209,6 @@ func ConfigureDedupe(v *viper.Viper) {
 
 	// Redis driver
 	redis.Configure(v, "dedupe.config")
+	v.SetDefault("sink.dedupe.config.mode", redisdedupe.DedupeModeRawKey)
 	v.SetDefault("dedupe.config.mode", redisdedupe.DedupeModeRawKey)
 }
