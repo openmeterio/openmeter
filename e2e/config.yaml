@@ -29,6 +29,7 @@ sink:
     config:
       expiration: 768h # 32d
       database: 1
+      mode: keyhash
       address: redis:6379
   kafka:
     brokers: kafka:9092

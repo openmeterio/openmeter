@@ -164,6 +164,7 @@ type DedupeDriverRedisConfiguration struct {
 	redis.Config `mapstructure:",squash"`
 
 	Expiration time.Duration
+	Mode       redisdedupe.DedupeMode
 }
 
 func (DedupeDriverRedisConfiguration) DriverName() string {
@@ -180,6 +181,7 @@ func (c DedupeDriverRedisConfiguration) NewDeduplicator() (dedupe.Deduplicator, 
 	return redisdedupe.Deduplicator{
 		Redis:      redisClient,
 		Expiration: c.Expiration,
+		Mode:       c.Mode,
 	}, nil
 }
 
@@ -188,6 +190,10 @@ func (c DedupeDriverRedisConfiguration) Validate() error {
 
 	if err := c.Config.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "redis"))
+	}
+
+	if err := c.Mode.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "mode"))
 	}
 
 	return errors.Join(errs...)
@@ -203,4 +209,6 @@ func ConfigureDedupe(v *viper.Viper) {
 
 	// Redis driver
 	redis.Configure(v, "dedupe.config")
+	v.SetDefault("sink.dedupe.config.mode", redisdedupe.DedupeModeRawKey)
+	v.SetDefault("dedupe.config.mode", redisdedupe.DedupeModeRawKey)
 }
