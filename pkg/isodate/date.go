@@ -117,9 +117,9 @@ func (p Period) Compare(p2 Period) int {
 }
 
 // DivisibleBy returns true if the period is divisible by the smaller period (in days).
-func (larger Period) DivisibleBy(smaller Period) (bool, error) {
-	l := larger.Simplify(true)
-	s := smaller.Simplify(true)
+func (p Period) DivisibleBy(smaller Period) (bool, error) {
+	larger := p.Simplify(true)
+	smaller = smaller.Simplify(true)
 
 	sign := larger.Compare(smaller)
 	if sign == -1 {
@@ -133,7 +133,7 @@ func (larger Period) DivisibleBy(smaller Period) (bool, error) {
 
 	// Handle special cases where the period library can't compare units properly
 	// Years and months are conceptually divisible by days, but the comparison fails
-	if p.isYearOrMonth() && smaller.isDay() {
+	if p.isYearOrMonthLike() && smaller.isDay() {
 		return true, nil // Years/months always contain days
 	}
 
@@ -161,8 +161,8 @@ func (larger Period) DivisibleBy(smaller Period) (bool, error) {
 	return false, nil
 }
 
-// isYearOrMonth returns true if the period contains only years and/or months
-func (p Period) isYearOrMonth() bool {
+// isYearOrMonthLike returns true if the period contains only years and/or months
+func (p Period) isYearOrMonthLike() bool {
 	return (p.Period.Years() != 0 || p.Period.Months() != 0) &&
 		p.Period.Weeks() == 0 && p.Period.Days() == 0 &&
 		p.Period.Hours() == 0 && p.Period.Minutes() == 0 && p.Period.Seconds() == 0
@@ -170,7 +170,7 @@ func (p Period) isYearOrMonth() bool {
 
 // isDay returns true if the period contains only days
 func (p Period) isDay() bool {
-	return p.Period.Days() != 0 &&
+	return p.Period.Days() == 1 &&
 		p.Period.Years() == 0 && p.Period.Months() == 0 && p.Period.Weeks() == 0 &&
 		p.Period.Hours() == 0 && p.Period.Minutes() == 0 && p.Period.Seconds() == 0
 }
