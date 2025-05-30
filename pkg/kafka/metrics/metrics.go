@@ -7,15 +7,16 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/openmeterio/openmeter/pkg/kafka/metrics/internal"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
 )
 
 // Metrics stores set of Kafka client related metrics
 // See: https://github.com/confluentinc/librdkafka/blob/v2.4.0/STATISTICS.md
 type Metrics struct {
-	*BrokerMetrics
-	*TopicMetrics
-	*ConsumerGroupMetrics
+	brokerMetrics        *internal.BrokerMetrics
+	topicMetrics         *internal.TopicMetrics
+	consumerGroupMetrics *internal.ConsumerGroupMetrics
 
 	// Time since this client instance was created (microseconds)
 	Age metric.Int64Gauge
@@ -46,6 +47,10 @@ type Metrics struct {
 }
 
 func (m *Metrics) Add(ctx context.Context, stats *stats.Stats, attrs ...attribute.KeyValue) {
+	if stats == nil {
+		return
+	}
+
 	attrs = append(attrs, []attribute.KeyValue{
 		attribute.String("name", stats.Name),
 		attribute.String("client_id", stats.ClientID),
@@ -66,45 +71,90 @@ func (m *Metrics) Add(ctx context.Context, stats *stats.Stats, attrs ...attribut
 	m.MessagesBytesConsumed.Record(ctx, stats.MessagesBytesConsumed, metric.WithAttributes(attrs...))
 	m.TopicsInMetadataCache.Record(ctx, stats.TopicsInMetadataCache, metric.WithAttributes(attrs...))
 
-	if m.BrokerMetrics != nil {
+	if m.brokerMetrics != nil {
 		for _, broker := range stats.Brokers {
 			// Skip bootstrap nodes
 			if broker.NodeID < 0 {
 				continue
 			}
 
-			m.BrokerMetrics.Add(ctx, &broker, attrs...)
+			m.brokerMetrics.Add(ctx, &broker, attrs...)
 		}
 	}
 
-	if m.TopicMetrics != nil {
+	if m.topicMetrics != nil {
 		for _, topic := range stats.Topics {
-			m.TopicMetrics.Add(ctx, &topic, attrs...)
+			m.topicMetrics.Add(ctx, &topic, attrs...)
 		}
 	}
 
-	if m.ConsumerGroupMetrics != nil {
-		m.ConsumerGroupMetrics.Add(ctx, &stats.ConsumerGroup, attrs...)
+	if m.consumerGroupMetrics != nil {
+		m.consumerGroupMetrics.Add(ctx, &stats.ConsumerGroup, attrs...)
 	}
 }
 
-func New(meter metric.Meter) (*Metrics, error) {
+type Options struct {
+	extendedMetrics              bool
+	brokerMetricsDisabled        bool
+	topicMetricsDisabled         bool
+	consumerGroupMetricsDisabled bool
+}
+type Option func(*Options)
+
+func WithExtendedMetrics() Option {
+	return func(o *Options) {
+		o.extendedMetrics = true
+	}
+}
+
+func WithBrokerMetricsDisabled() Option {
+	return func(o *Options) {
+		o.brokerMetricsDisabled = true
+	}
+}
+
+func WithTopicMetricsDisabled() Option {
+	return func(o *Options) {
+		o.topicMetricsDisabled = true
+	}
+}
+
+func WithConsumerGroupMetricsDisabled() Option {
+	return func(o *Options) {
+		o.consumerGroupMetricsDisabled = true
+	}
+}
+
+func New(meter metric.Meter, opts ...Option) (*Metrics, error) {
+	o := &Options{}
+
+	for _, opt := range opts {
+		opt(o)
+	}
+
 	var err error
+
 	m := &Metrics{}
 
-	m.BrokerMetrics, err = NewBrokerMetrics(meter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create broker metrics: %w", err)
+	if !o.brokerMetricsDisabled {
+		m.brokerMetrics, err = internal.NewBrokerMetrics(meter, o.extendedMetrics)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create broker metrics: %w", err)
+		}
 	}
 
-	m.TopicMetrics, err = NewTopicMetrics(meter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create topic metrics: %w", err)
+	if !o.topicMetricsDisabled {
+		m.topicMetrics, err = internal.NewTopicMetrics(meter, o.extendedMetrics)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create topic metrics: %w", err)
+		}
 	}
 
-	m.ConsumerGroupMetrics, err = NewConsumerGroupMetrics(meter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create topic metrics: %w", err)
+	if !o.consumerGroupMetricsDisabled {
+		m.consumerGroupMetrics, err = internal.NewConsumerGroupMetrics(meter)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create consumer group metrics: %w", err)
+		}
 	}
 
 	m.Age, err = meter.Int64Gauge(

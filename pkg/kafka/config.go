@@ -36,6 +36,9 @@ type CommonConfigParams struct {
 
 	StatsInterval TimeDurationMilliSeconds
 
+	// StatsExtended defines if extended metrics are enabled.
+	StatsExtended bool
+
 	// BrokerAddressFamily defines the IP address family to be used for network communication with Kafka cluster
 	BrokerAddressFamily BrokerAddressFamily
 	// SocketKeepAliveEnable defines if TCP socket keep-alive is enabled to prevent closing idle connections
