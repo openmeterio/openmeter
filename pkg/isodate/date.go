@@ -3,6 +3,7 @@
 package isodate
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -116,31 +117,62 @@ func (p Period) Compare(p2 Period) int {
 }
 
 // DivisibleBy returns true if the period is divisible by the smaller period (in days).
-func (larger Period) DivisibleBy(smaller Period) (bool, error) {
-	l := larger.Simplify(true)
-	s := smaller.Simplify(true)
+func (p Period) DivisibleBy(smaller Period) (bool, error) {
+	larger := p.Simplify(true)
+	smaller = smaller.Simplify(true)
 
-	if l.IsZero() || s.IsZero() || l.Compare(s) < 0 {
-		return false, nil
+	sign := larger.Compare(smaller)
+	if sign == -1 {
+		return false, fmt.Errorf("smaller period is larger than larger period")
 	}
 
-	testDaysInMonth := []int{28, 29, 30, 31}
-	for _, daysInMonth := range testDaysInMonth {
-		// replace months with days
-		ldays, err := l.InDays(daysInMonth)
+	// If they are equal, then larger is divisible by smaller
+	if sign == 0 {
+		return true, nil
+	}
+
+	// Handle special cases where the period library can't compare units properly
+	// Years and months are conceptually divisible by days, but the comparison fails
+	if p.isYearOrMonthLike() && smaller.isDay() {
+		return true, nil // Years/months always contain days
+	}
+
+	var err error
+	per := smaller
+	for i := 1; i < MAX_SAFE_ITERATION_COUNT; i++ {
+		per, err = per.Add(smaller)
 		if err != nil {
 			return false, err
 		}
-		sdays, err := s.InDays(daysInMonth)
-		if err != nil {
-			return false, err
+
+		sign := larger.Compare(per)
+
+		// It's an exact match
+		if sign == 0 {
+			return true, nil
 		}
-		if _, r, err := ldays.QuoRem(sdays); err != nil || !r.IsZero() {
-			return false, err
+
+		// We've overshot without a match
+		if sign == -1 {
+			return false, nil
 		}
 	}
 
-	return true, nil
+	return false, nil
+}
+
+// isYearOrMonthLike returns true if the period contains only years and/or months
+func (p Period) isYearOrMonthLike() bool {
+	return (p.Period.Years() != 0 || p.Period.Months() != 0) &&
+		p.Period.Weeks() == 0 && p.Period.Days() == 0 &&
+		p.Period.Hours() == 0 && p.Period.Minutes() == 0 && p.Period.Seconds() == 0
+}
+
+// isDay returns true if the period contains only days
+func (p Period) isDay() bool {
+	return p.Period.Days() == 1 &&
+		p.Period.Years() == 0 && p.Period.Months() == 0 && p.Period.Weeks() == 0 &&
+		p.Period.Hours() == 0 && p.Period.Minutes() == 0 && p.Period.Seconds() == 0
 }
 
 func Between(start time.Time, end time.Time) Period {
