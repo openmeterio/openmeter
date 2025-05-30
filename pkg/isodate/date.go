@@ -125,8 +125,8 @@ func (p Period) Compare(p2 Period) int {
 }
 
 // DivisibleBy returns true if the period is divisible by the smaller period (in days).
-func (larger Period) DivisibleBy(smaller Period) (bool, error) {
-	l := larger.Simplify(true)
+func (p Period) DivisibleBy(smaller Period) (bool, error) {
+	l := p.Simplify(true)
 	s := smaller.Simplify(true)
 
 	if l.IsZero() || s.IsZero() || l.Compare(s) < 0 {
