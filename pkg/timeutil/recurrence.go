@@ -164,7 +164,7 @@ var (
 	RecurrencePeriodYear  RecurrenceInterval = RecurrenceInterval{isodate.NewPeriod(1, 0, 0, 0, 0, 0, 0)}
 )
 
-func FromISODuration(p *isodate.Period, anchor time.Time) (Recurrence, error) {
+func RecurrenceFromISODuration(p *isodate.Period, anchor time.Time) (Recurrence, error) {
 	if p == nil {
 		return Recurrence{}, fmt.Errorf("period cannot be nil")
 	}

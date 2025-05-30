@@ -1,6 +1,9 @@
 package timeutil
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type OpenPeriod struct {
 	From *time.Time `json:"from,omitempty"`
@@ -262,4 +265,15 @@ func (p OpenPeriod) IsSupersetOf(other OpenPeriod) bool {
 	}
 
 	return true
+}
+
+func (p OpenPeriod) Closed() (ClosedPeriod, error) {
+	if p.From == nil || p.To == nil {
+		return ClosedPeriod{}, fmt.Errorf("cannot convert open period to closed period with nil boundaries")
+	}
+
+	return ClosedPeriod{
+		From: *p.From,
+		To:   *p.To,
+	}, nil
 }
