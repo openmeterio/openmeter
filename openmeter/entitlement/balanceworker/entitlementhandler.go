@@ -77,7 +77,7 @@ const (
 	skipEventAction   highWatermarkCacheAction = "skipEvent"
 )
 
-func (w *Worker) checkHighWatermarkCache(ctx context.Context, entitlementID NamespacedID, opts handleEntitlementEventOptions) highWatermarkCacheAction {
+func (w *Worker) checkHighWatermarkCache(ctx context.Context, entitlementID EntitlementID, opts handleEntitlementEventOptions) highWatermarkCacheAction {
 	// Always emit reset events
 	// TODO[later]: Only calculate if there's need for the explicit reset event
 	if lo.FromPtr(opts.sourceOperation) == snapshot.ValueOperationReset {

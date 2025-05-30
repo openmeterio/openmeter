@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/cache"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
@@ -34,7 +34,20 @@ const (
 	defaultClockDrift = time.Millisecond
 )
 
-type NamespacedID = pkgmodels.NamespacedID
+var (
+	_ pkgmodels.Validator = (*EntitlementID)(nil)
+	_ cache.NamespacedKey = (*EntitlementID)(nil)
+)
+
+type EntitlementID pkgmodels.NamespacedID
+
+func (e EntitlementID) GetNamespacedKey() string {
+	return fmt.Sprintf("ent:%s:%s", e.Namespace, e.ID)
+}
+
+func (e EntitlementID) Validate() error {
+	return pkgmodels.NamespacedID(e).Validate()
+}
 
 type SubjectResolver interface {
 	GetSubjectByKey(ctx context.Context, namespace, key string) (models.Subject, error)
@@ -102,7 +115,7 @@ type Worker struct {
 	repo        BalanceWorkerRepository
 	router      *message.Router
 
-	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
+	stateCache cache.Cache
 
 	metricRecalculationTime       metric.Int64Histogram
 	metricHighWatermarkCacheStats metric.Int64Counter
@@ -138,16 +151,13 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, fmt.Errorf("failed to validate worker options: %w", err)
 	}
 
-	highWatermarkCache, err := lru.New[string, highWatermarkCacheEntry](defaultHighWatermarkCacheSize)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create high watermark cache: %w", err)
-	}
+	stateCache, err := cache.NewInProcessCache(defaultHighWatermarkCacheSize)
 
 	worker := &Worker{
-		opts:               opts,
-		entitlement:        opts.Entitlement,
-		repo:               opts.Repo,
-		highWatermarkCache: highWatermarkCache,
+		opts:        opts,
+		entitlement: opts.Entitlement,
+		repo:        opts.Repo,
+		stateCache:  stateCache,
 	}
 
 	if err := worker.initMetrics(); err != nil {
@@ -203,7 +213,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
+					EntitlementID{Namespace: event.Namespace.ID, ID: event.ID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
 					WithEventAt(event.CreatedAt),
 				))
@@ -214,7 +224,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 			return w.opts.EventBus.
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
+					EntitlementID{Namespace: event.Namespace.ID, ID: event.ID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
 					WithEventAt(lo.FromPtrOr(event.DeletedAt, time.Now())),
 				))
@@ -226,7 +236,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
+					EntitlementID{Namespace: event.Namespace.ID, ID: event.OwnerID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
 					WithEventAt(event.CreatedAt),
 				))
@@ -238,7 +248,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
+					EntitlementID{Namespace: event.Namespace.ID, ID: event.OwnerID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
 					WithEventAt(event.UpdatedAt),
 				))
@@ -250,7 +260,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
+					EntitlementID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID)),
 					WithEventAt(event.ResetAt),
 					WithSourceOperation(snapshot.ValueOperationReset),
