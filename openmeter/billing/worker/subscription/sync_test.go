@@ -962,7 +962,8 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 					End:   s.mustParseTime("2024-01-01T00:00:40Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:40Z")},
+			// We'll wait till the end of the billing cadence of the item
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z")},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1464,7 +1465,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
 				},
-				BillingCadence: isodate.MustParse(s.T(), "P2W"),
+				BillingCadence: isodate.MustParse(s.T(), "P1W"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -3602,26 +3603,26 @@ func (s *SubscriptionHandlerTestSuite) expectLines(invoice billing.Invoice, subs
 
 			if expectedLine.Qty.IsPresent() {
 				if line.Type == billing.InvoiceLineTypeFee {
-					s.Equal(expectedLine.Qty.OrEmpty(), line.FlatFee.Quantity.InexactFloat64(), childID)
+					s.Equal(expectedLine.Qty.OrEmpty(), line.FlatFee.Quantity.InexactFloat64(), childID, "quantity")
 				} else {
-					s.Equal(expectedLine.Qty.OrEmpty(), line.UsageBased.Quantity.InexactFloat64(), childID)
+					s.Equal(expectedLine.Qty.OrEmpty(), line.UsageBased.Quantity.InexactFloat64(), childID, "quantity")
 				}
 			}
 
 			if expectedLine.UnitPrice.IsPresent() {
-				s.Equal(line.Type, billing.InvoiceLineTypeFee, childID)
-				s.Equal(expectedLine.UnitPrice.OrEmpty(), line.FlatFee.PerUnitAmount.InexactFloat64(), childID)
+				s.Equal(line.Type, billing.InvoiceLineTypeFee, childID, "line type")
+				s.Equal(expectedLine.UnitPrice.OrEmpty(), line.FlatFee.PerUnitAmount.InexactFloat64(), childID, "unit price")
 			}
 
 			if expectedLine.Price.IsPresent() {
-				s.Equal(line.Type, billing.InvoiceLineTypeUsageBased)
-				s.Equal(*expectedLine.Price.OrEmpty(), *line.UsageBased.Price, childID)
+				s.Equal(line.Type, billing.InvoiceLineTypeUsageBased, "line type")
+				s.Equal(*expectedLine.Price.OrEmpty(), *line.UsageBased.Price, childID, "price")
 			}
 
-			s.Equal(expectedLine.Periods[idx].Start, line.Period.Start, childID)
-			s.Equal(expectedLine.Periods[idx].End, line.Period.End, childID)
+			s.Equal(expectedLine.Periods[idx].Start, line.Period.Start, childID, "period start")
+			s.Equal(expectedLine.Periods[idx].End, line.Period.End, childID, "period end")
 
-			s.Equal(expectedLine.InvoiceAt[idx], line.InvoiceAt, childID)
+			s.Equal(expectedLine.InvoiceAt[idx], line.InvoiceAt, childID, "invoice at")
 		}
 	}
 }
