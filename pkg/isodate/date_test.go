@@ -77,3 +77,141 @@ func TestISOOperations(t *testing.T) {
 		assert.Equal(t, expected, actual)
 	})
 }
+
+func TestDivisibleBy(t *testing.T) {
+	tests := []struct {
+		name     string
+		larger   string
+		smaller  string
+		expected bool
+		hasError bool
+	}{
+		// Compatible periods - should be divisible
+		{
+			name:     "1 year divisible by 1 year",
+			larger:   "P1Y",
+			smaller:  "P1Y",
+			expected: true,
+			hasError: false,
+		},
+		{
+			name:     "1 year divisible by 1 month",
+			larger:   "P1Y",
+			smaller:  "P1M",
+			expected: true,
+			hasError: false,
+		},
+		{
+			name:     "1 month divisible by 1 day",
+			larger:   "P1M",
+			smaller:  "P1D",
+			expected: true,
+			hasError: false,
+		},
+		{
+			name:     "1 year divisible by 2 months",
+			larger:   "P1Y",
+			smaller:  "P2M",
+			expected: true,
+			hasError: false,
+		},
+		{
+			name:     "1 year divisible by 3 months",
+			larger:   "P1Y",
+			smaller:  "P3M",
+			expected: true,
+			hasError: false,
+		},
+		{
+			name:     "1 year divisible by 4 months",
+			larger:   "P1Y",
+			smaller:  "P4M",
+			expected: true,
+			hasError: false,
+		},
+		{
+			name:     "1 year divisible by 6 months",
+			larger:   "P1Y",
+			smaller:  "P6M",
+			expected: true,
+			hasError: false,
+		},
+		{
+			name:     "6 months divisible by 2 months",
+			larger:   "P6M",
+			smaller:  "P2M",
+			expected: true,
+			hasError: false,
+		},
+		{
+			name:     "6 months divisible by 3 months",
+			larger:   "P6M",
+			smaller:  "P3M",
+			expected: true,
+			hasError: false,
+		},
+		{
+			name:     "4 weeks divisible by 1 week",
+			larger:   "P4W",
+			smaller:  "P1W",
+			expected: true,
+			hasError: false,
+		},
+		{
+			name:     "Same periods should be divisible",
+			larger:   "P1M",
+			smaller:  "P1M",
+			expected: true,
+			hasError: false,
+		},
+
+		// Incompatible periods - should not be divisible
+		{
+			name:     "1 month not divisible by 3 days",
+			larger:   "P1M",
+			smaller:  "P3D",
+			expected: false,
+			hasError: false,
+		},
+		{
+			name:     "1 month not divisible by 1 week",
+			larger:   "P1M",
+			smaller:  "P1W",
+			expected: false,
+			hasError: false,
+		},
+		{
+			name:     "1 year not divisible by 5 months",
+			larger:   "P1Y",
+			smaller:  "P5M",
+			expected: false,
+			hasError: false,
+		},
+		{
+			name:     "1 year not divisible by 7 months",
+			larger:   "P1Y",
+			smaller:  "P7M",
+			expected: false,
+			hasError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			larger, err := isodate.String(tt.larger).Parse()
+			assert.NoError(t, err)
+
+			smaller, err := isodate.String(tt.smaller).Parse()
+			assert.NoError(t, err)
+
+			result, err := larger.DivisibleBy(smaller)
+
+			if tt.hasError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, result, "Expected %s to be divisible by %s: %v", tt.larger, tt.smaller, tt.expected)
+			}
+		})
+	}
+}

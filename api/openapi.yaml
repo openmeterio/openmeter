@@ -13063,6 +13063,7 @@ components:
           required:
             - name
             - currency
+            - billingCadence
             - phases
           properties:
             name:
@@ -13093,6 +13094,23 @@ components:
               description: The currency code of the plan.
               title: Currency
               default: USD
+            billingCadence:
+              type: string
+              format: duration
+              description: |-
+                The default billing cadence for subscriptions using this plan.
+                Defines how often customers are billed using ISO8601 duration format.
+                Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+              title: Billing cadence
+              example: P1M
+            proRatingConfig:
+              allOf:
+                - $ref: '#/components/schemas/ProRatingConfig'
+              description: Default pro-rating configuration for subscriptions using this plan.
+              title: Pro-rating configuration
+              default:
+                enabled: true
+                mode: prorate_prices
             phases:
               type: array
               items:
@@ -19502,6 +19520,7 @@ components:
         - key
         - version
         - currency
+        - billingCadence
         - status
         - phases
         - validationErrors
@@ -19576,6 +19595,23 @@ components:
           description: The currency code of the plan.
           title: Currency
           default: USD
+        billingCadence:
+          type: string
+          format: duration
+          description: |-
+            The default billing cadence for subscriptions using this plan.
+            Defines how often customers are billed using ISO8601 duration format.
+            Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+          title: Billing cadence
+          example: P1M
+        proRatingConfig:
+          allOf:
+            - $ref: '#/components/schemas/ProRatingConfig'
+          description: Default pro-rating configuration for subscriptions using this plan.
+          title: Pro-rating configuration
+          default:
+            enabled: true
+            mode: prorate_prices
         effectiveFrom:
           type: string
           format: date-time
@@ -19776,6 +19812,7 @@ components:
         - name
         - key
         - currency
+        - billingCadence
         - phases
       properties:
         name:
@@ -19813,6 +19850,23 @@ components:
           description: The currency code of the plan.
           title: Currency
           default: USD
+        billingCadence:
+          type: string
+          format: duration
+          description: |-
+            The default billing cadence for subscriptions using this plan.
+            Defines how often customers are billed using ISO8601 duration format.
+            Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+          title: Billing cadence
+          example: P1M
+        proRatingConfig:
+          allOf:
+            - $ref: '#/components/schemas/ProRatingConfig'
+          description: Default pro-rating configuration for subscriptions using this plan.
+          title: Pro-rating configuration
+          default:
+            enabled: true
+            mode: prorate_prices
         phases:
           type: array
           items:
@@ -19946,6 +20000,7 @@ components:
       type: object
       required:
         - name
+        - billingCadence
         - phases
       properties:
         name:
@@ -19970,6 +20025,23 @@ components:
           allOf:
             - $ref: '#/components/schemas/Alignment'
           description: Alignment configuration for the plan.
+        billingCadence:
+          type: string
+          format: duration
+          description: |-
+            The default billing cadence for subscriptions using this plan.
+            Defines how often customers are billed using ISO8601 duration format.
+            Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+          title: Billing cadence
+          example: P1M
+        proRatingConfig:
+          allOf:
+            - $ref: '#/components/schemas/ProRatingConfig'
+          description: Default pro-rating configuration for subscriptions using this plan.
+          title: Pro-rating configuration
+          default:
+            enabled: true
+            mode: prorate_prices
         phases:
           type: array
           items:
@@ -20189,6 +20261,29 @@ components:
         - dynamic
         - package
       description: The type of the price.
+    ProRatingConfig:
+      type: object
+      required:
+        - enabled
+        - mode
+      properties:
+        enabled:
+          type: boolean
+          description: Whether pro-rating is enabled for this plan.
+          title: Enable pro-rating
+          default: true
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/ProRatingMode'
+          description: How to handle pro-rating for billing period changes.
+          title: Pro-rating mode
+          default: prorate_prices
+      description: Configuration for pro-rating behavior.
+    ProRatingMode:
+      type: string
+      enum:
+        - prorate_prices
+      description: Pro-rating mode options for handling billing period changes.
     Progress:
       type: object
       required:
@@ -21287,6 +21382,7 @@ components:
         - status
         - customerId
         - currency
+        - billingCadence
       properties:
         id:
           type: string
@@ -21370,6 +21466,25 @@ components:
             Will be revised once we add multi currency support.
           title: Currency
           default: USD
+        billingCadence:
+          type: string
+          format: duration
+          description: |-
+            The billing cadence for the subscriptions.
+            Defines how often customers are billed using ISO8601 duration format.
+            Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+          title: Billing cadence
+          example: P1M
+          readOnly: true
+        proRatingConfig:
+          allOf:
+            - $ref: '#/components/schemas/ProRatingConfig'
+          description: The pro-rating configuration for the subscriptions.
+          title: Pro-rating configuration
+          default:
+            enabled: true
+            mode: prorate_prices
+          readOnly: true
       description: Subscription is an exact subscription instance.
     SubscriptionAddon:
       type: object
@@ -21742,6 +21857,7 @@ components:
         - status
         - customerId
         - currency
+        - billingCadence
         - phases
       properties:
         id:
@@ -21822,6 +21938,25 @@ components:
             Will be revised once we add multi currency support.
           title: Currency
           default: USD
+        billingCadence:
+          type: string
+          format: duration
+          description: |-
+            The billing cadence for the subscriptions.
+            Defines how often customers are billed using ISO8601 duration format.
+            Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+          title: Billing cadence
+          example: P1M
+          readOnly: true
+        proRatingConfig:
+          allOf:
+            - $ref: '#/components/schemas/ProRatingConfig'
+          description: The pro-rating configuration for the subscriptions.
+          title: Pro-rating configuration
+          default:
+            enabled: true
+            mode: prorate_prices
+          readOnly: true
         alignment:
           allOf:
             - $ref: '#/components/schemas/SubscriptionAlignment'

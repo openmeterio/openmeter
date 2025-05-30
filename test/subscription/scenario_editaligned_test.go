@@ -20,6 +20,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -53,9 +54,14 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test_plan",
-				Currency: "USD",
+				Name:           "Test Plan",
+				Key:            "test_plan",
+				Currency:       "USD",
+				BillingCadence: isodate.MustParse(t, "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
 				},
@@ -229,9 +235,14 @@ func TestEditingEntitlementOfUnalignedSub(t *testing.T) {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test_plan",
-				Currency: "USD",
+				Name:           "Test Plan",
+				Key:            "test_plan",
+				Currency:       "USD",
+				BillingCadence: isodate.MustParse(t, "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: false,
 				},

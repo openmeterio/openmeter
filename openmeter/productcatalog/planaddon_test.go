@@ -43,10 +43,15 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Alignment: Alignment{
 							BillablesMustAlign: true,
 						},
-						Key:      "pro",
-						Version:  1,
-						Name:     "Pro",
-						Currency: currency.USD,
+						Key:            "pro",
+						Version:        1,
+						Name:           "Pro",
+						Currency:       currency.USD,
+						BillingCadence: isodate.MustParse(t, "P1M"),
+						ProRatingConfig: ProRatingConfig{
+							Enabled: true,
+							Mode:    ProRatingModeProratePrices,
+						},
 					},
 					Phases: []Phase{
 						{
@@ -206,10 +211,15 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Alignment: Alignment{
 							BillablesMustAlign: true,
 						},
-						Key:      "pro",
-						Version:  2,
-						Name:     "Pro",
-						Currency: currency.USD,
+						Key:            "pro",
+						Version:        2,
+						Name:           "Pro",
+						Currency:       currency.USD,
+						BillingCadence: isodate.MustParse(t, "P1M"),
+						ProRatingConfig: ProRatingConfig{
+							Enabled: true,
+							Mode:    ProRatingModeProratePrices,
+						},
 					},
 					Phases: []Phase{
 						{
@@ -396,10 +406,15 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Alignment: Alignment{
 							BillablesMustAlign: true,
 						},
-						Key:      "pro",
-						Version:  2,
-						Name:     "Pro",
-						Currency: currency.USD,
+						Key:            "pro",
+						Version:        2,
+						Name:           "Pro",
+						Currency:       currency.USD,
+						BillingCadence: isodate.MustParse(t, "P1M"),
+						ProRatingConfig: ProRatingConfig{
+							Enabled: true,
+							Mode:    ProRatingModeProratePrices,
+						},
 					},
 					Phases: []Phase{
 						{

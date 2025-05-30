@@ -20,6 +20,7 @@ import (
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -349,6 +350,11 @@ func TestRestore(t *testing.T) {
 					Currency: currency.USD,
 					Alignment: productcatalog.Alignment{
 						BillablesMustAlign: true,
+					},
+					BillingCadence: isodate.MustParse(t, "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				}).
 				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).

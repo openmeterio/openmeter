@@ -459,3 +459,12 @@ var ErrPlanHasIncompatibleAddon = models.NewValidationIssue(
 	"plan has incompatible add-on assignment",
 	models.WithWarningSeverity(),
 )
+
+const ErrCodePlanBillingCadenceNotCompatible models.ErrorCode = "plan_billing_cadence_not_compatible"
+
+var ErrPlanBillingCadenceNotCompatible = models.NewValidationIssue(
+	ErrCodePlanBillingCadenceNotCompatible,
+	"plan billing cadence is not compatible with rate card billing cadence",
+	models.WithFieldString("billingCadence"),
+	models.WithWarningSeverity(),
+)

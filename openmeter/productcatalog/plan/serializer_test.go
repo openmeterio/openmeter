@@ -34,6 +34,11 @@ func TestPlanSerialization(t *testing.T) {
 			Metadata: models.Metadata{
 				"key1": "value1",
 			},
+			BillingCadence: isodate.MustParse(t, "P1M"),
+			ProRatingConfig: productcatalog.ProRatingConfig{
+				Enabled: true,
+				Mode:    productcatalog.ProRatingModeProratePrices,
+			},
 		},
 		Phases: []Phase{
 			{

@@ -1,11 +1,9 @@
 import "@typespec/http";
 import "../types.tsp";
 import "./ratecards.tsp";
+import "./prorating.tsp";
 
 namespace OpenMeter.ProductCatalog;
-
-using TypeSpec.Http;
-using TypeSpec.OpenAPI;
 
 /**
  * The status of a plan.
@@ -81,6 +79,27 @@ model Plan {
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Currency")
   currency: CurrencyCode = "USD";
+
+  /**
+   * The default billing cadence for subscriptions using this plan.
+   * Defines how often customers are billed using ISO8601 duration format.
+   * Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Billing cadence")
+  @encode(DurationKnownEncoding.ISO8601)
+  @example(duration.fromISO("P1M"))
+  billingCadence: duration;
+
+  /**
+   * Default pro-rating configuration for subscriptions using this plan.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Pro-rating configuration")
+  proRatingConfig?: ProRatingConfig = #{
+    enabled: true,
+    mode: ProRatingMode.proratePrices,
+  };
 
   /**
    * The date and time when the plan becomes effective. When not specified, the plan is a draft.

@@ -1165,6 +1165,11 @@ func init() {
 	plan.DefaultCurrency = planDescCurrency.Default.(string)
 	// plan.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	plan.CurrencyValidator = planDescCurrency.Validators[0].(func(string) error)
+	// planDescProRatingConfig is the schema descriptor for pro_rating_config field.
+	planDescProRatingConfig := planFields[3].Descriptor()
+	// plan.DefaultProRatingConfig holds the default value on creation for the pro_rating_config field.
+	plan.DefaultProRatingConfig = planDescProRatingConfig.Default.(func() productcatalog.ProRatingConfig)
+	plan.ValueScanner.ProRatingConfig = planDescProRatingConfig.ValueScanner.(field.TypeValueScanner[productcatalog.ProRatingConfig])
 	// planDescID is the schema descriptor for id field.
 	planDescID := planMixinFields0[0].Descriptor()
 	// plan.DefaultID holds the default value on creation for the id field.
@@ -1336,6 +1341,11 @@ func init() {
 			return nil
 		}
 	}()
+	// subscriptionDescProRatingConfig is the schema descriptor for pro_rating_config field.
+	subscriptionDescProRatingConfig := subscriptionFields[6].Descriptor()
+	// subscription.DefaultProRatingConfig holds the default value on creation for the pro_rating_config field.
+	subscription.DefaultProRatingConfig = subscriptionDescProRatingConfig.Default.(func() productcatalog.ProRatingConfig)
+	subscription.ValueScanner.ProRatingConfig = subscriptionDescProRatingConfig.ValueScanner.(field.TypeValueScanner[productcatalog.ProRatingConfig])
 	// subscriptionDescID is the schema descriptor for id field.
 	subscriptionDescID := subscriptionMixinFields0[0].Descriptor()
 	// subscription.DefaultID holds the default value on creation for the id field.
