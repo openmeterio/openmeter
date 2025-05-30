@@ -37,13 +37,15 @@ func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
 		NamespacedModel: models.NamespacedModel{
 			Namespace: s.Namespace,
 		},
-		Alignment:     s.Alignment,
-		MetadataModel: s.MetadataModel,
-		Plan:          s.PlanRef,
-		Name:          s.Name,
-		Description:   s.Description,
-		CustomerId:    s.CustomerId,
-		Currency:      s.Currency,
+		Alignment:       s.Alignment,
+		MetadataModel:   s.MetadataModel,
+		Plan:            s.PlanRef,
+		Name:            s.Name,
+		Description:     s.Description,
+		CustomerId:      s.CustomerId,
+		Currency:        s.Currency,
+		BillingCadence:  s.BillingCadence,
+		ProRatingConfig: s.ProRatingConfig,
 	}
 }
 
