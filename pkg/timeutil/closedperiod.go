@@ -53,3 +53,39 @@ func (p ClosedPeriod) Overlaps(other ClosedPeriod) bool {
 func (p ClosedPeriod) OverlapsInclusive(other ClosedPeriod) bool {
 	return p.ContainsInclusive(other.From) || p.ContainsInclusive(other.To) || other.ContainsInclusive(p.From) || other.ContainsInclusive(p.To)
 }
+
+func (p ClosedPeriod) Intersection(other ClosedPeriod) *ClosedPeriod {
+	// Calculate the latest From date (intersection starts at the later of the two start times)
+	var newFrom time.Time
+	if p.From.After(other.From) {
+		newFrom = p.From
+	} else {
+		newFrom = other.From
+	}
+
+	// Calculate the earliest To date (intersection ends at the earlier of the two end times)
+	var newTo time.Time
+	if p.To.Before(other.To) {
+		newTo = p.To
+	} else {
+		newTo = other.To
+	}
+
+	// Check if the periods overlap
+	// If the start is at or after the end, there's no overlap
+	if !newFrom.Before(newTo) {
+		return nil
+	}
+
+	return &ClosedPeriod{
+		From: newFrom,
+		To:   newTo,
+	}
+}
+
+func (p ClosedPeriod) Open() OpenPeriod {
+	return OpenPeriod{
+		From: &p.From,
+		To:   &p.To,
+	}
+}
