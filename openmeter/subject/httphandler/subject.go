@@ -270,7 +270,7 @@ type (
 
 type DeleteSubjectRequest struct {
 	namespace      string
-	subjectIdOrKey string
+	SubjectIdOrKey string
 }
 
 // DeleteSubject returns a handler for deleting a token.
@@ -284,12 +284,12 @@ func (h *handler) DeleteSubject() DeleteSubjectHandler {
 
 			return DeleteSubjectRequest{
 				namespace:      ns,
-				subjectIdOrKey: subjectIdOrKey,
+				SubjectIdOrKey: subjectIdOrKey,
 			}, nil
 		},
 		func(ctx context.Context, request DeleteSubjectRequest) (DeleteSubjectResponse, error) {
 			// Get subject
-			subjectEntity, err := h.subjectService.GetByIdOrKey(ctx, request.namespace, request.subjectIdOrKey)
+			subjectEntity, err := h.subjectService.GetByIdOrKey(ctx, request.namespace, request.SubjectIdOrKey)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get subject: %w", err)
 			}
