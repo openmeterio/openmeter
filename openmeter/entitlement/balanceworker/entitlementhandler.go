@@ -17,10 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
 type handleEntitlementEventOptions struct {
@@ -251,19 +249,9 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	subj := subject.Subject{
-		Key: in.Entitlement.SubjectKey,
-	}
-
-	getSubject, err := w.opts.Subject.GetByIdOrKey(ctx, in.Entitlement.Namespace, in.Entitlement.SubjectKey)
-	// If the subject is not found, return a subject with the key, as the subject might
-	// have been deleted since the event has been fired.
-	if err != nil && !pkgmodels.IsGenericNotFoundError(err) {
+	subject, err := w.opts.Subject.GetByKeyWithFallback(ctx, in.Entitlement.Namespace, in.Entitlement.SubjectKey)
+	if err != nil {
 		return nil, fmt.Errorf("failed to get subject ID: %w", err)
-	}
-
-	if getSubject != nil {
-		subj = *getSubject
 	}
 
 	event := marshaler.WithSource(
@@ -273,7 +261,7 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 			Namespace: models.NamespaceID{
 				ID: in.Entitlement.Namespace,
 			},
-			Subject:   subj,
+			Subject:   subject,
 			Feature:   *in.Feature,
 			Operation: lo.FromPtrOr(in.OverrideOperation, snapshot.ValueOperationUpdate),
 
@@ -330,19 +318,9 @@ func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitl
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
 
-	subject := subject.Subject{
-		Key: delEvent.SubjectKey,
-	}
-
-	getSubject, err := w.opts.Subject.GetByIdOrKey(ctx, namespace, delEvent.SubjectKey)
-	// If the subject is not found, return a subject with the key, as the subject might
-	// have been deleted since the event has been fired.
-	if err != nil && !pkgmodels.IsGenericNotFoundError(err) {
+	subject, err := w.opts.Subject.GetByKeyWithFallback(ctx, namespace, delEvent.SubjectKey)
+	if err != nil {
 		return nil, fmt.Errorf("failed to get subject: %w", err)
-	}
-
-	if getSubject != nil {
-		subject = *getSubject
 	}
 
 	event := marshaler.WithSource(

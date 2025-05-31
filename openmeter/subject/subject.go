@@ -12,9 +12,9 @@ type Subject struct {
 	Id          string
 	Key         string
 	DisplayName *string
-	// Deprecated: Use customer application entity instead
+	Metadata    models.Metadata
+	// Use customer application entity instead
 	StripeCustomerId *string
-	Metadata         models.Metadata
 }
 
 func (s Subject) Validate() error {

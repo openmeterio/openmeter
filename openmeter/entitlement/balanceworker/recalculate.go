@@ -276,21 +276,13 @@ func (r *Recalculator) getSubjectByKey(ctx context.Context, ns, key string) (sub
 		return id, nil
 	}
 
-	subj, err := r.opts.Subject.GetByIdOrKey(ctx, ns, key)
+	subject, err := r.opts.Subject.GetByKeyWithFallback(ctx, ns, key)
 	if err != nil {
-		return subject.Subject{
-			Key: key,
-		}, err
+		return subject, err
 	}
 
-	if subj == nil {
-		return subject.Subject{
-			Key: key,
-		}, nil
-	}
-
-	r.subjectCache.Add(key, *subj)
-	return *subj, nil
+	r.subjectCache.Add(key, subject)
+	return subject, nil
 }
 
 func (r *Recalculator) getFeature(ctx context.Context, ns, id string) (feature.Feature, error) {

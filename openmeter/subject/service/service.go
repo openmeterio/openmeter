@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/subject"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -33,6 +35,24 @@ func (s *Service) Update(ctx context.Context, input subject.UpdateInput) (*subje
 // GetByIdOrKey gets a subject by ID or key
 func (s *Service) GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (*subject.Subject, error) {
 	return s.subjectAdapter.GetByIdOrKey(ctx, orgId, idOrKey)
+}
+
+// GetByKeyWithFallback gets a subject by key with fallback
+func (s *Service) GetByKeyWithFallback(ctx context.Context, orgId string, key string) (subject.Subject, error) {
+	subj, err := s.GetByIdOrKey(ctx, orgId, key)
+	if err != nil {
+		if models.IsGenericNotFoundError(err) {
+			return subject.Subject{
+				Key: key,
+			}, nil
+		}
+	}
+
+	if subj == nil {
+		return subject.Subject{}, fmt.Errorf("subject nil")
+	}
+
+	return *subj, nil
 }
 
 // List lists subjects

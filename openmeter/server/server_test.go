@@ -1523,6 +1523,10 @@ func (n NoopSubjectService) GetByIdOrKey(ctx context.Context, orgId string, idOr
 	return &subject.Subject{}, nil
 }
 
+func (n NoopSubjectService) GetByKeyWithFallback(ctx context.Context, orgId string, key string) (subject.Subject, error) {
+	return subject.Subject{}, nil
+}
+
 func (n NoopSubjectService) List(ctx context.Context, orgId string, params subject.ListParams) (pagination.PagedResponse[*subject.Subject], error) {
 	return pagination.PagedResponse[*subject.Subject]{}, nil
 }

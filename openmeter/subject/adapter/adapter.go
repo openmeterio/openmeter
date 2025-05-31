@@ -5,13 +5,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subject"
 )
 
-func New(ent *db.Client) subject.Service {
+func New(ent *db.Client) subject.Adapter {
 	return &adapter{
 		ent: ent,
 	}
 }
 
-var _ subject.Service = (*adapter)(nil)
+var _ subject.Adapter = (*adapter)(nil)
 
 type adapter struct {
 	ent *db.Client
