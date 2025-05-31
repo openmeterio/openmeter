@@ -10,7 +10,7 @@ CREATE TABLE "subjects" (
     "metadata" jsonb NULL,
     "stripe_customer_id" character varying NULL,
     "organization_subjects" character varying NOT NULL,
-    PRIMARY KEY ("id") "created_at",
+    PRIMARY KEY ("id")
 );
 
 -- create index "subject_id" to table: "subjects"
