@@ -36,10 +36,6 @@ const (
 
 type NamespacedID = pkgmodels.NamespacedID
 
-type SubjectResolver interface {
-	GetSubjectByKey(ctx context.Context, namespace, key string) (subject.Subject, error)
-}
-
 type BatchedIngestEventHandler = func(ctx context.Context, event ingestevents.EventBatchedIngest) error
 
 type WorkerOptions struct {
@@ -52,7 +48,7 @@ type WorkerOptions struct {
 	Entitlement *registry.Entitlement
 	Repo        BalanceWorkerRepository
 	// External connectors
-	SubjectResolver SubjectResolver
+	Subject subject.Service
 
 	MetricMeter metric.Meter
 

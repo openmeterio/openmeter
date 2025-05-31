@@ -47,10 +47,10 @@ var (
 )
 
 type RecalculatorOptions struct {
-	Entitlement     *registry.Entitlement
-	SubjectResolver SubjectResolver
-	EventBus        eventbus.Publisher
-	MetricMeter     metric.Meter
+	Entitlement *registry.Entitlement
+	Subject     subject.Service
+	EventBus    eventbus.Publisher
+	MetricMeter metric.Meter
 }
 
 func (o RecalculatorOptions) Validate() error {
@@ -272,25 +272,25 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 }
 
 func (r *Recalculator) getSubjectByKey(ctx context.Context, ns, key string) (subject.Subject, error) {
-	if r.opts.SubjectResolver == nil {
-		return subject.Subject{
-			Key: key,
-		}, nil
-	}
-
 	if id, ok := r.subjectCache.Get(key); ok {
 		return id, nil
 	}
 
-	id, err := r.opts.SubjectResolver.GetSubjectByKey(ctx, ns, key)
+	subj, err := r.opts.Subject.GetByIdOrKey(ctx, ns, key)
 	if err != nil {
 		return subject.Subject{
 			Key: key,
 		}, err
 	}
 
-	r.subjectCache.Add(key, id)
-	return id, nil
+	if subj == nil {
+		return subject.Subject{
+			Key: key,
+		}, nil
+	}
+
+	r.subjectCache.Add(key, *subj)
+	return *subj, nil
 }
 
 func (r *Recalculator) getFeature(ctx context.Context, ns, id string) (feature.Feature, error) {

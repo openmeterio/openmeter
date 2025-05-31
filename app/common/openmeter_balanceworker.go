@@ -16,6 +16,7 @@ import (
 	entitlementadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/openmeter/registry"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
@@ -35,7 +36,6 @@ var BalanceWorkerAdapter = wire.NewSet(
 	NewBalanceWorkerEntitlementRepo,
 
 	wire.Bind(new(balanceworker.BalanceWorkerRepository), new(BalanceWorkerEntitlementRepo)),
-	BalanceWorkerSubjectResolver,
 )
 
 type BalanceWorkerEntitlementRepo interface {
@@ -80,20 +80,20 @@ func NewBalanceWorkerOptions(
 	eventBus eventbus.Publisher,
 	entitlements *registry.Entitlement,
 	repo balanceworker.BalanceWorkerRepository,
-	subjectResolver balanceworker.SubjectResolver,
+	subjectService subject.Service,
 	logger *slog.Logger,
 ) balanceworker.WorkerOptions {
 	return balanceworker.WorkerOptions{
 		SystemEventsTopic: eventConfig.SystemEvents.Topic,
 		IngestEventsTopic: eventConfig.IngestEvents.Topic,
 
-		Router:          routerOptions,
-		EventBus:        eventBus,
-		Entitlement:     entitlements,
-		Repo:            repo,
-		SubjectResolver: subjectResolver,
-		Logger:          logger,
-		MetricMeter:     routerOptions.MetricMeter,
+		Router:      routerOptions,
+		EventBus:    eventBus,
+		Entitlement: entitlements,
+		Repo:        repo,
+		Subject:     subjectService,
+		Logger:      logger,
+		MetricMeter: routerOptions.MetricMeter,
 	}
 }
 
@@ -126,8 +126,4 @@ func BalanceWorkerGroup(
 	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
 
 	return group
-}
-
-func BalanceWorkerSubjectResolver() balanceworker.SubjectResolver {
-	return nil
 }

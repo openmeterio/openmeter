@@ -250,16 +250,17 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	subject := subject.Subject{
+	subj := subject.Subject{
 		Key: in.Entitlement.SubjectKey,
 	}
 
-	if w.opts.SubjectResolver != nil {
-		var err error
-		subject, err = w.opts.SubjectResolver.GetSubjectByKey(ctx, in.Entitlement.Namespace, in.Entitlement.SubjectKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get subject ID: %w", err)
-		}
+	getSubject, err := w.opts.Subject.GetByIdOrKey(ctx, in.Entitlement.Namespace, in.Entitlement.SubjectKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get subject ID: %w", err)
+	}
+
+	if getSubject != nil {
+		subj = *getSubject
 	}
 
 	event := marshaler.WithSource(
@@ -269,7 +270,7 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 			Namespace: models.NamespaceID{
 				ID: in.Entitlement.Namespace,
 			},
-			Subject:   subject,
+			Subject:   subj,
 			Feature:   *in.Feature,
 			Operation: lo.FromPtrOr(in.OverrideOperation, snapshot.ValueOperationUpdate),
 
@@ -330,11 +331,13 @@ func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitl
 		Key: delEvent.SubjectKey,
 	}
 
-	if w.opts.SubjectResolver != nil {
-		subject, err = w.opts.SubjectResolver.GetSubjectByKey(ctx, namespace, delEvent.SubjectKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get subject: %w", err)
-		}
+	getSubject, err := w.opts.Subject.GetByIdOrKey(ctx, namespace, delEvent.SubjectKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get subject: %w", err)
+	}
+
+	if getSubject != nil {
+		subject = *getSubject
 	}
 
 	event := marshaler.WithSource(
