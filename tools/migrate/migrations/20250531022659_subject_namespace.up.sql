@@ -2,7 +2,6 @@
 DROP INDEX "subject_key_organization_subjects";
 
 -- modify "subjects" table
--- note that alter table doesn't accept multiple column changes with renaming
 -- atlas:nolint BC102
 ALTER TABLE "subjects" RENAME COLUMN "organization_subjects" TO "namespace";
 
