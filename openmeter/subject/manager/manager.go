@@ -110,11 +110,6 @@ func (m *Manager) EventBatchedIngestHandlerFactory() cqrs.GroupEventHandler {
 			},
 		}
 
-		// Do nothing if there are no subjects to upsert
-		if len(params) == 0 {
-			return nil
-		}
-
 		// Ensure the subjects exist in the database
 		return m.Ensure(ctx, params...)
 	})
@@ -253,5 +248,5 @@ func (m *Manager) getFromCache(namespace, key string) bool {
 
 // getCacheKey returns the cache key
 func getCacheKey(ns, key string) string {
-	return fmt.Sprintf("%s-%s", ns, key)
+	return fmt.Sprintf("%s::%s", ns, key)
 }

@@ -448,7 +448,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	routerHooks := common.NewRouterHooks(v6)
-	subjectAdapter := common.NewSubjectAdapter(logger, client)
+	subjectAdapter := common.NewSubjectAdapter(client)
 	subjectService := common.NewSubjectService(subjectAdapter)
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)

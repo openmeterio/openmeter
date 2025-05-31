@@ -54,7 +54,6 @@ func NewSubjectManager(
 }
 
 func NewSubjectAdapter(
-	logger *slog.Logger,
 	db *entdb.Client,
 ) subject.Adapter {
 	return adapter.New(db)

@@ -10,8 +10,8 @@ ALTER TABLE "subjects"
     ADD COLUMN "current_period_start" timestamptz NULL,
     ADD COLUMN "current_period_end" timestamptz NULL;
 
--- create index "subject_namespace" to table: "subjects"
+-- drop index "subject_namespace" from table: "subjects"
 DROP INDEX "subject_namespace";
 
--- create index "subject_key_namespace" to table: "subjects"
+-- drop index "subject_key_namespace" from table: "subjects"
 DROP INDEX "subject_key_namespace";
