@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/registry"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -49,10 +50,10 @@ var (
 )
 
 type RecalculatorOptions struct {
-	Entitlement     *registry.Entitlement
-	SubjectResolver SubjectResolver
-	EventBus        eventbus.Publisher
-	MetricMeter     metric.Meter
+	Entitlement *registry.Entitlement
+	Subject     subject.Service
+	EventBus    eventbus.Publisher
+	MetricMeter metric.Meter
 
 	NotificationService notification.Service
 }
@@ -81,7 +82,7 @@ type Recalculator struct {
 	opts RecalculatorOptions
 
 	featureCache *lrux.CacheWithItemTTL[pkgmodels.NamespacedID, feature.Feature]
-	subjectCache *lrux.CacheWithItemTTL[pkgmodels.NamespacedKey, models.Subject]
+	subjectCache *lrux.CacheWithItemTTL[pkgmodels.NamespacedKey, subject.Subject]
 
 	entitlementFilters *EntitlementFilters
 
@@ -323,18 +324,10 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 	return r.opts.EventBus.Publish(ctx, event)
 }
 
-func (r *Recalculator) getSubjectByKey(ctx context.Context, namespacedKey pkgmodels.NamespacedKey) (models.Subject, error) {
-	if r.opts.SubjectResolver == nil {
-		return models.Subject{
-			Key: namespacedKey.Key,
-		}, nil
-	}
-
-	subject, err := r.opts.SubjectResolver.GetSubjectByKey(ctx, namespacedKey.Namespace, namespacedKey.Key)
+func (r *Recalculator) getSubjectByKey(ctx context.Context, namespacedKey pkgmodels.NamespacedKey) (subject.Subject, error) {
+	subject, err := r.opts.Subject.GetByKeyWithFallback(ctx, namespacedKey)
 	if err != nil {
-		return models.Subject{
-			Key: namespacedKey.Key,
-		}, err
+		return subject, err
 	}
 
 	return subject, nil

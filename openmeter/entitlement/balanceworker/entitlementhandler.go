@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
 type handleEntitlementEventOptions struct {
@@ -265,16 +266,12 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	subject := models.Subject{
-		Key: in.Entitlement.SubjectKey,
-	}
-
-	if w.opts.SubjectResolver != nil {
-		var err error
-		subject, err = w.opts.SubjectResolver.GetSubjectByKey(ctx, in.Entitlement.Namespace, in.Entitlement.SubjectKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get subject ID: %w", err)
-		}
+	subject, err := w.opts.Subject.GetByKeyWithFallback(ctx, pkgmodels.NamespacedKey{
+		Namespace: in.Entitlement.Namespace,
+		Key:       in.Entitlement.SubjectKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get subject ID: %w", err)
 	}
 
 	event := marshaler.WithSource(
@@ -341,15 +338,12 @@ func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitl
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
 
-	subject := models.Subject{
-		Key: delEvent.SubjectKey,
-	}
-
-	if w.opts.SubjectResolver != nil {
-		subject, err = w.opts.SubjectResolver.GetSubjectByKey(ctx, namespace, delEvent.SubjectKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get subject: %w", err)
-		}
+	subject, err := w.opts.Subject.GetByKeyWithFallback(ctx, pkgmodels.NamespacedKey{
+		Namespace: namespace,
+		Key:       delEvent.SubjectKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get subject: %w", err)
 	}
 
 	event := marshaler.WithSource(

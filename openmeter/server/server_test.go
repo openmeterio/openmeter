@@ -50,6 +50,7 @@ import (
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -489,6 +490,9 @@ func getTestServer(t *testing.T) *Server {
 	// Create billing service
 	billingService := &NoopBillingService{}
 
+	// Create subject service
+	subjectService := &NoopSubjectService{}
+
 	config := &Config{
 		RouterConfig: router.Config{
 			Addon:                       addonService,
@@ -526,6 +530,8 @@ func getTestServer(t *testing.T) *Server {
 			// Use the subscription workflow service
 			SubscriptionWorkflowService: subscriptionWorkflowService,
 			SubscriptionAddonService:    subscriptionAddonService,
+			// Use the subject service
+			SubjectService: subjectService,
 		},
 		RouterHooks: RouterHooks{},
 	}
@@ -1497,4 +1503,34 @@ func (n NoopBillingService) WithLockedNamespaces(namespaces []string) billing.Se
 // LockableService methods
 func (n NoopBillingService) WithLock(ctx context.Context, customerID customer.CustomerID, fn func(ctx context.Context) error) error {
 	return fn(ctx)
+}
+
+// SubjectService methods
+
+var _ subject.Service = &NoopSubjectService{}
+
+type NoopSubjectService struct{}
+
+func (n NoopSubjectService) Create(ctx context.Context, input subject.CreateInput) (*subject.Subject, error) {
+	return &subject.Subject{}, nil
+}
+
+func (n NoopSubjectService) Update(ctx context.Context, input subject.UpdateInput) (*subject.Subject, error) {
+	return &subject.Subject{}, nil
+}
+
+func (n NoopSubjectService) GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (*subject.Subject, error) {
+	return &subject.Subject{}, nil
+}
+
+func (n NoopSubjectService) GetByKeyWithFallback(ctx context.Context, namespacedKey models.NamespacedKey) (subject.Subject, error) {
+	return subject.Subject{}, nil
+}
+
+func (n NoopSubjectService) List(ctx context.Context, orgId string, params subject.ListParams) (pagination.PagedResponse[*subject.Subject], error) {
+	return pagination.PagedResponse[*subject.Subject]{}, nil
+}
+
+func (n NoopSubjectService) DeleteById(ctx context.Context, id string) error {
+	return nil
 }

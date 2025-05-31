@@ -99,5 +99,13 @@ func (Entitlement) Edges() []ent.Edge {
 			Required().
 			Unique().
 			Immutable(),
+		// FIXME: enable foreign key constraints
+		// Ent doesn't support foreign key constraints on non ID fields (key)
+		// https://github.com/ent/ent/issues/2549
+		// edge.From("key", Subject.Type).
+		// 	Ref("subject").
+		// 	Field("subject_key").
+		// 	Required().
+		// 	Immutable(),
 	}
 }

@@ -33,6 +33,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
@@ -66,6 +67,7 @@ type Application struct {
 	ProgressManager             progressmanager.Service
 	RouterHooks                 *server.RouterHooks
 	Secret                      secret.Service
+	SubjectService              subject.Service
 	Subscription                common.SubscriptionServiceWithWorkflow
 	StreamingConnector          streaming.Connector
 	TelemetryServer             common.TelemetryServer
@@ -105,6 +107,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Lockr,
 		common.Secret,
 		common.ServerProvisionTopics,
+		common.Subject,
 		common.Telemetry,
 		common.NewTerminationChecker,
 		common.WatermillNoPublisher,

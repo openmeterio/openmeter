@@ -12874,24 +12874,28 @@ export const upsertSubjectBodyItem = zod
     currentPeriodEnd: zod
       .date()
       .optional()
-      .describe(
-        '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-      ),
+      .describe('The end of the current period for the subject.'),
     currentPeriodStart: zod
       .date()
       .optional()
-      .describe(
-        '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-      ),
+      .describe('The start of the current period for the subject.'),
     displayName: zod
       .string()
       .nullish()
       .describe('A human-readable display name for the subject.'),
     key: zod
       .string()
-      .describe('A unique, human-readable identifier for the subject.'),
-    metadata: zod.record(zod.string(), zod.any()).nullish(),
-    stripeCustomerId: zod.string().nullish(),
+      .describe(
+        'A unique, human-readable identifier for the subject.\nThis is typically a database ID or a customer key.'
+      ),
+    metadata: zod
+      .record(zod.string(), zod.string())
+      .nullish()
+      .describe('Metadata for the subject.'),
+    stripeCustomerId: zod
+      .string()
+      .nullish()
+      .describe('The Stripe customer ID for the subject.'),
   })
   .describe('A subject is a unique identifier for a user or entity.')
 export const upsertSubjectBody = zod.array(upsertSubjectBodyItem)

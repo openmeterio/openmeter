@@ -35,6 +35,7 @@ type Configuration struct {
 	Portal          PortalConfiguration
 	Postgres        PostgresConfig
 	Sink            SinkConfiguration
+	Subject         SubjectConfig
 	BalanceWorker   BalanceWorkerConfiguration
 	Notification    NotificationConfiguration
 	ProductCatalog  ProductCatalogConfiguration
@@ -121,6 +122,10 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "svix"))
 	}
 
+	if err := c.Subject.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "subject"))
+	}
+
 	if err := c.ProductCatalog.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "product catalog"))
 	}
@@ -178,6 +183,7 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureNotification(v)
 	ConfigureBilling(v, flags)
 	ConfigureProductCatalog(v)
+	ConfigureSubject(v)
 	ConfigureApps(v, flags)
 	ConfigureEntitlements(v, flags)
 	ConfigureTermination(v, "termination")
