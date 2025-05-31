@@ -15,8 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subject/service"
 )
 
-type SubjectConfigInitializer = func(ctx context.Context) error
-
 var Subject = wire.NewSet(
 	NewSubjectService,
 	NewSubjectAdapter,
