@@ -51,7 +51,10 @@ interface Subjects {
 }
 
 /**
- * A subject is a unique identifier for a usage attribution.
+ * A subject is a unique identifier for a usage attribution by its key.
+ * Subjects only exist in the concept of metering.
+ * Subjects are optional to create and work as an enrichment for the subject key like displayName, metadata, etc.
+ * Subjects are useful when you are reporting usage events with your own database ID but want to enrich the subject with a human-readable name or metadata.
  * For most use cases, a subject is equivalent to a customer.
  */
 @friendlyName("Subject")
@@ -60,8 +63,6 @@ interface Subjects {
   key: "customer-id",
   displayName: "Customer Name",
   metadata: #{ hubspotId: "123456" },
-  currentPeriodStart: DateTime.fromISO("2023-01-01T00:00:00Z"),
-  currentPeriodEnd: DateTime.fromISO("2023-02-01T00:00:00Z"),
   stripeCustomerId: "cus_JMOlctsKV8",
 })
 model Subject {
@@ -77,7 +78,7 @@ model Subject {
 
   /**
    * A unique, human-readable identifier for the subject.
-   * This is typically a database ID or a a customer key.
+   * This is typically a database ID or a customer key.
    */
   @example("customer-db-id-123")
   key: string;
@@ -97,14 +98,14 @@ model Subject {
   /**
    * The start of the current period for the subject.
    */
-  #deprecated "Use customer app instead"
+  #deprecated "Use Stripe App instead"
   @example(DateTime.fromISO("2023-01-01T00:00:00Z"))
   currentPeriodStart?: DateTime;
 
   /**
    * The end of the current period for the subject.
    */
-  #deprecated "Use customer app instead"
+  #deprecated "Use Stripe App instead"
   @example(DateTime.fromISO("2023-02-01T00:00:00Z"))
   currentPeriodEnd?: DateTime;
 

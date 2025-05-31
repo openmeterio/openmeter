@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/samber/lo"
 )
 
 type (
@@ -182,16 +183,15 @@ func (h *handler) UpsertSubject() UpsertSubjectHandler {
 				return nil, fmt.Errorf("failed to list subjects: %w", err)
 			}
 
-			subjectsEnityMap := make(map[string]*subject.Subject)
-			for _, sub := range result.Items {
-				subjectsEnityMap[sub.Key] = sub
-			}
+			subjectsEntityMap := lo.KeyBy(result.Items, func(sub *subject.Subject) string {
+				return sub.Key
+			})
 
 			// TODO: this is a workaround for batch upserts, we should optimize it
 			var subjects []*subject.Subject
 
 			for idx, payload := range request.subjects {
-				existingSubject := subjectsEnityMap[payload.Key]
+				existingSubject := subjectsEntityMap[payload.Key]
 				rawPayload := request.rawPayloads[idx]
 
 				// Create subject if not found
@@ -310,7 +310,7 @@ func (h *handler) DeleteSubject() DeleteSubjectHandler {
 			}
 
 			if ents.TotalCount > 0 {
-				err := fmt.Errorf("subject can only be deleted if it hasnt had any entitlements in the last 24 hours")
+				err := fmt.Errorf("subject can only be deleted if it hasn't had any entitlements in the last 24 hours")
 
 				return nil, commonhttp.NewHTTPError(http.StatusBadRequest, err)
 			}

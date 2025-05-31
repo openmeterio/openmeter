@@ -12886,7 +12886,7 @@ export const upsertSubjectBodyItem = zod
     key: zod
       .string()
       .describe(
-        'A unique, human-readable identifier for the subject.\nThis is typically a database ID or a a customer key.'
+        'A unique, human-readable identifier for the subject.\nThis is typically a database ID or a customer key.'
       ),
     metadata: zod
       .record(zod.string(), zod.string())
