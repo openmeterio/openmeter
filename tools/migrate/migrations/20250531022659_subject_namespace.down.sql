@@ -1,0 +1,22 @@
+-- modify "subjects" table
+-- note that alter table doesn't accept multiple column changes with renaming
+-- atlas:nolint BC102
+ALTER TABLE
+    "subjects" RENAME COLUMN "namespace" TO "organization_subjects";
+
+-- create index "subject_key_organization_subjects" to table: "subjects"
+CREATE UNIQUE INDEX "subject_key_organization_subjects" ON "subjects" ("key", "organization_subjects");
+
+-- atlas:nolint DS103 BC102
+ALTER TABLE
+    "subjects"
+ADD
+    COLUMN "current_period_start" timestamptz NULL,
+ADD
+    COLUMN "current_period_end" timestamptz NULL;
+
+-- create index "subject_namespace" to table: "subjects"
+DROP INDEX "subject_namespace" ON "subjects" ("namespace");
+
+-- create index "subject_key_namespace" to table: "subjects"
+DROP UNIQUE INDEX "subject_key_namespace" ON "subjects" ("key", "namespace");
