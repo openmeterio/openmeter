@@ -16,4 +16,5 @@ ALTER TABLE
 CREATE INDEX "subject_namespace" ON "subjects" ("namespace");
 
 -- create index "subject_key_namespace" to table: "subjects"
+-- atlas:nolint MF101
 CREATE UNIQUE INDEX "subject_key_namespace" ON "subjects" ("key", "namespace");

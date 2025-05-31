@@ -1,16 +1,16 @@
 -- create "subjects" table
 CREATE TABLE "subjects" (
-    "id" character(26) NOT NULL,
     "created_at" timestamptz NOT NULL,
     "updated_at" timestamptz NOT NULL,
+    "current_period_start" timestamptz NULL,
+    "current_period_end" timestamptz NULL,
+    "id" character(26) NOT NULL,
     "key" character varying NOT NULL,
     "display_name" character varying NULL,
     "metadata" jsonb NULL,
-    "current_period_start" timestamptz NULL,
-    "current_period_end" timestamptz NULL,
     "stripe_customer_id" character varying NULL,
     "organization_subjects" character varying NOT NULL,
-    PRIMARY KEY ("id")
+    PRIMARY KEY ("id") "created_at",
 );
 
 -- create index "subject_id" to table: "subjects"
