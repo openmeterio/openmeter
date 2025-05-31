@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/registry"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -46,10 +47,10 @@ var (
 )
 
 type RecalculatorOptions struct {
-	Entitlement     *registry.Entitlement
-	SubjectResolver SubjectResolver
-	EventBus        eventbus.Publisher
-	MetricMeter     metric.Meter
+	Entitlement *registry.Entitlement
+	Subject     subject.Service
+	EventBus    eventbus.Publisher
+	MetricMeter metric.Meter
 }
 
 func (o RecalculatorOptions) Validate() error {
@@ -72,7 +73,7 @@ type Recalculator struct {
 	opts RecalculatorOptions
 
 	featureCache *lru.Cache[string, feature.Feature]
-	subjectCache *lru.Cache[string, models.Subject]
+	subjectCache *lru.Cache[string, subject.Subject]
 
 	metricRecalculationTime                 metric.Int64Histogram
 	metricRecalculationJobRecalculationTime metric.Int64Histogram
@@ -88,7 +89,7 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		return nil, fmt.Errorf("failed to create feature cache: %w", err)
 	}
 
-	subjectCache, err := lru.New[string, models.Subject](defaultLRUCacheSize)
+	subjectCache, err := lru.New[string, subject.Subject](defaultLRUCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create subject ID cache: %w", err)
 	}
@@ -270,26 +271,18 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 	return r.opts.EventBus.Publish(ctx, event)
 }
 
-func (r *Recalculator) getSubjectByKey(ctx context.Context, ns, key string) (models.Subject, error) {
-	if r.opts.SubjectResolver == nil {
-		return models.Subject{
-			Key: key,
-		}, nil
-	}
-
+func (r *Recalculator) getSubjectByKey(ctx context.Context, ns, key string) (subject.Subject, error) {
 	if id, ok := r.subjectCache.Get(key); ok {
 		return id, nil
 	}
 
-	id, err := r.opts.SubjectResolver.GetSubjectByKey(ctx, ns, key)
+	subject, err := r.opts.Subject.GetByKeyWithFallback(ctx, ns, key)
 	if err != nil {
-		return models.Subject{
-			Key: key,
-		}, err
+		return subject, err
 	}
 
-	r.subjectCache.Add(key, id)
-	return id, nil
+	r.subjectCache.Add(key, subject)
+	return subject, nil
 }
 
 func (r *Recalculator) getFeature(ctx context.Context, ns, id string) (feature.Feature, error) {

@@ -50,6 +50,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
@@ -151,6 +152,7 @@ func checkColumn(t, c string) error {
 			planaddon.Table:                          planaddon.ValidColumn,
 			planphase.Table:                          planphase.ValidColumn,
 			planratecard.Table:                       planratecard.ValidColumn,
+			subject.Table:                            subject.ValidColumn,
 			subscription.Table:                       subscription.ValidColumn,
 			subscriptionaddon.Table:                  subscriptionaddon.ValidColumn,
 			subscriptionaddonquantity.Table:          subscriptionaddonquantity.ValidColumn,

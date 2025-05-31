@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -52,7 +53,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			Namespace: eventmodels.NamespaceID{
 				ID: entitlementID.Namespace,
 			},
-			Subject: eventmodels.SubjectKeyAndID{
+			Subject: subject.SubjectKey{
 				Key: ent.SubjectKey,
 			},
 			ResetAt:          params.At,

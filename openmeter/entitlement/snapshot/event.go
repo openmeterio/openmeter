@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -57,7 +58,7 @@ type EntitlementValue struct {
 type SnapshotEvent struct {
 	Entitlement entitlement.Entitlement `json:"entitlement"`
 	Namespace   models.NamespaceID      `json:"namespace"`
-	Subject     models.Subject          `json:"subject"`
+	Subject     subject.Subject         `json:"subject"`
 	Feature     feature.Feature         `json:"feature"`
 	// Operation is delete if the entitlement gets deleted, in that case the balance object is empty
 	Operation ValueOperationType `json:"operation"`

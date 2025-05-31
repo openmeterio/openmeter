@@ -55,6 +55,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	progresshttpdriver "github.com/openmeterio/openmeter/openmeter/progressmanager/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subject"
+	subjecthttphandler "github.com/openmeterio/openmeter/openmeter/subject/httphandler"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionaddonhttpdriver "github.com/openmeterio/openmeter/openmeter/subscription/addon/http"
@@ -112,6 +114,7 @@ type Config struct {
 	SubscriptionService         subscription.Service
 	SubscriptionAddonService    subscriptionaddon.Service
 	SubscriptionWorkflowService subscriptionworkflow.Service
+	SubjectService              subject.Service
 }
 
 func (c Config) Validate() error {
@@ -204,6 +207,10 @@ func (c Config) Validate() error {
 		return errors.New("subscription addon service is required")
 	}
 
+	if c.SubjectService == nil {
+		return errors.New("subject service is required")
+	}
+
 	return nil
 }
 
@@ -231,6 +238,7 @@ type Router struct {
 	notificationHandler       notificationhttpdriver.Handler
 	progressHandler           progresshttpdriver.Handler
 	infoHandler               infohttpdriver.Handler
+	subjectHandler            subjecthttphandler.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -372,6 +380,14 @@ func NewRouter(config Config) (*Router, error) {
 	router.planAddonHandler = planaddonhttpdriver.New(
 		staticNamespaceDecoder,
 		config.PlanAddon,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	router.subjectHandler = subjecthttphandler.New(
+		staticNamespaceDecoder,
+		config.Logger,
+		config.SubjectService,
+		config.EntitlementConnector,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

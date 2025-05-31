@@ -185,6 +185,7 @@ func main() {
 			SubscriptionService:         app.Subscription.Service,
 			SubscriptionWorkflowService: app.Subscription.WorkflowService,
 			SubscriptionAddonService:    app.Subscription.SubscriptionAddonService,
+			SubjectService:              app.SubjectService,
 			StreamingConnector:          app.StreamingConnector,
 		},
 		RouterHooks: lo.FromPtr(app.RouterHooks),
