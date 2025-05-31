@@ -50,6 +50,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
@@ -135,6 +136,8 @@ type Client struct {
 	PlanPhase *PlanPhaseClient
 	// PlanRateCard is the client for interacting with the PlanRateCard builders.
 	PlanRateCard *PlanRateCardClient
+	// Subject is the client for interacting with the Subject builders.
+	Subject *SubjectClient
 	// Subscription is the client for interacting with the Subscription builders.
 	Subscription *SubscriptionClient
 	// SubscriptionAddon is the client for interacting with the SubscriptionAddon builders.
@@ -193,6 +196,7 @@ func (c *Client) init() {
 	c.PlanAddon = NewPlanAddonClient(c.config)
 	c.PlanPhase = NewPlanPhaseClient(c.config)
 	c.PlanRateCard = NewPlanRateCardClient(c.config)
+	c.Subject = NewSubjectClient(c.config)
 	c.Subscription = NewSubscriptionClient(c.config)
 	c.SubscriptionAddon = NewSubscriptionAddonClient(c.config)
 	c.SubscriptionAddonQuantity = NewSubscriptionAddonQuantityClient(c.config)
@@ -326,6 +330,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PlanAddon:                          NewPlanAddonClient(cfg),
 		PlanPhase:                          NewPlanPhaseClient(cfg),
 		PlanRateCard:                       NewPlanRateCardClient(cfg),
+		Subject:                            NewSubjectClient(cfg),
 		Subscription:                       NewSubscriptionClient(cfg),
 		SubscriptionAddon:                  NewSubscriptionAddonClient(cfg),
 		SubscriptionAddonQuantity:          NewSubscriptionAddonQuantityClient(cfg),
@@ -386,6 +391,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PlanAddon:                          NewPlanAddonClient(cfg),
 		PlanPhase:                          NewPlanPhaseClient(cfg),
 		PlanRateCard:                       NewPlanRateCardClient(cfg),
+		Subject:                            NewSubjectClient(cfg),
 		Subscription:                       NewSubscriptionClient(cfg),
 		SubscriptionAddon:                  NewSubscriptionAddonClient(cfg),
 		SubscriptionAddonQuantity:          NewSubscriptionAddonQuantityClient(cfg),
@@ -431,7 +437,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
 		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
 		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
-		c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.Subject, c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
 		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
 	} {
 		n.Use(hooks...)
@@ -452,7 +458,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
 		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
 		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
-		c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.Subject, c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
 		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
@@ -532,6 +538,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PlanPhase.mutate(ctx, m)
 	case *PlanRateCardMutation:
 		return c.PlanRateCard.mutate(ctx, m)
+	case *SubjectMutation:
+		return c.Subject.mutate(ctx, m)
 	case *SubscriptionMutation:
 		return c.Subscription.mutate(ctx, m)
 	case *SubscriptionAddonMutation:
@@ -6548,6 +6556,139 @@ func (c *PlanRateCardClient) mutate(ctx context.Context, m *PlanRateCardMutation
 	}
 }
 
+// SubjectClient is a client for the Subject schema.
+type SubjectClient struct {
+	config
+}
+
+// NewSubjectClient returns a client for the Subject from the given config.
+func NewSubjectClient(c config) *SubjectClient {
+	return &SubjectClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `subject.Hooks(f(g(h())))`.
+func (c *SubjectClient) Use(hooks ...Hook) {
+	c.hooks.Subject = append(c.hooks.Subject, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `subject.Intercept(f(g(h())))`.
+func (c *SubjectClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Subject = append(c.inters.Subject, interceptors...)
+}
+
+// Create returns a builder for creating a Subject entity.
+func (c *SubjectClient) Create() *SubjectCreate {
+	mutation := newSubjectMutation(c.config, OpCreate)
+	return &SubjectCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Subject entities.
+func (c *SubjectClient) CreateBulk(builders ...*SubjectCreate) *SubjectCreateBulk {
+	return &SubjectCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SubjectClient) MapCreateBulk(slice any, setFunc func(*SubjectCreate, int)) *SubjectCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SubjectCreateBulk{err: fmt.Errorf("calling to SubjectClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SubjectCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SubjectCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Subject.
+func (c *SubjectClient) Update() *SubjectUpdate {
+	mutation := newSubjectMutation(c.config, OpUpdate)
+	return &SubjectUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SubjectClient) UpdateOne(_m *Subject) *SubjectUpdateOne {
+	mutation := newSubjectMutation(c.config, OpUpdateOne, withSubject(_m))
+	return &SubjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SubjectClient) UpdateOneID(id string) *SubjectUpdateOne {
+	mutation := newSubjectMutation(c.config, OpUpdateOne, withSubjectID(id))
+	return &SubjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Subject.
+func (c *SubjectClient) Delete() *SubjectDelete {
+	mutation := newSubjectMutation(c.config, OpDelete)
+	return &SubjectDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SubjectClient) DeleteOne(_m *Subject) *SubjectDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SubjectClient) DeleteOneID(id string) *SubjectDeleteOne {
+	builder := c.Delete().Where(subject.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SubjectDeleteOne{builder}
+}
+
+// Query returns a query builder for Subject.
+func (c *SubjectClient) Query() *SubjectQuery {
+	return &SubjectQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSubject},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Subject entity by its id.
+func (c *SubjectClient) Get(ctx context.Context, id string) (*Subject, error) {
+	return c.Query().Where(subject.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SubjectClient) GetX(ctx context.Context, id string) *Subject {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *SubjectClient) Hooks() []Hook {
+	return c.hooks.Subject
+}
+
+// Interceptors returns the client interceptors.
+func (c *SubjectClient) Interceptors() []Interceptor {
+	return c.inters.Subject
+}
+
+func (c *SubjectClient) mutate(ctx context.Context, m *SubjectMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SubjectCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SubjectUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SubjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SubjectDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown Subject mutation op: %q", m.Op())
+	}
+}
+
 // SubscriptionClient is a client for the Subscription schema.
 type SubscriptionClient struct {
 	config
@@ -7614,7 +7755,7 @@ type (
 		BillingProfile, BillingSequenceNumbers, BillingWorkflowConfig, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, Subscription, SubscriptionAddon,
+		PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription, SubscriptionAddon,
 		SubscriptionAddonQuantity, SubscriptionItem, SubscriptionPhase,
 		UsageReset []ent.Hook
 	}
@@ -7628,7 +7769,7 @@ type (
 		BillingProfile, BillingSequenceNumbers, BillingWorkflowConfig, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, Subscription, SubscriptionAddon,
+		PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription, SubscriptionAddon,
 		SubscriptionAddonQuantity, SubscriptionItem, SubscriptionPhase,
 		UsageReset []ent.Interceptor
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
@@ -249,7 +250,7 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	subject := models.Subject{
+	subject := subject.Subject{
 		Key: in.Entitlement.SubjectKey,
 	}
 
@@ -325,7 +326,7 @@ func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitl
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
 
-	subject := models.Subject{
+	subject := subject.Subject{
 		Key: delEvent.SubjectKey,
 	}
 

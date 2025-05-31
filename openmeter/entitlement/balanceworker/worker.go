@@ -17,9 +17,9 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
-	"github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/grouphandler"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
@@ -37,7 +37,7 @@ const (
 type NamespacedID = pkgmodels.NamespacedID
 
 type SubjectResolver interface {
-	GetSubjectByKey(ctx context.Context, namespace, key string) (models.Subject, error)
+	GetSubjectByKey(ctx context.Context, namespace, key string) (subject.Subject, error)
 }
 
 type BatchedIngestEventHandler = func(ctx context.Context, event ingestevents.EventBatchedIngest) error

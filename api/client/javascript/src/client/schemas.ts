@@ -9033,7 +9033,8 @@ export interface components {
       message?: string
     }
     /**
-     * @description A subject is a unique identifier for a user or entity.
+     * @description A subject is a unique identifier for a usage attribution.
+     *     For most use cases, a subject is equivalent to a customer.
      * @example {
      *       "id": "01G65Z755AFWAKHE12NY0CQ9FH",
      *       "key": "customer-id",
@@ -9054,7 +9055,8 @@ export interface components {
       readonly id: string
       /**
        * @description A unique, human-readable identifier for the subject.
-       * @example customer-id
+       *     This is typically a database ID or a a customer key.
+       * @example customer-db-id-123
        */
       key: string
       /**
@@ -9062,25 +9064,34 @@ export interface components {
        * @example Customer Name
        */
       displayName?: string | null
-      /** @example {
+      /**
+       * @description Metadata for the subject.
+       * @example {
        *       "hubspotId": "123456"
-       *     } */
+       *     }
+       */
       metadata?: {
-        [key: string]: unknown
+        [key: string]: string
       } | null
       /**
        * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @deprecated
+       * @description The start of the current period for the subject.
        * @example 2023-01-01T00:00:00Z
        */
       currentPeriodStart?: Date
       /**
        * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @deprecated
+       * @description The end of the current period for the subject.
        * @example 2023-02-01T00:00:00Z
        */
       currentPeriodEnd?: Date
-      /** @example cus_JMOlctsKV8 */
+      /**
+       * @deprecated
+       * @description The Stripe customer ID for the subject.
+       * @example cus_JMOlctsKV8
+       */
       stripeCustomerId?: string | null
     }
     /**
@@ -9091,15 +9102,14 @@ export interface components {
      *       "metadata": {
      *         "hubspotId": "123456"
      *       },
-     *       "currentPeriodStart": "2023-01-01T00:00:00Z",
-     *       "currentPeriodEnd": "2023-02-01T00:00:00Z",
      *       "stripeCustomerId": "cus_JMOlctsKV8"
      *     }
      */
     SubjectUpsert: {
       /**
        * @description A unique, human-readable identifier for the subject.
-       * @example customer-id
+       *     This is typically a database ID or a a customer key.
+       * @example customer-db-id-123
        */
       key: string
       /**
@@ -9107,25 +9117,34 @@ export interface components {
        * @example Customer Name
        */
       displayName?: string | null
-      /** @example {
+      /**
+       * @description Metadata for the subject.
+       * @example {
        *       "hubspotId": "123456"
-       *     } */
+       *     }
+       */
       metadata?: {
-        [key: string]: unknown
+        [key: string]: string
       } | null
       /**
        * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @deprecated
+       * @description The start of the current period for the subject.
        * @example 2023-01-01T00:00:00Z
        */
       currentPeriodStart?: Date
       /**
        * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @deprecated
+       * @description The end of the current period for the subject.
        * @example 2023-02-01T00:00:00Z
        */
       currentPeriodEnd?: Date
-      /** @example cus_JMOlctsKV8 */
+      /**
+       * @deprecated
+       * @description The Stripe customer ID for the subject.
+       * @example cus_JMOlctsKV8
+       */
       stripeCustomerId?: string | null
     }
     /** @description Subscription is an exact subscription instance. */

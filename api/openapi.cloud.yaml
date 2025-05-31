@@ -20662,8 +20662,10 @@ components:
           readOnly: true
         key:
           type: string
-          description: A unique, human-readable identifier for the subject.
-          example: customer-id
+          description: |-
+            A unique, human-readable identifier for the subject.
+            This is typically a database ID or a a customer key.
+          example: customer-db-id-123
         displayName:
           type: string
           nullable: true
@@ -20671,25 +20673,33 @@ components:
           example: Customer Name
         metadata:
           type: object
-          additionalProperties: {}
+          additionalProperties:
+            type: string
           nullable: true
+          description: Metadata for the subject.
           example:
             hubspotId: '123456'
         currentPeriodStart:
           type: string
           format: date-time
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          description: The start of the current period for the subject.
           example: '2023-01-01T00:00:00Z'
+          deprecated: true
         currentPeriodEnd:
           type: string
           format: date-time
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          description: The end of the current period for the subject.
           example: '2023-02-01T00:00:00Z'
+          deprecated: true
         stripeCustomerId:
           type: string
           nullable: true
+          description: The Stripe customer ID for the subject.
+          deprecated: true
           example: cus_JMOlctsKV8
-      description: A subject is a unique identifier for a user or entity.
+      description: |-
+        A subject is a unique identifier for a usage attribution.
+        For most use cases, a subject is equivalent to a customer.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         key: customer-id
@@ -20706,8 +20716,10 @@ components:
       properties:
         key:
           type: string
-          description: A unique, human-readable identifier for the subject.
-          example: customer-id
+          description: |-
+            A unique, human-readable identifier for the subject.
+            This is typically a database ID or a a customer key.
+          example: customer-db-id-123
         displayName:
           type: string
           nullable: true
@@ -20715,23 +20727,29 @@ components:
           example: Customer Name
         metadata:
           type: object
-          additionalProperties: {}
+          additionalProperties:
+            type: string
           nullable: true
+          description: Metadata for the subject.
           example:
             hubspotId: '123456'
         currentPeriodStart:
           type: string
           format: date-time
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          description: The start of the current period for the subject.
           example: '2023-01-01T00:00:00Z'
+          deprecated: true
         currentPeriodEnd:
           type: string
           format: date-time
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          description: The end of the current period for the subject.
           example: '2023-02-01T00:00:00Z'
+          deprecated: true
         stripeCustomerId:
           type: string
           nullable: true
+          description: The Stripe customer ID for the subject.
+          deprecated: true
           example: cus_JMOlctsKV8
       description: A subject is a unique identifier for a user or entity.
       example:
@@ -20739,8 +20757,6 @@ components:
         displayName: Customer Name
         metadata:
           hubspotId: '123456'
-        currentPeriodStart: '2023-01-01T00:00:00Z'
-        currentPeriodEnd: '2023-02-01T00:00:00Z'
         stripeCustomerId: cus_JMOlctsKV8
     Subscription:
       type: object
