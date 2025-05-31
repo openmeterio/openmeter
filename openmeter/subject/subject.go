@@ -50,12 +50,13 @@ func (s Subject) ToAPIModel() api.Subject {
 	}
 }
 
-type SubjectKeyAndID struct {
+// SubjectKey is key only version of Subject
+// Used in in entitlements events to reduce payload size
+type SubjectKey struct {
 	Key string `json:"key"`
-	ID  string `json:"id,omitempty"`
 }
 
-func (s SubjectKeyAndID) Validate() error {
+func (s SubjectKey) Validate() error {
 	if s.Key == "" {
 		return errors.New("key is required")
 	}

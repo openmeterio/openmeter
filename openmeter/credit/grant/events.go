@@ -16,7 +16,7 @@ const (
 type grantEvent struct {
 	Grant
 
-	Subject subject.SubjectKeyAndID `json:"subject"`
+	Subject subject.SubjectKey `json:"subject"`
 	// Namespace from Grant cannot be used as it will never be serialized
 	Namespace models.NamespaceID `json:"namespace"`
 }

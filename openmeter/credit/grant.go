@@ -99,7 +99,7 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 		event := grant.CreatedEvent{
 			Grant:     *g,
 			Namespace: eventmodels.NamespaceID{ID: ownerID.Namespace},
-			Subject:   subject.SubjectKeyAndID{Key: subjectKey},
+			Subject:   subject.SubjectKey{Key: subjectKey},
 		}
 
 		if err := m.Publisher.Publish(ctx, event); err != nil {
@@ -163,7 +163,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 		return nil, m.Publisher.Publish(ctx, grant.VoidedEvent{
 			Grant:     g,
 			Namespace: eventmodels.NamespaceID{ID: ownerID.Namespace},
-			Subject:   subject.SubjectKeyAndID{Key: subjectKey},
+			Subject:   subject.SubjectKey{Key: subjectKey},
 		})
 	})
 	return err

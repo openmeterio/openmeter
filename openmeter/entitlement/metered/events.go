@@ -15,12 +15,12 @@ const (
 )
 
 type EntitlementResetEvent struct {
-	EntitlementID    string                  `json:"entitlementId"`
-	Namespace        models.NamespaceID      `json:"namespace"`
-	Subject          subject.SubjectKeyAndID `json:"subject"`
-	ResetAt          time.Time               `json:"resetAt"`
-	RetainAnchor     bool                    `json:"retainAnchor"`
-	ResetRequestedAt time.Time               `json:"resetRequestedAt"`
+	EntitlementID    string             `json:"entitlementId"`
+	Namespace        models.NamespaceID `json:"namespace"`
+	Subject          subject.SubjectKey `json:"subject"`
+	ResetAt          time.Time          `json:"resetAt"`
+	RetainAnchor     bool               `json:"retainAnchor"`
+	ResetRequestedAt time.Time          `json:"resetRequestedAt"`
 }
 
 var (

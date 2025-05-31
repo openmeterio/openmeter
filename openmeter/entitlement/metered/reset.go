@@ -53,7 +53,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			Namespace: eventmodels.NamespaceID{
 				ID: entitlementID.Namespace,
 			},
-			Subject: subject.SubjectKeyAndID{
+			Subject: subject.SubjectKey{
 				Key: ent.SubjectKey,
 			},
 			ResetAt:          params.At,

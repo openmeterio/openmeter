@@ -119,7 +119,7 @@ func (a adapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey str
 	return mapEntity(entity), err
 }
 
-// List returns all subjects from database for an organization
+// List returns all subjects from database for a namespace
 func (a adapter) List(ctx context.Context, namespace string, params subject.ListParams) (pagination.PagedResponse[*subject.Subject], error) {
 	query := a.ent.Subject.Query().
 		Where(entsubject.Namespace(namespace))
@@ -187,7 +187,7 @@ func mapEntity(subjectEntity *db.Subject) *subject.Subject {
 	}
 
 	if subject.Metadata == nil {
-		subject.Metadata = make(map[string]string)
+		subject.Metadata = make(models.Metadata)
 	}
 
 	if subjectEntity.DisplayName != nil {
