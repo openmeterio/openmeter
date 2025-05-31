@@ -29,48 +29,6 @@ func (_c *SubjectCreate) SetNamespace(v string) *SubjectCreate {
 	return _c
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (_c *SubjectCreate) SetCreatedAt(v time.Time) *SubjectCreate {
-	_c.mutation.SetCreatedAt(v)
-	return _c
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (_c *SubjectCreate) SetNillableCreatedAt(v *time.Time) *SubjectCreate {
-	if v != nil {
-		_c.SetCreatedAt(*v)
-	}
-	return _c
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_c *SubjectCreate) SetUpdatedAt(v time.Time) *SubjectCreate {
-	_c.mutation.SetUpdatedAt(v)
-	return _c
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (_c *SubjectCreate) SetNillableUpdatedAt(v *time.Time) *SubjectCreate {
-	if v != nil {
-		_c.SetUpdatedAt(*v)
-	}
-	return _c
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (_c *SubjectCreate) SetDeletedAt(v time.Time) *SubjectCreate {
-	_c.mutation.SetDeletedAt(v)
-	return _c
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_c *SubjectCreate) SetNillableDeletedAt(v *time.Time) *SubjectCreate {
-	if v != nil {
-		_c.SetDeletedAt(*v)
-	}
-	return _c
-}
-
 // SetMetadata sets the "metadata" field.
 func (_c *SubjectCreate) SetMetadata(v map[string]string) *SubjectCreate {
 	_c.mutation.SetMetadata(v)
@@ -107,6 +65,34 @@ func (_c *SubjectCreate) SetStripeCustomerID(v string) *SubjectCreate {
 func (_c *SubjectCreate) SetNillableStripeCustomerID(v *string) *SubjectCreate {
 	if v != nil {
 		_c.SetStripeCustomerID(*v)
+	}
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *SubjectCreate) SetCreatedAt(v time.Time) *SubjectCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *SubjectCreate) SetNillableCreatedAt(v *time.Time) *SubjectCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *SubjectCreate) SetUpdatedAt(v time.Time) *SubjectCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *SubjectCreate) SetNillableUpdatedAt(v *time.Time) *SubjectCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
 	return _c
 }
@@ -184,12 +170,6 @@ func (_c *SubjectCreate) check() error {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "Subject.namespace": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "Subject.created_at"`)}
-	}
-	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "Subject.updated_at"`)}
-	}
 	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "Subject.key"`)}
 	}
@@ -197,6 +177,12 @@ func (_c *SubjectCreate) check() error {
 		if err := subject.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "Subject.key": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "Subject.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "Subject.updated_at"`)}
 	}
 	return nil
 }
@@ -238,18 +224,6 @@ func (_c *SubjectCreate) createSpec() (*Subject, *sqlgraph.CreateSpec) {
 		_spec.SetField(subject.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := _c.mutation.CreatedAt(); ok {
-		_spec.SetField(subject.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = value
-	}
-	if value, ok := _c.mutation.UpdatedAt(); ok {
-		_spec.SetField(subject.FieldUpdatedAt, field.TypeTime, value)
-		_node.UpdatedAt = value
-	}
-	if value, ok := _c.mutation.DeletedAt(); ok {
-		_spec.SetField(subject.FieldDeletedAt, field.TypeTime, value)
-		_node.DeletedAt = &value
-	}
 	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(subject.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
@@ -265,6 +239,14 @@ func (_c *SubjectCreate) createSpec() (*Subject, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.StripeCustomerID(); ok {
 		_spec.SetField(subject.FieldStripeCustomerID, field.TypeString, value)
 		_node.StripeCustomerID = &value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(subject.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(subject.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
 	}
 	return _node, _spec
 }
@@ -317,36 +299,6 @@ type (
 		*sql.UpdateSet
 	}
 )
-
-// SetUpdatedAt sets the "updated_at" field.
-func (u *SubjectUpsert) SetUpdatedAt(v time.Time) *SubjectUpsert {
-	u.Set(subject.FieldUpdatedAt, v)
-	return u
-}
-
-// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
-func (u *SubjectUpsert) UpdateUpdatedAt() *SubjectUpsert {
-	u.SetExcluded(subject.FieldUpdatedAt)
-	return u
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (u *SubjectUpsert) SetDeletedAt(v time.Time) *SubjectUpsert {
-	u.Set(subject.FieldDeletedAt, v)
-	return u
-}
-
-// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
-func (u *SubjectUpsert) UpdateDeletedAt() *SubjectUpsert {
-	u.SetExcluded(subject.FieldDeletedAt)
-	return u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (u *SubjectUpsert) ClearDeletedAt() *SubjectUpsert {
-	u.SetNull(subject.FieldDeletedAt)
-	return u
-}
 
 // SetMetadata sets the "metadata" field.
 func (u *SubjectUpsert) SetMetadata(v map[string]string) *SubjectUpsert {
@@ -414,6 +366,18 @@ func (u *SubjectUpsert) ClearStripeCustomerID() *SubjectUpsert {
 	return u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (u *SubjectUpsert) SetUpdatedAt(v time.Time) *SubjectUpsert {
+	u.Set(subject.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *SubjectUpsert) UpdateUpdatedAt() *SubjectUpsert {
+	u.SetExcluded(subject.FieldUpdatedAt)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -466,41 +430,6 @@ func (u *SubjectUpsertOne) Update(set func(*SubjectUpsert)) *SubjectUpsertOne {
 		set(&SubjectUpsert{UpdateSet: update})
 	}))
 	return u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (u *SubjectUpsertOne) SetUpdatedAt(v time.Time) *SubjectUpsertOne {
-	return u.Update(func(s *SubjectUpsert) {
-		s.SetUpdatedAt(v)
-	})
-}
-
-// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
-func (u *SubjectUpsertOne) UpdateUpdatedAt() *SubjectUpsertOne {
-	return u.Update(func(s *SubjectUpsert) {
-		s.UpdateUpdatedAt()
-	})
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (u *SubjectUpsertOne) SetDeletedAt(v time.Time) *SubjectUpsertOne {
-	return u.Update(func(s *SubjectUpsert) {
-		s.SetDeletedAt(v)
-	})
-}
-
-// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
-func (u *SubjectUpsertOne) UpdateDeletedAt() *SubjectUpsertOne {
-	return u.Update(func(s *SubjectUpsert) {
-		s.UpdateDeletedAt()
-	})
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (u *SubjectUpsertOne) ClearDeletedAt() *SubjectUpsertOne {
-	return u.Update(func(s *SubjectUpsert) {
-		s.ClearDeletedAt()
-	})
 }
 
 // SetMetadata sets the "metadata" field.
@@ -577,6 +506,20 @@ func (u *SubjectUpsertOne) UpdateStripeCustomerID() *SubjectUpsertOne {
 func (u *SubjectUpsertOne) ClearStripeCustomerID() *SubjectUpsertOne {
 	return u.Update(func(s *SubjectUpsert) {
 		s.ClearStripeCustomerID()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *SubjectUpsertOne) SetUpdatedAt(v time.Time) *SubjectUpsertOne {
+	return u.Update(func(s *SubjectUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *SubjectUpsertOne) UpdateUpdatedAt() *SubjectUpsertOne {
+	return u.Update(func(s *SubjectUpsert) {
+		s.UpdateUpdatedAt()
 	})
 }
 
@@ -801,41 +744,6 @@ func (u *SubjectUpsertBulk) Update(set func(*SubjectUpsert)) *SubjectUpsertBulk 
 	return u
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (u *SubjectUpsertBulk) SetUpdatedAt(v time.Time) *SubjectUpsertBulk {
-	return u.Update(func(s *SubjectUpsert) {
-		s.SetUpdatedAt(v)
-	})
-}
-
-// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
-func (u *SubjectUpsertBulk) UpdateUpdatedAt() *SubjectUpsertBulk {
-	return u.Update(func(s *SubjectUpsert) {
-		s.UpdateUpdatedAt()
-	})
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (u *SubjectUpsertBulk) SetDeletedAt(v time.Time) *SubjectUpsertBulk {
-	return u.Update(func(s *SubjectUpsert) {
-		s.SetDeletedAt(v)
-	})
-}
-
-// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
-func (u *SubjectUpsertBulk) UpdateDeletedAt() *SubjectUpsertBulk {
-	return u.Update(func(s *SubjectUpsert) {
-		s.UpdateDeletedAt()
-	})
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (u *SubjectUpsertBulk) ClearDeletedAt() *SubjectUpsertBulk {
-	return u.Update(func(s *SubjectUpsert) {
-		s.ClearDeletedAt()
-	})
-}
-
 // SetMetadata sets the "metadata" field.
 func (u *SubjectUpsertBulk) SetMetadata(v map[string]string) *SubjectUpsertBulk {
 	return u.Update(func(s *SubjectUpsert) {
@@ -910,6 +818,20 @@ func (u *SubjectUpsertBulk) UpdateStripeCustomerID() *SubjectUpsertBulk {
 func (u *SubjectUpsertBulk) ClearStripeCustomerID() *SubjectUpsertBulk {
 	return u.Update(func(s *SubjectUpsert) {
 		s.ClearStripeCustomerID()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *SubjectUpsertBulk) SetUpdatedAt(v time.Time) *SubjectUpsertBulk {
+	return u.Update(func(s *SubjectUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *SubjectUpsertBulk) UpdateUpdatedAt() *SubjectUpsertBulk {
+	return u.Update(func(s *SubjectUpsert) {
+		s.UpdateUpdatedAt()
 	})
 }
 

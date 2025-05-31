@@ -2533,20 +2533,6 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 	return u.SetFeatureID(*value)
 }
 
-func (u *SubjectUpdate) SetOrClearDeletedAt(value *time.Time) *SubjectUpdate {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *SubjectUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubjectUpdateOne {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
 func (u *SubjectUpdate) SetOrClearMetadata(value *map[string]string) *SubjectUpdate {
 	if value == nil {
 		return u.ClearMetadata()

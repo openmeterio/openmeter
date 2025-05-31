@@ -43695,13 +43695,12 @@ type SubjectMutation struct {
 	typ                string
 	id                 *string
 	namespace          *string
-	created_at         *time.Time
-	updated_at         *time.Time
-	deleted_at         *time.Time
 	metadata           *map[string]string
 	key                *string
 	display_name       *string
 	stripe_customer_id *string
+	created_at         *time.Time
+	updated_at         *time.Time
 	clearedFields      map[string]struct{}
 	done               bool
 	oldValue           func(context.Context) (*Subject, error)
@@ -43846,127 +43845,6 @@ func (m *SubjectMutation) OldNamespace(ctx context.Context) (v string, err error
 // ResetNamespace resets all changes to the "namespace" field.
 func (m *SubjectMutation) ResetNamespace() {
 	m.namespace = nil
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (m *SubjectMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *SubjectMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the Subject entity.
-// If the Subject object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubjectMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *SubjectMutation) ResetCreatedAt() {
-	m.created_at = nil
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (m *SubjectMutation) SetUpdatedAt(t time.Time) {
-	m.updated_at = &t
-}
-
-// UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *SubjectMutation) UpdatedAt() (r time.Time, exists bool) {
-	v := m.updated_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdatedAt returns the old "updated_at" field's value of the Subject entity.
-// If the Subject object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubjectMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
-	}
-	return oldValue.UpdatedAt, nil
-}
-
-// ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *SubjectMutation) ResetUpdatedAt() {
-	m.updated_at = nil
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (m *SubjectMutation) SetDeletedAt(t time.Time) {
-	m.deleted_at = &t
-}
-
-// DeletedAt returns the value of the "deleted_at" field in the mutation.
-func (m *SubjectMutation) DeletedAt() (r time.Time, exists bool) {
-	v := m.deleted_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDeletedAt returns the old "deleted_at" field's value of the Subject entity.
-// If the Subject object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubjectMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
-	}
-	return oldValue.DeletedAt, nil
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (m *SubjectMutation) ClearDeletedAt() {
-	m.deleted_at = nil
-	m.clearedFields[subject.FieldDeletedAt] = struct{}{}
-}
-
-// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
-func (m *SubjectMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[subject.FieldDeletedAt]
-	return ok
-}
-
-// ResetDeletedAt resets all changes to the "deleted_at" field.
-func (m *SubjectMutation) ResetDeletedAt() {
-	m.deleted_at = nil
-	delete(m.clearedFields, subject.FieldDeletedAt)
 }
 
 // SetMetadata sets the "metadata" field.
@@ -44152,6 +44030,78 @@ func (m *SubjectMutation) ResetStripeCustomerID() {
 	delete(m.clearedFields, subject.FieldStripeCustomerID)
 }
 
+// SetCreatedAt sets the "created_at" field.
+func (m *SubjectMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *SubjectMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Subject entity.
+// If the Subject object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubjectMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *SubjectMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *SubjectMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *SubjectMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Subject entity.
+// If the Subject object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubjectMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *SubjectMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
 // Where appends a list predicates to the SubjectMutation builder.
 func (m *SubjectMutation) Where(ps ...predicate.Subject) {
 	m.predicates = append(m.predicates, ps...)
@@ -44186,18 +44136,9 @@ func (m *SubjectMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubjectMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 7)
 	if m.namespace != nil {
 		fields = append(fields, subject.FieldNamespace)
-	}
-	if m.created_at != nil {
-		fields = append(fields, subject.FieldCreatedAt)
-	}
-	if m.updated_at != nil {
-		fields = append(fields, subject.FieldUpdatedAt)
-	}
-	if m.deleted_at != nil {
-		fields = append(fields, subject.FieldDeletedAt)
 	}
 	if m.metadata != nil {
 		fields = append(fields, subject.FieldMetadata)
@@ -44211,6 +44152,12 @@ func (m *SubjectMutation) Fields() []string {
 	if m.stripe_customer_id != nil {
 		fields = append(fields, subject.FieldStripeCustomerID)
 	}
+	if m.created_at != nil {
+		fields = append(fields, subject.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, subject.FieldUpdatedAt)
+	}
 	return fields
 }
 
@@ -44221,12 +44168,6 @@ func (m *SubjectMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case subject.FieldNamespace:
 		return m.Namespace()
-	case subject.FieldCreatedAt:
-		return m.CreatedAt()
-	case subject.FieldUpdatedAt:
-		return m.UpdatedAt()
-	case subject.FieldDeletedAt:
-		return m.DeletedAt()
 	case subject.FieldMetadata:
 		return m.Metadata()
 	case subject.FieldKey:
@@ -44235,6 +44176,10 @@ func (m *SubjectMutation) Field(name string) (ent.Value, bool) {
 		return m.DisplayName()
 	case subject.FieldStripeCustomerID:
 		return m.StripeCustomerID()
+	case subject.FieldCreatedAt:
+		return m.CreatedAt()
+	case subject.FieldUpdatedAt:
+		return m.UpdatedAt()
 	}
 	return nil, false
 }
@@ -44246,12 +44191,6 @@ func (m *SubjectMutation) OldField(ctx context.Context, name string) (ent.Value,
 	switch name {
 	case subject.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case subject.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
-	case subject.FieldUpdatedAt:
-		return m.OldUpdatedAt(ctx)
-	case subject.FieldDeletedAt:
-		return m.OldDeletedAt(ctx)
 	case subject.FieldMetadata:
 		return m.OldMetadata(ctx)
 	case subject.FieldKey:
@@ -44260,6 +44199,10 @@ func (m *SubjectMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldDisplayName(ctx)
 	case subject.FieldStripeCustomerID:
 		return m.OldStripeCustomerID(ctx)
+	case subject.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case subject.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown Subject field %s", name)
 }
@@ -44275,27 +44218,6 @@ func (m *SubjectMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
-		return nil
-	case subject.FieldCreatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreatedAt(v)
-		return nil
-	case subject.FieldUpdatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdatedAt(v)
-		return nil
-	case subject.FieldDeletedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDeletedAt(v)
 		return nil
 	case subject.FieldMetadata:
 		v, ok := value.(map[string]string)
@@ -44324,6 +44246,20 @@ func (m *SubjectMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStripeCustomerID(v)
+		return nil
+	case subject.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case subject.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Subject field %s", name)
@@ -44355,9 +44291,6 @@ func (m *SubjectMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *SubjectMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(subject.FieldDeletedAt) {
-		fields = append(fields, subject.FieldDeletedAt)
-	}
 	if m.FieldCleared(subject.FieldMetadata) {
 		fields = append(fields, subject.FieldMetadata)
 	}
@@ -44381,9 +44314,6 @@ func (m *SubjectMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *SubjectMutation) ClearField(name string) error {
 	switch name {
-	case subject.FieldDeletedAt:
-		m.ClearDeletedAt()
-		return nil
 	case subject.FieldMetadata:
 		m.ClearMetadata()
 		return nil
@@ -44404,15 +44334,6 @@ func (m *SubjectMutation) ResetField(name string) error {
 	case subject.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case subject.FieldCreatedAt:
-		m.ResetCreatedAt()
-		return nil
-	case subject.FieldUpdatedAt:
-		m.ResetUpdatedAt()
-		return nil
-	case subject.FieldDeletedAt:
-		m.ResetDeletedAt()
-		return nil
 	case subject.FieldMetadata:
 		m.ResetMetadata()
 		return nil
@@ -44424,6 +44345,12 @@ func (m *SubjectMutation) ResetField(name string) error {
 		return nil
 	case subject.FieldStripeCustomerID:
 		m.ResetStripeCustomerID()
+		return nil
+	case subject.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case subject.FieldUpdatedAt:
+		m.ResetUpdatedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Subject field %s", name)

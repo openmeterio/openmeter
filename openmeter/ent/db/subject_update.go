@@ -28,32 +28,6 @@ func (_u *SubjectUpdate) Where(ps ...predicate.Subject) *SubjectUpdate {
 	return _u
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *SubjectUpdate) SetUpdatedAt(v time.Time) *SubjectUpdate {
-	_u.mutation.SetUpdatedAt(v)
-	return _u
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *SubjectUpdate) SetDeletedAt(v time.Time) *SubjectUpdate {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *SubjectUpdate) SetNillableDeletedAt(v *time.Time) *SubjectUpdate {
-	if v != nil {
-		_u.SetDeletedAt(*v)
-	}
-	return _u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *SubjectUpdate) ClearDeletedAt() *SubjectUpdate {
-	_u.mutation.ClearDeletedAt()
-	return _u
-}
-
 // SetMetadata sets the "metadata" field.
 func (_u *SubjectUpdate) SetMetadata(v map[string]string) *SubjectUpdate {
 	_u.mutation.SetMetadata(v)
@@ -120,6 +94,12 @@ func (_u *SubjectUpdate) ClearStripeCustomerID() *SubjectUpdate {
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *SubjectUpdate) SetUpdatedAt(v time.Time) *SubjectUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // Mutation returns the SubjectMutation object of the builder.
 func (_u *SubjectUpdate) Mutation() *SubjectMutation {
 	return _u.mutation
@@ -183,15 +163,6 @@ func (_u *SubjectUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(subject.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(subject.FieldDeletedAt, field.TypeTime, value)
-	}
-	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(subject.FieldDeletedAt, field.TypeTime)
-	}
 	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(subject.FieldMetadata, field.TypeJSON, value)
 	}
@@ -213,6 +184,9 @@ func (_u *SubjectUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.StripeCustomerIDCleared() {
 		_spec.ClearField(subject.FieldStripeCustomerID, field.TypeString)
 	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(subject.FieldUpdatedAt, field.TypeTime, value)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subject.Label}
@@ -231,32 +205,6 @@ type SubjectUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *SubjectMutation
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *SubjectUpdateOne) SetUpdatedAt(v time.Time) *SubjectUpdateOne {
-	_u.mutation.SetUpdatedAt(v)
-	return _u
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *SubjectUpdateOne) SetDeletedAt(v time.Time) *SubjectUpdateOne {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *SubjectUpdateOne) SetNillableDeletedAt(v *time.Time) *SubjectUpdateOne {
-	if v != nil {
-		_u.SetDeletedAt(*v)
-	}
-	return _u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *SubjectUpdateOne) ClearDeletedAt() *SubjectUpdateOne {
-	_u.mutation.ClearDeletedAt()
-	return _u
 }
 
 // SetMetadata sets the "metadata" field.
@@ -322,6 +270,12 @@ func (_u *SubjectUpdateOne) SetNillableStripeCustomerID(v *string) *SubjectUpdat
 // ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
 func (_u *SubjectUpdateOne) ClearStripeCustomerID() *SubjectUpdateOne {
 	_u.mutation.ClearStripeCustomerID()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *SubjectUpdateOne) SetUpdatedAt(v time.Time) *SubjectUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
 	return _u
 }
 
@@ -418,15 +372,6 @@ func (_u *SubjectUpdateOne) sqlSave(ctx context.Context) (_node *Subject, err er
 			}
 		}
 	}
-	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(subject.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(subject.FieldDeletedAt, field.TypeTime, value)
-	}
-	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(subject.FieldDeletedAt, field.TypeTime)
-	}
 	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(subject.FieldMetadata, field.TypeJSON, value)
 	}
@@ -447,6 +392,9 @@ func (_u *SubjectUpdateOne) sqlSave(ctx context.Context) (_node *Subject, err er
 	}
 	if _u.mutation.StripeCustomerIDCleared() {
 		_spec.ClearField(subject.FieldStripeCustomerID, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(subject.FieldUpdatedAt, field.TypeTime, value)
 	}
 	_node = &Subject{config: _u.config}
 	_spec.Assign = _node.assignValues

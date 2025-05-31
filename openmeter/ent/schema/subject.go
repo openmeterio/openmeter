@@ -5,6 +5,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -19,6 +20,13 @@ func (Subject) Fields() []ent.Field {
 		field.String("key").NotEmpty(),
 		field.String("display_name").Optional().Nillable(),
 		field.String("stripe_customer_id").Optional().Nillable().Deprecated("Use customer entity instead"),
+		// We don't use the time mixin because we don't want deleted_at
+		field.Time("created_at").
+			Default(clock.Now).
+			Immutable(),
+		field.Time("updated_at").
+			Default(clock.Now).
+			UpdateDefault(clock.Now),
 	}
 }
 
@@ -27,7 +35,6 @@ func (Subject) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
-		entutils.TimeMixin{},
 		entutils.MetadataMixin{},
 	}
 }
