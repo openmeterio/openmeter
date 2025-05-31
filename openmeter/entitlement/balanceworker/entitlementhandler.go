@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
 type handleEntitlementEventOptions struct {
@@ -255,7 +256,9 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 	}
 
 	getSubject, err := w.opts.Subject.GetByIdOrKey(ctx, in.Entitlement.Namespace, in.Entitlement.SubjectKey)
-	if err != nil {
+	// If the subject is not found, return a subject with the key, as the subject might
+	// have been deleted since the event has been fired.
+	if err != nil && !pkgmodels.IsGenericNotFoundError(err) {
 		return nil, fmt.Errorf("failed to get subject ID: %w", err)
 	}
 
@@ -332,7 +335,9 @@ func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitl
 	}
 
 	getSubject, err := w.opts.Subject.GetByIdOrKey(ctx, namespace, delEvent.SubjectKey)
-	if err != nil {
+	// If the subject is not found, return a subject with the key, as the subject might
+	// have been deleted since the event has been fired.
+	if err != nil && !pkgmodels.IsGenericNotFoundError(err) {
 		return nil, fmt.Errorf("failed to get subject: %w", err)
 	}
 
