@@ -10,9 +10,9 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/hashicorp/golang-lru/v2/expirable"
-	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 )
 
 // Config is the configuration for the subject manager

@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entsubject "github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/subject"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 // Create creates a subject entity in database
