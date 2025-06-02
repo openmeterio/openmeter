@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/registry"
@@ -376,6 +377,39 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	repository, err := common.NewNotificationAdapter(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	notificationConfiguration := conf.Notification
+	webhookConfiguration := notificationConfiguration.Webhook
+	v3 := conf.Svix
+	webhookHandler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v3)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	notificationService, err := common.NewNotificationService(logger, repository, webhookHandler, featureConnector)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	application := Application{
 		GlobalInitializer:             globalInitializer,
 		Migrator:                      migrator,
@@ -397,6 +431,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		MeterService:                  meterService,
 		NamespaceManager:              manager,
 		Meter:                         meter,
+		NotificationService:           notificationService,
 		Plan:                          planService,
 		Secret:                        secretserviceService,
 		Subscription:                  subscriptionServiceWithWorkflow,
@@ -436,6 +471,7 @@ type Application struct {
 	MeterService                  meter.Service
 	NamespaceManager              *namespace.Manager
 	Meter                         metric.Meter
+	NotificationService           notification.Service
 	Plan                          plan.Service
 	Secret                        secret.Service
 	Subscription                  common.SubscriptionServiceWithWorkflow

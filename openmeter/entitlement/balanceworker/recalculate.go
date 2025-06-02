@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru/v2"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
@@ -15,11 +14,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/lrux"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -29,6 +31,7 @@ const (
 	DefaultIncludeDeletedDuration = 24 * time.Hour
 
 	defaultLRUCacheSize = 10_000
+	defaultCacheTTL     = 15 * time.Second
 	defaultPageSize     = 20_000
 
 	metricNameRecalculationTime               = "balance_worker.entitlement_recalculation_time_ms"
@@ -50,6 +53,8 @@ type RecalculatorOptions struct {
 	SubjectResolver SubjectResolver
 	EventBus        eventbus.Publisher
 	MetricMeter     metric.Meter
+
+	NotificationService notification.Service
 }
 
 func (o RecalculatorOptions) Validate() error {
@@ -65,14 +70,20 @@ func (o RecalculatorOptions) Validate() error {
 		return errors.New("missing metric meter")
 	}
 
+	if o.NotificationService == nil {
+		return errors.New("missing notification service")
+	}
+
 	return nil
 }
 
 type Recalculator struct {
 	opts RecalculatorOptions
 
-	featureCache *lru.Cache[string, feature.Feature]
-	subjectCache *lru.Cache[string, models.Subject]
+	featureCache *lrux.CacheWithItemTTL[pkgmodels.NamespacedID, feature.Feature]
+	subjectCache *lrux.CacheWithItemTTL[pkgmodels.NamespacedKey, models.Subject]
+
+	entitlementFilters *EntitlementFilters
 
 	metricRecalculationTime                 metric.Int64Histogram
 	metricRecalculationJobRecalculationTime metric.Int64Histogram
@@ -81,16 +92,6 @@ type Recalculator struct {
 func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid options: %w", err)
-	}
-
-	featureCache, err := lru.New[string, feature.Feature](defaultLRUCacheSize)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create feature cache: %w", err)
-	}
-
-	subjectCache, err := lru.New[string, models.Subject](defaultLRUCacheSize)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create subject ID cache: %w", err)
 	}
 
 	metricRecalculationTime, err := opts.MetricMeter.Int64Histogram(
@@ -109,18 +110,50 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		return nil, fmt.Errorf("failed to create recalculation time histogram: %w", err)
 	}
 
-	return &Recalculator{
-		opts:                                    opts,
-		featureCache:                            featureCache,
-		subjectCache:                            subjectCache,
+	entitlementFilters, err := NewEntitlementFilters(EntitlementFiltersConfig{
+		NotificationService: opts.NotificationService,
+		MetricMeter:         opts.MetricMeter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create entitlement filters: %w", err)
+	}
+
+	res := &Recalculator{
+		opts:               opts,
+		entitlementFilters: entitlementFilters,
+
 		metricRecalculationTime:                 metricRecalculationTime,
 		metricRecalculationJobRecalculationTime: metricRecalculationJobRecalculationTime,
-	}, nil
+	}
+
+	res.featureCache, err = lrux.NewCacheWithItemTTL(defaultLRUCacheSize, res.getFeature, lrux.WithTTL(defaultCacheTTL))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create feature cache: %w", err)
+	}
+
+	res.subjectCache, err = lrux.NewCacheWithItemTTL(defaultLRUCacheSize, res.getSubjectByKey, lrux.WithTTL(defaultCacheTTL))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create subject ID cache: %w", err)
+	}
+
+	return res, nil
+}
+
+func (r *Recalculator) GetEntitlementFilters() *EntitlementFilters {
+	return r.entitlementFilters
 }
 
 func (r *Recalculator) Recalculate(ctx context.Context, ns string) error {
 	if ns == "" {
 		return errors.New("namespace is required")
+	}
+
+	inScope, err := r.entitlementFilters.IsNamespaceInScope(ctx, ns)
+	if err != nil {
+		return fmt.Errorf("failed to check if namespace is in scope: %w", err)
+	}
+	if !inScope {
+		return nil
 	}
 
 	// Note: this is to support namesapces with more than 64k entitlements, as the subqueries
@@ -167,6 +200,14 @@ func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []e
 	for _, ent := range entitlements {
 		start := time.Now()
 
+		inScope, err := r.entitlementFilters.IsEntitlementInScope(ctx, ent)
+		if err != nil {
+			return fmt.Errorf("failed to check if entitlement is in scope: %w", err)
+		}
+		if !inScope {
+			continue
+		}
+
 		if err := r.sendEntitlementEvent(ctx, ent); err != nil {
 			errs = errors.Join(errs, fmt.Errorf("error sending event for entitlement [id=%s]: %w", ent.ID, err))
 		}
@@ -190,12 +231,18 @@ func (r *Recalculator) sendEntitlementEvent(ctx context.Context, ent entitlement
 }
 
 func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent entitlement.Entitlement) error {
-	subject, err := r.getSubjectByKey(ctx, ent.Namespace, ent.SubjectKey)
+	subject, err := r.subjectCache.Get(ctx, pkgmodels.NamespacedKey{
+		Namespace: ent.Namespace,
+		Key:       ent.SubjectKey,
+	})
 	if err != nil {
 		return err
 	}
 
-	feature, err := r.getFeature(ctx, ent.Namespace, ent.FeatureID)
+	feature, err := r.featureCache.Get(ctx, pkgmodels.NamespacedID{
+		Namespace: ent.Namespace,
+		ID:        ent.FeatureID,
+	})
 	if err != nil {
 		return err
 	}
@@ -221,12 +268,18 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 }
 
 func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent entitlement.Entitlement) error {
-	subject, err := r.getSubjectByKey(ctx, ent.Namespace, ent.SubjectKey)
+	subject, err := r.subjectCache.Get(ctx, pkgmodels.NamespacedKey{
+		Namespace: ent.Namespace,
+		Key:       ent.SubjectKey,
+	})
 	if err != nil {
 		return err
 	}
 
-	feature, err := r.getFeature(ctx, ent.Namespace, ent.FeatureID)
+	feature, err := r.featureCache.Get(ctx, pkgmodels.NamespacedID{
+		Namespace: ent.Namespace,
+		ID:        ent.FeatureID,
+	})
 	if err != nil {
 		return err
 	}
@@ -270,38 +323,28 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 	return r.opts.EventBus.Publish(ctx, event)
 }
 
-func (r *Recalculator) getSubjectByKey(ctx context.Context, ns, key string) (models.Subject, error) {
+func (r *Recalculator) getSubjectByKey(ctx context.Context, namespacedKey pkgmodels.NamespacedKey) (models.Subject, error) {
 	if r.opts.SubjectResolver == nil {
 		return models.Subject{
-			Key: key,
+			Key: namespacedKey.Key,
 		}, nil
 	}
 
-	if id, ok := r.subjectCache.Get(key); ok {
-		return id, nil
-	}
-
-	id, err := r.opts.SubjectResolver.GetSubjectByKey(ctx, ns, key)
+	subject, err := r.opts.SubjectResolver.GetSubjectByKey(ctx, namespacedKey.Namespace, namespacedKey.Key)
 	if err != nil {
 		return models.Subject{
-			Key: key,
+			Key: namespacedKey.Key,
 		}, err
 	}
 
-	r.subjectCache.Add(key, id)
-	return id, nil
+	return subject, nil
 }
 
-func (r *Recalculator) getFeature(ctx context.Context, ns, id string) (feature.Feature, error) {
-	if feat, ok := r.featureCache.Get(id); ok {
-		return feat, nil
-	}
-
-	feat, err := r.opts.Entitlement.Feature.GetFeature(ctx, ns, id, feature.IncludeArchivedFeatureTrue)
+func (r *Recalculator) getFeature(ctx context.Context, featureID pkgmodels.NamespacedID) (feature.Feature, error) {
+	feat, err := r.opts.Entitlement.Feature.GetFeature(ctx, featureID.Namespace, featureID.ID, feature.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return feature.Feature{}, err
 	}
 
-	r.featureCache.Add(id, *feat)
 	return *feat, nil
 }

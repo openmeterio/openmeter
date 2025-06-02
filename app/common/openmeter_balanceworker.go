@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
+	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -81,19 +82,21 @@ func NewBalanceWorkerOptions(
 	entitlements *registry.Entitlement,
 	repo balanceworker.BalanceWorkerRepository,
 	subjectResolver balanceworker.SubjectResolver,
+	notificationService notification.Service,
 	logger *slog.Logger,
 ) balanceworker.WorkerOptions {
 	return balanceworker.WorkerOptions{
 		SystemEventsTopic: eventConfig.SystemEvents.Topic,
 		IngestEventsTopic: eventConfig.IngestEvents.Topic,
 
-		Router:          routerOptions,
-		EventBus:        eventBus,
-		Entitlement:     entitlements,
-		Repo:            repo,
-		SubjectResolver: subjectResolver,
-		Logger:          logger,
-		MetricMeter:     routerOptions.MetricMeter,
+		Router:              routerOptions,
+		EventBus:            eventBus,
+		Entitlement:         entitlements,
+		Repo:                repo,
+		SubjectResolver:     subjectResolver,
+		Logger:              logger,
+		MetricMeter:         routerOptions.MetricMeter,
+		NotificationService: notificationService,
 	}
 }
 

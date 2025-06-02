@@ -192,7 +192,41 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher)
 	balanceWorkerEntitlementRepo := common.NewBalanceWorkerEntitlementRepo(client)
 	subjectResolver := common.BalanceWorkerSubjectResolver()
-	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, subjectResolver, logger)
+	repository, err := common.NewNotificationAdapter(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	notificationConfiguration := conf.Notification
+	webhookConfiguration := notificationConfiguration.Webhook
+	v3 := conf.Svix
+	handler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v3)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
+	notificationService, err := common.NewNotificationService(logger, repository, handler, featureConnector)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, subjectResolver, notificationService, logger)
 	worker, err := common.NewBalanceWorker(workerOptions)
 	if err != nil {
 		cleanup6()
@@ -215,8 +249,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v3, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	group := common.BalanceWorkerGroup(ctx, worker, v3)
+	v4, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	group := common.BalanceWorkerGroup(ctx, worker, v4)
 	runner := common.Runner{
 		Group:  group,
 		Logger: logger,
