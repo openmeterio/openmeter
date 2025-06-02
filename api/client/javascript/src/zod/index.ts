@@ -13832,6 +13832,12 @@ export const createSubscriptionBody = zod
       .describe('Alignment configuration for a plan or subscription.')
       .optional()
       .describe('What alignment settings the subscription should have.'),
+    billingAnchor: zod
+      .date()
+      .optional()
+      .describe(
+        'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.'
+      ),
     customerId: zod
       .string()
       .regex(createSubscriptionBodyCustomerIdRegExp)
@@ -13907,6 +13913,12 @@ export const createSubscriptionBody = zod
   .or(
     zod
       .object({
+        billingAnchor: zod
+          .date()
+          .optional()
+          .describe(
+            'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.'
+          ),
         customerId: zod
           .string()
           .regex(createSubscriptionBodyCustomerIdRegExpOne)

@@ -13255,6 +13255,11 @@ components:
           minLength: 1
           maxLength: 256
           description: The key of the customer. Provide either the key or ID.
+        billingAnchor:
+          type: string
+          format: date-time
+          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+          example: '2023-01-01T01:01:01.001Z'
       description: Create a custom subscription.
     Customer:
       type: object
@@ -19747,6 +19752,11 @@ components:
           minLength: 1
           maxLength: 256
           description: The key of the customer. Provide either the key or ID.
+        billingAnchor:
+          type: string
+          format: date-time
+          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+          example: '2023-01-01T01:01:01.001Z'
       description: Create subscription based on plan.
     PortalToken:
       type: object
@@ -20849,6 +20859,7 @@ components:
         - customerId
         - currency
         - billingCadence
+        - billingAnchor
       properties:
         id:
           type: string
@@ -20950,6 +20961,13 @@ components:
           default:
             enabled: true
             mode: prorate_prices
+          readOnly: true
+        billingAnchor:
+          type: string
+          format: date-time
+          description: The normalizedbilling anchor of the subscription.
+          example: '2023-01-01T01:01:01.001Z'
+          title: Billing anchor
           readOnly: true
       description: Subscription is an exact subscription instance.
     SubscriptionAddon:
@@ -21324,6 +21342,7 @@ components:
         - customerId
         - currency
         - billingCadence
+        - billingAnchor
         - phases
       properties:
         id:
@@ -21422,6 +21441,13 @@ components:
           default:
             enabled: true
             mode: prorate_prices
+          readOnly: true
+        billingAnchor:
+          type: string
+          format: date-time
+          description: The normalizedbilling anchor of the subscription.
+          example: '2023-01-01T01:01:01.001Z'
+          title: Billing anchor
           readOnly: true
         alignment:
           allOf:
