@@ -1,4 +1,4 @@
-package metrics
+package internal
 
 import (
 	"context"
@@ -26,6 +26,10 @@ type ConsumerGroupMetrics struct {
 }
 
 func (m *ConsumerGroupMetrics) Add(ctx context.Context, stats *stats.ConsumerGroupStats, attrs ...attribute.KeyValue) {
+	if stats == nil {
+		return
+	}
+
 	m.State.Record(ctx, stats.State.Int64(), metric.WithAttributes(attrs...))
 	m.StateAge.Record(ctx, stats.StateAge, metric.WithAttributes(attrs...))
 	m.JoinState.Record(ctx, stats.JoinState.Int64(), metric.WithAttributes(attrs...))

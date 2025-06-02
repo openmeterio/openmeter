@@ -1,4 +1,4 @@
-package metrics
+package internal
 
 import (
 	"context"
@@ -10,7 +10,298 @@ import (
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
 )
 
+type BrokerLatencyMetrics struct {
+	// Smallest value
+	LatencyMin metric.Int64Gauge
+	// Largest value
+	LatencyMax metric.Int64Gauge
+	// Average value
+	LatencyAvg metric.Int64Gauge
+	// Sum of values
+	LatencySum metric.Int64Gauge
+	// Standard deviation (based on histogram)
+	LatencyStdDev metric.Int64Gauge
+	// 50th percentile
+	LatencyP50 metric.Int64Gauge
+	// 75th percentile
+	LatencyP75 metric.Int64Gauge
+	// 90th percentile
+	LatencyP90 metric.Int64Gauge
+	// 95th percentile
+	LatencyP95 metric.Int64Gauge
+	// 99th percentile
+	LatencyP99 metric.Int64Gauge
+	// 99.99th percentile
+	LatencyP9999 metric.Int64Gauge
+}
+
+func (m *BrokerLatencyMetrics) Add(ctx context.Context, stats *stats.BrokerStats, attrs ...attribute.KeyValue) {
+	if stats == nil {
+		return
+	}
+
+	attrs = append(attrs, []attribute.KeyValue{
+		attribute.String("node_name", stats.NodeName),
+		attribute.Int64("node_id", stats.NodeID),
+	}...)
+
+	m.LatencyMin.Record(ctx, stats.Latency.Min, metric.WithAttributes(attrs...))
+	m.LatencyMax.Record(ctx, stats.Latency.Max, metric.WithAttributes(attrs...))
+	m.LatencyAvg.Record(ctx, stats.Latency.Avg, metric.WithAttributes(attrs...))
+	m.LatencySum.Record(ctx, stats.Latency.Sum, metric.WithAttributes(attrs...))
+	m.LatencyStdDev.Record(ctx, stats.Latency.StdDev, metric.WithAttributes(attrs...))
+	m.LatencyP50.Record(ctx, stats.Latency.P50, metric.WithAttributes(attrs...))
+	m.LatencyP75.Record(ctx, stats.Latency.P75, metric.WithAttributes(attrs...))
+	m.LatencyP90.Record(ctx, stats.Latency.P90, metric.WithAttributes(attrs...))
+	m.LatencyP95.Record(ctx, stats.Latency.P95, metric.WithAttributes(attrs...))
+	m.LatencyP99.Record(ctx, stats.Latency.P99, metric.WithAttributes(attrs...))
+	m.LatencyP9999.Record(ctx, stats.Latency.P9999, metric.WithAttributes(attrs...))
+}
+
+func NewBrokerLatencyMetrics(meter metric.Meter) (*BrokerLatencyMetrics, error) {
+	var err error
+	m := &BrokerLatencyMetrics{}
+
+	m.LatencyMin, err = meter.Int64Gauge(
+		"kafka.broker.latency_min",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_min: %w", err)
+	}
+
+	m.LatencyMax, err = meter.Int64Gauge(
+		"kafka.broker.latency_max",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_max: %w", err)
+	}
+
+	m.LatencyAvg, err = meter.Int64Gauge(
+		"kafka.broker.latency_avg",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_avg: %w", err)
+	}
+
+	m.LatencySum, err = meter.Int64Gauge(
+		"kafka.broker.latency_sum",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_sum: %w", err)
+	}
+
+	m.LatencyStdDev, err = meter.Int64Gauge(
+		"kafka.broker.latency_stddev",
+		metric.WithDescription("Standard deviation (based on histogram)"),
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_stddev: %w", err)
+	}
+
+	m.LatencyP50, err = meter.Int64Gauge(
+		"kafka.broker.latency_p50",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_p50: %w", err)
+	}
+
+	m.LatencyP75, err = meter.Int64Gauge(
+		"kafka.broker.latency_p75",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_p75: %w", err)
+	}
+
+	m.LatencyP90, err = meter.Int64Gauge(
+		"kafka.broker.latency_p90",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_p90: %w", err)
+	}
+
+	m.LatencyP95, err = meter.Int64Gauge(
+		"kafka.broker.latency_p95",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_p95: %w", err)
+	}
+
+	m.LatencyP99, err = meter.Int64Gauge(
+		"kafka.broker.latency_p99",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_p99: %w", err)
+	}
+
+	m.LatencyP9999, err = meter.Int64Gauge(
+		"kafka.broker.latency_p9999",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_p9999: %w", err)
+	}
+
+	return m, nil
+}
+
+type BrokerThrottleMetrics struct {
+	// Smallest value
+	ThrottleMin metric.Int64Gauge
+	// Largest value
+	ThrottleMax metric.Int64Gauge
+	// Average value
+	ThrottleAvg metric.Int64Gauge
+	// Sum of values
+	ThrottleSum metric.Int64Gauge
+	// Standard deviation (based on histogram)
+	ThrottleStdDev metric.Int64Gauge
+	// 50th percentile
+	ThrottleP50 metric.Int64Gauge
+	// 75th percentile
+	ThrottleP75 metric.Int64Gauge
+	// 90th percentile
+	ThrottleP90 metric.Int64Gauge
+	// 95th percentile
+	ThrottleP95 metric.Int64Gauge
+	// 99th percentile
+	ThrottleP99 metric.Int64Gauge
+	// 99.99th percentile
+	ThrottleP9999 metric.Int64Gauge
+}
+
+func (m *BrokerThrottleMetrics) Add(ctx context.Context, stats *stats.BrokerStats, attrs ...attribute.KeyValue) {
+	if stats == nil {
+		return
+	}
+
+	attrs = append(attrs, []attribute.KeyValue{
+		attribute.String("node_name", stats.NodeName),
+		attribute.Int64("node_id", stats.NodeID),
+	}...)
+
+	m.ThrottleMin.Record(ctx, stats.Throttle.Min, metric.WithAttributes(attrs...))
+	m.ThrottleMax.Record(ctx, stats.Throttle.Max, metric.WithAttributes(attrs...))
+	m.ThrottleAvg.Record(ctx, stats.Throttle.Avg, metric.WithAttributes(attrs...))
+	m.ThrottleSum.Record(ctx, stats.Throttle.Sum, metric.WithAttributes(attrs...))
+	m.ThrottleStdDev.Record(ctx, stats.Throttle.StdDev, metric.WithAttributes(attrs...))
+	m.ThrottleP50.Record(ctx, stats.Throttle.P50, metric.WithAttributes(attrs...))
+	m.ThrottleP75.Record(ctx, stats.Throttle.P75, metric.WithAttributes(attrs...))
+	m.ThrottleP90.Record(ctx, stats.Throttle.P90, metric.WithAttributes(attrs...))
+	m.ThrottleP95.Record(ctx, stats.Throttle.P95, metric.WithAttributes(attrs...))
+	m.ThrottleP99.Record(ctx, stats.Throttle.P99, metric.WithAttributes(attrs...))
+	m.ThrottleP9999.Record(ctx, stats.Throttle.P9999, metric.WithAttributes(attrs...))
+}
+
+func NewBrokerThrottleMetrics(meter metric.Meter) (*BrokerThrottleMetrics, error) {
+	var err error
+	m := &BrokerThrottleMetrics{}
+
+	m.ThrottleMin, err = meter.Int64Gauge(
+		"kafka.broker.throttle_min",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_min: %w", err)
+	}
+
+	m.ThrottleMax, err = meter.Int64Gauge(
+		"kafka.broker.throttle_max",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_max: %w", err)
+	}
+
+	m.ThrottleAvg, err = meter.Int64Gauge(
+		"kafka.broker.throttle_avg",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_avg: %w", err)
+	}
+
+	m.ThrottleSum, err = meter.Int64Gauge(
+		"kafka.broker.throttle_sum",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_sum: %w", err)
+	}
+
+	m.ThrottleStdDev, err = meter.Int64Gauge(
+		"kafka.broker.throttle_stddev",
+		metric.WithDescription("Standard deviation (based on histogram)"),
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_stddev: %w", err)
+	}
+
+	m.ThrottleP50, err = meter.Int64Gauge(
+		"kafka.broker.throttle_p50",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_p50: %w", err)
+	}
+
+	m.ThrottleP75, err = meter.Int64Gauge(
+		"kafka.broker.throttle_p75",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_p75: %w", err)
+	}
+
+	m.ThrottleP90, err = meter.Int64Gauge(
+		"kafka.broker.throttle_p90",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_p90: %w", err)
+	}
+
+	m.ThrottleP95, err = meter.Int64Gauge(
+		"kafka.broker.throttle_p95",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_p95: %w", err)
+	}
+
+	m.ThrottleP99, err = meter.Int64Gauge(
+		"kafka.broker.throttle_p99",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_p99: %w", err)
+	}
+
+	m.ThrottleP9999, err = meter.Int64Gauge(
+		"kafka.broker.throttle_p9999",
+		metric.WithUnit("{microsecond}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_p9999: %w", err)
+	}
+
+	return m, nil
+}
+
 type BrokerMetrics struct {
+	latencyMetrics  *BrokerLatencyMetrics
+	throttleMetrics *BrokerThrottleMetrics
+
 	// Broker source (learned, configured, internal, logical)
 	Source metric.Int64Gauge
 	// Broker state (INIT, DOWN, CONNECT, AUTH, APIVERSION_QUERY, AUTH_HANDSHAKE, UP, UPDATE)
@@ -49,57 +340,13 @@ type BrokerMetrics struct {
 	Connects metric.Int64Gauge
 	// Number of disconnects (triggered by broker, network, load-balancer, etc.).
 	Disconnects metric.Int64Gauge
-
-	// Smallest value
-	LatencyMin metric.Int64Gauge
-	// Largest value
-	LatencyMax metric.Int64Gauge
-	// Average value
-	LatencyAvg metric.Int64Gauge
-	// Sum of values
-	LatencySum metric.Int64Gauge
-	// Standard deviation (based on histogram)
-	LatencyStdDev metric.Int64Gauge
-	// 50th percentile
-	LatencyP50 metric.Int64Gauge
-	// 75th percentile
-	LatencyP75 metric.Int64Gauge
-	// 90th percentile
-	LatencyP90 metric.Int64Gauge
-	// 95th percentile
-	LatencyP95 metric.Int64Gauge
-	// 99th percentile
-	LatencyP99 metric.Int64Gauge
-	// 99.99th percentile
-	LatencyP9999 metric.Int64Gauge
-
-	// Smallest value
-	ThrottleMin metric.Int64Gauge
-	// Largest value
-	ThrottleMax metric.Int64Gauge
-	// Average value
-	ThrottleAvg metric.Int64Gauge
-	// Sum of values
-	ThrottleSum metric.Int64Gauge
-	// Standard deviation (based on histogram)
-	ThrottleStdDev metric.Int64Gauge
-	// Memory size of Hdr Histogram
-	ThrottleHdrSize metric.Int64Gauge
-	// 50th percentile
-	ThrottleP50 metric.Int64Gauge
-	// 75th percentile
-	ThrottleP75 metric.Int64Gauge
-	// 90th percentile
-	ThrottleP90 metric.Int64Gauge
-	// 95th percentile
-	ThrottleP95 metric.Int64Gauge
-	// 99th percentile
-	ThrottleP99 metric.Int64Gauge
-	// 99.99th percentile
-	ThrottleP9999 metric.Int64Gauge
 }
 
 func (m *BrokerMetrics) Add(ctx context.Context, stats *stats.BrokerStats, attrs ...attribute.KeyValue) {
+	if stats == nil {
+		return
+	}
+
 	attrs = append(attrs, []attribute.KeyValue{
 		attribute.String("node_name", stats.NodeName),
 		attribute.Int64("node_id", stats.NodeID),
@@ -125,34 +372,30 @@ func (m *BrokerMetrics) Add(ctx context.Context, stats *stats.BrokerStats, attrs
 	m.Connects.Record(ctx, stats.Connects, metric.WithAttributes(attrs...))
 	m.Disconnects.Record(ctx, stats.Disconnects, metric.WithAttributes(attrs...))
 
-	m.LatencyMin.Record(ctx, stats.Latency.Min, metric.WithAttributes(attrs...))
-	m.LatencyMax.Record(ctx, stats.Latency.Max, metric.WithAttributes(attrs...))
-	m.LatencyAvg.Record(ctx, stats.Latency.Avg, metric.WithAttributes(attrs...))
-	m.LatencySum.Record(ctx, stats.Latency.Sum, metric.WithAttributes(attrs...))
-	m.LatencyStdDev.Record(ctx, stats.Latency.StdDev, metric.WithAttributes(attrs...))
-	m.LatencyP50.Record(ctx, stats.Latency.P50, metric.WithAttributes(attrs...))
-	m.LatencyP75.Record(ctx, stats.Latency.P75, metric.WithAttributes(attrs...))
-	m.LatencyP90.Record(ctx, stats.Latency.P90, metric.WithAttributes(attrs...))
-	m.LatencyP95.Record(ctx, stats.Latency.P95, metric.WithAttributes(attrs...))
-	m.LatencyP99.Record(ctx, stats.Latency.P99, metric.WithAttributes(attrs...))
-	m.LatencyP9999.Record(ctx, stats.Latency.P9999, metric.WithAttributes(attrs...))
+	if m.latencyMetrics != nil {
+		m.latencyMetrics.Add(ctx, stats, attrs...)
+	}
 
-	m.ThrottleMin.Record(ctx, stats.Throttle.Min, metric.WithAttributes(attrs...))
-	m.ThrottleMax.Record(ctx, stats.Throttle.Max, metric.WithAttributes(attrs...))
-	m.ThrottleAvg.Record(ctx, stats.Throttle.Avg, metric.WithAttributes(attrs...))
-	m.ThrottleSum.Record(ctx, stats.Throttle.Sum, metric.WithAttributes(attrs...))
-	m.ThrottleStdDev.Record(ctx, stats.Throttle.StdDev, metric.WithAttributes(attrs...))
-	m.ThrottleP50.Record(ctx, stats.Throttle.P50, metric.WithAttributes(attrs...))
-	m.ThrottleP75.Record(ctx, stats.Throttle.P75, metric.WithAttributes(attrs...))
-	m.ThrottleP90.Record(ctx, stats.Throttle.P90, metric.WithAttributes(attrs...))
-	m.ThrottleP95.Record(ctx, stats.Throttle.P95, metric.WithAttributes(attrs...))
-	m.ThrottleP99.Record(ctx, stats.Throttle.P99, metric.WithAttributes(attrs...))
-	m.ThrottleP9999.Record(ctx, stats.Throttle.P9999, metric.WithAttributes(attrs...))
+	if m.throttleMetrics != nil {
+		m.throttleMetrics.Add(ctx, stats, attrs...)
+	}
 }
 
-func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
+func NewBrokerMetrics(meter metric.Meter, extended bool) (*BrokerMetrics, error) {
 	var err error
 	m := &BrokerMetrics{}
+
+	if extended {
+		m.latencyMetrics, err = NewBrokerLatencyMetrics(meter)
+		if err != nil {
+			return nil, err
+		}
+
+		m.throttleMetrics, err = NewBrokerThrottleMetrics(meter)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	m.Source, err = meter.Int64Gauge(
 		"kafka.broker.source",
@@ -321,184 +564,6 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.disconnects: %w", err)
-	}
-
-	m.LatencyMin, err = meter.Int64Gauge(
-		"kafka.broker.latency_min",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_min: %w", err)
-	}
-
-	m.LatencyMax, err = meter.Int64Gauge(
-		"kafka.broker.latency_max",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_max: %w", err)
-	}
-
-	m.LatencyAvg, err = meter.Int64Gauge(
-		"kafka.broker.latency_avg",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_avg: %w", err)
-	}
-
-	m.LatencySum, err = meter.Int64Gauge(
-		"kafka.broker.latency_sum",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_sum: %w", err)
-	}
-
-	m.LatencyStdDev, err = meter.Int64Gauge(
-		"kafka.broker.latency_stddev",
-		metric.WithDescription("Standard deviation (based on histogram)"),
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_stddev: %w", err)
-	}
-
-	m.LatencyP50, err = meter.Int64Gauge(
-		"kafka.broker.latency_p50",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_p50: %w", err)
-	}
-
-	m.LatencyP75, err = meter.Int64Gauge(
-		"kafka.broker.latency_p75",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_p75: %w", err)
-	}
-
-	m.LatencyP90, err = meter.Int64Gauge(
-		"kafka.broker.latency_p90",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_p90: %w", err)
-	}
-
-	m.LatencyP95, err = meter.Int64Gauge(
-		"kafka.broker.latency_p95",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_p95: %w", err)
-	}
-
-	m.LatencyP99, err = meter.Int64Gauge(
-		"kafka.broker.latency_p99",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_p99: %w", err)
-	}
-
-	m.LatencyP9999, err = meter.Int64Gauge(
-		"kafka.broker.latency_p9999",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.latency_p9999: %w", err)
-	}
-
-	m.ThrottleMin, err = meter.Int64Gauge(
-		"kafka.broker.throttle_min",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_min: %w", err)
-	}
-
-	m.ThrottleMax, err = meter.Int64Gauge(
-		"kafka.broker.throttle_max",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_max: %w", err)
-	}
-
-	m.ThrottleAvg, err = meter.Int64Gauge(
-		"kafka.broker.throttle_avg",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_avg: %w", err)
-	}
-
-	m.ThrottleSum, err = meter.Int64Gauge(
-		"kafka.broker.throttle_sum",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_sum: %w", err)
-	}
-
-	m.ThrottleStdDev, err = meter.Int64Gauge(
-		"kafka.broker.throttle_stddev",
-		metric.WithDescription("Standard deviation (based on histogram)"),
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_stddev: %w", err)
-	}
-
-	m.ThrottleP50, err = meter.Int64Gauge(
-		"kafka.broker.throttle_p50",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_p50: %w", err)
-	}
-
-	m.ThrottleP75, err = meter.Int64Gauge(
-		"kafka.broker.throttle_p75",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_p75: %w", err)
-	}
-
-	m.ThrottleP90, err = meter.Int64Gauge(
-		"kafka.broker.throttle_p90",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_p90: %w", err)
-	}
-
-	m.ThrottleP95, err = meter.Int64Gauge(
-		"kafka.broker.throttle_p95",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_p95: %w", err)
-	}
-
-	m.ThrottleP99, err = meter.Int64Gauge(
-		"kafka.broker.throttle_p99",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_p99: %w", err)
-	}
-
-	m.ThrottleP9999, err = meter.Int64Gauge(
-		"kafka.broker.throttle_p9999",
-		metric.WithUnit("{microsecond}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric: kafka.broker.throttle_p9999: %w", err)
 	}
 
 	return m, nil

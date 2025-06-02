@@ -16,7 +16,7 @@ func TestStats(t *testing.T) {
 
 	err := json.Unmarshal(statsJSON, &stats)
 	if err != nil {
-		t.Errorf("faield to unmarshal stats JSON: %v", err)
+		t.Errorf("failed to unmarshal stats JSON: %v", err)
 	}
 	assert.Nil(t, err)
 
