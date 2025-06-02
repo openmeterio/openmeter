@@ -29,7 +29,7 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 	for _, entitlement := range affectedEntitlements {
 		event, err := w.handleEntitlementEvent(
 			ctx,
-			NamespacedID{Namespace: entitlement.Namespace, ID: entitlement.EntitlementID},
+			EntitlementID{Namespace: entitlement.Namespace, ID: entitlement.EntitlementID},
 			WithSource(metadata.ComposeResourcePath(entitlement.Namespace, metadata.EntityEvent)),
 			WithEventAt(event.StoredAt),
 			WithRawIngestedEvents(event.RawEvents),
@@ -52,7 +52,7 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 	return handlingError
 }
 
-func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, namespace string, meterSlugs []string, subject string) ([]NamespacedID, error) {
+func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, namespace string, meterSlugs []string, subject string) ([]EntitlementID, error) {
 	featuresByMeter, err := w.entitlement.Feature.ListFeatures(ctx, feature.ListFeaturesParams{
 		Namespace:  namespace,
 		MeterSlugs: meterSlugs,
@@ -75,9 +75,9 @@ func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, name
 		return nil, err
 	}
 
-	entitlementIDs := make([]NamespacedID, 0, len(entitlements.Items))
+	entitlementIDs := make([]EntitlementID, 0, len(entitlements.Items))
 	for _, entitlement := range entitlements.Items {
-		entitlementIDs = append(entitlementIDs, NamespacedID{
+		entitlementIDs = append(entitlementIDs, EntitlementID{
 			ID:        entitlement.ID,
 			Namespace: entitlement.Namespace,
 		})
