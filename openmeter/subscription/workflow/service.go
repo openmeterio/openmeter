@@ -3,6 +3,7 @@ package subscriptionworkflow
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
@@ -23,6 +24,8 @@ type CreateSubscriptionWorkflowInput struct {
 	ChangeSubscriptionWorkflowInput
 	Namespace  string
 	CustomerID string
+
+	BillingAnchor *time.Time `json:"billingAnchor,omitempty"`
 }
 
 type ChangeSubscriptionWorkflowInput struct {

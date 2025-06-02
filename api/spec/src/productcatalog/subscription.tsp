@@ -112,6 +112,13 @@ model Subscription {
     enabled: true,
     mode: ProRatingMode.proratePrices,
   };
+
+  /**
+   * The normalizedbilling anchor of the subscription.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Billing anchor")
+  billingAnchor: DateTime;
 }
 
 /**
@@ -367,6 +374,11 @@ model CustomSubscriptionCreate {
    * The key of the customer. Provide either the key or ID.
    */
   customerKey?: ExternalKey;
+
+  /**
+   * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+   */
+  billingAnchor?: DateTime;
 }
 
 /**
@@ -418,6 +430,11 @@ model PlanSubscriptionCreate {
    * The key of the customer. Provide either the key or ID.
    */
   customerKey?: ExternalKey;
+
+  /**
+   * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+   */
+  billingAnchor?: DateTime;
 }
 
 /**

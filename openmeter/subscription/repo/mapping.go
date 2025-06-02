@@ -60,6 +60,7 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		Currency:        sub.Currency,
 		BillingCadence:  billingCadence,
 		ProRatingConfig: sub.ProRatingConfig,
+		BillingAnchor:   sub.BillingAnchor,
 	}, nil
 }
 

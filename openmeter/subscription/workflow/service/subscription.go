@@ -56,6 +56,7 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 			MetadataModel: inp.MetadataModel,
 			Name:          lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
 			Description:   inp.Description,
+			BillingAnchor: lo.FromPtrOr(inp.BillingAnchor, activeFrom).UTC(),
 		})
 
 		if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil {

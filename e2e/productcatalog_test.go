@@ -443,10 +443,14 @@ func TestPlan(t *testing.T) {
 		require.NoError(t, ct.FromSubscriptionTiming1(startTime))
 
 		create := api.SubscriptionCreate{}
+
+		anchorTime := time.Now().Add(-time.Hour).Truncate(time.Millisecond).UTC()
+
 		err := create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
-			Timing:      ct,
-			CustomerKey: customer2.Key,   // Let's use the key
-			CustomPlan:  customPlanInput, // For simplicity we can reuse the same plan input, we know its valid
+			Timing:        ct,
+			CustomerKey:   customer2.Key,   // Let's use the key
+			CustomPlan:    customPlanInput, // For simplicity we can reuse the same plan input, we know its valid
+			BillingAnchor: lo.ToPtr(anchorTime),
 		})
 		require.Nil(t, err)
 
@@ -463,6 +467,7 @@ func TestPlan(t *testing.T) {
 
 		customSubscriptionId = subscription.Id
 		require.Equal(t, "P1M", subscription.BillingCadence)
+		require.True(t, anchorTime.UTC().Equal(subscription.BillingAnchor.UTC()), "billing anchor should be %s, got %s", anchorTime, subscription.BillingAnchor)
 		require.Equal(t, api.ProRatingModeProratePrices, subscription.ProRatingConfig.Mode)
 		require.True(t, subscription.ProRatingConfig.Enabled)
 	})
