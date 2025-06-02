@@ -3571,17 +3571,22 @@ func (s *SubscriptionHandlerTestSuite) TestUseUsageBasedFlatFeeLinesCompatibilit
 func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior() {
 	ctx := s.Context
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	defer clock.UnFreeze()
 
 	// Given
 	//	a subscription with two phases started, with prorating enabled
 	//   the first phase is 2 weeks long, the second phase is unlimited
 	//   the phases have in advance, in arrears and usage based lines
 	// When
-	//  we syncronize the subscription data for 1 month
+	//  we cancel the subscription asof 2025-03-01
+	//  we syncronize the subscription data up to 2025-03-01
 	// Then
 	//  The in-advance and in arrears lines should be prorated for the first phase
 	//  The usage based line's price is intact, only the period length is changed
 	//  The second phase's lines are aligned to the phase's start (as we don't have custom anchor set)
+	//  The second phase's in-advance and in arreas lines are not prorated (for the 2nd half period), as we only support prorating due to alignment for now
+
+	// NOTE[implicit behavior]: Handler's prorating logic is disabled before the test execution.
 
 	secondPhase := productcatalog.Phase{
 		PhaseMeta: s.phaseMeta("second-phase", ""),
@@ -3653,8 +3658,19 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 		},
 	})
 
+	// Let's cancel the subscription asof 2025-03-01
+	clock.FreezeTime(s.mustParseTime("2024-03-01T00:00:00Z"))
+	_, err := s.SubscriptionService.Cancel(ctx, subView.Subscription.NamespacedID, subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
+	})
+	s.NoError(err)
+
+	// Let's refetch the subscription view
+	subView, err = s.SubscriptionService.GetView(ctx, subView.Subscription.NamespacedID)
+	s.NoError(err)
+
 	// Let's syncrhonize subscription data for 1 month
-	s.NoError(s.Handler.SyncronizeSubscription(ctx, subView, s.mustParseTime("2024-02-01T00:00:00Z")))
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subView, s.mustParseTime("2024-03-01T00:00:00Z")))
 
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
@@ -3723,15 +3739,17 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				},
 				{
 					Start: s.mustParseTime("2024-02-15T00:00:00Z"),
-					End:   s.mustParseTime("2024-03-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
 			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z"), s.mustParseTime("2024-02-15T00:00:00Z")},
 		},
 		{
 			Matcher: recurringLineMatcher{
-				PhaseKey: "second-phase",
-				ItemKey:  "in-arrears",
+				PhaseKey:  "second-phase",
+				ItemKey:   "in-arrears",
+				PeriodMin: 0,
+				PeriodMax: 1,
 			},
 			Qty:       mo.Some(1.0),
 			UnitPrice: mo.Some(2.5),
@@ -3740,13 +3758,19 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
 					End:   s.mustParseTime("2024-02-15T00:00:00Z"),
 				},
+				{
+					Start: s.mustParseTime("2024-02-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-02-15T00:00:00Z")},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-02-15T00:00:00Z"), s.mustParseTime("2024-03-01T00:00:00Z")},
 		},
 		{
 			Matcher: recurringLineMatcher{
-				PhaseKey: "second-phase",
-				ItemKey:  "api-requests-total",
+				PhaseKey:  "second-phase",
+				ItemKey:   "api-requests-total",
+				PeriodMin: 0,
+				PeriodMax: 1,
 			},
 			Qty:       mo.Some(1.0),
 			UnitPrice: mo.Some[float64](10),
@@ -3755,8 +3779,12 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
 					End:   s.mustParseTime("2024-02-15T00:00:00Z"),
 				},
+				{
+					Start: s.mustParseTime("2024-02-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-02-15T00:00:00Z")},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-02-15T00:00:00Z"), s.mustParseTime("2024-03-01T00:00:00Z")},
 		},
 	})
 }
