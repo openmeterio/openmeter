@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
@@ -19,6 +20,28 @@ type ubpFlatFeeLine struct {
 }
 
 func (l ubpFlatFeeLine) PrepareForCreate(context.Context) (Line, error) {
+	price := l.line.UsageBased.Price
+
+	if price == nil {
+		return nil, fmt.Errorf("price is required")
+	}
+
+	if price.Type() != productcatalog.FlatPriceType {
+		return nil, fmt.Errorf("price must be a flat price")
+	}
+
+	flatPrice, err := price.AsFlat()
+	if err != nil {
+		return nil, fmt.Errorf("price must be a flat price: %w", err)
+	}
+
+	// Let's apply default values if not set in the price
+	if flatPrice.PaymentTerm == "" {
+		flatPrice.PaymentTerm = productcatalog.InAdvancePaymentTerm
+
+		l.line.UsageBased.Price = productcatalog.NewPriceFrom(flatPrice)
+	}
+
 	return &l, nil
 }
 

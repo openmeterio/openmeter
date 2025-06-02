@@ -777,7 +777,7 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 				ManagedBy:   billing.ManuallyManagedLine,
 				Status:      billing.InvoiceLineStatusValid,
 
-				Type: billing.InvoiceLineTypeFee,
+				Type: billing.InvoiceLineTypeUsageBased,
 
 				InvoiceID: invoice.ID,
 				Currency:  invoice.Currency,
