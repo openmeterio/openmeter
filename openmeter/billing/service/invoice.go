@@ -921,6 +921,22 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				return billing.Invoice{}, fmt.Errorf("editing invoice: %w", err)
 			}
 
+			lineServices, err := s.lineService.FromEntities(invoice.Lines.OrEmpty())
+			if err != nil {
+				return billing.Invoice{}, fmt.Errorf("creating line services: %w", err)
+			}
+
+			for idx := range lineServices {
+				lineSvc, err := lineServices[idx].PrepareForCreate(ctx)
+				if err != nil {
+					return billing.Invoice{}, fmt.Errorf("preparing line[%s] for create: %w", lineServices[idx].ID(), err)
+				}
+
+				lineServices[idx] = lineSvc
+			}
+
+			invoice.Lines = billing.NewLineChildren(lineServices.ToEntities())
+
 			if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
 				return billing.Invoice{}, fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)
 			}

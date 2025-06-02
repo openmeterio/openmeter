@@ -448,7 +448,7 @@ func (f *FlatPrice) Validate() error {
 		errs = append(errs, errors.New("the Amount must not be negative"))
 	}
 
-	if !lo.Contains(PaymentTermType("").Values(), string(f.PaymentTerm)) {
+	if f.PaymentTerm != "" && !lo.Contains(PaymentTermType("").Values(), string(f.PaymentTerm)) {
 		errs = append(errs, fmt.Errorf("invalid PaymentTerm: %s", f.PaymentTerm))
 	}
 
