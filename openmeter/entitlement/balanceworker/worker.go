@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -51,8 +52,10 @@ type WorkerOptions struct {
 
 	Entitlement *registry.Entitlement
 	Repo        BalanceWorkerRepository
+
 	// External connectors
-	SubjectResolver SubjectResolver
+	SubjectResolver     SubjectResolver
+	NotificationService notification.Service
 
 	MetricMeter metric.Meter
 
@@ -88,6 +91,10 @@ func (o *WorkerOptions) Validate() error {
 		return errors.New("metric meter is required")
 	}
 
+	if o.NotificationService == nil {
+		return errors.New("notification service is required")
+	}
+
 	return nil
 }
 
@@ -101,6 +108,8 @@ type Worker struct {
 	entitlement *registry.Entitlement
 	repo        BalanceWorkerRepository
 	router      *message.Router
+
+	filters *EntitlementFilters
 
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
 
@@ -138,9 +147,18 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, fmt.Errorf("failed to validate worker options: %w", err)
 	}
 
+	// TODO[later]: move to filters
 	highWatermarkCache, err := lru.New[string, highWatermarkCacheEntry](defaultHighWatermarkCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create high watermark cache: %w", err)
+	}
+
+	filters, err := NewEntitlementFilters(EntitlementFiltersConfig{
+		NotificationService: opts.NotificationService,
+		MetricMeter:         opts.MetricMeter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create entitlement filters: %w", err)
 	}
 
 	worker := &Worker{
@@ -148,6 +166,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 		entitlement:        opts.Entitlement,
 		repo:               opts.Repo,
 		highWatermarkCache: highWatermarkCache,
+		filters:            filters,
 	}
 
 	if err := worker.initMetrics(); err != nil {

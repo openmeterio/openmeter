@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/registry"
@@ -54,6 +55,7 @@ type Application struct {
 	MeterService                  meter.Service
 	NamespaceManager              *namespace.Manager
 	Meter                         metric.Meter
+	NotificationService           notification.Service
 	Plan                          plan.Service
 	Secret                        secret.Service
 	Subscription                  common.SubscriptionServiceWithWorkflow
@@ -80,6 +82,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewBillingSubscriptionReconciler,
 		common.NewDefaultTextMapPropagator,
 		common.NewServerPublisher,
+		common.Notification,
 		common.Streaming,
 		common.ProductCatalog,
 		common.ProgressManager,

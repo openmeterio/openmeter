@@ -114,6 +114,14 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID Names
 		return nil, nil
 	}
 
+	inScope, err := w.filters.IsNamespaceInScope(ctx, entitlementID.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check if entitlement is in scope: %w", err)
+	}
+	if !inScope {
+		return nil, nil
+	}
+
 	action := w.checkHighWatermarkCache(ctx, entitlementID, opts)
 
 	if action == skipEventAction {
@@ -138,6 +146,14 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID Names
 	}
 
 	entitlementEntity := entitlements.Items[0]
+
+	inScope, err = w.filters.IsEntitlementInScope(ctx, entitlementEntity)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check if entitlement is in scope: %w", err)
+	}
+	if !inScope {
+		return nil, nil
+	}
 	return w.processEntitlementEntity(ctx, &entitlementEntity, calculatedAt, options...)
 }
 

@@ -25,6 +25,14 @@ var Notification = wire.NewSet(
 	NewNotificationEventHandler,
 )
 
+// NotificationService is a wire set for the notification service, it can be used at
+// places where only the service is required without svix and event handler.
+var NotificationService = wire.NewSet(
+	NewNotificationAdapter,
+	NewNotificationService,
+	NewNoopNotificationWebhookHandler,
+)
+
 func NewNotificationAdapter(
 	logger *slog.Logger,
 	db *entdb.Client,
@@ -86,6 +94,12 @@ func NewNotificationService(
 	}
 
 	return notificationService, nil
+}
+
+func NewNoopNotificationWebhookHandler(
+	logger *slog.Logger,
+) (notificationwebhook.Handler, error) {
+	return webhooknoop.New(logger), nil
 }
 
 func NewNotificationWebhookHandler(

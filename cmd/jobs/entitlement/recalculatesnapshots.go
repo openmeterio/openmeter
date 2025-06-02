@@ -13,9 +13,10 @@ func NewRecalculateBalanceSnapshotsCommand() *cobra.Command {
 		Short: "Recalculate balance snapshots and send the resulting events into the eventbus",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			recalculator, err := balanceworker.NewRecalculator(balanceworker.RecalculatorOptions{
-				Entitlement: internal.App.EntitlementRegistry,
-				EventBus:    internal.App.EventPublisher,
-				MetricMeter: internal.App.Meter,
+				Entitlement:         internal.App.EntitlementRegistry,
+				EventBus:            internal.App.EventPublisher,
+				MetricMeter:         internal.App.Meter,
+				NotificationService: internal.App.NotificationService,
 			})
 			if err != nil {
 				return err
