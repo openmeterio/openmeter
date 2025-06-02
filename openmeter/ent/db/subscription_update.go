@@ -161,6 +161,20 @@ func (_u *SubscriptionUpdate) ClearPlanID() *SubscriptionUpdate {
 	return _u
 }
 
+// SetBillingAnchor sets the "billing_anchor" field.
+func (_u *SubscriptionUpdate) SetBillingAnchor(v time.Time) *SubscriptionUpdate {
+	_u.mutation.SetBillingAnchor(v)
+	return _u
+}
+
+// SetNillableBillingAnchor sets the "billing_anchor" field if the given value is not nil.
+func (_u *SubscriptionUpdate) SetNillableBillingAnchor(v *time.Time) *SubscriptionUpdate {
+	if v != nil {
+		_u.SetBillingAnchor(*v)
+	}
+	return _u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *SubscriptionUpdate) SetBillingCadence(v isodate.String) *SubscriptionUpdate {
 	_u.mutation.SetBillingCadence(v)
@@ -447,6 +461,9 @@ func (_u *SubscriptionUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.BillingAnchor(); ok {
+		_spec.SetField(subscription.FieldBillingAnchor, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(subscription.FieldBillingCadence, field.TypeString, value)
@@ -813,6 +830,20 @@ func (_u *SubscriptionUpdateOne) ClearPlanID() *SubscriptionUpdateOne {
 	return _u
 }
 
+// SetBillingAnchor sets the "billing_anchor" field.
+func (_u *SubscriptionUpdateOne) SetBillingAnchor(v time.Time) *SubscriptionUpdateOne {
+	_u.mutation.SetBillingAnchor(v)
+	return _u
+}
+
+// SetNillableBillingAnchor sets the "billing_anchor" field if the given value is not nil.
+func (_u *SubscriptionUpdateOne) SetNillableBillingAnchor(v *time.Time) *SubscriptionUpdateOne {
+	if v != nil {
+		_u.SetBillingAnchor(*v)
+	}
+	return _u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *SubscriptionUpdateOne) SetBillingCadence(v isodate.String) *SubscriptionUpdateOne {
 	_u.mutation.SetBillingCadence(v)
@@ -1129,6 +1160,9 @@ func (_u *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscripti
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.BillingAnchor(); ok {
+		_spec.SetField(subscription.FieldBillingAnchor, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(subscription.FieldBillingCadence, field.TypeString, value)

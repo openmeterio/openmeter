@@ -3554,6 +3554,12 @@ export interface components {
       customerId?: string
       /** @description The key of the customer. Provide either the key or ID. */
       customerKey?: string
+      /**
+       * Format: date-time
+       * @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      billingAnchor?: Date
     }
     /**
      * @description A customer object.
@@ -8135,6 +8141,12 @@ export interface components {
       customerId?: string
       /** @description The key of the customer. Provide either the key or ID. */
       customerKey?: string
+      /**
+       * Format: date-time
+       * @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      billingAnchor?: Date
     }
     /** @description A consumer portal token.
      *
@@ -9104,6 +9116,13 @@ export interface components {
        *     }
        */
       readonly proRatingConfig?: components['schemas']['ProRatingConfig']
+      /**
+       * Billing anchor
+       * Format: date-time
+       * @description The normalizedbilling anchor of the subscription.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly billingAnchor: Date
     }
     /** @description A subscription add-on, represents concrete instances of an add-on for a given subscription. */
     SubscriptionAddon: {
@@ -9473,6 +9492,13 @@ export interface components {
        *     }
        */
       readonly proRatingConfig?: components['schemas']['ProRatingConfig']
+      /**
+       * Billing anchor
+       * Format: date-time
+       * @description The normalizedbilling anchor of the subscription.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly billingAnchor: Date
       /** @description Alignment details enriched with the current billing period. */
       alignment?: components['schemas']['SubscriptionAlignment']
       /** @description The phases of the subscription. */

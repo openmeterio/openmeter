@@ -174,6 +174,12 @@ func (_c *SubscriptionCreate) SetCurrency(v currencyx.Code) *SubscriptionCreate 
 	return _c
 }
 
+// SetBillingAnchor sets the "billing_anchor" field.
+func (_c *SubscriptionCreate) SetBillingAnchor(v time.Time) *SubscriptionCreate {
+	_c.mutation.SetBillingAnchor(v)
+	return _c
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_c *SubscriptionCreate) SetBillingCadence(v isodate.String) *SubscriptionCreate {
 	_c.mutation.SetBillingCadence(v)
@@ -385,6 +391,9 @@ func (_c *SubscriptionCreate) check() error {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Subscription.currency": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.BillingAnchor(); !ok {
+		return &ValidationError{Name: "billing_anchor", err: errors.New(`db: missing required field "Subscription.billing_anchor"`)}
+	}
 	if _, ok := _c.mutation.BillingCadence(); !ok {
 		return &ValidationError{Name: "billing_cadence", err: errors.New(`db: missing required field "Subscription.billing_cadence"`)}
 	}
@@ -481,6 +490,10 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec,
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(subscription.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
+	}
+	if value, ok := _c.mutation.BillingAnchor(); ok {
+		_spec.SetField(subscription.FieldBillingAnchor, field.TypeTime, value)
+		_node.BillingAnchor = value
 	}
 	if value, ok := _c.mutation.BillingCadence(); ok {
 		_spec.SetField(subscription.FieldBillingCadence, field.TypeString, value)
@@ -770,6 +783,18 @@ func (u *SubscriptionUpsert) ClearPlanID() *SubscriptionUpsert {
 	return u
 }
 
+// SetBillingAnchor sets the "billing_anchor" field.
+func (u *SubscriptionUpsert) SetBillingAnchor(v time.Time) *SubscriptionUpsert {
+	u.Set(subscription.FieldBillingAnchor, v)
+	return u
+}
+
+// UpdateBillingAnchor sets the "billing_anchor" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdateBillingAnchor() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldBillingAnchor)
+	return u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (u *SubscriptionUpsert) SetBillingCadence(v isodate.String) *SubscriptionUpsert {
 	u.Set(subscription.FieldBillingCadence, v)
@@ -1001,6 +1026,20 @@ func (u *SubscriptionUpsertOne) UpdatePlanID() *SubscriptionUpsertOne {
 func (u *SubscriptionUpsertOne) ClearPlanID() *SubscriptionUpsertOne {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearPlanID()
+	})
+}
+
+// SetBillingAnchor sets the "billing_anchor" field.
+func (u *SubscriptionUpsertOne) SetBillingAnchor(v time.Time) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetBillingAnchor(v)
+	})
+}
+
+// UpdateBillingAnchor sets the "billing_anchor" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdateBillingAnchor() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateBillingAnchor()
 	})
 }
 
@@ -1409,6 +1448,20 @@ func (u *SubscriptionUpsertBulk) UpdatePlanID() *SubscriptionUpsertBulk {
 func (u *SubscriptionUpsertBulk) ClearPlanID() *SubscriptionUpsertBulk {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearPlanID()
+	})
+}
+
+// SetBillingAnchor sets the "billing_anchor" field.
+func (u *SubscriptionUpsertBulk) SetBillingAnchor(v time.Time) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetBillingAnchor(v)
+	})
+}
+
+// UpdateBillingAnchor sets the "billing_anchor" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdateBillingAnchor() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateBillingAnchor()
 	})
 }
 

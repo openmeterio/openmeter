@@ -46324,6 +46324,7 @@ type SubscriptionMutation struct {
 	name                             *string
 	description                      *string
 	currency                         *currencyx.Code
+	billing_anchor                   *time.Time
 	billing_cadence                  *isodate.String
 	pro_rating_config                *productcatalog.ProRatingConfig
 	clearedFields                    map[string]struct{}
@@ -46985,6 +46986,42 @@ func (m *SubscriptionMutation) ResetCurrency() {
 	m.currency = nil
 }
 
+// SetBillingAnchor sets the "billing_anchor" field.
+func (m *SubscriptionMutation) SetBillingAnchor(t time.Time) {
+	m.billing_anchor = &t
+}
+
+// BillingAnchor returns the value of the "billing_anchor" field in the mutation.
+func (m *SubscriptionMutation) BillingAnchor() (r time.Time, exists bool) {
+	v := m.billing_anchor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillingAnchor returns the old "billing_anchor" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldBillingAnchor(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillingAnchor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillingAnchor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillingAnchor: %w", err)
+	}
+	return oldValue.BillingAnchor, nil
+}
+
+// ResetBillingAnchor resets all changes to the "billing_anchor" field.
+func (m *SubscriptionMutation) ResetBillingAnchor() {
+	m.billing_anchor = nil
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (m *SubscriptionMutation) SetBillingCadence(i isodate.String) {
 	m.billing_cadence = &i
@@ -47361,7 +47398,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 16)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -47400,6 +47437,9 @@ func (m *SubscriptionMutation) Fields() []string {
 	}
 	if m.currency != nil {
 		fields = append(fields, subscription.FieldCurrency)
+	}
+	if m.billing_anchor != nil {
+		fields = append(fields, subscription.FieldBillingAnchor)
 	}
 	if m.billing_cadence != nil {
 		fields = append(fields, subscription.FieldBillingCadence)
@@ -47441,6 +47481,8 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.CustomerID()
 	case subscription.FieldCurrency:
 		return m.Currency()
+	case subscription.FieldBillingAnchor:
+		return m.BillingAnchor()
 	case subscription.FieldBillingCadence:
 		return m.BillingCadence()
 	case subscription.FieldProRatingConfig:
@@ -47480,6 +47522,8 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldCustomerID(ctx)
 	case subscription.FieldCurrency:
 		return m.OldCurrency(ctx)
+	case subscription.FieldBillingAnchor:
+		return m.OldBillingAnchor(ctx)
 	case subscription.FieldBillingCadence:
 		return m.OldBillingCadence(ctx)
 	case subscription.FieldProRatingConfig:
@@ -47583,6 +47627,13 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
+		return nil
+	case subscription.FieldBillingAnchor:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillingAnchor(v)
 		return nil
 	case subscription.FieldBillingCadence:
 		v, ok := value.(isodate.String)
@@ -47718,6 +47769,9 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 		return nil
 	case subscription.FieldCurrency:
 		m.ResetCurrency()
+		return nil
+	case subscription.FieldBillingAnchor:
+		m.ResetBillingAnchor()
 		return nil
 	case subscription.FieldBillingCadence:
 		m.ResetBillingCadence()

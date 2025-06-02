@@ -128,6 +128,11 @@ func Currency(v currencyx.Code) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldCurrency, vc))
 }
 
+// BillingAnchor applies equality check predicate on the "billing_anchor" field. It's identical to BillingAnchorEQ.
+func BillingAnchor(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldBillingAnchor, v))
+}
+
 // BillingCadence applies equality check predicate on the "billing_cadence" field. It's identical to BillingCadenceEQ.
 func BillingCadence(v isodate.String) predicate.Subscription {
 	vc := string(v)
@@ -801,6 +806,46 @@ func CurrencyEqualFold(v currencyx.Code) predicate.Subscription {
 func CurrencyContainsFold(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
 	return predicate.Subscription(sql.FieldContainsFold(FieldCurrency, vc))
+}
+
+// BillingAnchorEQ applies the EQ predicate on the "billing_anchor" field.
+func BillingAnchorEQ(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldBillingAnchor, v))
+}
+
+// BillingAnchorNEQ applies the NEQ predicate on the "billing_anchor" field.
+func BillingAnchorNEQ(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNEQ(FieldBillingAnchor, v))
+}
+
+// BillingAnchorIn applies the In predicate on the "billing_anchor" field.
+func BillingAnchorIn(vs ...time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldIn(FieldBillingAnchor, vs...))
+}
+
+// BillingAnchorNotIn applies the NotIn predicate on the "billing_anchor" field.
+func BillingAnchorNotIn(vs ...time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNotIn(FieldBillingAnchor, vs...))
+}
+
+// BillingAnchorGT applies the GT predicate on the "billing_anchor" field.
+func BillingAnchorGT(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldGT(FieldBillingAnchor, v))
+}
+
+// BillingAnchorGTE applies the GTE predicate on the "billing_anchor" field.
+func BillingAnchorGTE(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldGTE(FieldBillingAnchor, v))
+}
+
+// BillingAnchorLT applies the LT predicate on the "billing_anchor" field.
+func BillingAnchorLT(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldLT(FieldBillingAnchor, v))
+}
+
+// BillingAnchorLTE applies the LTE predicate on the "billing_anchor" field.
+func BillingAnchorLTE(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldLTE(FieldBillingAnchor, v))
 }
 
 // BillingCadenceEQ applies the EQ predicate on the "billing_cadence" field.

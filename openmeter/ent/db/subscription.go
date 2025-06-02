@@ -49,6 +49,8 @@ type Subscription struct {
 	CustomerID string `json:"customer_id,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
+	// BillingAnchor holds the value of the "billing_anchor" field.
+	BillingAnchor time.Time `json:"billing_anchor,omitempty"`
 	// The default billing cadence for subscriptions.
 	BillingCadence isodate.String `json:"billing_cadence,omitempty"`
 	// Default pro-rating configuration for subscriptions.
@@ -147,7 +149,7 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency, subscription.FieldBillingCadence:
 			values[i] = new(sql.NullString)
-		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo:
+		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo, subscription.FieldBillingAnchor:
 			values[i] = new(sql.NullTime)
 		case subscription.FieldProRatingConfig:
 			values[i] = subscription.ValueScanner.ProRatingConfig.ScanValue()
@@ -255,6 +257,12 @@ func (_m *Subscription) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				_m.Currency = currencyx.Code(value.String)
+			}
+		case subscription.FieldBillingAnchor:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field billing_anchor", values[i])
+			} else if value.Valid {
+				_m.BillingAnchor = value.Time
 			}
 		case subscription.FieldBillingCadence:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -380,6 +388,9 @@ func (_m *Subscription) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	builder.WriteString(", ")
+	builder.WriteString("billing_anchor=")
+	builder.WriteString(_m.BillingAnchor.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("billing_cadence=")
 	builder.WriteString(fmt.Sprintf("%v", _m.BillingCadence))
