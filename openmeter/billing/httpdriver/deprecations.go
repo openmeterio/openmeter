@@ -200,10 +200,16 @@ func (i *usageBasedRateCardItems) ValidateDeprecatedFields() error {
 	var errs []error
 
 	if i.Price == nil {
-		errs = append(errs, errors.New("price is required"))
+		// Let's return early here, as we cannot validate the deprecated fields without a price
+		return errors.New("price is required")
 	}
 
-	if i.FeatureKey == nil {
+	priceType, err := i.Price.Discriminator()
+	if err != nil {
+		errs = append(errs, fmt.Errorf("failed to parse price: %w", err))
+	}
+
+	if i.FeatureKey == nil && priceType != string(api.FlatPriceTypeFlat) {
 		errs = append(errs, errors.New("featureKey is required"))
 	}
 
@@ -218,7 +224,8 @@ func (i *usageBasedRateCardItems) ValidateRateCard() error {
 	var errs []error
 
 	if i.RateCard.Price == nil {
-		errs = append(errs, errors.New("price is required"))
+		// Let's return early here, as we cannot validate the deprecated fields without a price
+		return errors.New("price is required")
 	}
 
 	if i.Price != nil && i.RateCard.Price != nil {
@@ -241,7 +248,12 @@ func (i *usageBasedRateCardItems) ValidateRateCard() error {
 		errs = append(errs, errors.New("taxConfig must be equal to rateCard.taxConfig"))
 	}
 
-	if i.RateCard.FeatureKey == nil {
+	priceType, err := i.RateCard.Price.Discriminator()
+	if err != nil {
+		errs = append(errs, fmt.Errorf("failed to parse rateCard.price: %w", err))
+	}
+
+	if i.RateCard.FeatureKey == nil && priceType != string(api.FlatPriceTypeFlat) {
 		errs = append(errs, errors.New("featureKey is required"))
 	}
 
@@ -279,7 +291,7 @@ func mapAndValidateUsageBasedRateCardDeprecatedFields(in usageBasedRateCardItems
 		return &usageBasedRateCardParsed{
 			Price:      price,
 			TaxConfig:  mapTaxConfigToEntity(in.TaxConfig),
-			FeatureKey: *in.FeatureKey,
+			FeatureKey: lo.FromPtr(in.FeatureKey),
 		}, nil
 	}
 
@@ -311,7 +323,7 @@ func mapAndValidateUsageBasedRateCardDeprecatedFields(in usageBasedRateCardItems
 	return &usageBasedRateCardParsed{
 		Price:      price,
 		TaxConfig:  mapTaxConfigToEntity(in.RateCard.TaxConfig),
-		FeatureKey: *in.RateCard.FeatureKey,
+		FeatureKey: lo.FromPtr(in.RateCard.FeatureKey),
 		Discounts:  discounts,
 	}, nil
 }
