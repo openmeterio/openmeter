@@ -3568,6 +3568,199 @@ func (s *SubscriptionHandlerTestSuite) TestUseUsageBasedFlatFeeLinesCompatibilit
 	s.Len(linesByType[billing.InvoiceLineTypeUsageBased], 3)
 }
 
+func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//	a subscription with two phases started, with prorating enabled
+	//   the first phase is 2 weeks long, the second phase is unlimited
+	//   the phases have in advance, in arrears and usage based lines
+	// When
+	//  we syncronize the subscription data for 1 month
+	// Then
+	//  The in-advance and in arrears lines should be prorated for the first phase
+	//  The usage based line's price is intact, only the period length is changed
+	//  The second phase's lines are aligned to the phase's start (as we don't have custom anchor set)
+
+	secondPhase := productcatalog.Phase{
+		PhaseMeta: s.phaseMeta("second-phase", ""),
+		RateCards: productcatalog.RateCards{
+			&productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:  "in-advance",
+					Name: "in-advance",
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(5),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+				},
+				BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1M")),
+			},
+			&productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:  "in-arrears",
+					Name: "in-arrears",
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(5),
+						PaymentTerm: productcatalog.InArrearsPaymentTerm,
+					}),
+				},
+				BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1M")),
+			},
+			&productcatalog.UsageBasedRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:        s.APIRequestsTotalFeature.Key,
+					Name:       s.APIRequestsTotalFeature.Key,
+					FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+					FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromFloat(10),
+					}),
+				},
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+			},
+		},
+	}
+
+	firstPhase := secondPhase // Note: we are not copying the phase's rate cards, but that's fine
+	firstPhase.PhaseMeta = s.phaseMeta("first-phase", "P2W")
+
+	// Let's create the initial subscription
+	subView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:     "Test Plan",
+				Key:      "test-plan",
+				Version:  1,
+				Currency: currency.USD,
+				Alignment: productcatalog.Alignment{
+					BillablesMustAlign: true,
+				},
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				firstPhase,
+				secondPhase,
+			},
+		},
+	})
+
+	// Let's syncrhonize subscription data for 1 month
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subView, s.mustParseTime("2024-02-01T00:00:00Z")))
+
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+
+	s.expectLines(gatheringInvoice, subView.Subscription.ID, []expectedLine{
+		// First phase lines
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-advance",
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some(2.5),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-arrears",
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some(2.5),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "api-requests-total",
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some[float64](10),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z")},
+		},
+		// Second phase lines
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "second-phase",
+				ItemKey:   "in-advance",
+				PeriodMin: 0,
+				PeriodMax: 1,
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some(2.5),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-02-15T00:00:00Z"),
+				},
+				{
+					Start: s.mustParseTime("2024-02-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-03-15T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z"), s.mustParseTime("2024-02-15T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "second-phase",
+				ItemKey:  "in-arrears",
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some(2.5),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-02-15T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-02-15T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "second-phase",
+				ItemKey:  "api-requests-total",
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some[float64](10),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-02-15T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-02-15T00:00:00Z")},
+		},
+	})
+}
+
 type expectedLine struct {
 	Matcher   lineMatcher
 	Qty       mo.Option[float64]
@@ -3603,26 +3796,26 @@ func (s *SubscriptionHandlerTestSuite) expectLines(invoice billing.Invoice, subs
 
 			if expectedLine.Qty.IsPresent() {
 				if line.Type == billing.InvoiceLineTypeFee {
-					s.Equal(expectedLine.Qty.OrEmpty(), line.FlatFee.Quantity.InexactFloat64(), childID, "quantity")
+					s.Equal(expectedLine.Qty.OrEmpty(), line.FlatFee.Quantity.InexactFloat64(), "%s: quantity", childID)
 				} else {
-					s.Equal(expectedLine.Qty.OrEmpty(), line.UsageBased.Quantity.InexactFloat64(), childID, "quantity")
+					s.Equal(expectedLine.Qty.OrEmpty(), line.UsageBased.Quantity.InexactFloat64(), "%s: quantity", childID)
 				}
 			}
 
 			if expectedLine.UnitPrice.IsPresent() {
-				s.Equal(line.Type, billing.InvoiceLineTypeFee, childID, "line type")
-				s.Equal(expectedLine.UnitPrice.OrEmpty(), line.FlatFee.PerUnitAmount.InexactFloat64(), childID, "unit price")
+				s.Equal(line.Type, billing.InvoiceLineTypeFee, "%s: line type", childID)
+				s.Equal(expectedLine.UnitPrice.OrEmpty(), line.FlatFee.PerUnitAmount.InexactFloat64(), "%s: unit price", childID)
 			}
 
 			if expectedLine.Price.IsPresent() {
-				s.Equal(line.Type, billing.InvoiceLineTypeUsageBased, "line type")
-				s.Equal(*expectedLine.Price.OrEmpty(), *line.UsageBased.Price, childID, "price")
+				s.Equal(line.Type, billing.InvoiceLineTypeUsageBased, "%s: line type", childID)
+				s.Equal(*expectedLine.Price.OrEmpty(), *line.UsageBased.Price, "%s: price", childID)
 			}
 
-			s.Equal(expectedLine.Periods[idx].Start, line.Period.Start, childID, "period start")
-			s.Equal(expectedLine.Periods[idx].End, line.Period.End, childID, "period end")
+			s.Equal(expectedLine.Periods[idx].Start, line.Period.Start, "%s: period start", childID)
+			s.Equal(expectedLine.Periods[idx].End, line.Period.End, "%s: period end", childID)
 
-			s.Equal(expectedLine.InvoiceAt[idx], line.InvoiceAt, childID, "invoice at")
+			s.Equal(expectedLine.InvoiceAt[idx], line.InvoiceAt, "%s: invoice at", childID)
 		}
 	}
 }
