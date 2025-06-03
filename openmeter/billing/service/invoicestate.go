@@ -398,6 +398,11 @@ func (m *InvoiceStateMachine) calculateAvailableActionDetails(ctx context.Contex
 
 func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error {
 	for {
+		preAdvanceState, err := billing.NewEventInvoice(m.Invoice)
+		if err != nil {
+			return err
+		}
+
 		canFire, err := m.StateMachine.CanFireCtx(ctx, billing.TriggerNext)
 		if err != nil {
 			return err
@@ -417,7 +422,7 @@ func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error
 		}
 
 		// Let's emit an event for the transition
-		event, err := billing.NewInvoiceUpdatedEvent(m.Invoice)
+		event, err := billing.NewInvoiceUpdatedEvent(m.Invoice, preAdvanceState)
 		if err != nil {
 			return fmt.Errorf("error creating invoice updated event: %w", err)
 		}
