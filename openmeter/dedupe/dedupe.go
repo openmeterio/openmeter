@@ -16,7 +16,7 @@ type Deduplicator interface {
 	// CheckUnique checks if an item is unique.
 	CheckUnique(ctx context.Context, item Item) (bool, error)
 	// Set adds the item(s) to the deduplicator
-	Set(ctx context.Context, events ...Item) error
+	Set(ctx context.Context, events ...Item) ([]Item, error)
 	// Close cleans up resources
 	Close() error
 }
