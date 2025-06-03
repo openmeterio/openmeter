@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -515,7 +516,7 @@ func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 
 		Number:      invoice.Number,
 		Description: invoice.Description,
-		Metadata:    lo.EmptyableToPtr(invoice.Metadata),
+		Metadata:    convert.MapToPointer(invoice.Metadata),
 
 		Status: api.InvoiceStatus(invoice.Status.ShortStatus()),
 		StatusDetails: api.InvoiceStatusDetails{
@@ -530,7 +531,7 @@ func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 		// TODO[OM-943]: Implement
 		Payment: nil,
 		Type:    api.InvoiceType(invoice.Type),
-		ValidationIssues: lo.EmptyableToPtr(
+		ValidationIssues: convert.SliceToPointer(
 			lo.Map(invoice.ValidationIssues, func(v billing.ValidationIssue, _ int) api.ValidationIssue {
 				return api.ValidationIssue{
 					Id:        v.ID,
@@ -545,10 +546,7 @@ func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 					Field:     lo.EmptyableToPtr(v.Path),
 				}
 			})),
-		ExternalIds: lo.EmptyableToPtr(api.InvoiceAppExternalIds{
-			Invoicing: lo.EmptyableToPtr(invoice.ExternalIDs.Invoicing),
-			Payment:   lo.EmptyableToPtr(invoice.ExternalIDs.Payment),
-		}),
+		ExternalIds: mapInvoiceAppExternalIdsToAPI(invoice.ExternalIDs),
 	}
 
 	out.Workflow = api.InvoiceWorkflowSettings{
@@ -574,6 +572,17 @@ func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 	}
 
 	return out, nil
+}
+
+func mapInvoiceAppExternalIdsToAPI(externalIds billing.InvoiceExternalIDs) *api.InvoiceAppExternalIds {
+	if lo.IsEmpty(externalIds) {
+		return nil
+	}
+
+	return &api.InvoiceAppExternalIds{
+		Invoicing: lo.EmptyableToPtr(externalIds.Invoicing),
+		Payment:   lo.EmptyableToPtr(externalIds.Payment),
+	}
 }
 
 func MapEventInvoiceToAPI(event billing.EventInvoice) (api.Invoice, error) {
