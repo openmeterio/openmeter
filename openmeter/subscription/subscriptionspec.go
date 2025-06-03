@@ -312,25 +312,8 @@ func (s *SubscriptionSpec) HasAlignedBillingCadences() (bool, error) {
 			for _, item := range itemsByKey {
 				rateCard := item.RateCard
 				if rateCard.GetBillingCadence() != nil {
-					switch s.BillingCadence.Compare(*rateCard.GetBillingCadence()) {
-					case 0:
-						continue
-					case 1:
-						d, err := s.BillingCadence.DivisibleBy(*rateCard.GetBillingCadence())
-						if err != nil {
-							return false, err
-						}
-						if !d {
-							return false, nil
-						}
-					case -1:
-						d, err := rateCard.GetBillingCadence().DivisibleBy(s.BillingCadence)
-						if err != nil {
-							return false, err
-						}
-						if !d {
-							return false, nil
-						}
+					if err := productcatalog.ValidateBillingCadencesAlign(s.BillingCadence, lo.FromPtr(rateCard.GetBillingCadence())); err != nil {
+						return false, err
 					}
 				}
 			}

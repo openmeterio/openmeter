@@ -1465,7 +1465,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
 				},
-				BillingCadence: isodate.MustParse(s.T(), "P1W"),
+				BillingCadence: isodate.MustParse(s.T(), "P4W"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -1637,7 +1637,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-08T00:00:00Z")},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-29T00:00:00Z")},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1656,7 +1656,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 					End:   s.mustParseTime("2024-01-08T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-08T00:00:00Z")},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-29T00:00:00Z")},
 		},
 	})
 }

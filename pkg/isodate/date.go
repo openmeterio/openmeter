@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/govalues/decimal"
 	"github.com/rickb777/period"
 	"github.com/samber/lo"
@@ -60,42 +61,57 @@ func (p Period) Simplify(exact bool) Period {
 }
 
 // InHours returns the value of the period in hours
-func (p Period) InHours(daysInMonth int) (decimal.Decimal, error) {
+func (p Period) InHours(daysInMonth int) (alpacadecimal.Decimal, error) {
+	zero := alpacadecimal.NewFromInt(0)
+
+	// You might be thinking, a year is supposed to be 365 or 366 days, not 372 or 360 or 348 or 336
+	// (as this below line calculates it depending on days in the month)
+	// Lucky for us, the method as a whole gives correct results
 	years, err := p.Period.YearsDecimal().Mul(decimal.MustNew(int64(daysInMonth*12*24), 0))
 	if err != nil {
-		return decimal.Zero, err
+		return zero, err
 	}
 	months, err := p.Period.MonthsDecimal().Mul(decimal.MustNew(int64(daysInMonth*24), 0))
 	if err != nil {
-		return decimal.Zero, err
+		return zero, err
 	}
 	weeks, err := p.Period.WeeksDecimal().Mul(decimal.MustNew(7*24, 0))
 	if err != nil {
-		return decimal.Zero, err
+		return zero, err
 	}
 	days, err := p.Period.DaysDecimal().Mul(decimal.MustNew(24, 0))
 	if err != nil {
-		return decimal.Zero, err
+		return zero, err
 	}
 
 	v, err := years.Add(months)
 	if err != nil {
-		return decimal.Zero, err
+		return zero, err
 	}
 	v, err = v.Add(weeks)
 	if err != nil {
-		return decimal.Zero, err
+		return zero, err
 	}
 	v, err = v.Add(days)
 	if err != nil {
-		return decimal.Zero, err
+		return zero, err
 	}
 	v, err = v.Add(p.Period.HoursDecimal())
 	if err != nil {
-		return decimal.Zero, err
+		return zero, err
 	}
 
-	return v, nil
+	scale := v.MinScale()
+	whole, frac, ok := v.Int64(scale)
+	if !ok {
+		return zero, fmt.Errorf("failed to convert to int64")
+	}
+
+	if frac != 0 {
+		return zero, fmt.Errorf("we shouldn't have any fractional part here")
+	}
+
+	return alpacadecimal.NewFromInt(whole), nil
 }
 
 func (p Period) Add(p2 Period) (Period, error) {
@@ -118,18 +134,12 @@ func (p Period) Subtract(p2 Period) (Period, error) {
 	return Period{p3}, err
 }
 
-// Compare returns -1 if p is less than p2, 0 if they are equal, and 1 if p is greater than p2
-func (p Period) Compare(p2 Period) int {
-	diff, _ := p.Period.Subtract(p2.Period)
-	return diff.Sign()
-}
-
-// DivisibleBy returns true if the period is divisible by the smaller period (in days).
+// DivisibleBy returns true if the period is divisible by the smaller period (in hours).
 func (p Period) DivisibleBy(smaller Period) (bool, error) {
 	l := p.Simplify(true)
 	s := smaller.Simplify(true)
 
-	if l.IsZero() || s.IsZero() || l.Compare(s) < 0 {
+	if l.IsZero() || s.IsZero() {
 		return false, nil
 	}
 
@@ -148,7 +158,8 @@ func (p Period) DivisibleBy(smaller Period) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if _, r, err := lh.QuoRem(sh); err != nil || !r.IsZero() {
+
+		if _, r := lh.QuoRem(sh, 0); !r.IsZero() {
 			return false, err
 		}
 	}

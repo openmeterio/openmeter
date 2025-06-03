@@ -95,6 +95,20 @@ func TestDivisibleBy(t *testing.T) {
 			hasError: false,
 		},
 		{
+			name:     "2 years divisible by 1 year",
+			larger:   "P2Y",
+			smaller:  "P1Y",
+			expected: true,
+			hasError: false,
+		},
+		{
+			name:     "2 years divisible by 2 months",
+			larger:   "P2Y",
+			smaller:  "P2M",
+			expected: true,
+			hasError: false,
+		},
+		{
 			name:     "1 year divisible by 1 month",
 			larger:   "P1Y",
 			smaller:  "P1M",
@@ -216,6 +230,20 @@ func TestDivisibleBy(t *testing.T) {
 			hasError: false,
 		},
 		{
+			name:     "1 year not divisible by 5 days",
+			larger:   "P1Y",
+			smaller:  "P5D",
+			expected: false,
+			hasError: false,
+		},
+		{
+			name:     "1 year not divisible by 365 days",
+			larger:   "P1Y",
+			smaller:  "P365D",
+			expected: false,
+			hasError: false,
+		},
+		{
 			name:     "1 month not divisible by 5 hour",
 			larger:   "P1M",
 			smaller:  "PT5H",
@@ -250,6 +278,20 @@ func TestDivisibleBy(t *testing.T) {
 		{
 			name:     "smaller period larger than larger period",
 			larger:   "P1D",
+			smaller:  "P1M",
+			expected: false,
+			hasError: false,
+		},
+		{
+			name:     "smaller period larger than larger period 2",
+			larger:   "P1W",
+			smaller:  "P1M",
+			expected: false,
+			hasError: false,
+		},
+		{
+			name:     "smaller period larger than larger period 2",
+			larger:   "P4W",
 			smaller:  "P1M",
 			expected: false,
 			hasError: false,

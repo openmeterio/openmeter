@@ -393,7 +393,7 @@ const ErrCodePlanBillingCadenceInvalid models.ErrorCode = "plan_billing_cadence_
 
 var ErrPlanBillingCadenceInvalid = models.NewValidationIssue(
 	ErrCodePlanBillingCadenceInvalid,
-	"billing cadence must be at least 1 month",
+	"billing cadence must be at least 28 days",
 	models.WithFieldString("billingCadence"),
 	models.WithCriticalSeverity(),
 )
