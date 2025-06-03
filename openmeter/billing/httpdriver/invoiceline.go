@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -303,7 +304,7 @@ func mapFeeLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 			Id: line.InvoiceID,
 		},
 
-		Metadata: lo.EmptyableToPtr(line.Metadata),
+		Metadata: convert.MapToPointer(line.Metadata),
 		Period: api.Period{
 			From: line.Period.Start,
 			To:   line.Period.End,
@@ -329,9 +330,7 @@ func mapFeeLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 		Totals:    mapTotalsToAPI(line.Totals),
 		Children:  children,
 
-		ExternalIds: &api.InvoiceLineAppExternalIds{
-			Invoicing: lo.EmptyableToPtr(line.ExternalIDs.Invoicing),
-		},
+		ExternalIds:  mapLineAppExternalIdsToAPI(line.ExternalIDs),
 		Subscription: mapSubscriptionReferencesToAPI(line.Subscription),
 	}
 
@@ -342,6 +341,16 @@ func mapFeeLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 	}
 
 	return out, nil
+}
+
+func mapLineAppExternalIdsToAPI(externalIds billing.LineExternalIDs) *api.InvoiceLineAppExternalIds {
+	if lo.IsEmpty(externalIds) {
+		return nil
+	}
+
+	return &api.InvoiceLineAppExternalIds{
+		Invoicing: lo.EmptyableToPtr(externalIds.Invoicing),
+	}
 }
 
 func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
@@ -384,7 +393,7 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 			Id: line.InvoiceID,
 		},
 
-		Metadata: lo.EmptyableToPtr(line.Metadata),
+		Metadata: convert.MapToPointer(line.Metadata),
 		Period: api.Period{
 			From: line.Period.Start,
 			To:   line.Period.End,
@@ -392,27 +401,25 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 
 		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
 
-		FeatureKey:                   lo.ToPtr(line.UsageBased.FeatureKey),
-		MeteredQuantity:              decimalPtrToStringPtr(line.UsageBased.MeteredQuantity),
+		FeatureKey:                   lo.EmptyableToPtr(line.UsageBased.FeatureKey),
+		MeteredQuantity:              decimalPtrToStringPtrIfNotEqual(line.UsageBased.MeteredQuantity, line.UsageBased.Quantity),
 		Quantity:                     decimalPtrToStringPtr(line.UsageBased.Quantity),
-		PreLinePeriodQuantity:        decimalPtrToStringPtr(line.UsageBased.PreLinePeriodQuantity),
-		MeteredPreLinePeriodQuantity: decimalPtrToStringPtr(line.UsageBased.MeteredPreLinePeriodQuantity),
+		PreLinePeriodQuantity:        decimalPtrToStringPtrIgnoringZeroValue(line.UsageBased.PreLinePeriodQuantity),
+		MeteredPreLinePeriodQuantity: decimalPtrToStringPtrIgnoringZeroValue(line.UsageBased.MeteredPreLinePeriodQuantity),
 
 		Price: lo.ToPtr(price),
 
 		RateCard: &api.InvoiceUsageBasedRateCard{
 			TaxConfig:  mapTaxConfigToAPI(line.TaxConfig),
 			Price:      lo.ToPtr(price),
-			FeatureKey: lo.ToPtr(line.UsageBased.FeatureKey),
+			FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		},
 
 		Discounts: discountsAPI,
 		Children:  children,
 		Totals:    mapTotalsToAPI(line.Totals),
 
-		ExternalIds: lo.EmptyableToPtr(api.InvoiceLineAppExternalIds{
-			Invoicing: lo.EmptyableToPtr(line.ExternalIDs.Invoicing),
-		}),
+		ExternalIds:  mapLineAppExternalIdsToAPI(line.ExternalIDs),
 		Subscription: mapSubscriptionReferencesToAPI(line.Subscription),
 	}
 
@@ -463,10 +470,8 @@ func mapDiscountsToAPI(discounts billing.LineDiscounts) (*api.InvoiceLineDiscoun
 				DeletedAt:   discount.DeletedAt,
 				UpdatedAt:   discount.UpdatedAt,
 				Description: discount.Description,
-				ExternalIds: &api.InvoiceLineAppExternalIds{
-					Invoicing: lo.EmptyableToPtr(discount.ExternalIDs.Invoicing),
-				},
-				Reason: reason,
+				ExternalIds: mapLineAppExternalIdsToAPI(discount.ExternalIDs),
+				Reason:      reason,
 			}, nil
 		})
 		if err != nil {
@@ -486,15 +491,13 @@ func mapDiscountsToAPI(discounts billing.LineDiscounts) (*api.InvoiceLineDiscoun
 			return api.InvoiceLineUsageDiscount{
 				Id:                    discount.ID,
 				Quantity:              discount.Quantity.String(),
-				PreLinePeriodQuantity: decimalPtrToStringPtr(discount.PreLinePeriodQuantity),
+				PreLinePeriodQuantity: decimalPtrToStringPtrIgnoringZeroValue(discount.PreLinePeriodQuantity),
 				CreatedAt:             discount.CreatedAt,
 				DeletedAt:             discount.DeletedAt,
 				UpdatedAt:             discount.UpdatedAt,
 				Description:           discount.Description,
-				ExternalIds: &api.InvoiceLineAppExternalIds{
-					Invoicing: lo.EmptyableToPtr(discount.ExternalIDs.Invoicing),
-				},
-				Reason: reason,
+				ExternalIds:           mapLineAppExternalIdsToAPI(discount.ExternalIDs),
+				Reason:                reason,
 			}, nil
 		})
 		if err != nil {
@@ -555,6 +558,35 @@ func decimalPtrToStringPtr(d *alpacadecimal.Decimal) *string {
 	}
 
 	return lo.ToPtr(d.String())
+}
+
+func decimalPtrToStringPtrIgnoringZeroValue(d *alpacadecimal.Decimal) *string {
+	if d == nil {
+		return nil
+	}
+
+	if d.IsZero() {
+		return nil
+	}
+
+	return lo.ToPtr(d.String())
+}
+
+// decimalPtrToStringPtrIfNotEqual returns a pointer to the string representation of the decimal if it is not equal to the other decimal.
+func decimalPtrToStringPtrIfNotEqual(value *alpacadecimal.Decimal, other *alpacadecimal.Decimal) *string {
+	if value == nil {
+		return nil
+	}
+
+	if other == nil {
+		return lo.ToPtr(value.String())
+	}
+
+	if value.Equal(lo.FromPtr(other)) {
+		return nil
+	}
+
+	return lo.ToPtr(value.String())
 }
 
 func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Line, error) {

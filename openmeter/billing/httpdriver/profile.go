@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -437,7 +438,7 @@ func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (api.
 		DeletedAt: p.DeletedAt,
 
 		Description: p.Description,
-		Metadata:    (*api.Metadata)(lo.EmptyableToPtr(p.Metadata)),
+		Metadata:    convert.MapToPointer(p.Metadata),
 		Default:     p.Default,
 
 		Name:     p.Name,

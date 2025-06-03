@@ -164,14 +164,7 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 
 	invoice.QuantitySnapshotedAt = lo.ToPtr(now)
 
-	if err := s.invoiceCalculator.Calculate(&invoice); err != nil {
-		return invoice, fmt.Errorf("calculating invoice: %w", err)
-	}
-
-	// TODO/Hack: Here we are recalculating the invoice again to correct gathering invoice specific calculations.
-	// Once when we have proper threshold billing stack, we should not do this double calculation, but right now
-	// this is just a sugar to have the gathering invoice's data fully populated.
-	if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
+	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(&invoice); err != nil {
 		return invoice, fmt.Errorf("calculating invoice: %w", err)
 	}
 

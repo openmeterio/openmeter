@@ -11,7 +11,18 @@ func ToPointer[T any](value T) *T {
 	return &value
 }
 
+// MapToPointer converts a map to a pointer to a map, returning nil if the map is empty,
+// this solves the problem of lo.EmptyableToPtr not handling maps correctly.
 func MapToPointer[T comparable, U any](value map[T]U) *map[T]U {
+	if len(value) == 0 {
+		return nil
+	}
+	return &value
+}
+
+// SliceToPointer converts a slice to a pointer to a slice, returning nil if the slice is empty,
+// this solves the problem of lo.EmptyableToPtr not handling slices correctly.
+func SliceToPointer[T any](value []T) *[]T {
 	if len(value) == 0 {
 		return nil
 	}
