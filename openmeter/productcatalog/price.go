@@ -77,6 +77,8 @@ type pricer interface {
 	// Common field accessors
 	// GetCommitments returns the commitments for the price, or an empty Commitments if the price type does not support commitments.
 	GetCommitments() Commitments
+
+	GetPaymentTerm() PaymentTermType
 }
 
 var _ pricer = (*Price)(nil)
@@ -403,6 +405,16 @@ func (p *Price) GetCommitments() Commitments {
 	default:
 		return Commitments{}
 	}
+}
+
+func (p *Price) GetPaymentTerm() PaymentTermType {
+	switch p.t {
+	case FlatPriceType:
+		// It's only an option for flat prices
+		return p.flat.PaymentTerm
+	}
+
+	return InArrearsPaymentTerm
 }
 
 type FlatPrice struct {

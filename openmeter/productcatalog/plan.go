@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
@@ -108,8 +109,16 @@ func ValidatePlanMinimumBillingCadence() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		var errs []error
 
-		// Billing Cadence has to be at least 1 month
-		if p.BillingCadence.Compare(isodate.NewPeriod(0, 1, 0, 0, 0, 0, 0)) < 0 {
+		// Billing Cadence has to be at least 28 days
+
+		lowestHours, err := p.BillingCadence.InHours(28)
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		hoursIn28Days := alpacadecimal.NewFromInt(28 * 24)
+
+		if lowestHours.Cmp(hoursIn28Days) < 0 {
 			errs = append(errs, ErrPlanBillingCadenceInvalid)
 		}
 
@@ -144,25 +153,8 @@ func ValidatePlanHasAlignedBillingCadences() models.ValidatorFunc[Plan] {
 				if rateCard.GetBillingCadence() != nil {
 					rateCardBillingCadence := lo.FromPtr(rateCard.GetBillingCadence())
 
-					switch p.BillingCadence.Compare(rateCardBillingCadence) {
-					case 0:
-						continue
-					case 1:
-						d, err := p.BillingCadence.DivisibleBy(rateCardBillingCadence)
-						if err != nil {
-							errs = append(errs, err)
-						}
-						if !d {
-							errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrPlanBillingCadenceNotCompatible))
-						}
-					case -1:
-						d, err := rateCardBillingCadence.DivisibleBy(p.BillingCadence)
-						if err != nil {
-							errs = append(errs, err)
-						}
-						if !d {
-							errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrPlanBillingCadenceNotCompatible))
-						}
+					if err := ValidateBillingCadencesAlign(p.BillingCadence, rateCardBillingCadence); err != nil {
+						errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, err))
 					}
 				}
 			}
