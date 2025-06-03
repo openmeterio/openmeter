@@ -98,7 +98,7 @@ func New(opts Options) (*Consumer, error) {
 				return nil
 			}
 
-			return consumer.invoiceHandler.Handle(ctx, event.EventInvoice, notification.EventTypeInvoiceUpdated)
+			return consumer.invoiceHandler.Handle(ctx, event.New, notification.EventTypeInvoiceUpdated)
 		}),
 	)
 	if err != nil {
