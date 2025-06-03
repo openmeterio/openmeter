@@ -52,10 +52,10 @@ func (d Deduplicator) IsUnique(ctx context.Context, namespace string, ev event.E
 	case DedupeModeRawKey:
 		return d.setKey(ctx, item.Key())
 	case DedupeModeKeyHash:
-		keyHash := getKeyHash(item.Key())
+		keyHash := GetKeyHash(item.Key())
 		return d.setKey(ctx, keyHash)
 	case DedupeModeKeyHashMigration:
-		keyHash := getKeyHash(item.Key())
+		keyHash := GetKeyHash(item.Key())
 		isUnique, err := d.setKey(ctx, keyHash)
 		if err != nil {
 			return false, err
@@ -110,9 +110,9 @@ func (d Deduplicator) CheckUnique(ctx context.Context, item dedupe.Item) (bool, 
 	case DedupeModeRawKey:
 		keysToCheck = append(keysToCheck, item.Key())
 	case DedupeModeKeyHash:
-		keysToCheck = append(keysToCheck, getKeyHash(item.Key()))
+		keysToCheck = append(keysToCheck, GetKeyHash(item.Key()))
 	case DedupeModeKeyHashMigration:
-		keysToCheck = append(keysToCheck, item.Key(), getKeyHash(item.Key()))
+		keysToCheck = append(keysToCheck, item.Key(), GetKeyHash(item.Key()))
 	}
 
 	isSet, err := d.Redis.Exists(ctx, keysToCheck...).Result()
@@ -131,7 +131,7 @@ func (d Deduplicator) Set(ctx context.Context, items ...dedupe.Item) error {
 		case DedupeModeRawKey:
 			keys = append(keys, item.Key())
 		case DedupeModeKeyHash, DedupeModeKeyHashMigration:
-			keys = append(keys, getKeyHash(item.Key()))
+			keys = append(keys, GetKeyHash(item.Key()))
 		}
 	}
 
