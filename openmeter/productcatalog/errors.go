@@ -389,6 +389,15 @@ var ErrIDEmpty = models.NewValidationIssue(
 
 // Plan errors
 
+const ErrCodePlanBillingCadenceInvalid models.ErrorCode = "plan_billing_cadence_invalid"
+
+var ErrPlanBillingCadenceInvalid = models.NewValidationIssue(
+	ErrCodePlanBillingCadenceInvalid,
+	"billing cadence must be at least 1 month",
+	models.WithFieldString("billingCadence"),
+	models.WithCriticalSeverity(),
+)
+
 const ErrCodePlanPhaseWithNegativeDuration models.ErrorCode = "plan_phase_with_negative_duration"
 
 var ErrPlanPhaseWithNegativeDuration = models.NewValidationIssue(
