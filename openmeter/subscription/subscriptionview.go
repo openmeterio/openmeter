@@ -191,7 +191,7 @@ func (s *SubscriptionItemView) Validate() error {
 				return fmt.Errorf("entitlement %s preserveOverageAtReset does not match template preserveOverageAtReset", s.Entitlement.Entitlement.ID)
 			}
 
-			upRec, err := timeutil.FromISODuration(&e.UsagePeriod, mEnt.UsagePeriod.Anchor)
+			upRec, err := timeutil.RecurrenceFromISODuration(&e.UsagePeriod, mEnt.UsagePeriod.Anchor)
 			if err != nil {
 				return fmt.Errorf("failed to convert Item %s EntitlementTemplate UsagePeriod ISO duration to Recurrence: %w", s.SubscriptionItem.Key, err)
 			}

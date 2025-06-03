@@ -206,13 +206,13 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 }
 
 type subscriptionSyncPlan struct {
-	NewSubscriptionItems []subscriptionItemWithPeriod
+	NewSubscriptionItems []subscriptionItemWithPeriods
 	LinesToDelete        []billing.LineOrHierarchy
 	LinesToUpsert        []subscriptionSyncPlanLineUpsert
 }
 
 type subscriptionSyncPlanLineUpsert struct {
-	Target   subscriptionItemWithPeriod
+	Target   subscriptionItemWithPeriods
 	Existing billing.LineOrHierarchy
 }
 
@@ -246,7 +246,7 @@ func (h *Handler) compareSubscriptionWithExistingLines(ctx context.Context, subs
 			return nil, nil
 		}
 
-		inScopeLinesByUniqueID, unique := slicesx.UniqueGroupBy(inScopeLines, func(i subscriptionItemWithPeriod) string {
+		inScopeLinesByUniqueID, unique := slicesx.UniqueGroupBy(inScopeLines, func(i subscriptionItemWithPeriods) string {
 			return i.UniqueID
 		})
 		if !unique {
@@ -298,7 +298,7 @@ func (h *Handler) compareSubscriptionWithExistingLines(ctx context.Context, subs
 		}
 
 		return &subscriptionSyncPlan{
-			NewSubscriptionItems: lo.Map(newLines, func(id string, _ int) subscriptionItemWithPeriod {
+			NewSubscriptionItems: lo.Map(newLines, func(id string, _ int) subscriptionItemWithPeriods {
 				return inScopeLinesByUniqueID[id]
 			}),
 			LinesToDelete: linesToDelete,
@@ -359,11 +359,11 @@ func (h *Handler) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 //
 // This approach allows us to not to have to poll all the subscriptions periodically, but we can act when an invoice is created or when
 // a subscription is updated.
-func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) ([]subscriptionItemWithPeriod, error) {
-	ctx, span := tracex.Start[[]subscriptionItemWithPeriod](ctx, h.tracer, "billing.worker.subscription.sync.collectUpcomingLines")
+func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) ([]subscriptionItemWithPeriods, error) {
+	ctx, span := tracex.Start[[]subscriptionItemWithPeriods](ctx, h.tracer, "billing.worker.subscription.sync.collectUpcomingLines")
 
-	return span.Wrap(ctx, func(ctx context.Context) ([]subscriptionItemWithPeriod, error) {
-		inScopeLines := make([]subscriptionItemWithPeriod, 0, 128)
+	return span.Wrap(ctx, func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
+		inScopeLines := make([]subscriptionItemWithPeriods, 0, 128)
 
 		for _, phase := range subs.Phases {
 			iterator, err := NewPhaseIterator(h.logger, h.tracer, subs, phase.SubscriptionPhase.Key)
@@ -405,7 +405,7 @@ func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.Su
 	})
 }
 
-func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView, item subscriptionItemWithPeriod, currency currencyx.Calculator) (*billing.Line, error) {
+func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView, item subscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.Line, error) {
 	line := &billing.Line{
 		LineBase: billing.LineBase{
 			Namespace:              subs.Subscription.Namespace,
@@ -416,7 +416,8 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			Status:                 billing.InvoiceLineStatusValid,
 			ChildUniqueReferenceID: &item.UniqueID,
 			TaxConfig:              item.Spec.RateCard.AsMeta().TaxConfig,
-			Period:                 item.Period,
+			Period:                 item.ServicePeriod,
+			InvoiceAt:              item.GetInvoiceAt(),
 			RateCardDiscounts:      h.discountsToBillingDiscounts(item.Spec.RateCard.AsMeta().Discounts),
 
 			Subscription: &billing.SubscriptionReference{
@@ -427,12 +428,11 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		},
 	}
 
-	// In advance changes should always be invoiced immediately
-	inAdvanceInvoiceAt := item.Period.Start
-
-	inArrearsInvoiceAt := item.Period.End
-	if item.InvoiceAligned {
-		inArrearsInvoiceAt = item.NonTruncatedPeriod.End
+	// If we don't know the full service period for in-arrears items, we should wait with generating a line
+	if price := item.SubscriptionItem.RateCard.AsMeta().Price; price != nil && price.GetPaymentTerm() == productcatalog.InArrearsPaymentTerm {
+		if item.FullServicePeriod.Duration() == time.Duration(0) {
+			return nil, nil
+		}
 	}
 
 	switch item.SubscriptionItem.RateCard.AsMeta().Price.Type() {
@@ -445,22 +445,8 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		// TODO[OM-1040]: We should support rounding errors in prorating calculations (such as 1/3 of a dollar is $0.33, 3*$0.33 is $0.99, if we bill
 		// $1.00 in three equal pieces we should charge the customer $0.01 as the last split)
 		perUnitAmount := currency.RoundToPrecision(price.Amount)
-		if !item.Period.IsEmpty() && h.shouldProrateFlatFee(price) && !item.NonTruncatedPeriod.Equal(item.Period) {
+		if !item.ServicePeriod.IsEmpty() && h.shouldProrate(item, subs) {
 			perUnitAmount = currency.RoundToPrecision(price.Amount.Mul(item.PeriodPercentage()))
-		}
-
-		switch price.PaymentTerm {
-		case productcatalog.InArrearsPaymentTerm:
-			line.InvoiceAt = inArrearsInvoiceAt
-		case productcatalog.InAdvancePaymentTerm:
-			// In case of inAdvance we should always invoice at the start of the period and if there's a change
-			// prorating should void the item and credit the customer.
-			//
-			// Warning: We are not supporting voiding or crediting right now, so we are going to overcharge on
-			// inAdvance items in case of a change on a finalized invoice.
-			line.InvoiceAt = inAdvanceInvoiceAt
-		default:
-			return nil, fmt.Errorf("unsupported payment term: %v", price.PaymentTerm)
 		}
 
 		if perUnitAmount.IsZero() {
@@ -491,7 +477,6 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		}
 
 		line.Type = billing.InvoiceLineTypeUsageBased
-		line.InvoiceAt = inArrearsInvoiceAt
 		line.UsageBased = &billing.UsageBasedLine{
 			Price:      item.SubscriptionItem.RateCard.AsMeta().Price,
 			FeatureKey: *item.SubscriptionItem.RateCard.AsMeta().FeatureKey,
@@ -519,19 +504,32 @@ func (h *Handler) discountsToBillingDiscounts(discounts productcatalog.Discounts
 	return out
 }
 
-func (h *Handler) shouldProrateFlatFee(price productcatalog.FlatPrice) bool {
-	switch price.PaymentTerm {
-	case productcatalog.InAdvancePaymentTerm:
-		return h.featureFlags.EnableFlatFeeInAdvanceProrating
-	case productcatalog.InArrearsPaymentTerm:
-		return h.featureFlags.EnableFlatFeeInArrearsProrating
+func (h *Handler) shouldProrate(item subscriptionItemWithPeriods, subView subscription.SubscriptionView) bool {
+	if !subView.Subscription.ProRatingConfig.Enabled {
+		return false
+	}
+
+	// We only prorate flat prices
+	if item.Spec.RateCard.AsMeta().Price.Type() != productcatalog.FlatPriceType {
+		return false
+	}
+
+	// We do not prorate due to the subscription ending
+	if subView.Subscription.ActiveTo != nil && !subView.Subscription.ActiveTo.After(item.ServicePeriod.End) {
+		return false
+	}
+
+	// We're just gonna prorate all flat prices based on subscription settings
+	switch subView.Subscription.ProRatingConfig.Mode {
+	case productcatalog.ProRatingModeProratePrices:
+		return true
 	default:
 		return false
 	}
 }
 
-func (h *Handler) getNewUpcomingLinePatches(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []subscriptionItemWithPeriod) ([]linePatch, error) {
-	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem subscriptionItemWithPeriod) (*billing.Line, error) {
+func (h *Handler) getNewUpcomingLinePatches(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []subscriptionItemWithPeriods) ([]linePatch, error) {
+	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem subscriptionItemWithPeriods) (*billing.Line, error) {
 		line, err := h.lineFromSubscritionRateCard(subs, subsItem, currency)
 		if err != nil {
 			return nil, fmt.Errorf("generating line from subscription item [%s]: %w", subsItem.SubscriptionItem.ID, err)
