@@ -116,7 +116,7 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 				Key:            "paid-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: isodate.MustParse(s.T(), "P1D"),
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -167,7 +167,7 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 				Key:            "free-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: isodate.MustParse(s.T(), "P1D"),
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
