@@ -18,7 +18,7 @@ func (c *Connector) materializeCacheRows(from time.Time, to time.Time, windowSiz
 	// Collect group by fields
 	groupByFields := []string{}
 
-	if len(rows) > 0 && rows[0].GroupBy != nil {
+	if len(rows) > 0 {
 		for k := range rows[0].GroupBy {
 			if !lo.Contains(groupByFields, k) {
 				groupByFields = append(groupByFields, k)
@@ -37,7 +37,7 @@ func (c *Connector) materializeCacheRows(from time.Time, to time.Time, windowSiz
 			}
 		}
 
-		if row.GroupBy != nil {
+		if len(row.GroupBy) > 0 {
 			groupKey := createGroupKeyFromRow(row, groupByFields)
 			if _, ok := groupByMap[groupKey]; !ok {
 				// Initialize
@@ -83,6 +83,7 @@ func (c *Connector) materializeCacheRows(from time.Time, to time.Time, windowSiz
 					WindowEnd:   windowEnd,
 					Subject:     subject,
 					Value:       cacheNoValue,
+					GroupBy:     map[string]*string{},
 				}
 
 				key := createKeyFromRow(materializedRow, &windowSize, groupByFields)

@@ -33,7 +33,61 @@ func TestMaterializeCacheRows(t *testing.T) {
 		want       []meterpkg.MeterQueryRow
 	}{
 		{
-			name:       "no gaps does not materialize",
+			name:       "no gaps do not materialize",
+			from:       windowStart1,
+			to:         windowEnd3,
+			windowSize: meterpkg.WindowSizeHour,
+			rows: []meterpkg.MeterQueryRow{
+				{
+					WindowStart: windowStart1,
+					WindowEnd:   windowEnd1,
+					Value:       10,
+					GroupBy:     map[string]*string{},
+				},
+				{
+					WindowStart: windowStart2,
+					WindowEnd:   windowEnd2,
+					Value:       20,
+					GroupBy:     map[string]*string{},
+				},
+				{
+					WindowStart: windowStart3,
+					WindowEnd:   windowEnd3,
+					Value:       30,
+					GroupBy:     map[string]*string{},
+				},
+			},
+			want: []meterpkg.MeterQueryRow{}, // No gaps, so no materialized rows
+		},
+		{
+			name:       "no gaps do not materialize with empty values",
+			from:       windowStart1,
+			to:         windowEnd3,
+			windowSize: meterpkg.WindowSizeHour,
+			rows: []meterpkg.MeterQueryRow{
+				{
+					WindowStart: windowStart1,
+					WindowEnd:   windowEnd1,
+					Value:       10,
+					GroupBy:     map[string]*string{},
+				},
+				{
+					WindowStart: windowStart2,
+					WindowEnd:   windowEnd2,
+					Value:       math.NaN(),
+					GroupBy:     map[string]*string{},
+				},
+				{
+					WindowStart: windowStart3,
+					WindowEnd:   windowEnd3,
+					Value:       math.NaN(),
+					GroupBy:     map[string]*string{},
+				},
+			},
+			want: []meterpkg.MeterQueryRow{}, // No gaps, so no materialized rows
+		},
+		{
+			name:       "no gaps do not materialize with subject",
 			from:       windowStart1,
 			to:         windowEnd3,
 			windowSize: meterpkg.WindowSizeHour,
@@ -43,18 +97,57 @@ func TestMaterializeCacheRows(t *testing.T) {
 					WindowEnd:   windowEnd1,
 					Value:       10,
 					Subject:     &subject1,
+					GroupBy:     map[string]*string{},
 				},
 				{
 					WindowStart: windowStart2,
 					WindowEnd:   windowEnd2,
 					Value:       20,
 					Subject:     &subject1,
+					GroupBy:     map[string]*string{},
 				},
 				{
 					WindowStart: windowStart3,
 					WindowEnd:   windowEnd3,
 					Value:       30,
 					Subject:     &subject1,
+					GroupBy:     map[string]*string{},
+				},
+			},
+			want: []meterpkg.MeterQueryRow{}, // No gaps, so no materialized rows
+		},
+		{
+			name:       "no gaps do not materialize with group by",
+			from:       windowStart1,
+			to:         windowEnd3,
+			windowSize: meterpkg.WindowSizeHour,
+			rows: []meterpkg.MeterQueryRow{
+				{
+					WindowStart: windowStart1,
+					WindowEnd:   windowEnd1,
+					Value:       10,
+					Subject:     &subject1,
+					GroupBy: map[string]*string{
+						"group1": &group1Value,
+					},
+				},
+				{
+					WindowStart: windowStart2,
+					WindowEnd:   windowEnd2,
+					Value:       20,
+					Subject:     &subject1,
+					GroupBy: map[string]*string{
+						"group1": &group1Value,
+					},
+				},
+				{
+					WindowStart: windowStart3,
+					WindowEnd:   windowEnd3,
+					Value:       30,
+					Subject:     &subject1,
+					GroupBy: map[string]*string{
+						"group1": &group1Value,
+					},
 				},
 			},
 			want: []meterpkg.MeterQueryRow{}, // No gaps, so no materialized rows
@@ -69,11 +162,13 @@ func TestMaterializeCacheRows(t *testing.T) {
 					WindowStart: windowStart2,
 					WindowEnd:   windowEnd2,
 					Value:       10,
+					GroupBy:     map[string]*string{},
 				},
 				{
 					WindowStart: windowStart3,
 					WindowEnd:   windowEnd3,
 					Value:       30,
+					GroupBy:     map[string]*string{},
 				},
 			},
 			want: []meterpkg.MeterQueryRow{
@@ -81,6 +176,7 @@ func TestMaterializeCacheRows(t *testing.T) {
 					WindowStart: windowStart1,
 					WindowEnd:   windowEnd1,
 					Value:       math.NaN(),
+					GroupBy:     map[string]*string{},
 				},
 			},
 		},
@@ -94,11 +190,13 @@ func TestMaterializeCacheRows(t *testing.T) {
 					WindowStart: windowStart1,
 					WindowEnd:   windowEnd1,
 					Value:       10,
+					GroupBy:     map[string]*string{},
 				},
 				{
 					WindowStart: windowStart3,
 					WindowEnd:   windowEnd3,
 					Value:       30,
+					GroupBy:     map[string]*string{},
 				},
 			},
 			want: []meterpkg.MeterQueryRow{
@@ -106,6 +204,7 @@ func TestMaterializeCacheRows(t *testing.T) {
 					WindowStart: windowStart2,
 					WindowEnd:   windowEnd2,
 					Value:       math.NaN(),
+					GroupBy:     map[string]*string{},
 				},
 			},
 		},
@@ -119,11 +218,13 @@ func TestMaterializeCacheRows(t *testing.T) {
 					WindowStart: windowStart1,
 					WindowEnd:   windowEnd1,
 					Value:       10,
+					GroupBy:     map[string]*string{},
 				},
 				{
 					WindowStart: windowStart2,
 					WindowEnd:   windowEnd2,
 					Value:       30,
+					GroupBy:     map[string]*string{},
 				},
 			},
 			want: []meterpkg.MeterQueryRow{
@@ -131,6 +232,7 @@ func TestMaterializeCacheRows(t *testing.T) {
 					WindowStart: windowStart3,
 					WindowEnd:   windowEnd3,
 					Value:       math.NaN(),
+					GroupBy:     map[string]*string{},
 				},
 			},
 		},
@@ -145,12 +247,14 @@ func TestMaterializeCacheRows(t *testing.T) {
 					WindowEnd:   windowEnd1,
 					Value:       10,
 					Subject:     &subject1,
+					GroupBy:     map[string]*string{},
 				},
 				{
 					WindowStart: windowStart3,
 					WindowEnd:   windowEnd3,
 					Value:       30,
 					Subject:     &subject1,
+					GroupBy:     map[string]*string{},
 				},
 			},
 			want: []meterpkg.MeterQueryRow{
@@ -159,6 +263,7 @@ func TestMaterializeCacheRows(t *testing.T) {
 					WindowEnd:   windowEnd2,
 					Value:       math.NaN(),
 					Subject:     &subject1,
+					GroupBy:     map[string]*string{},
 				},
 			},
 		},
@@ -173,12 +278,14 @@ func TestMaterializeCacheRows(t *testing.T) {
 					WindowEnd:   windowEnd1,
 					Value:       10,
 					Subject:     &subject1,
+					GroupBy:     map[string]*string{},
 				},
 				{
 					WindowStart: windowStart3,
 					WindowEnd:   windowEnd3,
 					Value:       30,
 					Subject:     &subject2,
+					GroupBy:     map[string]*string{},
 				},
 			},
 			want: []meterpkg.MeterQueryRow{
@@ -187,24 +294,28 @@ func TestMaterializeCacheRows(t *testing.T) {
 					WindowEnd:   windowEnd1,
 					Value:       math.NaN(),
 					Subject:     &subject2,
+					GroupBy:     map[string]*string{},
 				},
 				{
 					WindowStart: windowStart2,
 					WindowEnd:   windowEnd2,
 					Value:       math.NaN(),
 					Subject:     &subject1,
+					GroupBy:     map[string]*string{},
 				},
 				{
 					WindowStart: windowStart2,
 					WindowEnd:   windowEnd2,
 					Value:       math.NaN(),
 					Subject:     &subject2,
+					GroupBy:     map[string]*string{},
 				},
 				{
 					WindowStart: windowStart3,
 					WindowEnd:   windowEnd3,
 					Value:       math.NaN(),
 					Subject:     &subject1,
+					GroupBy:     map[string]*string{},
 				},
 			},
 		},
