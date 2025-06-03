@@ -385,6 +385,7 @@ func TestPlan(t *testing.T) {
 		misalignedCreate.Alignment = &api.Alignment{
 			BillablesMustAlign: lo.ToPtr(true),
 		}
+		misalignedCreate.BillingCadence = "P1M"
 
 		misalignedCreate.Phases = slices.Clone(planCreate.Phases)
 		misalignedCreate.Phases[0].RateCards = slices.Clone(planCreate.Phases[0].RateCards)
@@ -392,7 +393,7 @@ func TestPlan(t *testing.T) {
 
 		planAPIRes, err := client.CreatePlanWithResponse(ctx, misalignedCreate)
 		require.Nil(t, err)
-		require.Equal(t, 201, planAPIRes.StatusCode())
+		require.Equal(t, 201, planAPIRes.StatusCode(), "received the following body: %s", planAPIRes.Body)
 
 		plan := planAPIRes.JSON201
 		require.NotNil(t, plan, "received the following body: %s", planAPIRes.Body)

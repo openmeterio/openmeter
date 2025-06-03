@@ -1,8 +1,6 @@
 package productcatalog
 
 import (
-	"fmt"
-
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
@@ -43,5 +41,5 @@ func ValidateBillingCadencesAlign(planBillingCadence isodate.Period, rateCardBil
 		return nil
 	}
 
-	return fmt.Errorf("billing cadences do not align: %s and %s", planBillingCadence, rateCardBillingCadence)
+	return ErrRateCardBillingCadenceUnaligned
 }
