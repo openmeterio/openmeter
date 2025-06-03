@@ -492,7 +492,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		// TODO[OM-1040]: We should support rounding errors in prorating calculations (such as 1/3 of a dollar is $0.33, 3*$0.33 is $0.99, if we bill
 		// $1.00 in three equal pieces we should charge the customer $0.01 as the last split)
 		perUnitAmount := currency.RoundToPrecision(price.Amount)
-		if !item.ServicePeriod.IsEmpty() && h.shouldProrateFlatFee(price) {
+		if !item.ServicePeriod.IsEmpty() && h.shouldProrate(item, subs) {
 			perUnitAmount = currency.RoundToPrecision(price.Amount.Mul(item.PeriodPercentage()))
 		}
 
@@ -551,12 +551,25 @@ func (h *Handler) discountsToBillingDiscounts(discounts productcatalog.Discounts
 	return out
 }
 
-func (h *Handler) shouldProrateFlatFee(price productcatalog.FlatPrice) bool {
-	switch price.PaymentTerm {
-	case productcatalog.InAdvancePaymentTerm:
-		return h.featureFlags.EnableFlatFeeInAdvanceProrating
-	case productcatalog.InArrearsPaymentTerm:
-		return h.featureFlags.EnableFlatFeeInArrearsProrating
+func (h *Handler) shouldProrate(item subscriptionItemWithPeriods, subView subscription.SubscriptionView) bool {
+	if !subView.Subscription.ProRatingConfig.Enabled {
+		return false
+	}
+
+	// We only prorate flat prices
+	if item.Spec.RateCard.AsMeta().Price.Type() != productcatalog.FlatPriceType {
+		return false
+	}
+
+	// We do not prorate due to the subscription ending
+	if subView.Subscription.ActiveTo != nil && !subView.Subscription.ActiveTo.After(item.ServicePeriod.End) {
+		return false
+	}
+
+	// We're just gonna prorate all flat prices based on subscription settings
+	switch subView.Subscription.ProRatingConfig.Mode {
+	case productcatalog.ProRatingModeProratePrices:
+		return true
 	default:
 		return false
 	}
