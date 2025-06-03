@@ -247,20 +247,12 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 
 	// Step 3: Store the new rows in the cache
 	// We filter out rows that are non cacheable
-	for _, row := range append(beforeCacheRows, afterCacheRows...) {
-		// Filter out rows that are after the cacheable query period
-		if row.WindowEnd.After(*cacheableQueryMeter.To) {
-			continue
-		}
-
-		// Filter out rows that are incomplete windows
-		// We don't want to store incomplete windows in the cache
-		if cacheableQueryMeter.WindowSize != nil && !row.WindowStart.Truncate(cacheableQueryMeter.WindowSize.Duration()).Equal(row.WindowStart) {
-			continue
-		}
-
-		newRowsNotInCache = append(newRowsNotInCache, row)
-	}
+	newRowsNotInCache = filterRowsOutOfPeriod(
+		*cacheableQueryMeter.From,
+		*cacheableQueryMeter.To,
+		*cacheableQueryMeter.WindowSize,
+		append(beforeCacheRows, afterCacheRows...),
+	)
 
 	// Materialize the cache rows for the cachable query period where there are gaps in the cache
 	materializedRows, err := c.materializeCacheRows(
@@ -278,8 +270,9 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 		newRowsNotInCache = append(newRowsNotInCache, materializedRows...)
 	}
 
-	// Results can be double cached in the case of parallel queries to handle this,
-	// we deduplicate the results while retrieving them from the cache
+	// Store new cachable rows in the cache
+	// Due to paralell requests and race condition we can end up with duplicates in the cache.
+	// This is handled at cached row retreival with deduplication
 	if len(newRowsNotInCache) > 0 {
 		logger := logger.With("newRowsNotInCacheCount", len(newRowsNotInCache))
 
@@ -291,25 +284,13 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 		}
 	}
 
-	// Filter out rows that have a value of 0
+	// Filter out materialized rows from cached rows
 	cachedRowsWithValue := lo.Filter(cachedRows, func(row meterpkg.MeterQueryRow, _ int) bool {
-		return row.Value != 0
+		return row.Value != cacheNoValue
 	})
 
 	// Result
-	resultRows := []meterpkg.MeterQueryRow{}
-
-	if len(beforeCacheRows) > 0 {
-		resultRows = append(resultRows, beforeCacheRows...)
-	}
-
-	if len(cachedRowsWithValue) > 0 {
-		resultRows = append(resultRows, cachedRowsWithValue...)
-	}
-
-	if len(afterCacheRows) > 0 {
-		resultRows = append(resultRows, afterCacheRows...)
-	}
+	resultRows := concatAppend([][]meterpkg.MeterQueryRow{beforeCacheRows, cachedRowsWithValue, afterCacheRows})
 
 	// Sort results by window start
 	sort.Slice(resultRows, func(i, j int) bool {
