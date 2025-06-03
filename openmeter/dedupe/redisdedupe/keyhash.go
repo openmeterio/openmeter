@@ -30,7 +30,7 @@ import (
 //
 // The probability of a cullusion is 3e8/3.4e38 ~ 1e-30, which is extremely low.
 
-func getKeyHash(itemKey string) string {
+func GetKeyHash(itemKey string) string {
 	hashBytes := xxh3.HashString128(itemKey).Bytes()
 	b64 := base64.StdEncoding.EncodeToString(hashBytes[:])
 	return b64
