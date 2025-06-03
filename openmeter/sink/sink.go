@@ -14,6 +14,7 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
@@ -430,6 +431,13 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 
 	dedupeItems := []dedupe.Item{}
 	for _, message := range messages {
+		// Let's not insert already dropped messages into the deduplicator as this signals
+		// that we had a problem validating the message, we could redo any validation as needed
+		// later but if any error was transient let's retry the message if it's sent again.
+		if message.Status.State == sinkmodels.DROP {
+			continue
+		}
+
 		dedupeItems = append(dedupeItems, dedupe.Item{
 			Namespace: message.Namespace,
 			ID:        message.Serialized.Id,
@@ -437,10 +445,29 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 		})
 	}
 
+	if len(dedupeItems) == 0 {
+		logger.Debug("no dedupe items to set")
+		return nil
+	}
+
 	// We retry with exponential backoff as it's critical that either step #2 or #3 succeeds.
 	err := retry.Do(
 		func() error {
-			return s.config.Deduplicator.Set(dedupeCtx, dedupeItems...)
+			existingItems, err := s.config.Deduplicator.Set(dedupeCtx, dedupeItems...)
+			if err != nil {
+				return err
+			}
+
+			if len(existingItems) > 0 {
+				logger.ErrorContext(ctx, "dedupe: some items already existed in redis",
+					"items", lo.Map(existingItems, func(item dedupe.Item, _ int) string {
+						return item.Key()
+					}),
+					"code", "dedupe_set_failure",
+				)
+			}
+
+			return nil
 		},
 		retry.Context(dedupeCtx),
 		retry.OnRetry(func(n uint, err error) {
