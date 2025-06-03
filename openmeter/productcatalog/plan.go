@@ -103,6 +103,20 @@ func ValidatePlanPhases() models.ValidatorFunc[Plan] {
 	}
 }
 
+// ValidatePlanMinimumBillingCadence validates that the billing cadence of the plan is at least a month.
+func ValidatePlanMinimumBillingCadence() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		var errs []error
+
+		// Billing Cadence has to be at least 1 month
+		if p.BillingCadence.Compare(isodate.NewPeriod(0, 1, 0, 0, 0, 0, 0)) < 0 {
+			errs = append(errs, ErrPlanBillingCadenceInvalid)
+		}
+
+		return errors.Join(errs...)
+	}
+}
+
 // ValidatePlanHasAlignedBillingCadences validates that the billing cadence of the plan is aligned with the billing cadence of the rate cards.
 func ValidatePlanHasAlignedBillingCadences() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
@@ -162,6 +176,7 @@ func (p Plan) Validate() error {
 	return p.ValidateWith(
 		ValidatePlanMeta(),
 		ValidatePlanPhases(),
+		ValidatePlanMinimumBillingCadence(),
 		ValidatePlanHasAlignedBillingCadences(),
 	)
 }

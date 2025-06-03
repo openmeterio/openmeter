@@ -3,6 +3,7 @@
 package isodate
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -58,17 +59,21 @@ func (p Period) Simplify(exact bool) Period {
 	return Period{p.Period.Simplify(exact)}
 }
 
-// InDays returns the value of the period in days
-func (p Period) InDays(daysInMonth int) (decimal.Decimal, error) {
-	years, err := p.Period.YearsDecimal().Mul(decimal.MustNew(int64(daysInMonth*12), 0))
+// InHours returns the value of the period in hours
+func (p Period) InHours(daysInMonth int) (decimal.Decimal, error) {
+	years, err := p.Period.YearsDecimal().Mul(decimal.MustNew(int64(daysInMonth*12*24), 0))
 	if err != nil {
 		return decimal.Zero, err
 	}
-	months, err := p.Period.MonthsDecimal().Mul(decimal.MustNew(int64(daysInMonth), 0))
+	months, err := p.Period.MonthsDecimal().Mul(decimal.MustNew(int64(daysInMonth*24), 0))
 	if err != nil {
 		return decimal.Zero, err
 	}
-	weeks, err := p.Period.WeeksDecimal().Mul(decimal.MustNew(7, 0))
+	weeks, err := p.Period.WeeksDecimal().Mul(decimal.MustNew(7*24, 0))
+	if err != nil {
+		return decimal.Zero, err
+	}
+	days, err := p.Period.DaysDecimal().Mul(decimal.MustNew(24, 0))
 	if err != nil {
 		return decimal.Zero, err
 	}
@@ -81,7 +86,11 @@ func (p Period) InDays(daysInMonth int) (decimal.Decimal, error) {
 	if err != nil {
 		return decimal.Zero, err
 	}
-	v, err = v.Add(p.Period.DaysDecimal())
+	v, err = v.Add(days)
+	if err != nil {
+		return decimal.Zero, err
+	}
+	v, err = v.Add(p.Period.HoursDecimal())
 	if err != nil {
 		return decimal.Zero, err
 	}
@@ -124,18 +133,22 @@ func (larger Period) DivisibleBy(smaller Period) (bool, error) {
 		return false, nil
 	}
 
+	if l.Minutes() != 0 || l.Seconds() != 0 || s.Minutes() != 0 || s.Seconds() != 0 {
+		return false, fmt.Errorf("divisible periods must be whole numbers of hours")
+	}
+
 	testDaysInMonth := []int{28, 29, 30, 31}
 	for _, daysInMonth := range testDaysInMonth {
-		// replace months with days
-		ldays, err := l.InDays(daysInMonth)
+		// get periods in hours
+		lh, err := l.InHours(daysInMonth)
 		if err != nil {
 			return false, err
 		}
-		sdays, err := s.InDays(daysInMonth)
+		sh, err := s.InHours(daysInMonth)
 		if err != nil {
 			return false, err
 		}
-		if _, r, err := ldays.QuoRem(sdays); err != nil || !r.IsZero() {
+		if _, r, err := lh.QuoRem(sh); err != nil || !r.IsZero() {
 			return false, err
 		}
 	}
