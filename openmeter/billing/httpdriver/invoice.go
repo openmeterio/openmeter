@@ -647,7 +647,7 @@ func mapInvoiceCustomerToAPI(c billing.InvoiceCustomer) api.BillingParty {
 		Name: lo.EmptyableToPtr(c.Name),
 	}
 
-	if a != nil {
+	if a != nil && !lo.IsEmpty(*a) {
 		out.Addresses = lo.ToPtr([]api.Address{
 			{
 				Country:     (*string)(a.Country),
