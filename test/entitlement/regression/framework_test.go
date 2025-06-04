@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
@@ -29,6 +30,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -163,6 +165,11 @@ func setupDependencies(t *testing.T) Dependencies {
 	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
 	booleanEntitlementConnector := booleanentitlement.NewBooleanEntitlementConnector()
 
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: log,
+	})
+	require.NoError(t, err)
+
 	entitlementConnector := entitlementservice.NewEntitlementConnector(
 		entitlementRepo,
 		featureConnector,
@@ -171,6 +178,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		staticEntitlementConnector,
 		booleanEntitlementConnector,
 		mockPublisher,
+		locker,
 	)
 
 	return Dependencies{

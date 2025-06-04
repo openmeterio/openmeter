@@ -8,6 +8,7 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
@@ -21,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -116,6 +118,11 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 
 	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
 
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: testLogger,
+	})
+	require.NoError(t, err)
+
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbClient,
 		StreamingConnector: streamingConnector,
@@ -126,6 +133,7 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: isodate.String("P1D"),
 		},
+		Locker: locker,
 	})
 
 	deps := &dependencies{

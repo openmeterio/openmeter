@@ -97,6 +97,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: isodate.String("P1D"),
 		},
+		Locker: lockr,
 	})
 
 	entitlementAdapter := subscriptionentitlement.NewSubscriptionEntitlementAdapter(

@@ -257,6 +257,11 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
 	booleanEntitlementConnector := booleanentitlement.NewBooleanEntitlementConnector()
 
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
 	return entitlementservice.NewEntitlementConnector(
 		entitlementRepo,
 		deps.FeatureService,
@@ -265,5 +270,6 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 		staticEntitlementConnector,
 		booleanEntitlementConnector,
 		mockPublisher,
+		locker,
 	)
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
 type EntitlementOptions struct {
@@ -33,6 +34,7 @@ type EntitlementOptions struct {
 	MeterService              meter.Service
 	Publisher                 eventbus.Publisher
 	Tracer                    trace.Tracer
+	Locker                    *lockr.Locker
 }
 
 func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
@@ -96,6 +98,7 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 		staticentitlement.NewStaticEntitlementConnector(),
 		booleanentitlement.NewBooleanEntitlementConnector(),
 		opts.Publisher,
+		opts.Locker,
 	)
 
 	return &registry.Entitlement{

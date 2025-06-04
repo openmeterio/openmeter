@@ -39,6 +39,11 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input en
 			return nil, &feature.FeatureNotFoundError{ID: *featureIdOrKey}
 		}
 
+		err = c.lockUniqueScope(ctx, input.SubjectKey, feat.Key)
+		if err != nil {
+			return nil, err
+		}
+
 		// fill featureId and featureKey
 		input.FeatureID = &feat.ID
 		input.FeatureKey = &feat.Key
@@ -127,64 +132,69 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input en
 }
 
 func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitlementId string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
-	// Find the entitlement to override
-	oldEnt, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: input.Namespace, ID: entitlementId})
-	if err != nil {
-		return nil, err
-	}
-
-	if oldEnt == nil {
-		return nil, fmt.Errorf("inconsistency error, entitlement is nil: %s", entitlementId)
-	}
-
-	if oldEnt.DeletedAt != nil {
-		return nil, &entitlement.AlreadyDeletedError{EntitlementID: oldEnt.ID}
-	}
-
-	// ID has priority over key
-	featureIdOrKey := input.FeatureID
-	if featureIdOrKey == nil {
-		featureIdOrKey = input.FeatureKey
-	}
-	if featureIdOrKey == nil {
-		return nil, models.NewGenericValidationError(fmt.Errorf("feature ID or Key is required"))
-	}
-
-	feat, err := c.featureConnector.GetFeature(ctx, input.Namespace, *featureIdOrKey, feature.IncludeArchivedFeatureFalse)
-	if err != nil {
-		return nil, err
-	}
-
-	if feat == nil {
-		return nil, fmt.Errorf("inconsistency error, feature is nil: %s", *featureIdOrKey)
-	}
-
-	// Validate that old a new entitlement belong to same feature & subject
-
-	if feat.Key != oldEnt.FeatureKey {
-		return nil, models.NewGenericValidationError(fmt.Errorf("old and new entitlements belong to different features"))
-	}
-
-	if input.SubjectKey != oldEnt.SubjectKey {
-		return nil, models.NewGenericValidationError(fmt.Errorf("old and new entitlements belong to different subjects"))
-	}
-
-	// To override we close the old entitlement as inactive and create the new one
-	activationTime := defaultx.WithDefault(input.ActiveFrom, clock.Now())
-
-	if !activationTime.After(oldEnt.ActiveFromTime()) {
-		return nil, models.NewGenericValidationError(fmt.Errorf("new entitlement must be active after the old one"))
-	}
-
-	// To avoid unintended consequences, we don't allow overriding an entitlement with another one which wouldn't otherwise be overlapping
-	// Otherwise create ScheduleEntitlement would return an InconsistencyError which is hard to make sense of
-	if oldEnt.ActiveToTime() != nil && oldEnt.ActiveToTime().Before(activationTime) {
-		return nil, models.NewGenericValidationError(fmt.Errorf("new entitlement must be active before the old one ends"))
-	}
-
-	// Do the override in TX
 	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*entitlement.Entitlement, error) {
-		err := c.entitlementRepo.DeactivateEntitlement(ctx, models.NamespacedID{Namespace: input.Namespace, ID: oldEnt.ID}, activationTime)
+		// Find the entitlement to override
+		oldEnt, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: input.Namespace, ID: entitlementId})
+		if err != nil {
+			return nil, err
+		}
+
+		if oldEnt == nil {
+			return nil, fmt.Errorf("inconsistency error, entitlement is nil: %s", entitlementId)
+		}
+
+		if oldEnt.DeletedAt != nil {
+			return nil, &entitlement.AlreadyDeletedError{EntitlementID: oldEnt.ID}
+		}
+
+		// ID has priority over key
+		featureIdOrKey := input.FeatureID
+		if featureIdOrKey == nil {
+			featureIdOrKey = input.FeatureKey
+		}
+		if featureIdOrKey == nil {
+			return nil, models.NewGenericValidationError(fmt.Errorf("feature ID or Key is required"))
+		}
+
+		feat, err := c.featureConnector.GetFeature(ctx, input.Namespace, *featureIdOrKey, feature.IncludeArchivedFeatureFalse)
+		if err != nil {
+			return nil, err
+		}
+
+		if feat == nil {
+			return nil, fmt.Errorf("inconsistency error, feature is nil: %s", *featureIdOrKey)
+		}
+
+		err = c.lockUniqueScope(ctx, input.SubjectKey, feat.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		// Validate that old a new entitlement belong to same feature & subject
+
+		if feat.Key != oldEnt.FeatureKey {
+			return nil, models.NewGenericValidationError(fmt.Errorf("old and new entitlements belong to different features"))
+		}
+
+		if input.SubjectKey != oldEnt.SubjectKey {
+			return nil, models.NewGenericValidationError(fmt.Errorf("old and new entitlements belong to different subjects"))
+		}
+
+		// To override we close the old entitlement as inactive and create the new one
+		activationTime := defaultx.WithDefault(input.ActiveFrom, clock.Now())
+
+		if !activationTime.After(oldEnt.ActiveFromTime()) {
+			return nil, models.NewGenericValidationError(fmt.Errorf("new entitlement must be active after the old one"))
+		}
+
+		// To avoid unintended consequences, we don't allow overriding an entitlement with another one which wouldn't otherwise be overlapping
+		// Otherwise create ScheduleEntitlement would return an InconsistencyError which is hard to make sense of
+		if oldEnt.ActiveToTime() != nil && oldEnt.ActiveToTime().Before(activationTime) {
+			return nil, models.NewGenericValidationError(fmt.Errorf("new entitlement must be active before the old one ends"))
+		}
+
+		// Do the override
+		err = c.entitlementRepo.DeactivateEntitlement(ctx, models.NamespacedID{Namespace: input.Namespace, ID: oldEnt.ID}, activationTime)
 		if err != nil {
 			return nil, err
 		}
@@ -194,4 +204,13 @@ func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitle
 		// The Unique Constraint during Scheduling catches the InconsistencyError where the new entitltment would be scheduled active longer then any later entitlement would start.
 		return c.ScheduleEntitlement(ctx, input)
 	})
+}
+
+func (c *entitlementConnector) lockUniqueScope(ctx context.Context, subjectKey string, featureKey string) error {
+	key, err := NewEntitlementUniqueScopeLock(featureKey, subjectKey)
+	if err != nil {
+		return err
+	}
+
+	return c.locker.LockForTX(ctx, key)
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -31,6 +32,7 @@ type entitlementConnector struct {
 	meterService     meter.Service
 
 	publisher eventbus.Publisher
+	locker    *lockr.Locker
 }
 
 func NewEntitlementConnector(
@@ -41,6 +43,7 @@ func NewEntitlementConnector(
 	staticEntitlementConnector entitlement.SubTypeConnector,
 	booleanEntitlementConnector entitlement.SubTypeConnector,
 	publisher eventbus.Publisher,
+	locker *lockr.Locker,
 ) entitlement.Connector {
 	return &entitlementConnector{
 		meteredEntitlementConnector: meteredEntitlementConnector,
@@ -50,6 +53,7 @@ func NewEntitlementConnector(
 		featureConnector:            featureConnector,
 		meterService:                meterService,
 		publisher:                   publisher,
+		locker:                      locker,
 	}
 }
 
