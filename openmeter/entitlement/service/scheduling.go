@@ -1,4 +1,4 @@
-package entitlement
+package service
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -16,8 +17,8 @@ import (
 )
 
 // ScheduleEntitlement schedules an entitlement for a future date.
-func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error) {
-	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*Entitlement, error) {
+func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*entitlement.Entitlement, error) {
 		activeFromTime := defaultx.WithDefault(input.ActiveFrom, clock.Now())
 
 		if err := input.Validate(); err != nil {
@@ -52,7 +53,7 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 		}
 
 		// Sort scheduled entitlements by activeFromTime ascending
-		slices.SortStableFunc(scheduledEnts, func(a, b Entitlement) int {
+		slices.SortStableFunc(scheduledEnts, func(a, b entitlement.Entitlement) int {
 			return int(a.ActiveFromTime().Sub(b.ActiveFromTime()))
 		})
 
@@ -60,8 +61,8 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 		// This is the least sufficient representation on which the constraint check can be performed.
 		newEntitlementId := "new-entitlement-id"
 
-		dummy := Entitlement{
-			GenericProperties: GenericProperties{
+		dummy := entitlement.Entitlement{
+			GenericProperties: entitlement.GenericProperties{
 				ID:         newEntitlementId,
 				FeatureKey: *input.FeatureKey,
 				SubjectKey: input.SubjectKey,
@@ -74,19 +75,19 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 			},
 		}
 
-		err = ValidateUniqueConstraint(append(scheduledEnts, dummy))
+		err = entitlement.ValidateUniqueConstraint(append(scheduledEnts, dummy))
 		if err != nil {
-			if cErr, ok := lo.ErrorsAs[*UniquenessConstraintError](err); ok {
-				if cErr.e1.ID != newEntitlementId && cErr.e2.ID != newEntitlementId {
+			if cErr, ok := lo.ErrorsAs[*entitlement.UniquenessConstraintError](err); ok {
+				if cErr.E1.ID != newEntitlementId && cErr.E2.ID != newEntitlementId {
 					// inconsistency error
 					return nil, fmt.Errorf("inconsistency error: scheduled entitlements don't meet uniqueness constraint %w", cErr)
 				}
-				conflict := cErr.e1
+				conflict := cErr.E1
 				if conflict.ID == newEntitlementId {
-					conflict = cErr.e2
+					conflict = cErr.E2
 				}
 
-				return nil, &AlreadyExistsError{EntitlementID: conflict.ID, FeatureID: conflict.FeatureID, SubjectKey: conflict.SubjectKey}
+				return nil, &entitlement.AlreadyExistsError{EntitlementID: conflict.ID, FeatureID: conflict.FeatureID, SubjectKey: conflict.SubjectKey}
 			} else {
 				return nil, err
 			}
@@ -111,7 +112,7 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 			return nil, err
 		}
 
-		err = c.publisher.Publish(ctx, EntitlementCreatedEvent{
+		err = c.publisher.Publish(ctx, entitlement.EntitlementCreatedEvent{
 			Entitlement: *ent,
 			Namespace: eventmodels.NamespaceID{
 				ID: input.Namespace,
@@ -125,7 +126,7 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 	})
 }
 
-func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitlementId string, input CreateEntitlementInputs) (*Entitlement, error) {
+func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitlementId string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	// Find the entitlement to override
 	oldEnt, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: input.Namespace, ID: entitlementId})
 	if err != nil {
@@ -137,7 +138,7 @@ func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitle
 	}
 
 	if oldEnt.DeletedAt != nil {
-		return nil, &AlreadyDeletedError{EntitlementID: oldEnt.ID}
+		return nil, &entitlement.AlreadyDeletedError{EntitlementID: oldEnt.ID}
 	}
 
 	// ID has priority over key
@@ -182,7 +183,7 @@ func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitle
 	}
 
 	// Do the override in TX
-	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*Entitlement, error) {
+	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*entitlement.Entitlement, error) {
 		err := c.entitlementRepo.DeactivateEntitlement(ctx, models.NamespacedID{Namespace: input.Namespace, ID: oldEnt.ID}, activationTime)
 		if err != nil {
 			return nil, err

@@ -12,10 +12,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementpgadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	entitlementservice "github.com/openmeterio/openmeter/openmeter/entitlement/service"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	productcatalogpgadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
@@ -88,7 +88,7 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 		opts.Logger,
 		opts.Tracer,
 	)
-	entitlementConnector := entitlement.NewEntitlementConnector(
+	entitlementConnector := entitlementservice.NewEntitlementConnector(
 		entitlementDBAdapter,
 		featureConnector,
 		opts.MeterService,
