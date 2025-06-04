@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -125,7 +126,25 @@ func (s *SubscriptionSpec) GetSortedPhases() []*SubscriptionPhaseSpec {
 	slices.SortStableFunc(phases, func(i, j *SubscriptionPhaseSpec) int {
 		iTime, _ := i.StartAfter.AddTo(s.ActiveFrom)
 		jTime, _ := j.StartAfter.AddTo(s.ActiveFrom)
-		return int(iTime.Sub(jTime))
+		diff := iTime.Compare(jTime)
+
+		if diff != 0 {
+			return diff
+		}
+
+		// We do a best effort tie-breaker
+
+		// SortHint "should" be present for all these cases
+		if i.SortHint != nil && j.SortHint != nil {
+			diff = int(*i.SortHint) - int(*j.SortHint)
+		}
+
+		if diff != 0 {
+			return diff
+		}
+
+		// We still want this to be deterministic so we use phase key as a last resort
+		return strings.Compare(i.PhaseKey, j.PhaseKey)
 	})
 
 	return phases
@@ -277,9 +296,9 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 
 // SyncAnnotations serves as a central place where we can calculate annotation default for the Subscription contents
 func (s *SubscriptionSpec) SyncAnnotations() error {
-	for pKey, phase := range s.Phases {
+	for _, phase := range s.GetSortedPhases() {
 		if err := phase.SyncAnnotations(); err != nil {
-			return fmt.Errorf("failed to sync annotations for phase %s: %w", pKey, err)
+			return fmt.Errorf("failed to sync annotations for phase %s: %w", phase.PhaseKey, err)
 		}
 	}
 
@@ -289,7 +308,19 @@ func (s *SubscriptionSpec) SyncAnnotations() error {
 func (s *SubscriptionSpec) Validate() error {
 	// All consistency checks should happen here
 	var errs []error
-	for _, phase := range s.Phases {
+
+	sortedPhases := s.GetSortedPhases()
+	for idx, phase := range sortedPhases {
+		// Let's validate that if there are phases with the same start time, they have sort hint present
+		if idx > 0 {
+			prevPhase := sortedPhases[idx-1]
+			if prevPhase.StartAfter.Equal(&phase.StartAfter) {
+				if phase.SortHint == nil || prevPhase.SortHint == nil {
+					errs = append(errs, fmt.Errorf("phase %s has the same start time as phase %s but no sort hint", phase.PhaseKey, prevPhase.PhaseKey))
+				}
+			}
+		}
+
 		cadence, err := s.GetPhaseCadence(phase.PhaseKey)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("during validating spec failed to get phase cadence for phase %s: %w", phase.PhaseKey, err))
@@ -308,6 +339,7 @@ type CreateSubscriptionPhasePlanInput struct {
 	StartAfter  isodate.Period `json:"startAfter"`
 	Name        string         `json:"name"`
 	Description *string        `json:"description,omitempty"`
+	SortHint    *uint8         `json:"sortHint,omitempty"`
 }
 
 func (i CreateSubscriptionPhasePlanInput) Validate() error {
@@ -381,6 +413,7 @@ func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
 		Name:           s.Name,
 		Description:    s.Description,
 		StartAfter:     s.StartAfter,
+		SortHint:       s.SortHint,
 	}
 }
 

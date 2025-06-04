@@ -48719,6 +48719,8 @@ type SubscriptionPhaseMutation struct {
 	name                 *string
 	description          *string
 	active_from          *time.Time
+	sort_hint            *uint8
+	addsort_hint         *int8
 	clearedFields        map[string]struct{}
 	subscription         *string
 	clearedsubscription  bool
@@ -49236,6 +49238,76 @@ func (m *SubscriptionPhaseMutation) ResetActiveFrom() {
 	m.active_from = nil
 }
 
+// SetSortHint sets the "sort_hint" field.
+func (m *SubscriptionPhaseMutation) SetSortHint(u uint8) {
+	m.sort_hint = &u
+	m.addsort_hint = nil
+}
+
+// SortHint returns the value of the "sort_hint" field in the mutation.
+func (m *SubscriptionPhaseMutation) SortHint() (r uint8, exists bool) {
+	v := m.sort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSortHint returns the old "sort_hint" field's value of the SubscriptionPhase entity.
+// If the SubscriptionPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPhaseMutation) OldSortHint(ctx context.Context) (v *uint8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSortHint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSortHint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSortHint: %w", err)
+	}
+	return oldValue.SortHint, nil
+}
+
+// AddSortHint adds u to the "sort_hint" field.
+func (m *SubscriptionPhaseMutation) AddSortHint(u int8) {
+	if m.addsort_hint != nil {
+		*m.addsort_hint += u
+	} else {
+		m.addsort_hint = &u
+	}
+}
+
+// AddedSortHint returns the value that was added to the "sort_hint" field in this mutation.
+func (m *SubscriptionPhaseMutation) AddedSortHint() (r int8, exists bool) {
+	v := m.addsort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearSortHint clears the value of the "sort_hint" field.
+func (m *SubscriptionPhaseMutation) ClearSortHint() {
+	m.sort_hint = nil
+	m.addsort_hint = nil
+	m.clearedFields[subscriptionphase.FieldSortHint] = struct{}{}
+}
+
+// SortHintCleared returns if the "sort_hint" field was cleared in this mutation.
+func (m *SubscriptionPhaseMutation) SortHintCleared() bool {
+	_, ok := m.clearedFields[subscriptionphase.FieldSortHint]
+	return ok
+}
+
+// ResetSortHint resets all changes to the "sort_hint" field.
+func (m *SubscriptionPhaseMutation) ResetSortHint() {
+	m.sort_hint = nil
+	m.addsort_hint = nil
+	delete(m.clearedFields, subscriptionphase.FieldSortHint)
+}
+
 // ClearSubscription clears the "subscription" edge to the Subscription entity.
 func (m *SubscriptionPhaseMutation) ClearSubscription() {
 	m.clearedsubscription = true
@@ -49405,7 +49477,7 @@ func (m *SubscriptionPhaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionPhaseMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.namespace != nil {
 		fields = append(fields, subscriptionphase.FieldNamespace)
 	}
@@ -49436,6 +49508,9 @@ func (m *SubscriptionPhaseMutation) Fields() []string {
 	if m.active_from != nil {
 		fields = append(fields, subscriptionphase.FieldActiveFrom)
 	}
+	if m.sort_hint != nil {
+		fields = append(fields, subscriptionphase.FieldSortHint)
+	}
 	return fields
 }
 
@@ -49464,6 +49539,8 @@ func (m *SubscriptionPhaseMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case subscriptionphase.FieldActiveFrom:
 		return m.ActiveFrom()
+	case subscriptionphase.FieldSortHint:
+		return m.SortHint()
 	}
 	return nil, false
 }
@@ -49493,6 +49570,8 @@ func (m *SubscriptionPhaseMutation) OldField(ctx context.Context, name string) (
 		return m.OldDescription(ctx)
 	case subscriptionphase.FieldActiveFrom:
 		return m.OldActiveFrom(ctx)
+	case subscriptionphase.FieldSortHint:
+		return m.OldSortHint(ctx)
 	}
 	return nil, fmt.Errorf("unknown SubscriptionPhase field %s", name)
 }
@@ -49572,6 +49651,13 @@ func (m *SubscriptionPhaseMutation) SetField(name string, value ent.Value) error
 		}
 		m.SetActiveFrom(v)
 		return nil
+	case subscriptionphase.FieldSortHint:
+		v, ok := value.(uint8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSortHint(v)
+		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionPhase field %s", name)
 }
@@ -49579,13 +49665,21 @@ func (m *SubscriptionPhaseMutation) SetField(name string, value ent.Value) error
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *SubscriptionPhaseMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addsort_hint != nil {
+		fields = append(fields, subscriptionphase.FieldSortHint)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *SubscriptionPhaseMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case subscriptionphase.FieldSortHint:
+		return m.AddedSortHint()
+	}
 	return nil, false
 }
 
@@ -49594,6 +49688,13 @@ func (m *SubscriptionPhaseMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *SubscriptionPhaseMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case subscriptionphase.FieldSortHint:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSortHint(v)
+		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionPhase numeric field %s", name)
 }
@@ -49610,6 +49711,9 @@ func (m *SubscriptionPhaseMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(subscriptionphase.FieldDescription) {
 		fields = append(fields, subscriptionphase.FieldDescription)
+	}
+	if m.FieldCleared(subscriptionphase.FieldSortHint) {
+		fields = append(fields, subscriptionphase.FieldSortHint)
 	}
 	return fields
 }
@@ -49633,6 +49737,9 @@ func (m *SubscriptionPhaseMutation) ClearField(name string) error {
 		return nil
 	case subscriptionphase.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case subscriptionphase.FieldSortHint:
+		m.ClearSortHint()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionPhase nullable field %s", name)
@@ -49671,6 +49778,9 @@ func (m *SubscriptionPhaseMutation) ResetField(name string) error {
 		return nil
 	case subscriptionphase.FieldActiveFrom:
 		m.ResetActiveFrom()
+		return nil
+	case subscriptionphase.FieldSortHint:
+		m.ResetSortHint()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionPhase field %s", name)

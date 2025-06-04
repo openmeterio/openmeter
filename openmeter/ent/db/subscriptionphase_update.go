@@ -102,6 +102,33 @@ func (_u *SubscriptionPhaseUpdate) ClearDescription() *SubscriptionPhaseUpdate {
 	return _u
 }
 
+// SetSortHint sets the "sort_hint" field.
+func (_u *SubscriptionPhaseUpdate) SetSortHint(v uint8) *SubscriptionPhaseUpdate {
+	_u.mutation.ResetSortHint()
+	_u.mutation.SetSortHint(v)
+	return _u
+}
+
+// SetNillableSortHint sets the "sort_hint" field if the given value is not nil.
+func (_u *SubscriptionPhaseUpdate) SetNillableSortHint(v *uint8) *SubscriptionPhaseUpdate {
+	if v != nil {
+		_u.SetSortHint(*v)
+	}
+	return _u
+}
+
+// AddSortHint adds value to the "sort_hint" field.
+func (_u *SubscriptionPhaseUpdate) AddSortHint(v int8) *SubscriptionPhaseUpdate {
+	_u.mutation.AddSortHint(v)
+	return _u
+}
+
+// ClearSortHint clears the value of the "sort_hint" field.
+func (_u *SubscriptionPhaseUpdate) ClearSortHint() *SubscriptionPhaseUpdate {
+	_u.mutation.ClearSortHint()
+	return _u
+}
+
 // AddItemIDs adds the "items" edge to the SubscriptionItem entity by IDs.
 func (_u *SubscriptionPhaseUpdate) AddItemIDs(ids ...string) *SubscriptionPhaseUpdate {
 	_u.mutation.AddItemIDs(ids...)
@@ -263,6 +290,15 @@ func (_u *SubscriptionPhaseUpdate) sqlSave(ctx context.Context) (_node int, err 
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(subscriptionphase.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.SortHint(); ok {
+		_spec.SetField(subscriptionphase.FieldSortHint, field.TypeUint8, value)
+	}
+	if value, ok := _u.mutation.AddedSortHint(); ok {
+		_spec.AddField(subscriptionphase.FieldSortHint, field.TypeUint8, value)
+	}
+	if _u.mutation.SortHintCleared() {
+		_spec.ClearField(subscriptionphase.FieldSortHint, field.TypeUint8)
 	}
 	if _u.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -443,6 +479,33 @@ func (_u *SubscriptionPhaseUpdateOne) SetNillableDescription(v *string) *Subscri
 // ClearDescription clears the value of the "description" field.
 func (_u *SubscriptionPhaseUpdateOne) ClearDescription() *SubscriptionPhaseUpdateOne {
 	_u.mutation.ClearDescription()
+	return _u
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (_u *SubscriptionPhaseUpdateOne) SetSortHint(v uint8) *SubscriptionPhaseUpdateOne {
+	_u.mutation.ResetSortHint()
+	_u.mutation.SetSortHint(v)
+	return _u
+}
+
+// SetNillableSortHint sets the "sort_hint" field if the given value is not nil.
+func (_u *SubscriptionPhaseUpdateOne) SetNillableSortHint(v *uint8) *SubscriptionPhaseUpdateOne {
+	if v != nil {
+		_u.SetSortHint(*v)
+	}
+	return _u
+}
+
+// AddSortHint adds value to the "sort_hint" field.
+func (_u *SubscriptionPhaseUpdateOne) AddSortHint(v int8) *SubscriptionPhaseUpdateOne {
+	_u.mutation.AddSortHint(v)
+	return _u
+}
+
+// ClearSortHint clears the value of the "sort_hint" field.
+func (_u *SubscriptionPhaseUpdateOne) ClearSortHint() *SubscriptionPhaseUpdateOne {
+	_u.mutation.ClearSortHint()
 	return _u
 }
 
@@ -637,6 +700,15 @@ func (_u *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *Subsc
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(subscriptionphase.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.SortHint(); ok {
+		_spec.SetField(subscriptionphase.FieldSortHint, field.TypeUint8, value)
+	}
+	if value, ok := _u.mutation.AddedSortHint(); ok {
+		_spec.AddField(subscriptionphase.FieldSortHint, field.TypeUint8, value)
+	}
+	if _u.mutation.SortHintCleared() {
+		_spec.ClearField(subscriptionphase.FieldSortHint, field.TypeUint8)
 	}
 	if _u.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{

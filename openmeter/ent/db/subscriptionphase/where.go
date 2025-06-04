@@ -110,6 +110,11 @@ func ActiveFrom(v time.Time) predicate.SubscriptionPhase {
 	return predicate.SubscriptionPhase(sql.FieldEQ(FieldActiveFrom, v))
 }
 
+// SortHint applies equality check predicate on the "sort_hint" field. It's identical to SortHintEQ.
+func SortHint(v uint8) predicate.SubscriptionPhase {
+	return predicate.SubscriptionPhase(sql.FieldEQ(FieldSortHint, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.SubscriptionPhase {
 	return predicate.SubscriptionPhase(sql.FieldEQ(FieldNamespace, v))
@@ -623,6 +628,56 @@ func ActiveFromLT(v time.Time) predicate.SubscriptionPhase {
 // ActiveFromLTE applies the LTE predicate on the "active_from" field.
 func ActiveFromLTE(v time.Time) predicate.SubscriptionPhase {
 	return predicate.SubscriptionPhase(sql.FieldLTE(FieldActiveFrom, v))
+}
+
+// SortHintEQ applies the EQ predicate on the "sort_hint" field.
+func SortHintEQ(v uint8) predicate.SubscriptionPhase {
+	return predicate.SubscriptionPhase(sql.FieldEQ(FieldSortHint, v))
+}
+
+// SortHintNEQ applies the NEQ predicate on the "sort_hint" field.
+func SortHintNEQ(v uint8) predicate.SubscriptionPhase {
+	return predicate.SubscriptionPhase(sql.FieldNEQ(FieldSortHint, v))
+}
+
+// SortHintIn applies the In predicate on the "sort_hint" field.
+func SortHintIn(vs ...uint8) predicate.SubscriptionPhase {
+	return predicate.SubscriptionPhase(sql.FieldIn(FieldSortHint, vs...))
+}
+
+// SortHintNotIn applies the NotIn predicate on the "sort_hint" field.
+func SortHintNotIn(vs ...uint8) predicate.SubscriptionPhase {
+	return predicate.SubscriptionPhase(sql.FieldNotIn(FieldSortHint, vs...))
+}
+
+// SortHintGT applies the GT predicate on the "sort_hint" field.
+func SortHintGT(v uint8) predicate.SubscriptionPhase {
+	return predicate.SubscriptionPhase(sql.FieldGT(FieldSortHint, v))
+}
+
+// SortHintGTE applies the GTE predicate on the "sort_hint" field.
+func SortHintGTE(v uint8) predicate.SubscriptionPhase {
+	return predicate.SubscriptionPhase(sql.FieldGTE(FieldSortHint, v))
+}
+
+// SortHintLT applies the LT predicate on the "sort_hint" field.
+func SortHintLT(v uint8) predicate.SubscriptionPhase {
+	return predicate.SubscriptionPhase(sql.FieldLT(FieldSortHint, v))
+}
+
+// SortHintLTE applies the LTE predicate on the "sort_hint" field.
+func SortHintLTE(v uint8) predicate.SubscriptionPhase {
+	return predicate.SubscriptionPhase(sql.FieldLTE(FieldSortHint, v))
+}
+
+// SortHintIsNil applies the IsNil predicate on the "sort_hint" field.
+func SortHintIsNil() predicate.SubscriptionPhase {
+	return predicate.SubscriptionPhase(sql.FieldIsNull(FieldSortHint))
+}
+
+// SortHintNotNil applies the NotNil predicate on the "sort_hint" field.
+func SortHintNotNil() predicate.SubscriptionPhase {
+	return predicate.SubscriptionPhase(sql.FieldNotNull(FieldSortHint))
 }
 
 // HasSubscription applies the HasEdge predicate on the "subscription" edge.

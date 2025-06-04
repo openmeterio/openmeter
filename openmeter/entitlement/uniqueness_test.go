@@ -150,6 +150,46 @@ func TestSchedulingConstraint(t *testing.T) {
 			},
 			expected: fmt.Errorf("constraint violated: 5 is active at the same time as 2"),
 		},
+		{
+			name: "Should not error for zero length cadence with overlapping start",
+			ents: []entitlement.Entitlement{
+				getEnt(t, getEntInp{
+					id:        "1",
+					feature:   "feature1",
+					subject:   "subject1",
+					createdAt: "2024-01-01T00:00:00Z",
+					activeTo:  lo.ToPtr("2024-01-01T00:00:00Z"), // Zero-length
+				}),
+				getEnt(t, getEntInp{
+					id:        "2",
+					feature:   "feature1",
+					subject:   "subject1",
+					createdAt: "2024-01-01T00:00:00Z",
+					activeTo:  lo.ToPtr("2024-01-02T00:00:00Z"),
+				}),
+			},
+			expected: nil,
+		},
+		{
+			name: "Should not error for multiple zero length cadences at the same time",
+			ents: []entitlement.Entitlement{
+				getEnt(t, getEntInp{
+					id:        "1",
+					feature:   "feature1",
+					subject:   "subject1",
+					createdAt: "2024-01-01T00:00:00Z",
+					activeTo:  lo.ToPtr("2024-01-01T00:00:00Z"), // Zero-length
+				}),
+				getEnt(t, getEntInp{
+					id:        "2",
+					feature:   "feature1",
+					subject:   "subject1",
+					createdAt: "2024-01-01T00:00:00Z",
+					activeTo:  lo.ToPtr("2024-01-01T00:00:00Z"), // Zero-length
+				}),
+			},
+			expected: nil,
+		},
 	}
 
 	for _, tc := range tt {

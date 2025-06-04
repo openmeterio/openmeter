@@ -24,4 +24,7 @@ type SubscriptionPhase struct {
 
 	// Description
 	Description *string `json:"description,omitempty"`
+
+	// SortHint
+	SortHint *uint8 `json:"sortHint,omitempty"`
 }

@@ -266,8 +266,13 @@ func TestChange(t *testing.T) {
 			})
 			require.Nil(t, err)
 
-			require.Len(t, resp.Next.Phases, len(plan2.Phases)-2)
-			require.Equal(t, "test_phase_3", resp.Next.Phases[0].SubscriptionPhase.Key)
+			require.Len(t, resp.Next.Phases, len(plan2.Phases))
+			require.Equal(t, resp.Next.Phases[0].SubscriptionPhase.ActiveFrom, resp.Next.Phases[1].SubscriptionPhase.ActiveFrom)
+			require.Equal(t, resp.Next.Phases[1].SubscriptionPhase.ActiveFrom, resp.Next.Phases[2].SubscriptionPhase.ActiveFrom)
+			require.Equal(t, "test_phase_1", resp.Next.Phases[0].SubscriptionPhase.Key)
+			require.Equal(t, "test_phase_2", resp.Next.Phases[1].SubscriptionPhase.Key)
+			require.Equal(t, "test_phase_3", resp.Next.Phases[2].SubscriptionPhase.Key)
+			require.Equal(t, "test_phase_4", resp.Next.Phases[3].SubscriptionPhase.Key)
 		})
 	})
 

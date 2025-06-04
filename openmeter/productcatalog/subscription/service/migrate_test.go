@@ -377,8 +377,8 @@ func TestMigrate(t *testing.T) {
 			})
 			require.Nil(t, err)
 
-			require.Len(t, resp.Next.Phases, len(plan2.Phases)-1)
-			require.Equal(t, "test_phase_2", resp.Next.Phases[0].SubscriptionPhase.Key)
+			require.Len(t, resp.Next.Phases, len(plan2.Phases))
+			require.Equal(t, resp.Next.Phases[0].SubscriptionPhase.ActiveFrom, resp.Next.Phases[1].SubscriptionPhase.ActiveFrom)
 		})
 	})
 }
