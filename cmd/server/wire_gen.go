@@ -259,7 +259,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, planaddonService, addonService, eventbusPublisher)
+	locker, err := common.NewLocker(logger)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, planaddonService, addonService, eventbusPublisher, locker)
 	if err != nil {
 		cleanup6()
 		cleanup5()

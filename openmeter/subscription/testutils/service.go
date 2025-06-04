@@ -34,6 +34,7 @@ import (
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -62,6 +63,9 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	subPhaseRepo := NewSubscriptionPhaseRepo(t, dbDeps)
 	subItemRepo := NewSubscriptionItemRepo(t, dbDeps)
 	publisher := eventbus.NewMock(t)
+
+	lockr, err := lockr.NewLocker(&lockr.LockerConfig{Logger: logger})
+	require.NoError(t, err)
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
 		ManagedResource: models.ManagedResource{
@@ -129,6 +133,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		FeatureService:        entitlementRegistry.Feature,
 		TransactionManager:    subItemRepo,
 		Publisher:             publisher,
+		Lockr:                 lockr,
 	})
 
 	addonRepo, err := addonrepo.New(addonrepo.Config{
@@ -178,6 +183,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		TransactionManager: subItemRepo,
 		AddonService:       subAddSvc,
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
+		Lockr:              lockr,
 	})
 
 	return SubscriptionDependencies{

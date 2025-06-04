@@ -41,6 +41,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
@@ -96,6 +97,9 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 
 	publisher := eventbus.NewMock(t)
 
+	lockr, err := lockr.NewLocker(&lockr.LockerConfig{Logger: slog.Default()})
+	require.NoError(t, err)
+
 	planAdapter, err := planadapter.New(planadapter.Config{
 		Client: deps.DBClient,
 		Logger: slog.Default(),
@@ -130,6 +134,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		),
 		// framework
 		TransactionManager: subsRepo,
+		Lockr:              lockr,
 		// events
 		Publisher: publisher,
 	})
@@ -187,6 +192,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		CustomerService:    deps.CustomerService,
 		TransactionManager: subsRepo,
 		Logger:             slog.Default(),
+		Lockr:              lockr,
 	})
 }
 

@@ -25,6 +25,7 @@ import (
 	workflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -308,15 +309,18 @@ func TestEditRunning(t *testing.T) {
 
 				tuDeps := subscriptiontestutils.NewService(t, deps.DBDeps)
 
+				lockr, err := lockr.NewLocker(&lockr.LockerConfig{Logger: slog.Default()})
+				require.NoError(t, err)
 				workflowService := workflowservice.NewWorkflowService(workflowservice.WorkflowServiceConfig{
 					Service:            &mSvc,
 					CustomerService:    tuDeps.CustomerService,
 					TransactionManager: tuDeps.CustomerAdapter,
 					AddonService:       tuDeps.SubscriptionAddonService,
 					Logger:             slog.Default(),
+					Lockr:              lockr,
 				})
 
-				_, err := workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1}, immediate)
+				_, err = workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1}, immediate)
 				assert.Nil(t, err)
 			},
 		},

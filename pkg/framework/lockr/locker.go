@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -11,11 +12,30 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-// Locker is the generic interface for distributed business level locks.
-type Locker struct{}
+type LockerConfig struct {
+	Logger *slog.Logger
+}
 
-func NewLocker() *Locker {
-	return &Locker{}
+func (c *LockerConfig) Validate() error {
+	if c.Logger == nil {
+		return fmt.Errorf("logger is required")
+	}
+	return nil
+}
+
+// Locker is the generic interface for distributed business level locks.
+type Locker struct {
+	cfg *LockerConfig
+}
+
+func NewLocker(cfg *LockerConfig) (*Locker, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid locker config: %w", err)
+	}
+
+	return &Locker{
+		cfg: cfg,
+	}, nil
 }
 
 // ErrLockTimeout is returned when a lock operation times out
@@ -23,6 +43,7 @@ var ErrLockTimeout = errors.New("lock operation timed out")
 
 // LockForTX locks the key for the duration of the transaction.
 func (l *Locker) LockForTX(ctx context.Context, key Key) error {
+	l.cfg.Logger.DebugContext(ctx, "locking for tx", "key", key.String(), "hash", key.Hash64())
 	client, err := l.getTxClient(ctx)
 	if err != nil {
 		return err
@@ -33,7 +54,7 @@ func (l *Locker) LockForTX(ctx context.Context, key Key) error {
 
 // lock executes the advisory lock query and handles the result set
 func (l *Locker) lock(ctx context.Context, client *db.Tx, key Key) error {
-	rows, err := client.QueryContext(ctx, "SELECT pg_advisory_xact_lock($1)", key.Hash64())
+	rows, err := client.QueryContext(ctx, "SELECT pg_advisory_xact_lock($1)", int64(key.Hash64()))
 	defer func() {
 		if rows != nil {
 			rows.Close()

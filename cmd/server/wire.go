@@ -102,6 +102,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.ProgressManager,
 		common.Server,
 		common.Subscription,
+		common.Lockr,
 		common.Secret,
 		common.ServerProvisionTopics,
 		common.Telemetry,

@@ -25,6 +25,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
 var Subscription = wire.NewSet(
@@ -49,6 +50,7 @@ func NewSubscriptionServices(
 	planAddonService planaddon.Service,
 	addonService addon.Service,
 	eventPublisher eventbus.Publisher,
+	lockr *lockr.Locker,
 ) (SubscriptionServiceWithWorkflow, error) {
 	subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(db)
 	subscriptionPhaseRepo := subscriptionrepo.NewSubscriptionPhaseRepo(db)
@@ -69,6 +71,7 @@ func NewSubscriptionServices(
 		FeatureService:        featureConnector,
 		TransactionManager:    subscriptionRepo,
 		Publisher:             eventPublisher,
+		Lockr:                 lockr,
 	})
 
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(db)
@@ -90,6 +93,7 @@ func NewSubscriptionServices(
 		TransactionManager: subscriptionRepo,
 		AddonService:       subAddSvc,
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
+		Lockr:              lockr,
 	})
 
 	planSubscriptionService := subscriptionchangeservice.New(subscriptionchangeservice.Config{

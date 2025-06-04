@@ -72,7 +72,10 @@ func TestLockerLockForTx(t *testing.T) {
 	}
 
 	t.Run("Should error if not in a transaction", withDBClient(func(t *testing.T, client *db.Client) {
-		locker := lockr.NewLocker()
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{
+			Logger: testutils.NewLogger(t),
+		})
+		require.NoError(t, err)
 
 		key, err := lockr.NewKey("test")
 		require.NoError(t, err)
@@ -85,7 +88,10 @@ func TestLockerLockForTx(t *testing.T) {
 	t.Run("Should acquire a lock", withDBClient(func(t *testing.T, client *db.Client) {
 		txCreator := &creator{db: client}
 
-		locker := lockr.NewLocker()
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{
+			Logger: testutils.NewLogger(t),
+		})
+		require.NoError(t, err)
 
 		require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
 			key, err := lockr.NewKey("test")
@@ -102,7 +108,10 @@ func TestLockerLockForTx(t *testing.T) {
 	t.Run("Should be able to acquire same lock twice if in same transaction", withDBClient(func(t *testing.T, client *db.Client) {
 		txCreator := &creator{db: client}
 
-		locker := lockr.NewLocker()
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{
+			Logger: testutils.NewLogger(t),
+		})
+		require.NoError(t, err)
 
 		require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
 			key, err := lockr.NewKey("test")
@@ -121,7 +130,10 @@ func TestLockerLockForTx(t *testing.T) {
 	t.Run("Should be able to acquire same lock in sub-transaction", withDBClient(func(t *testing.T, client *db.Client) {
 		txCreator := &creator{db: client}
 
-		locker := lockr.NewLocker()
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{
+			Logger: testutils.NewLogger(t),
+		})
+		require.NoError(t, err)
 
 		require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
 			key, err := lockr.NewKey("test")
@@ -144,7 +156,10 @@ func TestLockerLockForTx(t *testing.T) {
 	t.Run("Should wait while acquiring lock from parallel transactions", withDBClient(func(t *testing.T, client *db.Client) {
 		txCreator := &creator{db: client}
 
-		locker := lockr.NewLocker()
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{
+			Logger: testutils.NewLogger(t),
+		})
+		require.NoError(t, err)
 
 		key, err := lockr.NewKey("test")
 		require.NoError(t, err)
@@ -243,7 +258,10 @@ func TestLockerLockForTx(t *testing.T) {
 
 		txCreator := &creator{db: client}
 
-		locker := lockr.NewLocker()
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{
+			Logger: testutils.NewLogger(t),
+		})
+		require.NoError(t, err)
 
 		key, err := lockr.NewKey("test")
 		require.NoError(t, err)
