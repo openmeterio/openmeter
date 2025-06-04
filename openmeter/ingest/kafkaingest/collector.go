@@ -114,7 +114,7 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 		return err
 	}
 
-	key, err := s.Serializer.SerializeKey(topicName, ev)
+	key, err := s.Serializer.SerializeKey(topicName, namespace, ev)
 	if err != nil {
 		err = fmt.Errorf("serialize event key: %w", err)
 		return err
@@ -131,6 +131,8 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 		s.Logger.WarnContext(ctx, "failed to serialize span context", "error", err)
 	}
 
+	// Note: we are assuming that partitioner is set to a consistent hash (librdkafka defaults to consistent_random, which
+	// is consistent but uses random for empty keys)
 	msg := &kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topicName, Partition: kafka.PartitionAny},
 		Timestamp:      ev.Time(),
@@ -140,6 +142,7 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 			{Key: "ingested_at", Value: []byte(time.Now().UTC().Format(time.RFC3339))},
 			{Key: otelx.OTelSpanContextKey, Value: spanCtx},
 		},
+		// Key must match the dedupe hash or we will have frequent race conditions when deduplicating
 		Key:   key,
 		Value: value,
 	}
