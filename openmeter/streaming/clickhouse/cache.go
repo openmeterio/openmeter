@@ -271,7 +271,7 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 	}
 
 	// Store new cachable rows in the cache
-	// Due to paralell requests and race condition we can end up with duplicates in the cache.
+	// Due to parallel requests and race condition we can end up with duplicates in the cache.
 	// This is handled at cached row retreival with deduplication
 	if len(newRowsNotInCache) > 0 {
 		logger := logger.With("newRowsNotInCacheCount", len(newRowsNotInCache))
