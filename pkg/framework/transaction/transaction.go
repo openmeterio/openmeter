@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"runtime/debug"
@@ -86,7 +87,7 @@ func manage[R any](ctx context.Context, tx Driver, cb func(ctx context.Context, 
 	if err != nil {
 		// roll back the tx for all downstream (WithTx) clients
 		if rerr := tx.Rollback(); rerr != nil {
-			err = fmt.Errorf("%w: %v", err, rerr)
+			err = errors.Join(err, rerr)
 		}
 		return def, err
 	}
@@ -94,6 +95,9 @@ func manage[R any](ctx context.Context, tx Driver, cb func(ctx context.Context, 
 	// commit the transaction
 	err = tx.Commit()
 	if err != nil {
+		if rerr := tx.Rollback(); rerr != nil {
+			err = errors.Join(err, rerr)
+		}
 		return def, err
 	}
 

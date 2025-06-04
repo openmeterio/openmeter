@@ -1,0 +1,113 @@
+package lockr
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+)
+
+// Locker is the generic interface for distributed business level locks.
+type Locker struct{}
+
+func NewLocker() *Locker {
+	return &Locker{}
+}
+
+// ErrLockTimeout is returned when a lock operation times out
+var ErrLockTimeout = errors.New("lock operation timed out")
+
+// LockForTX locks the key for the duration of the transaction.
+func (l *Locker) LockForTX(ctx context.Context, key Key) error {
+	client, err := l.getTxClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	return l.lock(ctx, client, key)
+}
+
+// lock executes the advisory lock query and handles the result set
+func (l *Locker) lock(ctx context.Context, client *db.Tx, key Key) error {
+	rows, err := client.QueryContext(ctx, "SELECT pg_advisory_xact_lock($1)", key.Hash64())
+	defer func() {
+		if rows != nil {
+			rows.Close()
+		}
+	}()
+
+	if err != nil {
+		return l.checkForTimeout(err)
+	}
+
+	// Consume the result set
+	for rows.Next() {
+		// pg_advisory_xact_lock returns void, but we still need to iterate through rows
+	}
+
+	if err := rows.Err(); err != nil {
+		return l.checkForTimeout(err)
+	}
+
+	return nil
+}
+
+// Note: it would be great to use in-process timeouts with context.WithTimeout
+// Unfortunately, due to this https://github.com/jackc/pgx/issues/2100#issuecomment-2395092552 (context cancellation resulting in query cancellation resulting in errored tx states) we rely on the pg timeout which leaves the connection intact
+func (l *Locker) checkForTimeout(err error) error {
+	if strings.Contains(err.Error(), pgLockTimeoutErrCode) {
+		return ErrLockTimeout
+	}
+	return err
+}
+
+func (l *Locker) getTxClient(ctx context.Context) (*db.Tx, error) {
+	// If we're not in a transaction this method has to fail
+	tx, err := entutils.GetDriverFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("lockr only works in a transaction, but driver not found: %w", err)
+	}
+
+	client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
+
+	rows, err := client.QueryContext(ctx, "SELECT transaction_timestamp() != statement_timestamp()")
+	if err != nil {
+		return nil, fmt.Errorf("failed to check transaction status: %w", err)
+	}
+
+	defer func() {
+		if rows != nil {
+			rows.Close()
+		}
+	}()
+
+	var isInTransaction bool
+	for rows.Next() {
+		err = rows.Scan(&isInTransaction)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check transaction status: %w", err)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to check transaction status: %w", err)
+	}
+
+	if !isInTransaction {
+		return nil, fmt.Errorf("lockr only works in a postgres transaction")
+	}
+
+	return client, nil
+}
+
+type noopTxCreator struct{}
+
+var _ transaction.Creator = (*noopTxCreator)(nil)
+
+func (n *noopTxCreator) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+	return ctx, nil, fmt.Errorf("a transaction should already be accessible from the context")
+}
