@@ -10,9 +10,11 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/oliveagle/jsonpath"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -32,7 +34,20 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
-	cust := s.CreateTestCustomer(namespace, "test")
+	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+
+		CustomerMutate: customer.CustomerMutate{
+			Name:         "Test Customer",
+			PrimaryEmail: lo.ToPtr("test@test.com"),
+			Currency:     lo.ToPtr(currencyx.Code(currency.USD)),
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{"test"},
+			},
+		},
+	})
+	s.NoError(err)
+
 	s.ProvisionBillingProfile(ctx, namespace)
 	now := clock.Now()
 
@@ -166,6 +181,11 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 				_, err = time.Parse(time.RFC3339, timeString)
 				return err
 			},
+		},
+		{
+			Name:        "customer address should not be present if empty",
+			Path:        "$.customer.addresses",
+			ExpectError: true,
 		},
 	}
 
