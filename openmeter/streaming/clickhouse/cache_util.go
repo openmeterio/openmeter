@@ -85,6 +85,33 @@ func isTimeWindowGap(from time.Time, to time.Time, windowSize meterpkg.WindowSiz
 	return false
 }
 
+// filterNewRows filters out rows that are not in the cacheable query period
+func filterRowsOutOfPeriod(from time.Time, to time.Time, windowSize meterpkg.WindowSize, rows []meterpkg.MeterQueryRow) []meterpkg.MeterQueryRow {
+	newRows := []meterpkg.MeterQueryRow{}
+
+	// We filter out rows
+	for _, row := range rows {
+		// Filter out rows that are before from
+		if row.WindowStart.Before(from) {
+			continue
+		}
+
+		// Filter out rows that are after to
+		if row.WindowEnd.After(to) {
+			continue
+		}
+
+		// Filter out rows that are incomplete windows
+		if !row.WindowStart.Truncate(windowSize.Duration()).Equal(row.WindowStart) {
+			continue
+		}
+
+		newRows = append(newRows, row)
+	}
+
+	return newRows
+}
+
 // concatAppend concatenates slices of any type
 func concatAppend[T any](slices [][]T) []T {
 	tmp := []T{}
