@@ -175,3 +175,40 @@ func (d Deduplicator) Close() error {
 
 	return nil
 }
+
+func (d Deduplicator) CheckUniqueBatch(ctx context.Context, items []dedupe.Item) (dedupe.CheckUniqueBatchResult, error) {
+	keys := make([]string, 0, len(items))
+	for _, item := range items {
+		switch d.Mode {
+		case DedupeModeRawKey:
+			keys = append(keys, item.Key())
+		case DedupeModeKeyHash, DedupeModeKeyHashMigration:
+			keys = append(keys, GetKeyHash(item.Key()))
+		}
+	}
+
+	cmds, err := d.Redis.MGet(ctx, keys...).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return dedupe.CheckUniqueBatchResult{}, fmt.Errorf("failed to get multiple keys in redis: %w", err)
+	}
+
+	if len(cmds) != len(items) {
+		return dedupe.CheckUniqueBatchResult{}, fmt.Errorf("failed to get all keys in redis")
+	}
+
+	result := dedupe.CheckUniqueBatchResult{
+		UniqueItems:           make(dedupe.ItemSet, len(items)),
+		AlreadyProcessedItems: make(dedupe.ItemSet, len(items)),
+	}
+
+	for i, cmd := range cmds {
+		if cmd == nil {
+			result.AlreadyProcessedItems[items[i]] = struct{}{}
+			continue
+		}
+
+		result.UniqueItems[items[i]] = struct{}{}
+	}
+
+	return result, nil
+}
