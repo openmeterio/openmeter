@@ -42,6 +42,8 @@ const (
 	FieldCustomerID = "customer_id"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldBillingAnchor holds the string denoting the billing_anchor field in the database.
+	FieldBillingAnchor = "billing_anchor"
 	// FieldBillingCadence holds the string denoting the billing_cadence field in the database.
 	FieldBillingCadence = "billing_cadence"
 	// FieldProRatingConfig holds the string denoting the pro_rating_config field in the database.
@@ -111,6 +113,7 @@ var Columns = []string{
 	FieldPlanID,
 	FieldCustomerID,
 	FieldCurrency,
+	FieldBillingAnchor,
 	FieldBillingCadence,
 	FieldProRatingConfig,
 }
@@ -220,6 +223,11 @@ func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByBillingAnchor orders the results by the billing_anchor field.
+func ByBillingAnchor(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBillingAnchor, opts...).ToFunc()
 }
 
 // ByBillingCadence orders the results by the billing_cadence field.

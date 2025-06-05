@@ -252,6 +252,7 @@ func NewSubscriptionView(
 			MetadataModel: sub.MetadataModel,
 			Name:          sub.Name,
 			Description:   sub.Description,
+			BillingAnchor: sub.BillingAnchor,
 		},
 		Phases: make(map[string]*SubscriptionPhaseSpec),
 	}

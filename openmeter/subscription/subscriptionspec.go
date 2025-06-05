@@ -47,6 +47,7 @@ type CreateSubscriptionCustomerInput struct {
 	Currency             currencyx.Code `json:"currency"`
 	ActiveFrom           time.Time      `json:"activeFrom,omitempty"`
 	ActiveTo             *time.Time     `json:"activeTo,omitempty"`
+	BillingAnchor        time.Time      `json:"billingAnchor,omitempty"`
 }
 
 type SubscriptionSpec struct {
@@ -68,6 +69,7 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 		Currency:        s.Currency,
 		BillingCadence:  s.BillingCadence,
 		ProRatingConfig: s.ProRatingConfig,
+		BillingAnchor:   s.BillingAnchor,
 		MetadataModel:   s.MetadataModel,
 		Name:            s.Name,
 		Description:     s.Description,
