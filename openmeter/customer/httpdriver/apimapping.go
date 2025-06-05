@@ -14,6 +14,12 @@ import (
 )
 
 func MapCustomerCreate(body api.CustomerCreate) customer.CustomerMutate {
+	var metadata *models.Metadata
+
+	if body.Metadata != nil {
+		metadata = lo.ToPtr(models.NewMetadata(*body.Metadata))
+	}
+
 	return customer.CustomerMutate{
 		Key:              body.Key,
 		Name:             body.Name,
@@ -22,6 +28,25 @@ func MapCustomerCreate(body api.CustomerCreate) customer.CustomerMutate {
 		PrimaryEmail:     body.PrimaryEmail,
 		BillingAddress:   MapAddress(body.BillingAddress),
 		Currency:         mapCurrency(body.Currency),
+		Metadata:         metadata,
+	}
+}
+
+func MapCustomerReplaceUpdate(body api.CustomerReplaceUpdate) customer.CustomerMutate {
+	var metadata *models.Metadata
+
+	if body.Metadata != nil {
+		metadata = lo.ToPtr(models.NewMetadata(*body.Metadata))
+	}
+	return customer.CustomerMutate{
+		Key:              body.Key,
+		Name:             body.Name,
+		Description:      body.Description,
+		UsageAttribution: customer.CustomerUsageAttribution(body.UsageAttribution),
+		PrimaryEmail:     body.PrimaryEmail,
+		BillingAddress:   MapAddress(body.BillingAddress),
+		Currency:         mapCurrency(body.Currency),
+		Metadata:         metadata,
 	}
 }
 
@@ -56,6 +81,11 @@ func MapAddress(apiAddress *api.Address) *models.Address {
 
 // CustomerToAPI converts a Customer to an API Customer
 func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscription, expand []api.CustomerExpand) (api.Customer, error) {
+	var metadata *api.Metadata
+
+	if c.Metadata != nil {
+		metadata = lo.ToPtr(c.Metadata.ToMap())
+	}
 	// Map the customer to the API Customer
 	apiCustomer := api.Customer{
 		Id:               c.ManagedResource.ID,
@@ -67,6 +97,7 @@ func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscriptio
 		CreatedAt:        c.CreatedAt,
 		UpdatedAt:        c.UpdatedAt,
 		DeletedAt:        c.DeletedAt,
+		Metadata:         metadata,
 	}
 
 	if c.BillingAddress != nil {
