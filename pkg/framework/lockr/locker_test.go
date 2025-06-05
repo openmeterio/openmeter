@@ -199,7 +199,7 @@ func TestLockerLockForTx(t *testing.T) {
 
 			require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
 				// scheduler works in magical ways, so adding a small delay here to break execution and switch to different go routine
-				time.Sleep(10 * time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 
 				finCh <- "2 start"
 
