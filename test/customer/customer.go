@@ -79,6 +79,9 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
+			Metadata: &models.Metadata{
+				"foo": "bar",
+			},
 		},
 	})
 
@@ -98,6 +101,7 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	require.Equal(t, &TestAddressPostalCode, createdCustomer.BillingAddress.PostalCode, "Customer billing address postal code must match")
 	require.Equal(t, &TestAddressPhoneNumber, createdCustomer.BillingAddress.PhoneNumber, "Customer billing address phone number must match")
 	require.Equal(t, TestSubjectKeys, createdCustomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
+	require.Equal(t, &models.Metadata{"foo": "bar"}, createdCustomer.Metadata, "Customer metadata must match")
 
 	// Test key conflicts
 	_, err = service.CreateCustomer(ctx, customer.CreateCustomerInput{
@@ -174,6 +178,9 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: newSubjectKeys,
 			},
+			Metadata: &models.Metadata{
+				"foo": "bar",
+			},
 		},
 	})
 
@@ -191,6 +198,7 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 	require.Equal(t, &TestAddressLine2, updatedCustomer.BillingAddress.Line2, "Customer billing address line2 must match")
 	require.Equal(t, &TestAddressPostalCode, updatedCustomer.BillingAddress.PostalCode, "Customer billing address postal code must match")
 	require.Equal(t, &TestAddressPhoneNumber, updatedCustomer.BillingAddress.PhoneNumber, "Customer billing address phone number must match")
+	require.Equal(t, &models.Metadata{"foo": "bar"}, updatedCustomer.Metadata, "Customer metadata must match")
 }
 
 // If a customer has a subscription, UsageAttributions cannot be updated
