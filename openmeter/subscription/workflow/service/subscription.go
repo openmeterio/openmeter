@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
@@ -48,6 +49,29 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 			return def, fmt.Errorf("failed to resolve active from: %w", err)
 		}
 
+		// Let's normalize the billing anchor to the closest iteration based on the cadence
+		billingAnchor := lo.FromPtrOr(inp.BillingAnchor, activeFrom).UTC()
+
+		billingRecurrence, err := timeutil.RecurrenceFromISODuration(lo.ToPtr(plan.ToCreateSubscriptionPlanInput().BillingCadence), billingAnchor)
+		if err != nil {
+			return def, fmt.Errorf("failed to get billing recurrence: %w", err)
+		}
+
+		billingAnchor, err = billingRecurrence.PrevBefore(activeFrom)
+		if err != nil {
+			return def, fmt.Errorf("failed to get billing anchor: %w", err)
+		}
+
+		// When anchor = beforeTime (or falls on iteration boundary), PrevBefore will return an iteration early.
+		oneBefore, err := billingRecurrence.Prev(activeFrom)
+		if err != nil {
+			return def, fmt.Errorf("failed to get one iteration before billing anchor: %w", err)
+		}
+
+		if oneBefore.Equal(billingAnchor) {
+			billingAnchor = activeFrom
+		}
+
 		// Let's create the new Spec
 		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId:    cust.ID,
@@ -56,7 +80,7 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 			MetadataModel: inp.MetadataModel,
 			Name:          lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
 			Description:   inp.Description,
-			BillingAnchor: lo.FromPtrOr(inp.BillingAnchor, activeFrom).UTC(),
+			BillingAnchor: billingAnchor,
 		})
 
 		if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil {
