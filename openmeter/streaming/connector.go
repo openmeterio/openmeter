@@ -32,6 +32,7 @@ type RawEvent struct {
 	Data       string    `ch:"data"`
 	IngestedAt time.Time `ch:"ingested_at"`
 	StoredAt   time.Time `ch:"stored_at"`
+	StoreRowID string    `ch:"store_row_id"`
 }
 
 type Connector interface {

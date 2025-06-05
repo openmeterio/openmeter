@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
@@ -71,6 +72,7 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 			Data:       message.Serialized.Data,
 			IngestedAt: ingestedAt,
 			StoredAt:   storedAt,
+			StoreRowID: ulid.Make().String(),
 		}
 
 		rawEvents = append(rawEvents, rawEvent)

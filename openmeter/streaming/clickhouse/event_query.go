@@ -32,6 +32,7 @@ func (d createEventsTable) toSQL() string {
 	sb.Define("data", "String")
 	sb.Define("ingested_at", "DateTime")
 	sb.Define("stored_at", "DateTime")
+	sb.Define("store_row_id", "String")
 	sb.SQL("ENGINE = MergeTree")
 	sb.SQL("PARTITION BY toYYYYMM(time)")
 	// Lowest cardinality columns we always filter on goes to the most left.
@@ -152,7 +153,7 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}) {
 
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)
-	query.Cols("namespace", "id", "type", "source", "subject", "time", "data", "ingested_at", "stored_at")
+	query.Cols("namespace", "id", "type", "source", "subject", "time", "data", "ingested_at", "stored_at", "store_row_id")
 
 	// Add settings
 	var settings []string
@@ -175,6 +176,7 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}) {
 			event.Data,
 			event.IngestedAt,
 			event.StoredAt,
+			event.StoreRowID,
 		)
 	}
 
