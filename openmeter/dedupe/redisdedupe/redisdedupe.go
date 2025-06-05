@@ -187,12 +187,12 @@ func (d Deduplicator) CheckUniqueBatch(ctx context.Context, items []dedupe.Item)
 		}
 	}
 
-	cmds, err := d.Redis.MGet(ctx, keys...).Result()
+	cmdResults, err := d.Redis.MGet(ctx, keys...).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return dedupe.CheckUniqueBatchResult{}, fmt.Errorf("failed to get multiple keys in redis: %w", err)
 	}
 
-	if len(cmds) != len(items) {
+	if len(cmdResults) != len(items) {
 		return dedupe.CheckUniqueBatchResult{}, fmt.Errorf("failed to get all keys in redis")
 	}
 
@@ -201,8 +201,8 @@ func (d Deduplicator) CheckUniqueBatch(ctx context.Context, items []dedupe.Item)
 		AlreadyProcessedItems: make(dedupe.ItemSet, len(items)),
 	}
 
-	for i, cmd := range cmds {
-		if cmd == nil {
+	for i, cmdResult := range cmdResults {
+		if cmdResult != nil {
 			result.AlreadyProcessedItems[items[i]] = struct{}{}
 			continue
 		}

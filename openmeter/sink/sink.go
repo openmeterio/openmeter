@@ -282,18 +282,16 @@ func (s *Sink) flush(ctx context.Context) error {
 
 	// If deduplicator is set, let's reexecute the deduplication to decrease the number of messages double persisted
 	if s.config.Deduplicator != nil {
-		messageByDedupeItem := lo.GroupBy(dedupedMessages, func(message sinkmodels.SinkMessage) dedupe.Item {
+		dedupeResults, err := s.config.Deduplicator.CheckUniqueBatch(ctx, lo.Map(dedupedMessages, func(message sinkmodels.SinkMessage, _ int) dedupe.Item {
 			return message.GetDedupeItem()
-		})
-
-		dedupeResults, err := s.config.Deduplicator.CheckUniqueBatch(ctx, lo.Keys(messageByDedupeItem))
+		}))
 		if err != nil {
 			return fmt.Errorf("failed to check uniqueness of kafka messages: %w", err)
 		}
 
 		updatedDedupedMessages := make([]sinkmodels.SinkMessage, 0, len(dedupedMessages))
 		for _, message := range dedupedMessages {
-			if _, ok := dedupeResults.UniqueItems[message.GetDedupeItem()]; !ok {
+			if _, ok := dedupeResults.UniqueItems[message.GetDedupeItem()]; ok {
 				updatedDedupedMessages = append(updatedDedupedMessages, message)
 			}
 		}
