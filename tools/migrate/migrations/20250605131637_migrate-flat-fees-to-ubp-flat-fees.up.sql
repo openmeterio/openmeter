@@ -66,12 +66,11 @@ VOLATILE;
 
 -- Recommended to create a backup table, but we don't have a way to revert this migration.
 --
--- atlas:nolint PG110
-CREATE TABLE IF NOT EXISTS billing_backup_migrated_flat_fees
-    AS
-    SELECT l.*, c.per_unit_amount, c.category, c.payment_term, c.index
-    FROM billing_invoice_lines l JOIN billing_invoice_flat_fee_line_configs c ON (l.fee_line_config_id = c.id)
-    WHERE type = 'flat_fee' AND status = 'valid';
+-- CREATE TABLE IF NOT EXISTS billing_backup_migrated_flat_fees
+--     AS
+--     SELECT l.*, c.per_unit_amount, c.category, c.payment_term, c.index
+--     FROM billing_invoice_lines l JOIN billing_invoice_flat_fee_line_configs c ON (l.fee_line_config_id = c.id)
+--     WHERE type = 'flat_fee' AND status = 'valid';
 
 CREATE OR REPLACE FUNCTION pg_temp.migrate_flat_fees_to_ubp_flat_fees(idToMigrate TEXT)
 RETURNS TEXT
