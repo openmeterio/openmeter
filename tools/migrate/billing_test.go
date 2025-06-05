@@ -17,14 +17,14 @@ import (
 func TestMigrateFlatFeesToUBPFlatFees(t *testing.T) {
 	runner{stops{
 		{
-			version:   20250527084817,
+			version:   20250605102416,
 			direction: directionUp,
 			action: func(t *testing.T, db *sql.DB) {
 				loadFixture(t, db, "testdata/billing/flatfeetoubpflatfee/fixture.sql")
 			},
 		},
 		{
-			version:   20250527123425,
+			version:   20250605131637,
 			direction: directionUp,
 			action: func(t *testing.T, db *sql.DB) {
 				const (
