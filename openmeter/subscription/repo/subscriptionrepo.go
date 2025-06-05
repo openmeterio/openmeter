@@ -110,7 +110,7 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 			SetNillableDescription(sub.Description).
 			SetBillablesMustAlign(sub.BillablesMustAlign).
 			SetMetadata(sub.Metadata).
-			SetBillingAnchor(sub.BillingAnchor)
+			SetBillingAnchor(sub.BillingAnchor.UTC())
 
 		if sub.ActiveTo != nil {
 			command = command.SetActiveTo(*sub.ActiveTo)
