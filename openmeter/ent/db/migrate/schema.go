@@ -449,7 +449,7 @@ var (
 				Symbol:     "balance_snapshots_entitlements_balance_snapshot",
 				Columns:    []*schema.Column{BalanceSnapshotsColumns[10]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -1454,7 +1454,7 @@ var (
 				Symbol:     "grants_entitlements_grant",
 				Columns:    []*schema.Column{GrantsColumns[16]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -2167,7 +2167,7 @@ var (
 				Symbol:     "subscription_items_subscription_phases_items",
 				Columns:    []*schema.Column{SubscriptionItemsColumns[22]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -2218,7 +2218,7 @@ var (
 				Symbol:     "subscription_phases_subscriptions_phases",
 				Columns:    []*schema.Column{SubscriptionPhasesColumns[11]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -2270,7 +2270,7 @@ var (
 				Symbol:     "usage_resets_entitlements_usage_reset",
 				Columns:    []*schema.Column{UsageResetsColumns[7]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 		Indexes: []*schema.Index{

@@ -1237,6 +1237,129 @@ func TestEditCombinations(t *testing.T) {
 			require.Equal(t, subscription.SubscriptionStatusInactive, s.GetStatusAt(clock.Now()))
 		})
 	})
+
+	t.Run("Let's assert that subscriptions can be cascade deleted", func(t *testing.T) {
+		// This will be a bit of a hacky test, but its better see it enforced than to leave it to human testing
+		// We'll create a subscription
+		// Then we'll delete the subscription
+		// Then we'll assert that there are no
+		// - phases left
+		// - items left
+		// - entitlements left
+		// - grants left
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			// Let's create an example subscription
+			_, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+					Name: "Example Subscription",
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			// Now that we've got a subscription we'll use raw SQL to do the rest, this is the hacky part
+
+			res, err := deps.DBDeps.DBClient.ExecContext(context.Background(), `DELETE FROM subscriptions`)
+			require.Nil(t, err)
+
+			affected, err := res.RowsAffected()
+			require.Nil(t, err)
+			require.Equal(t, int64(1), affected) // deleted the one subscription we had
+
+			// Now let's query the DB, lets encapsulate in inline functions for referential integrity
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM subscription_phases`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.Equal(t, 0, count)
+				}
+			}()
+
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM subscription_items`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.Equal(t, 0, count)
+				}
+			}()
+
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM entitlements`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.Equal(t, 0, count)
+				}
+			}()
+
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM grants`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.Equal(t, 0, count)
+				}
+			}()
+
+			// Just to be safe, let's also assert the things we're not deleting, being
+			// - customers
+			// - plans
+			// - features
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM customers`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.NotEqual(t, 0, count)
+				}
+			}()
+
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM plans`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.NotEqual(t, 0, count)
+				}
+			}()
+
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM features`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.NotEqual(t, 0, count)
+				}
+			}()
+		})
+	})
 }
 
 func TestRestore(t *testing.T) {

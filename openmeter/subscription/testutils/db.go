@@ -1,7 +1,6 @@
 package subscriptiontestutils
 
 import (
-	"context"
 	"errors"
 	"sync"
 	"testing"
@@ -10,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 type DBDeps struct {
@@ -49,8 +49,22 @@ func SetupDBDeps(t *testing.T) *DBDeps {
 	pgDriver := testdb.PGDriver
 	entDriver := testdb.EntDriver
 
-	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		t.Fatalf("failed to create schema: %v", err)
+	// Let's use migrations to create the schema
+	migrator, err := migrate.NewMigrate(testdb.URL, migrate.OMMigrations, "migrations")
+	defer func() {
+		if migrator != nil {
+			if err1, err2 := migrator.Close(); err1 != nil || err2 != nil {
+				t.Fatalf("failed to close migrator: %v", errors.Join(err1, err2))
+			}
+		}
+	}()
+
+	if err != nil {
+		t.Fatalf("failed to create migrator: %v", err)
+	}
+
+	if err := migrator.Up(); err != nil {
+		t.Fatalf("failed to migrate: %v", err)
 	}
 
 	return &DBDeps{
