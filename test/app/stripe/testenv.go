@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
@@ -25,6 +27,7 @@ import (
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	apptest "github.com/openmeterio/openmeter/test/app"
 )
@@ -121,6 +124,11 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create meter adapter: %w", err)
 	}
 
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: logger,
+	})
+	require.NoError(t, err)
+
 	// Entitlement
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     entClient,
@@ -131,6 +139,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: isodate.String("P1D"),
 		},
+		Locker: locker,
 	})
 
 	// Customer

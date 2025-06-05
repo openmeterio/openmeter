@@ -28,6 +28,8 @@ var BillingWorker = wire.NewSet(
 	BillingWorkerProvisionTopics,
 	BillingWorkerSubscriber,
 
+	Lockr,
+
 	Subscription,
 	ProductCatalog,
 	Entitlement,

@@ -45,6 +45,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Telemetry,
 		common.Watermill,
 		common.WatermillRouter,
+		common.Lockr,
 		wire.Struct(new(Application), "*"),
 	)
 	return Application{}, nil, nil

@@ -17,48 +17,52 @@ import (
 )
 
 func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
-	var def subscription.SubscriptionView
-
-	// Let's find the customer
-	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-		CustomerID: &customer.CustomerID{
-			Namespace: inp.Namespace,
-			ID:        inp.CustomerID,
-		},
-	})
-	if err != nil {
-		return def, fmt.Errorf("failed to fetch customer: %w", err)
-	}
-
-	if cust == nil {
-		return def, fmt.Errorf("unexpected nil customer")
-	}
-
-	if err := inp.Timing.ValidateForAction(subscription.SubscriptionActionCreate, nil); err != nil {
-		return def, fmt.Errorf("invalid timing: %w", err)
-	}
-
-	activeFrom, err := inp.Timing.Resolve()
-	if err != nil {
-		return def, fmt.Errorf("failed to resolve active from: %w", err)
-	}
-
-	// Let's create the new Spec
-	spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-		CustomerId:    cust.ID,
-		Currency:      plan.Currency(),
-		ActiveFrom:    activeFrom,
-		MetadataModel: inp.MetadataModel,
-		Name:          lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
-		Description:   inp.Description,
-	})
-
-	if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil {
-		return def, fmt.Errorf("failed to create spec from plan: %w", err)
-	}
-
-	// Finally, let's create the subscription
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
+		var def subscription.SubscriptionView
+
+		if err := s.lockCustomer(ctx, inp.CustomerID); err != nil {
+			return def, err
+		}
+
+		// Let's find the customer
+		cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+			CustomerID: &customer.CustomerID{
+				Namespace: inp.Namespace,
+				ID:        inp.CustomerID,
+			},
+		})
+		if err != nil {
+			return def, fmt.Errorf("failed to fetch customer: %w", err)
+		}
+
+		if cust == nil {
+			return def, fmt.Errorf("unexpected nil customer")
+		}
+
+		if err := inp.Timing.ValidateForAction(subscription.SubscriptionActionCreate, nil); err != nil {
+			return def, fmt.Errorf("invalid timing: %w", err)
+		}
+
+		activeFrom, err := inp.Timing.Resolve()
+		if err != nil {
+			return def, fmt.Errorf("failed to resolve active from: %w", err)
+		}
+
+		// Let's create the new Spec
+		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust.ID,
+			Currency:      plan.Currency(),
+			ActiveFrom:    activeFrom,
+			MetadataModel: inp.MetadataModel,
+			Name:          lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
+			Description:   inp.Description,
+		})
+
+		if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil {
+			return def, fmt.Errorf("failed to create spec from plan: %w", err)
+		}
+
+		// Finally, let's create the subscription
 		sub, err := s.Service.Create(ctx, inp.Namespace, spec)
 		if err != nil {
 			return def, fmt.Errorf("failed to create subscription: %w", err)

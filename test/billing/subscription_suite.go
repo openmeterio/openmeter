@@ -19,6 +19,7 @@ import (
 	entitlementrepo "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	entitlementservice "github.com/openmeterio/openmeter/openmeter/entitlement/service"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
@@ -41,6 +42,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
@@ -96,6 +98,9 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 
 	publisher := eventbus.NewMock(t)
 
+	lockr, err := lockr.NewLocker(&lockr.LockerConfig{Logger: slog.Default()})
+	require.NoError(t, err)
+
 	planAdapter, err := planadapter.New(planadapter.Config{
 		Client: deps.DBClient,
 		Logger: slog.Default(),
@@ -130,6 +135,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		),
 		// framework
 		TransactionManager: subsRepo,
+		Lockr:              lockr,
 		// events
 		Publisher: publisher,
 	})
@@ -187,6 +193,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		CustomerService:    deps.CustomerService,
 		TransactionManager: subsRepo,
 		Logger:             slog.Default(),
+		Lockr:              lockr,
 	})
 }
 
@@ -250,7 +257,12 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
 	booleanEntitlementConnector := booleanentitlement.NewBooleanEntitlementConnector()
 
-	return entitlement.NewEntitlementConnector(
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
+	return entitlementservice.NewEntitlementConnector(
 		entitlementRepo,
 		deps.FeatureService,
 		deps.MeterAdapter,
@@ -258,5 +270,6 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 		staticEntitlementConnector,
 		booleanEntitlementConnector,
 		mockPublisher,
+		locker,
 	)
 }

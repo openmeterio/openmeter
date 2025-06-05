@@ -69,16 +69,16 @@ func ValidateUniqueConstraint(ents []Entitlement) error {
 	if overlaps := timeline.GetOverlaps(); len(overlaps) > 0 {
 		// We only return the first overlap
 		items := timeline.Cadences()
-		return &UniquenessConstraintError{e1: items[overlaps[0].Index1].ent, e2: items[overlaps[0].Index2].ent}
+		return &UniquenessConstraintError{E1: items[overlaps[0].Index1].ent, E2: items[overlaps[0].Index2].ent}
 	}
 
 	return nil
 }
 
 type UniquenessConstraintError struct {
-	e1, e2 Entitlement
+	E1, E2 Entitlement
 }
 
 func (e *UniquenessConstraintError) Error() string {
-	return fmt.Sprintf("constraint violated: %v is active at the same time as %v", e.e1.ID, e.e2.ID)
+	return fmt.Sprintf("constraint violated: %v is active at the same time as %v", e.E1.ID, e.E2.ID)
 }

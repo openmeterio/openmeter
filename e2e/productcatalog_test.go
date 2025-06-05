@@ -3,6 +3,7 @@ package e2e
 import (
 	"net/http"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -84,7 +85,31 @@ func TestPlan(t *testing.T) {
 	})
 
 	customer2 := customerAPIRes.JSON201
-	require.NotNil(t, customer1)
+	require.NotNil(t, customer2)
+
+	customerAPIRes, err = client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
+		Name:         "Test Customer Abused",
+		Key:          lo.ToPtr("test_customer_abused"),
+		Currency:     lo.ToPtr(api.CurrencyCode("USD")),
+		Description:  lo.ToPtr("Test Customer Description"),
+		PrimaryEmail: lo.ToPtr("customer_abused@mail.com"),
+		BillingAddress: &api.Address{
+			City:        lo.ToPtr("City"),
+			Country:     lo.ToPtr("US"),
+			Line1:       lo.ToPtr("Line 1"),
+			Line2:       lo.ToPtr("Line 2"),
+			State:       lo.ToPtr("State"),
+			PhoneNumber: lo.ToPtr("1234567890"),
+			PostalCode:  lo.ToPtr("12345"),
+		},
+		UsageAttribution: api.CustomerUsageAttribution{
+			SubjectKeys: []string{"test_customer_subject_abused"},
+		},
+	})
+	require.Nil(t, err)
+
+	customerAbused := customerAPIRes.JSON201
+	require.NotNil(t, customerAbused)
 
 	// Now, let's create dedicated features for the plan
 	featureAPIRes, err := client.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
@@ -486,6 +511,59 @@ func TestPlan(t *testing.T) {
 		subscriptionId = subscription.Id
 	})
 
+	t.Run("Should create only ONE subscription per customer, even if we spam the API in a short period of time", func(t *testing.T) {
+		require.NotNil(t, customerAbused)
+		require.NotNil(t, customerAbused.Id)
+
+		ct := &api.SubscriptionTiming{}
+		require.NoError(t, ct.FromSubscriptionTiming1(startTime))
+
+		createSubscription := func() {
+			ct := &api.SubscriptionTiming{}
+			require.NoError(t, ct.FromSubscriptionTiming1(startTime))
+
+			// Let's create a custom subscription so it doesn't affect the other tests
+			create := api.SubscriptionCreate{}
+			err := create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
+				Timing:      ct,
+				CustomerKey: customerAbused.Key,
+				CustomPlan:  customPlanInput,
+			})
+			require.Nil(t, err)
+
+			apiRes, err := client.CreateSubscriptionWithResponse(ctx, create)
+			require.Nil(t, err)
+
+			// It will either succeed or fail with 4xx
+			assert.Less(t, apiRes.StatusCode(), 500, "received the following status %d body: %s", apiRes.StatusCode(), apiRes.Body)
+		}
+
+		// Let's spam the API 10 times
+		wg := sync.WaitGroup{}
+		for i := 0; i < 10; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				createSubscription()
+			}()
+		}
+
+		wg.Wait()
+
+		// Now let's fetch the customer's subscriptions and assert there's only one
+		apiRes, err := client.ListCustomerSubscriptionsWithResponse(ctx, customerAbused.Id, &api.ListCustomerSubscriptionsParams{
+			Page:     lo.ToPtr(1),
+			PageSize: lo.ToPtr(10),
+		})
+		require.Nil(t, err)
+		require.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+
+		body := apiRes.JSON200
+		require.NotNil(t, body)
+
+		require.Equal(t, 1, len(body.Items))
+	})
+
 	t.Run("Should retrieve the subscription", func(t *testing.T) {
 		require.NotEmpty(t, subscriptionId)
 
@@ -739,7 +817,7 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 		require.NotNil(t, apiRes.JSON200)
 		require.NotNil(t, apiRes.JSON200.Items)
-		require.Equal(t, 3, len(apiRes.JSON200.Items))
+		require.Equal(t, 4, len(apiRes.JSON200.Items))
 
 		// Now let's check the filtering works
 		apiRes, err = client.ListCustomersWithResponse(ctx, &api.ListCustomersParams{
