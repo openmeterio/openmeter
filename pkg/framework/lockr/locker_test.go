@@ -172,57 +172,74 @@ func TestLockerLockForTx(t *testing.T) {
 
 		// We run two parallel go routines, each with a transaction, with different delays
 
-		wg := sync.WaitGroup{}
-		wg.Add(2)
+		// Go scheduled is weird, magical, and sometimes things don't happen in the order you'd like them
+		// We'll iteratively attempt this test until the the two goroutines start in the order we expect them to
+		MAX_ATTEMPTS := 10
+		attempts := 0
 
-		finCh := make(chan string, 4)
+		for {
+			if attempts >= MAX_ATTEMPTS {
+				t.Fatalf("failed to get the two goroutines to start in the correct order after %d attempts", MAX_ATTEMPTS)
+			}
 
-		go func() {
-			defer wg.Done()
+			wg := sync.WaitGroup{}
+			wg.Add(2)
 
-			require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
-				finCh <- "1 start"
+			finCh := make(chan string, 4)
 
-				require.NoError(t, locker.LockForTX(ctx, key))
+			go func() {
+				defer wg.Done()
 
-				// non-blocking sleep for 1 second (we keep the lock for 1 second)
-				time.Sleep(1 * time.Second)
+				require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
+					finCh <- "1 start"
 
-				finCh <- "1 done"
+					require.NoError(t, locker.LockForTX(ctx, key))
 
-				return nil
-			}))
-		}()
+					// non-blocking sleep for 1 second (we keep the lock for 1 second)
+					time.Sleep(1 * time.Second)
 
-		go func() {
-			defer wg.Done()
+					finCh <- "1 done"
 
-			require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
-				// scheduler works in magical ways, so adding a small delay here to break execution and switch to different go routine
-				time.Sleep(100 * time.Millisecond)
+					return nil
+				}))
+			}()
 
-				finCh <- "2 start"
+			go func() {
+				defer wg.Done()
 
-				require.NoError(t, locker.LockForTX(ctx, key))
+				require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
+					// scheduler works in magical ways, so adding a small delay here to break execution and switch to different go routine
+					time.Sleep(10 * time.Millisecond)
 
-				finCh <- "2 done"
+					finCh <- "2 start"
 
-				return nil
-			}))
-		}()
+					require.NoError(t, locker.LockForTX(ctx, key))
 
-		wg.Wait()
+					finCh <- "2 done"
 
-		// Let's read the contents of the chan to make sure things finished in the correct order
-		close(finCh)
+					return nil
+				}))
+			}()
 
-		results := []string{}
+			wg.Wait()
+			close(finCh)
 
-		for fin := range finCh {
-			results = append(results, fin)
+			attempts++
+
+			// Let's read the contents of the chan to make sure things finished in the correct order
+			results := []string{}
+
+			for fin := range finCh {
+				results = append(results, fin)
+			}
+
+			// If the goroutines start in the correct order, we assert that they also end in the correct order
+			// otherwise, we just go around again
+			if results[0] == "1 start" && results[1] == "2 start" {
+				require.Equal(t, []string{"1 start", "2 start", "1 done", "2 done"}, results)
+				break
+			}
 		}
-
-		require.Equal(t, []string{"1 start", "2 start", "1 done", "2 done"}, results)
 	}))
 
 	t.Run("Should error if acquiring lock takes longer than timeout", func(t *testing.T) {
