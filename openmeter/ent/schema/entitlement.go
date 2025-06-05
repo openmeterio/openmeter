@@ -5,6 +5,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -82,9 +83,15 @@ func (Entitlement) Indexes() []ent.Index {
 
 func (Entitlement) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("usage_reset", UsageReset.Type),
-		edge.To("grant", Grant.Type),
-		edge.To("balance_snapshot", BalanceSnapshot.Type),
+		edge.To("usage_reset", UsageReset.Type).Annotations(entsql.Annotation{
+			OnDelete: entsql.Cascade,
+		}),
+		edge.To("grant", Grant.Type).Annotations(entsql.Annotation{
+			OnDelete: entsql.Cascade,
+		}),
+		edge.To("balance_snapshot", BalanceSnapshot.Type).Annotations(entsql.Annotation{
+			OnDelete: entsql.Cascade,
+		}),
 		edge.To("subscription_item", SubscriptionItem.Type),
 		edge.From("feature", Feature.Type).
 			Ref("entitlement").

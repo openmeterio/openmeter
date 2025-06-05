@@ -51,7 +51,9 @@ func (Subscription) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("plan", Plan.Type).Field("plan_id").Ref("subscriptions").Unique(),
 		edge.From("customer", Customer.Type).Field("customer_id").Ref("subscription").Immutable().Unique().Required(),
-		edge.To("phases", SubscriptionPhase.Type),
+		edge.To("phases", SubscriptionPhase.Type).Annotations(entsql.Annotation{
+			OnDelete: entsql.Cascade,
+		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
 		edge.To("addons", SubscriptionAddon.Type).
 			Annotations(entsql.Annotation{
@@ -95,7 +97,9 @@ func (SubscriptionPhase) Indexes() []ent.Index {
 func (SubscriptionPhase) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("subscription", Subscription.Type).Field("subscription_id").Ref("phases").Unique().Immutable().Required(),
-		edge.To("items", SubscriptionItem.Type),
+		edge.To("items", SubscriptionItem.Type).Annotations(entsql.Annotation{
+			OnDelete: entsql.Cascade,
+		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
 	}
 }
@@ -188,7 +192,9 @@ func (SubscriptionItem) Indexes() []ent.Index {
 func (SubscriptionItem) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("phase", SubscriptionPhase.Type).Field("phase_id").Ref("items").Unique().Immutable().Required(),
-		edge.From("entitlement", Entitlement.Type).Field("entitlement_id").Ref("subscription_item").Unique(),
+		edge.From("entitlement", Entitlement.Type).Field("entitlement_id").Ref("subscription_item").Unique().Annotations(entsql.Annotation{
+			OnDelete: entsql.Cascade,
+		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
 	}
 }
