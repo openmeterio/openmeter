@@ -280,6 +280,25 @@ func (s *Sink) flush(ctx context.Context) error {
 	// Dedupe messages so if we have multiple messages in the same batch
 	dedupedMessages := dedupeSinkMessages(messages)
 
+	// If deduplicator is set, let's reexecute the deduplication to decrease the number of messages double persisted
+	if s.config.Deduplicator != nil {
+		dedupeResults, err := s.config.Deduplicator.CheckUniqueBatch(ctx, lo.Map(dedupedMessages, func(message sinkmodels.SinkMessage, _ int) dedupe.Item {
+			return message.GetDedupeItem()
+		}))
+		if err != nil {
+			return fmt.Errorf("failed to check uniqueness of kafka messages: %w", err)
+		}
+
+		updatedDedupedMessages := make([]sinkmodels.SinkMessage, 0, len(dedupedMessages))
+		for _, message := range dedupedMessages {
+			if _, ok := dedupeResults.UniqueItems[message.GetDedupeItem()]; ok {
+				updatedDedupedMessages = append(updatedDedupedMessages, message)
+			}
+		}
+
+		dedupedMessages = updatedDedupedMessages
+	}
+
 	// 1. Persist to storage
 	if len(dedupedMessages) > 0 {
 		// Persist events to permanent storage
@@ -850,11 +869,7 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
 	// Dedupe is an optional dependency, so we check if it's set
 	if s.config.Deduplicator != nil {
-		isUnique, err := s.config.Deduplicator.CheckUnique(ctx, dedupe.Item{
-			Namespace: sinkMessage.Namespace,
-			ID:        sinkMessage.Serialized.Id,
-			Source:    sinkMessage.Serialized.Source,
-		})
+		isUnique, err := s.config.Deduplicator.CheckUnique(ctx, sinkMessage.GetDedupeItem())
 		if err != nil {
 			// Stop processing, non-recoverable error
 			return sinkMessage, fmt.Errorf("failed to check uniqueness of kafka message: %w", err)
