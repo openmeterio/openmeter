@@ -117,6 +117,8 @@
               licensei
 
               go-migrate
+
+              sqlc
             ];
 
             env = {
