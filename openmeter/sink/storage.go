@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )

@@ -89,7 +89,7 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 	tableName := getTableName(d.Database, d.EventsTableName)
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
-	query.Select("id", "type", "subject", "source", "time", "data", "ingested_at", "stored_at")
+	query.Select("id", "type", "subject", "source", "time", "data", "ingested_at", "stored_at", "store_row_id")
 	query.From(tableName)
 
 	query.Where(query.Equal("namespace", d.Namespace))
