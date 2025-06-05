@@ -146,6 +146,12 @@ func TestLockerLockForTx(t *testing.T) {
 			require.NoError(t, transaction.RunWithNoValue(ctx, txCreator, func(ctx context.Context) error {
 				require.NoError(t, locker.LockForTX(ctx, key))
 
+				require.NoError(t, transaction.RunWithNoValue(ctx, txCreator, func(ctx context.Context) error {
+					require.NoError(t, locker.LockForTX(ctx, key))
+
+					return nil
+				}))
+
 				return nil
 			}))
 

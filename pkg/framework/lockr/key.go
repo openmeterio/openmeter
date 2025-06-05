@@ -48,9 +48,7 @@ func (k *key) String() string {
 func (k *key) Hash64() uint64 {
 	h := xxhash.New()
 
-	for _, s := range k.scopes {
-		_, _ = h.WriteString(s)
-	}
+	_, _ = h.WriteString(k.String())
 
 	return h.Sum64()
 }
