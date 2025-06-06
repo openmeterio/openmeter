@@ -13,7 +13,7 @@ namespace OpenMeter.Billing.Invoice;
  */
 @friendlyName("InvoiceDocumentRefType")
 enum InvoiceDocumentRefType {
-  creditNoteOriginalInvoice: "credit_node_original_invoice",
+  creditNoteOriginalInvoice: "credit_note_original_invoice",
 }
 
 /**

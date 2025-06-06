@@ -12776,7 +12776,7 @@ components:
         type:
           type: string
           enum:
-            - credit_node_original_invoice
+            - credit_note_original_invoice
           description: Type of the invoice.
         issuedAt:
           type: string
@@ -15625,32 +15625,7 @@ components:
           description: Invoice a gathering invoice
           readOnly: true
       description: InvoiceAvailableActions represents the actions that can be performed on the invoice.
-    InvoiceDocumentRef:
-      type: object
-      allOf:
-        - $ref: '#/components/schemas/CreditNoteOriginalInvoiceRef'
-      description: InvoiceDocumentRef is used to describe a reference to an existing document (invoice).
-    InvoiceDocumentRefType:
-      type: string
-      enum:
-        - credit_node_original_invoice
-      description: InvoiceDocumentRefType defines the type of document that is being referenced.
-    InvoiceExpand:
-      type: string
-      enum:
-        - lines
-        - preceding
-        - workflow.apps
-      description: InvoiceExpand specifies the parts of the invoice to expand in the list output.
-    InvoiceFlatFeeCategory:
-      type: string
-      enum:
-        - regular
-        - commitment
-      description: |-
-        InvoiceFlatFeeCategory determines if the flat fee is a regular fee due to use due to a
-        commitment.
-    InvoiceFlatFeeLine:
+    InvoiceDetailedLine:
       type: object
       required:
         - name
@@ -15751,12 +15726,6 @@ components:
             - $ref: '#/components/schemas/TaxConfig'
           description: Tax config specify the tax configuration for this line.
           deprecated: true
-        children:
-          description: The lines detailing the item or service sold.
-          readOnly: true
-          type: array
-          items:
-            $ref: '#/components/schemas/InvoiceLine'
         totals:
           allOf:
             - $ref: '#/components/schemas/InvoiceTotals'
@@ -15789,6 +15758,8 @@ components:
           enum:
             - flat_fee
           description: Type of the line.
+          deprecated: true
+          readOnly: true
         perUnitAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -15807,171 +15778,24 @@ components:
           deprecated: true
         rateCard:
           allOf:
-            - $ref: '#/components/schemas/InvoiceFlatFeeRateCard'
+            - $ref: '#/components/schemas/InvoiceDetailedLineRateCard'
           description: The rate card that is used for this line.
         category:
           allOf:
-            - $ref: '#/components/schemas/InvoiceFlatFeeCategory'
+            - $ref: '#/components/schemas/InvoiceDetailedLineCostCategory'
           description: Category of the flat fee.
           default: regular
-      description: InvoiceFlatFeeLine represents a line item that is sold to the customer as a manually added fee.
-    InvoiceFlatFeeLineReplaceUpdate:
-      type: object
-      required:
-        - name
-        - period
-        - invoiceAt
-        - type
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        taxConfig:
-          allOf:
-            - $ref: '#/components/schemas/TaxConfig'
-          description: Tax config specify the tax configuration for this line.
-          deprecated: true
-        period:
-          allOf:
-            - $ref: '#/components/schemas/Period'
-          description: |-
-            Period of the line item applies to for revenue recognition pruposes.
-
-            Billing always treats periods as start being inclusive and end being exclusive.
-        invoiceAt:
-          type: string
-          format: date-time
-          description: The time this line item should be invoiced.
-          example: '2023-01-01T01:01:01.001Z'
-        type:
-          type: string
-          enum:
-            - flat_fee
-          description: Type of the line.
-        perUnitAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Price of the item being sold.
-          deprecated: true
-        paymentTerm:
-          allOf:
-            - $ref: '#/components/schemas/PricePaymentTerm'
-          description: Payment term of the line.
-          deprecated: true
-          default: in_advance
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Quantity of the item being sold.
-          deprecated: true
-        rateCard:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceFlatFeeRateCard'
-          description: The rate card that is used for this line.
-        category:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceFlatFeeCategory'
-          description: Category of the flat fee.
-          default: regular
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: The ID of the line.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          readOnly: true
+      description: InvoiceDetailedLine represents a line item that is sold to the customer as a manually added fee.
+    InvoiceDetailedLineCostCategory:
+      type: string
+      enum:
+        - regular
+        - commitment
       description: |-
-        InvoiceFlatFeeLineReplaceUpdate represents the update model for a flat fee invoice line.
-
-        This type makes ID optional to allow for creating new lines as part of the update.
-    InvoiceFlatFeePendingLineCreate:
-      type: object
-      required:
-        - name
-        - period
-        - invoiceAt
-        - type
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        taxConfig:
-          allOf:
-            - $ref: '#/components/schemas/TaxConfig'
-          description: Tax config specify the tax configuration for this line.
-          deprecated: true
-        period:
-          allOf:
-            - $ref: '#/components/schemas/Period'
-          description: |-
-            Period of the line item applies to for revenue recognition pruposes.
-
-            Billing always treats periods as start being inclusive and end being exclusive.
-        invoiceAt:
-          type: string
-          format: date-time
-          description: The time this line item should be invoiced.
-          example: '2023-01-01T01:01:01.001Z'
-        type:
-          type: string
-          enum:
-            - flat_fee
-          description: Type of the line.
-        perUnitAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Price of the item being sold.
-          deprecated: true
-        paymentTerm:
-          allOf:
-            - $ref: '#/components/schemas/PricePaymentTerm'
-          description: Payment term of the line.
-          deprecated: true
-          default: in_advance
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Quantity of the item being sold.
-          deprecated: true
-        rateCard:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceFlatFeeRateCard'
-          description: The rate card that is used for this line.
-        category:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceFlatFeeCategory'
-          description: Category of the flat fee.
-          default: regular
-      description: InvoiceFlatFeePendingLineCreate represents the create model for an invoice line that is sold to the customer as a manually added fee.
-    InvoiceFlatFeeRateCard:
+        InvoiceDetailedLineCostCategory determines if the flat fee is a regular fee due to use due to a
+        commitment.
+    InvoiceDetailedLineRateCard:
       type: object
       required:
         - price
@@ -16007,7 +15831,24 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingDiscounts'
           description: The discounts that are applied to the line.
-      description: InvoiceFlatFeeRateCard represents the rate card (intent) for a flat fee line.
+      description: InvoiceDetailedLineRateCard represents the rate card (intent) for a flat fee line.
+    InvoiceDocumentRef:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/CreditNoteOriginalInvoiceRef'
+      description: InvoiceDocumentRef is used to describe a reference to an existing document (invoice).
+    InvoiceDocumentRefType:
+      type: string
+      enum:
+        - credit_note_original_invoice
+      description: InvoiceDocumentRefType defines the type of document that is being referenced.
+    InvoiceExpand:
+      type: string
+      enum:
+        - lines
+        - preceding
+        - workflow.apps
+      description: InvoiceExpand specifies the parts of the invoice to expand in the list output.
     InvoiceGenericDocumentRef:
       type: object
       required:
@@ -16034,15 +15875,196 @@ components:
       title: InvoiceGenericDocumentRef is used to describe an existing document or a specific part of it's contents.
     InvoiceLine:
       type: object
-      oneOf:
-        - $ref: '#/components/schemas/InvoiceUsageBasedLine'
-        - $ref: '#/components/schemas/InvoiceFlatFeeLine'
-      discriminator:
-        propertyName: type
-        mapping:
-          usage_based: '#/components/schemas/InvoiceUsageBasedLine'
-          flat_fee: '#/components/schemas/InvoiceFlatFeeLine'
-      description: BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
+      required:
+        - name
+        - createdAt
+        - updatedAt
+        - id
+        - managedBy
+        - status
+        - currency
+        - totals
+        - period
+        - invoiceAt
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ID of the line.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+        managedBy:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineManagedBy'
+          description: managedBy specifies if the line is manually added via the api or managed by OpenMeter.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineStatus'
+          description: |-
+            Status of the line.
+
+            External calls always create valid lines, other line types are managed by the
+            billing engine of OpenMeter.
+          readOnly: true
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineDiscounts'
+          description: |-
+            Discounts detailes applied to this line.
+
+            New discounts can be added via the invoice's discounts API, to facilitate
+            discounts that are affecting multiple lines.
+          readOnly: true
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceReference'
+          description: The invoice this item belongs to.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency of this line.
+        taxes:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLineTaxItem'
+          description: Taxes applied to the invoice totals.
+          readOnly: true
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: Tax config specify the tax configuration for this line.
+          deprecated: true
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceTotals'
+          description: Totals for this line.
+          readOnly: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: |-
+            Period of the line item applies to for revenue recognition pruposes.
+
+            Billing always treats periods as start being inclusive and end being exclusive.
+        invoiceAt:
+          type: string
+          format: date-time
+          description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
+        externalIds:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+        subscription:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineSubscriptionReference'
+          description: Subscription are the references to the subscritpions that this line is related to.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - usage_based
+          description: Type of the line.
+          deprecated: true
+          readOnly: true
+        price:
+          allOf:
+            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          description: Price of the usage-based item being sold.
+          deprecated: true
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature that the usage is based on.
+          deprecated: true
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceDetailedLine'
+          description: The lines detailing the item or service sold.
+          readOnly: true
+        rateCard:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceUsageBasedRateCard'
+          description: |-
+            The rate card that is used for this line.
+
+            The rate card captures the intent of the price and discounts for the usage-based item.
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The quantity of the item being sold.
+
+            Any usage discounts applied previously are deducted from this quantity.
+          readOnly: true
+        meteredQuantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The quantity of the item that has been metered for the period before any discounts were applied.
+          readOnly: true
+        preLinePeriodQuantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The quantity of the item used before this line's period.
+
+            It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
+
+            Any usage discounts applied previously are deducted from this quantity.
+          readOnly: true
+        meteredPreLinePeriodQuantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The metered quantity of the item used in before this line's period without any discounts applied.
+
+            It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
+          readOnly: true
+      description: InvoiceUsageBasedLine represents a line item that is sold to the customer based on usage.
     InvoiceLineAmountDiscount:
       type: object
       required:
@@ -16141,15 +16163,74 @@ components:
       description: InvoiceLineManagedBy specifies who manages the line.
     InvoiceLineReplaceUpdate:
       type: object
-      oneOf:
-        - $ref: '#/components/schemas/InvoiceUsageBasedLineReplaceUpdate'
-        - $ref: '#/components/schemas/InvoiceFlatFeeLineReplaceUpdate'
-      discriminator:
-        propertyName: type
-        mapping:
-          usage_based: '#/components/schemas/InvoiceUsageBasedLineReplaceUpdate'
-          flat_fee: '#/components/schemas/InvoiceFlatFeeLineReplaceUpdate'
-      description: InvoiceLineReplaceUpdate represents the update model for an invoice line.
+      required:
+        - name
+        - period
+        - invoiceAt
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: Tax config specify the tax configuration for this line.
+          deprecated: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: |-
+            Period of the line item applies to for revenue recognition pruposes.
+
+            Billing always treats periods as start being inclusive and end being exclusive.
+        invoiceAt:
+          type: string
+          format: date-time
+          description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
+        price:
+          allOf:
+            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          description: Price of the usage-based item being sold.
+          deprecated: true
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature that the usage is based on.
+          deprecated: true
+        rateCard:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceUsageBasedRateCard'
+          description: |-
+            The rate card that is used for this line.
+
+            The rate card captures the intent of the price and discounts for the usage-based item.
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The ID of the line.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+      description: |-
+        InvoiceLineReplaceUpdate represents the update model for an UBP invoice line.
+
+        This type makes ID optional to allow for creating new lines as part of the update.
     InvoiceLineStatus:
       type: string
       enum:
@@ -16344,15 +16425,66 @@ components:
       description: Payment contains details as to how the invoice should be paid.
     InvoicePendingLineCreate:
       type: object
-      oneOf:
-        - $ref: '#/components/schemas/InvoiceUsageBasedPendingLineCreate'
-        - $ref: '#/components/schemas/InvoiceFlatFeePendingLineCreate'
-      discriminator:
-        propertyName: type
-        mapping:
-          usage_based: '#/components/schemas/InvoiceUsageBasedPendingLineCreate'
-          flat_fee: '#/components/schemas/InvoiceFlatFeePendingLineCreate'
-      description: InvoiceLineCreate represents the create model for an invoice line.
+      required:
+        - name
+        - period
+        - invoiceAt
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: Tax config specify the tax configuration for this line.
+          deprecated: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: |-
+            Period of the line item applies to for revenue recognition pruposes.
+
+            Billing always treats periods as start being inclusive and end being exclusive.
+        invoiceAt:
+          type: string
+          format: date-time
+          description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
+        price:
+          allOf:
+            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          description: Price of the usage-based item being sold.
+          deprecated: true
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature that the usage is based on.
+          deprecated: true
+        rateCard:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceUsageBasedRateCard'
+          description: |-
+            The rate card that is used for this line.
+
+            The rate card captures the intent of the price and discounts for the usage-based item.
+      description: InvoicePendingLineCreate represents the create model for an invoice line that is sold to the customer based on usage.
     InvoicePendingLineCreateInput:
       type: object
       required:
@@ -16500,88 +16632,6 @@ components:
             - $ref: '#/components/schemas/InvoiceWorkflowReplaceUpdate'
           description: The workflow settings for the invoice.
       description: InvoiceReplaceUpdate represents the update model for an invoice.
-    InvoiceSimulationFlatFeeLine:
-      type: object
-      required:
-        - name
-        - period
-        - invoiceAt
-        - type
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        taxConfig:
-          allOf:
-            - $ref: '#/components/schemas/TaxConfig'
-          description: Tax config specify the tax configuration for this line.
-          deprecated: true
-        period:
-          allOf:
-            - $ref: '#/components/schemas/Period'
-          description: |-
-            Period of the line item applies to for revenue recognition pruposes.
-
-            Billing always treats periods as start being inclusive and end being exclusive.
-        invoiceAt:
-          type: string
-          format: date-time
-          description: The time this line item should be invoiced.
-          example: '2023-01-01T01:01:01.001Z'
-        type:
-          type: string
-          enum:
-            - flat_fee
-          description: Type of the line.
-        perUnitAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Price of the item being sold.
-          deprecated: true
-        paymentTerm:
-          allOf:
-            - $ref: '#/components/schemas/PricePaymentTerm'
-          description: Payment term of the line.
-          deprecated: true
-          default: in_advance
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Quantity of the item being sold.
-          deprecated: true
-        rateCard:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceFlatFeeRateCard'
-          description: The rate card that is used for this line.
-        category:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceFlatFeeCategory'
-          description: Category of the flat fee.
-          default: regular
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: |-
-            ID of the line. If not specified it will be auto-generated.
-
-            When discounts are specified, this must be provided, so that the discount can reference it.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-      description: InvoiceSimulationFlatFeeLine represents a flat fee line item that can be input to the simulation endpoint.
     InvoiceSimulationInput:
       type: object
       required:
@@ -16607,22 +16657,10 @@ components:
       description: InvoiceSimulationInput is the input for simulating an invoice.
     InvoiceSimulationLine:
       type: object
-      oneOf:
-        - $ref: '#/components/schemas/InvoiceSimulationUsageBasedLine'
-        - $ref: '#/components/schemas/InvoiceSimulationFlatFeeLine'
-      discriminator:
-        propertyName: type
-        mapping:
-          usage_based: '#/components/schemas/InvoiceSimulationUsageBasedLine'
-          flat_fee: '#/components/schemas/InvoiceSimulationFlatFeeLine'
-      description: InvoiceSimulationInput represents a line item that can be input to the simulation endpoint.
-    InvoiceSimulationUsageBasedLine:
-      type: object
       required:
         - name
         - period
         - invoiceAt
-        - type
         - quantity
       properties:
         name:
@@ -16660,11 +16698,6 @@ components:
           format: date-time
           description: The time this line item should be invoiced.
           example: '2023-01-01T01:01:01.001Z'
-        type:
-          type: string
-          enum:
-            - usage_based
-          description: Type of the line.
         price:
           allOf:
             - $ref: '#/components/schemas/RateCardUsageBasedPrice'
@@ -16700,7 +16733,7 @@ components:
 
             When discounts are specified, this must be provided, so that the discount can reference it.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
-      description: InvoiceSimulationUsageBasedLine represents a usage-based line item that can be input to the simulation endpoint.
+      description: InvoiceSimulationLine represents a usage-based line item that can be input to the simulation endpoint.
     InvoiceStatus:
       type: string
       enum:
@@ -16799,340 +16832,6 @@ components:
         InvoiceType represents the type of invoice.
 
         The type of invoice determines the purpose of the invoice and how it should be handled.
-    InvoiceUsageBasedLine:
-      type: object
-      required:
-        - name
-        - createdAt
-        - updatedAt
-        - id
-        - managedBy
-        - status
-        - currency
-        - totals
-        - period
-        - invoiceAt
-        - type
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        createdAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was created.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Creation Time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was last updated.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Last Update Time
-          readOnly: true
-        deletedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was permanently deleted.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Deletion Time
-          readOnly: true
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ID of the line.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-        managedBy:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceLineManagedBy'
-          description: managedBy specifies if the line is manually added via the api or managed by OpenMeter.
-          readOnly: true
-        status:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceLineStatus'
-          description: |-
-            Status of the line.
-
-            External calls always create valid lines, other line types are managed by the
-            billing engine of OpenMeter.
-          readOnly: true
-        discounts:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceLineDiscounts'
-          description: |-
-            Discounts detailes applied to this line.
-
-            New discounts can be added via the invoice's discounts API, to facilitate
-            discounts that are affecting multiple lines.
-          readOnly: true
-        invoice:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceReference'
-          description: The invoice this item belongs to.
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency of this line.
-        taxes:
-          type: array
-          items:
-            $ref: '#/components/schemas/InvoiceLineTaxItem'
-          description: Taxes applied to the invoice totals.
-          readOnly: true
-        taxConfig:
-          allOf:
-            - $ref: '#/components/schemas/TaxConfig'
-          description: Tax config specify the tax configuration for this line.
-          deprecated: true
-        children:
-          description: The lines detailing the item or service sold.
-          readOnly: true
-          type: array
-          items:
-            $ref: '#/components/schemas/InvoiceLine'
-        totals:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceTotals'
-          description: Totals for this line.
-          readOnly: true
-        period:
-          allOf:
-            - $ref: '#/components/schemas/Period'
-          description: |-
-            Period of the line item applies to for revenue recognition pruposes.
-
-            Billing always treats periods as start being inclusive and end being exclusive.
-        invoiceAt:
-          type: string
-          format: date-time
-          description: The time this line item should be invoiced.
-          example: '2023-01-01T01:01:01.001Z'
-        externalIds:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
-          description: External IDs of the invoice in other apps such as Stripe.
-          readOnly: true
-        subscription:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceLineSubscriptionReference'
-          description: Subscription are the references to the subscritpions that this line is related to.
-          readOnly: true
-        type:
-          type: string
-          enum:
-            - usage_based
-          description: Type of the line.
-        price:
-          allOf:
-            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
-          description: Price of the usage-based item being sold.
-          deprecated: true
-        featureKey:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: The feature that the usage is based on.
-          deprecated: true
-        rateCard:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceUsageBasedRateCard'
-          description: |-
-            The rate card that is used for this line.
-
-            The rate card captures the intent of the price and discounts for the usage-based item.
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: |-
-            The quantity of the item being sold.
-
-            Any usage discounts applied previously are deducted from this quantity.
-          readOnly: true
-        meteredQuantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The quantity of the item that has been metered for the period before any discounts were applied.
-          readOnly: true
-        preLinePeriodQuantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: |-
-            The quantity of the item used before this line's period.
-
-            It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
-
-            Any usage discounts applied previously are deducted from this quantity.
-          readOnly: true
-        meteredPreLinePeriodQuantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: |-
-            The metered quantity of the item used in before this line's period without any discounts applied.
-
-            It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
-          readOnly: true
-      description: InvoiceUsageBasedLine represents a line item that is sold to the customer based on usage.
-    InvoiceUsageBasedLineReplaceUpdate:
-      type: object
-      required:
-        - name
-        - period
-        - invoiceAt
-        - type
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        taxConfig:
-          allOf:
-            - $ref: '#/components/schemas/TaxConfig'
-          description: Tax config specify the tax configuration for this line.
-          deprecated: true
-        period:
-          allOf:
-            - $ref: '#/components/schemas/Period'
-          description: |-
-            Period of the line item applies to for revenue recognition pruposes.
-
-            Billing always treats periods as start being inclusive and end being exclusive.
-        invoiceAt:
-          type: string
-          format: date-time
-          description: The time this line item should be invoiced.
-          example: '2023-01-01T01:01:01.001Z'
-        type:
-          type: string
-          enum:
-            - usage_based
-          description: Type of the line.
-        price:
-          allOf:
-            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
-          description: Price of the usage-based item being sold.
-          deprecated: true
-        featureKey:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: The feature that the usage is based on.
-          deprecated: true
-        rateCard:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceUsageBasedRateCard'
-          description: |-
-            The rate card that is used for this line.
-
-            The rate card captures the intent of the price and discounts for the usage-based item.
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: The ID of the line.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-      description: |-
-        InvoiceUpdateUsageBasedLineReplaceUpdate represents the update model for an UBP invoice line.
-
-        This type makes ID optional to allow for creating new lines as part of the update.
-    InvoiceUsageBasedPendingLineCreate:
-      type: object
-      required:
-        - name
-        - period
-        - invoiceAt
-        - type
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        taxConfig:
-          allOf:
-            - $ref: '#/components/schemas/TaxConfig'
-          description: Tax config specify the tax configuration for this line.
-          deprecated: true
-        period:
-          allOf:
-            - $ref: '#/components/schemas/Period'
-          description: |-
-            Period of the line item applies to for revenue recognition pruposes.
-
-            Billing always treats periods as start being inclusive and end being exclusive.
-        invoiceAt:
-          type: string
-          format: date-time
-          description: The time this line item should be invoiced.
-          example: '2023-01-01T01:01:01.001Z'
-        type:
-          type: string
-          enum:
-            - usage_based
-          description: Type of the line.
-        price:
-          allOf:
-            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
-          description: Price of the usage-based item being sold.
-          deprecated: true
-        featureKey:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: The feature that the usage is based on.
-          deprecated: true
-        rateCard:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceUsageBasedRateCard'
-          description: |-
-            The rate card that is used for this line.
-
-            The rate card captures the intent of the price and discounts for the usage-based item.
-      description: InvoiceUsageBasedLineCreateWithCustomer represents the create model for an invoice line that is sold to the customer based on usage.
     InvoiceUsageBasedRateCard:
       type: object
       required:
