@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Subject represents a subject in the system.
@@ -12,7 +11,7 @@ type Subject struct {
 	Id          string
 	Key         string
 	DisplayName *string
-	Metadata    models.Metadata
+	Metadata    map[string]interface{}
 	// Use customer application entity instead
 	StripeCustomerId *string
 }
@@ -29,10 +28,10 @@ func (s Subject) Validate() error {
 
 // ToAPIModel converts the subject to the API model.
 func (s Subject) ToAPIModel() api.Subject {
-	var metadata *map[string]string
+	var metadata *map[string]interface{}
 
 	if s.Metadata != nil {
-		m := map[string]string{}
+		m := map[string]interface{}{}
 
 		for k, v := range s.Metadata {
 			m[k] = v

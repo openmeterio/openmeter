@@ -1295,11 +1295,11 @@ func init() {
 	// subject.KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	subject.KeyValidator = subjectDescKey.Validators[0].(func(string) error)
 	// subjectDescCreatedAt is the schema descriptor for created_at field.
-	subjectDescCreatedAt := subjectFields[3].Descriptor()
+	subjectDescCreatedAt := subjectFields[4].Descriptor()
 	// subject.DefaultCreatedAt holds the default value on creation for the created_at field.
 	subject.DefaultCreatedAt = subjectDescCreatedAt.Default.(func() time.Time)
 	// subjectDescUpdatedAt is the schema descriptor for updated_at field.
-	subjectDescUpdatedAt := subjectFields[4].Descriptor()
+	subjectDescUpdatedAt := subjectFields[5].Descriptor()
 	// subject.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	subject.DefaultUpdatedAt = subjectDescUpdatedAt.Default.(func() time.Time)
 	// subject.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

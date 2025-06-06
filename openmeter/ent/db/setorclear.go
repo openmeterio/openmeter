@@ -2533,20 +2533,6 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 	return u.SetFeatureID(*value)
 }
 
-func (u *SubjectUpdate) SetOrClearMetadata(value *map[string]string) *SubjectUpdate {
-	if value == nil {
-		return u.ClearMetadata()
-	}
-	return u.SetMetadata(*value)
-}
-
-func (u *SubjectUpdateOne) SetOrClearMetadata(value *map[string]string) *SubjectUpdateOne {
-	if value == nil {
-		return u.ClearMetadata()
-	}
-	return u.SetMetadata(*value)
-}
-
 func (u *SubjectUpdate) SetOrClearDisplayName(value *string) *SubjectUpdate {
 	if value == nil {
 		return u.ClearDisplayName()
@@ -2573,6 +2559,20 @@ func (u *SubjectUpdateOne) SetOrClearStripeCustomerID(value *string) *SubjectUpd
 		return u.ClearStripeCustomerID()
 	}
 	return u.SetStripeCustomerID(*value)
+}
+
+func (u *SubjectUpdate) SetOrClearMetadata(value *map[string]interface{}) *SubjectUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubjectUpdateOne) SetOrClearMetadata(value *map[string]interface{}) *SubjectUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
 }
 
 func (u *SubscriptionUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionUpdate {

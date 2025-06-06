@@ -20,8 +20,6 @@ type Subject struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
-	// Metadata holds the value of the "metadata" field.
-	Metadata map[string]string `json:"metadata,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
 	// DisplayName holds the value of the "display_name" field.
@@ -30,6 +28,8 @@ type Subject struct {
 	//
 	// Deprecated: Use customer entity instead
 	StripeCustomerID *string `json:"stripe_customer_id,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -75,14 +75,6 @@ func (_m *Subject) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Namespace = value.String
 			}
-		case subject.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
-			}
 		case subject.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
@@ -102,6 +94,14 @@ func (_m *Subject) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.StripeCustomerID = new(string)
 				*_m.StripeCustomerID = value.String
+			}
+		case subject.FieldMetadata:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
+					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
 			}
 		case subject.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -154,9 +154,6 @@ func (_m *Subject) String() string {
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
-	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
-	builder.WriteString(", ")
 	builder.WriteString("key=")
 	builder.WriteString(_m.Key)
 	builder.WriteString(", ")
@@ -169,6 +166,9 @@ func (_m *Subject) String() string {
 		builder.WriteString("stripe_customer_id=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

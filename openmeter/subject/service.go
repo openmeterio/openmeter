@@ -39,7 +39,7 @@ type CreateInput struct {
 	Key              string
 	DisplayName      *string
 	StripeCustomerId *string
-	Metadata         *map[string]string
+	Metadata         *map[string]interface{}
 }
 
 func (i CreateInput) Validate() error {
@@ -66,7 +66,7 @@ type UpdateInput struct {
 	Namespace        string
 	DisplayName      OptionalNullable[string]
 	StripeCustomerId OptionalNullable[string]
-	Metadata         OptionalNullable[map[string]string]
+	Metadata         OptionalNullable[map[string]interface{}]
 }
 
 func (i UpdateInput) Validate() error {

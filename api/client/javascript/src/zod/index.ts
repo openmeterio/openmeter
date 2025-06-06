@@ -12889,7 +12889,7 @@ export const upsertSubjectBodyItem = zod
         'A unique, human-readable identifier for the subject.\nThis is typically a database ID or a customer key.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.any())
       .nullish()
       .describe('Metadata for the subject.'),
     stripeCustomerId: zod

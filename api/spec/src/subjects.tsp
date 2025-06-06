@@ -93,7 +93,7 @@ model Subject {
    * Metadata for the subject.
    */
   @example(#{ hubspotId: "123456" })
-  metadata?: Record<string> | null;
+  metadata?: Record<unknown> | null;
 
   /**
    * The start of the current period for the subject.

@@ -145,7 +145,7 @@ func (t *TestEventGenerator) newTestEntitlementResetPayload() notification.Event
 				DisplayName:        lo.ToPtr("Test Subject 1"),
 				Id:                 "01J5AW0ZD6T8624PCK0Q5TYX71",
 				Key:                "test-subject-1",
-				Metadata: &map[string]string{
+				Metadata: &map[string]interface{}{
 					"test-metadata-key": "test-metadata-value",
 				},
 				StripeCustomerId: lo.ToPtr("01J5AW2XS6DYHH7E9PNJSQJ341"),
