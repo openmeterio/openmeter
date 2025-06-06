@@ -15,4 +15,4 @@ CREATE INDEX IF NOT EXISTS "subject_namespace" ON "subjects" ("namespace");
 
 -- create index "subject_key_namespace" to table: "subjects"
 -- atlas:nolint MF101
-CREATE UNIQUE INDEX IF NOT EXISTS"subject_key_namespace" ON "subjects" ("key", "namespace");
+CREATE UNIQUE INDEX IF NOT EXISTS "subject_key_namespace" ON "subjects" ("key", "namespace");
