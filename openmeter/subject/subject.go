@@ -1,9 +1,12 @@
 package subject
 
 import (
+	"context"
 	"errors"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 // Subject represents a subject in the system.
@@ -61,4 +64,38 @@ func (s SubjectKey) Validate() error {
 	}
 
 	return nil
+}
+
+// ListAll returns all the subjects.
+// Helper function for listing all customers. Page param will be ignored.
+func ListAll(ctx context.Context, service Service, namespace string, params ListParams) ([]Subject, error) {
+	subjects := []Subject{}
+	limit := 100
+	page := 1
+
+	for {
+		params := params
+		params.Page = pagination.NewPage(page, limit)
+
+		result, err := service.List(ctx, namespace, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list all subjects: %w", err)
+		}
+
+		for _, subject := range result.Items {
+			if subject == nil {
+				return nil, fmt.Errorf("subject is nil")
+			}
+
+			subjects = append(subjects, *subject)
+		}
+
+		if len(result.Items) < limit {
+			break
+		}
+
+		page++
+	}
+
+	return subjects, nil
 }
