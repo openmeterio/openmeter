@@ -43695,10 +43695,10 @@ type SubjectMutation struct {
 	typ                string
 	id                 *string
 	namespace          *string
-	metadata           *map[string]string
 	key                *string
 	display_name       *string
 	stripe_customer_id *string
+	metadata           *map[string]interface{}
 	created_at         *time.Time
 	updated_at         *time.Time
 	clearedFields      map[string]struct{}
@@ -43847,55 +43847,6 @@ func (m *SubjectMutation) ResetNamespace() {
 	m.namespace = nil
 }
 
-// SetMetadata sets the "metadata" field.
-func (m *SubjectMutation) SetMetadata(value map[string]string) {
-	m.metadata = &value
-}
-
-// Metadata returns the value of the "metadata" field in the mutation.
-func (m *SubjectMutation) Metadata() (r map[string]string, exists bool) {
-	v := m.metadata
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldMetadata returns the old "metadata" field's value of the Subject entity.
-// If the Subject object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubjectMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldMetadata requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
-	}
-	return oldValue.Metadata, nil
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (m *SubjectMutation) ClearMetadata() {
-	m.metadata = nil
-	m.clearedFields[subject.FieldMetadata] = struct{}{}
-}
-
-// MetadataCleared returns if the "metadata" field was cleared in this mutation.
-func (m *SubjectMutation) MetadataCleared() bool {
-	_, ok := m.clearedFields[subject.FieldMetadata]
-	return ok
-}
-
-// ResetMetadata resets all changes to the "metadata" field.
-func (m *SubjectMutation) ResetMetadata() {
-	m.metadata = nil
-	delete(m.clearedFields, subject.FieldMetadata)
-}
-
 // SetKey sets the "key" field.
 func (m *SubjectMutation) SetKey(s string) {
 	m.key = &s
@@ -44030,6 +43981,55 @@ func (m *SubjectMutation) ResetStripeCustomerID() {
 	delete(m.clearedFields, subject.FieldStripeCustomerID)
 }
 
+// SetMetadata sets the "metadata" field.
+func (m *SubjectMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *SubjectMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the Subject entity.
+// If the Subject object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubjectMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *SubjectMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[subject.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *SubjectMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[subject.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *SubjectMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, subject.FieldMetadata)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *SubjectMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -44140,9 +44140,6 @@ func (m *SubjectMutation) Fields() []string {
 	if m.namespace != nil {
 		fields = append(fields, subject.FieldNamespace)
 	}
-	if m.metadata != nil {
-		fields = append(fields, subject.FieldMetadata)
-	}
 	if m.key != nil {
 		fields = append(fields, subject.FieldKey)
 	}
@@ -44151,6 +44148,9 @@ func (m *SubjectMutation) Fields() []string {
 	}
 	if m.stripe_customer_id != nil {
 		fields = append(fields, subject.FieldStripeCustomerID)
+	}
+	if m.metadata != nil {
+		fields = append(fields, subject.FieldMetadata)
 	}
 	if m.created_at != nil {
 		fields = append(fields, subject.FieldCreatedAt)
@@ -44168,14 +44168,14 @@ func (m *SubjectMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case subject.FieldNamespace:
 		return m.Namespace()
-	case subject.FieldMetadata:
-		return m.Metadata()
 	case subject.FieldKey:
 		return m.Key()
 	case subject.FieldDisplayName:
 		return m.DisplayName()
 	case subject.FieldStripeCustomerID:
 		return m.StripeCustomerID()
+	case subject.FieldMetadata:
+		return m.Metadata()
 	case subject.FieldCreatedAt:
 		return m.CreatedAt()
 	case subject.FieldUpdatedAt:
@@ -44191,14 +44191,14 @@ func (m *SubjectMutation) OldField(ctx context.Context, name string) (ent.Value,
 	switch name {
 	case subject.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case subject.FieldMetadata:
-		return m.OldMetadata(ctx)
 	case subject.FieldKey:
 		return m.OldKey(ctx)
 	case subject.FieldDisplayName:
 		return m.OldDisplayName(ctx)
 	case subject.FieldStripeCustomerID:
 		return m.OldStripeCustomerID(ctx)
+	case subject.FieldMetadata:
+		return m.OldMetadata(ctx)
 	case subject.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case subject.FieldUpdatedAt:
@@ -44218,13 +44218,6 @@ func (m *SubjectMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
-		return nil
-	case subject.FieldMetadata:
-		v, ok := value.(map[string]string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetMetadata(v)
 		return nil
 	case subject.FieldKey:
 		v, ok := value.(string)
@@ -44246,6 +44239,13 @@ func (m *SubjectMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStripeCustomerID(v)
+		return nil
+	case subject.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
 		return nil
 	case subject.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -44291,14 +44291,14 @@ func (m *SubjectMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *SubjectMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(subject.FieldMetadata) {
-		fields = append(fields, subject.FieldMetadata)
-	}
 	if m.FieldCleared(subject.FieldDisplayName) {
 		fields = append(fields, subject.FieldDisplayName)
 	}
 	if m.FieldCleared(subject.FieldStripeCustomerID) {
 		fields = append(fields, subject.FieldStripeCustomerID)
+	}
+	if m.FieldCleared(subject.FieldMetadata) {
+		fields = append(fields, subject.FieldMetadata)
 	}
 	return fields
 }
@@ -44314,14 +44314,14 @@ func (m *SubjectMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *SubjectMutation) ClearField(name string) error {
 	switch name {
-	case subject.FieldMetadata:
-		m.ClearMetadata()
-		return nil
 	case subject.FieldDisplayName:
 		m.ClearDisplayName()
 		return nil
 	case subject.FieldStripeCustomerID:
 		m.ClearStripeCustomerID()
+		return nil
+	case subject.FieldMetadata:
+		m.ClearMetadata()
 		return nil
 	}
 	return fmt.Errorf("unknown Subject nullable field %s", name)
@@ -44334,9 +44334,6 @@ func (m *SubjectMutation) ResetField(name string) error {
 	case subject.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case subject.FieldMetadata:
-		m.ResetMetadata()
-		return nil
 	case subject.FieldKey:
 		m.ResetKey()
 		return nil
@@ -44345,6 +44342,9 @@ func (m *SubjectMutation) ResetField(name string) error {
 		return nil
 	case subject.FieldStripeCustomerID:
 		m.ResetStripeCustomerID()
+		return nil
+	case subject.FieldMetadata:
+		m.ResetMetadata()
 		return nil
 	case subject.FieldCreatedAt:
 		m.ResetCreatedAt()

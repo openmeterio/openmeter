@@ -1985,10 +1985,10 @@ var (
 	SubjectsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
-		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "key", Type: field.TypeString},
 		{Name: "display_name", Type: field.TypeString, Nullable: true},
 		{Name: "stripe_customer_id", Type: field.TypeString, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 	}
@@ -2011,12 +2011,12 @@ var (
 			{
 				Name:    "subject_key_namespace",
 				Unique:  true,
-				Columns: []*schema.Column{SubjectsColumns[3], SubjectsColumns[1]},
+				Columns: []*schema.Column{SubjectsColumns[2], SubjectsColumns[1]},
 			},
 			{
 				Name:    "subject_display_name",
 				Unique:  false,
-				Columns: []*schema.Column{SubjectsColumns[4]},
+				Columns: []*schema.Column{SubjectsColumns[3]},
 			},
 		},
 	}

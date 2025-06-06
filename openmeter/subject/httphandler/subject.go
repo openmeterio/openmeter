@@ -231,7 +231,7 @@ func (h *handler) UpsertSubject() UpsertSubjectHandler {
 					}
 
 					if _, ok := rawPayload["metadata"]; ok {
-						updateInput.Metadata = subject.OptionalNullable[map[string]string]{
+						updateInput.Metadata = subject.OptionalNullable[map[string]interface{}]{
 							IsSet: true,
 							Value: payload.Metadata,
 						}

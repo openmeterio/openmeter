@@ -159,16 +159,6 @@ func NamespaceContainsFold(v string) predicate.Subject {
 	return predicate.Subject(sql.FieldContainsFold(FieldNamespace, v))
 }
 
-// MetadataIsNil applies the IsNil predicate on the "metadata" field.
-func MetadataIsNil() predicate.Subject {
-	return predicate.Subject(sql.FieldIsNull(FieldMetadata))
-}
-
-// MetadataNotNil applies the NotNil predicate on the "metadata" field.
-func MetadataNotNil() predicate.Subject {
-	return predicate.Subject(sql.FieldNotNull(FieldMetadata))
-}
-
 // KeyEQ applies the EQ predicate on the "key" field.
 func KeyEQ(v string) predicate.Subject {
 	return predicate.Subject(sql.FieldEQ(FieldKey, v))
@@ -382,6 +372,16 @@ func StripeCustomerIDEqualFold(v string) predicate.Subject {
 // StripeCustomerIDContainsFold applies the ContainsFold predicate on the "stripe_customer_id" field.
 func StripeCustomerIDContainsFold(v string) predicate.Subject {
 	return predicate.Subject(sql.FieldContainsFold(FieldStripeCustomerID, v))
+}
+
+// MetadataIsNil applies the IsNil predicate on the "metadata" field.
+func MetadataIsNil() predicate.Subject {
+	return predicate.Subject(sql.FieldIsNull(FieldMetadata))
+}
+
+// MetadataNotNil applies the NotNil predicate on the "metadata" field.
+func MetadataNotNil() predicate.Subject {
+	return predicate.Subject(sql.FieldNotNull(FieldMetadata))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

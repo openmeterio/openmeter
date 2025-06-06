@@ -9072,7 +9072,7 @@ export interface components {
        *     }
        */
       metadata?: {
-        [key: string]: string
+        [key: string]: unknown
       } | null
       /**
        * Format: date-time
@@ -9125,7 +9125,7 @@ export interface components {
        *     }
        */
       metadata?: {
-        [key: string]: string
+        [key: string]: unknown
       } | null
       /**
        * Format: date-time

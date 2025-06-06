@@ -28,18 +28,6 @@ func (_u *SubjectUpdate) Where(ps ...predicate.Subject) *SubjectUpdate {
 	return _u
 }
 
-// SetMetadata sets the "metadata" field.
-func (_u *SubjectUpdate) SetMetadata(v map[string]string) *SubjectUpdate {
-	_u.mutation.SetMetadata(v)
-	return _u
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (_u *SubjectUpdate) ClearMetadata() *SubjectUpdate {
-	_u.mutation.ClearMetadata()
-	return _u
-}
-
 // SetKey sets the "key" field.
 func (_u *SubjectUpdate) SetKey(v string) *SubjectUpdate {
 	_u.mutation.SetKey(v)
@@ -91,6 +79,18 @@ func (_u *SubjectUpdate) SetNillableStripeCustomerID(v *string) *SubjectUpdate {
 // ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
 func (_u *SubjectUpdate) ClearStripeCustomerID() *SubjectUpdate {
 	_u.mutation.ClearStripeCustomerID()
+	return _u
+}
+
+// SetMetadata sets the "metadata" field.
+func (_u *SubjectUpdate) SetMetadata(v map[string]interface{}) *SubjectUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (_u *SubjectUpdate) ClearMetadata() *SubjectUpdate {
+	_u.mutation.ClearMetadata()
 	return _u
 }
 
@@ -163,12 +163,6 @@ func (_u *SubjectUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(subject.FieldMetadata, field.TypeJSON, value)
-	}
-	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(subject.FieldMetadata, field.TypeJSON)
-	}
 	if value, ok := _u.mutation.Key(); ok {
 		_spec.SetField(subject.FieldKey, field.TypeString, value)
 	}
@@ -183,6 +177,12 @@ func (_u *SubjectUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.StripeCustomerIDCleared() {
 		_spec.ClearField(subject.FieldStripeCustomerID, field.TypeString)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(subject.FieldMetadata, field.TypeJSON, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(subject.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(subject.FieldUpdatedAt, field.TypeTime, value)
@@ -205,18 +205,6 @@ type SubjectUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *SubjectMutation
-}
-
-// SetMetadata sets the "metadata" field.
-func (_u *SubjectUpdateOne) SetMetadata(v map[string]string) *SubjectUpdateOne {
-	_u.mutation.SetMetadata(v)
-	return _u
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (_u *SubjectUpdateOne) ClearMetadata() *SubjectUpdateOne {
-	_u.mutation.ClearMetadata()
-	return _u
 }
 
 // SetKey sets the "key" field.
@@ -270,6 +258,18 @@ func (_u *SubjectUpdateOne) SetNillableStripeCustomerID(v *string) *SubjectUpdat
 // ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
 func (_u *SubjectUpdateOne) ClearStripeCustomerID() *SubjectUpdateOne {
 	_u.mutation.ClearStripeCustomerID()
+	return _u
+}
+
+// SetMetadata sets the "metadata" field.
+func (_u *SubjectUpdateOne) SetMetadata(v map[string]interface{}) *SubjectUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (_u *SubjectUpdateOne) ClearMetadata() *SubjectUpdateOne {
+	_u.mutation.ClearMetadata()
 	return _u
 }
 
@@ -372,12 +372,6 @@ func (_u *SubjectUpdateOne) sqlSave(ctx context.Context) (_node *Subject, err er
 			}
 		}
 	}
-	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(subject.FieldMetadata, field.TypeJSON, value)
-	}
-	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(subject.FieldMetadata, field.TypeJSON)
-	}
 	if value, ok := _u.mutation.Key(); ok {
 		_spec.SetField(subject.FieldKey, field.TypeString, value)
 	}
@@ -392,6 +386,12 @@ func (_u *SubjectUpdateOne) sqlSave(ctx context.Context) (_node *Subject, err er
 	}
 	if _u.mutation.StripeCustomerIDCleared() {
 		_spec.ClearField(subject.FieldStripeCustomerID, field.TypeString)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(subject.FieldMetadata, field.TypeJSON, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(subject.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(subject.FieldUpdatedAt, field.TypeTime, value)

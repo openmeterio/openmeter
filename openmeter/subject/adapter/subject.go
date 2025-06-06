@@ -187,7 +187,7 @@ func mapEntity(subjectEntity *db.Subject) *subject.Subject {
 	}
 
 	if subject.Metadata == nil {
-		subject.Metadata = make(models.Metadata)
+		subject.Metadata = make(map[string]interface{})
 	}
 
 	if subjectEntity.DisplayName != nil {

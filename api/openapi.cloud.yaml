@@ -20673,8 +20673,7 @@ components:
           example: Customer Name
         metadata:
           type: object
-          additionalProperties:
-            type: string
+          additionalProperties: {}
           nullable: true
           description: Metadata for the subject.
           example:
@@ -20728,8 +20727,7 @@ components:
           example: Customer Name
         metadata:
           type: object
-          additionalProperties:
-            type: string
+          additionalProperties: {}
           nullable: true
           description: Metadata for the subject.
           example:

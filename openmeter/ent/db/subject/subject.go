@@ -15,14 +15,14 @@ const (
 	FieldID = "id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
-	// FieldMetadata holds the string denoting the metadata field in the database.
-	FieldMetadata = "metadata"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
 	// FieldDisplayName holds the string denoting the display_name field in the database.
 	FieldDisplayName = "display_name"
 	// FieldStripeCustomerID holds the string denoting the stripe_customer_id field in the database.
 	FieldStripeCustomerID = "stripe_customer_id"
+	// FieldMetadata holds the string denoting the metadata field in the database.
+	FieldMetadata = "metadata"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -35,9 +35,9 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldNamespace,
-	FieldMetadata,
 	FieldKey,
 	FieldDisplayName,
+	FieldMetadata,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }

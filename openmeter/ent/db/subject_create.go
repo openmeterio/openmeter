@@ -29,12 +29,6 @@ func (_c *SubjectCreate) SetNamespace(v string) *SubjectCreate {
 	return _c
 }
 
-// SetMetadata sets the "metadata" field.
-func (_c *SubjectCreate) SetMetadata(v map[string]string) *SubjectCreate {
-	_c.mutation.SetMetadata(v)
-	return _c
-}
-
 // SetKey sets the "key" field.
 func (_c *SubjectCreate) SetKey(v string) *SubjectCreate {
 	_c.mutation.SetKey(v)
@@ -66,6 +60,12 @@ func (_c *SubjectCreate) SetNillableStripeCustomerID(v *string) *SubjectCreate {
 	if v != nil {
 		_c.SetStripeCustomerID(*v)
 	}
+	return _c
+}
+
+// SetMetadata sets the "metadata" field.
+func (_c *SubjectCreate) SetMetadata(v map[string]interface{}) *SubjectCreate {
+	_c.mutation.SetMetadata(v)
 	return _c
 }
 
@@ -224,10 +224,6 @@ func (_c *SubjectCreate) createSpec() (*Subject, *sqlgraph.CreateSpec) {
 		_spec.SetField(subject.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(subject.FieldMetadata, field.TypeJSON, value)
-		_node.Metadata = value
-	}
 	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(subject.FieldKey, field.TypeString, value)
 		_node.Key = value
@@ -239,6 +235,10 @@ func (_c *SubjectCreate) createSpec() (*Subject, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.StripeCustomerID(); ok {
 		_spec.SetField(subject.FieldStripeCustomerID, field.TypeString, value)
 		_node.StripeCustomerID = &value
+	}
+	if value, ok := _c.mutation.Metadata(); ok {
+		_spec.SetField(subject.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(subject.FieldCreatedAt, field.TypeTime, value)
@@ -300,24 +300,6 @@ type (
 	}
 )
 
-// SetMetadata sets the "metadata" field.
-func (u *SubjectUpsert) SetMetadata(v map[string]string) *SubjectUpsert {
-	u.Set(subject.FieldMetadata, v)
-	return u
-}
-
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *SubjectUpsert) UpdateMetadata() *SubjectUpsert {
-	u.SetExcluded(subject.FieldMetadata)
-	return u
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (u *SubjectUpsert) ClearMetadata() *SubjectUpsert {
-	u.SetNull(subject.FieldMetadata)
-	return u
-}
-
 // SetKey sets the "key" field.
 func (u *SubjectUpsert) SetKey(v string) *SubjectUpsert {
 	u.Set(subject.FieldKey, v)
@@ -363,6 +345,24 @@ func (u *SubjectUpsert) UpdateStripeCustomerID() *SubjectUpsert {
 // ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
 func (u *SubjectUpsert) ClearStripeCustomerID() *SubjectUpsert {
 	u.SetNull(subject.FieldStripeCustomerID)
+	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *SubjectUpsert) SetMetadata(v map[string]interface{}) *SubjectUpsert {
+	u.Set(subject.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *SubjectUpsert) UpdateMetadata() *SubjectUpsert {
+	u.SetExcluded(subject.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *SubjectUpsert) ClearMetadata() *SubjectUpsert {
+	u.SetNull(subject.FieldMetadata)
 	return u
 }
 
@@ -432,27 +432,6 @@ func (u *SubjectUpsertOne) Update(set func(*SubjectUpsert)) *SubjectUpsertOne {
 	return u
 }
 
-// SetMetadata sets the "metadata" field.
-func (u *SubjectUpsertOne) SetMetadata(v map[string]string) *SubjectUpsertOne {
-	return u.Update(func(s *SubjectUpsert) {
-		s.SetMetadata(v)
-	})
-}
-
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *SubjectUpsertOne) UpdateMetadata() *SubjectUpsertOne {
-	return u.Update(func(s *SubjectUpsert) {
-		s.UpdateMetadata()
-	})
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (u *SubjectUpsertOne) ClearMetadata() *SubjectUpsertOne {
-	return u.Update(func(s *SubjectUpsert) {
-		s.ClearMetadata()
-	})
-}
-
 // SetKey sets the "key" field.
 func (u *SubjectUpsertOne) SetKey(v string) *SubjectUpsertOne {
 	return u.Update(func(s *SubjectUpsert) {
@@ -506,6 +485,27 @@ func (u *SubjectUpsertOne) UpdateStripeCustomerID() *SubjectUpsertOne {
 func (u *SubjectUpsertOne) ClearStripeCustomerID() *SubjectUpsertOne {
 	return u.Update(func(s *SubjectUpsert) {
 		s.ClearStripeCustomerID()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *SubjectUpsertOne) SetMetadata(v map[string]interface{}) *SubjectUpsertOne {
+	return u.Update(func(s *SubjectUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *SubjectUpsertOne) UpdateMetadata() *SubjectUpsertOne {
+	return u.Update(func(s *SubjectUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *SubjectUpsertOne) ClearMetadata() *SubjectUpsertOne {
+	return u.Update(func(s *SubjectUpsert) {
+		s.ClearMetadata()
 	})
 }
 
@@ -744,27 +744,6 @@ func (u *SubjectUpsertBulk) Update(set func(*SubjectUpsert)) *SubjectUpsertBulk 
 	return u
 }
 
-// SetMetadata sets the "metadata" field.
-func (u *SubjectUpsertBulk) SetMetadata(v map[string]string) *SubjectUpsertBulk {
-	return u.Update(func(s *SubjectUpsert) {
-		s.SetMetadata(v)
-	})
-}
-
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *SubjectUpsertBulk) UpdateMetadata() *SubjectUpsertBulk {
-	return u.Update(func(s *SubjectUpsert) {
-		s.UpdateMetadata()
-	})
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (u *SubjectUpsertBulk) ClearMetadata() *SubjectUpsertBulk {
-	return u.Update(func(s *SubjectUpsert) {
-		s.ClearMetadata()
-	})
-}
-
 // SetKey sets the "key" field.
 func (u *SubjectUpsertBulk) SetKey(v string) *SubjectUpsertBulk {
 	return u.Update(func(s *SubjectUpsert) {
@@ -818,6 +797,27 @@ func (u *SubjectUpsertBulk) UpdateStripeCustomerID() *SubjectUpsertBulk {
 func (u *SubjectUpsertBulk) ClearStripeCustomerID() *SubjectUpsertBulk {
 	return u.Update(func(s *SubjectUpsert) {
 		s.ClearStripeCustomerID()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *SubjectUpsertBulk) SetMetadata(v map[string]interface{}) *SubjectUpsertBulk {
+	return u.Update(func(s *SubjectUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *SubjectUpsertBulk) UpdateMetadata() *SubjectUpsertBulk {
+	return u.Update(func(s *SubjectUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *SubjectUpsertBulk) ClearMetadata() *SubjectUpsertBulk {
+	return u.Update(func(s *SubjectUpsert) {
+		s.ClearMetadata()
 	})
 }
 
