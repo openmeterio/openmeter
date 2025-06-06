@@ -9,12 +9,16 @@ import (
 )
 
 type Service interface {
-	Create(ctx context.Context, input CreateInput) (*Subject, error)
-	Update(ctx context.Context, input UpdateInput) (*Subject, error)
-	GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (*Subject, error)
-	GetByKeyWithFallback(ctx context.Context, namespacedKey models.NamespacedKey) (Subject, error)
-	List(ctx context.Context, orgId string, params ListParams) (pagination.PagedResponse[*Subject], error)
-	DeleteById(ctx context.Context, id string) error
+	Create(ctx context.Context, input CreateInput) (Subject, error)
+	Update(ctx context.Context, input UpdateInput) (Subject, error)
+
+	GetByKey(ctx context.Context, key models.NamespacedKey) (Subject, error)
+	GetById(ctx context.Context, id models.NamespacedID) (Subject, error)
+
+	// GetByIdOrKey is a convenience method that gets a subject by ID or key (please use GetById or GetByKey instead if possible)
+	GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (Subject, error)
+	List(ctx context.Context, orgId string, params ListParams) (pagination.PagedResponse[Subject], error)
+	Delete(ctx context.Context, id models.NamespacedID) error
 }
 
 type ListSortBy string

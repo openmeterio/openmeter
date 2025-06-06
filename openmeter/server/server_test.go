@@ -1511,26 +1511,30 @@ var _ subject.Service = &NoopSubjectService{}
 
 type NoopSubjectService struct{}
 
-func (n NoopSubjectService) Create(ctx context.Context, input subject.CreateInput) (*subject.Subject, error) {
-	return &subject.Subject{}, nil
-}
-
-func (n NoopSubjectService) Update(ctx context.Context, input subject.UpdateInput) (*subject.Subject, error) {
-	return &subject.Subject{}, nil
-}
-
-func (n NoopSubjectService) GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (*subject.Subject, error) {
-	return &subject.Subject{}, nil
-}
-
-func (n NoopSubjectService) GetByKeyWithFallback(ctx context.Context, namespacedKey models.NamespacedKey) (subject.Subject, error) {
+func (n NoopSubjectService) Create(ctx context.Context, input subject.CreateInput) (subject.Subject, error) {
 	return subject.Subject{}, nil
 }
 
-func (n NoopSubjectService) List(ctx context.Context, orgId string, params subject.ListParams) (pagination.PagedResponse[*subject.Subject], error) {
-	return pagination.PagedResponse[*subject.Subject]{}, nil
+func (n NoopSubjectService) Update(ctx context.Context, input subject.UpdateInput) (subject.Subject, error) {
+	return subject.Subject{}, nil
 }
 
-func (n NoopSubjectService) DeleteById(ctx context.Context, id string) error {
+func (n NoopSubjectService) GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (subject.Subject, error) {
+	return subject.Subject{}, nil
+}
+
+func (n NoopSubjectService) GetById(ctx context.Context, id models.NamespacedID) (subject.Subject, error) {
+	return subject.Subject{}, nil
+}
+
+func (n NoopSubjectService) GetByKey(ctx context.Context, key models.NamespacedKey) (subject.Subject, error) {
+	return subject.Subject{}, nil
+}
+
+func (n NoopSubjectService) List(ctx context.Context, orgId string, params subject.ListParams) (pagination.PagedResponse[subject.Subject], error) {
+	return pagination.PagedResponse[subject.Subject]{}, nil
+}
+
+func (n NoopSubjectService) Delete(ctx context.Context, id models.NamespacedID) error {
 	return nil
 }

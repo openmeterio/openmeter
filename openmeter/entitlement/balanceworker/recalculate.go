@@ -325,7 +325,7 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 }
 
 func (r *Recalculator) getSubjectByKey(ctx context.Context, namespacedKey pkgmodels.NamespacedKey) (subject.Subject, error) {
-	subject, err := r.opts.Subject.GetByKeyWithFallback(ctx, namespacedKey)
+	subject, err := resolveSubjectIfExists(ctx, r.opts.Subject, namespacedKey)
 	if err != nil {
 		return subject, err
 	}

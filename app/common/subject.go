@@ -53,6 +53,6 @@ func NewSubjectManager(
 
 func NewSubjectAdapter(
 	db *entdb.Client,
-) subject.Adapter {
+) (subject.Adapter, error) {
 	return adapter.New(db)
 }

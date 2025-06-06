@@ -235,7 +235,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subjectAdapter := common.NewSubjectAdapter(client)
+	subjectAdapter, err := common.NewSubjectAdapter(client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	subjectService := common.NewSubjectService(subjectAdapter)
 	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, notificationService, subjectService, logger)
 	worker, err := common.NewBalanceWorker(workerOptions)

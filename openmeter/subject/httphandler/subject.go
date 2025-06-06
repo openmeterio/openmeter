@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -94,7 +95,7 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 			}
 
 			// Response
-			resp := pagination.MapPagedResponse(result, func(sub *subject.Subject) api.Subject {
+			resp := pagination.MapPagedResponse(result, func(sub subject.Subject) api.Subject {
 				return sub.ToAPIModel()
 			})
 
@@ -184,19 +185,19 @@ func (h *handler) UpsertSubject() UpsertSubjectHandler {
 				return nil, fmt.Errorf("failed to list subjects: %w", err)
 			}
 
-			subjectsEntityMap := lo.KeyBy(result.Items, func(sub *subject.Subject) string {
+			subjectsEntityMap := lo.KeyBy(result.Items, func(sub subject.Subject) string {
 				return sub.Key
 			})
 
 			// TODO: this is a workaround for batch upserts, we should optimize it
-			var subjects []*subject.Subject
+			var subjects []subject.Subject
 
 			for idx, payload := range request.subjects {
-				existingSubject := subjectsEntityMap[payload.Key]
+				existingSubject, subjectExists := subjectsEntityMap[payload.Key]
 				rawPayload := request.rawPayloads[idx]
 
 				// Create subject if not found
-				if existingSubject == nil {
+				if !subjectExists {
 					createdSubject, err := h.subjectService.Create(ctx, subject.CreateInput{
 						Namespace:        request.namespace,
 						Key:              payload.Key,
@@ -317,7 +318,10 @@ func (h *handler) DeleteSubject() DeleteSubjectHandler {
 			}
 
 			// Delete subject from database
-			if err := h.subjectService.DeleteById(ctx, subjectEntity.Id); err != nil {
+			if err := h.subjectService.Delete(ctx, models.NamespacedID{
+				Namespace: request.namespace,
+				ID:        subjectEntity.Id,
+			}); err != nil {
 				return nil, fmt.Errorf("failed to delete subject in repository: %w", err)
 			}
 
