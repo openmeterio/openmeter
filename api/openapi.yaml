@@ -8148,6 +8148,260 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateStripeCheckoutSessionRequest'
+  /api/v1/subjects:
+    get:
+      operationId: listSubjects
+      summary: List subjects
+      description: List subjects.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subject'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Subjects
+    post:
+      operationId: upsertSubject
+      summary: Upsert subject
+      description: |-
+        Upserts a subject. Creates or updates subject.
+
+        If the subject doesn't exist, it will be created.
+        If the subject exists, it will be partially updated with the provided fields.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subject'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Subjects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/SubjectUpsert'
+  /api/v1/subjects/{subjectIdOrKey}:
+    get:
+      operationId: getSubject
+      summary: Get subject
+      description: Get subject by ID or key.
+      parameters:
+        - name: subjectIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subject'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Subjects
+    delete:
+      operationId: deleteSubject
+      summary: Delete subject
+      description: Delete subject by ID or key.
+      parameters:
+        - name: subjectIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Subjects
   /api/v1/subjects/{subjectIdOrKey}/entitlements:
     post:
       operationId: createEntitlement
@@ -21239,8 +21493,10 @@ components:
           readOnly: true
         key:
           type: string
-          description: A unique, human-readable identifier for the subject.
-          example: customer-id
+          description: |-
+            A unique, human-readable identifier for the subject.
+            This is typically a database ID or a customer key.
+          example: customer-db-id-123
         displayName:
           type: string
           nullable: true
@@ -21248,33 +21504,91 @@ components:
           example: Customer Name
         metadata:
           type: object
-          additionalProperties: {}
+          additionalProperties:
+            type: string
           nullable: true
+          description: Metadata for the subject.
           example:
             hubspotId: '123456'
         currentPeriodStart:
           type: string
           format: date-time
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          description: The start of the current period for the subject.
           example: '2023-01-01T00:00:00Z'
+          deprecated: true
         currentPeriodEnd:
           type: string
           format: date-time
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          description: The end of the current period for the subject.
           example: '2023-02-01T00:00:00Z'
+          deprecated: true
         stripeCustomerId:
           type: string
           nullable: true
+          description: The Stripe customer ID for the subject.
+          deprecated: true
           example: cus_JMOlctsKV8
-      description: A subject is a unique identifier for a user or entity.
+      description: |-
+        A subject is a unique identifier for a usage attribution by its key.
+        Subjects only exist in the concept of metering.
+        Subjects are optional to create and work as an enrichment for the subject key like displayName, metadata, etc.
+        Subjects are useful when you are reporting usage events with your own database ID but want to enrich the subject with a human-readable name or metadata.
+        For most use cases, a subject is equivalent to a customer.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         key: customer-id
         displayName: Customer Name
         metadata:
           hubspotId: '123456'
-        currentPeriodStart: '2023-01-01T00:00:00Z'
-        currentPeriodEnd: '2023-02-01T00:00:00Z'
+        stripeCustomerId: cus_JMOlctsKV8
+    SubjectUpsert:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          description: |-
+            A unique, human-readable identifier for the subject.
+            This is typically a database ID or a customer key.
+          example: customer-db-id-123
+        displayName:
+          type: string
+          nullable: true
+          description: A human-readable display name for the subject.
+          example: Customer Name
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          description: Metadata for the subject.
+          example:
+            hubspotId: '123456'
+        currentPeriodStart:
+          type: string
+          format: date-time
+          description: The start of the current period for the subject.
+          example: '2023-01-01T00:00:00Z'
+          deprecated: true
+        currentPeriodEnd:
+          type: string
+          format: date-time
+          description: The end of the current period for the subject.
+          example: '2023-02-01T00:00:00Z'
+          deprecated: true
+        stripeCustomerId:
+          type: string
+          nullable: true
+          description: The Stripe customer ID for the subject.
+          deprecated: true
+          example: cus_JMOlctsKV8
+      description: A subject is a unique identifier for a user or entity.
+      example:
+        key: customer-id
+        displayName: Customer Name
+        metadata:
+          hubspotId: '123456'
         stripeCustomerId: cus_JMOlctsKV8
     Subscription:
       type: object

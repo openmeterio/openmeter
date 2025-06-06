@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -77,7 +78,7 @@ func NewBalanceSnapshotEvent(in BalanceSnapshotEventInput) snapshot.SnapshotEven
 		Namespace: eventmodels.NamespaceID{
 			ID: in.Namespace,
 		},
-		Subject: eventmodels.Subject{
+		Subject: subject.Subject{
 			Key: TestSubjectKey,
 		},
 		Feature:            in.Feature,

@@ -201,7 +201,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher, locker)
 	balanceWorkerEntitlementRepo := common.NewBalanceWorkerEntitlementRepo(client)
-	subjectResolver := common.BalanceWorkerSubjectResolver()
 	repository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
 		cleanup6()
@@ -236,7 +235,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, subjectResolver, notificationService, logger)
+	subjectAdapter := common.NewSubjectAdapter(client)
+	subjectService := common.NewSubjectService(subjectAdapter)
+	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, notificationService, subjectService, logger)
 	worker, err := common.NewBalanceWorker(workerOptions)
 	if err != nil {
 		cleanup6()

@@ -232,6 +232,9 @@ func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
 	}
 }
 
+// Subject is the predicate function for subject builders.
+type Subject func(*sql.Selector)
+
 // Subscription is the predicate function for subscription builders.
 type Subscription func(*sql.Selector)
 

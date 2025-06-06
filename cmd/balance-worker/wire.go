@@ -42,6 +42,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Notification,
 		common.ProgressManager,
 		common.Streaming,
+		common.Subject,
 		common.Telemetry,
 		common.Watermill,
 		common.WatermillRouter,
