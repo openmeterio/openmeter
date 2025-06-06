@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 func TestPlanStatus(t *testing.T) {
@@ -29,6 +30,11 @@ func TestPlanStatus(t *testing.T) {
 						EffectiveFrom: nil,
 						EffectiveTo:   nil,
 					},
+					BillingCadence: isodate.MustParse(t, "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
 				},
 			},
 			Expected: productcatalog.PlanStatusDraft,
@@ -40,6 +46,11 @@ func TestPlanStatus(t *testing.T) {
 					EffectivePeriod: productcatalog.EffectivePeriod{
 						EffectiveFrom: lo.ToPtr(now.Add(-24 * time.Hour)),
 						EffectiveTo:   lo.ToPtr(now.Add(-1 * time.Hour)),
+					},
+					BillingCadence: isodate.MustParse(t, "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				},
 			},
@@ -53,6 +64,11 @@ func TestPlanStatus(t *testing.T) {
 						EffectiveFrom: lo.ToPtr(now.Add(-24 * time.Hour)),
 						EffectiveTo:   nil,
 					},
+					BillingCadence: isodate.MustParse(t, "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
 				},
 			},
 			Expected: productcatalog.PlanStatusActive,
@@ -64,6 +80,11 @@ func TestPlanStatus(t *testing.T) {
 					EffectivePeriod: productcatalog.EffectivePeriod{
 						EffectiveFrom: lo.ToPtr(now.Add(-24 * time.Hour)),
 						EffectiveTo:   lo.ToPtr(now.Add(24 * time.Hour)),
+					},
+					BillingCadence: isodate.MustParse(t, "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				},
 			},
@@ -77,6 +98,11 @@ func TestPlanStatus(t *testing.T) {
 						EffectiveFrom: lo.ToPtr(now.Add(24 * time.Hour)),
 						EffectiveTo:   nil,
 					},
+					BillingCadence: isodate.MustParse(t, "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
 				},
 			},
 			Expected: productcatalog.PlanStatusScheduled,
@@ -88,6 +114,11 @@ func TestPlanStatus(t *testing.T) {
 					EffectivePeriod: productcatalog.EffectivePeriod{
 						EffectiveFrom: lo.ToPtr(now.Add(24 * time.Hour)),
 						EffectiveTo:   lo.ToPtr(now.Add(48 * time.Hour)),
+					},
+					BillingCadence: isodate.MustParse(t, "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				},
 			},
@@ -101,6 +132,11 @@ func TestPlanStatus(t *testing.T) {
 						EffectiveFrom: lo.ToPtr(now.Add(24 * time.Hour)),
 						EffectiveTo:   lo.ToPtr(now.Add(-24 * time.Hour)),
 					},
+					BillingCadence: isodate.MustParse(t, "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
 				},
 			},
 			Expected: productcatalog.PlanStatusInvalid,
@@ -113,6 +149,11 @@ func TestPlanStatus(t *testing.T) {
 						EffectiveFrom: nil,
 						EffectiveTo:   lo.ToPtr(now.Add(-24 * time.Hour)),
 					},
+					BillingCadence: isodate.MustParse(t, "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
 				},
 			},
 			Expected: productcatalog.PlanStatusArchived,
@@ -124,6 +165,11 @@ func TestPlanStatus(t *testing.T) {
 					EffectivePeriod: productcatalog.EffectivePeriod{
 						EffectiveFrom: nil,
 						EffectiveTo:   lo.ToPtr(now.Add(24 * time.Hour)),
+					},
+					BillingCadence: isodate.MustParse(t, "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				},
 			},
@@ -148,8 +194,13 @@ func TestAlignmentEnforcement(t *testing.T) {
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
 				},
-				Version:  1,
-				Currency: "USD",
+				Version:        1,
+				Currency:       "USD",
+				BillingCadence: isodate.MustParse(t, "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: []productcatalog.Phase{
 				{
@@ -198,8 +249,13 @@ func TestAlignmentEnforcement(t *testing.T) {
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: false,
 				},
-				Version:  1,
-				Currency: "USD",
+				Version:        1,
+				Currency:       "USD",
+				BillingCadence: isodate.MustParse(t, "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: []productcatalog.Phase{
 				{
@@ -248,8 +304,13 @@ func TestAlignmentEnforcement(t *testing.T) {
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
 				},
-				Version:  1,
-				Currency: "USD",
+				Version:        1,
+				Currency:       "USD",
+				BillingCadence: isodate.MustParse(t, "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: []productcatalog.Phase{
 				{

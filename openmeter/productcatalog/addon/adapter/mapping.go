@@ -184,6 +184,11 @@ func FromPlanAddonRow(a entdb.PlanAddon) (*addon.Plan, error) {
 }
 
 func FromPlanRow(p entdb.Plan) (*productcatalog.Plan, error) {
+	billingCadence, err := p.BillingCadence.Parse()
+	if err != nil {
+		return nil, fmt.Errorf("invalid billing cadence %s: %w", p.BillingCadence, err)
+	}
+
 	pp := &productcatalog.Plan{
 		PlanMeta: productcatalog.PlanMeta{
 			Key:         p.Key,
@@ -199,6 +204,8 @@ func FromPlanRow(p entdb.Plan) (*productcatalog.Plan, error) {
 			Alignment: productcatalog.Alignment{
 				BillablesMustAlign: p.BillablesMustAlign,
 			},
+			BillingCadence:  billingCadence,
+			ProRatingConfig: p.ProRatingConfig,
 		},
 	}
 

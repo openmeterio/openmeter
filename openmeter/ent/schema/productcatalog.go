@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -32,6 +33,22 @@ func (Plan) Fields() []ent.Field {
 			Default("USD").
 			NotEmpty().
 			Immutable(),
+		field.String("billing_cadence").
+			GoType(isodate.String("")).
+			Comment("The default billing cadence for subscriptions using this plan."),
+		field.String("pro_rating_config").
+			GoType(productcatalog.ProRatingConfig{}).
+			ValueScanner(ProRatingConfigValueScanner).
+			DefaultFunc(func() productcatalog.ProRatingConfig {
+				return productcatalog.ProRatingConfig{
+					Mode:    productcatalog.ProRatingModeProratePrices,
+					Enabled: true,
+				}
+			}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Comment("Default pro-rating configuration for subscriptions using this plan."),
 		field.Time("effective_from").
 			Optional().
 			Nillable(),
@@ -180,6 +197,7 @@ var (
 	TaxConfigValueScanner           = entutils.JSONStringValueScanner[*productcatalog.TaxConfig]()
 	PriceValueScanner               = entutils.JSONStringValueScanner[*productcatalog.Price]()
 	DiscountsValueScanner           = entutils.JSONStringValueScanner[*productcatalog.Discounts]()
+	ProRatingConfigValueScanner     = entutils.JSONStringValueScanner[productcatalog.ProRatingConfig]()
 )
 
 // AlignmentMixin for Alignment config

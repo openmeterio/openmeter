@@ -56,10 +56,15 @@ func BuildTestPlan(t *testing.T) *testPlanbuilder {
 			},
 			Plan: productcatalog.Plan{
 				PlanMeta: productcatalog.PlanMeta{
-					Name:     "Test Plan",
-					Key:      "test_plan",
-					Version:  1,
-					Currency: currency.USD,
+					Name:           "Test Plan",
+					Key:            "test_plan",
+					Version:        1,
+					Currency:       currency.USD,
+					BillingCadence: isodate.MustParse(t, "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
 				},
 				Phases: []productcatalog.Phase{},
 			},

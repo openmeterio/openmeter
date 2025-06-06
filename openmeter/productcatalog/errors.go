@@ -389,6 +389,15 @@ var ErrIDEmpty = models.NewValidationIssue(
 
 // Plan errors
 
+const ErrCodePlanBillingCadenceInvalid models.ErrorCode = "plan_billing_cadence_invalid"
+
+var ErrPlanBillingCadenceInvalid = models.NewValidationIssue(
+	ErrCodePlanBillingCadenceInvalid,
+	"billing cadence must be at least 28 days",
+	models.WithFieldString("billingCadence"),
+	models.WithCriticalSeverity(),
+)
+
 const ErrCodePlanPhaseWithNegativeDuration models.ErrorCode = "plan_phase_with_negative_duration"
 
 var ErrPlanPhaseWithNegativeDuration = models.NewValidationIssue(
@@ -457,5 +466,14 @@ const ErrCodePlanHasIncompatibleAddon models.ErrorCode = "plan_has_incompatible_
 var ErrPlanHasIncompatibleAddon = models.NewValidationIssue(
 	ErrCodePlanHasIncompatibleAddon,
 	"plan has incompatible add-on assignment",
+	models.WithWarningSeverity(),
+)
+
+const ErrCodePlanBillingCadenceNotCompatible models.ErrorCode = "plan_billing_cadence_not_compatible"
+
+var ErrPlanBillingCadenceNotCompatible = models.NewValidationIssue(
+	ErrCodePlanBillingCadenceNotCompatible,
+	"plan billing cadence is not compatible with rate card billing cadence",
+	models.WithFieldString("billingCadence"),
 	models.WithWarningSeverity(),
 )
