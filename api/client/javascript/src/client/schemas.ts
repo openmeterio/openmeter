@@ -3226,7 +3226,7 @@ export interface components {
        * @description Type of the invoice.
        * @enum {string}
        */
-      type: 'credit_node_original_invoice'
+      type: 'credit_note_original_invoice'
       /**
        * Format: date-time
        * @description IssueAt reflects the time the document was issued.
@@ -5501,7 +5501,7 @@ export interface components {
      * @description InvoiceDocumentRefType defines the type of document that is being referenced.
      * @enum {string}
      */
-    InvoiceDocumentRefType: 'credit_node_original_invoice'
+    InvoiceDocumentRefType: 'credit_note_original_invoice'
     /**
      * @description InvoiceExpand specifies the parts of the invoice to expand in the list output.
      * @enum {string}
