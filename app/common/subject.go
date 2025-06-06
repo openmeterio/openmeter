@@ -26,7 +26,7 @@ var SubjectManager = wire.NewSet(
 
 func NewSubjectService(
 	adapter subject.Adapter,
-) subject.Service {
+) (subject.Service, error) {
 	return service.New(adapter)
 }
 

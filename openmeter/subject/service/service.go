@@ -17,10 +17,14 @@ type Service struct {
 }
 
 // New creates a new subject service
-func New(subjectAdapter subject.Adapter) *Service {
+func New(subjectAdapter subject.Adapter) (*Service, error) {
+	if subjectAdapter == nil {
+		return nil, fmt.Errorf("subject adapter is required")
+	}
+
 	return &Service{
 		subjectAdapter: subjectAdapter,
-	}
+	}, nil
 }
 
 // Create creates a new subject
@@ -81,7 +85,7 @@ func (s *Service) List(ctx context.Context, orgId string, params subject.ListPar
 	})
 }
 
-// DeleteById deletes a subject by ID
+// Delete deletes a subject by ID
 func (s *Service) Delete(ctx context.Context, id models.NamespacedID) error {
 	if err := id.Validate(); err != nil {
 		return fmt.Errorf("invalid id: %w", models.NewGenericValidationError(err))

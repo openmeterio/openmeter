@@ -469,7 +469,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subjectService := common.NewSubjectService(subjectAdapter)
+	subjectService, err := common.NewSubjectService(subjectAdapter)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
