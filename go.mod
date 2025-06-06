@@ -56,7 +56,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
 	github.com/redis/go-redis/extra/redisotel/v9 v9.9.0
 	github.com/redis/go-redis/v9 v9.9.0
-	github.com/redpanda-data/benthos/v4 v4.51.0
+	github.com/redpanda-data/benthos/v4 v4.52.0
 	github.com/redpanda-data/connect/public/bundle/free/v4 v4.49.1
 	github.com/rickb777/period v1.0.15
 	github.com/sagikazarmark/mapstructurex v0.1.0
@@ -176,7 +176,7 @@ require (
 	cloud.google.com/go/pubsub v1.47.0 // indirect
 	cloud.google.com/go/storage v1.50.0 // indirect
 	cloud.google.com/go/trace v1.11.3 // indirect
-	cuelang.org/go v0.12.1 // indirect
+	cuelang.org/go v0.13.0 // indirect
 	github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 // indirect
 	github.com/99designs/keyring v1.2.2 // indirect
 	github.com/AthenZ/athenz v1.12.6 // indirect
@@ -405,7 +405,7 @@ require (
 	github.com/parquet-go/parquet-go v0.24.0 // indirect
 	github.com/paulmach/orb v0.11.1 // indirect
 	github.com/pebbe/zmq4 v1.2.11 // indirect
-	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
+	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
