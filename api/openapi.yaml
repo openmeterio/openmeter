@@ -12940,7 +12940,7 @@ components:
         type:
           type: string
           enum:
-            - credit_node_original_invoice
+            - credit_note_original_invoice
           description: Type of the invoice.
         issuedAt:
           type: string
@@ -16254,7 +16254,7 @@ components:
     InvoiceDocumentRefType:
       type: string
       enum:
-        - credit_node_original_invoice
+        - credit_note_original_invoice
       description: InvoiceDocumentRefType defines the type of document that is being referenced.
     InvoiceExpand:
       type: string
