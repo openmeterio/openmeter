@@ -211,8 +211,10 @@ func (c *Connector) executeQueryWithCaching(ctx context.Context, hash string, or
 		}()
 	}
 
+	originalQueryTo := lo.FromPtrOr(originalQueryMeter.To, time.Now().UTC())
+
 	// Step 2.2: Query new rows for the uncached time period, if there is any
-	if lastCachedWindowEnd != nil && !lastCachedWindowEnd.Equal(*originalQueryMeter.To) {
+	if lastCachedWindowEnd != nil && !lastCachedWindowEnd.Equal(originalQueryTo) {
 		wg.Add(1)
 
 		go func() {
