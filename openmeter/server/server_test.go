@@ -319,8 +319,8 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusOK,
 				body: strings.Join(
 					[]string{
-						"window_start,window_end,subject,value",
-						"2021-01-01T00:00:00Z,2021-01-01T01:00:00Z,,300.000000",
+						"window_start,window_end,subject,customer_name,customer_email,value",
+						"2021-01-01T00:00:00Z,2021-01-01T01:00:00Z,,,,300.000000",
 						"",
 					},
 					"\n",
@@ -339,8 +339,8 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusOK,
 				body: strings.Join(
 					[]string{
-						"window_start,window_end,subject,value",
-						"2021-01-01T00:00:00Z,2021-01-01T01:00:00Z,s1,300.000000",
+						"window_start,window_end,subject,customer_name,customer_email,value",
+						"2021-01-01T00:00:00Z,2021-01-01T01:00:00Z,s1,,,300.000000",
 						"",
 					},
 					"\n",

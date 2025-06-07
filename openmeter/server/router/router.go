@@ -277,6 +277,7 @@ func NewRouter(config Config) (*Router, error) {
 		staticNamespaceDecoder,
 		config.MeterManageService,
 		config.StreamingConnector,
+		config.Customer,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
