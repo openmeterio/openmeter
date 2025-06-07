@@ -32,6 +32,7 @@ type BillingInvoiceSplitLineGroupQuery struct {
 	withSubscription        *SubscriptionQuery
 	withSubscriptionPhase   *SubscriptionPhaseQuery
 	withSubscriptionItem    *SubscriptionItemQuery
+	withFKs                 bool
 	modifiers               []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -480,6 +481,7 @@ func (_q *BillingInvoiceSplitLineGroupQuery) prepareQuery(ctx context.Context) e
 func (_q *BillingInvoiceSplitLineGroupQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoiceSplitLineGroup, error) {
 	var (
 		nodes       = []*BillingInvoiceSplitLineGroup{}
+		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
 		loadedTypes = [4]bool{
 			_q.withBillingInvoiceLines != nil,
@@ -488,6 +490,9 @@ func (_q *BillingInvoiceSplitLineGroupQuery) sqlAll(ctx context.Context, hooks .
 			_q.withSubscriptionItem != nil,
 		}
 	)
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, billinginvoicesplitlinegroup.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingInvoiceSplitLineGroup).scanValues(nil, columns)
 	}

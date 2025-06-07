@@ -4609,6 +4609,22 @@ func (c *CustomerClient) QueryBillingInvoice(_m *Customer) *BillingInvoiceQuery 
 	return query
 }
 
+// QueryBillingSplitLineGroups queries the billing_split_line_groups edge of a Customer.
+func (c *CustomerClient) QueryBillingSplitLineGroups(_m *Customer) *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, id),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingSplitLineGroupsTable, customer.BillingSplitLineGroupsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QuerySubscription queries the subscription edge of a Customer.
 func (c *CustomerClient) QuerySubscription(_m *Customer) *SubscriptionQuery {
 	query := (&SubscriptionClient{config: c.config}).Query()

@@ -28756,6 +28756,9 @@ type CustomerMutation struct {
 	billing_invoice                  map[string]struct{}
 	removedbilling_invoice           map[string]struct{}
 	clearedbilling_invoice           bool
+	billing_split_line_groups        map[string]struct{}
+	removedbilling_split_line_groups map[string]struct{}
+	clearedbilling_split_line_groups bool
 	subscription                     map[string]struct{}
 	removedsubscription              map[string]struct{}
 	clearedsubscription              bool
@@ -29850,6 +29853,60 @@ func (m *CustomerMutation) ResetBillingInvoice() {
 	m.removedbilling_invoice = nil
 }
 
+// AddBillingSplitLineGroupIDs adds the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by ids.
+func (m *CustomerMutation) AddBillingSplitLineGroupIDs(ids ...string) {
+	if m.billing_split_line_groups == nil {
+		m.billing_split_line_groups = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.billing_split_line_groups[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBillingSplitLineGroups clears the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
+func (m *CustomerMutation) ClearBillingSplitLineGroups() {
+	m.clearedbilling_split_line_groups = true
+}
+
+// BillingSplitLineGroupsCleared reports if the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity was cleared.
+func (m *CustomerMutation) BillingSplitLineGroupsCleared() bool {
+	return m.clearedbilling_split_line_groups
+}
+
+// RemoveBillingSplitLineGroupIDs removes the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
+func (m *CustomerMutation) RemoveBillingSplitLineGroupIDs(ids ...string) {
+	if m.removedbilling_split_line_groups == nil {
+		m.removedbilling_split_line_groups = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.billing_split_line_groups, ids[i])
+		m.removedbilling_split_line_groups[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBillingSplitLineGroups returns the removed IDs of the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
+func (m *CustomerMutation) RemovedBillingSplitLineGroupsIDs() (ids []string) {
+	for id := range m.removedbilling_split_line_groups {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BillingSplitLineGroupsIDs returns the "billing_split_line_groups" edge IDs in the mutation.
+func (m *CustomerMutation) BillingSplitLineGroupsIDs() (ids []string) {
+	for id := range m.billing_split_line_groups {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBillingSplitLineGroups resets all changes to the "billing_split_line_groups" edge.
+func (m *CustomerMutation) ResetBillingSplitLineGroups() {
+	m.billing_split_line_groups = nil
+	m.clearedbilling_split_line_groups = false
+	m.removedbilling_split_line_groups = nil
+}
+
 // AddSubscriptionIDs adds the "subscription" edge to the Subscription entity by ids.
 func (m *CustomerMutation) AddSubscriptionIDs(ids ...string) {
 	if m.subscription == nil {
@@ -30390,7 +30447,7 @@ func (m *CustomerMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CustomerMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.apps != nil {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -30402,6 +30459,9 @@ func (m *CustomerMutation) AddedEdges() []string {
 	}
 	if m.billing_invoice != nil {
 		edges = append(edges, customer.EdgeBillingInvoice)
+	}
+	if m.billing_split_line_groups != nil {
+		edges = append(edges, customer.EdgeBillingSplitLineGroups)
 	}
 	if m.subscription != nil {
 		edges = append(edges, customer.EdgeSubscription)
@@ -30435,6 +30495,12 @@ func (m *CustomerMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customer.EdgeBillingSplitLineGroups:
+		ids := make([]ent.Value, 0, len(m.billing_split_line_groups))
+		for id := range m.billing_split_line_groups {
+			ids = append(ids, id)
+		}
+		return ids
 	case customer.EdgeSubscription:
 		ids := make([]ent.Value, 0, len(m.subscription))
 		for id := range m.subscription {
@@ -30447,7 +30513,7 @@ func (m *CustomerMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CustomerMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedapps != nil {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -30456,6 +30522,9 @@ func (m *CustomerMutation) RemovedEdges() []string {
 	}
 	if m.removedbilling_invoice != nil {
 		edges = append(edges, customer.EdgeBillingInvoice)
+	}
+	if m.removedbilling_split_line_groups != nil {
+		edges = append(edges, customer.EdgeBillingSplitLineGroups)
 	}
 	if m.removedsubscription != nil {
 		edges = append(edges, customer.EdgeSubscription)
@@ -30485,6 +30554,12 @@ func (m *CustomerMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customer.EdgeBillingSplitLineGroups:
+		ids := make([]ent.Value, 0, len(m.removedbilling_split_line_groups))
+		for id := range m.removedbilling_split_line_groups {
+			ids = append(ids, id)
+		}
+		return ids
 	case customer.EdgeSubscription:
 		ids := make([]ent.Value, 0, len(m.removedsubscription))
 		for id := range m.removedsubscription {
@@ -30497,7 +30572,7 @@ func (m *CustomerMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CustomerMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedapps {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -30509,6 +30584,9 @@ func (m *CustomerMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_invoice {
 		edges = append(edges, customer.EdgeBillingInvoice)
+	}
+	if m.clearedbilling_split_line_groups {
+		edges = append(edges, customer.EdgeBillingSplitLineGroups)
 	}
 	if m.clearedsubscription {
 		edges = append(edges, customer.EdgeSubscription)
@@ -30528,6 +30606,8 @@ func (m *CustomerMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_customer_override
 	case customer.EdgeBillingInvoice:
 		return m.clearedbilling_invoice
+	case customer.EdgeBillingSplitLineGroups:
+		return m.clearedbilling_split_line_groups
 	case customer.EdgeSubscription:
 		return m.clearedsubscription
 	}
@@ -30560,6 +30640,9 @@ func (m *CustomerMutation) ResetEdge(name string) error {
 		return nil
 	case customer.EdgeBillingInvoice:
 		m.ResetBillingInvoice()
+		return nil
+	case customer.EdgeBillingSplitLineGroups:
+		m.ResetBillingSplitLineGroups()
 		return nil
 	case customer.EdgeSubscription:
 		m.ResetSubscription()

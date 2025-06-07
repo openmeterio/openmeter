@@ -763,6 +763,7 @@ func (_q *SubscriptionQuery) loadBillingSplitLineGroups(ctx context.Context, que
 			init(nodes[i])
 		}
 	}
+	query.withFKs = true
 	if len(query.ctx.Fields) > 0 {
 		query.ctx.AppendFieldOnce(billinginvoicesplitlinegroup.FieldSubscriptionID)
 	}

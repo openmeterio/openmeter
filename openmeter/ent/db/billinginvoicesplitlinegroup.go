@@ -62,8 +62,9 @@ type BillingInvoiceSplitLineGroup struct {
 	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceSplitLineGroupQuery when eager-loading is set.
-	Edges        BillingInvoiceSplitLineGroupEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges                              BillingInvoiceSplitLineGroupEdges `json:"edges"`
+	customer_billing_split_line_groups *string
+	selectValues                       sql.SelectValues
 }
 
 // BillingInvoiceSplitLineGroupEdges holds the relations/edges for other nodes in the graph.
@@ -138,6 +139,8 @@ func (*BillingInvoiceSplitLineGroup) scanValues(columns []string) ([]any, error)
 			values[i] = billinginvoicesplitlinegroup.ValueScanner.RatecardDiscounts.ScanValue()
 		case billinginvoicesplitlinegroup.FieldPrice:
 			values[i] = billinginvoicesplitlinegroup.ValueScanner.Price.ScanValue()
+		case billinginvoicesplitlinegroup.ForeignKeys[0]: // customer_billing_split_line_groups
+			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -277,6 +280,13 @@ func (_m *BillingInvoiceSplitLineGroup) assignValues(columns []string, values []
 			} else if value.Valid {
 				_m.SubscriptionItemID = new(string)
 				*_m.SubscriptionItemID = value.String
+			}
+		case billinginvoicesplitlinegroup.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_billing_split_line_groups", values[i])
+			} else if value.Valid {
+				_m.customer_billing_split_line_groups = new(string)
+				*_m.customer_billing_split_line_groups = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
