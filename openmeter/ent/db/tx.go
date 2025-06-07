@@ -46,6 +46,8 @@ type Tx struct {
 	BillingInvoiceLineDiscount *BillingInvoiceLineDiscountClient
 	// BillingInvoiceLineUsageDiscount is the client for interacting with the BillingInvoiceLineUsageDiscount builders.
 	BillingInvoiceLineUsageDiscount *BillingInvoiceLineUsageDiscountClient
+	// BillingInvoiceSplitLineGroup is the client for interacting with the BillingInvoiceSplitLineGroup builders.
+	BillingInvoiceSplitLineGroup *BillingInvoiceSplitLineGroupClient
 	// BillingInvoiceUsageBasedLineConfig is the client for interacting with the BillingInvoiceUsageBasedLineConfig builders.
 	BillingInvoiceUsageBasedLineConfig *BillingInvoiceUsageBasedLineConfigClient
 	// BillingInvoiceValidationIssue is the client for interacting with the BillingInvoiceValidationIssue builders.
@@ -245,6 +247,7 @@ func (tx *Tx) init() {
 	tx.BillingInvoiceLine = NewBillingInvoiceLineClient(tx.config)
 	tx.BillingInvoiceLineDiscount = NewBillingInvoiceLineDiscountClient(tx.config)
 	tx.BillingInvoiceLineUsageDiscount = NewBillingInvoiceLineUsageDiscountClient(tx.config)
+	tx.BillingInvoiceSplitLineGroup = NewBillingInvoiceSplitLineGroupClient(tx.config)
 	tx.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(tx.config)
 	tx.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(tx.config)
 	tx.BillingProfile = NewBillingProfileClient(tx.config)

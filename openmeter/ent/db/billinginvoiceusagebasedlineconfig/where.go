@@ -4,6 +4,7 @@ package billinginvoiceusagebasedlineconfig
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -87,6 +88,11 @@ func MeteredPreLinePeriodQuantity(v alpacadecimal.Decimal) predicate.BillingInvo
 // MeteredQuantity applies equality check predicate on the "metered_quantity" field. It's identical to MeteredQuantityEQ.
 func MeteredQuantity(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldMeteredQuantity, v))
+}
+
+// SplitLineGroupID applies equality check predicate on the "split_line_group_id" field. It's identical to SplitLineGroupIDEQ.
+func SplitLineGroupID(v string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldSplitLineGroupID, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -407,6 +413,104 @@ func MeteredQuantityIsNil() predicate.BillingInvoiceUsageBasedLineConfig {
 // MeteredQuantityNotNil applies the NotNil predicate on the "metered_quantity" field.
 func MeteredQuantityNotNil() predicate.BillingInvoiceUsageBasedLineConfig {
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotNull(FieldMeteredQuantity))
+}
+
+// SplitLineGroupIDEQ applies the EQ predicate on the "split_line_group_id" field.
+func SplitLineGroupIDEQ(v string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDNEQ applies the NEQ predicate on the "split_line_group_id" field.
+func SplitLineGroupIDNEQ(v string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNEQ(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDIn applies the In predicate on the "split_line_group_id" field.
+func SplitLineGroupIDIn(vs ...string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldIn(FieldSplitLineGroupID, vs...))
+}
+
+// SplitLineGroupIDNotIn applies the NotIn predicate on the "split_line_group_id" field.
+func SplitLineGroupIDNotIn(vs ...string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotIn(FieldSplitLineGroupID, vs...))
+}
+
+// SplitLineGroupIDGT applies the GT predicate on the "split_line_group_id" field.
+func SplitLineGroupIDGT(v string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldGT(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDGTE applies the GTE predicate on the "split_line_group_id" field.
+func SplitLineGroupIDGTE(v string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldGTE(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDLT applies the LT predicate on the "split_line_group_id" field.
+func SplitLineGroupIDLT(v string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldLT(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDLTE applies the LTE predicate on the "split_line_group_id" field.
+func SplitLineGroupIDLTE(v string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldLTE(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDContains applies the Contains predicate on the "split_line_group_id" field.
+func SplitLineGroupIDContains(v string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldContains(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDHasPrefix applies the HasPrefix predicate on the "split_line_group_id" field.
+func SplitLineGroupIDHasPrefix(v string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldHasPrefix(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDHasSuffix applies the HasSuffix predicate on the "split_line_group_id" field.
+func SplitLineGroupIDHasSuffix(v string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldHasSuffix(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDIsNil applies the IsNil predicate on the "split_line_group_id" field.
+func SplitLineGroupIDIsNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldIsNull(FieldSplitLineGroupID))
+}
+
+// SplitLineGroupIDNotNil applies the NotNil predicate on the "split_line_group_id" field.
+func SplitLineGroupIDNotNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotNull(FieldSplitLineGroupID))
+}
+
+// SplitLineGroupIDEqualFold applies the EqualFold predicate on the "split_line_group_id" field.
+func SplitLineGroupIDEqualFold(v string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEqualFold(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDContainsFold applies the ContainsFold predicate on the "split_line_group_id" field.
+func SplitLineGroupIDContainsFold(v string) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldContainsFold(FieldSplitLineGroupID, v))
+}
+
+// HasSplitLineGroup applies the HasEdge predicate on the "split_line_group" edge.
+func HasSplitLineGroup() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SplitLineGroupTable, SplitLineGroupColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSplitLineGroupWith applies the HasEdge predicate on the "split_line_group" edge with a given conditions (other predicates).
+func HasSplitLineGroupWith(preds ...predicate.BillingInvoiceSplitLineGroup) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(func(s *sql.Selector) {
+		step := newSplitLineGroupStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

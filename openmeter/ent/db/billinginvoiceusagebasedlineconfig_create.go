@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -98,6 +99,20 @@ func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetNillableMeteredQuantity(v
 	return _c
 }
 
+// SetSplitLineGroupID sets the "split_line_group_id" field.
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetSplitLineGroupID(v string) *BillingInvoiceUsageBasedLineConfigCreate {
+	_c.mutation.SetSplitLineGroupID(v)
+	return _c
+}
+
+// SetNillableSplitLineGroupID sets the "split_line_group_id" field if the given value is not nil.
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetNillableSplitLineGroupID(v *string) *BillingInvoiceUsageBasedLineConfigCreate {
+	if v != nil {
+		_c.SetSplitLineGroupID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetID(v string) *BillingInvoiceUsageBasedLineConfigCreate {
 	_c.mutation.SetID(v)
@@ -110,6 +125,11 @@ func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetNillableID(v *string) *Bi
 		_c.SetID(*v)
 	}
 	return _c
+}
+
+// SetSplitLineGroup sets the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetSplitLineGroup(v *BillingInvoiceSplitLineGroup) *BillingInvoiceUsageBasedLineConfigCreate {
+	return _c.SetSplitLineGroupID(v.ID)
 }
 
 // Mutation returns the BillingInvoiceUsageBasedLineConfigMutation object of the builder.
@@ -250,6 +270,23 @@ func (_c *BillingInvoiceUsageBasedLineConfigCreate) createSpec() (*BillingInvoic
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther, value)
 		_node.MeteredQuantity = &value
 	}
+	if nodes := _c.mutation.SplitLineGroupIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceusagebasedlineconfig.SplitLineGroupTable,
+			Columns: []string{billinginvoiceusagebasedlineconfig.SplitLineGroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SplitLineGroupID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec, nil
 }
 
@@ -377,6 +414,24 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsert) UpdateMeteredQuantity() *Bill
 // ClearMeteredQuantity clears the value of the "metered_quantity" field.
 func (u *BillingInvoiceUsageBasedLineConfigUpsert) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpsert {
 	u.SetNull(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity)
+	return u
+}
+
+// SetSplitLineGroupID sets the "split_line_group_id" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) SetSplitLineGroupID(v string) *BillingInvoiceUsageBasedLineConfigUpsert {
+	u.Set(billinginvoiceusagebasedlineconfig.FieldSplitLineGroupID, v)
+	return u
+}
+
+// UpdateSplitLineGroupID sets the "split_line_group_id" field to the value that was provided on create.
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) UpdateSplitLineGroupID() *BillingInvoiceUsageBasedLineConfigUpsert {
+	u.SetExcluded(billinginvoiceusagebasedlineconfig.FieldSplitLineGroupID)
+	return u
+}
+
+// ClearSplitLineGroupID clears the value of the "split_line_group_id" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) ClearSplitLineGroupID() *BillingInvoiceUsageBasedLineConfigUpsert {
+	u.SetNull(billinginvoiceusagebasedlineconfig.FieldSplitLineGroupID)
 	return u
 }
 
@@ -522,6 +577,27 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) UpdateMeteredQuantity() *B
 func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpsertOne {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.ClearMeteredQuantity()
+	})
+}
+
+// SetSplitLineGroupID sets the "split_line_group_id" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) SetSplitLineGroupID(v string) *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.SetSplitLineGroupID(v)
+	})
+}
+
+// UpdateSplitLineGroupID sets the "split_line_group_id" field to the value that was provided on create.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) UpdateSplitLineGroupID() *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.UpdateSplitLineGroupID()
+	})
+}
+
+// ClearSplitLineGroupID clears the value of the "split_line_group_id" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) ClearSplitLineGroupID() *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.ClearSplitLineGroupID()
 	})
 }
 
@@ -837,6 +913,27 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) UpdateMeteredQuantity() *
 func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.ClearMeteredQuantity()
+	})
+}
+
+// SetSplitLineGroupID sets the "split_line_group_id" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) SetSplitLineGroupID(v string) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.SetSplitLineGroupID(v)
+	})
+}
+
+// UpdateSplitLineGroupID sets the "split_line_group_id" field to the value that was provided on create.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) UpdateSplitLineGroupID() *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.UpdateSplitLineGroupID()
+	})
+}
+
+// ClearSplitLineGroupID clears the value of the "split_line_group_id" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) ClearSplitLineGroupID() *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.ClearSplitLineGroupID()
 	})
 }
 

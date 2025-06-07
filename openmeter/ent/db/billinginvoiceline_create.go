@@ -109,6 +109,38 @@ func (_c *BillingInvoiceLineCreate) SetNillableDescription(v *string) *BillingIn
 	return _c
 }
 
+// SetPeriodStart sets the "period_start" field.
+func (_c *BillingInvoiceLineCreate) SetPeriodStart(v time.Time) *BillingInvoiceLineCreate {
+	_c.mutation.SetPeriodStart(v)
+	return _c
+}
+
+// SetPeriodEnd sets the "period_end" field.
+func (_c *BillingInvoiceLineCreate) SetPeriodEnd(v time.Time) *BillingInvoiceLineCreate {
+	_c.mutation.SetPeriodEnd(v)
+	return _c
+}
+
+// SetCurrency sets the "currency" field.
+func (_c *BillingInvoiceLineCreate) SetCurrency(v currencyx.Code) *BillingInvoiceLineCreate {
+	_c.mutation.SetCurrency(v)
+	return _c
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (_c *BillingInvoiceLineCreate) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineCreate {
+	_c.mutation.SetTaxConfig(v)
+	return _c
+}
+
+// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
+func (_c *BillingInvoiceLineCreate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceLineCreate {
+	if v != nil {
+		_c.SetTaxConfig(*v)
+	}
+	return _c
+}
+
 // SetAmount sets the "amount" field.
 func (_c *BillingInvoiceLineCreate) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineCreate {
 	_c.mutation.SetAmount(v)
@@ -177,18 +209,6 @@ func (_c *BillingInvoiceLineCreate) SetNillableParentLineID(v *string) *BillingI
 	return _c
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (_c *BillingInvoiceLineCreate) SetPeriodStart(v time.Time) *BillingInvoiceLineCreate {
-	_c.mutation.SetPeriodStart(v)
-	return _c
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (_c *BillingInvoiceLineCreate) SetPeriodEnd(v time.Time) *BillingInvoiceLineCreate {
-	_c.mutation.SetPeriodEnd(v)
-	return _c
-}
-
 // SetInvoiceAt sets the "invoice_at" field.
 func (_c *BillingInvoiceLineCreate) SetInvoiceAt(v time.Time) *BillingInvoiceLineCreate {
 	_c.mutation.SetInvoiceAt(v)
@@ -207,12 +227,6 @@ func (_c *BillingInvoiceLineCreate) SetStatus(v billing.InvoiceLineStatus) *Bill
 	return _c
 }
 
-// SetCurrency sets the "currency" field.
-func (_c *BillingInvoiceLineCreate) SetCurrency(v currencyx.Code) *BillingInvoiceLineCreate {
-	_c.mutation.SetCurrency(v)
-	return _c
-}
-
 // SetQuantity sets the "quantity" field.
 func (_c *BillingInvoiceLineCreate) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineCreate {
 	_c.mutation.SetQuantity(v)
@@ -223,20 +237,6 @@ func (_c *BillingInvoiceLineCreate) SetQuantity(v alpacadecimal.Decimal) *Billin
 func (_c *BillingInvoiceLineCreate) SetNillableQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineCreate {
 	if v != nil {
 		_c.SetQuantity(*v)
-	}
-	return _c
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_c *BillingInvoiceLineCreate) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineCreate {
-	_c.mutation.SetTaxConfig(v)
-	return _c
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_c *BillingInvoiceLineCreate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceLineCreate {
-	if v != nil {
-		_c.SetTaxConfig(*v)
 	}
 	return _c
 }
@@ -527,6 +527,25 @@ func (_c *BillingInvoiceLineCreate) check() error {
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "BillingInvoiceLine.name"`)}
 	}
+	if _, ok := _c.mutation.PeriodStart(); !ok {
+		return &ValidationError{Name: "period_start", err: errors.New(`db: missing required field "BillingInvoiceLine.period_start"`)}
+	}
+	if _, ok := _c.mutation.PeriodEnd(); !ok {
+		return &ValidationError{Name: "period_end", err: errors.New(`db: missing required field "BillingInvoiceLine.period_end"`)}
+	}
+	if _, ok := _c.mutation.Currency(); !ok {
+		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "BillingInvoiceLine.currency"`)}
+	}
+	if v, ok := _c.mutation.Currency(); ok {
+		if err := billinginvoiceline.CurrencyValidator(string(v)); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.currency": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.TaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingInvoiceLine.amount"`)}
 	}
@@ -559,12 +578,6 @@ func (_c *BillingInvoiceLineCreate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.managed_by": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.PeriodStart(); !ok {
-		return &ValidationError{Name: "period_start", err: errors.New(`db: missing required field "BillingInvoiceLine.period_start"`)}
-	}
-	if _, ok := _c.mutation.PeriodEnd(); !ok {
-		return &ValidationError{Name: "period_end", err: errors.New(`db: missing required field "BillingInvoiceLine.period_end"`)}
-	}
 	if _, ok := _c.mutation.InvoiceAt(); !ok {
 		return &ValidationError{Name: "invoice_at", err: errors.New(`db: missing required field "BillingInvoiceLine.invoice_at"`)}
 	}
@@ -582,19 +595,6 @@ func (_c *BillingInvoiceLineCreate) check() error {
 	if v, ok := _c.mutation.Status(); ok {
 		if err := billinginvoiceline.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
-		}
-	}
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "BillingInvoiceLine.currency"`)}
-	}
-	if v, ok := _c.mutation.Currency(); ok {
-		if err := billinginvoiceline.CurrencyValidator(string(v)); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.currency": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
 		}
 	}
 	if len(_c.mutation.BillingInvoiceIDs()) == 0 {
@@ -667,6 +667,22 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		_spec.SetField(billinginvoiceline.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
+	if value, ok := _c.mutation.PeriodStart(); ok {
+		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
+		_node.PeriodStart = value
+	}
+	if value, ok := _c.mutation.PeriodEnd(); ok {
+		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
+		_node.PeriodEnd = value
+	}
+	if value, ok := _c.mutation.Currency(); ok {
+		_spec.SetField(billinginvoiceline.FieldCurrency, field.TypeString, value)
+		_node.Currency = value
+	}
+	if value, ok := _c.mutation.TaxConfig(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
+		_node.TaxConfig = value
+	}
 	if value, ok := _c.mutation.Amount(); ok {
 		_spec.SetField(billinginvoiceline.FieldAmount, field.TypeOther, value)
 		_node.Amount = value
@@ -699,14 +715,6 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		_spec.SetField(billinginvoiceline.FieldManagedBy, field.TypeEnum, value)
 		_node.ManagedBy = value
 	}
-	if value, ok := _c.mutation.PeriodStart(); ok {
-		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
-		_node.PeriodStart = value
-	}
-	if value, ok := _c.mutation.PeriodEnd(); ok {
-		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
-		_node.PeriodEnd = value
-	}
 	if value, ok := _c.mutation.InvoiceAt(); ok {
 		_spec.SetField(billinginvoiceline.FieldInvoiceAt, field.TypeTime, value)
 		_node.InvoiceAt = value
@@ -719,17 +727,9 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		_spec.SetField(billinginvoiceline.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
 	}
-	if value, ok := _c.mutation.Currency(); ok {
-		_spec.SetField(billinginvoiceline.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
-	}
 	if value, ok := _c.mutation.Quantity(); ok {
 		_spec.SetField(billinginvoiceline.FieldQuantity, field.TypeOther, value)
 		_node.Quantity = &value
-	}
-	if value, ok := _c.mutation.TaxConfig(); ok {
-		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
-		_node.TaxConfig = value
 	}
 	if value, ok := _c.mutation.RatecardDiscounts(); ok {
 		vv, err := billinginvoiceline.ValueScanner.RatecardDiscounts.Value(value)
@@ -1048,6 +1048,48 @@ func (u *BillingInvoiceLineUpsert) ClearDescription() *BillingInvoiceLineUpsert 
 	return u
 }
 
+// SetPeriodStart sets the "period_start" field.
+func (u *BillingInvoiceLineUpsert) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldPeriodStart, v)
+	return u
+}
+
+// UpdatePeriodStart sets the "period_start" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdatePeriodStart() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldPeriodStart)
+	return u
+}
+
+// SetPeriodEnd sets the "period_end" field.
+func (u *BillingInvoiceLineUpsert) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldPeriodEnd, v)
+	return u
+}
+
+// UpdatePeriodEnd sets the "period_end" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdatePeriodEnd() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldPeriodEnd)
+	return u
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (u *BillingInvoiceLineUpsert) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldTaxConfig, v)
+	return u
+}
+
+// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateTaxConfig() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldTaxConfig)
+	return u
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (u *BillingInvoiceLineUpsert) ClearTaxConfig() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldTaxConfig)
+	return u
+}
+
 // SetAmount sets the "amount" field.
 func (u *BillingInvoiceLineUpsert) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldAmount, v)
@@ -1174,30 +1216,6 @@ func (u *BillingInvoiceLineUpsert) ClearParentLineID() *BillingInvoiceLineUpsert
 	return u
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (u *BillingInvoiceLineUpsert) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldPeriodStart, v)
-	return u
-}
-
-// UpdatePeriodStart sets the "period_start" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdatePeriodStart() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldPeriodStart)
-	return u
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (u *BillingInvoiceLineUpsert) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldPeriodEnd, v)
-	return u
-}
-
-// UpdatePeriodEnd sets the "period_end" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdatePeriodEnd() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldPeriodEnd)
-	return u
-}
-
 // SetInvoiceAt sets the "invoice_at" field.
 func (u *BillingInvoiceLineUpsert) SetInvoiceAt(v time.Time) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldInvoiceAt, v)
@@ -1237,24 +1255,6 @@ func (u *BillingInvoiceLineUpsert) UpdateQuantity() *BillingInvoiceLineUpsert {
 // ClearQuantity clears the value of the "quantity" field.
 func (u *BillingInvoiceLineUpsert) ClearQuantity() *BillingInvoiceLineUpsert {
 	u.SetNull(billinginvoiceline.FieldQuantity)
-	return u
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsert) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldTaxConfig, v)
-	return u
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdateTaxConfig() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldTaxConfig)
-	return u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *BillingInvoiceLineUpsert) ClearTaxConfig() *BillingInvoiceLineUpsert {
-	u.SetNull(billinginvoiceline.FieldTaxConfig)
 	return u
 }
 
@@ -1407,11 +1407,11 @@ func (u *BillingInvoiceLineUpsertOne) UpdateNewValues() *BillingInvoiceLineUpser
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(billinginvoiceline.FieldCreatedAt)
 		}
-		if _, exists := u.create.mutation.GetType(); exists {
-			s.SetIgnore(billinginvoiceline.FieldType)
-		}
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(billinginvoiceline.FieldCurrency)
+		}
+		if _, exists := u.create.mutation.GetType(); exists {
+			s.SetIgnore(billinginvoiceline.FieldType)
 		}
 	}))
 	return u
@@ -1532,6 +1532,55 @@ func (u *BillingInvoiceLineUpsertOne) UpdateDescription() *BillingInvoiceLineUps
 func (u *BillingInvoiceLineUpsertOne) ClearDescription() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetPeriodStart sets the "period_start" field.
+func (u *BillingInvoiceLineUpsertOne) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetPeriodStart(v)
+	})
+}
+
+// UpdatePeriodStart sets the "period_start" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdatePeriodStart() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdatePeriodStart()
+	})
+}
+
+// SetPeriodEnd sets the "period_end" field.
+func (u *BillingInvoiceLineUpsertOne) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetPeriodEnd(v)
+	})
+}
+
+// UpdatePeriodEnd sets the "period_end" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdatePeriodEnd() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdatePeriodEnd()
+	})
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (u *BillingInvoiceLineUpsertOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetTaxConfig(v)
+	})
+}
+
+// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateTaxConfig() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateTaxConfig()
+	})
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (u *BillingInvoiceLineUpsertOne) ClearTaxConfig() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearTaxConfig()
 	})
 }
 
@@ -1682,34 +1731,6 @@ func (u *BillingInvoiceLineUpsertOne) ClearParentLineID() *BillingInvoiceLineUps
 	})
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (u *BillingInvoiceLineUpsertOne) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetPeriodStart(v)
-	})
-}
-
-// UpdatePeriodStart sets the "period_start" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdatePeriodStart() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdatePeriodStart()
-	})
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (u *BillingInvoiceLineUpsertOne) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetPeriodEnd(v)
-	})
-}
-
-// UpdatePeriodEnd sets the "period_end" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdatePeriodEnd() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdatePeriodEnd()
-	})
-}
-
 // SetInvoiceAt sets the "invoice_at" field.
 func (u *BillingInvoiceLineUpsertOne) SetInvoiceAt(v time.Time) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
@@ -1756,27 +1777,6 @@ func (u *BillingInvoiceLineUpsertOne) UpdateQuantity() *BillingInvoiceLineUpsert
 func (u *BillingInvoiceLineUpsertOne) ClearQuantity() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearQuantity()
-	})
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsertOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetTaxConfig(v)
-	})
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdateTaxConfig() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateTaxConfig()
-	})
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *BillingInvoiceLineUpsertOne) ClearTaxConfig() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearTaxConfig()
 	})
 }
 
@@ -2119,11 +2119,11 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateNewValues() *BillingInvoiceLineUpse
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(billinginvoiceline.FieldCreatedAt)
 			}
-			if _, exists := b.mutation.GetType(); exists {
-				s.SetIgnore(billinginvoiceline.FieldType)
-			}
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(billinginvoiceline.FieldCurrency)
+			}
+			if _, exists := b.mutation.GetType(); exists {
+				s.SetIgnore(billinginvoiceline.FieldType)
 			}
 		}
 	}))
@@ -2245,6 +2245,55 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateDescription() *BillingInvoiceLineUp
 func (u *BillingInvoiceLineUpsertBulk) ClearDescription() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetPeriodStart sets the "period_start" field.
+func (u *BillingInvoiceLineUpsertBulk) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetPeriodStart(v)
+	})
+}
+
+// UpdatePeriodStart sets the "period_start" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdatePeriodStart() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdatePeriodStart()
+	})
+}
+
+// SetPeriodEnd sets the "period_end" field.
+func (u *BillingInvoiceLineUpsertBulk) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetPeriodEnd(v)
+	})
+}
+
+// UpdatePeriodEnd sets the "period_end" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdatePeriodEnd() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdatePeriodEnd()
+	})
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (u *BillingInvoiceLineUpsertBulk) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetTaxConfig(v)
+	})
+}
+
+// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateTaxConfig() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateTaxConfig()
+	})
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearTaxConfig() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearTaxConfig()
 	})
 }
 
@@ -2395,34 +2444,6 @@ func (u *BillingInvoiceLineUpsertBulk) ClearParentLineID() *BillingInvoiceLineUp
 	})
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (u *BillingInvoiceLineUpsertBulk) SetPeriodStart(v time.Time) *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetPeriodStart(v)
-	})
-}
-
-// UpdatePeriodStart sets the "period_start" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdatePeriodStart() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdatePeriodStart()
-	})
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (u *BillingInvoiceLineUpsertBulk) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetPeriodEnd(v)
-	})
-}
-
-// UpdatePeriodEnd sets the "period_end" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdatePeriodEnd() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdatePeriodEnd()
-	})
-}
-
 // SetInvoiceAt sets the "invoice_at" field.
 func (u *BillingInvoiceLineUpsertBulk) SetInvoiceAt(v time.Time) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
@@ -2469,27 +2490,6 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateQuantity() *BillingInvoiceLineUpser
 func (u *BillingInvoiceLineUpsertBulk) ClearQuantity() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearQuantity()
-	})
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsertBulk) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetTaxConfig(v)
-	})
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdateTaxConfig() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateTaxConfig()
-	})
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *BillingInvoiceLineUpsertBulk) ClearTaxConfig() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearTaxConfig()
 	})
 }
 

@@ -31,6 +31,14 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// FieldPeriodStart holds the string denoting the period_start field in the database.
+	FieldPeriodStart = "period_start"
+	// FieldPeriodEnd holds the string denoting the period_end field in the database.
+	FieldPeriodEnd = "period_end"
+	// FieldCurrency holds the string denoting the currency field in the database.
+	FieldCurrency = "currency"
+	// FieldTaxConfig holds the string denoting the tax_config field in the database.
+	FieldTaxConfig = "tax_config"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldTaxesTotal holds the string denoting the taxes_total field in the database.
@@ -51,22 +59,14 @@ const (
 	FieldManagedBy = "managed_by"
 	// FieldParentLineID holds the string denoting the parent_line_id field in the database.
 	FieldParentLineID = "parent_line_id"
-	// FieldPeriodStart holds the string denoting the period_start field in the database.
-	FieldPeriodStart = "period_start"
-	// FieldPeriodEnd holds the string denoting the period_end field in the database.
-	FieldPeriodEnd = "period_end"
 	// FieldInvoiceAt holds the string denoting the invoice_at field in the database.
 	FieldInvoiceAt = "invoice_at"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// FieldCurrency holds the string denoting the currency field in the database.
-	FieldCurrency = "currency"
 	// FieldQuantity holds the string denoting the quantity field in the database.
 	FieldQuantity = "quantity"
-	// FieldTaxConfig holds the string denoting the tax_config field in the database.
-	FieldTaxConfig = "tax_config"
 	// FieldRatecardDiscounts holds the string denoting the ratecard_discounts field in the database.
 	FieldRatecardDiscounts = "ratecard_discounts"
 	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
@@ -179,6 +179,10 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldName,
 	FieldDescription,
+	FieldPeriodStart,
+	FieldPeriodEnd,
+	FieldCurrency,
+	FieldTaxConfig,
 	FieldAmount,
 	FieldTaxesTotal,
 	FieldTaxesInclusiveTotal,
@@ -189,14 +193,10 @@ var Columns = []string{
 	FieldInvoiceID,
 	FieldManagedBy,
 	FieldParentLineID,
-	FieldPeriodStart,
-	FieldPeriodEnd,
 	FieldInvoiceAt,
 	FieldType,
 	FieldStatus,
-	FieldCurrency,
 	FieldQuantity,
-	FieldTaxConfig,
 	FieldRatecardDiscounts,
 	FieldInvoicingAppExternalID,
 	FieldChildUniqueReferenceID,
@@ -319,6 +319,21 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }
 
+// ByPeriodStart orders the results by the period_start field.
+func ByPeriodStart(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPeriodStart, opts...).ToFunc()
+}
+
+// ByPeriodEnd orders the results by the period_end field.
+func ByPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPeriodEnd, opts...).ToFunc()
+}
+
+// ByCurrency orders the results by the currency field.
+func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
 // ByAmount orders the results by the amount field.
 func ByAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmount, opts...).ToFunc()
@@ -369,16 +384,6 @@ func ByParentLineID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldParentLineID, opts...).ToFunc()
 }
 
-// ByPeriodStart orders the results by the period_start field.
-func ByPeriodStart(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPeriodStart, opts...).ToFunc()
-}
-
-// ByPeriodEnd orders the results by the period_end field.
-func ByPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPeriodEnd, opts...).ToFunc()
-}
-
 // ByInvoiceAt orders the results by the invoice_at field.
 func ByInvoiceAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceAt, opts...).ToFunc()
@@ -392,11 +397,6 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
-}
-
-// ByCurrency orders the results by the currency field.
-func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
 }
 
 // ByQuantity orders the results by the quantity field.
