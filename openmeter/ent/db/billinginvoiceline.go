@@ -42,6 +42,14 @@ type BillingInvoiceLine struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
+	// PeriodStart holds the value of the "period_start" field.
+	PeriodStart time.Time `json:"period_start,omitempty"`
+	// PeriodEnd holds the value of the "period_end" field.
+	PeriodEnd time.Time `json:"period_end,omitempty"`
+	// Currency holds the value of the "currency" field.
+	Currency currencyx.Code `json:"currency,omitempty"`
+	// TaxConfig holds the value of the "tax_config" field.
+	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// TaxesTotal holds the value of the "taxes_total" field.
@@ -62,22 +70,14 @@ type BillingInvoiceLine struct {
 	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
 	// ParentLineID holds the value of the "parent_line_id" field.
 	ParentLineID *string `json:"parent_line_id,omitempty"`
-	// PeriodStart holds the value of the "period_start" field.
-	PeriodStart time.Time `json:"period_start,omitempty"`
-	// PeriodEnd holds the value of the "period_end" field.
-	PeriodEnd time.Time `json:"period_end,omitempty"`
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// Type holds the value of the "type" field.
 	Type billing.InvoiceLineType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
 	Status billing.InvoiceLineStatus `json:"status,omitempty"`
-	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
 	// Quantity holds the value of the "quantity" field.
 	Quantity *alpacadecimal.Decimal `json:"quantity,omitempty"`
-	// TaxConfig holds the value of the "tax_config" field.
-	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// RatecardDiscounts holds the value of the "ratecard_discounts" field.
 	RatecardDiscounts *billing.Discounts `json:"ratecard_discounts,omitempty"`
 	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
@@ -244,7 +244,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldLineIds:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldLineIds:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -321,6 +321,32 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				_m.Description = new(string)
 				*_m.Description = value.String
 			}
+		case billinginvoiceline.FieldPeriodStart:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field period_start", values[i])
+			} else if value.Valid {
+				_m.PeriodStart = value.Time
+			}
+		case billinginvoiceline.FieldPeriodEnd:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field period_end", values[i])
+			} else if value.Valid {
+				_m.PeriodEnd = value.Time
+			}
+		case billinginvoiceline.FieldCurrency:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field currency", values[i])
+			} else if value.Valid {
+				_m.Currency = currencyx.Code(value.String)
+			}
+		case billinginvoiceline.FieldTaxConfig:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_config", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
+					return fmt.Errorf("unmarshal field tax_config: %w", err)
+				}
+			}
 		case billinginvoiceline.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
@@ -382,18 +408,6 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				_m.ParentLineID = new(string)
 				*_m.ParentLineID = value.String
 			}
-		case billinginvoiceline.FieldPeriodStart:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field period_start", values[i])
-			} else if value.Valid {
-				_m.PeriodStart = value.Time
-			}
-		case billinginvoiceline.FieldPeriodEnd:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field period_end", values[i])
-			} else if value.Valid {
-				_m.PeriodEnd = value.Time
-			}
 		case billinginvoiceline.FieldInvoiceAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_at", values[i])
@@ -412,26 +426,12 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 			} else if value.Valid {
 				_m.Status = billing.InvoiceLineStatus(value.String)
 			}
-		case billinginvoiceline.FieldCurrency:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency", values[i])
-			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
-			}
 		case billinginvoiceline.FieldQuantity:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field quantity", values[i])
 			} else if value.Valid {
 				_m.Quantity = new(alpacadecimal.Decimal)
 				*_m.Quantity = *value.S.(*alpacadecimal.Decimal)
-			}
-		case billinginvoiceline.FieldTaxConfig:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_config", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
-					return fmt.Errorf("unmarshal field tax_config: %w", err)
-				}
 			}
 		case billinginvoiceline.FieldRatecardDiscounts:
 			if value, err := billinginvoiceline.ValueScanner.RatecardDiscounts.FromValue(values[i]); err != nil {
@@ -606,6 +606,18 @@ func (_m *BillingInvoiceLine) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
+	builder.WriteString("period_start=")
+	builder.WriteString(_m.PeriodStart.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("period_end=")
+	builder.WriteString(_m.PeriodEnd.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("currency=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	builder.WriteString(", ")
+	builder.WriteString("tax_config=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxConfig))
+	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Amount))
 	builder.WriteString(", ")
@@ -638,12 +650,6 @@ func (_m *BillingInvoiceLine) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("period_start=")
-	builder.WriteString(_m.PeriodStart.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("period_end=")
-	builder.WriteString(_m.PeriodEnd.Format(time.ANSIC))
-	builder.WriteString(", ")
 	builder.WriteString("invoice_at=")
 	builder.WriteString(_m.InvoiceAt.Format(time.ANSIC))
 	builder.WriteString(", ")
@@ -653,16 +659,10 @@ func (_m *BillingInvoiceLine) String() string {
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
 	builder.WriteString(", ")
-	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
-	builder.WriteString(", ")
 	if v := _m.Quantity; v != nil {
 		builder.WriteString("quantity=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("tax_config=")
-	builder.WriteString(fmt.Sprintf("%v", _m.TaxConfig))
 	builder.WriteString(", ")
 	if v := _m.RatecardDiscounts; v != nil {
 		builder.WriteString("ratecard_discounts=")

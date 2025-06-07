@@ -201,6 +201,18 @@ func (f BillingInvoiceLineUsageDiscountFunc) Mutate(ctx context.Context, m db.Mu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceLineUsageDiscountMutation", m)
 }
 
+// The BillingInvoiceSplitLineGroupFunc type is an adapter to allow the use of ordinary
+// function as BillingInvoiceSplitLineGroup mutator.
+type BillingInvoiceSplitLineGroupFunc func(context.Context, *db.BillingInvoiceSplitLineGroupMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingInvoiceSplitLineGroupFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingInvoiceSplitLineGroupMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceSplitLineGroupMutation", m)
+}
+
 // The BillingInvoiceUsageBasedLineConfigFunc type is an adapter to allow the use of ordinary
 // function as BillingInvoiceUsageBasedLineConfig mutator.
 type BillingInvoiceUsageBasedLineConfigFunc func(context.Context, *db.BillingInvoiceUsageBasedLineConfigMutation) (db.Value, error)

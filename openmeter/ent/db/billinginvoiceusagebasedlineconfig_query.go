@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -19,11 +20,12 @@ import (
 // BillingInvoiceUsageBasedLineConfigQuery is the builder for querying BillingInvoiceUsageBasedLineConfig entities.
 type BillingInvoiceUsageBasedLineConfigQuery struct {
 	config
-	ctx        *QueryContext
-	order      []billinginvoiceusagebasedlineconfig.OrderOption
-	inters     []Interceptor
-	predicates []predicate.BillingInvoiceUsageBasedLineConfig
-	modifiers  []func(*sql.Selector)
+	ctx                *QueryContext
+	order              []billinginvoiceusagebasedlineconfig.OrderOption
+	inters             []Interceptor
+	predicates         []predicate.BillingInvoiceUsageBasedLineConfig
+	withSplitLineGroup *BillingInvoiceSplitLineGroupQuery
+	modifiers          []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +60,28 @@ func (_q *BillingInvoiceUsageBasedLineConfigQuery) Unique(unique bool) *BillingI
 func (_q *BillingInvoiceUsageBasedLineConfigQuery) Order(o ...billinginvoiceusagebasedlineconfig.OrderOption) *BillingInvoiceUsageBasedLineConfigQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QuerySplitLineGroup chains the current query on the "split_line_group" edge.
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) QuerySplitLineGroup() *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceusagebasedlineconfig.Table, billinginvoiceusagebasedlineconfig.FieldID, selector),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceusagebasedlineconfig.SplitLineGroupTable, billinginvoiceusagebasedlineconfig.SplitLineGroupColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first BillingInvoiceUsageBasedLineConfig entity from the query.
@@ -247,15 +271,27 @@ func (_q *BillingInvoiceUsageBasedLineConfigQuery) Clone() *BillingInvoiceUsageB
 		return nil
 	}
 	return &BillingInvoiceUsageBasedLineConfigQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]billinginvoiceusagebasedlineconfig.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.BillingInvoiceUsageBasedLineConfig{}, _q.predicates...),
+		config:             _q.config,
+		ctx:                _q.ctx.Clone(),
+		order:              append([]billinginvoiceusagebasedlineconfig.OrderOption{}, _q.order...),
+		inters:             append([]Interceptor{}, _q.inters...),
+		predicates:         append([]predicate.BillingInvoiceUsageBasedLineConfig{}, _q.predicates...),
+		withSplitLineGroup: _q.withSplitLineGroup.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithSplitLineGroup tells the query-builder to eager-load the nodes that are connected to
+// the "split_line_group" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) WithSplitLineGroup(opts ...func(*BillingInvoiceSplitLineGroupQuery)) *BillingInvoiceUsageBasedLineConfigQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSplitLineGroup = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -334,8 +370,11 @@ func (_q *BillingInvoiceUsageBasedLineConfigQuery) prepareQuery(ctx context.Cont
 
 func (_q *BillingInvoiceUsageBasedLineConfigQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BillingInvoiceUsageBasedLineConfig, error) {
 	var (
-		nodes = []*BillingInvoiceUsageBasedLineConfig{}
-		_spec = _q.querySpec()
+		nodes       = []*BillingInvoiceUsageBasedLineConfig{}
+		_spec       = _q.querySpec()
+		loadedTypes = [1]bool{
+			_q.withSplitLineGroup != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BillingInvoiceUsageBasedLineConfig).scanValues(nil, columns)
@@ -343,6 +382,7 @@ func (_q *BillingInvoiceUsageBasedLineConfigQuery) sqlAll(ctx context.Context, h
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &BillingInvoiceUsageBasedLineConfig{config: _q.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(_q.modifiers) > 0 {
@@ -357,7 +397,48 @@ func (_q *BillingInvoiceUsageBasedLineConfigQuery) sqlAll(ctx context.Context, h
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withSplitLineGroup; query != nil {
+		if err := _q.loadSplitLineGroup(ctx, query, nodes, nil,
+			func(n *BillingInvoiceUsageBasedLineConfig, e *BillingInvoiceSplitLineGroup) {
+				n.Edges.SplitLineGroup = e
+			}); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (_q *BillingInvoiceUsageBasedLineConfigQuery) loadSplitLineGroup(ctx context.Context, query *BillingInvoiceSplitLineGroupQuery, nodes []*BillingInvoiceUsageBasedLineConfig, init func(*BillingInvoiceUsageBasedLineConfig), assign func(*BillingInvoiceUsageBasedLineConfig, *BillingInvoiceSplitLineGroup)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*BillingInvoiceUsageBasedLineConfig)
+	for i := range nodes {
+		if nodes[i].SplitLineGroupID == nil {
+			continue
+		}
+		fk := *nodes[i].SplitLineGroupID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(billinginvoicesplitlinegroup.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "split_line_group_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
 }
 
 func (_q *BillingInvoiceUsageBasedLineConfigQuery) sqlCount(ctx context.Context) (int, error) {
@@ -387,6 +468,9 @@ func (_q *BillingInvoiceUsageBasedLineConfigQuery) querySpec() *sqlgraph.QuerySp
 			if fields[i] != billinginvoiceusagebasedlineconfig.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withSplitLineGroup != nil {
+			_spec.Node.AddColumnOnce(billinginvoiceusagebasedlineconfig.FieldSplitLineGroupID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

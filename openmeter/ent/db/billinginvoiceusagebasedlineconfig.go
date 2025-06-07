@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -32,7 +33,32 @@ type BillingInvoiceUsageBasedLineConfig struct {
 	MeteredPreLinePeriodQuantity *alpacadecimal.Decimal `json:"metered_pre_line_period_quantity,omitempty"`
 	// MeteredQuantity holds the value of the "metered_quantity" field.
 	MeteredQuantity *alpacadecimal.Decimal `json:"metered_quantity,omitempty"`
-	selectValues    sql.SelectValues
+	// SplitLineGroupID holds the value of the "split_line_group_id" field.
+	SplitLineGroupID *string `json:"split_line_group_id,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the BillingInvoiceUsageBasedLineConfigQuery when eager-loading is set.
+	Edges        BillingInvoiceUsageBasedLineConfigEdges `json:"edges"`
+	selectValues sql.SelectValues
+}
+
+// BillingInvoiceUsageBasedLineConfigEdges holds the relations/edges for other nodes in the graph.
+type BillingInvoiceUsageBasedLineConfigEdges struct {
+	// SplitLineGroup holds the value of the split_line_group edge.
+	SplitLineGroup *BillingInvoiceSplitLineGroup `json:"split_line_group,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// SplitLineGroupOrErr returns the SplitLineGroup value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceUsageBasedLineConfigEdges) SplitLineGroupOrErr() (*BillingInvoiceSplitLineGroup, error) {
+	if e.SplitLineGroup != nil {
+		return e.SplitLineGroup, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: billinginvoicesplitlinegroup.Label}
+	}
+	return nil, &NotLoadedError{edge: "split_line_group"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -42,7 +68,7 @@ func (*BillingInvoiceUsageBasedLineConfig) scanValues(columns []string) ([]any, 
 		switch columns[i] {
 		case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity, billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
-		case billinginvoiceusagebasedlineconfig.FieldID, billinginvoiceusagebasedlineconfig.FieldNamespace, billinginvoiceusagebasedlineconfig.FieldPriceType, billinginvoiceusagebasedlineconfig.FieldFeatureKey:
+		case billinginvoiceusagebasedlineconfig.FieldID, billinginvoiceusagebasedlineconfig.FieldNamespace, billinginvoiceusagebasedlineconfig.FieldPriceType, billinginvoiceusagebasedlineconfig.FieldFeatureKey, billinginvoiceusagebasedlineconfig.FieldSplitLineGroupID:
 			values[i] = new(sql.NullString)
 		case billinginvoiceusagebasedlineconfig.FieldPrice:
 			values[i] = billinginvoiceusagebasedlineconfig.ValueScanner.Price.ScanValue()
@@ -113,6 +139,13 @@ func (_m *BillingInvoiceUsageBasedLineConfig) assignValues(columns []string, val
 				_m.MeteredQuantity = new(alpacadecimal.Decimal)
 				*_m.MeteredQuantity = *value.S.(*alpacadecimal.Decimal)
 			}
+		case billinginvoiceusagebasedlineconfig.FieldSplitLineGroupID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field split_line_group_id", values[i])
+			} else if value.Valid {
+				_m.SplitLineGroupID = new(string)
+				*_m.SplitLineGroupID = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -124,6 +157,11 @@ func (_m *BillingInvoiceUsageBasedLineConfig) assignValues(columns []string, val
 // This includes values selected through modifiers, order, etc.
 func (_m *BillingInvoiceUsageBasedLineConfig) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QuerySplitLineGroup queries the "split_line_group" edge of the BillingInvoiceUsageBasedLineConfig entity.
+func (_m *BillingInvoiceUsageBasedLineConfig) QuerySplitLineGroup() *BillingInvoiceSplitLineGroupQuery {
+	return NewBillingInvoiceUsageBasedLineConfigClient(_m.config).QuerySplitLineGroup(_m)
 }
 
 // Update returns a builder for updating this BillingInvoiceUsageBasedLineConfig.
@@ -176,6 +214,11 @@ func (_m *BillingInvoiceUsageBasedLineConfig) String() string {
 	if v := _m.MeteredQuantity; v != nil {
 		builder.WriteString("metered_quantity=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.SplitLineGroupID; v != nil {
+		builder.WriteString("split_line_group_id=")
+		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')
 	return builder.String()

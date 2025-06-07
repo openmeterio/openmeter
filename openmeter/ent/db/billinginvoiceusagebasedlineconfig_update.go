@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -109,9 +110,40 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdate) ClearMeteredQuantity() *Bill
 	return _u
 }
 
+// SetSplitLineGroupID sets the "split_line_group_id" field.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetSplitLineGroupID(v string) *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.SetSplitLineGroupID(v)
+	return _u
+}
+
+// SetNillableSplitLineGroupID sets the "split_line_group_id" field if the given value is not nil.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetNillableSplitLineGroupID(v *string) *BillingInvoiceUsageBasedLineConfigUpdate {
+	if v != nil {
+		_u.SetSplitLineGroupID(*v)
+	}
+	return _u
+}
+
+// ClearSplitLineGroupID clears the value of the "split_line_group_id" field.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) ClearSplitLineGroupID() *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.ClearSplitLineGroupID()
+	return _u
+}
+
+// SetSplitLineGroup sets the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetSplitLineGroup(v *BillingInvoiceSplitLineGroup) *BillingInvoiceUsageBasedLineConfigUpdate {
+	return _u.SetSplitLineGroupID(v.ID)
+}
+
 // Mutation returns the BillingInvoiceUsageBasedLineConfigMutation object of the builder.
 func (_u *BillingInvoiceUsageBasedLineConfigUpdate) Mutation() *BillingInvoiceUsageBasedLineConfigMutation {
 	return _u.mutation
+}
+
+// ClearSplitLineGroup clears the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) ClearSplitLineGroup() *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.ClearSplitLineGroup()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -198,6 +230,35 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdate) sqlSave(ctx context.Context)
 	}
 	if _u.mutation.MeteredQuantityCleared() {
 		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther)
+	}
+	if _u.mutation.SplitLineGroupCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceusagebasedlineconfig.SplitLineGroupTable,
+			Columns: []string{billinginvoiceusagebasedlineconfig.SplitLineGroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SplitLineGroupIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceusagebasedlineconfig.SplitLineGroupTable,
+			Columns: []string{billinginvoiceusagebasedlineconfig.SplitLineGroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -299,9 +360,40 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearMeteredQuantity() *B
 	return _u
 }
 
+// SetSplitLineGroupID sets the "split_line_group_id" field.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetSplitLineGroupID(v string) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.SetSplitLineGroupID(v)
+	return _u
+}
+
+// SetNillableSplitLineGroupID sets the "split_line_group_id" field if the given value is not nil.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetNillableSplitLineGroupID(v *string) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	if v != nil {
+		_u.SetSplitLineGroupID(*v)
+	}
+	return _u
+}
+
+// ClearSplitLineGroupID clears the value of the "split_line_group_id" field.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearSplitLineGroupID() *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.ClearSplitLineGroupID()
+	return _u
+}
+
+// SetSplitLineGroup sets the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetSplitLineGroup(v *BillingInvoiceSplitLineGroup) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	return _u.SetSplitLineGroupID(v.ID)
+}
+
 // Mutation returns the BillingInvoiceUsageBasedLineConfigMutation object of the builder.
 func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) Mutation() *BillingInvoiceUsageBasedLineConfigMutation {
 	return _u.mutation
+}
+
+// ClearSplitLineGroup clears the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearSplitLineGroup() *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.ClearSplitLineGroup()
+	return _u
 }
 
 // Where appends a list predicates to the BillingInvoiceUsageBasedLineConfigUpdate builder.
@@ -418,6 +510,35 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) sqlSave(ctx context.Conte
 	}
 	if _u.mutation.MeteredQuantityCleared() {
 		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther)
+	}
+	if _u.mutation.SplitLineGroupCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceusagebasedlineconfig.SplitLineGroupTable,
+			Columns: []string{billinginvoiceusagebasedlineconfig.SplitLineGroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SplitLineGroupIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceusagebasedlineconfig.SplitLineGroupTable,
+			Columns: []string{billinginvoiceusagebasedlineconfig.SplitLineGroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &BillingInvoiceUsageBasedLineConfig{config: _u.config}
 	_spec.Assign = _node.assignValues

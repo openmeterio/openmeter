@@ -1374,6 +1374,29 @@ func HasBillingInvoiceWith(preds ...predicate.BillingInvoice) predicate.Customer
 	})
 }
 
+// HasBillingSplitLineGroups applies the HasEdge predicate on the "billing_split_line_groups" edge.
+func HasBillingSplitLineGroups() predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingSplitLineGroupsTable, BillingSplitLineGroupsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingSplitLineGroupsWith applies the HasEdge predicate on the "billing_split_line_groups" edge with a given conditions (other predicates).
+func HasBillingSplitLineGroupsWith(preds ...predicate.BillingInvoiceSplitLineGroup) predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := newBillingSplitLineGroupsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasSubscription applies the HasEdge predicate on the "subscription" edge.
 func HasSubscription() predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -29,8 +30,19 @@ const (
 	FieldMeteredPreLinePeriodQuantity = "metered_pre_line_period_quantity"
 	// FieldMeteredQuantity holds the string denoting the metered_quantity field in the database.
 	FieldMeteredQuantity = "metered_quantity"
+	// FieldSplitLineGroupID holds the string denoting the split_line_group_id field in the database.
+	FieldSplitLineGroupID = "split_line_group_id"
+	// EdgeSplitLineGroup holds the string denoting the split_line_group edge name in mutations.
+	EdgeSplitLineGroup = "split_line_group"
 	// Table holds the table name of the billinginvoiceusagebasedlineconfig in the database.
 	Table = "billing_invoice_usage_based_line_configs"
+	// SplitLineGroupTable is the table that holds the split_line_group relation/edge.
+	SplitLineGroupTable = "billing_invoice_usage_based_line_configs"
+	// SplitLineGroupInverseTable is the table name for the BillingInvoiceSplitLineGroup entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoicesplitlinegroup" package.
+	SplitLineGroupInverseTable = "billing_invoice_split_line_groups"
+	// SplitLineGroupColumn is the table column denoting the split_line_group relation/edge.
+	SplitLineGroupColumn = "split_line_group_id"
 )
 
 // Columns holds all SQL columns for billinginvoiceusagebasedlineconfig fields.
@@ -43,6 +55,7 @@ var Columns = []string{
 	FieldPreLinePeriodQuantity,
 	FieldMeteredPreLinePeriodQuantity,
 	FieldMeteredQuantity,
+	FieldSplitLineGroupID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -117,4 +130,23 @@ func ByMeteredPreLinePeriodQuantity(opts ...sql.OrderTermOption) OrderOption {
 // ByMeteredQuantity orders the results by the metered_quantity field.
 func ByMeteredQuantity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMeteredQuantity, opts...).ToFunc()
+}
+
+// BySplitLineGroupID orders the results by the split_line_group_id field.
+func BySplitLineGroupID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSplitLineGroupID, opts...).ToFunc()
+}
+
+// BySplitLineGroupField orders the results by split_line_group field.
+func BySplitLineGroupField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSplitLineGroupStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newSplitLineGroupStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SplitLineGroupInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SplitLineGroupTable, SplitLineGroupColumn),
+	)
 }
