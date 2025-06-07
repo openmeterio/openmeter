@@ -104,7 +104,7 @@ func createConfigMetersInDatabase(
 		return meter.Key
 	})
 
-	meters, err := meter.ListAll(ctx, meterService, meter.ListMetersParams{
+	meterList, err := meterService.ListMeters(ctx, meter.ListMetersParams{
 		Namespace:  namespaceManager.GetDefaultNamespace(),
 		SlugFilter: &configMeterSlugs,
 	})
@@ -112,7 +112,7 @@ func createConfigMetersInDatabase(
 		return fmt.Errorf("failed to list meters: %w", err)
 	}
 
-	metersBySlug := lo.KeyBy(meters, func(meter meter.Meter) string {
+	metersBySlug := lo.KeyBy(meterList.Items, func(meter meter.Meter) string {
 		return meter.Key
 	})
 
