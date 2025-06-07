@@ -458,8 +458,28 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	routerHooks := common.NewRouterHooks(v6)
-	subjectAdapter := common.NewSubjectAdapter(client)
-	subjectService := common.NewSubjectService(subjectAdapter)
+	subjectAdapter, err := common.NewSubjectAdapter(client)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	subjectService, err := common.NewSubjectService(subjectAdapter)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {

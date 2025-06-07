@@ -26,7 +26,7 @@ var SubjectManager = wire.NewSet(
 
 func NewSubjectService(
 	adapter subject.Adapter,
-) subject.Service {
+) (subject.Service, error) {
 	return service.New(adapter)
 }
 
@@ -53,6 +53,6 @@ func NewSubjectManager(
 
 func NewSubjectAdapter(
 	db *entdb.Client,
-) subject.Adapter {
+) (subject.Adapter, error) {
 	return adapter.New(db)
 }

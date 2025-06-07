@@ -266,7 +266,7 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	subject, err := w.opts.Subject.GetByKeyWithFallback(ctx, pkgmodels.NamespacedKey{
+	subject, err := resolveSubjectIfExists(ctx, w.opts.Subject, pkgmodels.NamespacedKey{
 		Namespace: in.Entitlement.Namespace,
 		Key:       in.Entitlement.SubjectKey,
 	})
@@ -338,7 +338,7 @@ func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitl
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
 
-	subject, err := w.opts.Subject.GetByKeyWithFallback(ctx, pkgmodels.NamespacedKey{
+	subject, err := resolveSubjectIfExists(ctx, w.opts.Subject, pkgmodels.NamespacedKey{
 		Namespace: namespace,
 		Key:       delEvent.SubjectKey,
 	})
