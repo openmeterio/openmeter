@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -108,6 +109,54 @@ func (_u *BillingInvoiceLineUpdate) SetNillableDescription(v *string) *BillingIn
 // ClearDescription clears the value of the "description" field.
 func (_u *BillingInvoiceLineUpdate) ClearDescription() *BillingInvoiceLineUpdate {
 	_u.mutation.ClearDescription()
+	return _u
+}
+
+// SetPeriodStart sets the "period_start" field.
+func (_u *BillingInvoiceLineUpdate) SetPeriodStart(v time.Time) *BillingInvoiceLineUpdate {
+	_u.mutation.SetPeriodStart(v)
+	return _u
+}
+
+// SetNillablePeriodStart sets the "period_start" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillablePeriodStart(v *time.Time) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetPeriodStart(*v)
+	}
+	return _u
+}
+
+// SetPeriodEnd sets the "period_end" field.
+func (_u *BillingInvoiceLineUpdate) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpdate {
+	_u.mutation.SetPeriodEnd(v)
+	return _u
+}
+
+// SetNillablePeriodEnd sets the "period_end" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillablePeriodEnd(v *time.Time) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetPeriodEnd(*v)
+	}
+	return _u
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (_u *BillingInvoiceLineUpdate) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
+	_u.mutation.SetTaxConfig(v)
+	return _u
+}
+
+// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetTaxConfig(*v)
+	}
+	return _u
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (_u *BillingInvoiceLineUpdate) ClearTaxConfig() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearTaxConfig()
 	return _u
 }
 
@@ -257,34 +306,6 @@ func (_u *BillingInvoiceLineUpdate) ClearParentLineID() *BillingInvoiceLineUpdat
 	return _u
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (_u *BillingInvoiceLineUpdate) SetPeriodStart(v time.Time) *BillingInvoiceLineUpdate {
-	_u.mutation.SetPeriodStart(v)
-	return _u
-}
-
-// SetNillablePeriodStart sets the "period_start" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdate) SetNillablePeriodStart(v *time.Time) *BillingInvoiceLineUpdate {
-	if v != nil {
-		_u.SetPeriodStart(*v)
-	}
-	return _u
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (_u *BillingInvoiceLineUpdate) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpdate {
-	_u.mutation.SetPeriodEnd(v)
-	return _u
-}
-
-// SetNillablePeriodEnd sets the "period_end" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdate) SetNillablePeriodEnd(v *time.Time) *BillingInvoiceLineUpdate {
-	if v != nil {
-		_u.SetPeriodEnd(*v)
-	}
-	return _u
-}
-
 // SetInvoiceAt sets the "invoice_at" field.
 func (_u *BillingInvoiceLineUpdate) SetInvoiceAt(v time.Time) *BillingInvoiceLineUpdate {
 	_u.mutation.SetInvoiceAt(v)
@@ -330,26 +351,6 @@ func (_u *BillingInvoiceLineUpdate) SetNillableQuantity(v *alpacadecimal.Decimal
 // ClearQuantity clears the value of the "quantity" field.
 func (_u *BillingInvoiceLineUpdate) ClearQuantity() *BillingInvoiceLineUpdate {
 	_u.mutation.ClearQuantity()
-	return _u
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_u *BillingInvoiceLineUpdate) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
-	if v != nil {
-		_u.SetTaxConfig(*v)
-	}
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *BillingInvoiceLineUpdate) ClearTaxConfig() *BillingInvoiceLineUpdate {
-	_u.mutation.ClearTaxConfig()
 	return _u
 }
 
@@ -465,6 +466,26 @@ func (_u *BillingInvoiceLineUpdate) ClearSubscriptionItemID() *BillingInvoiceLin
 	return _u
 }
 
+// SetSplitLineGroupID sets the "split_line_group_id" field.
+func (_u *BillingInvoiceLineUpdate) SetSplitLineGroupID(v string) *BillingInvoiceLineUpdate {
+	_u.mutation.SetSplitLineGroupID(v)
+	return _u
+}
+
+// SetNillableSplitLineGroupID sets the "split_line_group_id" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableSplitLineGroupID(v *string) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetSplitLineGroupID(*v)
+	}
+	return _u
+}
+
+// ClearSplitLineGroupID clears the value of the "split_line_group_id" field.
+func (_u *BillingInvoiceLineUpdate) ClearSplitLineGroupID() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearSplitLineGroupID()
+	return _u
+}
+
 // SetLineIds sets the "line_ids" field.
 func (_u *BillingInvoiceLineUpdate) SetLineIds(v string) *BillingInvoiceLineUpdate {
 	_u.mutation.SetLineIds(v)
@@ -494,6 +515,11 @@ func (_u *BillingInvoiceLineUpdate) SetBillingInvoiceID(id string) *BillingInvoi
 // SetBillingInvoice sets the "billing_invoice" edge to the BillingInvoice entity.
 func (_u *BillingInvoiceLineUpdate) SetBillingInvoice(v *BillingInvoice) *BillingInvoiceLineUpdate {
 	return _u.SetBillingInvoiceID(v.ID)
+}
+
+// SetSplitLineGroup sets the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
+func (_u *BillingInvoiceLineUpdate) SetSplitLineGroup(v *BillingInvoiceSplitLineGroup) *BillingInvoiceLineUpdate {
+	return _u.SetSplitLineGroupID(v.ID)
 }
 
 // SetFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID.
@@ -607,6 +633,12 @@ func (_u *BillingInvoiceLineUpdate) Mutation() *BillingInvoiceLineMutation {
 // ClearBillingInvoice clears the "billing_invoice" edge to the BillingInvoice entity.
 func (_u *BillingInvoiceLineUpdate) ClearBillingInvoice() *BillingInvoiceLineUpdate {
 	_u.mutation.ClearBillingInvoice()
+	return _u
+}
+
+// ClearSplitLineGroup clears the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
+func (_u *BillingInvoiceLineUpdate) ClearSplitLineGroup() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearSplitLineGroup()
 	return _u
 }
 
@@ -747,6 +779,11 @@ func (_u *BillingInvoiceLineUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *BillingInvoiceLineUpdate) check() error {
+	if v, ok := _u.mutation.TaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := billinginvoiceline.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.managed_by": %w`, err)}
@@ -755,11 +792,6 @@ func (_u *BillingInvoiceLineUpdate) check() error {
 	if v, ok := _u.mutation.Status(); ok {
 		if err := billinginvoiceline.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
 		}
 	}
 	if _u.mutation.BillingInvoiceCleared() && len(_u.mutation.BillingInvoiceIDs()) > 0 {
@@ -804,6 +836,18 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(billinginvoiceline.FieldDescription, field.TypeString)
 	}
+	if value, ok := _u.mutation.PeriodStart(); ok {
+		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.PeriodEnd(); ok {
+		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.TaxConfig(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
+	}
+	if _u.mutation.TaxConfigCleared() {
+		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.Amount(); ok {
 		_spec.SetField(billinginvoiceline.FieldAmount, field.TypeOther, value)
 	}
@@ -828,12 +872,6 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	if value, ok := _u.mutation.ManagedBy(); ok {
 		_spec.SetField(billinginvoiceline.FieldManagedBy, field.TypeEnum, value)
 	}
-	if value, ok := _u.mutation.PeriodStart(); ok {
-		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.PeriodEnd(); ok {
-		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
-	}
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(billinginvoiceline.FieldInvoiceAt, field.TypeTime, value)
 	}
@@ -845,12 +883,6 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	}
 	if _u.mutation.QuantityCleared() {
 		_spec.ClearField(billinginvoiceline.FieldQuantity, field.TypeOther)
-	}
-	if value, ok := _u.mutation.TaxConfig(); ok {
-		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
-	}
-	if _u.mutation.TaxConfigCleared() {
-		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.RatecardDiscounts(); ok {
 		vv, err := billinginvoiceline.ValueScanner.RatecardDiscounts.Value(value)
@@ -902,6 +934,35 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SplitLineGroupCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SplitLineGroupTable,
+			Columns: []string{billinginvoiceline.SplitLineGroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SplitLineGroupIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SplitLineGroupTable,
+			Columns: []string{billinginvoiceline.SplitLineGroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1310,6 +1371,54 @@ func (_u *BillingInvoiceLineUpdateOne) ClearDescription() *BillingInvoiceLineUpd
 	return _u
 }
 
+// SetPeriodStart sets the "period_start" field.
+func (_u *BillingInvoiceLineUpdateOne) SetPeriodStart(v time.Time) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetPeriodStart(v)
+	return _u
+}
+
+// SetNillablePeriodStart sets the "period_start" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillablePeriodStart(v *time.Time) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetPeriodStart(*v)
+	}
+	return _u
+}
+
+// SetPeriodEnd sets the "period_end" field.
+func (_u *BillingInvoiceLineUpdateOne) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetPeriodEnd(v)
+	return _u
+}
+
+// SetNillablePeriodEnd sets the "period_end" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillablePeriodEnd(v *time.Time) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetPeriodEnd(*v)
+	}
+	return _u
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (_u *BillingInvoiceLineUpdateOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetTaxConfig(v)
+	return _u
+}
+
+// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetTaxConfig(*v)
+	}
+	return _u
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (_u *BillingInvoiceLineUpdateOne) ClearTaxConfig() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearTaxConfig()
+	return _u
+}
+
 // SetAmount sets the "amount" field.
 func (_u *BillingInvoiceLineUpdateOne) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetAmount(v)
@@ -1456,34 +1565,6 @@ func (_u *BillingInvoiceLineUpdateOne) ClearParentLineID() *BillingInvoiceLineUp
 	return _u
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (_u *BillingInvoiceLineUpdateOne) SetPeriodStart(v time.Time) *BillingInvoiceLineUpdateOne {
-	_u.mutation.SetPeriodStart(v)
-	return _u
-}
-
-// SetNillablePeriodStart sets the "period_start" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdateOne) SetNillablePeriodStart(v *time.Time) *BillingInvoiceLineUpdateOne {
-	if v != nil {
-		_u.SetPeriodStart(*v)
-	}
-	return _u
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (_u *BillingInvoiceLineUpdateOne) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpdateOne {
-	_u.mutation.SetPeriodEnd(v)
-	return _u
-}
-
-// SetNillablePeriodEnd sets the "period_end" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdateOne) SetNillablePeriodEnd(v *time.Time) *BillingInvoiceLineUpdateOne {
-	if v != nil {
-		_u.SetPeriodEnd(*v)
-	}
-	return _u
-}
-
 // SetInvoiceAt sets the "invoice_at" field.
 func (_u *BillingInvoiceLineUpdateOne) SetInvoiceAt(v time.Time) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetInvoiceAt(v)
@@ -1529,26 +1610,6 @@ func (_u *BillingInvoiceLineUpdateOne) SetNillableQuantity(v *alpacadecimal.Deci
 // ClearQuantity clears the value of the "quantity" field.
 func (_u *BillingInvoiceLineUpdateOne) ClearQuantity() *BillingInvoiceLineUpdateOne {
 	_u.mutation.ClearQuantity()
-	return _u
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_u *BillingInvoiceLineUpdateOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
-	if v != nil {
-		_u.SetTaxConfig(*v)
-	}
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *BillingInvoiceLineUpdateOne) ClearTaxConfig() *BillingInvoiceLineUpdateOne {
-	_u.mutation.ClearTaxConfig()
 	return _u
 }
 
@@ -1664,6 +1725,26 @@ func (_u *BillingInvoiceLineUpdateOne) ClearSubscriptionItemID() *BillingInvoice
 	return _u
 }
 
+// SetSplitLineGroupID sets the "split_line_group_id" field.
+func (_u *BillingInvoiceLineUpdateOne) SetSplitLineGroupID(v string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetSplitLineGroupID(v)
+	return _u
+}
+
+// SetNillableSplitLineGroupID sets the "split_line_group_id" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableSplitLineGroupID(v *string) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetSplitLineGroupID(*v)
+	}
+	return _u
+}
+
+// ClearSplitLineGroupID clears the value of the "split_line_group_id" field.
+func (_u *BillingInvoiceLineUpdateOne) ClearSplitLineGroupID() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearSplitLineGroupID()
+	return _u
+}
+
 // SetLineIds sets the "line_ids" field.
 func (_u *BillingInvoiceLineUpdateOne) SetLineIds(v string) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetLineIds(v)
@@ -1693,6 +1774,11 @@ func (_u *BillingInvoiceLineUpdateOne) SetBillingInvoiceID(id string) *BillingIn
 // SetBillingInvoice sets the "billing_invoice" edge to the BillingInvoice entity.
 func (_u *BillingInvoiceLineUpdateOne) SetBillingInvoice(v *BillingInvoice) *BillingInvoiceLineUpdateOne {
 	return _u.SetBillingInvoiceID(v.ID)
+}
+
+// SetSplitLineGroup sets the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
+func (_u *BillingInvoiceLineUpdateOne) SetSplitLineGroup(v *BillingInvoiceSplitLineGroup) *BillingInvoiceLineUpdateOne {
+	return _u.SetSplitLineGroupID(v.ID)
 }
 
 // SetFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID.
@@ -1806,6 +1892,12 @@ func (_u *BillingInvoiceLineUpdateOne) Mutation() *BillingInvoiceLineMutation {
 // ClearBillingInvoice clears the "billing_invoice" edge to the BillingInvoice entity.
 func (_u *BillingInvoiceLineUpdateOne) ClearBillingInvoice() *BillingInvoiceLineUpdateOne {
 	_u.mutation.ClearBillingInvoice()
+	return _u
+}
+
+// ClearSplitLineGroup clears the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
+func (_u *BillingInvoiceLineUpdateOne) ClearSplitLineGroup() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearSplitLineGroup()
 	return _u
 }
 
@@ -1959,6 +2051,11 @@ func (_u *BillingInvoiceLineUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *BillingInvoiceLineUpdateOne) check() error {
+	if v, ok := _u.mutation.TaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := billinginvoiceline.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.managed_by": %w`, err)}
@@ -1967,11 +2064,6 @@ func (_u *BillingInvoiceLineUpdateOne) check() error {
 	if v, ok := _u.mutation.Status(); ok {
 		if err := billinginvoiceline.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
 		}
 	}
 	if _u.mutation.BillingInvoiceCleared() && len(_u.mutation.BillingInvoiceIDs()) > 0 {
@@ -2033,6 +2125,18 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(billinginvoiceline.FieldDescription, field.TypeString)
 	}
+	if value, ok := _u.mutation.PeriodStart(); ok {
+		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.PeriodEnd(); ok {
+		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.TaxConfig(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
+	}
+	if _u.mutation.TaxConfigCleared() {
+		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.Amount(); ok {
 		_spec.SetField(billinginvoiceline.FieldAmount, field.TypeOther, value)
 	}
@@ -2057,12 +2161,6 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	if value, ok := _u.mutation.ManagedBy(); ok {
 		_spec.SetField(billinginvoiceline.FieldManagedBy, field.TypeEnum, value)
 	}
-	if value, ok := _u.mutation.PeriodStart(); ok {
-		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.PeriodEnd(); ok {
-		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
-	}
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(billinginvoiceline.FieldInvoiceAt, field.TypeTime, value)
 	}
@@ -2074,12 +2172,6 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	}
 	if _u.mutation.QuantityCleared() {
 		_spec.ClearField(billinginvoiceline.FieldQuantity, field.TypeOther)
-	}
-	if value, ok := _u.mutation.TaxConfig(); ok {
-		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
-	}
-	if _u.mutation.TaxConfigCleared() {
-		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.RatecardDiscounts(); ok {
 		vv, err := billinginvoiceline.ValueScanner.RatecardDiscounts.Value(value)
@@ -2131,6 +2223,35 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SplitLineGroupCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SplitLineGroupTable,
+			Columns: []string{billinginvoiceline.SplitLineGroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SplitLineGroupIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SplitLineGroupTable,
+			Columns: []string{billinginvoiceline.SplitLineGroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -71,11 +71,13 @@ type CustomerEdges struct {
 	BillingCustomerOverride *BillingCustomerOverride `json:"billing_customer_override,omitempty"`
 	// BillingInvoice holds the value of the billing_invoice edge.
 	BillingInvoice []*BillingInvoice `json:"billing_invoice,omitempty"`
+	// BillingSplitLineGroups holds the value of the billing_split_line_groups edge.
+	BillingSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_split_line_groups,omitempty"`
 	// Subscription holds the value of the subscription edge.
 	Subscription []*Subscription `json:"subscription,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // AppsOrErr returns the Apps value or an error if the edge
@@ -116,10 +118,19 @@ func (e CustomerEdges) BillingInvoiceOrErr() ([]*BillingInvoice, error) {
 	return nil, &NotLoadedError{edge: "billing_invoice"}
 }
 
+// BillingSplitLineGroupsOrErr returns the BillingSplitLineGroups value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomerEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGroup, error) {
+	if e.loadedTypes[4] {
+		return e.BillingSplitLineGroups, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
+}
+
 // SubscriptionOrErr returns the Subscription value or an error if the edge
 // was not loaded in eager-loading.
 func (e CustomerEdges) SubscriptionOrErr() ([]*Subscription, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.Subscription, nil
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -303,6 +314,11 @@ func (_m *Customer) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery
 // QueryBillingInvoice queries the "billing_invoice" edge of the Customer entity.
 func (_m *Customer) QueryBillingInvoice() *BillingInvoiceQuery {
 	return NewCustomerClient(_m.config).QueryBillingInvoice(_m)
+}
+
+// QueryBillingSplitLineGroups queries the "billing_split_line_groups" edge of the Customer entity.
+func (_m *Customer) QueryBillingSplitLineGroups() *BillingInvoiceSplitLineGroupQuery {
+	return NewCustomerClient(_m.config).QueryBillingSplitLineGroups(_m)
 }
 
 // QuerySubscription queries the "subscription" edge of the Customer entity.

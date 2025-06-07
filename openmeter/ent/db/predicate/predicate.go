@@ -109,6 +109,20 @@ func BillingInvoiceLineUsageDiscountOrErr(p BillingInvoiceLineUsageDiscount, err
 	}
 }
 
+// BillingInvoiceSplitLineGroup is the predicate function for billinginvoicesplitlinegroup builders.
+type BillingInvoiceSplitLineGroup func(*sql.Selector)
+
+// BillingInvoiceSplitLineGroupOrErr calls the predicate only if the error is not nit.
+func BillingInvoiceSplitLineGroupOrErr(p BillingInvoiceSplitLineGroup, err error) BillingInvoiceSplitLineGroup {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // BillingInvoiceUsageBasedLineConfig is the predicate function for billinginvoiceusagebasedlineconfig builders.
 type BillingInvoiceUsageBasedLineConfig func(*sql.Selector)
 
