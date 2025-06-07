@@ -129,40 +129,51 @@ type queryMeterCSVResult struct {
 func (a *queryMeterCSVResult) Records() [][]string {
 	records := [][]string{}
 
+	hasSubjectHeader := false
+
 	// Filter out the subject from the group by keys
 	groupByKeys := []string{}
 	for _, k := range a.queryGroupBy {
 		if k == "subject" {
+			hasSubjectHeader = true
 			continue
 		}
 		groupByKeys = append(groupByKeys, k)
 	}
 
 	// CSV headers
-	headers := []string{"window_start", "window_end", "subject"}
+	headers := []string{"window_start", "window_end"}
 
-	enhanceSubject := len(a.subjectsByKey) > 0
+	// Add subject header if present
+	if hasSubjectHeader {
+		headers = append(headers, "subject")
+	}
+
+	// Add subject display name header if present
+	enhanceSubject := hasSubjectHeader && len(a.subjectsByKey) > 0
 
 	if enhanceSubject {
 		headers = append(headers, "subject_display_name")
 	}
 
+	// Add group by headers if present
 	if len(groupByKeys) > 0 {
 		headers = append(headers, groupByKeys...)
 	}
 	headers = append(headers, "value")
+
 	records = append(records, headers)
 
 	// CSV data
 	for _, row := range a.rows {
 		data := []string{row.WindowStart.Format(time.RFC3339), row.WindowEnd.Format(time.RFC3339)}
 
-		// Add subject if available
-		if row.Subject != nil {
-			data = append(data, *row.Subject)
+		// Add subject if header is present
+		if hasSubjectHeader {
+			data = append(data, lo.FromPtrOr(row.Subject, ""))
 
 			// Add display name if available
-			if enhanceSubject {
+			if enhanceSubject && row.Subject != nil {
 				subject, ok := a.subjectsByKey[*row.Subject]
 				if ok {
 					data = append(data, lo.FromPtrOr(subject.DisplayName, ""))
@@ -170,8 +181,6 @@ func (a *queryMeterCSVResult) Records() [][]string {
 					data = append(data, "")
 				}
 			}
-		} else {
-			data = append(data, "")
 		}
 
 		for _, k := range groupByKeys {
