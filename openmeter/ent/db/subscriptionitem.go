@@ -80,9 +80,11 @@ type SubscriptionItemEdges struct {
 	Entitlement *Entitlement `json:"entitlement,omitempty"`
 	// BillingLines holds the value of the billing_lines edge.
 	BillingLines []*BillingInvoiceLine `json:"billing_lines,omitempty"`
+	// BillingSplitLineGroups holds the value of the billing_split_line_groups edge.
+	BillingSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_split_line_groups,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // PhaseOrErr returns the Phase value or an error if the edge
@@ -114,6 +116,15 @@ func (e SubscriptionItemEdges) BillingLinesOrErr() ([]*BillingInvoiceLine, error
 		return e.BillingLines, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_lines"}
+}
+
+// BillingSplitLineGroupsOrErr returns the BillingSplitLineGroups value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionItemEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGroup, error) {
+	if e.loadedTypes[3] {
+		return e.BillingSplitLineGroups, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -329,6 +340,11 @@ func (_m *SubscriptionItem) QueryEntitlement() *EntitlementQuery {
 // QueryBillingLines queries the "billing_lines" edge of the SubscriptionItem entity.
 func (_m *SubscriptionItem) QueryBillingLines() *BillingInvoiceLineQuery {
 	return NewSubscriptionItemClient(_m.config).QueryBillingLines(_m)
+}
+
+// QueryBillingSplitLineGroups queries the "billing_split_line_groups" edge of the SubscriptionItem entity.
+func (_m *SubscriptionItem) QueryBillingSplitLineGroups() *BillingInvoiceSplitLineGroupQuery {
+	return NewSubscriptionItemClient(_m.config).QueryBillingSplitLineGroups(_m)
 }
 
 // Update returns a builder for updating this SubscriptionItem.

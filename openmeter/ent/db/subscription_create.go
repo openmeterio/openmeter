@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -223,6 +224,21 @@ func (_c *SubscriptionCreate) AddBillingLines(v ...*BillingInvoiceLine) *Subscri
 		ids[i] = v[i].ID
 	}
 	return _c.AddBillingLineIDs(ids...)
+}
+
+// AddBillingSplitLineGroupIDs adds the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
+func (_c *SubscriptionCreate) AddBillingSplitLineGroupIDs(ids ...string) *SubscriptionCreate {
+	_c.mutation.AddBillingSplitLineGroupIDs(ids...)
+	return _c
+}
+
+// AddBillingSplitLineGroups adds the "billing_split_line_groups" edges to the BillingInvoiceSplitLineGroup entity.
+func (_c *SubscriptionCreate) AddBillingSplitLineGroups(v ...*BillingInvoiceSplitLineGroup) *SubscriptionCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBillingSplitLineGroupIDs(ids...)
 }
 
 // AddAddonIDs adds the "addons" edge to the SubscriptionAddon entity by IDs.
@@ -485,6 +501,22 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BillingSplitLineGroupsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.BillingSplitLineGroupsTable,
+			Columns: []string{subscription.BillingSplitLineGroupsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

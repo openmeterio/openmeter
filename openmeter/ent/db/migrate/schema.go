@@ -985,10 +985,12 @@ var (
 		{Name: "period_end", Type: field.TypeTime},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "tax_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
+		{Name: "unique_reference_id", Type: field.TypeString, Nullable: true},
 		{Name: "ratecard_discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoiceSplitLineGroupsTable holds the schema information for the "billing_invoice_split_line_groups" table.
 	BillingInvoiceSplitLineGroupsTable = &schema.Table{
@@ -997,10 +999,22 @@ var (
 		PrimaryKey: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "billing_invoice_split_line_groups_customers_billing_split_line_groups",
+				Symbol:     "billing_invoice_split_line_groups_subscriptions_billing_split_line_groups",
 				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[15]},
-				RefColumns: []*schema.Column{CustomersColumns[0]},
-				OnDelete:   schema.Cascade,
+				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_invoice_split_line_groups_subscription_items_billing_split_line_groups",
+				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[16]},
+				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_invoice_split_line_groups_subscription_phases_billing_split_line_groups",
+				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[17]},
+				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -1020,11 +1034,11 @@ var (
 				Columns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[1], BillingInvoiceSplitLineGroupsColumns[0]},
 			},
 			{
-				Name:    "billinginvoicesplitlinegroup_namespace_customer_id_child_unique_reference_id",
+				Name:    "billinginvoicesplitlinegroup_namespace_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[1], BillingInvoiceSplitLineGroupsColumns[15], BillingInvoiceSplitLineGroupsColumns[12]},
+				Columns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[1], BillingInvoiceSplitLineGroupsColumns[12]},
 				Annotation: &entsql.IndexAnnotation{
-					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
+					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
 			},
 		},
@@ -2530,7 +2544,9 @@ func init() {
 	BillingInvoiceLinesTable.ForeignKeys[7].RefTable = SubscriptionPhasesTable
 	BillingInvoiceLineDiscountsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	BillingInvoiceLineUsageDiscountsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
-	BillingInvoiceSplitLineGroupsTable.ForeignKeys[0].RefTable = CustomersTable
+	BillingInvoiceSplitLineGroupsTable.ForeignKeys[0].RefTable = SubscriptionsTable
+	BillingInvoiceSplitLineGroupsTable.ForeignKeys[1].RefTable = SubscriptionItemsTable
+	BillingInvoiceSplitLineGroupsTable.ForeignKeys[2].RefTable = SubscriptionPhasesTable
 	BillingInvoiceValidationIssuesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingProfilesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[1].RefTable = AppsTable

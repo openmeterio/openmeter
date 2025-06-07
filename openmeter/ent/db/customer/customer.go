@@ -56,8 +56,6 @@ const (
 	EdgeBillingCustomerOverride = "billing_customer_override"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
 	EdgeBillingInvoice = "billing_invoice"
-	// EdgeBillingSplitLineGroups holds the string denoting the billing_split_line_groups edge name in mutations.
-	EdgeBillingSplitLineGroups = "billing_split_line_groups"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
 	EdgeSubscription = "subscription"
 	// Table holds the table name of the customer in the database.
@@ -90,13 +88,6 @@ const (
 	BillingInvoiceInverseTable = "billing_invoices"
 	// BillingInvoiceColumn is the table column denoting the billing_invoice relation/edge.
 	BillingInvoiceColumn = "customer_id"
-	// BillingSplitLineGroupsTable is the table that holds the billing_split_line_groups relation/edge.
-	BillingSplitLineGroupsTable = "billing_invoice_split_line_groups"
-	// BillingSplitLineGroupsInverseTable is the table name for the BillingInvoiceSplitLineGroup entity.
-	// It exists in this package in order to avoid circular dependency with the "billinginvoicesplitlinegroup" package.
-	BillingSplitLineGroupsInverseTable = "billing_invoice_split_line_groups"
-	// BillingSplitLineGroupsColumn is the table column denoting the billing_split_line_groups relation/edge.
-	BillingSplitLineGroupsColumn = "customer_id"
 	// SubscriptionTable is the table that holds the subscription relation/edge.
 	SubscriptionTable = "subscriptions"
 	// SubscriptionInverseTable is the table name for the Subscription entity.
@@ -292,20 +283,6 @@ func ByBillingInvoice(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByBillingSplitLineGroupsCount orders the results by billing_split_line_groups count.
-func ByBillingSplitLineGroupsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newBillingSplitLineGroupsStep(), opts...)
-	}
-}
-
-// ByBillingSplitLineGroups orders the results by billing_split_line_groups terms.
-func ByBillingSplitLineGroups(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newBillingSplitLineGroupsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
 // BySubscriptionCount orders the results by subscription count.
 func BySubscriptionCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -345,13 +322,6 @@ func newBillingInvoiceStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceTable, BillingInvoiceColumn),
-	)
-}
-func newBillingSplitLineGroupsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(BillingSplitLineGroupsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, BillingSplitLineGroupsTable, BillingSplitLineGroupsColumn),
 	)
 }
 func newSubscriptionStep() *sqlgraph.Step {

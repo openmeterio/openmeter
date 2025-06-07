@@ -21711,15 +21711,19 @@ type BillingInvoiceSplitLineGroupMutation struct {
 	period_end                   *time.Time
 	currency                     *currencyx.Code
 	tax_config                   *productcatalog.TaxConfig
-	child_unique_reference_id    *string
+	unique_reference_id          *string
 	ratecard_discounts           **billing.Discounts
 	price                        **productcatalog.Price
 	clearedFields                map[string]struct{}
-	customer                     *string
-	clearedcustomer              bool
 	billing_invoice_lines        map[string]struct{}
 	removedbilling_invoice_lines map[string]struct{}
 	clearedbilling_invoice_lines bool
+	subscription                 *string
+	clearedsubscription          bool
+	subscription_phase           *string
+	clearedsubscription_phase    bool
+	subscription_item            *string
+	clearedsubscription_item     bool
 	done                         bool
 	oldValue                     func(context.Context) (*BillingInvoiceSplitLineGroup, error)
 	predicates                   []predicate.BillingInvoiceSplitLineGroup
@@ -22277,89 +22281,53 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetTaxConfig() {
 	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldTaxConfig)
 }
 
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (m *BillingInvoiceSplitLineGroupMutation) SetChildUniqueReferenceID(s string) {
-	m.child_unique_reference_id = &s
+// SetUniqueReferenceID sets the "unique_reference_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) SetUniqueReferenceID(s string) {
+	m.unique_reference_id = &s
 }
 
-// ChildUniqueReferenceID returns the value of the "child_unique_reference_id" field in the mutation.
-func (m *BillingInvoiceSplitLineGroupMutation) ChildUniqueReferenceID() (r string, exists bool) {
-	v := m.child_unique_reference_id
+// UniqueReferenceID returns the value of the "unique_reference_id" field in the mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) UniqueReferenceID() (r string, exists bool) {
+	v := m.unique_reference_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldChildUniqueReferenceID returns the old "child_unique_reference_id" field's value of the BillingInvoiceSplitLineGroup entity.
+// OldUniqueReferenceID returns the old "unique_reference_id" field's value of the BillingInvoiceSplitLineGroup entity.
 // If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceSplitLineGroupMutation) OldChildUniqueReferenceID(ctx context.Context) (v *string, err error) {
+func (m *BillingInvoiceSplitLineGroupMutation) OldUniqueReferenceID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldChildUniqueReferenceID is only allowed on UpdateOne operations")
+		return v, errors.New("OldUniqueReferenceID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldChildUniqueReferenceID requires an ID field in the mutation")
+		return v, errors.New("OldUniqueReferenceID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldChildUniqueReferenceID: %w", err)
+		return v, fmt.Errorf("querying old value for OldUniqueReferenceID: %w", err)
 	}
-	return oldValue.ChildUniqueReferenceID, nil
+	return oldValue.UniqueReferenceID, nil
 }
 
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (m *BillingInvoiceSplitLineGroupMutation) ClearChildUniqueReferenceID() {
-	m.child_unique_reference_id = nil
-	m.clearedFields[billinginvoicesplitlinegroup.FieldChildUniqueReferenceID] = struct{}{}
+// ClearUniqueReferenceID clears the value of the "unique_reference_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearUniqueReferenceID() {
+	m.unique_reference_id = nil
+	m.clearedFields[billinginvoicesplitlinegroup.FieldUniqueReferenceID] = struct{}{}
 }
 
-// ChildUniqueReferenceIDCleared returns if the "child_unique_reference_id" field was cleared in this mutation.
-func (m *BillingInvoiceSplitLineGroupMutation) ChildUniqueReferenceIDCleared() bool {
-	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldChildUniqueReferenceID]
+// UniqueReferenceIDCleared returns if the "unique_reference_id" field was cleared in this mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) UniqueReferenceIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldUniqueReferenceID]
 	return ok
 }
 
-// ResetChildUniqueReferenceID resets all changes to the "child_unique_reference_id" field.
-func (m *BillingInvoiceSplitLineGroupMutation) ResetChildUniqueReferenceID() {
-	m.child_unique_reference_id = nil
-	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldChildUniqueReferenceID)
-}
-
-// SetCustomerID sets the "customer_id" field.
-func (m *BillingInvoiceSplitLineGroupMutation) SetCustomerID(s string) {
-	m.customer = &s
-}
-
-// CustomerID returns the value of the "customer_id" field in the mutation.
-func (m *BillingInvoiceSplitLineGroupMutation) CustomerID() (r string, exists bool) {
-	v := m.customer
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCustomerID returns the old "customer_id" field's value of the BillingInvoiceSplitLineGroup entity.
-// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceSplitLineGroupMutation) OldCustomerID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCustomerID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCustomerID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCustomerID: %w", err)
-	}
-	return oldValue.CustomerID, nil
-}
-
-// ResetCustomerID resets all changes to the "customer_id" field.
-func (m *BillingInvoiceSplitLineGroupMutation) ResetCustomerID() {
-	m.customer = nil
+// ResetUniqueReferenceID resets all changes to the "unique_reference_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetUniqueReferenceID() {
+	m.unique_reference_id = nil
+	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldUniqueReferenceID)
 }
 
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
@@ -22447,31 +22415,151 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetPrice() {
 	m.price = nil
 }
 
-// ClearCustomer clears the "customer" edge to the Customer entity.
-func (m *BillingInvoiceSplitLineGroupMutation) ClearCustomer() {
-	m.clearedcustomer = true
-	m.clearedFields[billinginvoicesplitlinegroup.FieldCustomerID] = struct{}{}
+// SetSubscriptionID sets the "subscription_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) SetSubscriptionID(s string) {
+	m.subscription = &s
 }
 
-// CustomerCleared reports if the "customer" edge to the Customer entity was cleared.
-func (m *BillingInvoiceSplitLineGroupMutation) CustomerCleared() bool {
-	return m.clearedcustomer
-}
-
-// CustomerIDs returns the "customer" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// CustomerID instead. It exists only for internal usage by the builders.
-func (m *BillingInvoiceSplitLineGroupMutation) CustomerIDs() (ids []string) {
-	if id := m.customer; id != nil {
-		ids = append(ids, *id)
+// SubscriptionID returns the value of the "subscription_id" field in the mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionID() (r string, exists bool) {
+	v := m.subscription
+	if v == nil {
+		return
 	}
-	return
+	return *v, true
 }
 
-// ResetCustomer resets all changes to the "customer" edge.
-func (m *BillingInvoiceSplitLineGroupMutation) ResetCustomer() {
-	m.customer = nil
-	m.clearedcustomer = false
+// OldSubscriptionID returns the old "subscription_id" field's value of the BillingInvoiceSplitLineGroup entity.
+// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceSplitLineGroupMutation) OldSubscriptionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionID: %w", err)
+	}
+	return oldValue.SubscriptionID, nil
+}
+
+// ClearSubscriptionID clears the value of the "subscription_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearSubscriptionID() {
+	m.subscription = nil
+	m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionID] = struct{}{}
+}
+
+// SubscriptionIDCleared returns if the "subscription_id" field was cleared in this mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionID]
+	return ok
+}
+
+// ResetSubscriptionID resets all changes to the "subscription_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetSubscriptionID() {
+	m.subscription = nil
+	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldSubscriptionID)
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) SetSubscriptionPhaseID(s string) {
+	m.subscription_phase = &s
+}
+
+// SubscriptionPhaseID returns the value of the "subscription_phase_id" field in the mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionPhaseID() (r string, exists bool) {
+	v := m.subscription_phase
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionPhaseID returns the old "subscription_phase_id" field's value of the BillingInvoiceSplitLineGroup entity.
+// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceSplitLineGroupMutation) OldSubscriptionPhaseID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionPhaseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionPhaseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionPhaseID: %w", err)
+	}
+	return oldValue.SubscriptionPhaseID, nil
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearSubscriptionPhaseID() {
+	m.subscription_phase = nil
+	m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionPhaseID] = struct{}{}
+}
+
+// SubscriptionPhaseIDCleared returns if the "subscription_phase_id" field was cleared in this mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionPhaseIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionPhaseID]
+	return ok
+}
+
+// ResetSubscriptionPhaseID resets all changes to the "subscription_phase_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetSubscriptionPhaseID() {
+	m.subscription_phase = nil
+	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID)
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) SetSubscriptionItemID(s string) {
+	m.subscription_item = &s
+}
+
+// SubscriptionItemID returns the value of the "subscription_item_id" field in the mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionItemID() (r string, exists bool) {
+	v := m.subscription_item
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionItemID returns the old "subscription_item_id" field's value of the BillingInvoiceSplitLineGroup entity.
+// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceSplitLineGroupMutation) OldSubscriptionItemID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionItemID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionItemID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionItemID: %w", err)
+	}
+	return oldValue.SubscriptionItemID, nil
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearSubscriptionItemID() {
+	m.subscription_item = nil
+	m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionItemID] = struct{}{}
+}
+
+// SubscriptionItemIDCleared returns if the "subscription_item_id" field was cleared in this mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionItemIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionItemID]
+	return ok
+}
+
+// ResetSubscriptionItemID resets all changes to the "subscription_item_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetSubscriptionItemID() {
+	m.subscription_item = nil
+	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldSubscriptionItemID)
 }
 
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by ids.
@@ -22528,6 +22616,87 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetBillingInvoiceLines() {
 	m.removedbilling_invoice_lines = nil
 }
 
+// ClearSubscription clears the "subscription" edge to the Subscription entity.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearSubscription() {
+	m.clearedsubscription = true
+	m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionID] = struct{}{}
+}
+
+// SubscriptionCleared reports if the "subscription" edge to the Subscription entity was cleared.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionCleared() bool {
+	return m.SubscriptionIDCleared() || m.clearedsubscription
+}
+
+// SubscriptionIDs returns the "subscription" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SubscriptionID instead. It exists only for internal usage by the builders.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionIDs() (ids []string) {
+	if id := m.subscription; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSubscription resets all changes to the "subscription" edge.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetSubscription() {
+	m.subscription = nil
+	m.clearedsubscription = false
+}
+
+// ClearSubscriptionPhase clears the "subscription_phase" edge to the SubscriptionPhase entity.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearSubscriptionPhase() {
+	m.clearedsubscription_phase = true
+	m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionPhaseID] = struct{}{}
+}
+
+// SubscriptionPhaseCleared reports if the "subscription_phase" edge to the SubscriptionPhase entity was cleared.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionPhaseCleared() bool {
+	return m.SubscriptionPhaseIDCleared() || m.clearedsubscription_phase
+}
+
+// SubscriptionPhaseIDs returns the "subscription_phase" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SubscriptionPhaseID instead. It exists only for internal usage by the builders.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionPhaseIDs() (ids []string) {
+	if id := m.subscription_phase; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSubscriptionPhase resets all changes to the "subscription_phase" edge.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetSubscriptionPhase() {
+	m.subscription_phase = nil
+	m.clearedsubscription_phase = false
+}
+
+// ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearSubscriptionItem() {
+	m.clearedsubscription_item = true
+	m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionItemID] = struct{}{}
+}
+
+// SubscriptionItemCleared reports if the "subscription_item" edge to the SubscriptionItem entity was cleared.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionItemCleared() bool {
+	return m.SubscriptionItemIDCleared() || m.clearedsubscription_item
+}
+
+// SubscriptionItemIDs returns the "subscription_item" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SubscriptionItemID instead. It exists only for internal usage by the builders.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionItemIDs() (ids []string) {
+	if id := m.subscription_item; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSubscriptionItem resets all changes to the "subscription_item" edge.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetSubscriptionItem() {
+	m.subscription_item = nil
+	m.clearedsubscription_item = false
+}
+
 // Where appends a list predicates to the BillingInvoiceSplitLineGroupMutation builder.
 func (m *BillingInvoiceSplitLineGroupMutation) Where(ps ...predicate.BillingInvoiceSplitLineGroup) {
 	m.predicates = append(m.predicates, ps...)
@@ -22562,7 +22731,7 @@ func (m *BillingInvoiceSplitLineGroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceSplitLineGroupMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 17)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldNamespace)
 	}
@@ -22596,17 +22765,23 @@ func (m *BillingInvoiceSplitLineGroupMutation) Fields() []string {
 	if m.tax_config != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxConfig)
 	}
-	if m.child_unique_reference_id != nil {
-		fields = append(fields, billinginvoicesplitlinegroup.FieldChildUniqueReferenceID)
-	}
-	if m.customer != nil {
-		fields = append(fields, billinginvoicesplitlinegroup.FieldCustomerID)
+	if m.unique_reference_id != nil {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldUniqueReferenceID)
 	}
 	if m.ratecard_discounts != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldRatecardDiscounts)
 	}
 	if m.price != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldPrice)
+	}
+	if m.subscription != nil {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionID)
+	}
+	if m.subscription_phase != nil {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID)
+	}
+	if m.subscription_item != nil {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionItemID)
 	}
 	return fields
 }
@@ -22638,14 +22813,18 @@ func (m *BillingInvoiceSplitLineGroupMutation) Field(name string) (ent.Value, bo
 		return m.Currency()
 	case billinginvoicesplitlinegroup.FieldTaxConfig:
 		return m.TaxConfig()
-	case billinginvoicesplitlinegroup.FieldChildUniqueReferenceID:
-		return m.ChildUniqueReferenceID()
-	case billinginvoicesplitlinegroup.FieldCustomerID:
-		return m.CustomerID()
+	case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
+		return m.UniqueReferenceID()
 	case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 		return m.RatecardDiscounts()
 	case billinginvoicesplitlinegroup.FieldPrice:
 		return m.Price()
+	case billinginvoicesplitlinegroup.FieldSubscriptionID:
+		return m.SubscriptionID()
+	case billinginvoicesplitlinegroup.FieldSubscriptionPhaseID:
+		return m.SubscriptionPhaseID()
+	case billinginvoicesplitlinegroup.FieldSubscriptionItemID:
+		return m.SubscriptionItemID()
 	}
 	return nil, false
 }
@@ -22677,14 +22856,18 @@ func (m *BillingInvoiceSplitLineGroupMutation) OldField(ctx context.Context, nam
 		return m.OldCurrency(ctx)
 	case billinginvoicesplitlinegroup.FieldTaxConfig:
 		return m.OldTaxConfig(ctx)
-	case billinginvoicesplitlinegroup.FieldChildUniqueReferenceID:
-		return m.OldChildUniqueReferenceID(ctx)
-	case billinginvoicesplitlinegroup.FieldCustomerID:
-		return m.OldCustomerID(ctx)
+	case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
+		return m.OldUniqueReferenceID(ctx)
 	case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 		return m.OldRatecardDiscounts(ctx)
 	case billinginvoicesplitlinegroup.FieldPrice:
 		return m.OldPrice(ctx)
+	case billinginvoicesplitlinegroup.FieldSubscriptionID:
+		return m.OldSubscriptionID(ctx)
+	case billinginvoicesplitlinegroup.FieldSubscriptionPhaseID:
+		return m.OldSubscriptionPhaseID(ctx)
+	case billinginvoicesplitlinegroup.FieldSubscriptionItemID:
+		return m.OldSubscriptionItemID(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingInvoiceSplitLineGroup field %s", name)
 }
@@ -22771,19 +22954,12 @@ func (m *BillingInvoiceSplitLineGroupMutation) SetField(name string, value ent.V
 		}
 		m.SetTaxConfig(v)
 		return nil
-	case billinginvoicesplitlinegroup.FieldChildUniqueReferenceID:
+	case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetChildUniqueReferenceID(v)
-		return nil
-	case billinginvoicesplitlinegroup.FieldCustomerID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCustomerID(v)
+		m.SetUniqueReferenceID(v)
 		return nil
 	case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 		v, ok := value.(*billing.Discounts)
@@ -22798,6 +22974,27 @@ func (m *BillingInvoiceSplitLineGroupMutation) SetField(name string, value ent.V
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPrice(v)
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionID(v)
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionPhaseID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionPhaseID(v)
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionItemID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionItemID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceSplitLineGroup field %s", name)
@@ -22841,11 +23038,20 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoicesplitlinegroup.FieldTaxConfig) {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxConfig)
 	}
-	if m.FieldCleared(billinginvoicesplitlinegroup.FieldChildUniqueReferenceID) {
-		fields = append(fields, billinginvoicesplitlinegroup.FieldChildUniqueReferenceID)
+	if m.FieldCleared(billinginvoicesplitlinegroup.FieldUniqueReferenceID) {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldUniqueReferenceID)
 	}
 	if m.FieldCleared(billinginvoicesplitlinegroup.FieldRatecardDiscounts) {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldRatecardDiscounts)
+	}
+	if m.FieldCleared(billinginvoicesplitlinegroup.FieldSubscriptionID) {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionID)
+	}
+	if m.FieldCleared(billinginvoicesplitlinegroup.FieldSubscriptionPhaseID) {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID)
+	}
+	if m.FieldCleared(billinginvoicesplitlinegroup.FieldSubscriptionItemID) {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionItemID)
 	}
 	return fields
 }
@@ -22873,11 +23079,20 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearField(name string) error {
 	case billinginvoicesplitlinegroup.FieldTaxConfig:
 		m.ClearTaxConfig()
 		return nil
-	case billinginvoicesplitlinegroup.FieldChildUniqueReferenceID:
-		m.ClearChildUniqueReferenceID()
+	case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
+		m.ClearUniqueReferenceID()
 		return nil
 	case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 		m.ClearRatecardDiscounts()
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionID:
+		m.ClearSubscriptionID()
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionPhaseID:
+		m.ClearSubscriptionPhaseID()
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionItemID:
+		m.ClearSubscriptionItemID()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceSplitLineGroup nullable field %s", name)
@@ -22920,11 +23135,8 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetField(name string) error {
 	case billinginvoicesplitlinegroup.FieldTaxConfig:
 		m.ResetTaxConfig()
 		return nil
-	case billinginvoicesplitlinegroup.FieldChildUniqueReferenceID:
-		m.ResetChildUniqueReferenceID()
-		return nil
-	case billinginvoicesplitlinegroup.FieldCustomerID:
-		m.ResetCustomerID()
+	case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
+		m.ResetUniqueReferenceID()
 		return nil
 	case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 		m.ResetRatecardDiscounts()
@@ -22932,18 +23144,33 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetField(name string) error {
 	case billinginvoicesplitlinegroup.FieldPrice:
 		m.ResetPrice()
 		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionID:
+		m.ResetSubscriptionID()
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionPhaseID:
+		m.ResetSubscriptionPhaseID()
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionItemID:
+		m.ResetSubscriptionItemID()
+		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceSplitLineGroup field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceSplitLineGroupMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.customer != nil {
-		edges = append(edges, billinginvoicesplitlinegroup.EdgeCustomer)
-	}
+	edges := make([]string, 0, 4)
 	if m.billing_invoice_lines != nil {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeBillingInvoiceLines)
+	}
+	if m.subscription != nil {
+		edges = append(edges, billinginvoicesplitlinegroup.EdgeSubscription)
+	}
+	if m.subscription_phase != nil {
+		edges = append(edges, billinginvoicesplitlinegroup.EdgeSubscriptionPhase)
+	}
+	if m.subscription_item != nil {
+		edges = append(edges, billinginvoicesplitlinegroup.EdgeSubscriptionItem)
 	}
 	return edges
 }
@@ -22952,23 +23179,31 @@ func (m *BillingInvoiceSplitLineGroupMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *BillingInvoiceSplitLineGroupMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case billinginvoicesplitlinegroup.EdgeCustomer:
-		if id := m.customer; id != nil {
-			return []ent.Value{*id}
-		}
 	case billinginvoicesplitlinegroup.EdgeBillingInvoiceLines:
 		ids := make([]ent.Value, 0, len(m.billing_invoice_lines))
 		for id := range m.billing_invoice_lines {
 			ids = append(ids, id)
 		}
 		return ids
+	case billinginvoicesplitlinegroup.EdgeSubscription:
+		if id := m.subscription; id != nil {
+			return []ent.Value{*id}
+		}
+	case billinginvoicesplitlinegroup.EdgeSubscriptionPhase:
+		if id := m.subscription_phase; id != nil {
+			return []ent.Value{*id}
+		}
+	case billinginvoicesplitlinegroup.EdgeSubscriptionItem:
+		if id := m.subscription_item; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceSplitLineGroupMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 4)
 	if m.removedbilling_invoice_lines != nil {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeBillingInvoiceLines)
 	}
@@ -22991,12 +23226,18 @@ func (m *BillingInvoiceSplitLineGroupMutation) RemovedIDs(name string) []ent.Val
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceSplitLineGroupMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.clearedcustomer {
-		edges = append(edges, billinginvoicesplitlinegroup.EdgeCustomer)
-	}
+	edges := make([]string, 0, 4)
 	if m.clearedbilling_invoice_lines {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeBillingInvoiceLines)
+	}
+	if m.clearedsubscription {
+		edges = append(edges, billinginvoicesplitlinegroup.EdgeSubscription)
+	}
+	if m.clearedsubscription_phase {
+		edges = append(edges, billinginvoicesplitlinegroup.EdgeSubscriptionPhase)
+	}
+	if m.clearedsubscription_item {
+		edges = append(edges, billinginvoicesplitlinegroup.EdgeSubscriptionItem)
 	}
 	return edges
 }
@@ -23005,10 +23246,14 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *BillingInvoiceSplitLineGroupMutation) EdgeCleared(name string) bool {
 	switch name {
-	case billinginvoicesplitlinegroup.EdgeCustomer:
-		return m.clearedcustomer
 	case billinginvoicesplitlinegroup.EdgeBillingInvoiceLines:
 		return m.clearedbilling_invoice_lines
+	case billinginvoicesplitlinegroup.EdgeSubscription:
+		return m.clearedsubscription
+	case billinginvoicesplitlinegroup.EdgeSubscriptionPhase:
+		return m.clearedsubscription_phase
+	case billinginvoicesplitlinegroup.EdgeSubscriptionItem:
+		return m.clearedsubscription_item
 	}
 	return false
 }
@@ -23017,8 +23262,14 @@ func (m *BillingInvoiceSplitLineGroupMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *BillingInvoiceSplitLineGroupMutation) ClearEdge(name string) error {
 	switch name {
-	case billinginvoicesplitlinegroup.EdgeCustomer:
-		m.ClearCustomer()
+	case billinginvoicesplitlinegroup.EdgeSubscription:
+		m.ClearSubscription()
+		return nil
+	case billinginvoicesplitlinegroup.EdgeSubscriptionPhase:
+		m.ClearSubscriptionPhase()
+		return nil
+	case billinginvoicesplitlinegroup.EdgeSubscriptionItem:
+		m.ClearSubscriptionItem()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceSplitLineGroup unique edge %s", name)
@@ -23028,11 +23279,17 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *BillingInvoiceSplitLineGroupMutation) ResetEdge(name string) error {
 	switch name {
-	case billinginvoicesplitlinegroup.EdgeCustomer:
-		m.ResetCustomer()
-		return nil
 	case billinginvoicesplitlinegroup.EdgeBillingInvoiceLines:
 		m.ResetBillingInvoiceLines()
+		return nil
+	case billinginvoicesplitlinegroup.EdgeSubscription:
+		m.ResetSubscription()
+		return nil
+	case billinginvoicesplitlinegroup.EdgeSubscriptionPhase:
+		m.ResetSubscriptionPhase()
+		return nil
+	case billinginvoicesplitlinegroup.EdgeSubscriptionItem:
+		m.ResetSubscriptionItem()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceSplitLineGroup edge %s", name)
@@ -28426,9 +28683,6 @@ type CustomerMutation struct {
 	billing_invoice                  map[string]struct{}
 	removedbilling_invoice           map[string]struct{}
 	clearedbilling_invoice           bool
-	billing_split_line_groups        map[string]struct{}
-	removedbilling_split_line_groups map[string]struct{}
-	clearedbilling_split_line_groups bool
 	subscription                     map[string]struct{}
 	removedsubscription              map[string]struct{}
 	clearedsubscription              bool
@@ -29523,60 +29777,6 @@ func (m *CustomerMutation) ResetBillingInvoice() {
 	m.removedbilling_invoice = nil
 }
 
-// AddBillingSplitLineGroupIDs adds the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by ids.
-func (m *CustomerMutation) AddBillingSplitLineGroupIDs(ids ...string) {
-	if m.billing_split_line_groups == nil {
-		m.billing_split_line_groups = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.billing_split_line_groups[ids[i]] = struct{}{}
-	}
-}
-
-// ClearBillingSplitLineGroups clears the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
-func (m *CustomerMutation) ClearBillingSplitLineGroups() {
-	m.clearedbilling_split_line_groups = true
-}
-
-// BillingSplitLineGroupsCleared reports if the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity was cleared.
-func (m *CustomerMutation) BillingSplitLineGroupsCleared() bool {
-	return m.clearedbilling_split_line_groups
-}
-
-// RemoveBillingSplitLineGroupIDs removes the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
-func (m *CustomerMutation) RemoveBillingSplitLineGroupIDs(ids ...string) {
-	if m.removedbilling_split_line_groups == nil {
-		m.removedbilling_split_line_groups = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.billing_split_line_groups, ids[i])
-		m.removedbilling_split_line_groups[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedBillingSplitLineGroups returns the removed IDs of the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
-func (m *CustomerMutation) RemovedBillingSplitLineGroupsIDs() (ids []string) {
-	for id := range m.removedbilling_split_line_groups {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// BillingSplitLineGroupsIDs returns the "billing_split_line_groups" edge IDs in the mutation.
-func (m *CustomerMutation) BillingSplitLineGroupsIDs() (ids []string) {
-	for id := range m.billing_split_line_groups {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetBillingSplitLineGroups resets all changes to the "billing_split_line_groups" edge.
-func (m *CustomerMutation) ResetBillingSplitLineGroups() {
-	m.billing_split_line_groups = nil
-	m.clearedbilling_split_line_groups = false
-	m.removedbilling_split_line_groups = nil
-}
-
 // AddSubscriptionIDs adds the "subscription" edge to the Subscription entity by ids.
 func (m *CustomerMutation) AddSubscriptionIDs(ids ...string) {
 	if m.subscription == nil {
@@ -30117,7 +30317,7 @@ func (m *CustomerMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CustomerMutation) AddedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 5)
 	if m.apps != nil {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -30129,9 +30329,6 @@ func (m *CustomerMutation) AddedEdges() []string {
 	}
 	if m.billing_invoice != nil {
 		edges = append(edges, customer.EdgeBillingInvoice)
-	}
-	if m.billing_split_line_groups != nil {
-		edges = append(edges, customer.EdgeBillingSplitLineGroups)
 	}
 	if m.subscription != nil {
 		edges = append(edges, customer.EdgeSubscription)
@@ -30165,12 +30362,6 @@ func (m *CustomerMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case customer.EdgeBillingSplitLineGroups:
-		ids := make([]ent.Value, 0, len(m.billing_split_line_groups))
-		for id := range m.billing_split_line_groups {
-			ids = append(ids, id)
-		}
-		return ids
 	case customer.EdgeSubscription:
 		ids := make([]ent.Value, 0, len(m.subscription))
 		for id := range m.subscription {
@@ -30183,7 +30374,7 @@ func (m *CustomerMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CustomerMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 5)
 	if m.removedapps != nil {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -30192,9 +30383,6 @@ func (m *CustomerMutation) RemovedEdges() []string {
 	}
 	if m.removedbilling_invoice != nil {
 		edges = append(edges, customer.EdgeBillingInvoice)
-	}
-	if m.removedbilling_split_line_groups != nil {
-		edges = append(edges, customer.EdgeBillingSplitLineGroups)
 	}
 	if m.removedsubscription != nil {
 		edges = append(edges, customer.EdgeSubscription)
@@ -30224,12 +30412,6 @@ func (m *CustomerMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case customer.EdgeBillingSplitLineGroups:
-		ids := make([]ent.Value, 0, len(m.removedbilling_split_line_groups))
-		for id := range m.removedbilling_split_line_groups {
-			ids = append(ids, id)
-		}
-		return ids
 	case customer.EdgeSubscription:
 		ids := make([]ent.Value, 0, len(m.removedsubscription))
 		for id := range m.removedsubscription {
@@ -30242,7 +30424,7 @@ func (m *CustomerMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CustomerMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 5)
 	if m.clearedapps {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -30254,9 +30436,6 @@ func (m *CustomerMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_invoice {
 		edges = append(edges, customer.EdgeBillingInvoice)
-	}
-	if m.clearedbilling_split_line_groups {
-		edges = append(edges, customer.EdgeBillingSplitLineGroups)
 	}
 	if m.clearedsubscription {
 		edges = append(edges, customer.EdgeSubscription)
@@ -30276,8 +30455,6 @@ func (m *CustomerMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_customer_override
 	case customer.EdgeBillingInvoice:
 		return m.clearedbilling_invoice
-	case customer.EdgeBillingSplitLineGroups:
-		return m.clearedbilling_split_line_groups
 	case customer.EdgeSubscription:
 		return m.clearedsubscription
 	}
@@ -30310,9 +30487,6 @@ func (m *CustomerMutation) ResetEdge(name string) error {
 		return nil
 	case customer.EdgeBillingInvoice:
 		m.ResetBillingInvoice()
-		return nil
-	case customer.EdgeBillingSplitLineGroups:
-		m.ResetBillingSplitLineGroups()
 		return nil
 	case customer.EdgeSubscription:
 		m.ResetSubscription()
@@ -45955,37 +46129,40 @@ func (m *SubjectMutation) ResetEdge(name string) error {
 // SubscriptionMutation represents an operation that mutates the Subscription nodes in the graph.
 type SubscriptionMutation struct {
 	config
-	op                   Op
-	typ                  string
-	id                   *string
-	namespace            *string
-	created_at           *time.Time
-	updated_at           *time.Time
-	deleted_at           *time.Time
-	metadata             *map[string]string
-	active_from          *time.Time
-	active_to            *time.Time
-	billables_must_align *bool
-	name                 *string
-	description          *string
-	currency             *currencyx.Code
-	clearedFields        map[string]struct{}
-	plan                 *string
-	clearedplan          bool
-	customer             *string
-	clearedcustomer      bool
-	phases               map[string]struct{}
-	removedphases        map[string]struct{}
-	clearedphases        bool
-	billing_lines        map[string]struct{}
-	removedbilling_lines map[string]struct{}
-	clearedbilling_lines bool
-	addons               map[string]struct{}
-	removedaddons        map[string]struct{}
-	clearedaddons        bool
-	done                 bool
-	oldValue             func(context.Context) (*Subscription, error)
-	predicates           []predicate.Subscription
+	op                               Op
+	typ                              string
+	id                               *string
+	namespace                        *string
+	created_at                       *time.Time
+	updated_at                       *time.Time
+	deleted_at                       *time.Time
+	metadata                         *map[string]string
+	active_from                      *time.Time
+	active_to                        *time.Time
+	billables_must_align             *bool
+	name                             *string
+	description                      *string
+	currency                         *currencyx.Code
+	clearedFields                    map[string]struct{}
+	plan                             *string
+	clearedplan                      bool
+	customer                         *string
+	clearedcustomer                  bool
+	phases                           map[string]struct{}
+	removedphases                    map[string]struct{}
+	clearedphases                    bool
+	billing_lines                    map[string]struct{}
+	removedbilling_lines             map[string]struct{}
+	clearedbilling_lines             bool
+	billing_split_line_groups        map[string]struct{}
+	removedbilling_split_line_groups map[string]struct{}
+	clearedbilling_split_line_groups bool
+	addons                           map[string]struct{}
+	removedaddons                    map[string]struct{}
+	clearedaddons                    bool
+	done                             bool
+	oldValue                         func(context.Context) (*Subscription, error)
+	predicates                       []predicate.Subscription
 }
 
 var _ ent.Mutation = (*SubscriptionMutation)(nil)
@@ -46787,6 +46964,60 @@ func (m *SubscriptionMutation) ResetBillingLines() {
 	m.removedbilling_lines = nil
 }
 
+// AddBillingSplitLineGroupIDs adds the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by ids.
+func (m *SubscriptionMutation) AddBillingSplitLineGroupIDs(ids ...string) {
+	if m.billing_split_line_groups == nil {
+		m.billing_split_line_groups = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.billing_split_line_groups[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBillingSplitLineGroups clears the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
+func (m *SubscriptionMutation) ClearBillingSplitLineGroups() {
+	m.clearedbilling_split_line_groups = true
+}
+
+// BillingSplitLineGroupsCleared reports if the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity was cleared.
+func (m *SubscriptionMutation) BillingSplitLineGroupsCleared() bool {
+	return m.clearedbilling_split_line_groups
+}
+
+// RemoveBillingSplitLineGroupIDs removes the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
+func (m *SubscriptionMutation) RemoveBillingSplitLineGroupIDs(ids ...string) {
+	if m.removedbilling_split_line_groups == nil {
+		m.removedbilling_split_line_groups = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.billing_split_line_groups, ids[i])
+		m.removedbilling_split_line_groups[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBillingSplitLineGroups returns the removed IDs of the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
+func (m *SubscriptionMutation) RemovedBillingSplitLineGroupsIDs() (ids []string) {
+	for id := range m.removedbilling_split_line_groups {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BillingSplitLineGroupsIDs returns the "billing_split_line_groups" edge IDs in the mutation.
+func (m *SubscriptionMutation) BillingSplitLineGroupsIDs() (ids []string) {
+	for id := range m.billing_split_line_groups {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBillingSplitLineGroups resets all changes to the "billing_split_line_groups" edge.
+func (m *SubscriptionMutation) ResetBillingSplitLineGroups() {
+	m.billing_split_line_groups = nil
+	m.clearedbilling_split_line_groups = false
+	m.removedbilling_split_line_groups = nil
+}
+
 // AddAddonIDs adds the "addons" edge to the SubscriptionAddon entity by ids.
 func (m *SubscriptionMutation) AddAddonIDs(ids ...string) {
 	if m.addons == nil {
@@ -47211,7 +47442,7 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SubscriptionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.plan != nil {
 		edges = append(edges, subscription.EdgePlan)
 	}
@@ -47223,6 +47454,9 @@ func (m *SubscriptionMutation) AddedEdges() []string {
 	}
 	if m.billing_lines != nil {
 		edges = append(edges, subscription.EdgeBillingLines)
+	}
+	if m.billing_split_line_groups != nil {
+		edges = append(edges, subscription.EdgeBillingSplitLineGroups)
 	}
 	if m.addons != nil {
 		edges = append(edges, subscription.EdgeAddons)
@@ -47254,6 +47488,12 @@ func (m *SubscriptionMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case subscription.EdgeBillingSplitLineGroups:
+		ids := make([]ent.Value, 0, len(m.billing_split_line_groups))
+		for id := range m.billing_split_line_groups {
+			ids = append(ids, id)
+		}
+		return ids
 	case subscription.EdgeAddons:
 		ids := make([]ent.Value, 0, len(m.addons))
 		for id := range m.addons {
@@ -47266,12 +47506,15 @@ func (m *SubscriptionMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SubscriptionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedphases != nil {
 		edges = append(edges, subscription.EdgePhases)
 	}
 	if m.removedbilling_lines != nil {
 		edges = append(edges, subscription.EdgeBillingLines)
+	}
+	if m.removedbilling_split_line_groups != nil {
+		edges = append(edges, subscription.EdgeBillingSplitLineGroups)
 	}
 	if m.removedaddons != nil {
 		edges = append(edges, subscription.EdgeAddons)
@@ -47295,6 +47538,12 @@ func (m *SubscriptionMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case subscription.EdgeBillingSplitLineGroups:
+		ids := make([]ent.Value, 0, len(m.removedbilling_split_line_groups))
+		for id := range m.removedbilling_split_line_groups {
+			ids = append(ids, id)
+		}
+		return ids
 	case subscription.EdgeAddons:
 		ids := make([]ent.Value, 0, len(m.removedaddons))
 		for id := range m.removedaddons {
@@ -47307,7 +47556,7 @@ func (m *SubscriptionMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SubscriptionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedplan {
 		edges = append(edges, subscription.EdgePlan)
 	}
@@ -47319,6 +47568,9 @@ func (m *SubscriptionMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_lines {
 		edges = append(edges, subscription.EdgeBillingLines)
+	}
+	if m.clearedbilling_split_line_groups {
+		edges = append(edges, subscription.EdgeBillingSplitLineGroups)
 	}
 	if m.clearedaddons {
 		edges = append(edges, subscription.EdgeAddons)
@@ -47338,6 +47590,8 @@ func (m *SubscriptionMutation) EdgeCleared(name string) bool {
 		return m.clearedphases
 	case subscription.EdgeBillingLines:
 		return m.clearedbilling_lines
+	case subscription.EdgeBillingSplitLineGroups:
+		return m.clearedbilling_split_line_groups
 	case subscription.EdgeAddons:
 		return m.clearedaddons
 	}
@@ -47373,6 +47627,9 @@ func (m *SubscriptionMutation) ResetEdge(name string) error {
 		return nil
 	case subscription.EdgeBillingLines:
 		m.ResetBillingLines()
+		return nil
+	case subscription.EdgeBillingSplitLineGroups:
+		m.ResetBillingSplitLineGroups()
 		return nil
 	case subscription.EdgeAddons:
 		m.ResetAddons()
@@ -49065,6 +49322,9 @@ type SubscriptionItemMutation struct {
 	billing_lines                                map[string]struct{}
 	removedbilling_lines                         map[string]struct{}
 	clearedbilling_lines                         bool
+	billing_split_line_groups                    map[string]struct{}
+	removedbilling_split_line_groups             map[string]struct{}
+	clearedbilling_split_line_groups             bool
 	done                                         bool
 	oldValue                                     func(context.Context) (*SubscriptionItem, error)
 	predicates                                   []predicate.SubscriptionItem
@@ -50269,6 +50529,60 @@ func (m *SubscriptionItemMutation) ResetBillingLines() {
 	m.removedbilling_lines = nil
 }
 
+// AddBillingSplitLineGroupIDs adds the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by ids.
+func (m *SubscriptionItemMutation) AddBillingSplitLineGroupIDs(ids ...string) {
+	if m.billing_split_line_groups == nil {
+		m.billing_split_line_groups = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.billing_split_line_groups[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBillingSplitLineGroups clears the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
+func (m *SubscriptionItemMutation) ClearBillingSplitLineGroups() {
+	m.clearedbilling_split_line_groups = true
+}
+
+// BillingSplitLineGroupsCleared reports if the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity was cleared.
+func (m *SubscriptionItemMutation) BillingSplitLineGroupsCleared() bool {
+	return m.clearedbilling_split_line_groups
+}
+
+// RemoveBillingSplitLineGroupIDs removes the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
+func (m *SubscriptionItemMutation) RemoveBillingSplitLineGroupIDs(ids ...string) {
+	if m.removedbilling_split_line_groups == nil {
+		m.removedbilling_split_line_groups = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.billing_split_line_groups, ids[i])
+		m.removedbilling_split_line_groups[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBillingSplitLineGroups returns the removed IDs of the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
+func (m *SubscriptionItemMutation) RemovedBillingSplitLineGroupsIDs() (ids []string) {
+	for id := range m.removedbilling_split_line_groups {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BillingSplitLineGroupsIDs returns the "billing_split_line_groups" edge IDs in the mutation.
+func (m *SubscriptionItemMutation) BillingSplitLineGroupsIDs() (ids []string) {
+	for id := range m.billing_split_line_groups {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBillingSplitLineGroups resets all changes to the "billing_split_line_groups" edge.
+func (m *SubscriptionItemMutation) ResetBillingSplitLineGroups() {
+	m.billing_split_line_groups = nil
+	m.clearedbilling_split_line_groups = false
+	m.removedbilling_split_line_groups = nil
+}
+
 // Where appends a list predicates to the SubscriptionItemMutation builder.
 func (m *SubscriptionItemMutation) Where(ps ...predicate.SubscriptionItem) {
 	m.predicates = append(m.predicates, ps...)
@@ -50852,7 +51166,7 @@ func (m *SubscriptionItemMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SubscriptionItemMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.phase != nil {
 		edges = append(edges, subscriptionitem.EdgePhase)
 	}
@@ -50861,6 +51175,9 @@ func (m *SubscriptionItemMutation) AddedEdges() []string {
 	}
 	if m.billing_lines != nil {
 		edges = append(edges, subscriptionitem.EdgeBillingLines)
+	}
+	if m.billing_split_line_groups != nil {
+		edges = append(edges, subscriptionitem.EdgeBillingSplitLineGroups)
 	}
 	return edges
 }
@@ -50883,15 +51200,24 @@ func (m *SubscriptionItemMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case subscriptionitem.EdgeBillingSplitLineGroups:
+		ids := make([]ent.Value, 0, len(m.billing_split_line_groups))
+		for id := range m.billing_split_line_groups {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SubscriptionItemMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.removedbilling_lines != nil {
 		edges = append(edges, subscriptionitem.EdgeBillingLines)
+	}
+	if m.removedbilling_split_line_groups != nil {
+		edges = append(edges, subscriptionitem.EdgeBillingSplitLineGroups)
 	}
 	return edges
 }
@@ -50906,13 +51232,19 @@ func (m *SubscriptionItemMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case subscriptionitem.EdgeBillingSplitLineGroups:
+		ids := make([]ent.Value, 0, len(m.removedbilling_split_line_groups))
+		for id := range m.removedbilling_split_line_groups {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SubscriptionItemMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedphase {
 		edges = append(edges, subscriptionitem.EdgePhase)
 	}
@@ -50921,6 +51253,9 @@ func (m *SubscriptionItemMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_lines {
 		edges = append(edges, subscriptionitem.EdgeBillingLines)
+	}
+	if m.clearedbilling_split_line_groups {
+		edges = append(edges, subscriptionitem.EdgeBillingSplitLineGroups)
 	}
 	return edges
 }
@@ -50935,6 +51270,8 @@ func (m *SubscriptionItemMutation) EdgeCleared(name string) bool {
 		return m.clearedentitlement
 	case subscriptionitem.EdgeBillingLines:
 		return m.clearedbilling_lines
+	case subscriptionitem.EdgeBillingSplitLineGroups:
+		return m.clearedbilling_split_line_groups
 	}
 	return false
 }
@@ -50966,6 +51303,9 @@ func (m *SubscriptionItemMutation) ResetEdge(name string) error {
 	case subscriptionitem.EdgeBillingLines:
 		m.ResetBillingLines()
 		return nil
+	case subscriptionitem.EdgeBillingSplitLineGroups:
+		m.ResetBillingSplitLineGroups()
+		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionItem edge %s", name)
 }
@@ -50973,32 +51313,35 @@ func (m *SubscriptionItemMutation) ResetEdge(name string) error {
 // SubscriptionPhaseMutation represents an operation that mutates the SubscriptionPhase nodes in the graph.
 type SubscriptionPhaseMutation struct {
 	config
-	op                   Op
-	typ                  string
-	id                   *string
-	namespace            *string
-	created_at           *time.Time
-	updated_at           *time.Time
-	deleted_at           *time.Time
-	metadata             *map[string]string
-	key                  *string
-	name                 *string
-	description          *string
-	active_from          *time.Time
-	sort_hint            *uint8
-	addsort_hint         *int8
-	clearedFields        map[string]struct{}
-	subscription         *string
-	clearedsubscription  bool
-	items                map[string]struct{}
-	removeditems         map[string]struct{}
-	cleareditems         bool
-	billing_lines        map[string]struct{}
-	removedbilling_lines map[string]struct{}
-	clearedbilling_lines bool
-	done                 bool
-	oldValue             func(context.Context) (*SubscriptionPhase, error)
-	predicates           []predicate.SubscriptionPhase
+	op                               Op
+	typ                              string
+	id                               *string
+	namespace                        *string
+	created_at                       *time.Time
+	updated_at                       *time.Time
+	deleted_at                       *time.Time
+	metadata                         *map[string]string
+	key                              *string
+	name                             *string
+	description                      *string
+	active_from                      *time.Time
+	sort_hint                        *uint8
+	addsort_hint                     *int8
+	clearedFields                    map[string]struct{}
+	subscription                     *string
+	clearedsubscription              bool
+	items                            map[string]struct{}
+	removeditems                     map[string]struct{}
+	cleareditems                     bool
+	billing_lines                    map[string]struct{}
+	removedbilling_lines             map[string]struct{}
+	clearedbilling_lines             bool
+	billing_split_line_groups        map[string]struct{}
+	removedbilling_split_line_groups map[string]struct{}
+	clearedbilling_split_line_groups bool
+	done                             bool
+	oldValue                         func(context.Context) (*SubscriptionPhase, error)
+	predicates                       []predicate.SubscriptionPhase
 }
 
 var _ ent.Mutation = (*SubscriptionPhaseMutation)(nil)
@@ -51709,6 +52052,60 @@ func (m *SubscriptionPhaseMutation) ResetBillingLines() {
 	m.removedbilling_lines = nil
 }
 
+// AddBillingSplitLineGroupIDs adds the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by ids.
+func (m *SubscriptionPhaseMutation) AddBillingSplitLineGroupIDs(ids ...string) {
+	if m.billing_split_line_groups == nil {
+		m.billing_split_line_groups = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.billing_split_line_groups[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBillingSplitLineGroups clears the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
+func (m *SubscriptionPhaseMutation) ClearBillingSplitLineGroups() {
+	m.clearedbilling_split_line_groups = true
+}
+
+// BillingSplitLineGroupsCleared reports if the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity was cleared.
+func (m *SubscriptionPhaseMutation) BillingSplitLineGroupsCleared() bool {
+	return m.clearedbilling_split_line_groups
+}
+
+// RemoveBillingSplitLineGroupIDs removes the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
+func (m *SubscriptionPhaseMutation) RemoveBillingSplitLineGroupIDs(ids ...string) {
+	if m.removedbilling_split_line_groups == nil {
+		m.removedbilling_split_line_groups = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.billing_split_line_groups, ids[i])
+		m.removedbilling_split_line_groups[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBillingSplitLineGroups returns the removed IDs of the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
+func (m *SubscriptionPhaseMutation) RemovedBillingSplitLineGroupsIDs() (ids []string) {
+	for id := range m.removedbilling_split_line_groups {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BillingSplitLineGroupsIDs returns the "billing_split_line_groups" edge IDs in the mutation.
+func (m *SubscriptionPhaseMutation) BillingSplitLineGroupsIDs() (ids []string) {
+	for id := range m.billing_split_line_groups {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBillingSplitLineGroups resets all changes to the "billing_split_line_groups" edge.
+func (m *SubscriptionPhaseMutation) ResetBillingSplitLineGroups() {
+	m.billing_split_line_groups = nil
+	m.clearedbilling_split_line_groups = false
+	m.removedbilling_split_line_groups = nil
+}
+
 // Where appends a list predicates to the SubscriptionPhaseMutation builder.
 func (m *SubscriptionPhaseMutation) Where(ps ...predicate.SubscriptionPhase) {
 	m.predicates = append(m.predicates, ps...)
@@ -52054,7 +52451,7 @@ func (m *SubscriptionPhaseMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SubscriptionPhaseMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.subscription != nil {
 		edges = append(edges, subscriptionphase.EdgeSubscription)
 	}
@@ -52063,6 +52460,9 @@ func (m *SubscriptionPhaseMutation) AddedEdges() []string {
 	}
 	if m.billing_lines != nil {
 		edges = append(edges, subscriptionphase.EdgeBillingLines)
+	}
+	if m.billing_split_line_groups != nil {
+		edges = append(edges, subscriptionphase.EdgeBillingSplitLineGroups)
 	}
 	return edges
 }
@@ -52087,18 +52487,27 @@ func (m *SubscriptionPhaseMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case subscriptionphase.EdgeBillingSplitLineGroups:
+		ids := make([]ent.Value, 0, len(m.billing_split_line_groups))
+		for id := range m.billing_split_line_groups {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SubscriptionPhaseMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.removeditems != nil {
 		edges = append(edges, subscriptionphase.EdgeItems)
 	}
 	if m.removedbilling_lines != nil {
 		edges = append(edges, subscriptionphase.EdgeBillingLines)
+	}
+	if m.removedbilling_split_line_groups != nil {
+		edges = append(edges, subscriptionphase.EdgeBillingSplitLineGroups)
 	}
 	return edges
 }
@@ -52119,13 +52528,19 @@ func (m *SubscriptionPhaseMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case subscriptionphase.EdgeBillingSplitLineGroups:
+		ids := make([]ent.Value, 0, len(m.removedbilling_split_line_groups))
+		for id := range m.removedbilling_split_line_groups {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SubscriptionPhaseMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedsubscription {
 		edges = append(edges, subscriptionphase.EdgeSubscription)
 	}
@@ -52134,6 +52549,9 @@ func (m *SubscriptionPhaseMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_lines {
 		edges = append(edges, subscriptionphase.EdgeBillingLines)
+	}
+	if m.clearedbilling_split_line_groups {
+		edges = append(edges, subscriptionphase.EdgeBillingSplitLineGroups)
 	}
 	return edges
 }
@@ -52148,6 +52566,8 @@ func (m *SubscriptionPhaseMutation) EdgeCleared(name string) bool {
 		return m.cleareditems
 	case subscriptionphase.EdgeBillingLines:
 		return m.clearedbilling_lines
+	case subscriptionphase.EdgeBillingSplitLineGroups:
+		return m.clearedbilling_split_line_groups
 	}
 	return false
 }
@@ -52175,6 +52595,9 @@ func (m *SubscriptionPhaseMutation) ResetEdge(name string) error {
 		return nil
 	case subscriptionphase.EdgeBillingLines:
 		m.ResetBillingLines()
+		return nil
+	case subscriptionphase.EdgeBillingSplitLineGroups:
+		m.ResetBillingSplitLineGroups()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionPhase edge %s", name)

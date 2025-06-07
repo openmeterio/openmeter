@@ -39,27 +39,28 @@ const (
 	FieldCurrency = "currency"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
-	// FieldChildUniqueReferenceID holds the string denoting the child_unique_reference_id field in the database.
-	FieldChildUniqueReferenceID = "child_unique_reference_id"
-	// FieldCustomerID holds the string denoting the customer_id field in the database.
-	FieldCustomerID = "customer_id"
+	// FieldUniqueReferenceID holds the string denoting the unique_reference_id field in the database.
+	FieldUniqueReferenceID = "unique_reference_id"
 	// FieldRatecardDiscounts holds the string denoting the ratecard_discounts field in the database.
 	FieldRatecardDiscounts = "ratecard_discounts"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
-	// EdgeCustomer holds the string denoting the customer edge name in mutations.
-	EdgeCustomer = "customer"
+	// FieldSubscriptionID holds the string denoting the subscription_id field in the database.
+	FieldSubscriptionID = "subscription_id"
+	// FieldSubscriptionPhaseID holds the string denoting the subscription_phase_id field in the database.
+	FieldSubscriptionPhaseID = "subscription_phase_id"
+	// FieldSubscriptionItemID holds the string denoting the subscription_item_id field in the database.
+	FieldSubscriptionItemID = "subscription_item_id"
 	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
 	EdgeBillingInvoiceLines = "billing_invoice_lines"
+	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
+	EdgeSubscription = "subscription"
+	// EdgeSubscriptionPhase holds the string denoting the subscription_phase edge name in mutations.
+	EdgeSubscriptionPhase = "subscription_phase"
+	// EdgeSubscriptionItem holds the string denoting the subscription_item edge name in mutations.
+	EdgeSubscriptionItem = "subscription_item"
 	// Table holds the table name of the billinginvoicesplitlinegroup in the database.
 	Table = "billing_invoice_split_line_groups"
-	// CustomerTable is the table that holds the customer relation/edge.
-	CustomerTable = "billing_invoice_split_line_groups"
-	// CustomerInverseTable is the table name for the Customer entity.
-	// It exists in this package in order to avoid circular dependency with the "customer" package.
-	CustomerInverseTable = "customers"
-	// CustomerColumn is the table column denoting the customer relation/edge.
-	CustomerColumn = "customer_id"
 	// BillingInvoiceLinesTable is the table that holds the billing_invoice_lines relation/edge.
 	BillingInvoiceLinesTable = "billing_invoice_lines"
 	// BillingInvoiceLinesInverseTable is the table name for the BillingInvoiceLine entity.
@@ -67,6 +68,27 @@ const (
 	BillingInvoiceLinesInverseTable = "billing_invoice_lines"
 	// BillingInvoiceLinesColumn is the table column denoting the billing_invoice_lines relation/edge.
 	BillingInvoiceLinesColumn = "split_line_group_id"
+	// SubscriptionTable is the table that holds the subscription relation/edge.
+	SubscriptionTable = "billing_invoice_split_line_groups"
+	// SubscriptionInverseTable is the table name for the Subscription entity.
+	// It exists in this package in order to avoid circular dependency with the "subscription" package.
+	SubscriptionInverseTable = "subscriptions"
+	// SubscriptionColumn is the table column denoting the subscription relation/edge.
+	SubscriptionColumn = "subscription_id"
+	// SubscriptionPhaseTable is the table that holds the subscription_phase relation/edge.
+	SubscriptionPhaseTable = "billing_invoice_split_line_groups"
+	// SubscriptionPhaseInverseTable is the table name for the SubscriptionPhase entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionphase" package.
+	SubscriptionPhaseInverseTable = "subscription_phases"
+	// SubscriptionPhaseColumn is the table column denoting the subscription_phase relation/edge.
+	SubscriptionPhaseColumn = "subscription_phase_id"
+	// SubscriptionItemTable is the table that holds the subscription_item relation/edge.
+	SubscriptionItemTable = "billing_invoice_split_line_groups"
+	// SubscriptionItemInverseTable is the table name for the SubscriptionItem entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionitem" package.
+	SubscriptionItemInverseTable = "subscription_items"
+	// SubscriptionItemColumn is the table column denoting the subscription_item relation/edge.
+	SubscriptionItemColumn = "subscription_item_id"
 )
 
 // Columns holds all SQL columns for billinginvoicesplitlinegroup fields.
@@ -83,10 +105,12 @@ var Columns = []string{
 	FieldPeriodEnd,
 	FieldCurrency,
 	FieldTaxConfig,
-	FieldChildUniqueReferenceID,
-	FieldCustomerID,
+	FieldUniqueReferenceID,
 	FieldRatecardDiscounts,
 	FieldPrice,
+	FieldSubscriptionID,
+	FieldSubscriptionPhaseID,
+	FieldSubscriptionItemID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -172,14 +196,9 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
 }
 
-// ByChildUniqueReferenceID orders the results by the child_unique_reference_id field.
-func ByChildUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldChildUniqueReferenceID, opts...).ToFunc()
-}
-
-// ByCustomerID orders the results by the customer_id field.
-func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCustomerID, opts...).ToFunc()
+// ByUniqueReferenceID orders the results by the unique_reference_id field.
+func ByUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUniqueReferenceID, opts...).ToFunc()
 }
 
 // ByRatecardDiscounts orders the results by the ratecard_discounts field.
@@ -192,11 +211,19 @@ func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrice, opts...).ToFunc()
 }
 
-// ByCustomerField orders the results by customer field.
-func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
-	}
+// BySubscriptionID orders the results by the subscription_id field.
+func BySubscriptionID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionID, opts...).ToFunc()
+}
+
+// BySubscriptionPhaseID orders the results by the subscription_phase_id field.
+func BySubscriptionPhaseID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionPhaseID, opts...).ToFunc()
+}
+
+// BySubscriptionItemID orders the results by the subscription_item_id field.
+func BySubscriptionItemID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionItemID, opts...).ToFunc()
 }
 
 // ByBillingInvoiceLinesCount orders the results by billing_invoice_lines count.
@@ -212,17 +239,52 @@ func ByBillingInvoiceLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOpti
 		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newCustomerStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CustomerInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
-	)
+
+// BySubscriptionField orders the results by subscription field.
+func BySubscriptionField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// BySubscriptionPhaseField orders the results by subscription_phase field.
+func BySubscriptionPhaseField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionPhaseStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// BySubscriptionItemField orders the results by subscription_item field.
+func BySubscriptionItemField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionItemStep(), sql.OrderByField(field, opts...))
+	}
 }
 func newBillingInvoiceLinesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceLinesTable, BillingInvoiceLinesColumn),
+	)
+}
+func newSubscriptionStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionTable, SubscriptionColumn),
+	)
+}
+func newSubscriptionPhaseStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionPhaseInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionPhaseTable, SubscriptionPhaseColumn),
+	)
+}
+func newSubscriptionItemStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionItemInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionItemTable, SubscriptionItemColumn),
 	)
 }

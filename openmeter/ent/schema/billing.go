@@ -592,14 +592,9 @@ func (BillingInvoiceSplitLineGroup) Mixin() []ent.Mixin {
 
 func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("child_unique_reference_id").
+		field.String("unique_reference_id").
 			Optional().
 			Nillable(),
-
-		field.String("customer_id").
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}),
 
 		field.String("ratecard_discounts").
 			GoType(&billing.Discounts{}).
@@ -616,26 +611,46 @@ func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
+
+		// Subscriptions metadata
+		field.String("subscription_id").
+			Optional().
+			Nillable(),
+
+		field.String("subscription_phase_id").
+			Optional().
+			Nillable(),
+
+		field.String("subscription_item_id").
+			Optional().
+			Nillable(),
 	}
 }
 
 func (BillingInvoiceSplitLineGroup) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "customer_id", "child_unique_reference_id").
+		index.Fields("namespace", "unique_reference_id").
 			Annotations(
-				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+				entsql.IndexWhere("unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
 			).Unique(),
 	}
 }
 
 func (BillingInvoiceSplitLineGroup) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("customer", Customer.Type).
-			Ref("billing_split_line_groups").
-			Field("customer_id").
-			Unique().
-			Required(),
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
+		edge.From("subscription", Subscription.Type).
+			Ref("billing_split_line_groups").
+			Field("subscription_id").
+			Unique(),
+		edge.From("subscription_phase", SubscriptionPhase.Type).
+			Ref("billing_split_line_groups").
+			Field("subscription_phase_id").
+			Unique(),
+		edge.From("subscription_item", SubscriptionItem.Type).
+			Ref("billing_split_line_groups").
+			Field("subscription_item_id").
+			Unique(),
 	}
 }
 

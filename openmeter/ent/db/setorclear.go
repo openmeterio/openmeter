@@ -1441,18 +1441,18 @@ func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearTaxConfig(value *produ
 	return u.SetTaxConfig(*value)
 }
 
-func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceSplitLineGroupUpdate {
+func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearUniqueReferenceID(value *string) *BillingInvoiceSplitLineGroupUpdate {
 	if value == nil {
-		return u.ClearChildUniqueReferenceID()
+		return u.ClearUniqueReferenceID()
 	}
-	return u.SetChildUniqueReferenceID(*value)
+	return u.SetUniqueReferenceID(*value)
 }
 
-func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceSplitLineGroupUpdateOne {
+func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearUniqueReferenceID(value *string) *BillingInvoiceSplitLineGroupUpdateOne {
 	if value == nil {
-		return u.ClearChildUniqueReferenceID()
+		return u.ClearUniqueReferenceID()
 	}
-	return u.SetChildUniqueReferenceID(*value)
+	return u.SetUniqueReferenceID(*value)
 }
 
 func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearRatecardDiscounts(value **billing.Discounts) *BillingInvoiceSplitLineGroupUpdate {
@@ -1467,6 +1467,48 @@ func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearRatecardDiscounts(valu
 		return u.ClearRatecardDiscounts()
 	}
 	return u.SetRatecardDiscounts(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearSubscriptionID(value *string) *BillingInvoiceSplitLineGroupUpdate {
+	if value == nil {
+		return u.ClearSubscriptionID()
+	}
+	return u.SetSubscriptionID(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearSubscriptionID(value *string) *BillingInvoiceSplitLineGroupUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionID()
+	}
+	return u.SetSubscriptionID(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearSubscriptionPhaseID(value *string) *BillingInvoiceSplitLineGroupUpdate {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearSubscriptionPhaseID(value *string) *BillingInvoiceSplitLineGroupUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearSubscriptionItemID(value *string) *BillingInvoiceSplitLineGroupUpdate {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearSubscriptionItemID(value *string) *BillingInvoiceSplitLineGroupUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
 }
 
 func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearPreLinePeriodQuantity(value *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {

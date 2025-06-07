@@ -15,7 +15,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -134,23 +136,17 @@ func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableTaxConfig(v *productcat
 	return _c
 }
 
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (_c *BillingInvoiceSplitLineGroupCreate) SetChildUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupCreate {
-	_c.mutation.SetChildUniqueReferenceID(v)
+// SetUniqueReferenceID sets the "unique_reference_id" field.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.SetUniqueReferenceID(v)
 	return _c
 }
 
-// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableChildUniqueReferenceID(v *string) *BillingInvoiceSplitLineGroupCreate {
+// SetNillableUniqueReferenceID sets the "unique_reference_id" field if the given value is not nil.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableUniqueReferenceID(v *string) *BillingInvoiceSplitLineGroupCreate {
 	if v != nil {
-		_c.SetChildUniqueReferenceID(*v)
+		_c.SetUniqueReferenceID(*v)
 	}
-	return _c
-}
-
-// SetCustomerID sets the "customer_id" field.
-func (_c *BillingInvoiceSplitLineGroupCreate) SetCustomerID(v string) *BillingInvoiceSplitLineGroupCreate {
-	_c.mutation.SetCustomerID(v)
 	return _c
 }
 
@@ -163,6 +159,48 @@ func (_c *BillingInvoiceSplitLineGroupCreate) SetRatecardDiscounts(v *billing.Di
 // SetPrice sets the "price" field.
 func (_c *BillingInvoiceSplitLineGroupCreate) SetPrice(v *productcatalog.Price) *BillingInvoiceSplitLineGroupCreate {
 	_c.mutation.SetPrice(v)
+	return _c
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetSubscriptionID(v string) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.SetSubscriptionID(v)
+	return _c
+}
+
+// SetNillableSubscriptionID sets the "subscription_id" field if the given value is not nil.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableSubscriptionID(v *string) *BillingInvoiceSplitLineGroupCreate {
+	if v != nil {
+		_c.SetSubscriptionID(*v)
+	}
+	return _c
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetSubscriptionPhaseID(v string) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.SetSubscriptionPhaseID(v)
+	return _c
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableSubscriptionPhaseID(v *string) *BillingInvoiceSplitLineGroupCreate {
+	if v != nil {
+		_c.SetSubscriptionPhaseID(*v)
+	}
+	return _c
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetSubscriptionItemID(v string) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.SetSubscriptionItemID(v)
+	return _c
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableSubscriptionItemID(v *string) *BillingInvoiceSplitLineGroupCreate {
+	if v != nil {
+		_c.SetSubscriptionItemID(*v)
+	}
 	return _c
 }
 
@@ -180,11 +218,6 @@ func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableID(v *string) *BillingI
 	return _c
 }
 
-// SetCustomer sets the "customer" edge to the Customer entity.
-func (_c *BillingInvoiceSplitLineGroupCreate) SetCustomer(v *Customer) *BillingInvoiceSplitLineGroupCreate {
-	return _c.SetCustomerID(v.ID)
-}
-
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
 func (_c *BillingInvoiceSplitLineGroupCreate) AddBillingInvoiceLineIDs(ids ...string) *BillingInvoiceSplitLineGroupCreate {
 	_c.mutation.AddBillingInvoiceLineIDs(ids...)
@@ -198,6 +231,21 @@ func (_c *BillingInvoiceSplitLineGroupCreate) AddBillingInvoiceLines(v ...*Billi
 		ids[i] = v[i].ID
 	}
 	return _c.AddBillingInvoiceLineIDs(ids...)
+}
+
+// SetSubscription sets the "subscription" edge to the Subscription entity.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetSubscription(v *Subscription) *BillingInvoiceSplitLineGroupCreate {
+	return _c.SetSubscriptionID(v.ID)
+}
+
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetSubscriptionPhase(v *SubscriptionPhase) *BillingInvoiceSplitLineGroupCreate {
+	return _c.SetSubscriptionPhaseID(v.ID)
+}
+
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetSubscriptionItem(v *SubscriptionItem) *BillingInvoiceSplitLineGroupCreate {
+	return _c.SetSubscriptionItemID(v.ID)
 }
 
 // Mutation returns the BillingInvoiceSplitLineGroupMutation object of the builder.
@@ -287,9 +335,6 @@ func (_c *BillingInvoiceSplitLineGroupCreate) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.tax_config": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.CustomerID(); !ok {
-		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "BillingInvoiceSplitLineGroup.customer_id"`)}
-	}
 	if _, ok := _c.mutation.Price(); !ok {
 		return &ValidationError{Name: "price", err: errors.New(`db: missing required field "BillingInvoiceSplitLineGroup.price"`)}
 	}
@@ -297,9 +342,6 @@ func (_c *BillingInvoiceSplitLineGroupCreate) check() error {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.price": %w`, err)}
 		}
-	}
-	if len(_c.mutation.CustomerIDs()) == 0 {
-		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "BillingInvoiceSplitLineGroup.customer"`)}
 	}
 	return nil
 }
@@ -384,9 +426,9 @@ func (_c *BillingInvoiceSplitLineGroupCreate) createSpec() (*BillingInvoiceSplit
 		_spec.SetField(billinginvoicesplitlinegroup.FieldTaxConfig, field.TypeJSON, value)
 		_node.TaxConfig = value
 	}
-	if value, ok := _c.mutation.ChildUniqueReferenceID(); ok {
-		_spec.SetField(billinginvoicesplitlinegroup.FieldChildUniqueReferenceID, field.TypeString, value)
-		_node.ChildUniqueReferenceID = &value
+	if value, ok := _c.mutation.UniqueReferenceID(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldUniqueReferenceID, field.TypeString, value)
+		_node.UniqueReferenceID = &value
 	}
 	if value, ok := _c.mutation.RatecardDiscounts(); ok {
 		vv, err := billinginvoicesplitlinegroup.ValueScanner.RatecardDiscounts.Value(value)
@@ -404,23 +446,6 @@ func (_c *BillingInvoiceSplitLineGroupCreate) createSpec() (*BillingInvoiceSplit
 		_spec.SetField(billinginvoicesplitlinegroup.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
-	if nodes := _c.mutation.CustomerIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billinginvoicesplitlinegroup.CustomerTable,
-			Columns: []string{billinginvoicesplitlinegroup.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.CustomerID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
 	if nodes := _c.mutation.BillingInvoiceLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -435,6 +460,57 @@ func (_c *BillingInvoiceSplitLineGroupCreate) createSpec() (*BillingInvoiceSplit
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionPhaseTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionPhaseID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionItemTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionItemID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -609,33 +685,21 @@ func (u *BillingInvoiceSplitLineGroupUpsert) ClearTaxConfig() *BillingInvoiceSpl
 	return u
 }
 
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) SetChildUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpsert {
-	u.Set(billinginvoicesplitlinegroup.FieldChildUniqueReferenceID, v)
+// SetUniqueReferenceID sets the "unique_reference_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) SetUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpsert {
+	u.Set(billinginvoicesplitlinegroup.FieldUniqueReferenceID, v)
 	return u
 }
 
-// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsert) UpdateChildUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetExcluded(billinginvoicesplitlinegroup.FieldChildUniqueReferenceID)
+// UpdateUniqueReferenceID sets the "unique_reference_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsert) UpdateUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetExcluded(billinginvoicesplitlinegroup.FieldUniqueReferenceID)
 	return u
 }
 
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) ClearChildUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetNull(billinginvoicesplitlinegroup.FieldChildUniqueReferenceID)
-	return u
-}
-
-// SetCustomerID sets the "customer_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) SetCustomerID(v string) *BillingInvoiceSplitLineGroupUpsert {
-	u.Set(billinginvoicesplitlinegroup.FieldCustomerID, v)
-	return u
-}
-
-// UpdateCustomerID sets the "customer_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsert) UpdateCustomerID() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetExcluded(billinginvoicesplitlinegroup.FieldCustomerID)
+// ClearUniqueReferenceID clears the value of the "unique_reference_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) ClearUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetNull(billinginvoicesplitlinegroup.FieldUniqueReferenceID)
 	return u
 }
 
@@ -666,6 +730,60 @@ func (u *BillingInvoiceSplitLineGroupUpsert) SetPrice(v *productcatalog.Price) *
 // UpdatePrice sets the "price" field to the value that was provided on create.
 func (u *BillingInvoiceSplitLineGroupUpsert) UpdatePrice() *BillingInvoiceSplitLineGroupUpsert {
 	u.SetExcluded(billinginvoicesplitlinegroup.FieldPrice)
+	return u
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) SetSubscriptionID(v string) *BillingInvoiceSplitLineGroupUpsert {
+	u.Set(billinginvoicesplitlinegroup.FieldSubscriptionID, v)
+	return u
+}
+
+// UpdateSubscriptionID sets the "subscription_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsert) UpdateSubscriptionID() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetExcluded(billinginvoicesplitlinegroup.FieldSubscriptionID)
+	return u
+}
+
+// ClearSubscriptionID clears the value of the "subscription_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) ClearSubscriptionID() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetNull(billinginvoicesplitlinegroup.FieldSubscriptionID)
+	return u
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) SetSubscriptionPhaseID(v string) *BillingInvoiceSplitLineGroupUpsert {
+	u.Set(billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, v)
+	return u
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsert) UpdateSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetExcluded(billinginvoicesplitlinegroup.FieldSubscriptionPhaseID)
+	return u
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) ClearSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetNull(billinginvoicesplitlinegroup.FieldSubscriptionPhaseID)
+	return u
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) SetSubscriptionItemID(v string) *BillingInvoiceSplitLineGroupUpsert {
+	u.Set(billinginvoicesplitlinegroup.FieldSubscriptionItemID, v)
+	return u
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsert) UpdateSubscriptionItemID() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetExcluded(billinginvoicesplitlinegroup.FieldSubscriptionItemID)
+	return u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) ClearSubscriptionItemID() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetNull(billinginvoicesplitlinegroup.FieldSubscriptionItemID)
 	return u
 }
 
@@ -866,38 +984,24 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearTaxConfig() *BillingInvoice
 	})
 }
 
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) SetChildUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpsertOne {
+// SetUniqueReferenceID sets the "unique_reference_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) SetUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetChildUniqueReferenceID(v)
+		s.SetUniqueReferenceID(v)
 	})
 }
 
-// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateChildUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsertOne {
+// UpdateUniqueReferenceID sets the "unique_reference_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateChildUniqueReferenceID()
+		s.UpdateUniqueReferenceID()
 	})
 }
 
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearChildUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsertOne {
+// ClearUniqueReferenceID clears the value of the "unique_reference_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.ClearChildUniqueReferenceID()
-	})
-}
-
-// SetCustomerID sets the "customer_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) SetCustomerID(v string) *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetCustomerID(v)
-	})
-}
-
-// UpdateCustomerID sets the "customer_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateCustomerID() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateCustomerID()
+		s.ClearUniqueReferenceID()
 	})
 }
 
@@ -933,6 +1037,69 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) SetPrice(v *productcatalog.Price
 func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdatePrice() *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.UpdatePrice()
+	})
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) SetSubscriptionID(v string) *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetSubscriptionID(v)
+	})
+}
+
+// UpdateSubscriptionID sets the "subscription_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateSubscriptionID() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateSubscriptionID()
+	})
+}
+
+// ClearSubscriptionID clears the value of the "subscription_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearSubscriptionID() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearSubscriptionID()
+	})
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) SetSubscriptionPhaseID(v string) *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetSubscriptionPhaseID(v)
+	})
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateSubscriptionPhaseID()
+	})
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearSubscriptionPhaseID()
+	})
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) SetSubscriptionItemID(v string) *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetSubscriptionItemID(v)
+	})
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateSubscriptionItemID() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateSubscriptionItemID()
+	})
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearSubscriptionItemID() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearSubscriptionItemID()
 	})
 }
 
@@ -1303,38 +1470,24 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearTaxConfig() *BillingInvoic
 	})
 }
 
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetChildUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
+// SetUniqueReferenceID sets the "unique_reference_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetChildUniqueReferenceID(v)
+		s.SetUniqueReferenceID(v)
 	})
 }
 
-// UpdateChildUniqueReferenceID sets the "child_unique_reference_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateChildUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsertBulk {
+// UpdateUniqueReferenceID sets the "unique_reference_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateChildUniqueReferenceID()
+		s.UpdateUniqueReferenceID()
 	})
 }
 
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearChildUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsertBulk {
+// ClearUniqueReferenceID clears the value of the "unique_reference_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.ClearChildUniqueReferenceID()
-	})
-}
-
-// SetCustomerID sets the "customer_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetCustomerID(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetCustomerID(v)
-	})
-}
-
-// UpdateCustomerID sets the "customer_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateCustomerID() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateCustomerID()
+		s.ClearUniqueReferenceID()
 	})
 }
 
@@ -1370,6 +1523,69 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetPrice(v *productcatalog.Pric
 func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdatePrice() *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.UpdatePrice()
+	})
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetSubscriptionID(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetSubscriptionID(v)
+	})
+}
+
+// UpdateSubscriptionID sets the "subscription_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateSubscriptionID() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateSubscriptionID()
+	})
+}
+
+// ClearSubscriptionID clears the value of the "subscription_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearSubscriptionID() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearSubscriptionID()
+	})
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetSubscriptionPhaseID(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetSubscriptionPhaseID(v)
+	})
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateSubscriptionPhaseID()
+	})
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearSubscriptionPhaseID()
+	})
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetSubscriptionItemID(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetSubscriptionItemID(v)
+	})
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateSubscriptionItemID() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateSubscriptionItemID()
+	})
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearSubscriptionItemID() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearSubscriptionItemID()
 	})
 }
 

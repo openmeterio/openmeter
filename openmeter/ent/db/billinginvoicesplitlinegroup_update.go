@@ -14,8 +14,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -152,37 +154,23 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) ClearTaxConfig() *BillingInvoiceSp
 	return _u
 }
 
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (_u *BillingInvoiceSplitLineGroupUpdate) SetChildUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpdate {
-	_u.mutation.SetChildUniqueReferenceID(v)
+// SetUniqueReferenceID sets the "unique_reference_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.SetUniqueReferenceID(v)
 	return _u
 }
 
-// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableChildUniqueReferenceID(v *string) *BillingInvoiceSplitLineGroupUpdate {
+// SetNillableUniqueReferenceID sets the "unique_reference_id" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableUniqueReferenceID(v *string) *BillingInvoiceSplitLineGroupUpdate {
 	if v != nil {
-		_u.SetChildUniqueReferenceID(*v)
+		_u.SetUniqueReferenceID(*v)
 	}
 	return _u
 }
 
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (_u *BillingInvoiceSplitLineGroupUpdate) ClearChildUniqueReferenceID() *BillingInvoiceSplitLineGroupUpdate {
-	_u.mutation.ClearChildUniqueReferenceID()
-	return _u
-}
-
-// SetCustomerID sets the "customer_id" field.
-func (_u *BillingInvoiceSplitLineGroupUpdate) SetCustomerID(v string) *BillingInvoiceSplitLineGroupUpdate {
-	_u.mutation.SetCustomerID(v)
-	return _u
-}
-
-// SetNillableCustomerID sets the "customer_id" field if the given value is not nil.
-func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableCustomerID(v *string) *BillingInvoiceSplitLineGroupUpdate {
-	if v != nil {
-		_u.SetCustomerID(*v)
-	}
+// ClearUniqueReferenceID clears the value of the "unique_reference_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearUniqueReferenceID() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearUniqueReferenceID()
 	return _u
 }
 
@@ -204,9 +192,64 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) SetPrice(v *productcatalog.Price) 
 	return _u
 }
 
-// SetCustomer sets the "customer" edge to the Customer entity.
-func (_u *BillingInvoiceSplitLineGroupUpdate) SetCustomer(v *Customer) *BillingInvoiceSplitLineGroupUpdate {
-	return _u.SetCustomerID(v.ID)
+// SetSubscriptionID sets the "subscription_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetSubscriptionID(v string) *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.SetSubscriptionID(v)
+	return _u
+}
+
+// SetNillableSubscriptionID sets the "subscription_id" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableSubscriptionID(v *string) *BillingInvoiceSplitLineGroupUpdate {
+	if v != nil {
+		_u.SetSubscriptionID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionID clears the value of the "subscription_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearSubscriptionID() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearSubscriptionID()
+	return _u
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetSubscriptionPhaseID(v string) *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.SetSubscriptionPhaseID(v)
+	return _u
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableSubscriptionPhaseID(v *string) *BillingInvoiceSplitLineGroupUpdate {
+	if v != nil {
+		_u.SetSubscriptionPhaseID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearSubscriptionPhaseID()
+	return _u
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetSubscriptionItemID(v string) *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.SetSubscriptionItemID(v)
+	return _u
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableSubscriptionItemID(v *string) *BillingInvoiceSplitLineGroupUpdate {
+	if v != nil {
+		_u.SetSubscriptionItemID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearSubscriptionItemID() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearSubscriptionItemID()
+	return _u
 }
 
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
@@ -224,15 +267,24 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) AddBillingInvoiceLines(v ...*Billi
 	return _u.AddBillingInvoiceLineIDs(ids...)
 }
 
+// SetSubscription sets the "subscription" edge to the Subscription entity.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetSubscription(v *Subscription) *BillingInvoiceSplitLineGroupUpdate {
+	return _u.SetSubscriptionID(v.ID)
+}
+
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetSubscriptionPhase(v *SubscriptionPhase) *BillingInvoiceSplitLineGroupUpdate {
+	return _u.SetSubscriptionPhaseID(v.ID)
+}
+
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetSubscriptionItem(v *SubscriptionItem) *BillingInvoiceSplitLineGroupUpdate {
+	return _u.SetSubscriptionItemID(v.ID)
+}
+
 // Mutation returns the BillingInvoiceSplitLineGroupMutation object of the builder.
 func (_u *BillingInvoiceSplitLineGroupUpdate) Mutation() *BillingInvoiceSplitLineGroupMutation {
 	return _u.mutation
-}
-
-// ClearCustomer clears the "customer" edge to the Customer entity.
-func (_u *BillingInvoiceSplitLineGroupUpdate) ClearCustomer() *BillingInvoiceSplitLineGroupUpdate {
-	_u.mutation.ClearCustomer()
-	return _u
 }
 
 // ClearBillingInvoiceLines clears all "billing_invoice_lines" edges to the BillingInvoiceLine entity.
@@ -254,6 +306,24 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) RemoveBillingInvoiceLines(v ...*Bi
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingInvoiceLineIDs(ids...)
+}
+
+// ClearSubscription clears the "subscription" edge to the Subscription entity.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearSubscription() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearSubscription()
+	return _u
+}
+
+// ClearSubscriptionPhase clears the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearSubscriptionPhase() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearSubscriptionPhase()
+	return _u
+}
+
+// ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearSubscriptionItem() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearSubscriptionItem()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -292,28 +362,7 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) defaults() {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *BillingInvoiceSplitLineGroupUpdate) check() error {
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Price(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.price": %w`, err)}
-		}
-	}
-	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "BillingInvoiceSplitLineGroup.customer"`)
-	}
-	return nil
-}
-
 func (_u *BillingInvoiceSplitLineGroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.Columns, sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -358,11 +407,11 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) sqlSave(ctx context.Context) (_nod
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(billinginvoicesplitlinegroup.FieldTaxConfig, field.TypeJSON)
 	}
-	if value, ok := _u.mutation.ChildUniqueReferenceID(); ok {
-		_spec.SetField(billinginvoicesplitlinegroup.FieldChildUniqueReferenceID, field.TypeString, value)
+	if value, ok := _u.mutation.UniqueReferenceID(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldUniqueReferenceID, field.TypeString, value)
 	}
-	if _u.mutation.ChildUniqueReferenceIDCleared() {
-		_spec.ClearField(billinginvoicesplitlinegroup.FieldChildUniqueReferenceID, field.TypeString)
+	if _u.mutation.UniqueReferenceIDCleared() {
+		_spec.ClearField(billinginvoicesplitlinegroup.FieldUniqueReferenceID, field.TypeString)
 	}
 	if value, ok := _u.mutation.RatecardDiscounts(); ok {
 		vv, err := billinginvoicesplitlinegroup.ValueScanner.RatecardDiscounts.Value(value)
@@ -380,35 +429,6 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) sqlSave(ctx context.Context) (_nod
 			return 0, err
 		}
 		_spec.SetField(billinginvoicesplitlinegroup.FieldPrice, field.TypeString, vv)
-	}
-	if _u.mutation.CustomerCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billinginvoicesplitlinegroup.CustomerTable,
-			Columns: []string{billinginvoicesplitlinegroup.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.CustomerIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billinginvoicesplitlinegroup.CustomerTable,
-			Columns: []string{billinginvoicesplitlinegroup.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.BillingInvoiceLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -448,6 +468,93 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) sqlSave(ctx context.Context) (_nod
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionPhaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionPhaseTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionPhaseTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionItemCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionItemTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionItemTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -595,37 +702,23 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearTaxConfig() *BillingInvoic
 	return _u
 }
 
-// SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
-func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetChildUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpdateOne {
-	_u.mutation.SetChildUniqueReferenceID(v)
+// SetUniqueReferenceID sets the "unique_reference_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.SetUniqueReferenceID(v)
 	return _u
 }
 
-// SetNillableChildUniqueReferenceID sets the "child_unique_reference_id" field if the given value is not nil.
-func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableChildUniqueReferenceID(v *string) *BillingInvoiceSplitLineGroupUpdateOne {
+// SetNillableUniqueReferenceID sets the "unique_reference_id" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableUniqueReferenceID(v *string) *BillingInvoiceSplitLineGroupUpdateOne {
 	if v != nil {
-		_u.SetChildUniqueReferenceID(*v)
+		_u.SetUniqueReferenceID(*v)
 	}
 	return _u
 }
 
-// ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
-func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearChildUniqueReferenceID() *BillingInvoiceSplitLineGroupUpdateOne {
-	_u.mutation.ClearChildUniqueReferenceID()
-	return _u
-}
-
-// SetCustomerID sets the "customer_id" field.
-func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetCustomerID(v string) *BillingInvoiceSplitLineGroupUpdateOne {
-	_u.mutation.SetCustomerID(v)
-	return _u
-}
-
-// SetNillableCustomerID sets the "customer_id" field if the given value is not nil.
-func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableCustomerID(v *string) *BillingInvoiceSplitLineGroupUpdateOne {
-	if v != nil {
-		_u.SetCustomerID(*v)
-	}
+// ClearUniqueReferenceID clears the value of the "unique_reference_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearUniqueReferenceID() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearUniqueReferenceID()
 	return _u
 }
 
@@ -647,9 +740,64 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetPrice(v *productcatalog.Pric
 	return _u
 }
 
-// SetCustomer sets the "customer" edge to the Customer entity.
-func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetCustomer(v *Customer) *BillingInvoiceSplitLineGroupUpdateOne {
-	return _u.SetCustomerID(v.ID)
+// SetSubscriptionID sets the "subscription_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetSubscriptionID(v string) *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.SetSubscriptionID(v)
+	return _u
+}
+
+// SetNillableSubscriptionID sets the "subscription_id" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableSubscriptionID(v *string) *BillingInvoiceSplitLineGroupUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionID clears the value of the "subscription_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearSubscriptionID() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearSubscriptionID()
+	return _u
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetSubscriptionPhaseID(v string) *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.SetSubscriptionPhaseID(v)
+	return _u
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableSubscriptionPhaseID(v *string) *BillingInvoiceSplitLineGroupUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionPhaseID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearSubscriptionPhaseID()
+	return _u
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetSubscriptionItemID(v string) *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.SetSubscriptionItemID(v)
+	return _u
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableSubscriptionItemID(v *string) *BillingInvoiceSplitLineGroupUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionItemID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearSubscriptionItemID() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearSubscriptionItemID()
+	return _u
 }
 
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
@@ -667,15 +815,24 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) AddBillingInvoiceLines(v ...*Bi
 	return _u.AddBillingInvoiceLineIDs(ids...)
 }
 
+// SetSubscription sets the "subscription" edge to the Subscription entity.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetSubscription(v *Subscription) *BillingInvoiceSplitLineGroupUpdateOne {
+	return _u.SetSubscriptionID(v.ID)
+}
+
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetSubscriptionPhase(v *SubscriptionPhase) *BillingInvoiceSplitLineGroupUpdateOne {
+	return _u.SetSubscriptionPhaseID(v.ID)
+}
+
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetSubscriptionItem(v *SubscriptionItem) *BillingInvoiceSplitLineGroupUpdateOne {
+	return _u.SetSubscriptionItemID(v.ID)
+}
+
 // Mutation returns the BillingInvoiceSplitLineGroupMutation object of the builder.
 func (_u *BillingInvoiceSplitLineGroupUpdateOne) Mutation() *BillingInvoiceSplitLineGroupMutation {
 	return _u.mutation
-}
-
-// ClearCustomer clears the "customer" edge to the Customer entity.
-func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearCustomer() *BillingInvoiceSplitLineGroupUpdateOne {
-	_u.mutation.ClearCustomer()
-	return _u
 }
 
 // ClearBillingInvoiceLines clears all "billing_invoice_lines" edges to the BillingInvoiceLine entity.
@@ -697,6 +854,24 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) RemoveBillingInvoiceLines(v ...
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingInvoiceLineIDs(ids...)
+}
+
+// ClearSubscription clears the "subscription" edge to the Subscription entity.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearSubscription() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearSubscription()
+	return _u
+}
+
+// ClearSubscriptionPhase clears the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearSubscriptionPhase() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearSubscriptionPhase()
+	return _u
+}
+
+// ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearSubscriptionItem() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearSubscriptionItem()
+	return _u
 }
 
 // Where appends a list predicates to the BillingInvoiceSplitLineGroupUpdate builder.
@@ -748,28 +923,7 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) defaults() {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *BillingInvoiceSplitLineGroupUpdateOne) check() error {
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Price(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.price": %w`, err)}
-		}
-	}
-	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "BillingInvoiceSplitLineGroup.customer"`)
-	}
-	return nil
-}
-
 func (_u *BillingInvoiceSplitLineGroupUpdateOne) sqlSave(ctx context.Context) (_node *BillingInvoiceSplitLineGroup, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.Columns, sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString))
 	id, ok := _u.mutation.ID()
 	if !ok {
@@ -831,11 +985,11 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) sqlSave(ctx context.Context) (_
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(billinginvoicesplitlinegroup.FieldTaxConfig, field.TypeJSON)
 	}
-	if value, ok := _u.mutation.ChildUniqueReferenceID(); ok {
-		_spec.SetField(billinginvoicesplitlinegroup.FieldChildUniqueReferenceID, field.TypeString, value)
+	if value, ok := _u.mutation.UniqueReferenceID(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldUniqueReferenceID, field.TypeString, value)
 	}
-	if _u.mutation.ChildUniqueReferenceIDCleared() {
-		_spec.ClearField(billinginvoicesplitlinegroup.FieldChildUniqueReferenceID, field.TypeString)
+	if _u.mutation.UniqueReferenceIDCleared() {
+		_spec.ClearField(billinginvoicesplitlinegroup.FieldUniqueReferenceID, field.TypeString)
 	}
 	if value, ok := _u.mutation.RatecardDiscounts(); ok {
 		vv, err := billinginvoicesplitlinegroup.ValueScanner.RatecardDiscounts.Value(value)
@@ -853,35 +1007,6 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) sqlSave(ctx context.Context) (_
 			return nil, err
 		}
 		_spec.SetField(billinginvoicesplitlinegroup.FieldPrice, field.TypeString, vv)
-	}
-	if _u.mutation.CustomerCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billinginvoicesplitlinegroup.CustomerTable,
-			Columns: []string{billinginvoicesplitlinegroup.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.CustomerIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billinginvoicesplitlinegroup.CustomerTable,
-			Columns: []string{billinginvoicesplitlinegroup.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.BillingInvoiceLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -921,6 +1046,93 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) sqlSave(ctx context.Context) (_
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionPhaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionPhaseTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionPhaseTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionItemCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionItemTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.SubscriptionItemTable,
+			Columns: []string{billinginvoicesplitlinegroup.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

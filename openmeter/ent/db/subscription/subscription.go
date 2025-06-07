@@ -48,6 +48,8 @@ const (
 	EdgePhases = "phases"
 	// EdgeBillingLines holds the string denoting the billing_lines edge name in mutations.
 	EdgeBillingLines = "billing_lines"
+	// EdgeBillingSplitLineGroups holds the string denoting the billing_split_line_groups edge name in mutations.
+	EdgeBillingSplitLineGroups = "billing_split_line_groups"
 	// EdgeAddons holds the string denoting the addons edge name in mutations.
 	EdgeAddons = "addons"
 	// Table holds the table name of the subscription in the database.
@@ -80,6 +82,13 @@ const (
 	BillingLinesInverseTable = "billing_invoice_lines"
 	// BillingLinesColumn is the table column denoting the billing_lines relation/edge.
 	BillingLinesColumn = "subscription_id"
+	// BillingSplitLineGroupsTable is the table that holds the billing_split_line_groups relation/edge.
+	BillingSplitLineGroupsTable = "billing_invoice_split_line_groups"
+	// BillingSplitLineGroupsInverseTable is the table name for the BillingInvoiceSplitLineGroup entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoicesplitlinegroup" package.
+	BillingSplitLineGroupsInverseTable = "billing_invoice_split_line_groups"
+	// BillingSplitLineGroupsColumn is the table column denoting the billing_split_line_groups relation/edge.
+	BillingSplitLineGroupsColumn = "subscription_id"
 	// AddonsTable is the table that holds the addons relation/edge.
 	AddonsTable = "subscription_addons"
 	// AddonsInverseTable is the table name for the SubscriptionAddon entity.
@@ -250,6 +259,20 @@ func ByBillingLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByBillingSplitLineGroupsCount orders the results by billing_split_line_groups count.
+func ByBillingSplitLineGroupsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingSplitLineGroupsStep(), opts...)
+	}
+}
+
+// ByBillingSplitLineGroups orders the results by billing_split_line_groups terms.
+func ByBillingSplitLineGroups(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingSplitLineGroupsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByAddonsCount orders the results by addons count.
 func ByAddonsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -289,6 +312,13 @@ func newBillingLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingLinesTable, BillingLinesColumn),
+	)
+}
+func newBillingSplitLineGroupsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingSplitLineGroupsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingSplitLineGroupsTable, BillingSplitLineGroupsColumn),
 	)
 }
 func newAddonsStep() *sqlgraph.Step {

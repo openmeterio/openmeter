@@ -3539,22 +3539,6 @@ func (c *BillingInvoiceSplitLineGroupClient) GetX(ctx context.Context, id string
 	return obj
 }
 
-// QueryCustomer queries the customer edge of a BillingInvoiceSplitLineGroup.
-func (c *BillingInvoiceSplitLineGroupClient) QueryCustomer(_m *BillingInvoiceSplitLineGroup) *CustomerQuery {
-	query := (&CustomerClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID, id),
-			sqlgraph.To(customer.Table, customer.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicesplitlinegroup.CustomerTable, billinginvoicesplitlinegroup.CustomerColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryBillingInvoiceLines queries the billing_invoice_lines edge of a BillingInvoiceSplitLineGroup.
 func (c *BillingInvoiceSplitLineGroupClient) QueryBillingInvoiceLines(_m *BillingInvoiceSplitLineGroup) *BillingInvoiceLineQuery {
 	query := (&BillingInvoiceLineClient{config: c.config}).Query()
@@ -3564,6 +3548,54 @@ func (c *BillingInvoiceSplitLineGroupClient) QueryBillingInvoiceLines(_m *Billin
 			sqlgraph.From(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID, id),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoicesplitlinegroup.BillingInvoiceLinesTable, billinginvoicesplitlinegroup.BillingInvoiceLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscription queries the subscription edge of a BillingInvoiceSplitLineGroup.
+func (c *BillingInvoiceSplitLineGroupClient) QuerySubscription(_m *BillingInvoiceSplitLineGroup) *SubscriptionQuery {
+	query := (&SubscriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID, id),
+			sqlgraph.To(subscription.Table, subscription.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicesplitlinegroup.SubscriptionTable, billinginvoicesplitlinegroup.SubscriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionPhase queries the subscription_phase edge of a BillingInvoiceSplitLineGroup.
+func (c *BillingInvoiceSplitLineGroupClient) QuerySubscriptionPhase(_m *BillingInvoiceSplitLineGroup) *SubscriptionPhaseQuery {
+	query := (&SubscriptionPhaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID, id),
+			sqlgraph.To(subscriptionphase.Table, subscriptionphase.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicesplitlinegroup.SubscriptionPhaseTable, billinginvoicesplitlinegroup.SubscriptionPhaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionItem queries the subscription_item edge of a BillingInvoiceSplitLineGroup.
+func (c *BillingInvoiceSplitLineGroupClient) QuerySubscriptionItem(_m *BillingInvoiceSplitLineGroup) *SubscriptionItemQuery {
+	query := (&SubscriptionItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID, id),
+			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicesplitlinegroup.SubscriptionItemTable, billinginvoicesplitlinegroup.SubscriptionItemColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -4570,22 +4602,6 @@ func (c *CustomerClient) QueryBillingInvoice(_m *Customer) *BillingInvoiceQuery 
 			sqlgraph.From(customer.Table, customer.FieldID, id),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingInvoiceTable, customer.BillingInvoiceColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryBillingSplitLineGroups queries the billing_split_line_groups edge of a Customer.
-func (c *CustomerClient) QueryBillingSplitLineGroups(_m *Customer) *BillingInvoiceSplitLineGroupQuery {
-	query := (&BillingInvoiceSplitLineGroupClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(customer.Table, customer.FieldID, id),
-			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingSplitLineGroupsTable, customer.BillingSplitLineGroupsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -7068,6 +7084,22 @@ func (c *SubscriptionClient) QueryBillingLines(_m *Subscription) *BillingInvoice
 	return query
 }
 
+// QueryBillingSplitLineGroups queries the billing_split_line_groups edge of a Subscription.
+func (c *SubscriptionClient) QueryBillingSplitLineGroups(_m *Subscription) *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, id),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.BillingSplitLineGroupsTable, subscription.BillingSplitLineGroupsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryAddons queries the addons edge of a Subscription.
 func (c *SubscriptionClient) QueryAddons(_m *Subscription) *SubscriptionAddonQuery {
 	query := (&SubscriptionAddonClient{config: c.config}).Query()
@@ -7595,6 +7627,22 @@ func (c *SubscriptionItemClient) QueryBillingLines(_m *SubscriptionItem) *Billin
 	return query
 }
 
+// QueryBillingSplitLineGroups queries the billing_split_line_groups edge of a SubscriptionItem.
+func (c *SubscriptionItemClient) QueryBillingSplitLineGroups(_m *SubscriptionItem) *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.BillingSplitLineGroupsTable, subscriptionitem.BillingSplitLineGroupsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *SubscriptionItemClient) Hooks() []Hook {
 	return c.hooks.SubscriptionItem
@@ -7769,6 +7817,22 @@ func (c *SubscriptionPhaseClient) QueryBillingLines(_m *SubscriptionPhase) *Bill
 			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, id),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.BillingLinesTable, subscriptionphase.BillingLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingSplitLineGroups queries the billing_split_line_groups edge of a SubscriptionPhase.
+func (c *SubscriptionPhaseClient) QueryBillingSplitLineGroups(_m *SubscriptionPhase) *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, id),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.BillingSplitLineGroupsTable, subscriptionphase.BillingSplitLineGroupsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

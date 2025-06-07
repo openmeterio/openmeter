@@ -12,7 +12,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -44,14 +46,18 @@ type BillingInvoiceSplitLineGroup struct {
 	Currency currencyx.Code `json:"currency,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
-	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
-	ChildUniqueReferenceID *string `json:"child_unique_reference_id,omitempty"`
-	// CustomerID holds the value of the "customer_id" field.
-	CustomerID string `json:"customer_id,omitempty"`
+	// UniqueReferenceID holds the value of the "unique_reference_id" field.
+	UniqueReferenceID *string `json:"unique_reference_id,omitempty"`
 	// RatecardDiscounts holds the value of the "ratecard_discounts" field.
 	RatecardDiscounts *billing.Discounts `json:"ratecard_discounts,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
+	// SubscriptionID holds the value of the "subscription_id" field.
+	SubscriptionID *string `json:"subscription_id,omitempty"`
+	// SubscriptionPhaseID holds the value of the "subscription_phase_id" field.
+	SubscriptionPhaseID *string `json:"subscription_phase_id,omitempty"`
+	// SubscriptionItemID holds the value of the "subscription_item_id" field.
+	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceSplitLineGroupQuery when eager-loading is set.
 	Edges        BillingInvoiceSplitLineGroupEdges `json:"edges"`
@@ -60,33 +66,59 @@ type BillingInvoiceSplitLineGroup struct {
 
 // BillingInvoiceSplitLineGroupEdges holds the relations/edges for other nodes in the graph.
 type BillingInvoiceSplitLineGroupEdges struct {
-	// Customer holds the value of the customer edge.
-	Customer *Customer `json:"customer,omitempty"`
 	// BillingInvoiceLines holds the value of the billing_invoice_lines edge.
 	BillingInvoiceLines []*BillingInvoiceLine `json:"billing_invoice_lines,omitempty"`
+	// Subscription holds the value of the subscription edge.
+	Subscription *Subscription `json:"subscription,omitempty"`
+	// SubscriptionPhase holds the value of the subscription_phase edge.
+	SubscriptionPhase *SubscriptionPhase `json:"subscription_phase,omitempty"`
+	// SubscriptionItem holds the value of the subscription_item edge.
+	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
-}
-
-// CustomerOrErr returns the Customer value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e BillingInvoiceSplitLineGroupEdges) CustomerOrErr() (*Customer, error) {
-	if e.Customer != nil {
-		return e.Customer, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: customer.Label}
-	}
-	return nil, &NotLoadedError{edge: "customer"}
+	loadedTypes [4]bool
 }
 
 // BillingInvoiceLinesOrErr returns the BillingInvoiceLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceSplitLineGroupEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[0] {
 		return e.BillingInvoiceLines, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_lines"}
+}
+
+// SubscriptionOrErr returns the Subscription value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceSplitLineGroupEdges) SubscriptionOrErr() (*Subscription, error) {
+	if e.Subscription != nil {
+		return e.Subscription, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: subscription.Label}
+	}
+	return nil, &NotLoadedError{edge: "subscription"}
+}
+
+// SubscriptionPhaseOrErr returns the SubscriptionPhase value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceSplitLineGroupEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
+	if e.SubscriptionPhase != nil {
+		return e.SubscriptionPhase, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: subscriptionphase.Label}
+	}
+	return nil, &NotLoadedError{edge: "subscription_phase"}
+}
+
+// SubscriptionItemOrErr returns the SubscriptionItem value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceSplitLineGroupEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
+	if e.SubscriptionItem != nil {
+		return e.SubscriptionItem, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: subscriptionitem.Label}
+	}
+	return nil, &NotLoadedError{edge: "subscription_item"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -96,7 +128,7 @@ func (*BillingInvoiceSplitLineGroup) scanValues(columns []string) ([]any, error)
 		switch columns[i] {
 		case billinginvoicesplitlinegroup.FieldMetadata, billinginvoicesplitlinegroup.FieldTaxConfig:
 			values[i] = new([]byte)
-		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldChildUniqueReferenceID, billinginvoicesplitlinegroup.FieldCustomerID:
+		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldUniqueReferenceID, billinginvoicesplitlinegroup.FieldSubscriptionID, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, billinginvoicesplitlinegroup.FieldSubscriptionItemID:
 			values[i] = new(sql.NullString)
 		case billinginvoicesplitlinegroup.FieldCreatedAt, billinginvoicesplitlinegroup.FieldUpdatedAt, billinginvoicesplitlinegroup.FieldDeletedAt, billinginvoicesplitlinegroup.FieldPeriodStart, billinginvoicesplitlinegroup.FieldPeriodEnd:
 			values[i] = new(sql.NullTime)
@@ -197,18 +229,12 @@ func (_m *BillingInvoiceSplitLineGroup) assignValues(columns []string, values []
 					return fmt.Errorf("unmarshal field tax_config: %w", err)
 				}
 			}
-		case billinginvoicesplitlinegroup.FieldChildUniqueReferenceID:
+		case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field child_unique_reference_id", values[i])
+				return fmt.Errorf("unexpected type %T for field unique_reference_id", values[i])
 			} else if value.Valid {
-				_m.ChildUniqueReferenceID = new(string)
-				*_m.ChildUniqueReferenceID = value.String
-			}
-		case billinginvoicesplitlinegroup.FieldCustomerID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
-			} else if value.Valid {
-				_m.CustomerID = value.String
+				_m.UniqueReferenceID = new(string)
+				*_m.UniqueReferenceID = value.String
 			}
 		case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 			if value, err := billinginvoicesplitlinegroup.ValueScanner.RatecardDiscounts.FromValue(values[i]); err != nil {
@@ -221,6 +247,27 @@ func (_m *BillingInvoiceSplitLineGroup) assignValues(columns []string, values []
 				return err
 			} else {
 				_m.Price = value
+			}
+		case billinginvoicesplitlinegroup.FieldSubscriptionID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_id", values[i])
+			} else if value.Valid {
+				_m.SubscriptionID = new(string)
+				*_m.SubscriptionID = value.String
+			}
+		case billinginvoicesplitlinegroup.FieldSubscriptionPhaseID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_phase_id", values[i])
+			} else if value.Valid {
+				_m.SubscriptionPhaseID = new(string)
+				*_m.SubscriptionPhaseID = value.String
+			}
+		case billinginvoicesplitlinegroup.FieldSubscriptionItemID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_item_id", values[i])
+			} else if value.Valid {
+				_m.SubscriptionItemID = new(string)
+				*_m.SubscriptionItemID = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -235,14 +282,24 @@ func (_m *BillingInvoiceSplitLineGroup) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryCustomer queries the "customer" edge of the BillingInvoiceSplitLineGroup entity.
-func (_m *BillingInvoiceSplitLineGroup) QueryCustomer() *CustomerQuery {
-	return NewBillingInvoiceSplitLineGroupClient(_m.config).QueryCustomer(_m)
-}
-
 // QueryBillingInvoiceLines queries the "billing_invoice_lines" edge of the BillingInvoiceSplitLineGroup entity.
 func (_m *BillingInvoiceSplitLineGroup) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
 	return NewBillingInvoiceSplitLineGroupClient(_m.config).QueryBillingInvoiceLines(_m)
+}
+
+// QuerySubscription queries the "subscription" edge of the BillingInvoiceSplitLineGroup entity.
+func (_m *BillingInvoiceSplitLineGroup) QuerySubscription() *SubscriptionQuery {
+	return NewBillingInvoiceSplitLineGroupClient(_m.config).QuerySubscription(_m)
+}
+
+// QuerySubscriptionPhase queries the "subscription_phase" edge of the BillingInvoiceSplitLineGroup entity.
+func (_m *BillingInvoiceSplitLineGroup) QuerySubscriptionPhase() *SubscriptionPhaseQuery {
+	return NewBillingInvoiceSplitLineGroupClient(_m.config).QuerySubscriptionPhase(_m)
+}
+
+// QuerySubscriptionItem queries the "subscription_item" edge of the BillingInvoiceSplitLineGroup entity.
+func (_m *BillingInvoiceSplitLineGroup) QuerySubscriptionItem() *SubscriptionItemQuery {
+	return NewBillingInvoiceSplitLineGroupClient(_m.config).QuerySubscriptionItem(_m)
 }
 
 // Update returns a builder for updating this BillingInvoiceSplitLineGroup.
@@ -305,13 +362,10 @@ func (_m *BillingInvoiceSplitLineGroup) String() string {
 	builder.WriteString("tax_config=")
 	builder.WriteString(fmt.Sprintf("%v", _m.TaxConfig))
 	builder.WriteString(", ")
-	if v := _m.ChildUniqueReferenceID; v != nil {
-		builder.WriteString("child_unique_reference_id=")
+	if v := _m.UniqueReferenceID; v != nil {
+		builder.WriteString("unique_reference_id=")
 		builder.WriteString(*v)
 	}
-	builder.WriteString(", ")
-	builder.WriteString("customer_id=")
-	builder.WriteString(_m.CustomerID)
 	builder.WriteString(", ")
 	if v := _m.RatecardDiscounts; v != nil {
 		builder.WriteString("ratecard_discounts=")
@@ -320,6 +374,21 @@ func (_m *BillingInvoiceSplitLineGroup) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("price=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Price))
+	builder.WriteString(", ")
+	if v := _m.SubscriptionID; v != nil {
+		builder.WriteString("subscription_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SubscriptionPhaseID; v != nil {
+		builder.WriteString("subscription_phase_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SubscriptionItemID; v != nil {
+		builder.WriteString("subscription_item_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

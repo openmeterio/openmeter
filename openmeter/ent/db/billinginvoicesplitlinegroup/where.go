@@ -112,14 +112,24 @@ func Currency(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldCurrency, vc))
 }
 
-// ChildUniqueReferenceID applies equality check predicate on the "child_unique_reference_id" field. It's identical to ChildUniqueReferenceIDEQ.
-func ChildUniqueReferenceID(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldChildUniqueReferenceID, v))
+// UniqueReferenceID applies equality check predicate on the "unique_reference_id" field. It's identical to UniqueReferenceIDEQ.
+func UniqueReferenceID(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldUniqueReferenceID, v))
 }
 
-// CustomerID applies equality check predicate on the "customer_id" field. It's identical to CustomerIDEQ.
-func CustomerID(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldCustomerID, v))
+// SubscriptionID applies equality check predicate on the "subscription_id" field. It's identical to SubscriptionIDEQ.
+func SubscriptionID(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldSubscriptionID, v))
+}
+
+// SubscriptionPhaseID applies equality check predicate on the "subscription_phase_id" field. It's identical to SubscriptionPhaseIDEQ.
+func SubscriptionPhaseID(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionItemID applies equality check predicate on the "subscription_item_id" field. It's identical to SubscriptionItemIDEQ.
+func SubscriptionItemID(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldSubscriptionItemID, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -641,144 +651,79 @@ func TaxConfigNotNil() predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldTaxConfig))
 }
 
-// ChildUniqueReferenceIDEQ applies the EQ predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDEQ(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldChildUniqueReferenceID, v))
+// UniqueReferenceIDEQ applies the EQ predicate on the "unique_reference_id" field.
+func UniqueReferenceIDEQ(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldUniqueReferenceID, v))
 }
 
-// ChildUniqueReferenceIDNEQ applies the NEQ predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDNEQ(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldChildUniqueReferenceID, v))
+// UniqueReferenceIDNEQ applies the NEQ predicate on the "unique_reference_id" field.
+func UniqueReferenceIDNEQ(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldUniqueReferenceID, v))
 }
 
-// ChildUniqueReferenceIDIn applies the In predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldChildUniqueReferenceID, vs...))
+// UniqueReferenceIDIn applies the In predicate on the "unique_reference_id" field.
+func UniqueReferenceIDIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldUniqueReferenceID, vs...))
 }
 
-// ChildUniqueReferenceIDNotIn applies the NotIn predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDNotIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldChildUniqueReferenceID, vs...))
+// UniqueReferenceIDNotIn applies the NotIn predicate on the "unique_reference_id" field.
+func UniqueReferenceIDNotIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldUniqueReferenceID, vs...))
 }
 
-// ChildUniqueReferenceIDGT applies the GT predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDGT(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldChildUniqueReferenceID, v))
+// UniqueReferenceIDGT applies the GT predicate on the "unique_reference_id" field.
+func UniqueReferenceIDGT(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldUniqueReferenceID, v))
 }
 
-// ChildUniqueReferenceIDGTE applies the GTE predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDGTE(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldChildUniqueReferenceID, v))
+// UniqueReferenceIDGTE applies the GTE predicate on the "unique_reference_id" field.
+func UniqueReferenceIDGTE(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldUniqueReferenceID, v))
 }
 
-// ChildUniqueReferenceIDLT applies the LT predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDLT(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldChildUniqueReferenceID, v))
+// UniqueReferenceIDLT applies the LT predicate on the "unique_reference_id" field.
+func UniqueReferenceIDLT(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldUniqueReferenceID, v))
 }
 
-// ChildUniqueReferenceIDLTE applies the LTE predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDLTE(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldChildUniqueReferenceID, v))
+// UniqueReferenceIDLTE applies the LTE predicate on the "unique_reference_id" field.
+func UniqueReferenceIDLTE(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldUniqueReferenceID, v))
 }
 
-// ChildUniqueReferenceIDContains applies the Contains predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDContains(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContains(FieldChildUniqueReferenceID, v))
+// UniqueReferenceIDContains applies the Contains predicate on the "unique_reference_id" field.
+func UniqueReferenceIDContains(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContains(FieldUniqueReferenceID, v))
 }
 
-// ChildUniqueReferenceIDHasPrefix applies the HasPrefix predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDHasPrefix(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasPrefix(FieldChildUniqueReferenceID, v))
+// UniqueReferenceIDHasPrefix applies the HasPrefix predicate on the "unique_reference_id" field.
+func UniqueReferenceIDHasPrefix(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasPrefix(FieldUniqueReferenceID, v))
 }
 
-// ChildUniqueReferenceIDHasSuffix applies the HasSuffix predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDHasSuffix(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasSuffix(FieldChildUniqueReferenceID, v))
+// UniqueReferenceIDHasSuffix applies the HasSuffix predicate on the "unique_reference_id" field.
+func UniqueReferenceIDHasSuffix(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasSuffix(FieldUniqueReferenceID, v))
 }
 
-// ChildUniqueReferenceIDIsNil applies the IsNil predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDIsNil() predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIsNull(FieldChildUniqueReferenceID))
+// UniqueReferenceIDIsNil applies the IsNil predicate on the "unique_reference_id" field.
+func UniqueReferenceIDIsNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIsNull(FieldUniqueReferenceID))
 }
 
-// ChildUniqueReferenceIDNotNil applies the NotNil predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDNotNil() predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldChildUniqueReferenceID))
+// UniqueReferenceIDNotNil applies the NotNil predicate on the "unique_reference_id" field.
+func UniqueReferenceIDNotNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldUniqueReferenceID))
 }
 
-// ChildUniqueReferenceIDEqualFold applies the EqualFold predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDEqualFold(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEqualFold(FieldChildUniqueReferenceID, v))
+// UniqueReferenceIDEqualFold applies the EqualFold predicate on the "unique_reference_id" field.
+func UniqueReferenceIDEqualFold(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEqualFold(FieldUniqueReferenceID, v))
 }
 
-// ChildUniqueReferenceIDContainsFold applies the ContainsFold predicate on the "child_unique_reference_id" field.
-func ChildUniqueReferenceIDContainsFold(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContainsFold(FieldChildUniqueReferenceID, v))
-}
-
-// CustomerIDEQ applies the EQ predicate on the "customer_id" field.
-func CustomerIDEQ(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldCustomerID, v))
-}
-
-// CustomerIDNEQ applies the NEQ predicate on the "customer_id" field.
-func CustomerIDNEQ(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldCustomerID, v))
-}
-
-// CustomerIDIn applies the In predicate on the "customer_id" field.
-func CustomerIDIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldCustomerID, vs...))
-}
-
-// CustomerIDNotIn applies the NotIn predicate on the "customer_id" field.
-func CustomerIDNotIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldCustomerID, vs...))
-}
-
-// CustomerIDGT applies the GT predicate on the "customer_id" field.
-func CustomerIDGT(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldCustomerID, v))
-}
-
-// CustomerIDGTE applies the GTE predicate on the "customer_id" field.
-func CustomerIDGTE(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldCustomerID, v))
-}
-
-// CustomerIDLT applies the LT predicate on the "customer_id" field.
-func CustomerIDLT(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldCustomerID, v))
-}
-
-// CustomerIDLTE applies the LTE predicate on the "customer_id" field.
-func CustomerIDLTE(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldCustomerID, v))
-}
-
-// CustomerIDContains applies the Contains predicate on the "customer_id" field.
-func CustomerIDContains(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContains(FieldCustomerID, v))
-}
-
-// CustomerIDHasPrefix applies the HasPrefix predicate on the "customer_id" field.
-func CustomerIDHasPrefix(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasPrefix(FieldCustomerID, v))
-}
-
-// CustomerIDHasSuffix applies the HasSuffix predicate on the "customer_id" field.
-func CustomerIDHasSuffix(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasSuffix(FieldCustomerID, v))
-}
-
-// CustomerIDEqualFold applies the EqualFold predicate on the "customer_id" field.
-func CustomerIDEqualFold(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEqualFold(FieldCustomerID, v))
-}
-
-// CustomerIDContainsFold applies the ContainsFold predicate on the "customer_id" field.
-func CustomerIDContainsFold(v string) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContainsFold(FieldCustomerID, v))
+// UniqueReferenceIDContainsFold applies the ContainsFold predicate on the "unique_reference_id" field.
+func UniqueReferenceIDContainsFold(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContainsFold(FieldUniqueReferenceID, v))
 }
 
 // RatecardDiscountsIsNil applies the IsNil predicate on the "ratecard_discounts" field.
@@ -791,27 +736,229 @@ func RatecardDiscountsNotNil() predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldRatecardDiscounts))
 }
 
-// HasCustomer applies the HasEdge predicate on the "customer" edge.
-func HasCustomer() predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
+// SubscriptionIDEQ applies the EQ predicate on the "subscription_id" field.
+func SubscriptionIDEQ(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldSubscriptionID, v))
 }
 
-// HasCustomerWith applies the HasEdge predicate on the "customer" edge with a given conditions (other predicates).
-func HasCustomerWith(preds ...predicate.Customer) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
-		step := newCustomerStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
+// SubscriptionIDNEQ applies the NEQ predicate on the "subscription_id" field.
+func SubscriptionIDNEQ(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDIn applies the In predicate on the "subscription_id" field.
+func SubscriptionIDIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldSubscriptionID, vs...))
+}
+
+// SubscriptionIDNotIn applies the NotIn predicate on the "subscription_id" field.
+func SubscriptionIDNotIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldSubscriptionID, vs...))
+}
+
+// SubscriptionIDGT applies the GT predicate on the "subscription_id" field.
+func SubscriptionIDGT(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDGTE applies the GTE predicate on the "subscription_id" field.
+func SubscriptionIDGTE(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDLT applies the LT predicate on the "subscription_id" field.
+func SubscriptionIDLT(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDLTE applies the LTE predicate on the "subscription_id" field.
+func SubscriptionIDLTE(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDContains applies the Contains predicate on the "subscription_id" field.
+func SubscriptionIDContains(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContains(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDHasPrefix applies the HasPrefix predicate on the "subscription_id" field.
+func SubscriptionIDHasPrefix(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasPrefix(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDHasSuffix applies the HasSuffix predicate on the "subscription_id" field.
+func SubscriptionIDHasSuffix(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasSuffix(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDIsNil applies the IsNil predicate on the "subscription_id" field.
+func SubscriptionIDIsNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIsNull(FieldSubscriptionID))
+}
+
+// SubscriptionIDNotNil applies the NotNil predicate on the "subscription_id" field.
+func SubscriptionIDNotNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldSubscriptionID))
+}
+
+// SubscriptionIDEqualFold applies the EqualFold predicate on the "subscription_id" field.
+func SubscriptionIDEqualFold(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEqualFold(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDContainsFold applies the ContainsFold predicate on the "subscription_id" field.
+func SubscriptionIDContainsFold(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContainsFold(FieldSubscriptionID, v))
+}
+
+// SubscriptionPhaseIDEQ applies the EQ predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDEQ(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDNEQ applies the NEQ predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDNEQ(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDIn applies the In predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldSubscriptionPhaseID, vs...))
+}
+
+// SubscriptionPhaseIDNotIn applies the NotIn predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDNotIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldSubscriptionPhaseID, vs...))
+}
+
+// SubscriptionPhaseIDGT applies the GT predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDGT(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDGTE applies the GTE predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDGTE(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDLT applies the LT predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDLT(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDLTE applies the LTE predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDLTE(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDContains applies the Contains predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDContains(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContains(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDHasPrefix applies the HasPrefix predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDHasPrefix(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasPrefix(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDHasSuffix applies the HasSuffix predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDHasSuffix(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasSuffix(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDIsNil applies the IsNil predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDIsNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIsNull(FieldSubscriptionPhaseID))
+}
+
+// SubscriptionPhaseIDNotNil applies the NotNil predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDNotNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldSubscriptionPhaseID))
+}
+
+// SubscriptionPhaseIDEqualFold applies the EqualFold predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDEqualFold(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEqualFold(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDContainsFold applies the ContainsFold predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDContainsFold(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContainsFold(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionItemIDEQ applies the EQ predicate on the "subscription_item_id" field.
+func SubscriptionItemIDEQ(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDNEQ applies the NEQ predicate on the "subscription_item_id" field.
+func SubscriptionItemIDNEQ(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDIn applies the In predicate on the "subscription_item_id" field.
+func SubscriptionItemIDIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldSubscriptionItemID, vs...))
+}
+
+// SubscriptionItemIDNotIn applies the NotIn predicate on the "subscription_item_id" field.
+func SubscriptionItemIDNotIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldSubscriptionItemID, vs...))
+}
+
+// SubscriptionItemIDGT applies the GT predicate on the "subscription_item_id" field.
+func SubscriptionItemIDGT(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDGTE applies the GTE predicate on the "subscription_item_id" field.
+func SubscriptionItemIDGTE(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDLT applies the LT predicate on the "subscription_item_id" field.
+func SubscriptionItemIDLT(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDLTE applies the LTE predicate on the "subscription_item_id" field.
+func SubscriptionItemIDLTE(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDContains applies the Contains predicate on the "subscription_item_id" field.
+func SubscriptionItemIDContains(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContains(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDHasPrefix applies the HasPrefix predicate on the "subscription_item_id" field.
+func SubscriptionItemIDHasPrefix(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasPrefix(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDHasSuffix applies the HasSuffix predicate on the "subscription_item_id" field.
+func SubscriptionItemIDHasSuffix(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasSuffix(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDIsNil applies the IsNil predicate on the "subscription_item_id" field.
+func SubscriptionItemIDIsNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIsNull(FieldSubscriptionItemID))
+}
+
+// SubscriptionItemIDNotNil applies the NotNil predicate on the "subscription_item_id" field.
+func SubscriptionItemIDNotNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldSubscriptionItemID))
+}
+
+// SubscriptionItemIDEqualFold applies the EqualFold predicate on the "subscription_item_id" field.
+func SubscriptionItemIDEqualFold(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEqualFold(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDContainsFold applies the ContainsFold predicate on the "subscription_item_id" field.
+func SubscriptionItemIDContainsFold(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContainsFold(FieldSubscriptionItemID, v))
 }
 
 // HasBillingInvoiceLines applies the HasEdge predicate on the "billing_invoice_lines" edge.
@@ -829,6 +976,75 @@ func HasBillingInvoiceLines() predicate.BillingInvoiceSplitLineGroup {
 func HasBillingInvoiceLinesWith(preds ...predicate.BillingInvoiceLine) predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
 		step := newBillingInvoiceLinesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSubscription applies the HasEdge predicate on the "subscription" edge.
+func HasSubscription() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionTable, SubscriptionColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionWith applies the HasEdge predicate on the "subscription" edge with a given conditions (other predicates).
+func HasSubscriptionWith(preds ...predicate.Subscription) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
+		step := newSubscriptionStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSubscriptionPhase applies the HasEdge predicate on the "subscription_phase" edge.
+func HasSubscriptionPhase() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionPhaseTable, SubscriptionPhaseColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionPhaseWith applies the HasEdge predicate on the "subscription_phase" edge with a given conditions (other predicates).
+func HasSubscriptionPhaseWith(preds ...predicate.SubscriptionPhase) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
+		step := newSubscriptionPhaseStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSubscriptionItem applies the HasEdge predicate on the "subscription_item" edge.
+func HasSubscriptionItem() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionItemTable, SubscriptionItemColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionItemWith applies the HasEdge predicate on the "subscription_item" edge with a given conditions (other predicates).
+func HasSubscriptionItemWith(preds ...predicate.SubscriptionItem) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
+		step := newSubscriptionItemStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
