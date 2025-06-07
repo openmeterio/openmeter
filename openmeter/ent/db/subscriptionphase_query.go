@@ -646,7 +646,6 @@ func (_q *SubscriptionPhaseQuery) loadBillingSplitLineGroups(ctx context.Context
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
 	if len(query.ctx.Fields) > 0 {
 		query.ctx.AppendFieldOnce(billinginvoicesplitlinegroup.FieldSubscriptionPhaseID)
 	}
