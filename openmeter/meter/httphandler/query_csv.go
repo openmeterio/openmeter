@@ -63,7 +63,7 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 			// Collect subjects from query results if any
 			subjectKeys := getSubjectsFromQueryResult(rows)
 
-			var subjectsByKey map[string]*subject.Subject
+			var subjectsByKey map[string]subject.Subject
 
 			// If there are subjects get the display names
 			if len(subjectKeys) > 0 {
@@ -74,7 +74,7 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 					return nil, fmt.Errorf("failed to get subjects: %w", err)
 				}
 
-				subjectsByKey = lo.KeyBy(subjects.Items, func(s *subject.Subject) string {
+				subjectsByKey = lo.KeyBy(subjects.Items, func(s subject.Subject) string {
 					return s.Key
 				})
 			}
@@ -109,7 +109,7 @@ func getSubjectsFromQueryResult(rows []meter.MeterQueryRow) []string {
 	return subjects
 }
 
-func NewQueryMeterCSVResult(meterSlug string, queryGroupBy []string, rows []meter.MeterQueryRow, subjectsByKey map[string]*subject.Subject) QueryMeterCSVResponse {
+func NewQueryMeterCSVResult(meterSlug string, queryGroupBy []string, rows []meter.MeterQueryRow, subjectsByKey map[string]subject.Subject) QueryMeterCSVResponse {
 	return &queryMeterCSVResult{
 		meterSlug:     meterSlug,
 		queryGroupBy:  queryGroupBy,
@@ -122,7 +122,7 @@ type queryMeterCSVResult struct {
 	meterSlug     string
 	queryGroupBy  []string
 	rows          []meter.MeterQueryRow
-	subjectsByKey map[string]*subject.Subject
+	subjectsByKey map[string]subject.Subject
 }
 
 // Records returns the CSV records.
