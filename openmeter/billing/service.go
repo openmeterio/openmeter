@@ -11,6 +11,7 @@ type Service interface {
 	ProfileService
 	CustomerOverrideService
 	InvoiceLineService
+	SplitLineGroupService
 	InvoiceService
 	SequenceService
 	LockableService
@@ -42,10 +43,15 @@ type CustomerOverrideService interface {
 type InvoiceLineService interface {
 	// CreatePendingInvoiceLines creates pending invoice lines for a customer, if the lines are zero valued, the response is nil
 	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
-	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]*Line, error)
+	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
 	// SnapshotLineQuantity returns an updated line with the quantity snapshoted from meters
 	// the invoice is used as contextual information to the call.
 	SnapshotLineQuantity(ctx context.Context, input SnapshotLineQuantityInput) (*Line, error)
+}
+
+type SplitLineGroupService interface {
+	DeleteSplitLineGroup(ctx context.Context, input DeleteSplitLineGroupInput) error
+	UpdateSplitLineGroup(ctx context.Context, input UpdateSplitLineGroupInput) (SplitLineGroup, error)
 }
 
 type InvoiceService interface {

@@ -1580,9 +1580,9 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		invoiceLines := invoice.Lines.MustGet()
 		require.Len(s.T(), invoiceLines, 2)
 
-		// Let's resolve the lines by parent
-		flatPerUnit := s.lineWithParent(invoiceLines, lines.flatPerUnit.ID)
-		tieredGraduated := s.lineWithParent(invoiceLines, lines.tieredGraduated.ID)
+		// Let's resolve the lines by the first line in the split line group
+		flatPerUnit := s.lineInSameSplitLineGroup(invoiceLines, lines.flatPerUnit.ID)
+		tieredGraduated := s.lineInSameSplitLineGroup(invoiceLines, lines.tieredGraduated.ID)
 
 		// The invoice should not have:
 		// - the volume item as that must be invoiced in arreas
@@ -1603,17 +1603,18 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		}
 
 		// Let's validate the output of the split itself
-		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, lines.tieredGraduated.ID)
-		require.True(s.T(), tieredGraduatedChildren.ParentLine.Period.Equal(lines.tieredGraduated.Period))
+		s.NotNil(tieredGraduated.SplitLineHierarchy)
+		s.sortedSplitLineGroupChildren(tieredGraduated)
+		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
+
 		require.Equal(s.T(), flatPerUnit.UsageBased.Quantity.InexactFloat64(), float64(10), "flat per unit should have 10 units")
-		require.Equal(s.T(), billing.InvoiceLineStatusSplit, tieredGraduatedChildren.ParentLine.Status, "parent should be split [id=%s]", tieredGraduatedChildren.ParentLine.ID)
-		require.Len(s.T(), tieredGraduatedChildren.ChildLines, 2, "there should be to child lines [id=%s]", tieredGraduatedChildren.ParentLine.ID)
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].Period.Equal(billing.Period{
+		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 2, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
 			Start: periodStart.Truncate(time.Minute),
 			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
 		}), "first child period should be truncated")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].InvoiceAt.Equal(periodStart.Add(time.Hour).Truncate(time.Minute)), "first child should be issued at the end of parent's period")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].Period.Equal(billing.Period{
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.InvoiceAt.Equal(periodStart.Add(time.Hour).Truncate(time.Minute)), "first child should be issued at the end of parent's period")
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.Period.Equal(billing.Period{
 			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}), "second child period should be until the end of parent's period")
@@ -1878,9 +1879,9 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		require.Len(s.T(), invoiceLines, 2)
 
-		// Let's resolve the lines by parent
-		flatPerUnit := s.lineWithParent(invoiceLines, lines.flatPerUnit.ID)
-		tieredGraduated := s.lineWithParent(invoiceLines, lines.tieredGraduated.ID)
+		// Let's resolve the lines by the first line in the split line group
+		flatPerUnit := s.lineInSameSplitLineGroup(invoiceLines, lines.flatPerUnit.ID)
+		tieredGraduated := s.lineInSameSplitLineGroup(invoiceLines, lines.tieredGraduated.ID)
 
 		// The invoice should not have:
 		// - the volume item as that must be invoiced in arreas
@@ -1901,20 +1902,22 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		}
 
 		// Let's validate the output of the split itself
-		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, lines.tieredGraduated.ID)
-		require.True(s.T(), tieredGraduatedChildren.ParentLine.Period.Equal(lines.tieredGraduated.Period))
-		require.Equal(s.T(), billing.InvoiceLineStatusSplit, tieredGraduatedChildren.ParentLine.Status, "parent should be split [id=%s]", tieredGraduatedChildren.ParentLine.ID)
-		require.Len(s.T(), tieredGraduatedChildren.ChildLines, 3, "there should be to child lines [id=%s]", tieredGraduatedChildren.ParentLine.ID)
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].Period.Equal(billing.Period{
+		s.sortedSplitLineGroupChildren(tieredGraduated)
+		s.NotNil(tieredGraduated.SplitLineHierarchy)
+		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
+
+		require.True(s.T(), tieredGraduatedHierarchy.Group.Period.Equal(lines.tieredGraduated.Period))
+		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
 			Start: periodStart.Truncate(time.Minute),
 			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
 		}), "first child period should be truncated")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].Period.Equal(billing.Period{
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.Period.Equal(billing.Period{
 			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
 			End:   periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 		}), "second child period should be between the first and the third child's period")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(time.Minute)), "second child should be issued at the end of parent's period")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[2].Period.Equal(billing.Period{
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(time.Minute)), "second child should be issued at the end of parent's period")
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[2].Line.Period.Equal(billing.Period{
 			Start: periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}), "third child period should be until the end of parent's period")
@@ -2090,9 +2093,9 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		require.Len(s.T(), invoiceLines, 4)
 
-		// Let's resolve the lines by parent
-		flatPerUnit := s.lineWithParent(invoiceLines, lines.flatPerUnit.ID)
-		tieredGraduated := s.lineWithParent(invoiceLines, lines.tieredGraduated.ID)
+		// Let's resolve the lines by the first line in the split line group
+		flatPerUnit := s.lineInSameSplitLineGroup(invoiceLines, lines.flatPerUnit.ID)
+		tieredGraduated := s.lineInSameSplitLineGroup(invoiceLines, lines.tieredGraduated.ID)
 		tieredVolume, tieredVolumeFound := lo.Find(invoiceLines, func(l *billing.Line) bool {
 			return l.ID == lines.tieredVolume.ID
 		})
@@ -2123,20 +2126,22 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.True(s.T(), flatFee.Period.Equal(lines.flatFee.Period), "period should be unchanged for the flat line")
 
 		// Let's validate the output of the split itself: no new split should have occurred
-		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, lines.tieredGraduated.ID)
-		require.True(s.T(), tieredGraduatedChildren.ParentLine.Period.Equal(lines.tieredGraduated.Period))
-		require.Equal(s.T(), billing.InvoiceLineStatusSplit, tieredGraduatedChildren.ParentLine.Status, "parent should be split [id=%s]", tieredGraduatedChildren.ParentLine.ID)
-		require.Len(s.T(), tieredGraduatedChildren.ChildLines, 3, "there should be to child lines [id=%s]", tieredGraduatedChildren.ParentLine.ID)
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].Period.Equal(billing.Period{
+		s.sortedSplitLineGroupChildren(tieredGraduated)
+		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
+		s.NotNil(tieredGraduatedHierarchy)
+
+		require.True(s.T(), tieredGraduatedHierarchy.Group.Period.Equal(lines.tieredGraduated.Period))
+		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
 			Start: periodStart.Truncate(time.Minute),
 			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
 		}), "first child period should be truncated")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].Period.Equal(billing.Period{
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.Period.Equal(billing.Period{
 			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
 			End:   periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 		}), "second child period should be between the first and the third child's period")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(time.Minute)), "second child should be issued at the end of parent's period")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[2].Period.Equal(billing.Period{
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(time.Minute)), "second child should be issued at the end of parent's period")
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[2].Line.Period.Equal(billing.Period{
 			Start: periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}), "third child period should be until the end of parent's period")
@@ -2376,8 +2381,8 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		invoiceLines := out[0].Lines.MustGet()
 		require.Len(s.T(), invoiceLines, 1)
 
-		// Let's resolve the lines by parent
-		tieredGraduated := s.lineWithParent(invoiceLines, pendingLine.ID)
+		// Let's resolve the lines by the first line in the split line group
+		tieredGraduated := s.lineInSameSplitLineGroup(invoiceLines, pendingLine.ID)
 
 		requireTotals(s.T(), expectedTotals{
 			Amount: 100,
@@ -2385,9 +2390,8 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		}, tieredGraduated.Totals)
 
 		// Let's validate the output of the split itself
-		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, tieredGraduated.ID)
-		s.Len(tieredGraduatedChildren.ChildLines, 1)
-		childLine := tieredGraduatedChildren.ChildLines[0]
+		s.Len(tieredGraduated.Children.OrEmpty(), 1)
+		childLine := tieredGraduated.Children.OrEmpty()[0]
 
 		requireTotals(s.T(), expectedTotals{
 			Amount: 100,
@@ -2414,7 +2418,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		invoiceLines := out[0].Lines.MustGet()
 		require.Len(s.T(), invoiceLines, 1)
 
-		tieredGraduated := s.lineWithParent(invoiceLines, pendingLine.ID)
+		tieredGraduated := s.lineInSameSplitLineGroup(invoiceLines, pendingLine.ID)
 
 		requireTotals(s.T(), expectedTotals{
 			Amount: 0,
@@ -2422,8 +2426,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		}, tieredGraduated.Totals)
 
 		// Let's validate the output of the split itself
-		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, tieredGraduated.ID)
-		s.Len(tieredGraduatedChildren.ChildLines, 0)
+		s.Len(tieredGraduated.Children.OrEmpty(), 0)
 	})
 
 	s.Run("create new invoice, with usage", func() {
@@ -2916,11 +2919,18 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 	})
 }
 
-func (s *InvoicingTestSuite) lineWithParent(lines []*billing.Line, parentID string) *billing.Line {
+func (s *InvoicingTestSuite) lineInSameSplitLineGroup(lines []*billing.Line, shiblingLineID string) *billing.Line {
 	s.T().Helper()
+
 	for _, line := range lines {
-		if line.ParentLineID != nil && *line.ParentLineID == parentID {
-			return line
+		if line.SplitLineHierarchy == nil {
+			continue
+		}
+
+		for _, child := range line.SplitLineHierarchy.Lines {
+			if child.Line.ID == shiblingLineID {
+				return line
+			}
 		}
 	}
 
@@ -2940,46 +2950,19 @@ func (s *InvoicingTestSuite) lineByID(lines []*billing.Line, id string) *billing
 	return nil
 }
 
-type getChlildLinesResponse struct {
-	ParentLine *billing.Line
-	ChildLines []*billing.Line
-}
+func (s *InvoicingTestSuite) sortedSplitLineGroupChildren(line *billing.Line) {
+	s.NotNil(line.SplitLineHierarchy)
 
-func (s *InvoicingTestSuite) getLineChildLines(ctx context.Context, ns string, parentID string) getChlildLinesResponse {
-	res, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
-		Namespace:                  ns,
-		ParentLineIDs:              []string{parentID},
-		ParentLineIDsIncludeParent: true,
-	})
-	require.NoError(s.T(), err)
-
-	if len(res) == 0 {
-		require.Fail(s.T(), "no child lines found")
-	}
-
-	response := getChlildLinesResponse{}
-
-	for _, line := range res {
-		if line.ID == parentID {
-			response.ParentLine = line
-		} else {
-			response.ChildLines = append(response.ChildLines, line)
-		}
-	}
-
-	slices.SortFunc(response.ChildLines, func(a, b *billing.Line) int {
+	slices.SortFunc(line.SplitLineHierarchy.Lines, func(a, b billing.LineWithInvoiceHeader) int {
 		switch {
-		case a.Period.Start.Equal(b.Period.Start):
+		case a.Line.Period.Start.Equal(b.Line.Period.Start):
 			return 0
-		case a.Period.Start.Before(b.Period.Start):
+		case a.Line.Period.Start.Before(b.Line.Period.Start):
 			return -1
 		default:
 			return 1
 		}
 	})
-
-	require.NotEmpty(s.T(), response.ParentLine.ID)
-	return response
 }
 
 type ubpPendingLines struct {

@@ -179,10 +179,6 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 					return false
 				}
 
-				if !in.Expand.SplitLines && line.Status == billing.InvoiceLineStatusSplit {
-					return false
-				}
-
 				return true
 			}),
 		)
@@ -885,30 +881,12 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 		return transcationForInvoiceManipulation(ctx, s, invoice.CustomerID(), func(ctx context.Context) (billing.Invoice, error) {
 			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 				Invoice: input.Invoice,
-				// We need split lines too, as for gathering invoices we need to edit those too
 				Expand: billing.InvoiceExpandAll.
-					SetSplitLines(true).
 					SetDeletedLines(input.IncludeDeletedLines),
 			})
 			if err != nil {
 				return billing.Invoice{}, fmt.Errorf("fetching invoice: %w", err)
 			}
-
-			// We have requested the invoice to include the split lines, and GetInvoiceByID will also expand
-			// the sub-lines. However given split lines are cross invoice, those should not be edited via single
-			// invoice update calls, so we strip the child line information from the invoice. This signals the adapter
-			// that we are not trying to edit the child lines, thus it will not throw an error for the operation.
-
-			invoice.Lines = billing.NewLineChildren(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) *billing.Line {
-				if line.Status != billing.InvoiceLineStatusSplit {
-					return line
-				}
-
-				// This makes the line children not present in the invoice
-				line.Children = billing.LineChildren{}
-
-				return line
-			}))
 
 			if err := input.EditFn(&invoice); err != nil {
 				return billing.Invoice{}, fmt.Errorf("editing invoice: %w", err)

@@ -15,6 +15,7 @@ type Adapter interface {
 	ProfileAdapter
 	CustomerOverrideAdapter
 	InvoiceLineAdapter
+	InvoiceSplitLineGroupAdapter
 	InvoiceAdapter
 	SequenceAdapter
 	InvoiceAppAdapter
@@ -59,7 +60,7 @@ type InvoiceLineAdapter interface {
 	UpsertInvoiceLines(ctx context.Context, input UpsertInvoiceLinesAdapterInput) ([]*Line, error)
 	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]*Line, error)
 	AssociateLinesToInvoice(ctx context.Context, input AssociateLinesToInvoiceAdapterInput) ([]*Line, error)
-	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]*Line, error)
+	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
 }
 
 type InvoiceAdapter interface {
@@ -71,6 +72,13 @@ type InvoiceAdapter interface {
 	UpdateInvoice(ctx context.Context, input UpdateInvoiceAdapterInput) (Invoice, error)
 
 	GetInvoiceOwnership(ctx context.Context, input GetInvoiceOwnershipAdapterInput) (GetOwnershipAdapterResponse, error)
+}
+
+type InvoiceSplitLineGroupAdapter interface {
+	CreateSplitLineGroup(ctx context.Context, input CreateSplitLineGroupAdapterInput) (SplitLineGroup, error)
+	UpdateSplitLineGroup(ctx context.Context, input UpdateSplitLineGroupInput) (SplitLineGroup, error)
+	DeleteSplitLineGroup(ctx context.Context, input DeleteSplitLineGroupInput) error
+	GetSplitLineGroup(ctx context.Context, input GetSplitLineGroupInput) (SplitLineHierarchy, error)
 }
 
 type SequenceAdapter interface {

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/samber/lo"
-	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -14,42 +13,16 @@ import (
 )
 
 type UpdateInput struct {
-	ParentLine  mo.Option[*billing.Line]
-	PeriodStart time.Time
-	PeriodEnd   time.Time
-	InvoiceAt   time.Time
-	Status      billing.InvoiceLineStatus
+	SplitLineGroupID string
+	PeriodStart      time.Time
+	PeriodEnd        time.Time
+	InvoiceAt        time.Time
+	Status           billing.InvoiceLineStatus
 
 	// PreventChildChanges is used to prevent any child changes to the line by the adapter.
 	PreventChildChanges bool
 
 	ResetChildUniqueReferenceID bool
-}
-
-func (i UpdateInput) apply(line *billing.Line) {
-	if !i.PeriodStart.IsZero() {
-		line.Period.Start = i.PeriodStart
-	}
-
-	if !i.PeriodEnd.IsZero() {
-		line.Period.End = i.PeriodEnd
-	}
-
-	if !i.InvoiceAt.IsZero() {
-		line.InvoiceAt = i.InvoiceAt
-	}
-
-	if i.Status != "" {
-		line.Status = i.Status
-	}
-
-	if i.PreventChildChanges {
-		line.Children = billing.LineChildren{}
-	}
-
-	if i.ResetChildUniqueReferenceID {
-		line.ChildUniqueReferenceID = nil
-	}
 }
 
 type SplitResult struct {
@@ -65,11 +38,10 @@ type LineBase interface {
 	Currency() currencyx.Code
 	Period() billing.Period
 	Status() billing.InvoiceLineStatus
-	HasParent() bool
 	// IsLastInPeriod returns true if the line is the last line in the period that is going to be invoiced.
 	IsLastInPeriod() bool
 	IsDeleted() bool
-	IsSplit() bool
+	IsSplitLineGroupMember() bool
 
 	CloneForCreate(in UpdateInput) Line
 	Update(in UpdateInput) Line
@@ -123,8 +95,8 @@ func (l lineBase) Status() billing.InvoiceLineStatus {
 	return l.line.Status
 }
 
-func (l lineBase) HasParent() bool {
-	return l.line.ParentLineID != nil
+func (l lineBase) IsSplitLineGroupMember() bool {
+	return l.line.SplitLineGroupID != nil
 }
 
 func (l lineBase) Validate(ctx context.Context, invoice *billing.Invoice) error {
@@ -138,23 +110,31 @@ func (l lineBase) Validate(ctx context.Context, invoice *billing.Invoice) error 
 }
 
 func (l lineBase) IsLastInPeriod() bool {
-	return (l.line.Status == billing.InvoiceLineStatusValid && // We only care about valid lines
-		(l.line.ParentLineID == nil || // Either we haven't split the line
-			l.line.Period.End.Equal(l.line.ParentLine.Period.End))) // Or we have split the line and this is the last split
+	if l.line.SplitLineGroupID == nil {
+		return true
+	}
+
+	if l.line.SplitLineHierarchy.Group.Period.End.Equal(l.line.Period.End) {
+		return true
+	}
+
+	return false
 }
 
 func (l lineBase) IsFirstInPeriod() bool {
-	return (l.line.Status == billing.InvoiceLineStatusValid && // We only care about valid lines
-		(l.line.ParentLineID == nil || // Either we haven't split the line
-			l.line.Period.Start.Equal(l.line.ParentLine.Period.Start))) // Or we have split the line and this is the last split
+	if l.line.SplitLineGroupID == nil {
+		return true
+	}
+
+	if l.line.SplitLineHierarchy.Group.Period.Start.Equal(l.line.Period.Start) {
+		return true
+	}
+
+	return false
 }
 
 func (l lineBase) IsDeleted() bool {
 	return l.line.DeletedAt != nil
-}
-
-func (l lineBase) IsSplit() bool {
-	return l.line.Status == billing.InvoiceLineStatusSplit
 }
 
 func (l lineBase) Save(ctx context.Context) (Line, error) {
@@ -194,22 +174,35 @@ func (l lineBase) CloneForCreate(in UpdateInput) Line {
 }
 
 func (l lineBase) Update(in UpdateInput) Line {
-	return l.update(in)
-}
+	// TODO[later]: Either we should clone and update the clone or we should not return the Line as if that's a new
+	// object.
 
-func (l lineBase) update(in UpdateInput) Line {
-	in.apply(l.line)
+	if !in.PeriodStart.IsZero() {
+		l.line.Period.Start = in.PeriodStart
+	}
 
-	if in.ParentLine.IsPresent() {
-		parentLine := in.ParentLine.OrEmpty()
-		// Let's update the parent line
-		if parentLine != nil {
-			l.line.ParentLineID = lo.ToPtr(parentLine.ID)
-			l.line.ParentLine = parentLine
-		} else {
-			l.line.ParentLineID = nil
-			l.line.ParentLine = nil
-		}
+	if !in.PeriodEnd.IsZero() {
+		l.line.Period.End = in.PeriodEnd
+	}
+
+	if !in.InvoiceAt.IsZero() {
+		l.line.InvoiceAt = in.InvoiceAt
+	}
+
+	if in.Status != "" {
+		l.line.Status = in.Status
+	}
+
+	if in.PreventChildChanges {
+		l.line.Children = billing.LineChildren{}
+	}
+
+	if in.SplitLineGroupID != "" {
+		l.line.SplitLineGroupID = lo.ToPtr(in.SplitLineGroupID)
+	}
+
+	if in.ResetChildUniqueReferenceID {
+		l.line.ChildUniqueReferenceID = nil
 	}
 
 	// Let's ignore the error here as we don't allow for any type updates
@@ -229,62 +222,43 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 		return SplitResult{}, fmt.Errorf("line[%s]: splitAt is not within the line period", l.line.ID)
 	}
 
-	if !l.HasParent() {
-		parentLine, err := l.Update(UpdateInput{
-			Status:              billing.InvoiceLineStatusSplit,
-			PreventChildChanges: true,
-		}).Save(ctx)
+	var splitLineGroupID string
+	if !l.IsSplitLineGroupMember() {
+		if l.line.Type != billing.InvoiceLineTypeUsageBased {
+			return SplitResult{}, fmt.Errorf("line[%s]: split is only supported for usage based lines", l.line.ID)
+		}
+
+		splitLineGroup, err := l.service.BillingAdapter.CreateSplitLineGroup(ctx, billing.CreateSplitLineGroupAdapterInput{
+			Namespace:         l.line.Namespace,
+			UniqueReferenceID: l.line.ChildUniqueReferenceID,
+
+			Name:        l.line.Name,
+			Description: l.line.Description,
+
+			Period:   l.line.Period,
+			Currency: l.line.Currency,
+
+			RatecardDiscounts: l.line.RateCardDiscounts,
+			Price:             l.line.UsageBased.Price,
+			TaxConfig:         l.line.TaxConfig,
+
+			Subscription: l.line.Subscription,
+		})
 		if err != nil {
-			return SplitResult{}, fmt.Errorf("saving parent line: %w", err)
+			return SplitResult{}, fmt.Errorf("creating split line group: %w", err)
 		}
 
-		result := SplitResult{}
-
-		// Let's create the child lines
-		preSplitAtLine := l.CloneForCreate(UpdateInput{
-			ParentLine:                  mo.Some(parentLine.ToEntity()),
-			Status:                      billing.InvoiceLineStatusValid,
-			PeriodEnd:                   splitAt,
-			InvoiceAt:                   splitAt,
-			ResetChildUniqueReferenceID: true,
-		})
-
-		// Let's not create a line if it has an empty period as that prevents gathering invoice updates
-		if !preSplitAtLine.IsPeriodEmptyConsideringTruncations() {
-			preSplitAtLine, err := preSplitAtLine.Save(ctx)
-			if err != nil {
-				return SplitResult{}, fmt.Errorf("saving pre split line: %w", err)
-			}
-
-			result.PreSplitAtLine = preSplitAtLine
-		}
-
-		postSplitAtLine := l.CloneForCreate(UpdateInput{
-			ParentLine:                  mo.Some(parentLine.ToEntity()),
-			Status:                      billing.InvoiceLineStatusValid,
-			PeriodStart:                 splitAt,
-			ResetChildUniqueReferenceID: true,
-		})
-
-		if !postSplitAtLine.IsPeriodEmptyConsideringTruncations() {
-			postSplitAtLine, err := postSplitAtLine.Save(ctx)
-			if err != nil {
-				return SplitResult{}, fmt.Errorf("saving post split line: %w", err)
-			}
-
-			result.PostSplitAtLine = postSplitAtLine
-		}
-
-		return result, nil
+		splitLineGroupID = splitLineGroup.ID
+	} else {
+		splitLineGroupID = *l.line.SplitLineGroupID
 	}
 
 	result := SplitResult{}
 
 	// We have alredy split the line once, we just need to create a new line and update the existing line
 	postSplitAtLine := l.CloneForCreate(UpdateInput{
-		Status:                      billing.InvoiceLineStatusValid,
 		PeriodStart:                 splitAt,
-		ParentLine:                  mo.Some(l.line.ParentLine),
+		SplitLineGroupID:            splitLineGroupID,
 		ResetChildUniqueReferenceID: true,
 	})
 	if !postSplitAtLine.IsPeriodEmptyConsideringTruncations() {
@@ -299,6 +273,7 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 	preSplitAtLine := l.Update(UpdateInput{
 		PeriodEnd:                   splitAt,
 		InvoiceAt:                   splitAt,
+		SplitLineGroupID:            splitLineGroupID,
 		ResetChildUniqueReferenceID: true,
 	})
 

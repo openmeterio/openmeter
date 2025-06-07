@@ -61,19 +61,16 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 		},
 	}
 
-	fakeParentLine := billing.Line{
-		LineBase: billing.LineBase{
-			ID:     "fake-parent-line",
+	fakeParentGroup := billing.SplitLineGroup{
+		ID: "fake-parent-group",
+		SplitLineGroupBase: billing.SplitLineGroupBase{
 			Period: ubpTestFullPeriod,
-			Status: billing.InvoiceLineStatusSplit,
 		},
 	}
 
-	fakeHierarchy := billing.InvoiceLineProgressiveHierarchy{
-		Root: billing.InvoiceLineWithInvoiceBase{
-			Line: &fakeParentLine,
-		},
-		Children: []billing.InvoiceLineWithInvoiceBase{
+	fakeHierarchy := billing.SplitLineHierarchy{
+		Group: fakeParentGroup,
+		Lines: []billing.LineWithInvoiceHeader{
 			{
 				Line: &billing.Line{
 					LineBase: billing.LineBase{
@@ -95,9 +92,8 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 			Start: ubpTestFullPeriod.Start.Add(time.Hour * 12),
 			End:   ubpTestFullPeriod.End.Add(-time.Hour),
 		}
-		line.ParentLine = &fakeParentLine
-		line.ParentLineID = &fakeParentLine.ID
-		line.ProgressiveLineHierarchy = &fakeHierarchy
+		line.SplitLineGroupID = &fakeParentGroup.ID
+		line.SplitLineHierarchy = &fakeHierarchy
 
 	case lastInPeriodSplitLineMode:
 		line.Period = billing.Period{
@@ -105,9 +101,8 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 			End:   ubpTestFullPeriod.End,
 		}
 
-		line.ParentLine = &fakeParentLine
-		line.ParentLineID = &fakeParentLine.ID
-		line.ProgressiveLineHierarchy = &fakeHierarchy
+		line.SplitLineGroupID = &fakeParentGroup.ID
+		line.SplitLineHierarchy = &fakeHierarchy
 	}
 
 	// Let's set the usage on the line

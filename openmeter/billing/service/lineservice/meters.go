@@ -14,11 +14,10 @@ import (
 )
 
 type getFeatureUsageInput struct {
-	Line       *billing.Line
-	ParentLine *billing.Line
-	Meter      meter.Meter
-	Feature    feature.Feature
-	Subjects   []string
+	Line     *billing.Line
+	Meter    meter.Meter
+	Feature  feature.Feature
+	Subjects []string
 }
 
 func (i getFeatureUsageInput) Validate() error {
@@ -26,25 +25,11 @@ func (i getFeatureUsageInput) Validate() error {
 		return fmt.Errorf("line is required")
 	}
 
-	if i.Line.ParentLineID != nil && i.ParentLine == nil {
-		return fmt.Errorf("parent line is required for split lines")
-	}
-
-	if i.Line.ParentLineID == nil && i.ParentLine != nil {
-		return fmt.Errorf("parent line is not allowed for non-split lines")
-	}
-
-	if i.ParentLine != nil {
-		if i.ParentLine.Status != billing.InvoiceLineStatusSplit {
-			return fmt.Errorf("parent line is not split")
-		}
-	}
-
 	if slices.Contains([]meter.MeterAggregation{
 		meter.MeterAggregationAvg,
 		meter.MeterAggregationMin,
 	}, i.Meter.Aggregation) {
-		if i.ParentLine != nil {
+		if i.Line.SplitLineHierarchy != nil {
 			return fmt.Errorf("aggregation %s is not supported for split lines", i.Meter.Aggregation)
 		}
 	}
@@ -82,8 +67,10 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 		}
 	}
 
+	lineHierarchy := in.Line.SplitLineHierarchy
+
 	// If we are the first line in the split, we don't need to calculate the pre period
-	if in.ParentLine == nil || in.ParentLine.Period.Start.Equal(in.Line.Period.Start) {
+	if lineHierarchy == nil || lineHierarchy.Group.Period.Start.Equal(in.Line.Period.Start) {
 		meterValues, err := s.StreamingConnector.QueryMeter(
 			ctx,
 			in.Line.Namespace,
@@ -101,7 +88,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 
 	// Let's calculate [parent.start ... line.start] values
 	preLineQuery := meterQueryParams
-	preLineQuery.From = &in.ParentLine.Period.Start
+	preLineQuery.From = &lineHierarchy.Group.Period.Start
 	preLineQuery.To = &in.Line.Period.Start
 
 	preLineResult, err := s.StreamingConnector.QueryMeter(
@@ -111,14 +98,14 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 		preLineQuery,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("querying pre line[%s] period meter[%s]: %w", in.ParentLine.ID, in.Meter.Key, err)
+		return nil, fmt.Errorf("querying pre line[%s] period meter[%s]: %w", in.Line.ID, in.Meter.Key, err)
 	}
 
 	preLineQty := summarizeMeterQueryRow(preLineResult)
 
 	// Let's calculate [parent.start ... line.end] values
 	upToLineEnd := meterQueryParams
-	upToLineEnd.From = &in.ParentLine.Period.Start
+	upToLineEnd.From = &lineHierarchy.Group.Period.Start
 	upToLineEnd.To = &in.Line.Period.End
 
 	upToLineEndResult, err := s.StreamingConnector.QueryMeter(
@@ -128,7 +115,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 		upToLineEnd,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("querying up to line[%s] end meter[%s]: %w", in.ParentLine.ID, in.Meter.Key, err)
+		return nil, fmt.Errorf("querying up to line[%s] end meter[%s]: %w", in.Line.ID, in.Meter.Key, err)
 	}
 
 	upToLineQty := summarizeMeterQueryRow(upToLineEndResult)

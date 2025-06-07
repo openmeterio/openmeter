@@ -1408,12 +1408,25 @@ func (n NoopBillingService) CreatePendingInvoiceLines(ctx context.Context, input
 	return nil, nil
 }
 
-func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]*billing.Line, error) {
-	return []*billing.Line{}, nil
+func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
+	return []billing.LineOrHierarchy{}, nil
 }
 
 func (n NoopBillingService) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.Line, error) {
 	return &billing.Line{}, nil
+}
+
+// InvoiceSplitLineGroupService methods
+func (n NoopBillingService) DeleteSplitLineGroup(ctx context.Context, input billing.DeleteSplitLineGroupInput) error {
+	return nil
+}
+
+func (n NoopBillingService) UpdateSplitLineGroup(ctx context.Context, input billing.UpdateSplitLineGroupInput) (billing.SplitLineGroup, error) {
+	return billing.SplitLineGroup{}, nil
+}
+
+func (n NoopBillingService) GetSplitLineGroup(ctx context.Context, input billing.GetSplitLineGroupInput) (billing.SplitLineHierarchy, error) {
+	return billing.SplitLineHierarchy{}, nil
 }
 
 // InvoiceService methods

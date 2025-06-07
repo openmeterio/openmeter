@@ -747,7 +747,7 @@ var (
 		{Name: "managed_by", Type: field.TypeEnum, Enums: []string{"subscription", "system", "manual"}},
 		{Name: "invoice_at", Type: field.TypeTime},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"flat_fee", "usage_based"}},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"valid", "split", "detailed"}},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"valid", "detailed"}},
 		{Name: "quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "ratecard_discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},

@@ -37,8 +37,12 @@ func (m *minAmountCommitmentMutator) Mutate(i PricerCalculateInput, pricerResult
 
 		// Minimum spend is always billed for the whole period, this is a noop if we are not using progressive billing
 		period := i.line.Period
-		if i.line.ParentLine != nil {
-			period = i.line.ParentLine.Period
+		if i.line.SplitLineGroupID != nil {
+			if i.line.SplitLineHierarchy == nil {
+				return pricerResult, fmt.Errorf("line[%s] does not have a split line hierarchy, but is a progressive billed line", i.line.ID)
+			}
+
+			period = i.line.SplitLineHierarchy.Group.Period
 		}
 
 		pricerResult = append(pricerResult, newDetailedLineInput{
@@ -92,15 +96,15 @@ func (m *maxAmountCommitmentMutator) Mutate(i PricerCalculateInput, pricerResult
 }
 
 func getPreviouslyBilledAmount(l PricerCalculateInput) (alpacadecimal.Decimal, error) {
-	if l.line.ParentLineID == nil {
+	if l.line.SplitLineGroupID == nil {
 		return alpacadecimal.Zero, nil
 	}
 
-	if l.line.ProgressiveLineHierarchy == nil {
+	if l.line.SplitLineHierarchy == nil {
 		return alpacadecimal.Zero, fmt.Errorf("line[%s] does not have a progressive line hierarchy, but is a progressive billed line", l.line.ID)
 	}
 
-	sum := l.line.ProgressiveLineHierarchy.SumNetAmount(billing.SumNetAmountInput{
+	sum := l.line.SplitLineHierarchy.SumNetAmount(billing.SumNetAmountInput{
 		PeriodEndLTE: l.line.Period.Start,
 		// TODO[later]: Should we include charges here? For now it's fine to not include them, as only
 		// minimum amount charges can happen, but if later we add more charge types, we will have to
