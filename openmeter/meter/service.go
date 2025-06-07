@@ -83,11 +83,6 @@ func (p ListMetersParams) Validate() error {
 		errs = append(errs, errors.New("namespace is required"))
 	}
 
-	// FIXME: we cannot validate the page here because it's not always set
-	// if err := p.Page.Validate(); err != nil {
-	// 	errs = append(errs, fmt.Errorf("invalid page: %w", err))
-	// }
-
 	if p.OrderBy != "" && !slices.Contains(OrderBy("").Values(), p.OrderBy) {
 		errs = append(errs, fmt.Errorf("invalid order by: %s", p.OrderBy))
 	}

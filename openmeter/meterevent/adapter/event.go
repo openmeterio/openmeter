@@ -62,7 +62,7 @@ func (a *adapter) ListEventsV2(ctx context.Context, params meterevent.ListEvents
 // validateEvents validates a list of raw events against a list of meters.
 func (a *adapter) validateEvents(ctx context.Context, namespace string, events []streaming.RawEvent) ([]meterevent.Event, error) {
 	// Get all meters
-	meters, err := meter.ListAll(ctx, a.meterService, meter.ListMetersParams{
+	meterList, err := a.meterService.ListMeters(ctx, meter.ListMetersParams{
 		Namespace: namespace,
 	})
 	if err != nil {
@@ -86,7 +86,7 @@ func (a *adapter) validateEvents(ctx context.Context, namespace string, events [
 
 		meterMatch := false
 
-		for _, m := range meters {
+		for _, m := range meterList.Items {
 			if event.Type == m.EventType {
 				meterMatch = true
 
