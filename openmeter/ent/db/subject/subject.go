@@ -37,6 +37,7 @@ var Columns = []string{
 	FieldNamespace,
 	FieldKey,
 	FieldDisplayName,
+	FieldStripeCustomerID,
 	FieldMetadata,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -46,11 +47,6 @@ var Columns = []string{
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for _, f := range [...]string{FieldStripeCustomerID} {
-		if column == f {
 			return true
 		}
 	}
