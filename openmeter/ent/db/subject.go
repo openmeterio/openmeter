@@ -25,8 +25,6 @@ type Subject struct {
 	// DisplayName holds the value of the "display_name" field.
 	DisplayName *string `json:"display_name,omitempty"`
 	// StripeCustomerID holds the value of the "stripe_customer_id" field.
-	//
-	// Deprecated: Use customer entity instead
 	StripeCustomerID *string `json:"stripe_customer_id,omitempty"`
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]interface{} `json:"metadata,omitempty"`

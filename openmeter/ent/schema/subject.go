@@ -20,7 +20,7 @@ func (Subject) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("key").NotEmpty(),
 		field.String("display_name").Optional().Nillable(),
-		field.String("stripe_customer_id").Optional().Nillable().Deprecated("Use customer entity instead"),
+		field.String("stripe_customer_id").Optional().Nillable(),
 		field.JSON("metadata", map[string]interface{}{}).
 			Optional().
 			SchemaType(map[string]string{
