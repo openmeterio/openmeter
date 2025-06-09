@@ -237,28 +237,15 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	var sqlPreWhere string
 
 	if len(d.FilterGroupBy) > 0 {
+		sqlPreWhere, _ = query.Build()
+		dataColumn := getColumn("data")
+
 		// We sort the group bys to ensure the query is deterministic
 		filterGroupByKeys := make([]string, 0, len(d.FilterGroupBy))
 		for k := range d.FilterGroupBy {
 			filterGroupByKeys = append(filterGroupByKeys, k)
 		}
 		sort.Strings(filterGroupByKeys)
-
-		// Add to prewhere
-		for _, groupByKey := range filterGroupByKeys {
-			mapFunc := func(value string) string {
-				// Subject is a special case
-				if groupByKey == "subject" {
-					return fmt.Sprintf("subject = '%s'", sqlbuilder.Escape(value))
-				}
-
-				return fmt.Sprintf("JSONHas('%s')", sqlbuilder.Escape(value))
-			}
-
-			query.Where(query.Or(slicesx.Map(d.FilterGroupBy[groupByKey], mapFunc)...))
-		}
-
-		sqlPreWhere, _ = query.Build()
 
 		// Where clauses
 		for _, groupByKey := range filterGroupByKeys {
@@ -273,7 +260,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 				return "", nil, fmt.Errorf("empty filter for group by: %s", groupByKey)
 			}
 			mapFunc := func(value string) string {
-				column := fmt.Sprintf("JSON_VALUE(%s, '%s')", getColumn("data"), groupByJSONPath)
+				column := fmt.Sprintf("JSON_VALUE(%s, '%s')", dataColumn, groupByJSONPath)
 
 				// Subject is a special case
 				if groupByKey == "subject" {
@@ -319,6 +306,8 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	}
 
 	sql = sql + fmt.Sprintf(" SETTINGS %s", strings.Join(settings, ", "))
+
+	fmt.Println(sql, args)
 
 	return sql, args, nil
 }
